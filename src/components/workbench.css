@@ -3,3 +3,91 @@
 @keyframes ew-enter{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
 @media(max-width:1000px){.ew-panel{position:static}.ew-header{padding:20px}.ew-content{padding:18px}.ew-equation{font-size:15px}}@media(max-width:480px){.fb-onboarding[data-slot=dialog-content]{padding:20px!important}.ob-welcome{display:none}.ob-title[data-slot=dialog-title]{font-size:25px!important}.ob-description[data-slot=dialog-description]{font-size:12px;min-height:87px}.ob-formula{font-size:12px}.ob-actions [data-slot=button]{font-size:11px;padding:0 10px}.ob-visual{margin-top:20px}.ob-copy{padding-top:20px}.ob-hint{font-size:10px}.ew-equation{font-size:13px}}
 @media(prefers-reduced-motion:reduce){.ew-panel *,.fb-onboarding *{animation:none!important;transition:none!important}}
+
+/* =====================================================================
+   SECOND VISUAL PASS — the workbench is the page's second surface:
+   a flat white sheet with a hairline, no shadow, so the figure keeps the
+   only lift on the screen. Internally it drops every sub-card: the
+   equation, the result and the flow control sit on the sheet itself,
+   separated by rules and space. Sizes come from the six-step scale.
+   ===================================================================== */
+.ew-panel{top:26px;border:1px solid var(--surface-rule);border-radius:16px;box-shadow:none;background:var(--card)}
+.ew-header{padding:26px 24px 20px;border-bottom:1px solid var(--surface-rule)}
+.ew-header h2{font-family:var(--serif);font-weight:400;font-size:var(--type-sub);letter-spacing:-.015em;margin:0;line-height:1.22}
+.ew-content{padding:24px}
+/* The live equation is the sheet's own headline object. */
+.ew-equation{border:0;border-radius:0;background:none;padding:6px 0 20px;margin:14px 0 0;min-height:0;
+ border-bottom:1px solid var(--surface-rule);font-size:var(--type-lead);color:var(--foreground)}
+.ew-equation .katex{font-size:1.24em}
+.ew-equation-label,.ew-section-title{font-size:var(--type-meta);font-weight:500;color:var(--muted-foreground)}
+.ew-equation-label>span:last-child,.ew-section-title>span:last-child{font-size:var(--type-meta);font-weight:400}
+.ew-context{font-size:var(--type-meta);line-height:1.72;padding-top:16px}
+/* Flow control: four symbols, quiet segmented control. */
+.ew-flow{border:0;background:var(--muted);border-radius:11px;padding:4px;gap:2px;margin:24px 0 26px}
+.ew-flow button{border:0;border-radius:8px;padding:9px 2px;gap:3px}
+.ew-flow button>span{font-family:var(--serif);font-size:20px;line-height:1.15;font-style:italic}
+.ew-flow button>small{font-size:12px}
+.ew-flow button[aria-pressed=true]{background:var(--card);color:var(--foreground);border:0;
+ box-shadow:0 1px 2px color-mix(in oklab,var(--foreground) 10%,transparent)}
+.ew-flow button[aria-pressed=true]>span{color:var(--field)}
+.ew-section-title{margin-bottom:6px}
+.ew-concept,.ew-bounds{border-bottom:1px solid var(--surface-rule)}
+.ew-concept>button{padding:15px 0;gap:12px}
+.ew-concept>button small{font-size:var(--type-meta);margin-bottom:7px}
+.ew-concept>button .math{font-size:var(--type-body)}
+.ew-concept-detail{font-size:var(--type-meta);line-height:1.8;padding:0 0 16px 18px}
+.ew-concept-detail>.math{font-size:var(--type-meta)}
+.ew-disclosure{font-size:var(--type-body);padding:17px 0}
+.ew-disclosure .math{font-size:var(--type-meta);max-width:150px}
+.ew-bound-form>p,.ew-bound-fields label{font-size:var(--type-meta)}
+.ew-bound-fields input{font-size:var(--type-body);padding:10px 11px;border-color:var(--border)}
+.ew-bound-actions [data-slot=button]{font-size:var(--type-meta)}
+.ew-result{border:0;border-radius:0;background:none;padding:20px 0 4px;margin:6px 0 0;
+ border-top:2px solid color-mix(in oklab,var(--field) 55%,transparent)}
+.ew-result>.math{font-size:var(--type-lead);margin:12px 0}
+.ew-result>p{font-size:var(--type-meta);line-height:1.7}
+.ew-result-label{display:block;font-family:var(--serif);font-size:var(--type-meta);color:var(--field);letter-spacing:0}
+.ew-worked-step{padding:18px 0;gap:12px;border-bottom:1px solid var(--surface-rule)}
+.ew-worked-step>span{font-size:var(--type-meta);padding-top:3px}
+.ew-worked-step p{font-size:var(--type-meta);line-height:1.8}
+.ew-worked-step .math{font-size:var(--type-body)}
+.ew-next-step{font-size:var(--type-meta)!important}
+.ew-worked-done{font-size:var(--type-meta)}
+.ew-footer{border-top:1px solid var(--surface-rule);padding-top:18px;font-size:var(--type-meta)}
+.ew-references,.ew-references summary,.ew-references a{font-size:var(--type-meta)}
+.ew-references p{line-height:1.8}
+
+/* ---- Onboarding: same language as the page it introduces ------------ */
+.fb-onboarding[data-slot=dialog-content]{max-width:min(600px,calc(100vw - 28px))!important;padding:30px 30px 26px!important;
+ border:1px solid var(--surface-rule);border-radius:20px;background:var(--card);
+ box-shadow:0 24px 70px color-mix(in oklab,var(--foreground) 20%,transparent)}
+.ob-visual{border:0;border-radius:14px;margin-top:0;background:var(--diagram);
+ box-shadow:0 1px 1px color-mix(in oklab,var(--foreground) 5%,transparent),0 12px 30px color-mix(in oklab,var(--foreground) 8%,transparent)}
+.ob-math{font-family:var(--serif);font-size:19px;font-style:italic;font-weight:600}
+.ob-plus{font-size:15px}
+.ob-label{font-family:var(--font-geist-sans),system-ui,sans-serif;font-size:11px;letter-spacing:.1em;font-weight:600}
+.ob-mini-control{background:none;border-top:1px solid var(--surface-rule);padding:14px 18px;gap:14px}
+.ob-mini-control>span{font-size:var(--type-meta);min-width:52px}
+.ob-copy{padding:26px 0 24px}
+.ob-title[data-slot=dialog-title]{font-family:var(--serif);font-size:var(--type-title)!important;font-weight:400;
+ letter-spacing:-.018em;line-height:1.14;margin:0 0 14px;max-width:22ch}
+.ob-description[data-slot=dialog-description]{font-size:var(--type-lead);line-height:1.6;min-height:0;max-width:52ch}
+.ob-formula{background:none;border-top:1px solid var(--surface-rule);border-radius:0;padding:20px 0 0;margin-top:20px;
+ text-align:left;font-size:var(--type-sub)}
+.ob-hint{font-size:var(--type-meta);margin-top:14px}
+.ob-footer{border-top:1px solid var(--surface-rule);padding-top:20px}
+.ob-actions [data-slot=button]{font-size:var(--type-meta);height:38px;padding:0 15px}
+.ob-dots button.active{background:var(--field)}
+
+@media(max-width:1000px){.ew-header{padding:22px 20px 18px}.ew-content{padding:20px}}
+@media(max-width:520px){
+ .fb-onboarding[data-slot=dialog-content]{padding:22px 20px 20px!important;border-radius:16px}
+ .ob-copy{padding:22px 0 20px}
+ .ob-description[data-slot=dialog-description]{font-size:var(--type-body);min-height:0}
+ .ob-formula{font-size:var(--type-body);padding-top:16px;margin-top:16px}
+ .ob-title[data-slot=dialog-title]{font-size:var(--type-title)!important;max-width:none}
+ .ob-mini-control{padding:12px 14px;gap:10px}
+ .ob-actions [data-slot=button]{font-size:12px;padding:0 12px}
+ .ew-equation{font-size:var(--type-body)}
+ .ew-header{padding:20px 18px 16px}.ew-content{padding:18px}
+}

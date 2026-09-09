@@ -35,3 +35,62 @@
 @media(max-width:600px){.cd-caption{padding:6px 13px 12px;font-size:9px;gap:7px}.cd-caption>span:last-child{display:none}.cd-svg .cd-footer{font-size:11px}}
 @media(prefers-reduced-motion:reduce){.cd-piece,.cd-point-halo{transition:none!important}}
 .cd-svg{max-height:430px;min-height:290px}.cd-triangle path,.cd-triangle line{fill:none;stroke:var(--ghost);stroke-width:1.4;stroke-dasharray:4 3}.cd-triangle text{fill:var(--foreground);font-family:Georgia,serif;font-style:italic;font-size:15px}.cd-triangle .cd-triangle-note{font-family:var(--font-geist-sans),sans-serif;font-size:9px;font-style:normal;fill:var(--muted-foreground)}.cd-focus-distance .cd-construction{stroke:var(--field);stroke-width:2.5;stroke-opacity:1}.cd-focus-element .cd-piece.is-selected{filter:drop-shadow(0 0 10px var(--charge))}.cd-focus-components .cd-vector{filter:drop-shadow(0 0 2px var(--field))}
+
+/* =====================================================================
+   SECOND VISUAL PASS — the figure is the reason the app exists.
+   Everything below re-weights the drawing so it reads as a textbook
+   figure rather than a faint diagram: heavier rules, larger symbols,
+   and all *mathematical* labels in the display serif (italic) so the
+   variable leads and the sans is reserved for prose annotation.
+   Presentation attributes in the markup (stroke-width="1.5" etc.) lose
+   to these rules, which is how the component stays untouched.
+   ===================================================================== */
+.cd-svg{max-height:none;min-height:320px;aspect-ratio:720/430}
+/* Symbols: serif italic, sized to be read across a room. */
+.cd-axes text,.cd-dimension text,.cd-svg .cd-point-label,.cd-svg .cd-vector-label,.cd-triangle text,.cd-svg .cd-origin,.cd-svg .cd-plus{font-family:var(--font-display),Georgia,serif;font-style:italic}
+.cd-axes text{font-size:22px;font-weight:600;fill:var(--cd-ink)}
+.cd-dimension text{font-size:20px;font-weight:600;fill:var(--cd-ink)}
+.cd-svg .cd-point-label{font-size:23px;font-weight:600;stroke-width:6px}
+.cd-svg .cd-vector-label{font-size:19px;font-weight:600;stroke-width:6px}
+.cd-triangle text{font-size:19px}
+.cd-svg .cd-origin{font-size:15px;font-style:normal;font-family:var(--font-mono),monospace}
+.cd-svg .cd-plus{font-size:13px;font-style:normal;font-weight:700}
+/* Prose annotation stays sans and stays quiet — it is not the figure. */
+.cd-svg text{font-family:var(--font-geist-sans),system-ui,sans-serif;font-size:13px;font-weight:500}
+.cd-svg .cd-kicker{font-size:11px;letter-spacing:.14em;font-weight:600}
+.cd-svg .cd-small{font-size:12px}
+.cd-svg .cd-footer{font-size:12px}
+.cd-svg .cd-zero{font-size:14px;font-weight:600}
+.cd-triangle .cd-triangle-note{font-size:11px}
+.cd-scale text{font-size:11px}
+/* Rules: confident, not hairline. */
+.cd-axes path{stroke-width:2.4;opacity:1;stroke:color-mix(in oklab,var(--cd-ink) 52%,transparent)}
+.cd-dimension path,.cd-dimension line{stroke-width:2;stroke:color-mix(in oklab,var(--cd-ink) 46%,transparent)}
+.cd-scale line,.cd-scale path{stroke-width:1.8}
+.cd-charge-base{stroke-width:17;stroke-opacity:.26}
+.cd-piece{stroke-width:2.2}
+.cd-piece:hover,.cd-piece:focus-visible{stroke-width:3.4}
+.cd-construction{stroke-width:2.1;stroke-dasharray:7 6;stroke-opacity:.8}
+.cd-partner{stroke-width:2.4;stroke-dasharray:6 4}
+.cd-infinity path,.cd-continuation{stroke-width:3.2}
+.cd-infinity text{font-size:15px;font-weight:600}
+.cd-triangle path,.cd-triangle line{stroke-width:1.9;stroke-dasharray:6 5}
+.cd-point{stroke-width:3.4}
+.cd-point-halo{stroke-width:2.2}
+.cd-source-tag line{stroke-width:1.8}
+.cd-source-tag text{font-size:13px;font-weight:600;stroke-width:5px}
+.cd-bound rect{stroke-width:3.2}
+.cd-bound text{font-size:15px;font-weight:700;stroke-width:5px}
+.cd-divider{stroke-width:1.2;opacity:.4}
+/* The caption belongs to the figure: same left edge, quiet, one size. */
+.cd-caption{padding:14px 2px 0;font-size:13px;letter-spacing:0}
+.cd-orbit-chrome{padding:10px 2px 0;font-size:13px;letter-spacing:0}
+@media(max-width:1000px){.cd-svg{min-height:280px}}
+@media(max-width:600px){
+ .cd-svg{min-height:230px}
+ .cd-axes text{font-size:19px}.cd-dimension text{font-size:17px}
+ .cd-svg .cd-point-label{font-size:19px}.cd-svg .cd-vector-label{font-size:16px}
+ .cd-svg text{font-size:12px}.cd-svg .cd-kicker{font-size:10px}
+ .cd-caption{padding:12px 2px 0;font-size:12px;gap:10px}
+ .cd-orbit-chrome{padding:9px 2px 0;font-size:12px}
+}

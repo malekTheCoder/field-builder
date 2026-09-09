@@ -2,10 +2,10 @@
 .cd-orbitable:active{cursor:grabbing}
 .cd-orbitable:focus{outline:none}
 .cd-orbitable:focus-visible{outline:2px solid var(--field,#67ded4);outline-offset:2px;border-radius:12px}
-.cd-orbit-chrome{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:6px 22px 0;color:var(--cd-muted);font-size:10px;line-height:1.5;letter-spacing:.02em}
-.cd-orbit-reset{appearance:none;background:none;border:1px solid var(--ghost,#39505a);border-radius:999px;color:inherit;font:inherit;letter-spacing:inherit;padding:2px 10px;cursor:pointer;flex:none;transition:border-color .18s,color .18s,opacity .18s}
+.cd-orbit-chrome{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 2px 0;color:var(--cd-muted);font-size:13px;line-height:1.5}
+.cd-orbit-reset{appearance:none;background:none;border:1px solid var(--border);border-radius:999px;color:inherit;font:inherit;letter-spacing:inherit;padding:3px 12px;cursor:pointer;flex:none;transition:border-color .18s,color .18s,opacity .18s}
 .cd-orbit-reset:hover:not(:disabled){border-color:var(--field,#67ded4);color:var(--field,#67ded4)}
 .cd-orbit-reset:focus-visible{outline:2px solid var(--field,#67ded4);outline-offset:2px}
 .cd-orbit-reset:disabled{opacity:.35;cursor:default}
-@media(max-width:600px){.cd-orbit-chrome{padding:5px 13px 0;font-size:9px;gap:7px}}
+@media(max-width:600px){.cd-orbit-chrome{padding:9px 2px 0;font-size:12px;gap:8px}}
 @media(prefers-reduced-motion:reduce){.cd-orbit-reset{transition:none}}
