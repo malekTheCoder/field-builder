@@ -8,3 +8,24 @@
 @media(prefers-reduced-motion:reduce){.exp-accent-button,.exp-shape-button[data-slot=sidebar-menu-button],.exp-diagram-card,.play-button{transition:none!important}}
 .exp-heading{margin-bottom:20px}.exp-breadcrumb{margin-bottom:19px}.exp-view-row{margin-bottom:18px}.exp-control-panel>p,.exp-limit-panel>p,.exp-model-note{font-size:14px}.exp-range>div:first-child{font-size:14px}.exp-range output{font-size:12px}.exp-section-label{font-size:12px}.exp-legend,.transport-label strong{font-size:12px}.transport-label span{font-size:11px}.exp-metrics span{font-size:12px}.exp-workspace>.ew-panel .ew-context,.exp-workspace>.ew-panel .ew-concept-detail,.exp-workspace>.ew-panel .ew-worked-step p{font-size:13px}.exp-workspace>.ew-panel .ew-concept>button small,.exp-workspace>.ew-panel .ew-disclosure{font-size:12px}.exp-workspace>.ew-panel .ew-concept>button .math{font-size:14px}.exp-workspace>.ew-panel .ew-equation{font-size:16px}.exp-workspace>.ew-panel .ew-equation-label{font-size:12px}.exp-workspace>.ew-panel .ew-flow button>small{font-size:11px}.exp-workspace>.ew-panel .ew-panel{border-radius:12px}.exp-workspace>.ew-panel{border-radius:12px}.exp-workspace>.ew-panel .ew-bound-fields label{font-size:12px}.exp-workspace>.ew-panel .ew-bound-form>p{font-size:12px}.exp-process [data-slot=tabs-trigger]{font-size:13px}.exp-shape-button[data-slot=sidebar-menu-button]{font-size:13px}.exp-range [data-slot=slider] {padding:5px 0}.exp-header .exp-brand small{font-size:10px}.exp-sidebar .exp-nav-bottom>span{font-size:12px}.exp-model-note strong{font-size:13px}
 @media(max-width:520px){.exp-legend{font-size:10px}.exp-metrics span{font-size:10px}.exp-process [data-slot=tabs-trigger]{font-size:12px}.exp-range>div:first-child{font-size:13px}.exp-range output{font-size:11px}.exp-diagram-card .cd-svg{min-height:230px}.exp-legend .contribution-key+span{display:none}}
+
+/* Typography and density pass.
+   The page previously ran entirely on the starter sans at near-uniform weight,
+   so hierarchy came from borders and eyebrow labels rather than from type.
+   Headings move to the display serif, numeric readouts get out of the way, and
+   the figure is allowed to dominate its column. */
+.exp-heading h1,.ew-header h2,.exp-control-title h2,.exp-limit-panel h2{font-family:var(--font-display),Georgia,serif;font-weight:400;letter-spacing:-.011em}
+.exp-heading h1{font-size:40px;line-height:1.1;margin-bottom:6px}
+.exp-heading p{font-size:16px;line-height:1.5;max-width:56ch;color:var(--muted-foreground)}
+.ew-header h2,.exp-control-title h2{font-size:22px;line-height:1.25}
+/* Numbers are the answer, not the argument: quiet, tabular, secondary to the symbol. */
+.exp-metrics strong{font-family:var(--font-geist-mono),ui-monospace,monospace;font-variant-numeric:tabular-nums;font-size:19px;font-weight:500;letter-spacing:-.02em;color:var(--foreground)}
+.exp-metrics span{font-size:11.5px;letter-spacing:.02em}
+.exp-metrics small{font-size:11px;font-weight:400;color:var(--muted-foreground);margin-left:2px}
+/* Give the figure room and let it be the loudest object on the page. */
+.exp-diagram-card{padding:20px 22px 18px}
+.exp-diagram-heading{min-height:0;margin-bottom:4px}
+/* One surface level, not a grid of competing cards. */
+.exp-parameters,.exp-control-panel,.exp-limit-panel{border-color:color-mix(in oklab,var(--border) 62%,transparent)}
+.exp-shape-button{font-size:14px}
+.exp-sidebar-title .eyebrow{font-size:11px;letter-spacing:.1em}
