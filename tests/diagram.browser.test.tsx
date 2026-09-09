@@ -61,6 +61,22 @@ describe('ChargeDiagram in a real browser', () => {
     await userEvent.keyboard('{ArrowLeft}');
     expect(onBoundRangeChange).toHaveBeenLastCalledWith([0, 99]);
   });
+  it('orbits with arrow keys, resets with Home, and leaves nested controls independent', async () => {
+    const {view, setParams} = mount('ring');
+    const svg = view.container.querySelector<SVGSVGElement>('.cd-svg')!;
+    const reset = view.getByRole('button', {name: 'Reset view'}) as HTMLButtonElement;
+    expect(reset.disabled).toBe(true);
+    svg.focus();
+    await userEvent.keyboard('{ArrowRight}');
+    expect(reset.disabled).toBe(false);
+    await userEvent.keyboard('{Home}');
+    expect(reset.disabled).toBe(true);
+    const point = view.container.querySelector<SVGGElement>('.cd-observation')!;
+    point.focus();
+    await userEvent.keyboard('{ArrowUp}');
+    expect(setParams).toHaveBeenCalledWith({distance: 3.1});
+    expect(reset.disabled).toBe(true);
+  });
   it('keeps the observation point fixed at the centre for the arc', () => {
     const {view} = mount('arc');
     expect(view.container.querySelector('.cd-observation.is-fixed')).toBeTruthy();

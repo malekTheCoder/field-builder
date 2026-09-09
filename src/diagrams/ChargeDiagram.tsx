@@ -63,8 +63,8 @@ export function ChargeDiagram({ problem, params: p, setParams, count, continuum,
   // A common numeric scale applies to net and component arrows. The selected
   // element has an explicitly stated magnification so tiny dE remains inspectable.
   const fieldNorm = Math.max(magnitude(total), ...samples.map(s => magnitude(s.field)), 1e-9);
-  const scaleValue = 10 ** Math.ceil(Math.log10(fieldNorm));
-  const gain = 75 / scaleValue;
+  const scaleValue = 2 ** Math.ceil(Math.log2(fieldNorm));
+  const gain = 100 / scaleValue;
   const fieldScreen = (v: Vec, multiplier = 1): Point => { const k = gain * multiplier; if (!perspective) return { x: k * v.x, y: -k * v.y }; const s = projectCamera(v, camera.yaw, camera.pitch); return { x: k * s.x, y: k * s.y }; };
   const selectedGain = Math.max(1, Math.min(1000, 55 / Math.max(.001, Math.hypot(fieldScreen(sample.field).x, fieldScreen(sample.field).y))));
   const contribution = fieldScreen(sample.field, selectedGain);
@@ -116,9 +116,9 @@ export function ChargeDiagram({ problem, params: p, setParams, count, continuum,
   // Orbit is offered only where the projection is already pseudo-3D; the planar views carry
   // hardcoded axis labels and dimension brackets that a rotation would misplace.
   const orbit = {
-    onPointerDown: (ev: PointerEvent<SVGSVGElement>) => { if (onControl(ev.target)) return; ev.currentTarget.setPointerCapture(ev.pointerId); dragging.current = 'orbit'; orbitFrom.current = eventPoint(ev); },
+    onPointerDown: (ev: PointerEvent<SVGSVGElement>) => { if (onControl(ev.target)) return; ev.currentTarget.focus(); ev.currentTarget.setPointerCapture(ev.pointerId); dragging.current = 'orbit'; orbitFrom.current = eventPoint(ev); },
     onPointerMove: (ev: PointerEvent<SVGSVGElement>) => { if (dragging.current !== 'orbit') return; const cursor = eventPoint(ev); setCamera(v => orbitCamera(v, cursor.x - orbitFrom.current.x, cursor.y - orbitFrom.current.y)); orbitFrom.current = cursor; },
-    onPointerUp: release, onPointerCancel: release,
+    onPointerUp: release, onPointerCancel: release, onLostPointerCapture: release,
     // The element stepper, the P slider and the bound handles all bind arrows and preventDefault
     // first; the bubbled event reaches the root only when no inner control claimed it.
     onKeyDown: (ev: KeyboardEvent<SVGSVGElement>) => { if (ev.defaultPrevented || onControl(ev.target) || !['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home'].includes(ev.key)) return; ev.preventDefault(); setCamera(v => keyboardCamera(v, ev.key)); },
@@ -218,7 +218,7 @@ export function ChargeDiagram({ problem, params: p, setParams, count, continuum,
       </g>}
       <line x1="30" y1="387" x2="690" y2="387" className="cd-divider" />
       <text x="30" y="409" className="cd-footer">{sourceLabel}</text>
-      <text x="690" y="409" textAnchor="end" className="cd-footer">{showContribution ? `${fieldSymbol} × ${pretty(selectedGain)} · E: ${pretty(scaleValue)} N/C per 75 px` : n > 80 ? `${n} numerical pieces · simplified display` : `${n} charge pieces`}</text>
+      <text x="690" y="409" textAnchor="end" className="cd-footer">{showContribution ? `${fieldSymbol} × ${pretty(selectedGain)} · E: ${pretty(scaleValue)} N/C per 100 px` : n > 80 ? `${n} numerical pieces · simplified display` : `${n} charge pieces`}</text>
     </svg>
     {perspective && <div className="cd-orbit-chrome"><span>Drag or arrow keys to rotate · Home to reset</span><button type="button" className="cd-orbit-reset" onClick={() => setCamera(DEFAULT_CAMERA)} disabled={camera.yaw === DEFAULT_CAMERA.yaw && camera.pitch === DEFAULT_CAMERA.pitch}>Reset view</button></div>}
     <div className="cd-caption"><span><i className="cd-dot" />{sourceText}</span><span>{!full?'Selected interval':mode === 'sum' || mode === 'integrate' ? `${Math.round(progress*100)}% accumulated` : continuum >= .999 ? 'Infinitesimal limit' : 'Finite elements'}</span></div>
