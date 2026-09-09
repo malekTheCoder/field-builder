@@ -128,6 +128,26 @@ export function ChargeDiagram({ problem, params: p, setParams, count, continuum,
   const drawable = samples.map((s, i) => ({ s, i })).filter(({ s }) => visible(project(s.position)));
   const stride = Math.max(1, Math.ceil(drawable.length / 80));
   const renderSamples = drawable.filter(({ i }, j) => j % stride === 0 || i === selectedIndex);
+  // A rod is one object. Slicing it should subdivide that bar, not scatter it into
+  // separate floating chunks, so each piece runs edge to edge between the midpoints
+  // of its neighbours and the seams fade as the partition approaches the continuum.
+  // Midpoints rather than a fixed width because the unbounded sources sample the
+  // line non-uniformly, and because `stride` thins the drawn pieces at large N.
+  const rodLike = !surface && id !== 'ring' && id !== 'arc';
+  const upright = id === 'bisector' || id === 'infinite';
+  const along = (pt: Point) => upright ? pt.y : pt.x;
+  const rodEnds: [number, number] = id === 'bisector' ? [O.y - R * unit, O.y + R * unit] : id === 'infinite' ? [55, 370] : id === 'axial' ? [O.x, O.x + p.size * unit] : [O.x, 670];
+  const rodLow = Math.min(...rodEnds), rodHigh = Math.max(...rodEnds), rodHalf = 7;
+  const axes = rodLike ? renderSamples.map(({ s }) => along(project(s.position))) : [];
+  const ascending = axes.length < 2 || axes[axes.length - 1] >= axes[0];
+  const spans = axes.map((a, j) => {
+    const head = j ? (a + axes[j - 1]) / 2 : (ascending ? rodLow : rodHigh);
+    const tail = j < axes.length - 1 ? (a + axes[j + 1]) / 2 : (ascending ? rodHigh : rodLow);
+    return [Math.min(head, tail), Math.max(head, tail)] as [number, number];
+  });
+  // Charge marks belong to the rod, not to the partition: their spacing is fixed so
+  // the rod does not appear to gain or lose charge as N changes.
+  const chargeMarks = rodLike ? Array.from({ length: Math.max(0, Math.floor((rodHigh - rodLow) / 19)) }, (_, k) => rodLow + 19 * (k + .5)).filter(v => v < rodHigh) : [];
   const sourceLabel = surface ? `${elementSymbol} ${continuum>=.999?'=':'≈'} σ · 2πs ${continuum>=.999?'ds':'Δs'}` : id === 'ring' || id === 'arc' ? `${elementSymbol} = λR ${continuum>=.999?'dθ':'Δθ'}` : `${elementSymbol} = λ ${continuum>=.999?'dℓ':'Δℓ'}`;
   const sourceText = surface ? 'Whole annulus · transverse fields cancel' : id === 'infinite' || id === 'semi' ? 'Unbounded source · visible window shown' : id === 'arc' ? 'Observation point fixed at center' : 'Select a piece · drag P to explore';
   return <div className={"charge-diagram cd-focus-"+highlight}>
@@ -145,8 +165,7 @@ export function ChargeDiagram({ problem, params: p, setParams, count, continuum,
       </g>
       <g clipPath={`url(#${uid}clip)`}>
         {surface && <><path d={pathThrough(circlePoints(id === 'sheet' ? 7 : R), true)} className="cd-surface" />{id === 'sheet' && <path d="M80 340l30 12m-8-16 30 12m444-78 30 12m-8-16 30 12" className="cd-continuation" />}</>}
-        {(id === 'bisector' || id === 'infinite') && <path d={`M${O.x} ${id === 'infinite' ? 55 : O.y - R * unit}V${id === 'infinite' ? 370 : O.y + R * unit}`} className="cd-charge-base" />}
-        {(id === 'axial' || id === 'semi') && <path d={`M${O.x} ${O.y}H${id === 'semi' ? 670 : O.x + p.size * unit}`} className="cd-charge-base" />}
+        {rodLike && <rect x={upright ? O.x - rodHalf : rodLow} y={upright ? rodLow : O.y - rodHalf} width={upright ? rodHalf * 2 : rodHigh - rodLow} height={upright ? rodHigh - rodLow : rodHalf * 2} rx={id === 'bisector' || id === 'axial' ? rodHalf : 0} fill="var(--charge-fill)" stroke="var(--charge)" strokeWidth="1.5" />}
         {(id === 'ring' || id === 'arc') && <path d={pathThrough(circlePoints(R, id === 'arc' ? -p.phi / 2 : 0, id === 'arc' ? p.phi / 2 : 2 * Math.PI))} className="cd-charge-base" />}
         {renderSamples.map(({ s, i }) => {
           const pos = project(s.position), active = i === selectedIndex, accumulated = Math.abs(weights[i]) > 0 && (mode === 'sum' || mode === 'integrate');
@@ -158,12 +177,16 @@ export function ChargeDiagram({ problem, params: p, setParams, count, continuum,
             const span = (id === 'ring' ? 2 * Math.PI : p.phi) / n * (1 - .18 * (1 - continuum));
             shape = <motion.path initial={false} animate={{ d: pathThrough(circlePoints(R, s.coordinate - span / 2, s.coordinate + span / 2)) }} transition={{ duration: still ? 0 : .18 }} fill="none" strokeWidth={active ? 10 : 7} />;
           } else {
-            const vertical = id === 'bisector' || id === 'infinite';
-            const length = Math.max(2, Math.min(100, (id === 'infinite' || id === 'semi' ? s.dq / (p.charge * 1e-9) : p.size / n) * unit * (1 - .2 * (1 - continuum))));
-            shape = <rect x={pos.x - (vertical ? 6 : length / 2)} y={pos.y - (vertical ? length / 2 : 6)} width={vertical ? 12 : length} height={vertical ? length : 12} rx={Math.min(3, length / 3)} />;
+            const [head, tail] = spans[renderSamples.findIndex(d => d.i === i)] ?? [along(pos) - 6, along(pos) + 6];
+            const extent = Math.max(1, tail - head);
+            shape = upright ? <rect x={pos.x - rodHalf} y={head} width={rodHalf * 2} height={extent} /> : <rect x={head} y={pos.y - rodHalf} width={extent} height={rodHalf * 2} />;
           }
-          return <g key={i} className={`cd-piece ${active ? 'is-selected' : ''}`} style={{ opacity }} onClick={() => onSelect(i)} tabIndex={active ? 0 : -1} role="button" aria-label={`Charge element ${i + 1} of ${n}`} onKeyDown={ev => { if (ev.key === 'ArrowRight' || ev.key === 'ArrowUp') { ev.preventDefault(); onSelect((i + 1) % n); } if (ev.key === 'ArrowLeft' || ev.key === 'ArrowDown') { ev.preventDefault(); onSelect((i + n - 1) % n); } }}>{shape}{!surface && n <= 18 && <text x={pos.x} y={pos.y + 3.5} textAnchor="middle" className="cd-plus">+</text>}</g>;
+          return <g key={i} className={`cd-piece ${active ? 'is-selected' : ''}`} style={{ opacity }} onClick={() => onSelect(i)} tabIndex={active ? 0 : -1} role="button" aria-label={`Charge element ${i + 1} of ${n}`} onKeyDown={ev => { if (ev.key === 'ArrowRight' || ev.key === 'ArrowUp') { ev.preventDefault(); onSelect((i + 1) % n); } if (ev.key === 'ArrowLeft' || ev.key === 'ArrowDown') { ev.preventDefault(); onSelect((i + n - 1) % n); } }}>{shape}</g>;
         })}
+        {rodLike && <g className="cd-plus" aria-hidden="true">{chargeMarks.map(v => <text key={v} x={upright ? O.x : v} y={(upright ? v : O.y) + 3.6} textAnchor="middle">+</text>)}</g>}
+        {rodLike && continuum < .995 && <g style={{ opacity: .55 * (1 - continuum) }} aria-hidden="true">{spans.slice(1).map(([head], j) => upright
+          ? <line key={j} x1={O.x - rodHalf} y1={head} x2={O.x + rodHalf} y2={head} stroke="var(--charge)" strokeWidth="1.1" />
+          : <line key={j} x1={head} y1={O.y - rodHalf} x2={head} y2={O.y + rodHalf} stroke="var(--charge)" strokeWidth="1.1" />)}</g>}
         {!surface && supportsPair && pair && showContribution && <><line x1={partnerPos.x} y1={partnerPos.y} x2={P.x} y2={P.y} className="cd-construction cd-pair" /><circle cx={partnerPos.x} cy={partnerPos.y} r="9" className="cd-partner" /></>}
         {showContribution && <line x1={selectedPoint.x} y1={selectedPoint.y} x2={P.x} y2={P.y} className="cd-construction" />}
       </g>
