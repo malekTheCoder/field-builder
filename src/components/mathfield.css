@@ -3,3 +3,9 @@
 .mathfield:focus-within,.mathfield-fallback:focus-visible{outline:2px solid var(--field);outline-offset:1px;border-color:var(--field)}
 .mathfield.invalid,.mathfield-fallback.invalid{border-color:var(--destructive,#c0392b)}
 .mathfield-fallback{font-family:var(--font-mono,'SFMono-Regular',Consolas,monospace);font-size:.95rem}
+.mathfield-drop{border-radius:8px}
+.mathfield-drop.over .mathfield,.mathfield-drop.over .mathfield-fallback{border-color:var(--primary);background:var(--accent)}
+.answer-field.invalid .mathfield,.answer-field.invalid .mathfield-fallback{border-color:#c15a42}
+.symbol-row{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.symbol-key{min-width:34px;height:30px;border:1px solid var(--border);border-radius:6px;background:var(--card);color:var(--muted-foreground);font-size:15px;line-height:1;display:grid;place-items:center}
+.symbol-key:hover{border-color:var(--primary);background:var(--accent);color:var(--primary)}
