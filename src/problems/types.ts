@@ -1,0 +1,10 @@
+export type ProblemId='bisector'|'axial'|'infinite'|'ring'|'disk'|'semi'|'arc'|'sheet';
+export type Params={distance:number;size:number;charge:number;phi:number;element:number;slices:number;continuum:number};
+export type Answer={id:string;label:string;expected:string;tex:string;options:string[];hint:string;mistakes?:{expression:string;message:string;highlight?:string}[]};
+export type Step={title:string;text:string;fields?:Answer[];hint:string;worked?:{text:string;tex:string}[]};
+export type Limit={id:string;title:string;prompt:string;answer:string;choices:string[];explanation:string;formula:string;mode:'far'|'infinite'|'center'|'half'|'full'|'scale'|'maximum';reference:string};
+export type Problem={id:ProblemId;title:string;short:string;subtitle:string;number:string;kind:string;setup:string;origin:string;alternateOrigin:string;coordinate:string;variable:string;variableTex:string;density:string;densityTex:string;dq:string;dqTex:string;distance:string;projection:string;kernel:string;kernelTex:string;integralTex:string;result:string;resultTex:string;secondaryResult?:string;secondaryResultTex?:string;bounds:[string,string];boundTex:[string,string];symmetry:{answer:string;options:string[];axis:string;axes:string[];text:string;tex:string};steps:Step[];limits:Limit[];sources:{title:string;url:string}[];link?:{id:ProblemId;text:string};};
+export const DEFAULT_PARAMS:Params={distance:3,size:4,charge:2,phi:Math.PI,element:.65,slices:5,continuum:0};
+export const STAGE_LABELS=['Coordinates','Charge element','One contribution','Symmetry','Substitution','Bounds','Integration','Sanity check'];
+export const PHASES=['MODEL','VISUALIZE','SOLVE','ASSESS'];
+export const PHASE_FOR_STAGE=[0,1,2,2,2,2,2,3];
