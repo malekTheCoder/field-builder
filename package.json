@@ -1,5 +1,5 @@
 {
-  "name": "sites-project",
+  "name": "field-builder",
   "version": "0.1.0",
   "private": true,
   "engines": {
@@ -10,7 +10,9 @@
     "build": "vinext build",
     "start": "wrangler dev --config dist/server/wrangler.json",
     "lint": "oxlint",
-    "format": "oxfmt"
+    "format": "oxfmt",
+    "test": "vitest run",
+    "check": "tsc --noEmit"
   },
   "dependencies": {
     "@base-ui/react": "1.7.0",
@@ -21,10 +23,10 @@
     "date-fns": "4.1.0",
     "embla-carousel-react": "8.5.2",
     "input-otp": "1.4.2",
-    "katex": "^0.16.22",
+    "katex": "^0.18.7",
     "lucide-react": "1.31.0",
-    "mathjs": "^14.8.1",
-    "motion": "^12.23.12",
+    "mathjs": "^15.2.0",
+    "motion": "^13.2.0",
     "react": "19.2.6",
     "react-day-picker": "9.8.1",
     "react-dom": "19.2.6",

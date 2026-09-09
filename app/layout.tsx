@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: 'Field Builder — Electric fields, derived',
-  description: 'Build electric-field integrals one step at a time. Eight interactive lessons, live SVG diagrams, symbolic feedback, and physical sanity checks.',
+  description: 'Build electric-field integrals one step at a time. An open visual workbench with eight charge geometries, animated SVG vectors, continuous integrals, and physical sanity checks.',
 };
 
 export default function RootLayout({
@@ -24,7 +24,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" className="dark">
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
