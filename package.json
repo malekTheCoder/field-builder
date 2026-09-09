@@ -11,7 +11,7 @@
     "start": "wrangler dev --config dist/server/wrangler.json",
     "lint": "oxlint",
     "format": "oxfmt",
-    "test": "vitest run --project unit",
+    "test": "vitest run",
     "test:browser": "vitest run --project browser",
     "test:all": "vitest run",
     "check": "tsc --noEmit"
@@ -28,6 +28,7 @@
     "katex": "^0.18.7",
     "lucide-react": "1.31.0",
     "mathjs": "^15.2.0",
+    "mathlive": "^0.110.0",
     "motion": "^13.2.0",
     "react": "19.2.6",
     "react-day-picker": "9.8.1",

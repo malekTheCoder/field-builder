@@ -1,0 +1,5 @@
+.mathfield,.mathfield-fallback{display:block;width:100%;box-sizing:border-box;padding:.55rem .7rem;border:1px solid var(--border,#d7dee2);border-radius:8px;background:var(--input-bg,var(--background,#fff));color:var(--foreground,#12202a);font-size:1.05rem;line-height:1.5}
+.mathfield{--caret-color:var(--field);--selection-background-color:color-mix(in oklab,var(--field) 22%,transparent);--smart-fence-color:var(--cd-muted,#7d94a0)}
+.mathfield:focus-within,.mathfield-fallback:focus-visible{outline:2px solid var(--field);outline-offset:1px;border-color:var(--field)}
+.mathfield.invalid,.mathfield-fallback.invalid{border-color:var(--destructive,#c0392b)}
+.mathfield-fallback{font-family:var(--font-mono,'SFMono-Regular',Consolas,monospace);font-size:.95rem}

@@ -1,5 +1,5 @@
 import {cleanup, render} from '@testing-library/react';
-import {userEvent} from '@vitest/browser/context';
+import {userEvent} from 'vitest/browser';
 import {afterEach, describe, expect, it, vi} from 'vitest';
 import {ChargeDiagram} from '../src/diagrams/ChargeDiagram';
 import {getProblem} from '../src/problems/definitions';
