@@ -22,6 +22,13 @@ describe('mathematical input',()=>{
   expect(eq('log((d+L)/d)/log(10)','log((d+L)/d)')).toBe(false);
   expect(preview(String.raw`\ln\left(d\right)`)).not.toContain('Keep typing');
  });
+ it('reads λ₀ as one peak-density symbol in every spelling, distinct from λ',()=>{
+  const expected='lambda0*y/L*dy';
+  for(const input of ['λ₀ y/L dy','lambda0*y/L*dy','lambda_0 y/L dy',String.raw`\lambda_0\frac{y}{L}\,dy`,String.raw`\frac{\lambda_{0}y}{L}dy`])expect(eq(input,expected),input).toBe(true);
+  expect(eq('lambda*y/L*dy',expected)).toBe(false);expect(eq('lambda*0*y/L*dy',expected)).toBe(false);expect(eq('lambda0*dy',expected)).toBe(false);
+  expect(eq('lambda0','lambda')).toBe(false);expect(eq('λ₀','lambda0')).toBe(true);
+  expect(preview(String.raw`\lambda_0`)).not.toContain('Keep typing');
+ });
  it('keeps distance and differential symbols independent',()=>{
   expect(eq('d*dQ','dQ')).toBe(false);
   expect(eq('d','r')).toBe(false);

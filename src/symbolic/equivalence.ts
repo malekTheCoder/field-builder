@@ -1,10 +1,11 @@
 import {parse,type MathNode,type SymbolNode,type FunctionNode,type OperatorNode,type ConstantNode} from 'mathjs';
 import type {Problem} from '../problems/types';
 const allowedFunctions=new Set(['sqrt','sin','cos','tan','sec','abs','log']);
-const allowedSymbols=new Set(['d','Q','L','R','r','a','z','x','y','s','theta','alpha','phi','lambda','sigma','eps0','pi','k','ri','dQ','dE','dx','dy','ds','dr','dtheta','dA','Infinity']);
+const allowedSymbols=new Set(['d','Q','L','R','r','a','z','x','y','s','theta','alpha','phi','lambda','lambda0','sigma','eps0','pi','k','ri','dQ','dE','dx','dy','ds','dr','dtheta','dA','Infinity']);
 export function normalize(input:string):string {
  // Both ln and log denote the natural logarithm; bases are intentionally unsupported.
- let s=input.replace(/\\(?:ln|log)\b|\bln\b/g,'log').trim().replace(/^(?:E_[xyz]|dE_[xyz]|dQ|dE|E|[A-Za-z_]+)\s*=/,'').replace(/−|–/g,'-').replace(/λ|\\lambda/g,' lambda ').replace(/σ|\\sigma/g,' sigma ').replace(/ε₀|ε0|\\varepsilon_?\{?0\}?|\\epsilon_?\{?0\}?/g,' eps0 ').replace(/π|\\pi/g,' pi ').replace(/θ|\\theta/g,' theta ').replace(/α|\\alpha/g,' alpha ').replace(/φ|ϕ|\\varphi|\\phi/g,' phi ').replace(/∞|\\infty|\binf\b/gi,'Infinity').replace(/r[′']/g,'s').replace(/r_\{i\}|r_i|rᵢ/g,'ri').replace(/\bd\s+(theta|x|y|s|r)\b/g,'d$1').replace(/\\(?:left|right|,|;|!)/g,'').replace(/\\(?:cdot|times)|·|×/g,'*').replace(/²/g,'^2').replace(/³/g,'^3');
+ // λ₀ is the peak density of a non-uniform rod: one symbol, never λ times zero.
+ let s=input.replace(/\\(?:ln|log)\b|\bln\b/g,'log').trim().replace(/^(?:E_[xyz]|dE_[xyz]|dQ|dE|E|[A-Za-z_]+)\s*=/,'').replace(/−|–/g,'-').replace(/(?:λ|\\lambda|\blambda)\s*(?:₀|_\{?0\}?)/g,' lambda0 ').replace(/λ|\\lambda/g,' lambda ').replace(/σ|\\sigma/g,' sigma ').replace(/ε₀|ε0|\\varepsilon_?\{?0\}?|\\epsilon_?\{?0\}?/g,' eps0 ').replace(/π|\\pi/g,' pi ').replace(/θ|\\theta/g,' theta ').replace(/α|\\alpha/g,' alpha ').replace(/φ|ϕ|\\varphi|\\phi/g,' phi ').replace(/∞|\\infty|\binf\b/gi,'Infinity').replace(/r[′']/g,'s').replace(/r_\{i\}|r_i|rᵢ/g,'ri').replace(/\bd\s+(theta|x|y|s|r)\b/g,'d$1').replace(/\\(?:left|right|,|;|!)/g,'').replace(/\\(?:cdot|times)|·|×/g,'*').replace(/²/g,'^2').replace(/³/g,'^3');
  // Innermost braces are reduced first, preserving nested fractions and roots.
  for(let i=0;i<20;i++){const next=s.replace(/\\(?:dfrac|tfrac|frac)\{([^{}]*)\}\{([^{}]*)\}/g,'(($1)/($2))').replace(/\\sqrt\{([^{}]*)\}/g,'sqrt($1)').replace(/\^\{([^{}]*)\}/g,'^($1)');if(next===s)break;s=next;}
  s=s.replace(/\\(sin|cos|tan|sec|sqrt)/g,'$1').replace(/[{}]/g,m=>m==='{'?'(':')').replace(/\|([^|]+)\|/g,'abs($1)').replace(/\bD([xyzs])\b/g,'d$1').trim();
@@ -60,7 +61,7 @@ export function equivalent(input:string,expected:string,p:Problem):Check{
    scope.x=random()*scope.L*.95;scope.y=(random()*2-1)*scope.L;
    scope.theta=(random()-.5)*Math.PI*.95;scope.alpha=random()*Math.PI/2;
    scope.phi=.2+random()*(2*Math.PI-.2);scope.s=random()*scope.R;
-   scope.lambda*=i%2?-1:1;scope.sigma*=i%2?-1:1;
+   scope.lambda*=i%2?-1:1;scope.lambda0*=i%2?-1:1;scope.sigma*=i%2?-1:1;
    const av=ac.evaluate(scope),bv=bc.evaluate(scope);
    if(typeof av!=='number'||typeof bv!=='number'||!Number.isFinite(av)||!Number.isFinite(bv))return{ok:false};
    // No absolute floor: tiny but incorrect fields must not grade as zero.
