@@ -43,7 +43,7 @@ The development server prints the local preview URL. Other scripts:
 - Finite rod standing on its end, with P level with that end — both components survive
 - Infinite nonconducting sheet, built from disk/ring integration
 
-The UI uses React 19, Vinext/Vite, hand-authored SVG, Motion, KaTeX, MathLive, and math.js. Ring, disk, and sheet views rotate by dragging or using arrow keys; Home resets the view. Progress and preferences stay in local browser storage. The application itself has no student-account system or tracking. Hosting access is currently owner-only until public access is enabled.
+The UI uses React 19, Vinext/Vite, hand-authored SVG, Motion, KaTeX, MathLive, and math.js. Ring, disk, and sheet views rotate by dragging or using arrow keys; Home resets the view. Progress and preferences stay in local browser storage. The application itself has no student-account system or tracking. The GitHub Pages deployment is public; students do not need an account.
 
 ## Physics conventions
 
@@ -69,7 +69,7 @@ Working: all nine geometries, the explorer, the optional practice wizard, onboar
 
 Deployment and validation:
 
-- Published at **https://field.malekswilam.dev**, with DNS and HTTPS active. Hosting access is currently private.
+- Deployed publicly on GitHub Pages at **https://field.malekswilam.dev**. DNS cutover is complete; GitHub manages the HTTPS certificate. No student sign-in is required.
 - Cross-device and cross-browser QA (tablet widths, keyboard-only navigation, reduced-motion behaviour) is incomplete.
 - Visual theming and the diagram camera are under active revision, so the interface may change from commit to commit.
 
@@ -77,10 +77,10 @@ Deployment and validation:
 
 The source repository is public on GitHub.
 
-Application address: https://field.malekswilam.dev. Hosting origin: https://field-builder-lab.malekgswilam.chatgpt.site. Hosting configuration is in `.openai/hosting.json`; credentials are never stored in the repository.
+Application address: https://field.malekswilam.dev. The active deployment workflow is `.github/workflows/pages.yml`. Legacy hosting configuration is retained only for migration history; it is not used by the Pages build.
 
 ## GitHub Pages deployment
 
 The portable build has no login gateway. `npm run build:static` produces `dist-static/`; fonts and physics run locally in the browser. GitHub Actions validates and deploys this directory on pushes to main. The local agent handoff is intentionally gitignored.
 
-The selected custom domain is `field.malekswilam.dev`. The owner will change its CNAME to `malekthecoder.github.io` after Pages is verified. Until DNS cutover, the old private deployment remains active. After cutover, remove the old OpenAI/Cloudflare TXT verification records for this subdomain only.
+The custom-domain CNAME points `field` to `malekthecoder.github.io`. Old hosting verification TXT records have been removed. Domain DNS changes are managed by the owner; the main domain and mail records are independent of this app.
