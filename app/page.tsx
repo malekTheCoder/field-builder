@@ -1,2 +1,3 @@
 import Explorer from '@/src/explorer/Explorer';
-export default function Home(){return <Explorer/>}
+import {AppBoundary} from '@/src/components/ErrorBoundary';
+export default function Home(){return <AppBoundary><Explorer/></AppBoundary>}

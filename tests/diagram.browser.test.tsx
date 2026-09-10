@@ -33,7 +33,7 @@ describe('ChargeDiagram in a real browser', () => {
   // orbit. It must not swallow the keys these three inner controls already own.
   it('steps the selected charge element with arrow keys', async () => {
     const {view, onSelect} = mount('bisector');
-    const piece = view.container.querySelector<SVGGElement>('.cd-piece.is-selected')!;
+    const piece = view.container.querySelector<HTMLInputElement>('input[aria-label="Selected charge element"]')!;
     piece.focus();
     await userEvent.keyboard('{ArrowRight}');
     expect(onSelect).toHaveBeenCalledWith(4);
@@ -42,8 +42,8 @@ describe('ChargeDiagram in a real browser', () => {
   });
   it('moves the observation point with arrow keys and exposes it as a slider', async () => {
     const {view, setParams} = mount('bisector', {distance: 3});
-    const point = view.container.querySelector<SVGGElement>('[role="slider"][aria-label*="Observation"]')!;
-    expect(point.getAttribute('aria-valuenow')).toBe('3');
+    const point = view.container.querySelector<SVGGElement>('input[type="range"][aria-label*="Observation"]')!;
+    expect((point as unknown as HTMLInputElement).value).toBe('3');
     point.focus();
     await userEvent.keyboard('{ArrowRight}');
     expect(setParams).toHaveBeenCalledWith({distance: 3.1});
@@ -52,7 +52,7 @@ describe('ChargeDiagram in a real browser', () => {
   });
   it('moves integration bound handles with arrow keys', async () => {
     const {view, onBoundRangeChange} = mount('bisector', {}, {mode: 'integrate'});
-    const handles = view.container.querySelectorAll<SVGGElement>('.cd-bound');
+    const handles = view.container.querySelectorAll<HTMLInputElement>('input[aria-label$="integration bound"]');
     expect(handles.length).toBe(2);
     handles[0].focus();
     await userEvent.keyboard('{ArrowRight}');
@@ -63,7 +63,7 @@ describe('ChargeDiagram in a real browser', () => {
   });
   it('orbits with arrow keys, resets with Home, and leaves nested controls independent', async () => {
     const {view, setParams} = mount('ring');
-    const svg = view.container.querySelector<SVGSVGElement>('.cd-svg')!;
+    const svg = view.container.querySelector<HTMLButtonElement>('.cd-camera-control')!;
     const reset = view.getByRole('button', {name: 'Reset view'}) as HTMLButtonElement;
     expect(reset.disabled).toBe(true);
     svg.focus();
@@ -71,7 +71,7 @@ describe('ChargeDiagram in a real browser', () => {
     expect(reset.disabled).toBe(false);
     await userEvent.keyboard('{Home}');
     expect(reset.disabled).toBe(true);
-    const point = view.container.querySelector<SVGGElement>('.cd-observation')!;
+    const point = view.container.querySelector<HTMLInputElement>('input[aria-label*="Observation"]')!;
     point.focus();
     await userEvent.keyboard('{ArrowUp}');
     expect(setParams).toHaveBeenCalledWith({distance: 3.1});
@@ -80,6 +80,6 @@ describe('ChargeDiagram in a real browser', () => {
   it('keeps the observation point fixed at the centre for the arc', () => {
     const {view} = mount('arc');
     expect(view.container.querySelector('.cd-observation.is-fixed')).toBeTruthy();
-    expect(view.container.querySelector('[role="slider"][aria-label*="Observation"]')).toBeNull();
+    expect(view.container.querySelector('input[type="range"][aria-label*="Observation"]')).toBeNull();
   });
 });

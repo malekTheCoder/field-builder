@@ -1,3 +1,5 @@
+/* Inline SVG needs an image role for its accessible chart name; it cannot be replaced with an external img. */
+/* oxlint-disable jsx-a11y/prefer-tag-over-role */
 'use client';
 import {useState} from 'react';
 import {Slider} from '@/components/ui/slider';

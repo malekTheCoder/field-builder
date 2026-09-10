@@ -1,5 +1,7 @@
 'use client';
-import { useId, useMemo, useRef, useState, type KeyboardEvent, type PointerEvent } from 'react';
+/* Inline SVG needs role=img to expose one named figure; an HTML img cannot contain the interactive drawing. */
+/* oxlint-disable jsx-a11y/prefer-tag-over-role */
+import { useEffect, useId, useMemo, useRef, useState, type KeyboardEvent, type PointerEvent } from 'react';
 import { motion, useReducedMotion } from 'motion/react';
 import type { Params, Problem } from '../problems/types';
 import { field, magnitude, pretty, type Vec } from '../symbolic/physics';
@@ -30,16 +32,31 @@ function Vector({ from, to, color = 'var(--field)', width = 2.5, dashed = false,
   </g>;
 }
 export function ChargeDiagram({ problem, params: p, setParams, count, continuum, selected, onSelect, progress, components, pair, mode, boundRange = [0, 100], onBoundRangeChange, highlight = '' }: ChargeDiagramProps) {
+  const cameraControl = useRef<HTMLButtonElement>(null);
   const svg = useRef<SVGSVGElement>(null), dragging = useRef<string | null>(null), uid = useId().replace(/:/g, '');
   const [camera, setCamera] = useState<CameraView>(DEFAULT_CAMERA), orbitFrom = useRef<Point>({ x: 0, y: 0 });
   const reduced = !!useReducedMotion(), id = problem.id, surface = id === 'disk' || id === 'sheet', perspective = surface || id === 'ring';
   // An orbit drag re-renders on every pointer move; tweening the geometry behind it only adds lag.
-  const still = reduced || dragging.current === 'orbit';
+  const [activeDrag,setActiveDrag] = useState(false);
+  const still = reduced || activeDrag;
   const n = Math.max(3, Math.round(count)), R = p.size / 2, selectedIndex = clamp(Math.round(selected), 0, n - 1);
   const samples = useMemo(() => sampleDistribution(id, p, n), [id, p, n]);
   const sample = samples[selectedIndex], total = sumSamples(samples), weights = intervalWeights(n,boundRange,progress), partial = sumInterval(samples,boundRange,progress);
+  const wholeWeights = intervalWeights(n,boundRange,1);
   const full = boundRange[0]===0 && boundRange[1]===100;
   const displayed = continuum>=.999 && progress>=.999 && full ? field(id,p) : partial;
+  const [announcement,setAnnouncement] = useState(''), pending = useRef(''), timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const previous = useRef({id,distance:p.distance,size:p.size,charge:p.charge,phi:p.phi,n,selectedIndex,progress,continuum,lower:boundRange[0],upper:boundRange[1]});
+  useEffect(()=>{
+    const old=previous.current,next={id,distance:p.distance,size:p.size,charge:p.charge,phi:p.phi,n,selectedIndex,progress,continuum,lower:boundRange[0],upper:boundRange[1]};
+    previous.current=next;
+    const cause=old.id!==id?problem.title:old.distance!==p.distance?`Observation distance ${pretty(p.distance)} meters`:old.lower!==next.lower||old.upper!==next.upper?`Integration interval ${next.lower} to ${next.upper} percent of the source coordinate`:old.progress!==progress?`${Math.round(progress*100)} percent of the interval accumulated`:old.n!==n||old.continuum!==continuum?`${n} charge elements${continuum>=.999?', continuous limit':''}`:old.selectedIndex!==selectedIndex?`Charge element ${selectedIndex+1} of ${n}. Contribution magnitude ${pretty(magnitude(sample.field))} newtons per coulomb`:old.size!==p.size||old.charge!==p.charge||old.phi!==p.phi?'Charge distribution adjusted':'';
+    if(!cause)return;
+    pending.current=`${cause}. Net field magnitude ${pretty(magnitude(displayed))} newtons per coulomb.`;
+    // A trailing throttle reads the latest state during a drag, without indefinitely deferring speech.
+    if(!timer.current)timer.current=setTimeout(()=>{setAnnouncement(pending.current);timer.current=null;},500);
+  },[id,p.distance,p.size,p.charge,p.phi,n,selectedIndex,progress,continuum,boundRange,problem.title,sample.field,displayed]);
+  useEffect(()=>()=>{if(timer.current)clearTimeout(timer.current);},[]);
   const O: Point = perspective ? { x: 315, y: 296 } : id === 'endpoint' ? { x: 210, y: 300 } : id === 'semi' ? { x: 300, y: 310 } : id === 'axial' ? { x: 130, y: 230 } : id === 'arc' ? { x: 375, y: 218 } : { x: 220, y: 216 };
   const unit = perspective ? 42 : id==='endpoint' ? Math.min(45,150/p.size) : id==='bisector' ? Math.min(45,140/R) : id==='arc' ? 40 : 35;
   const project = (v: Vec): Point => { if (!perspective) return { x: O.x + unit * v.x, y: O.y - unit * v.y }; const s = projectCamera(v, camera.yaw, camera.pitch); return { x: O.x + unit * s.x, y: O.y + unit * s.y }; };
@@ -108,16 +125,22 @@ export function ChargeDiagram({ problem, params: p, setParams, count, continuum,
     }
   }
   const handle = (name: string) => ({
+    // react-compiler flags the ref writes below as refs-during-render because these
+    // handlers are built while rendering. They only ever run from pointer events, which
+    // is exactly what a ref is for; the alternative is state that would re-render the
+    // whole diagram on every pointer move.
+    /* oxlint-disable react/react-compiler */
     // stopPropagation keeps a grab on P or a bound from also starting an orbit on the root.
-    onPointerDown: (ev: PointerEvent<SVGGElement>) => { ev.stopPropagation(); ev.currentTarget.setPointerCapture(ev.pointerId); dragging.current = name; },
-    onPointerMove: move, onPointerUp: () => { dragging.current = null; }, onPointerCancel: () => { dragging.current = null; },
+    onPointerDown: (ev: PointerEvent<SVGGElement>) => { ev.stopPropagation(); ev.currentTarget.setPointerCapture(ev.pointerId); dragging.current = name; setActiveDrag(true); },
+    onPointerMove: move, onPointerUp: () => { dragging.current = null; setActiveDrag(false); }, onPointerCancel: () => { dragging.current = null; setActiveDrag(false); }, onLostPointerCapture: () => { dragging.current = null; setActiveDrag(false); },
+    /* oxlint-enable react/react-compiler */
   });
   const onControl = (target: EventTarget | null) => target instanceof Element && !!target.closest('.cd-piece,.cd-observation,.cd-bound');
-  const release = () => { if (dragging.current === 'orbit') dragging.current = null; };
+  const release = () => { if (dragging.current === 'orbit') dragging.current = null; setActiveDrag(false); };
   // Orbit is offered only where the projection is already pseudo-3D; the planar views carry
   // hardcoded axis labels and dimension brackets that a rotation would misplace.
   const orbit = {
-    onPointerDown: (ev: PointerEvent<SVGSVGElement>) => { if (onControl(ev.target)) return; ev.currentTarget.focus(); ev.currentTarget.setPointerCapture(ev.pointerId); dragging.current = 'orbit'; orbitFrom.current = eventPoint(ev); },
+    onPointerDown: (ev: PointerEvent<SVGSVGElement>) => { if (onControl(ev.target)) return; cameraControl.current?.focus(); ev.currentTarget.setPointerCapture(ev.pointerId); dragging.current = 'orbit'; setActiveDrag(true); orbitFrom.current = eventPoint(ev); },
     onPointerMove: (ev: PointerEvent<SVGSVGElement>) => { if (dragging.current !== 'orbit') return; const cursor = eventPoint(ev); setCamera(v => orbitCamera(v, cursor.x - orbitFrom.current.x, cursor.y - orbitFrom.current.y)); orbitFrom.current = cursor; },
     onPointerUp: release, onPointerCancel: release, onLostPointerCapture: release,
     // The element stepper, the P slider and the bound handles all bind arrows and preventDefault
@@ -152,7 +175,7 @@ export function ChargeDiagram({ problem, params: p, setParams, count, continuum,
   const sourceLabel = surface ? `${elementSymbol} ${continuum>=.999?'=':'≈'} σ · 2πs ${continuum>=.999?'ds':'Δs'}` : id === 'ring' || id === 'arc' ? `${elementSymbol} = λR ${continuum>=.999?'dθ':'Δθ'}` : `${elementSymbol} = λ ${continuum>=.999?'dℓ':'Δℓ'}`;
   const sourceText = surface ? 'Whole annulus · transverse fields cancel' : id === 'infinite' || id === 'semi' ? 'Unbounded source · visible window shown' : id === 'arc' ? 'Observation point fixed at center' : 'Select a piece · drag P to explore';
   return <div className={"charge-diagram cd-focus-"+highlight}>
-    <svg ref={svg} className={`cd-svg${perspective ? ' cd-orbitable' : ''}`} viewBox="0 0 720 430" tabIndex={perspective ? 0 : undefined} {...(perspective ? orbit : {})} aria-label={`${problem.title}. Interactive charge distribution and electric field visualization.${perspective ? ' Drag or use the arrow keys to rotate the view, Home to reset it.' : ''}`}>
+    <svg ref={svg} className={`cd-svg${perspective ? ' cd-orbitable' : ''}`} viewBox="0 0 720 430" role="img" {...(perspective ? orbit : {})} aria-label={`${problem.title}. Interactive charge distribution and electric field visualization.${perspective ? ' Drag or use the arrow keys to rotate the view, Home to reset it.' : ''}`}>
       <defs>
         <pattern id={`${uid}grid`} width="28" height="28" patternUnits="userSpaceOnUse"><circle cx="1" cy="1" r=".7" fill="var(--grid)" /></pattern>
         <clipPath id={`${uid}clip`}><rect x="42" y="54" width="626" height="317" rx="10" /></clipPath>
@@ -170,7 +193,7 @@ export function ChargeDiagram({ problem, params: p, setParams, count, continuum,
         {(id === 'ring' || id === 'arc') && <path d={pathThrough(circlePoints(R, id === 'arc' ? -p.phi / 2 : 0, id === 'arc' ? p.phi / 2 : 2 * Math.PI))} className="cd-charge-base" />}
         {renderSamples.map(({ s, i }) => {
           const pos = project(s.position), active = i === selectedIndex, accumulated = Math.abs(weights[i]) > 0 && (mode === 'sum' || mode === 'integrate');
-          const inInterval = Math.abs(intervalWeights(n,boundRange,1)[i])>0;
+          const inInterval = Math.abs(wholeWeights[i])>0;
           const opacity = !inInterval ? .14 : active ? 1 : accumulated ? .94 : .48 + continuum * .3;
           let shape;
           if (surface) shape = <motion.path initial={false} animate={{ d: pathThrough(circlePoints(s.position.x)) }} transition={{ duration: still ? 0 : .18 }} fill="none" strokeWidth={active ? 4 : continuum > .8 ? 1 : 1.7} />;
@@ -182,7 +205,7 @@ export function ChargeDiagram({ problem, params: p, setParams, count, continuum,
             const extent = Math.max(1, tail - head);
             shape = upright ? <rect x={pos.x - rodHalf} y={head} width={rodHalf * 2} height={extent} /> : <rect x={head} y={pos.y - rodHalf} width={extent} height={rodHalf * 2} />;
           }
-          return <g key={i} className={`cd-piece ${active ? 'is-selected' : ''}`} style={{ opacity }} onClick={() => onSelect(i)} tabIndex={active ? 0 : -1} role="button" aria-label={`Charge element ${i + 1} of ${n}`} onKeyDown={ev => { if (ev.key === 'ArrowRight' || ev.key === 'ArrowUp') { ev.preventDefault(); onSelect((i + 1) % n); } if (ev.key === 'ArrowLeft' || ev.key === 'ArrowDown') { ev.preventDefault(); onSelect((i + n - 1) % n); } }}>{shape}</g>;
+          return <g key={i} className={`cd-piece ${active ? 'is-selected' : ''}`} style={{ opacity }} onPointerDown={ev => { ev.stopPropagation(); onSelect(i); }}>{shape}</g>;
         })}
         {rodLike && <g className="cd-plus" aria-hidden="true">{chargeMarks.map(v => <text key={v} x={upright ? O.x : v} y={(upright ? v : O.y) + 3.6} textAnchor="middle">+</text>)}</g>}
         {rodLike && continuum < .995 && <g style={{ opacity: .55 * (1 - continuum) }} aria-hidden="true">{spans.slice(1).map(([head], j) => upright
@@ -210,11 +233,11 @@ export function ChargeDiagram({ problem, params: p, setParams, count, continuum,
       </>}
       <Vector from={P} to={plus(P, net)} width={3.5} label={continuum>=.999&&full&&progress>=.999?'E':'Σ ΔE'} reduced={still} />
       {magnitude(displayed) < 1e-8 && <text x={P.x-16} y={P.y-47} textAnchor="end" className="cd-zero">E = 0</text>}
-      <g {...(id === 'arc' ? {} : handle('P'))} className={`cd-observation ${id === 'arc' ? 'is-fixed' : ''}`} role={id === 'arc' ? undefined : 'slider'} tabIndex={id === 'arc' ? undefined : 0} aria-label="Observation distance in meters" aria-valuemin={.5} aria-valuemax={6} aria-valuenow={p.distance} aria-valuetext={`${p.distance} meters`} onKeyDown={ev => { if (id !== 'arc' && ['ArrowRight', 'ArrowUp', 'ArrowLeft', 'ArrowDown'].includes(ev.key)) { ev.preventDefault(); setParams({ distance: Math.round(clamp(p.distance + (ev.key === 'ArrowRight' || ev.key === 'ArrowUp' ? .1 : -.1), .5, 6) * 10) / 10 }); } }}>
+      <g {...(id === 'arc' ? {} : handle('P'))} className={`cd-observation ${id === 'arc' ? 'is-fixed' : ''}`}>
         <circle cx={P.x} cy={P.y} r="28" fill={`url(#${uid}point)`} /><circle cx={P.x} cy={P.y} r="16" className="cd-point-halo" /><circle cx={P.x} cy={P.y} r="5" className="cd-point" /><text x={P.x-10} y={P.y+31} className="cd-point-label">{id === 'arc' ? 'P = O' : 'P'}</text>
       </g>
       {showContribution && <g className="cd-source-tag"><line x1={source.x} y1={source.y} x2={source.x+(source.x>560?-22:22)} y2={source.y+(source.y<95?22:-20)} /><text x={source.x+(source.x>560?-27:27)} y={source.y+(source.y<95?27:-21)} textAnchor={source.x>560?'end':'start'}>{sourceVisible ? (surface ? 'ring '+elementSymbol : elementSymbol) : elementSymbol+' outside view'}</text></g>}
-      {mode === 'integrate' && onBoundRangeChange && [0, 1].map(i => { const raw = project(world(boundRange[i]/100)); const point = { x: clamp(raw.x, 57, 650), y: clamp(raw.y, 66, 358) + ((id === 'ring' || (id === 'arc' && p.phi > 6.2)) ? (i ? 13 : -13) : 0) }; return <g key={i} {...handle(String(i))} className="cd-bound" tabIndex={0} role="slider" aria-label={`${i ? 'Upper' : 'Lower'} integration bound`} aria-valuemin={0} aria-valuemax={100} aria-valuenow={boundRange[i]} onKeyDown={ev => { if (['ArrowRight','ArrowUp','ArrowLeft','ArrowDown'].includes(ev.key)) { ev.preventDefault(); const next: [number,number] = [...boundRange]; next[i] = clamp(next[i] + (ev.key === 'ArrowRight' || ev.key === 'ArrowUp' ? 1 : -1), 0, 100); onBoundRangeChange(next); } }}><circle cx={point.x} cy={point.y} r="17" fill="transparent" /><rect x={point.x-8} y={point.y-8} width="16" height="16" rx="4" /><text x={point.x+(i ? 18 : -18)} y={point.y+5} textAnchor={i ? 'start' : 'end'}>{i ? 'b' : 'a'}</text></g>; })}
+      {mode === 'integrate' && onBoundRangeChange && [0, 1].map(i => { const raw = project(world(boundRange[i]/100)); const point = { x: clamp(raw.x, 57, 650), y: clamp(raw.y, 66, 358) + ((id === 'ring' || (id === 'arc' && p.phi > 6.2)) ? (i ? 13 : -13) : 0) }; return <g key={i} {...handle(String(i))} className="cd-bound"><circle cx={point.x} cy={point.y} r="17" fill="transparent" /><rect x={point.x-8} y={point.y-8} width="16" height="16" rx="4" /><text x={point.x+(i ? 18 : -18)} y={point.y+5} textAnchor={i ? 'start' : 'end'}>{i ? 'b' : 'a'}</text></g>; })}
       {showContribution && <g className="cd-triangle">
         {perspective ? <><path d="M538 135V73L619 135Z"/><path d="M538 127h8v8"/><text x="526" y="110">z</text><text x="575" y="151">{surface?'s':'R'}</text><text x="584" y="94">rᵢ</text><text x="548" y="93">α</text><text x="538" y="170" className="cd-triangle-note">Right triangle · schematic</text></> : id==='arc' ? <><line x1={P.x} y1={P.y} x2={selectedPoint.x} y2={selectedPoint.y}/><text x={P.x+30} y={P.y-12}>θ</text></> : id==='axial' ? <text x={(P.x+source.x)/2} y={P.y-39}>rᵢ = L + a − x</text> : <><path d={`M${source.x} ${source.y}L${source.x} ${P.y}L${P.x} ${P.y}`} /><text x={(source.x+P.x)/2+7} y={(source.y+P.y)/2-10}>rᵢ</text><text x={source.x-24} y={(source.y+P.y)/2}>{id==='semi'?'x':'y'}</text><text x={P.x-31} y={P.y-8}>α</text></>}
       </g>}
@@ -222,7 +245,15 @@ export function ChargeDiagram({ problem, params: p, setParams, count, continuum,
       <text x="30" y="409" className="cd-footer">{sourceLabel}</text>
       <text x="690" y="409" textAnchor="end" className="cd-footer">{showContribution ? `${fieldSymbol} × ${pretty(selectedGain)} · E: ${pretty(scaleValue)} N/C per 100 px` : n > 80 ? `${n} numerical pieces · simplified display` : `${n} charge pieces`}</text>
     </svg>
-    {perspective && <div className="cd-orbit-chrome"><span>Drag or arrow keys to rotate · Home to reset</span><button type="button" className="cd-orbit-reset" onClick={() => setCamera(DEFAULT_CAMERA)} disabled={camera.yaw === DEFAULT_CAMERA.yaw && camera.pitch === DEFAULT_CAMERA.pitch}>Reset view</button></div>}
+    <details className="cd-controls" open><summary>Diagram controls and keyboard help</summary><p id={`${uid}help`}>Tab moves between controls. Arrow keys adjust the focused control; Home and End select its limits. You can also drag P and the integration bounds in the figure.</p>
+    <div className="cd-control-grid">
+      {perspective&&<button ref={cameraControl} type="button" className="cd-camera-control" aria-describedby={`${uid}camera-help`} onKeyDown={ev=>{if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Home'].includes(ev.key)){ev.preventDefault();setCamera(v=>keyboardCamera(v,ev.key));}}} onClick={()=>setCamera(DEFAULT_CAMERA)}>Rotate view with arrow keys<span id={`${uid}camera-help`}>Left/right rotate; up/down tilt; Home or Enter resets.</span></button>}
+      <label>Charge element {selectedIndex+1} of {n}<input type="range" aria-label="Selected charge element" min={0} max={n-1} step={1} value={selectedIndex} onChange={ev=>onSelect(Number(ev.target.value))}/></label>
+      {id!=='arc'&&<label>Observation distance: {pretty(p.distance)} m<input type="range" aria-label="Observation distance in meters" aria-valuetext={`${pretty(p.distance)} meters`} min={.5} max={6} step={.1} value={p.distance} onChange={ev=>setParams({distance:Number(ev.target.value)})}/></label>}
+      {mode==='integrate'&&onBoundRangeChange&&[0,1].map(i=><label key={i}>{i?'Upper':'Lower'} bound: {boundRange[i]}%<input type="range" aria-label={`${i?'Upper':'Lower'} integration bound`} aria-valuetext={`${boundRange[i]} percent of the source coordinate`} min={0} max={100} step={1} value={boundRange[i]} onChange={ev=>{const next:[number,number]=[...boundRange];next[i]=Number(ev.target.value);onBoundRangeChange(next);}}/></label>)}
+    </div></details>
+    <output className="cd-announcement" aria-live="polite" aria-atomic="true">{announcement}</output>
+    {perspective && <div className="cd-orbit-chrome"><span>Drag to rotate, or use the view control above</span><button type="button" className="cd-orbit-reset" onClick={() => setCamera(DEFAULT_CAMERA)} disabled={camera.yaw === DEFAULT_CAMERA.yaw && camera.pitch === DEFAULT_CAMERA.pitch}>Reset view</button></div>}
     <div className="cd-caption"><span><i className="cd-dot" />{sourceText}</span><span>{!full?'Selected interval':mode === 'sum' || mode === 'integrate' ? `${Math.round(progress*100)}% accumulated` : continuum >= .999 ? 'Infinitesimal limit' : 'Finite elements'}</span></div>
   </div>;
 }

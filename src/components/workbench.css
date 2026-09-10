@@ -91,3 +91,5 @@
  .ew-equation{font-size:var(--type-body)}
  .ew-header{padding:20px 18px 16px}.ew-content{padding:18px}
 }
+
+.ob-visual,.ob-mini-control,.cd-control-grid{user-select:none;-webkit-user-select:none}.ob-dots button{min-width:24px;min-height:24px}.ob-dots button::after{display:none}

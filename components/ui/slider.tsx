@@ -4,6 +4,7 @@ import { cn } from '@/lib/utils';
 
 function Slider({
   className,
+  style,
   defaultValue,
   value,
   min = 0,
@@ -18,7 +19,7 @@ function Slider({
 
   return (
     <SliderPrimitive.Root
-      className={cn('data-horizontal:w-full data-vertical:h-full', className)}
+      className={cn('data-horizontal:w-full data-vertical:h-full select-none touch-none', className)}
       data-slot="slider"
       defaultValue={defaultValue}
       value={value}
@@ -26,6 +27,7 @@ function Slider({
       max={max}
       thumbAlignment="edge"
       {...props}
+      style={typeof style === 'function' ? state => ({...style(state),userSelect:'none',WebkitUserSelect:'none',touchAction:'none'}) : {...style,userSelect:'none',WebkitUserSelect:'none',touchAction:'none'}}
     >
       <SliderPrimitive.Control className="data-vertical:min-h-40 relative flex w-full touch-none items-center select-none data-disabled:opacity-50 data-vertical:h-full data-vertical:w-auto data-vertical:flex-col">
         <SliderPrimitive.Track
@@ -42,6 +44,12 @@ function Slider({
             data-slot="slider-thumb"
             key={index}
             className="border-ring ring-ring/50 relative size-3 rounded-full border bg-white transition-[color,box-shadow] after:absolute after:-inset-2 hover:ring-3 focus-visible:ring-3 focus-visible:outline-hidden active:ring-3 block shrink-0 select-none disabled:pointer-events-none disabled:opacity-50"
+            // Base UI leaves an inline visibility:hidden on the thumb until it can
+            // resolve a position against a measured track. A slider that mounts in a
+            // row with no width yet never recovers, and the hidden thumb takes its
+            // range input out of the tab order and the accessibility tree, so the
+            // control still answers a mouse but not a keyboard or a screen reader.
+            style={{ visibility: 'visible' }}
           />
         ))}
       </SliderPrimitive.Control>

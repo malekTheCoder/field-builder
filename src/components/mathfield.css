@@ -9,3 +9,7 @@
 .symbol-row{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
 .symbol-key{min-width:34px;height:30px;border:1px solid var(--border);border-radius:6px;background:var(--card);color:var(--muted-foreground);font-size:15px;line-height:1;display:grid;place-items:center}
 .symbol-key:hover{border-color:var(--primary);background:var(--accent);color:var(--primary)}
+.mathfield-options{display:flex;align-items:center;flex-wrap:wrap;gap:6px 12px;margin-top:6px;color:var(--muted-foreground)}
+.mathfield-options small{flex:1 1 200px;font-size:.75rem}
+.mathfield-options button{font:inherit;font-size:.75rem;background:none;border:0;color:var(--primary);text-decoration:underline;text-underline-offset:3px;padding:4px 0;cursor:pointer;min-height:24px}
+.mathfield-options button:focus-visible{outline:2px solid var(--field);outline-offset:3px}

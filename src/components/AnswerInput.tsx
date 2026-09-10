@@ -13,7 +13,7 @@ export function Choices({value,onChange,options,label}:{value:string;onChange:(s
 const SYMBOLS:[string,string,string][]=[['λ',String.raw`\lambda`,'lambda'],['σ',String.raw`\sigma`,'sigma'],['ε₀',String.raw`\varepsilon_0`,'epsilon nought'],['θ',String.raw`\theta`,'theta'],['φ',String.raw`\phi`,'phi'],['π',String.raw`\pi`,'pi'],['√',String.raw`\sqrt{#?}`,'square root'],['⁄',String.raw`\frac{#?}{#?}`,'fraction'],['xⁿ',String.raw`^{#?}`,'exponent']];
 export function AnswerInput({field,value,onChange,guided,error,palette=false,onEnter}:{field:Answer;value:string;onChange:(s:string)=>void;guided:boolean;error?:boolean;palette?:boolean;onEnter?:()=>void}){
  const id=useId();const mf=useRef<MathFieldHandle|null>(null);const [over,setOver]=useState(false);
- const options=[...field.options].sort((a,b)=>{const hash=(s:string)=>[...s].reduce((n,c)=>((n*31+c.charCodeAt(0))|0),7);return hash(a)-hash(b)});
+ const options=[...field.options].sort((a,b)=>{const hash=(s:string)=>{let n=7;for(let i=0;i<s.length;i++)n=(n*31+s.charCodeAt(i))|0;return n};return hash(a)-hash(b)});
  // Chips travel as LaTeX. normalize() folds \frac/\sqrt back, so a dropped fact
  // grades exactly like the ASCII form the plain input used to carry.
  const insert=(latex:string)=>{if(latex)mf.current?.insert(latex)};
@@ -22,7 +22,7 @@ export function AnswerInput({field,value,onChange,guided,error,palette=false,onE
   <div className={'mathfield-drop'+(over?' over':'')} onDragOverCapture={e=>{e.preventDefault();setOver(true)}} onDragLeave={()=>setOver(false)} onDropCapture={e=>{e.preventDefault();e.stopPropagation();setOver(false);insert(e.dataTransfer.getData('text/plain'))}}>
    <MathField ref={mf} id={id} label={field.label} value={value} onChange={onChange} invalid={error} onEnter={onEnter} placeholder={palette?'Drop a fact here, or build an expression':'Build an expression…'}/>
   </div>
-  <div className="symbol-row" role="group" aria-label={'Symbols for '+field.label}>{SYMBOLS.map(([glyph,latex,name])=><button key={name} type="button" className="symbol-key" aria-label={name} title={name} onMouseDown={e=>e.preventDefault()} onClick={()=>insert(latex)}>{glyph}</button>)}</div>
+  <fieldset className="symbol-row" aria-label={'Symbols for '+field.label} style={{border:0,padding:0,margin:0,minWidth:0}}>{SYMBOLS.map(([glyph,latex,name])=><button key={name} type="button" className="symbol-key" aria-label={name} title={name} onMouseDown={e=>e.preventDefault()} onClick={()=>insert(latex)}>{glyph}</button>)}</fieldset>
   {palette&&<div className="palette" aria-label={'Facts for '+field.label}>{options.map(o=><button key={o} className="fact-chip" draggable onDragStart={e=>e.dataTransfer.setData('text/plain',preview(o))} onClick={()=>insert(preview(o))} title="Drag this fact into the blank, or click to use it"><MathText tex={preview(o)}/></button>)}</div>}
  </>}</div>;
 }

@@ -20,8 +20,10 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      - run: npx playwright install --with-deps chromium
       - run: npm run check
-      - run: npx vitest run --project unit
+      - run: npm run lint
+      - run: npm test
       - run: npm run build:static
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v4
