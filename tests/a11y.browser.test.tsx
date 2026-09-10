@@ -116,4 +116,19 @@ describe('keyboard and screen-reader path', () => {
     expect(dialog.querySelector('svg[aria-label="Line · potential"]')).toBeTruthy();
     expect(dialog.querySelector('svg[aria-label="Axis · potential"]')).toBeTruthy();
   });
+
+  it('lets the charge sliders reverse sign through zero', async () => {
+    localStorage.setItem('field-builder:explorer:v1', JSON.stringify({id: 'bisector', seen: true, dark: false, sidebarOpen: true, params: {}}));
+    const explorer = render(<Explorer />);
+    expect(await explorer.findByRole('heading', {name: /A line of charge/})).toBeTruthy();
+    const exploreNow:number[]=[];
+    for(const slider of explorer.getAllByRole('slider')){slider.focus();await userEvent.keyboard('{Home}');exploreNow.push(Number(slider.getAttribute('aria-valuenow')));}
+    expect(exploreNow).toContain(-5);
+    cleanup();
+    const wizard = render(<FieldBuilder initialProblem="bisector" />);
+    expect(await wizard.findByRole('heading', {name: /A line of charge/})).toBeTruthy();
+    const wizardNow:number[]=[];
+    for(const slider of wizard.getAllByRole('slider')){slider.focus();await userEvent.keyboard('{Home}');wizardNow.push(Number(slider.getAttribute('aria-valuenow')));}
+    expect(wizardNow).toContain(-5);
+  });
 });

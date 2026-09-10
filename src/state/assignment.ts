@@ -5,7 +5,7 @@ export type ExploreMode = 'divide' | 'project' | 'sum' | 'integrate';
 export type Assignment = { id?: ProblemId; mode?: ExploreMode; params?: Partial<Params>; pair?: boolean; components?: boolean };
 const MODES = new Set<string>(['divide', 'project', 'sum', 'integrate']);
 const IDS = new Set<string>(PROBLEM_IDS);
-const RANGES: Record<keyof Params, [number, number]> = { distance: [.5, 6], size: [1, 8], charge: [.5, 5], phi: [Math.PI * .1, Math.PI * 2], element: [0, 1], slices: [3, 30], continuum: [0, 1] };
+const RANGES: Record<keyof Params, [number, number]> = { distance: [.5, 6], size: [1, 8], charge: [-5, 5], phi: [Math.PI * .1, Math.PI * 2], element: [0, 1], slices: [3, 30], continuum: [0, 1] };
 const ALIAS: Record<string, keyof Params> = { r: 'distance', L: 'size', Q: 'charge', N: 'slices', c: 'continuum', distance: 'distance', size: 'size', charge: 'charge', phi: 'phi', slices: 'slices', continuum: 'continuum', element: 'element' };
 
 export function cleanParams(v: Partial<Params>): Params {

@@ -19,6 +19,9 @@ describe('assignment URLs', () => {
  });
  it('clamps params to the live ranges', () => {
   expect(cleanParams({ distance: 99, slices: 1, charge: -4 }).distance).toBe(6);
+  expect(cleanParams({ distance: 99, slices: 1, charge: -4 }).charge).toBe(-4);
+  expect(cleanParams({ charge: 0 }).charge).toBe(0);
+  expect(cleanParams({ charge: -99 }).charge).toBe(-5);
   expect(cleanParams({ distance: 99, slices: 1 }).slices).toBe(3);
   expect(cleanParams({}).distance).toBe(DEFAULT_PARAMS.distance);
  });

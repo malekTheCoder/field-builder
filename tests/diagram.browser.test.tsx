@@ -157,6 +157,17 @@ describe('ChargeDiagram in a real browser', () => {
     expect(plane.getAttribute('transform')).not.toBe(before);
     expect(svg.getAttribute('data-orbit-ms')).toBeTruthy();
   });
+  it('draws minus marks when the rod charge is negative, plus when it is not', () => {
+    const minus = mount('bisector', {charge: -2});
+    const minusMarks = [...minus.view.container.querySelectorAll('.cd-plus text')].map(el => el.textContent);
+    expect(minusMarks.length).toBeGreaterThan(0);
+    expect(minusMarks.every(t => t === '−')).toBe(true);
+    cleanup();
+    const plus = mount('bisector', {charge: 2});
+    const plusMarks = [...plus.view.container.querySelectorAll('.cd-plus text')].map(el => el.textContent);
+    expect(plusMarks.length).toBeGreaterThan(0);
+    expect(plusMarks.every(t => t === '+')).toBe(true);
+  });
   it('keeps the observation point fixed at the centre for the arc', () => {
     const {view} = mount('arc');
     expect(view.container.querySelector('.cd-observation.is-fixed')).toBeTruthy();
