@@ -1,4 +1,4 @@
-export type ProblemId='bisector'|'axial'|'infinite'|'ring'|'disk'|'semi'|'arc'|'sheet';
+export type ProblemId='bisector'|'axial'|'infinite'|'ring'|'disk'|'semi'|'arc'|'sheet'|'endpoint';
 export type Params={distance:number;size:number;charge:number;phi:number;element:number;slices:number;continuum:number};
 export type Answer={id:string;label:string;expected:string;tex:string;options:string[];hint:string;mistakes?:{expression:string;message:string;highlight?:string}[]};
 export type Step={title:string;text:string;fields?:Answer[];hint:string;worked?:{text:string;tex:string}[]};

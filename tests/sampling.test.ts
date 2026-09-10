@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { sampleDistribution, sumSamples, intervalWeights, sumInterval, activeIntervalIndex, type ChargeSample } from '../src/diagrams/sampling';
 import { field, magnitude } from '../src/symbolic/physics';
 import { DEFAULT_PARAMS, type ProblemId } from '../src/problems/types';
-const ids: ProblemId[] = ['bisector','axial','infinite','ring','disk','semi','arc','sheet'];
+const ids: ProblemId[] = ['bisector','axial','infinite','ring','disk','semi','arc','sheet','endpoint'];
 describe('physical charge sampling', () => {
   for (const id of ids) it(`${id} converges to its analytic vector field`, () => {
     for (const distance of [.5, 3, 6]) {
@@ -13,7 +13,7 @@ describe('physical charge sampling', () => {
     }
   });
   it('conserves finite total charge and equal finite line pieces', () => {
-    for (const id of ['bisector','axial','ring','disk','arc'] as ProblemId[]) {
+    for (const id of ['bisector','axial','ring','disk','arc','endpoint'] as ProblemId[]) {
       const samples = sampleDistribution(id, DEFAULT_PARAMS, 37);
       expect(samples.reduce((s,v) => s+v.dq,0)).toBeCloseTo(DEFAULT_PARAMS.charge*1e-9, 18);
     }

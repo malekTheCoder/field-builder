@@ -14,6 +14,7 @@ export function sampleDistribution(id: ProblemId, p: Params, count: number): Cha
     let dq = q / n, coordinate = 0;
     if (id === 'bisector') { coordinate = -L / 2 + L * t; position.y = coordinate; }
     if (id === 'axial') { coordinate = L * t; position.x = coordinate; observation.x = L + d; }
+    if (id === 'endpoint') { coordinate = L * t; position.y = coordinate; }
     if (id === 'infinite' || id === 'semi') {
       const span = id === 'infinite' ? Math.PI : Math.PI / 2;
       const theta = t * span - (id === 'infinite' ? Math.PI / 2 : 0);

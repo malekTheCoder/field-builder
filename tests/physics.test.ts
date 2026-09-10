@@ -2,7 +2,7 @@ import {describe,it,expect} from 'vitest';
 import {DEFAULT_PARAMS,type Params,type ProblemId} from '../src/problems/types';
 import {field,numerical,magnitude,K,EPS0,type Vec} from '../src/symbolic/physics';
 const params=(extra:Partial<Params>={}):Params=>({...DEFAULT_PARAMS,...extra});
-const ids:ProblemId[]=['bisector','axial','infinite','ring','disk','semi','arc','sheet'];
+const ids:ProblemId[]=['bisector','axial','infinite','ring','disk','semi','arc','sheet','endpoint'];
 function closeVector(actual:Vec,expected:Vec,tolerance=3e-5){const scale=magnitude(expected);for(const axis of ['x','y','z'] as const)expect(Math.abs(actual[axis]-expected[axis])).toBeLessThan(tolerance*Math.max(scale,1e-12));}
 describe('closed forms against independent point-charge quadrature',()=>{
  for(const id of ids)for(const charge of [2,-1.7])it(`${id}, charge ${charge}`,()=>{
@@ -19,8 +19,23 @@ describe('geometry, signs and limiting cases',()=>{
  for(const id of ids)it(`${id} reverses exactly when charge reverses`,()=>{
   const v=field(id,params()),n=field(id,params({charge:-DEFAULT_PARAMS.charge}));closeVector(n,{x:-v.x,y:-v.y,z:-v.z},1e-14);
  });
- for(const id of ['bisector','axial','ring','disk'] as const)it(`${id} recovers the point charge far field`,()=>{
+ for(const id of ['bisector','axial','ring','disk','endpoint'] as const)it(`${id} recovers the point charge far field`,()=>{
   const p=params({distance:1e7});expect(magnitude(field(id,p))/(K*p.charge*1e-9/p.distance**2)).toBeCloseTo(1,5);
+ });
+ it('a rod standing on its end has both components, and only the vertical one is negative',()=>{
+  for(const charge of [2,-2]){const v=field('endpoint',params({charge}));
+   expect(Math.sign(v.x)).toBe(Math.sign(charge));expect(Math.sign(v.y)).toBe(-Math.sign(charge));expect(v.z).toBe(0);}
+  // No symmetry cancels here, so E_y stays strictly negative for every finite L.
+  for(const size of [.01,1,4,1e3,1e9])expect(field('endpoint',params({size})).y).toBeLessThan(0);
+ });
+ it('the end-on rod becomes the semi-infinite line at fixed linear density',()=>{
+  const p=params({size:1e12}),rod=field('endpoint',{...p,charge:p.charge*p.size}),line=field('semi',p),lambda=p.charge*1e-9;
+  // `semi` draws the same physical rod in its own frame — rod along +x from the foot of the
+  // perpendicular — so the limit matches it after that rigid motion, component by component.
+  expect(rod.x).toBeCloseTo(-line.x,9);expect(rod.y).toBeCloseTo(-line.y,9);
+  expect(rod.x).toBeCloseTo(K*lambda/p.distance,9);expect(rod.y).toBeCloseTo(-K*lambda/p.distance,9);
+  expect(magnitude(rod)).toBeCloseTo(magnitude(line),9);
+  expect(magnitude(rod)).toBeCloseTo(Math.SQRT2*K*lambda/p.distance,9);
  });
  it('finite rod becomes infinite at fixed linear density',()=>{
   const p=params({size:1e6});closeVector(field('bisector',{...p,charge:p.charge*p.size}),field('infinite',p),1e-9);

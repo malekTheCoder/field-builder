@@ -40,8 +40,8 @@ export function ChargeDiagram({ problem, params: p, setParams, count, continuum,
   const sample = samples[selectedIndex], total = sumSamples(samples), weights = intervalWeights(n,boundRange,progress), partial = sumInterval(samples,boundRange,progress);
   const full = boundRange[0]===0 && boundRange[1]===100;
   const displayed = continuum>=.999 && progress>=.999 && full ? field(id,p) : partial;
-  const O: Point = perspective ? { x: 315, y: 296 } : id === 'semi' ? { x: 300, y: 310 } : id === 'axial' ? { x: 130, y: 230 } : id === 'arc' ? { x: 375, y: 218 } : { x: 220, y: 216 };
-  const unit = perspective ? 42 : id==='bisector' ? Math.min(45,140/R) : id==='arc' ? 40 : 35;
+  const O: Point = perspective ? { x: 315, y: 296 } : id === 'endpoint' ? { x: 210, y: 300 } : id === 'semi' ? { x: 300, y: 310 } : id === 'axial' ? { x: 130, y: 230 } : id === 'arc' ? { x: 375, y: 218 } : { x: 220, y: 216 };
+  const unit = perspective ? 42 : id==='endpoint' ? Math.min(45,150/p.size) : id==='bisector' ? Math.min(45,140/R) : id==='arc' ? 40 : 35;
   const project = (v: Vec): Point => { if (!perspective) return { x: O.x + unit * v.x, y: O.y - unit * v.y }; const s = projectCamera(v, camera.yaw, camera.pitch); return { x: O.x + unit * s.x, y: O.y + unit * s.y }; };
   // Screen point a distance `length` out along a world direction, for the axes and the R/s bracket.
   const ray = (v: Vec, length: number): Point => { const s = projectCamera(v, camera.yaw, camera.pitch); return { x: O.x + length * s.x, y: O.y + length * s.y }; };
@@ -51,6 +51,7 @@ export function ChargeDiagram({ problem, params: p, setParams, count, continuum,
   const world = (t: number): Vec => {
     if (id === 'bisector') return { x: 0, y: p.size * (t - .5), z: 0 };
     if (id === 'axial') return { x: p.size * t, y: 0, z: 0 };
+    if (id === 'endpoint') return { x: 0, y: p.size * t, z: 0 };
     if (id === 'infinite') return { x: 0, y: p.distance * Math.tan(Math.PI * (clamp(t, .001, .999) - .5)), z: 0 };
     if (id === 'semi') return { x: p.distance * Math.tan(Math.PI * clamp(t, 0, .999) / 2), y: 0, z: 0 };
     if (surface) return { x: id === 'disk' ? R * t : p.distance * Math.tan(Math.PI * clamp(t, 0, .999) / 2), y: 0, z: 0 };
@@ -134,9 +135,9 @@ export function ChargeDiagram({ problem, params: p, setParams, count, continuum,
   // Midpoints rather than a fixed width because the unbounded sources sample the
   // line non-uniformly, and because `stride` thins the drawn pieces at large N.
   const rodLike = !surface && id !== 'ring' && id !== 'arc';
-  const upright = id === 'bisector' || id === 'infinite';
+  const upright = id === 'bisector' || id === 'infinite' || id === 'endpoint';
   const along = (pt: Point) => upright ? pt.y : pt.x;
-  const rodEnds: [number, number] = id === 'bisector' ? [O.y - R * unit, O.y + R * unit] : id === 'infinite' ? [55, 370] : id === 'axial' ? [O.x, O.x + p.size * unit] : [O.x, 670];
+  const rodEnds: [number, number] = id === 'bisector' ? [O.y - R * unit, O.y + R * unit] : id === 'endpoint' ? [O.y - p.size * unit, O.y] : id === 'infinite' ? [55, 370] : id === 'axial' ? [O.x, O.x + p.size * unit] : [O.x, 670];
   const rodLow = Math.min(...rodEnds), rodHigh = Math.max(...rodEnds), rodHalf = 7;
   const axes = rodLike ? renderSamples.map(({ s }) => along(project(s.position))) : [];
   const ascending = axes.length < 2 || axes[axes.length - 1] >= axes[0];
@@ -165,7 +166,7 @@ export function ChargeDiagram({ problem, params: p, setParams, count, continuum,
       </g>
       <g clipPath={`url(#${uid}clip)`}>
         {surface && <><path d={pathThrough(circlePoints(id === 'sheet' ? 7 : R), true)} className="cd-surface" />{id === 'sheet' && <path d="M80 340l30 12m-8-16 30 12m444-78 30 12m-8-16 30 12" className="cd-continuation" />}</>}
-        {rodLike && <rect x={upright ? O.x - rodHalf : rodLow} y={upright ? rodLow : O.y - rodHalf} width={upright ? rodHalf * 2 : rodHigh - rodLow} height={upright ? rodHigh - rodLow : rodHalf * 2} rx={id === 'bisector' || id === 'axial' ? rodHalf : 0} fill="var(--charge-fill)" stroke="var(--charge)" strokeWidth="1.5" />}
+        {rodLike && <rect x={upright ? O.x - rodHalf : rodLow} y={upright ? rodLow : O.y - rodHalf} width={upright ? rodHalf * 2 : rodHigh - rodLow} height={upright ? rodHigh - rodLow : rodHalf * 2} rx={id === 'bisector' || id === 'axial' || id === 'endpoint' ? rodHalf : 0} fill="var(--charge-fill)" stroke="var(--charge)" strokeWidth="1.5" />}
         {(id === 'ring' || id === 'arc') && <path d={pathThrough(circlePoints(R, id === 'arc' ? -p.phi / 2 : 0, id === 'arc' ? p.phi / 2 : 2 * Math.PI))} className="cd-charge-base" />}
         {renderSamples.map(({ s, i }) => {
           const pos = project(s.position), active = i === selectedIndex, accumulated = Math.abs(weights[i]) > 0 && (mode === 'sum' || mode === 'integrate');
@@ -194,10 +195,11 @@ export function ChargeDiagram({ problem, params: p, setParams, count, continuum,
       {id === 'semi' && <g className="cd-infinity"><path d={`M628 ${O.y-10}l-9 20m17-20-9 20`} /><text x="641" y={O.y - 17}>∞</text></g>}
       {id === 'sheet' && <text x="544" y="354" className="cd-small">s → ∞</text>}
       {id === 'bisector' && <g className="cd-dimension"><path d={`M${O.x-39} ${O.y-R*unit}h-7m3.5 0V${O.y+R*unit}m-3.5 0h7`} /><text x={O.x-57} y={O.y+4}>L</text><text x={O.x+17} y={O.y-R*unit-8}>+L/2</text><text x={O.x+17} y={O.y+R*unit+20}>−L/2</text></g>}
+      {id === 'endpoint' && <g className="cd-dimension"><path d={`M${O.x-39} ${O.y-p.size*unit}h-7m3.5 0V${O.y}m-3.5 0h7`} /><text x={O.x-57} y={O.y-p.size*unit/2+4}>L</text><text x={O.x+17} y={O.y-p.size*unit-8}>y = L</text><text x={O.x+19} y={O.y-9}>y = 0</text></g>}
       {id === 'axial' && <g className="cd-dimension"><path d={`M${O.x} ${O.y+31}H${O.x+p.size*unit}`} /><text x={O.x+p.size*unit/2} y={O.y+50}>L</text><text x={O.x+p.size*unit+3} y={O.y-19}>L</text><text x={(O.x+p.size*unit+P.x)/2} y={O.y+31}>a</text></g>}
       {perspective && <g className="cd-dimension"><path d={`M${O.x} ${O.y}L${radiusTip.x} ${radiusTip.y}`} /><text x={O.x+(radiusTip.x-O.x)*.6} y={O.y+(radiusTip.y-O.y)*.6+19}>{surface ? 's' : 'R'}</text><text x={O.x-20} y={(O.y+P.y)/2}>z</text></g>}
       {id === 'arc' && <g className="cd-dimension"><path d={pathThrough(circlePoints(R*.32, -p.phi/2, p.phi/2))} /><text x={O.x+R*unit*.32+9} y={O.y-9}>φ</text><line x1={O.x} y1={O.y} x2={O.x+R*unit} y2={O.y} /><text x={O.x+R*unit*.6} y={O.y+23}>R</text></g>}
-      {(id === 'bisector' || id === 'infinite') && <g className="cd-dimension"><path d={`M${O.x+13} ${O.y+33}H${P.x-10}`} /><text x={(O.x+P.x)/2} y={O.y+52}>r</text></g>}
+      {(id === 'bisector' || id === 'infinite' || id === 'endpoint') && <g className="cd-dimension"><path d={`M${O.x+13} ${O.y+33}H${P.x-10}`} /><text x={(O.x+P.x)/2} y={O.y+52}>r</text></g>}
       {id === 'semi' && <text x={O.x+19} y={(P.y+O.y)/2} className="cd-small">r</text>}
       {id !== 'arc' && <text x={O.x-17} y={O.y+20} className="cd-origin">O</text>}
       {showContribution && <>

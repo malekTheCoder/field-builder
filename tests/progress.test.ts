@@ -22,7 +22,7 @@ describe('complete practice grading',()=>{
 });
 describe('formula content integrity',()=>{
  for(const p of cases)it(`${p.id}/${p.variable}: every displayed formula renders without control characters`,()=>{
-  const tex=[p.variableTex,p.densityTex,p.dqTex,p.kernelTex,p.integralTex,p.resultTex,...p.boundTex,p.symmetry.tex,...p.limits.map(l=>l.formula),...p.steps.flatMap(s=>[...s.fields?.map(f=>f.tex)??[],...s.worked?.map(w=>w.tex)??[]])];
+  const tex=[p.variableTex,p.densityTex,p.dqTex,p.kernelTex,p.integralTex,p.resultTex,...p.secondaryResultTex?[p.secondaryResultTex]:[],...p.boundTex,p.symmetry.tex,...p.limits.map(l=>l.formula),...p.steps.flatMap(s=>[...s.fields?.map(f=>f.tex)??[],...s.worked?.map(w=>w.tex)??[]])];
   for(const formula of tex){for(let index=0;index<formula.length;index++)expect(formula.charCodeAt(index)).toBeGreaterThanOrEqual(32);expect(()=>katex.renderToString(formula,{throwOnError:true,strict:'error'}),formula).not.toThrow();}
  });
  it('preserves actual TeX commands for angles, bounds, and symmetry',()=>{

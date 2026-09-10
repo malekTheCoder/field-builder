@@ -2,7 +2,7 @@
 
 An interactive electric-field workbench for calculus-based introductory physics. Move an observation point, cut a charge distribution into elements, project each contribution, watch the finite vector sum become an integral, and check the result against a limiting case.
 
-Eight continuous charge distributions are implemented and working today.
+Nine continuous charge distributions are implemented and working today.
 
 ## What the app is
 
@@ -40,19 +40,20 @@ The development server prints the local preview URL. Other scripts:
 - Disk, constructed from annular rings
 - Semi-infinite line, both surviving vector components
 - Arc, center of curvature
+- Finite rod standing on its end, with P level with that end — both components survive
 - Infinite nonconducting sheet, built from disk/ring integration
 
 The UI uses React 19, Vinext/Vite, hand-authored SVG, Motion, KaTeX, MathLive, and math.js. Ring, disk, and sheet views rotate by dragging or using arrow keys; Home resets the view. Progress and preferences stay in local browser storage. The application itself has no student-account system or tracking. Hosting access is currently owner-only until public access is enabled.
 
 ## Physics conventions
 
-Coordinates, units, and assumptions are explicit in each model. Positive charge is the default. For a semi-infinite rod along positive x and P=(0,r), the field components are Ex = −kλ/r and Ey = +kλ/r. The magnitude is √2 k|λ|/r. Disk formulas distinguish signed height from magnitude, and the ideal charged surface z=0 is excluded.
+Coordinates, units, and assumptions are explicit in each model. Positive charge is the default. For a semi-infinite rod along positive x and P=(0,r), the field components are Ex = −kλ/r and Ey = +kλ/r. The magnitude is √2 k|λ|/r. The finite rod from y=0 to y=L observed at P=(r,0) has Ex = kQ/(r√(r²+L²)) and Ey = −kλ(1/r − 1/√(r²+L²)); as L grows at fixed λ it reproduces that semi-infinite pair. Disk formulas distinguish signed height from magnitude, and the ideal charged surface z=0 is excluded.
 
 Source references are embedded in the problem definitions and shown with the worked derivations.
 
 ## Tests
 
-`npm test` currently runs **371 passing tests** across eleven files. They cover:
+`npm test` currently runs **411 passing tests** across eleven files. They cover:
 
 - every closed form against independent point-charge quadrature, plus signs and directions for both charge polarities;
 - the limiting cases the app asserts in its own UI — rod to point charge, rod to infinite line, disk to sheet, zero field at a ring's center with its axial maximum at z = R/√2, a closing arc cancelling to zero, distance-independence of the sheet;
@@ -64,7 +65,7 @@ The suite includes real Chromium tests for math entry, geometry rendering, obser
 
 ## Status
 
-Working: all eight geometries, the explorer, the optional practice wizard, onboarding, symbolic grading, and locally stored progress.
+Working: all nine geometries, the explorer, the optional practice wizard, onboarding, symbolic grading, and locally stored progress.
 
 Deployment and validation:
 

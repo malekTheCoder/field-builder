@@ -6,7 +6,7 @@ export type ProgressData={version:1;current:string;level:1|2|3;path:string;dark:
 export function freshLesson():LessonState{return{stage:0,answers:{},completed:[],assisted:[],hinted:[],params:{...DEFAULT_PARAMS},boundRange:[20,80],worked:0,done:false};}
 export function freshProgress():ProgressData{return{version:1,current:'bisector',level:1,path:'angular',dark:false,seenIntro:false,lessons:{}};}
 export const STORAGE_KEY='field-builder:v1';
-const problemIds=new Set(['bisector','axial','infinite','ring','disk','semi','arc','sheet']);
+const problemIds=new Set(['bisector','axial','infinite','ring','disk','semi','arc','sheet','endpoint']);
 const record=(value:unknown):value is Record<string,unknown>=>!!value&&typeof value==='object'&&!Array.isArray(value);
 const clamp=(value:unknown,fallback:number,min:number,max:number,integer=false)=>{const n=typeof value==='number'&&Number.isFinite(value)?value:fallback;return Math.max(min,Math.min(max,integer?Math.floor(n):n));};
 const stages=(value:unknown)=>Array.isArray(value)?[...new Set(value.filter((x):x is number=>Number.isInteger(x)&&x>=0&&x<8))]:[];

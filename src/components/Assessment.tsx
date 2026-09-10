@@ -15,6 +15,7 @@ function LimitFigure({id,mode,t}:{id:ProblemId;mode:Limit['mode'];t:number}){
  if(id==='bisector'||id==='infinite'){const h=id==='infinite'?22:Math.max(3,22*k);return <><path d="M64 25H190" {...RAIL}/><path d={`M64 ${25-h}V${25+h}`} {...CHARGE} strokeWidth="7"/>{(id==='infinite'||unbounded)&&<path d="M57 6l14-4M57 44l14 4" {...CHARGE}/>}<Observer x={198} y={25} dx={26} dy={0}/></>}
  if(id==='axial'){const w=Math.max(9,120*k);return <><path d={`M${44+w} 25H196`} {...RAIL}/><path d={`M44 25h${w}`} {...CHARGE} strokeWidth="7"/><Observer x={204} y={25} dx={26} dy={0}/></>}
  if(id==='semi'){const y=32-16*Math.min(1,(t-1)/29);return <><path d="M108 38H246" {...CHARGE} strokeWidth="7"/><path d="M238 31l9 7-9 7" {...CHARGE}/><path d={`M108 38V${y+6}`} {...RAIL}/><Observer x={108} y={y} dx={-11} dy={-11}/></>}
+ if(id==='endpoint'){const h=Math.max(3,26*k);return <><path d="M104 34H190" {...RAIL}/><path d={`M104 34V${34-h}`} {...CHARGE} strokeWidth="7"/>{unbounded&&<path d="M97 12l7-6 7 6" {...CHARGE}/>}<Observer x={198} y={34} dx={17} dy={8}/></>}
  if(id==='arc'){const a=mode==='full'?2*Math.PI*t/30:Math.PI,d=Array.from({length:49},(_,i)=>{const s=-a/2+a*i/48;return `${i?'L':'M'}${(152+17*Math.cos(s)).toFixed(1)},${(25-17*Math.sin(s)).toFixed(1)}`}).join(' ');return <><path d={d} {...CHARGE} strokeWidth="5"/><Observer x={152} y={25} dx={-28} dy={0} show={a<6.2}/></>}
  // Ring, disk and sheet share an axial view: the source lies in a plane, P sits above it on the axis.
  const filled=id!=='ring',plane=id==='sheet'&&mode==='scale';

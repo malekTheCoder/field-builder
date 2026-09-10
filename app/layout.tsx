@@ -24,7 +24,7 @@ const serif = Source_Serif_4({
 
 export const metadata: Metadata = {
   title: 'Field Builder — Electric fields, derived',
-  description: 'Build electric-field integrals one step at a time. An open visual workbench with eight charge geometries, animated SVG vectors, continuous integrals, and physical sanity checks.',
+  description: 'Build electric-field integrals one step at a time. An open visual workbench with nine charge geometries, animated SVG vectors, continuous integrals, and physical sanity checks.',
 };
 
 export default function RootLayout({
