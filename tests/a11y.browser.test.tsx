@@ -6,6 +6,7 @@ import Explorer from '../src/explorer/Explorer';
 import FieldBuilder from '../src/wizard/FieldBuilder';
 import {MathField} from '../src/components/MathField';
 import {ChargeDiagram} from '../src/diagrams/ChargeDiagram';
+import {Assessment} from '../src/components/Assessment';
 import {getProblem} from '../src/problems/definitions';
 import {DEFAULT_PARAMS, type Params} from '../src/problems/types';
 
@@ -130,5 +131,19 @@ describe('keyboard and screen-reader path', () => {
     const wizardNow:number[]=[];
     for(const slider of wizard.getAllByRole('slider')){slider.focus();await userEvent.keyboard('{Home}');wizardNow.push(Number(slider.getAttribute('aria-valuenow')));}
     expect(wizardNow).toContain(-5);
+  });
+
+  it('exposes the limit comparison as a table of t, exact, and reference, not only an aria-label', () => {
+    const problem = getProblem('bisector');
+    const {container} = render(<Assessment problem={problem} params={DEFAULT_PARAMS} limit={problem.limits[0]} />);
+    const table = container.querySelector('table.sr-only');
+    expect(table).toBeTruthy();
+    expect(table!.querySelectorAll('thead th').length).toBe(3);
+    expect(table!.querySelectorAll('tbody tr')).toHaveLength(70);
+    expect(table!.querySelector('tbody tr')!.querySelectorAll('td').length).toBe(3);
+    const plot = container.querySelector('svg.comparison-plot');
+    expect(plot).toBeTruthy();
+    expect(plot!.getAttribute('role')).toBe('img');
+    expect(plot!.getAttribute('aria-label')).toMatch(/Exact field/);
   });
 });
