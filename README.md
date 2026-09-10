@@ -8,7 +8,7 @@ Fifteen lessons are in the library today: **ten electric-field geometries** and 
 
 ## In class
 
-Open the live site. The explorer is the default view. Optional graded practice is **Try the math** (loaded on demand). Progress and preferences stay in that browser’s local storage. There is no class roster, no cloud save, and no tracking.
+Open the live site. The explorer is the default view. Optional graded practice is **Try the math** (loaded on demand). Progress and preferences stay in that browser’s local storage. There is no class roster, no cloud save, and no tracking. On a shared Chromebook cart, students move wizard work with **Export lesson progress** / **Import lesson progress** (see below).
 
 ### Share a lesson
 
@@ -33,12 +33,21 @@ Unknown keys and unparsable numbers are ignored. Numbers are clamped to the live
 
 ### Print or send an offline copy
 
-Printer and download icons sit in the **top-right header** of the explorer and of Try the math.
+Printer and download icons sit in the **top-right header** of the explorer and of Try the math (the practice wizard).
 
 - **Print this lesson** opens the browser print dialog. Chrome is hidden; the figure, title, and equations stay. Paper size is US letter.
 - **Save an offline copy of this lesson** downloads a self-contained HTML file (`field-builder-<lesson>.html`). Equations are TeX source so the file remains readable without a network. Students can Print → Save as PDF from there.
 
-The saved HTML is a snapshot of the open lesson, not a portable save of wizard progress. Work on a shared Chromebook cart stays on that device unless the student downloads a copy.
+That HTML file is a printable snapshot of the open lesson. It is **not** lesson progress and cannot be imported back into the app.
+
+### Carry wizard progress between computers
+
+Two folder icons sit in the same header, immediately after **Save an offline copy of this lesson**, on both the explorer and Try the math.
+
+- **Export lesson progress** downloads `field-builder-progress.json`.
+- **Import lesson progress** opens a file picker for that JSON.
+
+Import **merges by lesson key**. Lessons already saved on this device that are not in the file stay put. Matching keys are overwritten by the file. A malformed file, a printable HTML copy, or a JSON file of the wrong kind is rejected and does not wipe local work.
 
 ### Keyboard
 
@@ -114,18 +123,18 @@ Source references are embedded in the problem definitions and shown with the wor
 
 ## Tests
 
-`npm test` currently runs **677 passing tests** across **23 files**. They cover:
+`npm test` currently runs **690 passing tests** across **24 files**. They cover:
 
 - every closed form against independent point-charge quadrature, including the five potentials and both charge polarities;
 - the limiting cases the app asserts — rod to point charge, rod to infinite line, disk to sheet, zero field at a ring's center with its axial maximum at z = R/√2, a closing arc cancelling to zero, distance-independence of the sheet, ramp far-field and first-moment;
 - the numerical sampler that drives the diagram: charge conservation, partial and reversed interval sums, infinite-domain tails, scalar potential sums;
 - the symbolic answer checker, including notation variants, deliberate sign and projection mistakes, and rejection of unsafe input;
-- saved-progress round-tripping and recovery from malformed local storage;
+- saved-progress round-tripping, recovery from malformed local storage, and JSON export/import (merge by lesson key; a bad file or HTML copy leaves local work in place);
 - teacher assignment URLs, print stylesheet and offline HTML, keyboard tour trap, wizard grading, and touch drags at phone and tablet sizes.
 
 ## What this is not
 
-Gauss’s law, Biot–Savart, circuits, and student-account sync are not in the product. Progress does not follow a student from one computer to another. Visual theming may still shift from commit to commit.
+Gauss’s law, Biot–Savart, circuits, and student-account sync are not in the product. Progress is not in the cloud; students move it with the JSON export. Visual theming may still shift from commit to commit.
 
 ## Project location and deployment
 
