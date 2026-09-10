@@ -1,0 +1,41 @@
+/* Paper copy of the current lesson. Interactive chrome drops away; the figure, title, and equations stay. */
+@media print {
+  @page { size: letter portrait; margin: 12mm; }
+  html, body { background: #fff !important; color: #0e2333 !important; }
+  * { box-shadow: none !important; text-shadow: none !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .no-print,
+  .exp-header-right,
+  .exp-sidebar,
+  .exp-library-toggle,
+  .practice-button,
+  .play-button,
+  .cd-controls,
+  .cd-orbit-chrome,
+  .cd-announcement,
+  .exp-process,
+  .exp-transport,
+  .exp-number-choice,
+  .exp-footer,
+  .practice-return,
+  .icon-button,
+  .repo-button,
+  .tour-button,
+  .top-actions,
+  .lesson-nav,
+  .phase-bar,
+  .stage-progress,
+  .stage-actions,
+  .lesson-tools,
+  .reveal-step,
+  [data-slot='dialog-overlay'],
+  [data-slot='dialog-content'],
+  .exp-breadcrumb button { display: none !important; }
+  .exp-shell[data-slot='sidebar-wrapper'],
+  .workspace { display: block !important; grid-template-columns: 1fr !important; min-height: 0 !important; }
+  .exp-workspace, .studio-grid { display: block !important; grid-template-columns: 1fr !important; }
+  .exp-main, .main-work { padding: 0 !important; max-width: none !important; }
+  .exp-header, .app-top { border: 0 !important; height: auto !important; padding: 0 0 8px !important; }
+  .exp-diagram-card, .charge-diagram, .ew-panel, .stage-card, .panel { break-inside: avoid; border: 0 !important; }
+  .cd-svg { max-height: none !important; width: 100% !important; }
+  .exp-parameters output, .symbolic-view .exp-parameters output { display: inline !important; }
+}
