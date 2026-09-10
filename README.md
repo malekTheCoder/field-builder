@@ -8,7 +8,7 @@ Eight continuous charge distributions are implemented and working today.
 
 Two surfaces share one physics engine and one drawing engine.
 
-- **The explorer** is the default view and the primary experience. Pick a geometry, drag point P, adjust the size, density and slice count, sweep from ΔQ to dQ, animate the running vector sum, and read the exact closed form beside the numerical one. Four process tabs — slice, project, sum, integrate — change what the diagram emphasises. An assess view plots the exact field against each limiting case.
+- **The explorer** is the default view and the primary experience. Pick a geometry, drag point P, adjust the size, density and slice count, sweep from ΔQ to dQ, animate the running vector sum, and build the equation symbol by symbol. Numerical measurements and checks are available through an opt-in switch. The geometry library can collapse to give the figure more room. Four process tabs — slice, project, sum, integrate — change what the diagram emphasises. An assess view plots the exact field against each limiting case.
 - **The practice wizard** is optional, reached from "Try the math" and loaded on demand. It walks the same geometry through eight steps (coordinates, charge element, one contribution, symmetry, substitution, bounds, integration, sanity check) at three difficulty levels, grading typed expressions symbolically. It draws the same per-geometry figure as the explorer, with the emphasis matched to the current step.
 
 ## Run locally
@@ -42,7 +42,7 @@ The development server prints the local preview URL. Other scripts:
 - Arc, center of curvature
 - Infinite nonconducting sheet, built from disk/ring integration
 
-The UI uses React 19, Vite, hand-authored SVG, Motion, KaTeX, and math.js. Progress and preferences stay in local browser storage. No student accounts or tracking are required.
+The UI uses React 19, Vinext/Vite, hand-authored SVG, Motion, KaTeX, MathLive, and math.js. Ring, disk, and sheet views rotate by dragging or using arrow keys; Home resets the view. Progress and preferences stay in local browser storage. The application itself has no student-account system or tracking. Hosting access is currently owner-only until public access is enabled.
 
 ## Physics conventions
 
@@ -52,7 +52,7 @@ Source references are embedded in the problem definitions and shown with the wor
 
 ## Tests
 
-`npm test` currently runs **187 passing tests** across five files. They cover:
+`npm test` currently runs **371 passing tests** across eleven files. They cover:
 
 - every closed form against independent point-charge quadrature, plus signs and directions for both charge polarities;
 - the limiting cases the app asserts in its own UI — rod to point charge, rod to infinite line, disk to sheet, zero field at a ring's center with its axial maximum at z = R/√2, a closing arc cancelling to zero, distance-independence of the sheet;
@@ -60,15 +60,15 @@ Source references are embedded in the problem definitions and shown with the wor
 - the symbolic answer checker, including notation variants, deliberate sign and projection mistakes, and rejection of unsafe input;
 - saved-progress round-tripping and recovery from malformed local storage.
 
-The suite is logic-only. Browser-level coverage of the SVG pointer and keyboard interactions is being added separately, and full cross-device and keyboard-only QA is still in progress.
+The suite includes real Chromium tests for math entry, geometry rendering, observation-point and bound controls, keyboard rotation, and Home reset. Install Chromium with `npx playwright install chromium` if it is not already available. Manual checks cover desktop, 390px mobile and 820px tablet layouts; broad cross-browser and classroom validation remain ongoing.
 
 ## Status
 
 Working: all eight geometries, the explorer, the optional practice wizard, onboarding, symbolic grading, and locally stored progress.
 
-Not finished:
+Deployment and validation:
 
-- **Not deployed.** The application is not yet published at its target address, and the DNS record for it does not exist yet.
+- Published at **https://field.malekswilam.dev**, with DNS and HTTPS active. Hosting access is currently private.
 - Cross-device and cross-browser QA (tablet widths, keyboard-only navigation, reduced-motion behaviour) is incomplete.
 - Visual theming and the diagram camera are under active revision, so the interface may change from commit to commit.
 
@@ -76,4 +76,4 @@ Not finished:
 
 Local checkout: `/Users/malekswilam/Developer/field-builder`. The Git repository is private.
 
-Target application address: `field.malekswilam.dev` — reserved, not yet serving. Hosting configuration is in `.openai/hosting.json`; credentials are never stored in the repository.
+Application address: https://field.malekswilam.dev. Hosting origin: https://field-builder-lab.malekgswilam.chatgpt.site. Hosting configuration is in `.openai/hosting.json`; credentials are never stored in the repository.
