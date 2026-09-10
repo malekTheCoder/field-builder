@@ -41,6 +41,18 @@ describe('MathField', () => {
     expect(() => normalize(latex)).not.toThrow();
     expect(equivalent(latex, 'Q/L', getProblem('bisector')).ok).toBe(true);
   });
+  it('installs a course virtual keyboard with lambda, epsilon nought, square root and fractions', async () => {
+    const {container} = render(<MathField value="" onChange={() => {}} label="Charge element" />);
+    await waitFor(() => expect(container.querySelector('math-field')).toBeTruthy(), {timeout: 15000});
+    await waitFor(() => {
+      const kb = (window as Window & {mathVirtualKeyboard?: {layouts: unknown; normalizedLayouts?: unknown}}).mathVirtualKeyboard;
+      const blob = JSON.stringify(kb?.normalizedLayouts ?? kb?.layouts ?? []);
+      expect(blob).toMatch(/\\lambda/);
+      expect(blob).toMatch(/varepsilon/);
+      expect(blob).toMatch(/\\sqrt/);
+      expect(blob).toMatch(/\\frac/);
+    });
+  });
   it('writes an externally supplied value into the field without fighting the caret', async () => {
     const onChange = vi.fn();
     const {container, rerender} = render(<MathField value="" onChange={onChange} label="Charge element" />);

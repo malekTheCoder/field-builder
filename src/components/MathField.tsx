@@ -12,10 +12,20 @@ import {loadMathLive} from './mathlive-loader';
 /** Lets callers drop or click a fact chip straight into the caret position. */
 export type MathFieldHandle={insert:(latex:string)=>void};
 export type MathFieldProps={value:string;onChange:(latex:string)=>void;label:string;placeholder?:string;invalid?:boolean;id?:string;onEnter?:()=>void;ref?:React.Ref<MathFieldHandle>};
+// Course keys sit in front of MathLive's numeric layout so a tablet never has to
+// hunt Greek or a fraction. Set once: reassigning layouts mid-edit closes the keyboard.
+let courseKeys=false;
+function installCourseKeyboard(){
+ if(courseKeys)return;
+ const live=window as Window&{mathVirtualKeyboard?:{layouts:unknown;normalizedLayouts?:unknown}};
+ const kb=live.mathVirtualKeyboard;if(!kb)return;
+ kb.layouts=[{id:'course',label:'λ ε₀',rows:[['\\lambda','\\sigma','\\varepsilon_0','\\theta','\\phi','\\pi'],[{latex:'\\sqrt{#0}',label:'√'},{latex:'\\frac{#@}{#?}',label:'⁄'},{latex:'^{#?}'}]]},'numeric','symbols'];
+ courseKeys=true;
+}
 export function MathField({value,onChange,label,placeholder,invalid,id,onEnter,ref}:MathFieldProps){
  const host=useRef<MathFieldElement|null>(null),fallback=useRef<HTMLInputElement|null>(null),latest=useRef(onChange);useEffect(()=>{latest.current=onChange},[onChange]);
  const [ready,setReady]=useState(false),[plain,setPlain]=useState(false),[failed,setFailed]=useState(false),[focused,setFocused]=useState(false),[attempt,setAttempt]=useState(0);const help=useId();const rich=ready&&!plain&&!focused;
- useEffect(()=>{let live=true;const timer=window.setTimeout(()=>{if(live)setFailed(true)},10000);loadMathLive().then(()=>{if(live){setReady(true);setFailed(false)}}).catch(()=>{if(live)setFailed(true)});return()=>{live=false;clearTimeout(timer)}},[attempt]);
+ useEffect(()=>{let live=true;const timer=window.setTimeout(()=>{if(live)setFailed(true)},10000);loadMathLive().then(mod=>{if(live){(mod as {initVirtualKeyboardInCurrentBrowsingContext?:()=>void}).initVirtualKeyboardInCurrentBrowsingContext?.();installCourseKeyboard();setReady(true);setFailed(false)}}).catch(()=>{if(live)setFailed(true)});return()=>{live=false;clearTimeout(timer)}},[attempt]);
  useEffect(()=>{
   const el=host.current;if(!el||!rich)return;
   // The virtual keyboard is what makes this worth having on a tablet, but it
