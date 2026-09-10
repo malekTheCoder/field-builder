@@ -16,6 +16,19 @@ describe('complete practice grading',()=>{
   const p=getProblem('semi');expect(gradeStage(p,6,{...expectedAnswers(p),result2:'0'}).fieldId).toBe('result2');
   const inf=getProblem('infinite');expect(gradeStage(inf,4,{...expectedAnswers(inf),jacobian:'r'}).fieldId).toBe('jacobian');
  });
+ it('diagnoses each ramp-rod misconception with its own message, in any spelling',()=>{
+  const p=getProblem('ramp'),ok=expectedAnswers(p);
+  const peak=gradeStage(p,1,{...ok,dq:'λ₀ dy'});expect(peak.ok).toBe(false);expect(peak.fieldId).toBe('dq');expect(peak.text).toContain('density at the far end only');
+  const units=gradeStage(p,1,{...ok,dq:String.raw`Q\frac{y}{L}dy`});expect(units.ok).toBe(false);expect(units.text).toContain('λ₀L/2');
+  const uniform=gradeStage(p,4,{...ok,kernel:'k*lambda0*r/(y^2+r^2)^(3/2)'});expect(uniform.ok).toBe(false);expect(uniform.text).toContain('uniform rod');
+  const sign=gradeStage(p,4,{...ok,kernel2:'k*lambda0*y^2/(L*(y^2+r^2)^(3/2))'});expect(sign.ok).toBe(false);expect(sign.text).toContain('downward');
+  const sameQ=gradeStage(p,6,{...ok,result:'k*Q/(r*sqrt(r^2+L^2))'});expect(sameQ.ok).toBe(false);expect(sameQ.text).toContain('same total charge');
+  const twice=gradeStage(p,6,{...ok,result:'k*lambda0*L/(r*sqrt(r^2+L^2))'});expect(twice.ok).toBe(false);expect(twice.text).toContain('λ₀L/2');
+  const imported=gradeStage(p,3,{...ok,symmetry:'The y-components cancel'});expect(imported.ok).toBe(false);expect(imported.text).toContain('both conditions fail');
+  // Q is the grader's alias for λ₀L/2 here, so the correct answer survives being written through Q.
+  expect(gradeStage(p,6,{...ok,result:'2*k*Q/L^2*(1-r/sqrt(L^2+r^2))'}).ok).toBe(true);
+  expect(gradeStage(p,6,{...ok,result2:String.raw`-\frac{k\lambda_0}{L}\left(\ln\frac{L+\sqrt{L^2+r^2}}{r}-\frac{L}{\sqrt{L^2+r^2}}\right)`}).ok).toBe(true);
+ });
  it('returns a helpful failure for stale stage and limit indexes',()=>{
   expect(gradeStage(PROBLEMS[0],9,{}).ok).toBe(false);expect(gradeStage(PROBLEMS[0],7,{},99).ok).toBe(false);
  });

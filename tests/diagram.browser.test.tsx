@@ -15,10 +15,10 @@ function mount(id: ProblemId, over: Partial<Params> = {}, props: Record<string, 
     mode="divide" boundRange={[0, 100]} onBoundRangeChange={onBoundRangeChange} {...props} />);
   return {view, setParams, onSelect, onBoundRangeChange};
 }
-const ALL: ProblemId[] = ['bisector', 'axial', 'infinite', 'ring', 'disk', 'semi', 'arc', 'sheet', 'endpoint'];
+const ALL: ProblemId[] = ['bisector', 'axial', 'infinite', 'ring', 'disk', 'semi', 'arc', 'sheet', 'endpoint', 'ramp'];
 
 describe('ChargeDiagram in a real browser', () => {
-  it('renders a labelled svg for every one of the nine geometries', () => {
+  it('renders a labelled svg for every one of the ten geometries', () => {
     for (const id of ALL) {
       const {view} = mount(id);
       const svg = view.container.querySelector('svg');

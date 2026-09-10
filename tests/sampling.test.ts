@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { sampleDistribution, sumSamples, intervalWeights, sumInterval, activeIntervalIndex, type ChargeSample } from '../src/diagrams/sampling';
 import { field, magnitude } from '../src/symbolic/physics';
 import { DEFAULT_PARAMS, type ProblemId } from '../src/problems/types';
-const ids: ProblemId[] = ['bisector','axial','infinite','ring','disk','semi','arc','sheet','endpoint'];
+const ids: ProblemId[] = ['bisector','axial','infinite','ring','disk','semi','arc','sheet','endpoint','ramp'];
 describe('physical charge sampling', () => {
   for (const id of ids) it(`${id} converges to its analytic vector field`, () => {
     for (const distance of [.5, 3, 6]) {
@@ -17,6 +17,12 @@ describe('physical charge sampling', () => {
       const samples = sampleDistribution(id, DEFAULT_PARAMS, 37);
       expect(samples.reduce((s,v) => s+v.dq,0)).toBeCloseTo(DEFAULT_PARAMS.charge*1e-9, 18);
     }
+  });
+  it('the ramp rod carries lambda0 L / 2 in total, with each piece weighted by its own height', () => {
+    const samples = sampleDistribution('ramp', DEFAULT_PARAMS, 40), l0 = DEFAULT_PARAMS.charge*1e-9, L = DEFAULT_PARAMS.size;
+    expect(samples.reduce((s,v) => s+v.dq,0)).toBeCloseTo(l0*L/2, 18);
+    for (const s of samples) expect(s.dq).toBeCloseTo(l0*s.position.y/L*(L/40), 22);
+    expect(samples[0].dq).toBeLessThan(samples[39].dq/50);
   });
   it('accumulates zero, a fractional first element, and the complete field', () => {
     const samples = sampleDistribution('semi', DEFAULT_PARAMS, 12);

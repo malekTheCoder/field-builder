@@ -2,7 +2,7 @@
 
 An interactive electric-field workbench for calculus-based introductory physics. Move an observation point, cut a charge distribution into elements, project each contribution, watch the finite vector sum become an integral, and check the result against a limiting case.
 
-Nine continuous charge distributions are implemented and working today.
+Ten continuous charge distributions are implemented and working today.
 
 ## What the app is
 
@@ -41,6 +41,7 @@ The development server prints the local preview URL. Other scripts:
 - Semi-infinite line, both surviving vector components
 - Arc, center of curvature
 - Finite rod standing on its end, with P level with that end — both components survive
+- The same rod with a non-uniform density λ(y) = λ₀y/L — the symmetry argument fails for two independent reasons, and the far field remembers the centre of charge at 2L/3
 - Infinite nonconducting sheet, built from disk/ring integration
 
 The UI uses React 19, Vinext/Vite, hand-authored SVG, Motion, KaTeX, MathLive, and math.js. Ring, disk, and sheet views rotate by dragging or using arrow keys; Home resets the view. Progress and preferences stay in local browser storage. The application itself has no student-account system or tracking. The GitHub Pages deployment is public; students do not need an account.
@@ -65,7 +66,7 @@ The suite includes real Chromium tests for math entry, geometry rendering, obser
 
 ## Status
 
-Working: all nine geometries, the explorer, the optional practice wizard, onboarding, symbolic grading, and locally stored progress.
+Working: all ten geometries, the explorer, the optional practice wizard, onboarding, symbolic grading, and locally stored progress.
 
 Deployment and validation:
 

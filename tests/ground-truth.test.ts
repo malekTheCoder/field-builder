@@ -50,6 +50,8 @@ function truth(id:ProblemId,p:Params):V3{
   case 'arc':{const lam=q/(R*p.phi);return simpson(t=>coulomb(lam*R,[R*Math.cos(t),R*Math.sin(t),0],[0,0,0]),-p.phi/2,p.phi/2,2000);}
   // Rod standing on the x-axis from y = 0 to y = L; P = (r, 0), level with its lower end.
   case 'endpoint':{const lam=q/L;return simpson(y=>coulomb(lam,[0,y,0],[d,0,0]),0,L,4000);}
+  // The same rod with λ(y) = λ₀ y/L; the slider is the peak density λ₀.
+  case 'ramp':return simpson(y=>coulomb(q*y/L,[0,y,0],[d,0,0]),0,L,4000);
   // Semi-infinite rod along +x from the origin; P = (0, r).
   case 'semi':{const lam=q,g=(x:number)=>coulomb(lam,[x,0,0],[0,d,0]);
    return add(simpson(g,0,Math.abs(d),256),toInfinity(g,Math.abs(d),Math.abs(d)));}
@@ -60,7 +62,9 @@ function truth(id:ProblemId,p:Params):V3{
    const a=Math.abs(d);return add(double2d(g,0,a,200,0,2*Math.PI,80),toInfinity(s=>simpson(t=>g(s,t),0,2*Math.PI,80),a,a,60,64));}
  }
 }
-const ids:ProblemId[]=['bisector','axial','infinite','ring','disk','semi','arc','sheet','endpoint'];
+const ids:ProblemId[]=['bisector','axial','infinite','ring','disk','semi','arc','sheet','endpoint','ramp'];
+/** Total charge in coulombs, from the setup text: the ramp's slider is a peak density on a finite rod. */
+const total=(id:ProblemId,p:Params)=>id==='ramp'?p.charge*1e-9*p.size/2:p.charge*1e-9;
 const params=(extra:Partial<Params>={}):Params=>({...DEFAULT_PARAMS,...extra});
 function closeTo(actual:Vec,expected:V3,tol:number,what:string){
  const s=Math.max(Math.hypot(...expected),1e-30);
@@ -91,7 +95,7 @@ describe('closed forms vs an independently written Coulomb integrator',()=>{
  for(const id of ids)it(`${id} far field approaches the point charge when it is bounded`,()=>{
   if(id==='infinite'||id==='semi'||id==='sheet'||id==='arc')return; // unbounded charge, or P pinned to the centre
   const p=params({distance:1e8,size:3.8});
-  expect(magnitude(field(id,p))/(K*Math.abs(p.charge)*1e-9/p.distance**2)).toBeCloseTo(1,6);
+  expect(magnitude(field(id,p))/(K*Math.abs(total(id,p))/p.distance**2)).toBeCloseTo(1,6);
  });
 });
 // ---------------------------------------------------------------------------
@@ -111,6 +115,7 @@ function scopeFor(id:ProblemId,p:Params):Record<string,number>{
  if(id==='disk')return{...base,sigma:q/(Math.PI*R*R),lambda:q/L};
  if(id==='semi')return{...base,lambda:q};
  if(id==='endpoint')return{...base,lambda:q/L};
+ if(id==='ramp')return{...base,lambda0:q,Q:q*L/2,y:.7*L};
  return{...base,sigma:q,lambda:q};
 }
 /** Scalar Simpson of the definition's own integrand string over its own bounds. */
@@ -134,6 +139,7 @@ describe('the displayed derivation reproduces the displayed answer',()=>{
   {id:'disk',lo:0,hi:p.size/2,component:'z',element:'2*pi*s*ds'},
   {id:'semi',lo:0,hi:'inf',component:'x',element:'dx',secondary:{kernelId:'kernel2',expected:'k*lambda/r',component:'y'}},
   {id:'endpoint',lo:0,hi:p.size,component:'x',element:'dy',secondary:{kernelId:'kernel2',expected:'-k*lambda*(1/r-1/sqrt(r^2+L^2))',component:'y'}},
+  {id:'ramp',lo:0,hi:p.size,component:'x',element:'dy',secondary:{kernelId:'kernel2',expected:'-k*lambda0/L*(log((L+sqrt(L^2+r^2))/r)-L/sqrt(L^2+r^2))',component:'y'}},
   {id:'arc',lo:-p.phi/2,hi:p.phi/2,component:'x',element:'R*dtheta'},
   {id:'sheet',lo:0,hi:'inf',component:'z',element:'2*pi*s*ds'},
  ];
@@ -215,7 +221,7 @@ describe('degenerate and edge cases',()=>{
   for(const id of ['bisector','infinite','semi','axial'] as const)
    expect(magnitude(field(id,params({distance:1e-9})))).toBeGreaterThan(1e5);
  });
- it('problem definitions cover all nine geometries exactly once',()=>{
+ it('problem definitions cover all ten geometries exactly once',()=>{
   expect(PROBLEMS.map(x=>x.id).sort()).toEqual([...ids].sort());
  });
 });
