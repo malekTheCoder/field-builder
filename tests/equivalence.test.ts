@@ -14,6 +14,24 @@ describe('mathematical input',()=>{
   expect(eq('R dθ','R*dtheta','ring')).toBe(true);expect(eq('2π r′ ds','2*pi*s*ds','disk')).toBe(true);
   expect(eq('rᵢ²','ri^2')).toBe(true);expect(eq(String.raw`r_{i}^2`,'ri^2')).toBe(true);
  });
+ it('accepts natural logarithms in typed and LaTeX potential expressions',()=>{
+  const expected='k*lambda*log((d+L)/d)';
+  for(const input of ['kλ ln((d+L)/d)','k*lambda*log((d+L)/d)',String.raw`k\lambda\ln\left(\frac{d+L}{d}\right)`,String.raw`k\lambda\log\left(\frac{d+L}{d}\right)`])expect(eq(input,expected)).toBe(true);
+  expect(eq('ln(d+L)-ln(d)','log((d+L)/d)')).toBe(true);
+  expect(eq('ln(d+L)/ln(d)','log((d+L)/d)')).toBe(false);
+  expect(eq('log((d+L)/d)/log(10)','log((d+L)/d)')).toBe(false);
+  expect(preview(String.raw`\ln\left(d\right)`)).not.toContain('Keep typing');
+ });
+ it('keeps distance and differential symbols independent',()=>{
+  expect(eq('d*dQ','dQ')).toBe(false);
+  expect(eq('d','r')).toBe(false);
+  expect(eq('dQ/d','dQ/r')).toBe(false);
+  expect(eq('λ dx','lambda*dx')).toBe(true);
+ });
+ it('rejects logarithm bases, unsafe calls and non-real or singular values',()=>{
+  for(const input of ['log(d,10)','ln(d,10)','log()','log(import("x"))'])expect(()=>safeParse(input)).toThrow();
+  for(const input of ['log(0)','log(-d)','1/log(1)'])expect(eq(input,input)).toBe(false);
+ });
  it('accepts common charge-density and Coulomb constant substitutions',()=>{
   expect(eq('k*Q/(a*(a+L))',getProblem('axial').result,'axial')).toBe(true);
   expect(eq('-2*k*Q*sin(phi/2)/(R^2*phi)',getProblem('arc').result,'arc')).toBe(true);

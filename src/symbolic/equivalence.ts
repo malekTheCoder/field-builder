@@ -1,9 +1,10 @@
 import {parse,type MathNode,type SymbolNode,type FunctionNode,type OperatorNode,type ConstantNode} from 'mathjs';
 import type {Problem} from '../problems/types';
-const allowedFunctions=new Set(['sqrt','sin','cos','tan','sec','abs']);
-const allowedSymbols=new Set(['Q','L','R','r','a','z','x','y','s','theta','alpha','phi','lambda','sigma','eps0','pi','k','ri','dQ','dE','dx','dy','ds','dr','dtheta','dA','Infinity']);
+const allowedFunctions=new Set(['sqrt','sin','cos','tan','sec','abs','log']);
+const allowedSymbols=new Set(['d','Q','L','R','r','a','z','x','y','s','theta','alpha','phi','lambda','sigma','eps0','pi','k','ri','dQ','dE','dx','dy','ds','dr','dtheta','dA','Infinity']);
 export function normalize(input:string):string {
- let s=input.trim().replace(/^(?:E_[xyz]|dE_[xyz]|dQ|dE|E|[A-Za-z_]+)\s*=/,'').replace(/−|–/g,'-').replace(/λ|\\lambda/g,' lambda ').replace(/σ|\\sigma/g,' sigma ').replace(/ε₀|ε0|\\varepsilon_?\{?0\}?|\\epsilon_?\{?0\}?/g,' eps0 ').replace(/π|\\pi/g,' pi ').replace(/θ|\\theta/g,' theta ').replace(/α|\\alpha/g,' alpha ').replace(/φ|ϕ|\\varphi|\\phi/g,' phi ').replace(/∞|\\infty|\binf\b/gi,'Infinity').replace(/r[′']/g,'s').replace(/r_\{i\}|r_i|rᵢ/g,'ri').replace(/\bd\s+(theta|x|y|s|r)\b/g,'d$1').replace(/\\(?:left|right|,|;|!)/g,'').replace(/\\(?:cdot|times)|·|×/g,'*').replace(/²/g,'^2').replace(/³/g,'^3');
+ // Both ln and log denote the natural logarithm; bases are intentionally unsupported.
+ let s=input.replace(/\\(?:ln|log)\b|\bln\b/g,'log').trim().replace(/^(?:E_[xyz]|dE_[xyz]|dQ|dE|E|[A-Za-z_]+)\s*=/,'').replace(/−|–/g,'-').replace(/λ|\\lambda/g,' lambda ').replace(/σ|\\sigma/g,' sigma ').replace(/ε₀|ε0|\\varepsilon_?\{?0\}?|\\epsilon_?\{?0\}?/g,' eps0 ').replace(/π|\\pi/g,' pi ').replace(/θ|\\theta/g,' theta ').replace(/α|\\alpha/g,' alpha ').replace(/φ|ϕ|\\varphi|\\phi/g,' phi ').replace(/∞|\\infty|\binf\b/gi,'Infinity').replace(/r[′']/g,'s').replace(/r_\{i\}|r_i|rᵢ/g,'ri').replace(/\bd\s+(theta|x|y|s|r)\b/g,'d$1').replace(/\\(?:left|right|,|;|!)/g,'').replace(/\\(?:cdot|times)|·|×/g,'*').replace(/²/g,'^2').replace(/³/g,'^3');
  // Innermost braces are reduced first, preserving nested fractions and roots.
  for(let i=0;i<20;i++){const next=s.replace(/\\(?:dfrac|tfrac|frac)\{([^{}]*)\}\{([^{}]*)\}/g,'(($1)/($2))').replace(/\\sqrt\{([^{}]*)\}/g,'sqrt($1)').replace(/\^\{([^{}]*)\}/g,'^($1)');if(next===s)break;s=next;}
  s=s.replace(/\\(sin|cos|tan|sec|sqrt)/g,'$1').replace(/[{}]/g,m=>m==='{'?'(':')').replace(/\|([^|]+)\|/g,'abs($1)').replace(/\bD([xyzs])\b/g,'d$1').trim();
@@ -23,7 +24,7 @@ export function safeParse(input:string):MathNode {
   if(++count>100||depth>20)throw Error('This expression is too complex. Split it into smaller steps.');
   if(!['OperatorNode','SymbolNode','ConstantNode','ParenthesisNode','FunctionNode'].includes(n.type))throw Error('Enter a single mathematical expression.');
   if(n.type==='SymbolNode'&&!allowedSymbols.has((n as SymbolNode).name)&&!allowedFunctions.has((n as SymbolNode).name))throw Error(`Unknown symbol ${(n as SymbolNode).name}. Use the symbols shown in the model.`);
-  if(n.type==='FunctionNode'&&(!allowedFunctions.has(((n as FunctionNode).fn as SymbolNode).name)||(n as FunctionNode).args.length!==1))throw Error('Use only sqrt, sin, cos, tan, sec, or abs, with one argument.');
+  if(n.type==='FunctionNode'&&(!allowedFunctions.has(((n as FunctionNode).fn as SymbolNode).name)||(n as FunctionNode).args.length!==1))throw Error('Use only sqrt, sin, cos, tan, sec, abs, or ln (natural log), with one argument.');
   if(n.type==='OperatorNode'){
    if(!['+','-','*','/','^'].includes((n as OperatorNode).op))throw Error('Use arithmetic operators only.');
    if((n as OperatorNode).op==='^'){
