@@ -38,7 +38,7 @@ describe('potential lessons in the live UI', () => {
   localStorage.setItem('field-builder:explorer:v1', JSON.stringify({id: 'v-ring', seen: true, dark: false, sidebarOpen: true, showNumbers: true, params: {}}));
   const {findAllByText, queryByText, container} = render(<Explorer />);
   // Dismiss the tour if hydration still opens it; the saved `seen` flag should already skip it.
-  const tour = queryByText("Let’s build a field") ?? queryByText('Skip');
+  const tour = queryByText("Let’s start") ?? queryByText("Let’s build a field") ?? queryByText('Skip');
   if (tour) tour.click();
   expect((await findAllByText('Ring · potential')).length).toBeGreaterThan(0);
   expect((await findAllByText('Disk · potential')).length).toBeGreaterThan(0);

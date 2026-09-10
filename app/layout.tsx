@@ -23,8 +23,8 @@ const serif = Source_Serif_4({
 });
 
 export const metadata: Metadata = {
-  title: 'Field Builder — Electric fields, derived',
-  description: 'Build electric-field and electric-potential integrals one step at a time. An open visual workbench with ten charge geometries, five potential lessons, animated SVG, continuous integrals, and physical sanity checks.',
+  title: 'Field Builder — Electric fields and potential, derived',
+  description: 'Build electric-field and electric-potential integrals one step at a time. An open visual workbench with 15 lessons, including electric potential, animated SVG, continuous integrals, and physical sanity checks.',
 };
 
 export default function RootLayout({

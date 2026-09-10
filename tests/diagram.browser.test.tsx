@@ -2,7 +2,7 @@ import {cleanup, fireEvent, render} from '@testing-library/react';
 import {userEvent} from 'vitest/browser';
 import {afterEach, describe, expect, it, vi} from 'vitest';
 import {ChargeDiagram} from '../src/diagrams/ChargeDiagram';
-import {getProblem} from '../src/problems/definitions';
+import {getProblem, PROBLEMS} from '../src/problems/definitions';
 import {DEFAULT_PARAMS, type Params, type ProblemId} from '../src/problems/types';
 
 afterEach(cleanup);
@@ -15,10 +15,10 @@ function mount(id: ProblemId, over: Partial<Params> = {}, props: Record<string, 
     mode="divide" boundRange={[0, 100]} onBoundRangeChange={onBoundRangeChange} {...props} />);
   return {view, setParams, onSelect, onBoundRangeChange};
 }
-const ALL: ProblemId[] = ['bisector', 'axial', 'infinite', 'ring', 'disk', 'semi', 'arc', 'sheet', 'endpoint', 'ramp'];
+const ALL: ProblemId[] = PROBLEMS.map(p => p.id);
 
 describe('ChargeDiagram in a real browser', () => {
-  it('renders a labelled svg for every one of the ten geometries', () => {
+  it('renders a labelled svg for every lesson', () => {
     for (const id of ALL) {
       const {view} = mount(id);
       const svg = view.container.querySelector('svg');

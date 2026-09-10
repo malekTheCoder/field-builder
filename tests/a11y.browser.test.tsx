@@ -43,7 +43,8 @@ describe('keyboard and screen-reader path', () => {
     expect(await findByRole('heading', {name: /A line of charge/})).toBeTruthy();
     const help = getByRole('button', {name: /How it works/});
     await userEvent.click(help);
-    expect(await findByRole('dialog')).toBeTruthy();
+    const intro = await findByRole('dialog');
+    expect(intro.textContent).toMatch(/all 15 lessons, including electric potential/);
     await userEvent.keyboard('{Escape}');
     await waitFor(() => expect(document.activeElement).toBe(help));
   });
@@ -100,5 +101,19 @@ describe('keyboard and screen-reader path', () => {
     await waitFor(() => expect(live.textContent).toMatch(/Observation distance/i), {timeout: 2000});
     expect(live.textContent).toMatch(/meters/i);
     expect(live.textContent).toMatch(/Net field magnitude/i);
+  });
+
+  it('names every library glyph, including potential, and states fifteen lessons', async () => {
+    localStorage.setItem('field-builder:explorer:v1', JSON.stringify({id: 'bisector', seen: true, dark: false, sidebarOpen: true, params: {}}));
+    const {findByRole, getByRole} = render(<Explorer />);
+    expect(await findByRole('heading', {name: /A line of charge/})).toBeTruthy();
+    await userEvent.click(getByRole('button', {name: 'Charge library'}));
+    const dialog = await findByRole('dialog');
+    expect(dialog.textContent).toMatch(/15 lessons, including electric potential/);
+    expect(dialog.querySelector('svg[aria-label="Ring · potential"]')).toBeTruthy();
+    expect(dialog.querySelector('svg[aria-label="Disk · potential"]')).toBeTruthy();
+    expect(dialog.querySelector('svg[aria-label="Arc · potential"]')).toBeTruthy();
+    expect(dialog.querySelector('svg[aria-label="Line · potential"]')).toBeTruthy();
+    expect(dialog.querySelector('svg[aria-label="Axis · potential"]')).toBeTruthy();
   });
 });
