@@ -47,6 +47,13 @@ describe('saved progress survives reload and malformed storage',()=>{
  it('roundtrips valid completed progress',()=>{
   const p=freshProgress(),lesson=freshLesson();lesson.completed=[0,1,2,3,4,5,6,7];lesson.done=true;lesson.params.charge=-2;p.lessons.arc=lesson;p.current='arc';p.level=3;p.seenIntro=true;expect(loadProgress(JSON.stringify(p))).toEqual(p);expect(mastery(lesson)).toBe(100);
  });
+ it('keeps the lessons the wizard actually saves, keyed by id, level and derivation path',()=>{
+  // The wizard writes `bisector:2` and `infinite:1:limit`, never a bare id. Dropping those on reload silently discarded every student's progress.
+  const p=freshProgress(),done={...freshLesson(),completed:[0,1,2,3,4,5,6,7],done:true};
+  p.lessons['bisector:2']=done;p.lessons['infinite:1:limit']={...freshLesson(),stage:4,completed:[0,1,2,3]};p.lessons['garbage:1']=done;p.lessons['ring:9:nonsense']=freshLesson();
+  const saved=loadProgress(JSON.stringify(p));
+  expect(saved.lessons['bisector:2']).toEqual(done);expect(saved.lessons['infinite:1:limit'].stage).toBe(4);expect(saved.lessons['garbage:1']).toBeUndefined();expect(saved.lessons['ring:9:nonsense']).toEqual(freshLesson());
+ });
  it('does not turn duplicate completion entries into mastery',()=>{
   const p=freshProgress();p.lessons.bisector={...freshLesson(),completed:[0,0,0,0,0,0,0,0],done:true};const saved=loadProgress(JSON.stringify(p));expect(saved.lessons.bisector.completed).toEqual([0]);expect(saved.lessons.bisector.done).toBe(false);
  });
