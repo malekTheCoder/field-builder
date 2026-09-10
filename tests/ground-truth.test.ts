@@ -1,9 +1,9 @@
 import {describe,it,expect} from 'vitest';
-import {field,magnitude,EPS0,K,type Vec} from '../src/symbolic/physics';
+import {field,magnitude,potential,EPS0,K,type Vec} from '../src/symbolic/physics';
 import {getProblem,PROBLEMS} from '../src/problems/definitions';
 import {safeParse} from '../src/symbolic/equivalence';
 import {DEFAULT_PARAMS,type Params,type ProblemId} from '../src/problems/types';
-import {sampleDistribution,sumSamples} from '../src/diagrams/sampling';
+import {sampleDistribution,sumSamples,sumPotential} from '../src/diagrams/sampling';
 import {numerical} from '../src/symbolic/physics';
 // ---------------------------------------------------------------------------
 // An INDEPENDENT ground truth. Nothing below imports the app's own `numerical`
@@ -191,6 +191,63 @@ describe('the displayed derivation reproduces the displayed answer',()=>{
    expect(value).toBeGreaterThan(previous);expect(value).toBeLessThan(target);previous=value;
   }
   expect(previous/target).toBeCloseTo(1,7);
+ });
+});
+// ---------------------------------------------------------------------------
+// Potentials. Same independence rule: k q / |P − S| summed by Simpson, nothing
+// from the app. Then the payoff the potential lessons promise — E = −dV/dz —
+// is checked by a central difference against the field closed forms.
+// ---------------------------------------------------------------------------
+function coulombV(q:number,S:V3,P:V3):number{return ke*q/Math.hypot(P[0]-S[0],P[1]-S[1],P[2]-S[2]);}
+const simpson1=(g:(t:number)=>number,a:number,b:number,m:number)=>simpson(t=>[g(t),0,0],a,b,m)[0];
+function truthPotential(id:ProblemId,p:Params):number{
+ const q=p.charge*1e-9,L=p.size,R=p.size/2,d=p.distance;
+ switch(id){
+  case 'bisector':return simpson1(y=>coulombV(q/L,[0,y,0],[d,0,0]),-L/2,L/2,4000);
+  case 'axial':return simpson1(x=>coulombV(q/L,[x,0,0],[L+d,0,0]),0,L,4000);
+  case 'ring':return simpson1(t=>coulombV(q/(2*Math.PI),[R*Math.cos(t),R*Math.sin(t),0],[0,0,d]),0,2*Math.PI,2000);
+  case 'arc':return simpson1(t=>coulombV(q/p.phi,[R*Math.cos(t),R*Math.sin(t),0],[0,0,0]),-p.phi/2,p.phi/2,2000);
+  case 'disk':{const sig=q/(Math.PI*R*R);return simpson1(s=>simpson1(t=>coulombV(sig*s,[s*Math.cos(t),s*Math.sin(t),0],[0,0,d]),0,2*Math.PI,120),0,R,600);}
+  default:throw Error(`${id} has no potential ground truth`);
+ }
+}
+const potentialIds=['bisector','axial','ring','arc','disk'] as const;
+describe('potential closed forms vs an independently written Coulomb integrator',()=>{
+ for(const id of potentialIds)for(const charge of [2.4,-1.7])for(const distance of [0.8,3,7.5])
+  it(`${id} · charge ${charge} · distance ${distance}`,()=>{
+   const p=params({charge,distance,size:3.8,phi:2.3});
+   expect(Math.abs(potential(id,p)-truthPotential(id,p))/Math.abs(truthPotential(id,p))).toBeLessThan(2e-6);
+  });
+ for(const id of ['ring','disk'] as const)it(`${id} below the plane has the same potential as above it`,()=>{
+  const p=params({charge:2.4,distance:-2.1,size:3.8});
+  expect(Math.abs(potential(id,p)/truthPotential(id,p)-1)).toBeLessThan(2e-6);expect(potential(id,p)).toBeCloseTo(potential(id,{...p,distance:2.1}),12);
+ });
+ for(const id of potentialIds)it(`${id} far potential approaches kQ/d`,()=>{
+  const p=params({distance:1e8,size:3.8,phi:2.3});
+  if(id==='arc'){expect(potential(id,p)).toBeCloseTo(K*p.charge*1e-9/(p.size/2),12);return;} // P is pinned to the centre
+  expect(potential(id,p)/(K*p.charge*1e-9/p.distance)).toBeCloseTo(1,6);
+ });
+ it('the arc potential is kQ/R for every arc angle, while its field is not',()=>{
+  const p=params({phi:2*Math.PI});
+  for(const phi of [.3,Math.PI,2*Math.PI]){expect(potential('arc',{...p,phi})).toBeCloseTo(K*p.charge*1e-9/(p.size/2),12);expect(truthPotential('arc',{...p,phi})).toBeCloseTo(potential('arc',{...p,phi}),6);}
+  expect(magnitude(field('arc',{...p,phi:Math.PI}))).toBeGreaterThan(1e3*magnitude(field('arc',p)));
+ });
+ it('ring and disk potentials are finite and equal to kQ/R and 2kQ/R at the centre, where the ring field is zero',()=>{
+  const p=params({distance:0,size:3.8}),R=p.size/2,q=p.charge*1e-9;
+  expect(potential('ring',p)).toBeCloseTo(K*q/R,12);expect(potential('disk',p)).toBeCloseTo(2*K*q/R,12);expect(field('ring',p).z).toBe(0);
+ });
+ for(const id of potentialIds)it(`${id} sampler accumulates the potential too`,()=>{
+  const p=params({charge:2.4,distance:1.6,size:3.8,phi:2.3});
+  expect(Math.abs(sumPotential(sampleDistribution(id,p,4000))-truthPotential(id,p))/Math.abs(truthPotential(id,p))).toBeLessThan(3e-5);
+ });
+});
+describe('E = −dV/d(coordinate) recovers every field closed form',()=>{
+ // Ring and disk: E_z = −dV/dz. Bisector: E_r = −dV/dr. Axial: E_a = −dV/da. All four are the same statement.
+ for(const id of ['ring','disk','bisector','axial'] as const)for(const charge of [2.4,-1.7])it(`${id} · charge ${charge}`,()=>{
+  const p=params({charge,size:3.8,distance:1.9}),h=1e-5*p.distance;
+  const minusDV=-(potential(id,{...p,distance:p.distance+h})-potential(id,{...p,distance:p.distance-h}))/(2*h);
+  const E=field(id,p),component=id==='ring'||id==='disk'?E.z:E.x;
+  expect(Math.abs(minusDV/component-1),`${id}: −dV/dz ${minusDV} vs E ${component}`).toBeLessThan(1e-7);
  });
 });
 describe('units and parameter scaling',()=>{

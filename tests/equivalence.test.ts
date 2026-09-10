@@ -57,6 +57,14 @@ describe('mathematical input',()=>{
   for(const input of ['-Infinity','1/0','Infinity-Infinity'])expect(eq(input,'Infinity','sheet')).toBe(false);
   expect(eq('-∞','-Infinity')).toBe(true);
  });
+ it('knows the potential symbols V, dV, dz and dl, and nothing that merely looks like them',()=>{
+  for(const input of ['k dQ/r_i','k*dQ/ri',String.raw`\frac{k\,dQ}{r_i}`,'V = k dQ/rᵢ'])expect(eq(input,'k*dQ/ri','ring')).toBe(true);
+  expect(eq('k*dQ/ri^2','k*dQ/ri','ring')).toBe(false); // the field of dQ, not its potential
+  expect(eq('λ dz','lambda*dz')).toBe(true);expect(eq('λ d z','lambda*dz')).toBe(true);expect(eq('λ dℓ','lambda*dl')).toBe(true);expect(eq('dV/dz','dV/dz','ring')).toBe(true);
+  // −dV/dz is the recipe, not the derivative: it must not grade as the ring's field.
+  expect(eq('-dV/dz','k*Q*z/(R^2+z^2)^(3/2)','ring')).toBe(false);
+  for(const input of ['W','dW','dv','v*dz'])expect(equivalent(input,'V',getProblem('ring')).error).toContain('Unknown symbol');
+ });
  it('rejects sign, projection and small-value mistakes',()=>{
   expect(eq('k*lambda/r','-k*lambda/r','semi')).toBe(false);expect(eq('abs(lambda)','lambda')).toBe(false);
   expect(eq('dE*sin(alpha)','dE*cos(alpha)')).toBe(false);expect(eq('1e-20','0')).toBe(false);

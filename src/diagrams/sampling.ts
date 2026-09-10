@@ -47,6 +47,11 @@ export function sumInterval(samples: ChargeSample[], bounds: [number, number], p
     return { x: sum.x + sample.field.x * weight, y: sum.y + sample.field.y * weight, z: sum.z + sample.field.z * weight };
   }, { x: 0, y: 0, z: 0 });
 }
+/** Scalar counterpart of sumInterval: the potential accumulated over the same directed sweep. */
+export function sumPotential(samples: ChargeSample[], bounds: [number, number] = [0, 100], progress = 1): number {
+  const weights = intervalWeights(samples.length, bounds, progress);
+  return samples.reduce((sum, sample, i) => sum + sample.potential * (weights[i] ?? 0), 0);
+}
 /** Bin at the sweep frontier. At completion, retain the last included bin.
  * Zero-width intervals select their containing bin; an empty partition returns 0. */
 export function activeIntervalIndex(count: number, bounds: [number, number], progress: number): number {

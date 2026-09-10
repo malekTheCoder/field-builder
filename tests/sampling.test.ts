@@ -54,7 +54,7 @@ describe('physical charge sampling', () => {
 describe('directed interval sweep', () => {
   const fixture: ChargeSample[] = [1, 2, 4, 8].map((v, i) => ({
     position: { x: i, y: 0, z: 0 }, coordinate: i, dq: 1,
-    field: { x: v, y: -2 * v, z: 3 * v },
+    field: { x: v, y: -2 * v, z: 3 * v }, potential: 5 * v,
   }));
   it('zero-width intervals contribute nothing, including inside a bin', () => {
     for (const bound of [0, 12.5, 50, 99, 100]) {

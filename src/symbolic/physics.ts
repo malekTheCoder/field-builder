@@ -6,6 +6,8 @@ import {K,EPS0,type Vec} from '../distributions/constants';
 // semi-infinite lines use λ in nC/m; an infinite sheet uses σ in nC/m². Distance and geometry are in meters.
 // The per-geometry closed forms and point-charge sums live in src/distributions/.
 export function field(id:ProblemId,p:Params):Vec {return REGISTRY[id].field(p);}
+/** Closed-form potential at P in volts. Only the geometries with a potential problem define one. */
+export function potential(id:ProblemId,p:Params):number {const v=REGISTRY[id].potential?.(p);if(v===undefined)throw Error(`${id} has no potential closed form.`);return v;}
 export function magnitude(v:Vec){return Math.hypot(v.x,v.y,v.z);}
 export function pretty(n:number){if(!Number.isFinite(n))return '—';return Math.abs(n)<.001&&n!==0?n.toExponential(2):n.toLocaleString('en-US',{maximumSignificantDigits:4});}
 export function numerical(id:ProblemId,p:Params,n=12000):Vec {if(!Number.isFinite(n)||n<1)throw Error('Use a positive number of integration samples.');return REGISTRY[id].quadrature(p,Math.floor(n));}
