@@ -46,6 +46,21 @@ function infinitySign(node:MathNode):number|null {const value=node.toString().re
 // Every symbol is sampled independently. A fixed seed makes grading reproducible
 // without the algebraic correlations introduced by linear sample sequences.
 function samples(){let seed=0x51f15e;return()=>{seed=(Math.imul(1664525,seed)+1013904223)>>>0;return(seed+.5)/4294967296;};}
+// Independent draws of rᵢ, y, θ false-fail equivalent forms near a singularity
+// (cos θ → 0, rᵢ → 0). After the generic positives, pin each geometry's own
+// identities so a correct ring, axial, or angular rewrite still grades.
+function constrain(scope:Record<string,number>,p:Problem,random:()=>number){
+ const g=p.geometry,adjacent=(a:number,h:number)=>Math.acos(Math.min(1,Math.abs(a)/h));
+ if(g==='ring'){scope.theta=random()*2*Math.PI;scope.ri=Math.hypot(scope.R,scope.z);scope.alpha=adjacent(scope.z,scope.ri);return}
+ if(g==='axial'){scope.x=.05*scope.L+random()*.9*scope.L;scope.ri=scope.L+scope.a-scope.x;return}
+ if(g==='infinite'&&p.variable==='theta'){scope.theta=(random()*2-1)*.4*Math.PI;scope.y=scope.r*Math.tan(scope.theta);scope.ri=scope.r/Math.cos(scope.theta);return}
+ if(g==='infinite'||g==='bisector'){scope.y=(random()*2-1)*scope.L/2;scope.ri=Math.hypot(scope.y,scope.r);scope.alpha=adjacent(scope.r,scope.ri);return}
+ if(g==='semi'){scope.x=scope.r*Math.tan(random()*.4*Math.PI/2);scope.ri=Math.hypot(scope.x,scope.r);scope.alpha=adjacent(scope.r,scope.ri);return}
+ if(g==='endpoint'||g==='ramp'){scope.y=.05*scope.L+random()*.9*scope.L;scope.ri=Math.hypot(scope.y,scope.r);scope.alpha=adjacent(scope.r,scope.ri);return}
+ if(g==='disk'){scope.s=random()*scope.R;scope.ri=Math.hypot(scope.s,scope.z);scope.alpha=adjacent(scope.z,scope.ri);return}
+ if(g==='sheet'){scope.s=Math.abs(scope.z)*Math.tan(random()*.4*Math.PI);scope.ri=Math.hypot(scope.s,scope.z);scope.alpha=adjacent(scope.z,scope.ri);return}
+ if(g==='arc'){scope.theta=(random()-.5)*scope.phi;scope.ri=scope.R;}
+}
 export function equivalent(input:string,expected:string,p:Problem):Check{
  if(!input.trim())return {ok:false,error:'Add an expression first.'};
  try{
@@ -63,6 +78,7 @@ export function equivalent(input:string,expected:string,p:Problem):Check{
    scope.theta=(random()-.5)*Math.PI*.95;scope.alpha=random()*Math.PI/2;
    scope.phi=.2+random()*(2*Math.PI-.2);scope.s=random()*scope.R;
    scope.lambda*=i%2?-1:1;scope.lambda0*=i%2?-1:1;scope.sigma*=i%2?-1:1;
+   constrain(scope,p,random);
    const av=ac.evaluate(scope),bv=bc.evaluate(scope);
    if(typeof av!=='number'||typeof bv!=='number'||!Number.isFinite(av)||!Number.isFinite(bv))return{ok:false};
    // No absolute floor: tiny but incorrect fields must not grade as zero.

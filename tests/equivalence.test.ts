@@ -52,6 +52,16 @@ describe('mathematical input',()=>{
   expect(eq('k*Q*z/(R^2+z^2)^(3/2)','2*pi*k*lambda*R*z/(R^2+z^2)^(3/2)','ring')).toBe(true);
   expect(eq('2*pi*k*sigma','sigma/(2*eps0)','sheet')).toBe(true);
  });
+ it('grades a correct ring, axial, or infinite-angular rewrite without loosening tolerance',()=>{
+  expect(eq('k*Q*z/ri^3','k*Q*z/(R^2+z^2)^(3/2)','ring')).toBe(true);
+  expect(eq('k*lambda/ri^2','k*lambda/(L+a-x)^2','axial')).toBe(true);
+  expect(eq('k*Q/(a*(a+L))',getProblem('axial').result,'axial')).toBe(true);
+  expect(eq('sqrt(r^2+y^2)','r/cos(theta)','infinite')).toBe(true);
+  expect(eq('k*lambda*cos(theta)/r',getProblem('infinite').kernel,'infinite')).toBe(true);
+  expect(eq('2*k*lambda/r',getProblem('infinite').result,'infinite')).toBe(true);
+  expect(eq('k*lambda/r^2',getProblem('infinite').kernel,'infinite')).toBe(false);
+  expect(eq('k*Q/z^2',getProblem('ring').result,'ring')).toBe(false);
+ });
  it('handles literal infinity bounds without accepting undefined arithmetic',()=>{
   for(const input of ['∞','inf',String.raw`\infty`,'(+Infinity)'])expect(eq(input,'Infinity','sheet')).toBe(true);
   for(const input of ['-Infinity','1/0','Infinity-Infinity'])expect(eq(input,'Infinity','sheet')).toBe(false);
