@@ -7,6 +7,9 @@
 .cd-axes path{stroke:var(--ghost,#6d8492);stroke-width:1.5;fill:none;opacity:.85}
 .cd-axes text{font-style:italic;font-size:15px;fill:var(--cd-ink)}
 .cd-charge-base{stroke:var(--charge,#b8460f);stroke-width:11;stroke-opacity:.22;fill:none;stroke-linecap:round}
+.cd-seams{pointer-events:none}
+.cd-seam line{stroke:var(--charge,#b8460f);stroke-width:1.1;stroke-linecap:butt}
+.cd-seam.is-growing line{stroke-width:1}
 .cd-surface{fill:var(--charge-fill,#fdefe6);fill-opacity:.8;stroke:var(--charge,#b8460f);stroke-opacity:.55;stroke-width:1.5}.dark .cd-surface{fill-opacity:.45}
 .cd-piece{stroke:var(--charge,#b8460f);stroke-width:1.5;fill:var(--charge-fill,#fdefe6);cursor:pointer;transition:opacity .3s ease,filter .3s ease;outline:none}
 .cd-piece:hover,.cd-piece:focus-visible{opacity:1!important;stroke-width:2.5;filter:drop-shadow(0 0 5px var(--charge,#b8460f))}

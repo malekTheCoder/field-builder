@@ -88,6 +88,33 @@ describe('ChargeDiagram in a real browser', () => {
     expect(setParams).toHaveBeenCalledWith({distance: 3.1});
     expect(reset.disabled).toBe(true);
   });
+  it('keeps existing seam and piece identities when the partition doubles', () => {
+    const {view} = mount('bisector', {slices: 4}, {count: 4, continuum: 0});
+    const keys = (sel: string) => [...view.container.querySelectorAll(sel)].map(el => el.getAttribute(sel.includes('seam') ? 'data-seam' : 'data-piece-key'));
+    const coarseSeams = keys('[data-seam]');
+    const coarsePieces = keys('[data-piece-key]');
+    expect(coarseSeams.length).toBe(3);
+    expect(coarsePieces.length).toBe(4);
+    expect(view.container.querySelector('[data-source-body]')).toBeTruthy();
+    cleanup();
+    const fine = mount('bisector', {slices: 4}, {count: 8, continuum: 0});
+    const fineSeams = [...fine.view.container.querySelectorAll('[data-seam]')].map(el => el.getAttribute('data-seam'));
+    const finePieces = [...fine.view.container.querySelectorAll('[data-piece-key]')].map(el => el.getAttribute('data-piece-key'));
+    for (const key of coarseSeams) expect(fineSeams, String(key)).toContain(key);
+    for (const key of coarsePieces) expect(finePieces, String(key)).toContain(key);
+    expect(fineSeams.length).toBeGreaterThan(coarseSeams.length);
+    expect(finePieces.length).toBeGreaterThan(coarsePieces.length);
+  });
+  it('tiles a ring from existing arcs instead of shrinking gaps', () => {
+    const {view} = mount('ring', {slices: 4}, {count: 4, continuum: 0});
+    const coarse = [...view.container.querySelectorAll('[data-piece-key]')].map(el => el.getAttribute('data-piece-key'));
+    expect(coarse.length).toBe(4);
+    cleanup();
+    const fine = mount('ring', {slices: 4}, {count: 8, continuum: 0});
+    const next = [...fine.view.container.querySelectorAll('[data-piece-key]')].map(el => el.getAttribute('data-piece-key'));
+    for (const key of coarse) expect(next).toContain(key);
+    expect(next.length).toBe(8);
+  });
   it('keeps the observation point fixed at the centre for the arc', () => {
     const {view} = mount('arc');
     expect(view.container.querySelector('.cd-observation.is-fixed')).toBeTruthy();

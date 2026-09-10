@@ -1,9 +1,10 @@
 'use client';
 import {stageOf,type Problem,type Params,type StepKind} from '../problems/types';
 import {ChargeDiagram} from './ChargeDiagram';
+import {partitionCount} from './subdivision';
 export type DiagramProps={problem:Problem;params:Params;setParams:(p:Partial<Params>)=>void;stage:number;alternate:boolean;highlight:string;boundRange:[number,number];setBoundRange:(r:[number,number])=>void};
-/** Drawn pieces per lesson. Quadratic in the continuum control so ΔQ → dQ thins out smoothly. */
-export const pieceCount=(p:Params)=>Math.round(p.slices+(200-p.slices)*p.continuum**2);
+/** Drawn and sampled pieces. N doubles so a refinement is extra cuts, not a new set of blobs. */
+export const pieceCount=(p:Params)=>partitionCount(p.slices,p.continuum);
 /** Which drawn element the wizard's single `element` parameter selects. */
 export const pieceIndex=(p:Params,count=pieceCount(p))=>Math.max(0,Math.min(count-1,Math.round(p.element*(count-1))));
 /** Step kind → diagram emphasis. Origin and element slice the charge; contribution, symmetry and

@@ -6,6 +6,7 @@ import { motion, useReducedMotion } from 'motion/react';
 import type { Params, Problem } from '../problems/types';
 import { field, magnitude, pretty, potential, type Vec } from '../symbolic/physics';
 import { sampleDistribution, sumSamples, sumInterval, intervalWeights, sumPotential } from './sampling';
+import { intervalKey, partitionCount, seamFractions, seamKey, splitFractions, splitProgress } from './subdivision';
 import { DEFAULT_CAMERA, depthFromScreen, keyboardCamera, orbitCamera, projectCamera, type CameraView } from './camera';
 import './charge-diagram.css';
 import './camera.css';
@@ -155,26 +156,29 @@ export function ChargeDiagram({ problem, params: p, setParams, count, continuum,
   };
   const circlePoints = (radius: number, start = 0, end = Math.PI * 2) => Array.from({ length: 97 }, (_, i) => project({ x: radius * Math.cos(start + (end - start) * i / 96), y: radius * Math.sin(start + (end - start) * i / 96), z: 0 }));
   const radiusTip = ray({ x: 1, y: 0, z: 0 }, Math.min(surface ? sample.position.x : R, 7) * unit);
-  const drawable = samples.map((s, i) => ({ s, i })).filter(({ s }) => visible(project(s.position)));
-  const stride = Math.max(1, Math.ceil(drawable.length / 80));
-  const renderSamples = drawable.filter(({ i }, j) => j % stride === 0 || i === selectedIndex);
-  // A rod is one object. Slicing it should subdivide that bar, not scatter it into
-  // separate floating chunks, so each piece runs edge to edge between the midpoints
-  // of its neighbours and the seams fade as the partition approaches the continuum.
-  // Midpoints rather than a fixed width because the unbounded sources sample the
-  // line non-uniformly, and because `stride` thins the drawn pieces at large N.
+  // A rod or ring is one object. Doubling N inserts mid-cuts on pieces that already
+  // exist (stable intervalKey / seamKey), instead of remounting a newly indexed set.
   const rodLike = !surface && id !== 'ring' && id !== 'arc';
   const upright = id === 'bisector' || id === 'infinite' || footed;
   const along = (pt: Point) => upright ? pt.y : pt.x;
   const rodEnds: [number, number] = id === 'bisector' ? [O.y - R * unit, O.y + R * unit] : footed ? [O.y - p.size * unit, O.y] : id === 'infinite' ? [55, 370] : id === 'axial' ? [O.x, O.x + p.size * unit] : [O.x, 670];
   const rodLow = Math.min(...rodEnds), rodHigh = Math.max(...rodEnds), rodHalf = 7;
-  const axes = rodLike ? renderSamples.map(({ s }) => along(project(s.position))) : [];
-  const ascending = axes.length < 2 || axes[axes.length - 1] >= axes[0];
-  const spans = axes.map((a, j) => {
-    const head = j ? (a + axes[j - 1]) / 2 : (ascending ? rodLow : rodHigh);
-    const tail = j < axes.length - 1 ? (a + axes[j + 1]) / 2 : (ascending ? rodHigh : rodLow);
-    return [Math.min(head, tail), Math.max(head, tail)] as [number, number];
-  });
+  const split = partitionCount(p.slices, continuum) === n ? splitProgress(p.slices, continuum) : 0;
+  function seamStroke(t: number, grow = 1) {
+    const raw = project(world(t)), g = Math.max(.08, Math.min(1, grow));
+    if (rodLike) {
+      const a = along(raw);
+      if (a < rodLow - 4 || a > rodHigh + 4) return null;
+      return upright
+        ? <line x1={O.x - rodHalf * g} y1={a} x2={O.x + rodHalf * g} y2={a} />
+        : <line x1={a} y1={O.y - rodHalf * g} x2={a} y2={O.y + rodHalf * g} />;
+    }
+    if (id === 'ring' || id === 'arc') {
+      const dx = raw.x - O.x, dy = raw.y - O.y, len = Math.hypot(dx, dy) || 1, h = 8 * g;
+      return <line x1={raw.x - dx / len * h} y1={raw.y - dy / len * h} x2={raw.x + dx / len * h} y2={raw.y + dy / len * h} />;
+    }
+    return null;
+  }
   // Charge marks belong to the rod, not to the partition: their spacing is fixed so
   // the rod does not appear to gain or lose charge as N changes.
   // For the ramp the marks are placed by cumulative charge, F(y) = (y/L)², so they crowd toward the top: the marks are the charge.
@@ -197,32 +201,36 @@ export function ChargeDiagram({ problem, params: p, setParams, count, continuum,
         {perspective ? <><path d={`M${2 * O.x - axisX.x} ${2 * O.y - axisX.y}L${axisX.x} ${axisX.y} M${2 * O.x - axisY.x} ${2 * O.y - axisY.y}L${axisY.x} ${axisY.y} M${O.x} ${O.y + 27}V60`} /><text {...axisTip(axisX, 13, 5)}>x</text><text {...axisTip(axisY, 13, 5)}>y</text><text x={O.x + 10} y="67">z</text></> : <><path d={`M64 ${O.y}H656 M${O.x} 365V60`} /><text x="664" y={O.y + 5}>x</text><text x={O.x + 11} y="64">y</text></>}
       </g>
       <g clipPath={`url(#${uid}clip)`}>
-        {surface && <><path d={pathThrough(circlePoints(id === 'sheet' ? 7 : R), true)} className="cd-surface" />{id === 'sheet' && <path d="M80 340l30 12m-8-16 30 12m444-78 30 12m-8-16 30 12" className="cd-continuation" />}</>}
-        {rodLike && <rect x={upright ? O.x - rodHalf : rodLow} y={upright ? rodLow : O.y - rodHalf} width={upright ? rodHalf * 2 : rodHigh - rodLow} height={upright ? rodHigh - rodLow : rodHalf * 2} rx={id === 'bisector' || id === 'axial' || footed ? rodHalf : 0} fill={ramp ? 'none' : 'var(--charge-fill)'} stroke="var(--charge)" strokeWidth="1.5" />}
-        {(id === 'ring' || id === 'arc') && <path d={pathThrough(circlePoints(R, id === 'arc' ? -p.phi / 2 : 0, id === 'arc' ? p.phi / 2 : 2 * Math.PI))} className="cd-charge-base" />}
-        {renderSamples.map(({ s, i }) => {
+        {surface && <><path data-source-body="true" d={pathThrough(circlePoints(id === 'sheet' ? 7 : R), true)} className="cd-surface" />{id === 'sheet' && <path d="M80 340l30 12m-8-16 30 12m444-78 30 12m-8-16 30 12" className="cd-continuation" />}</>}
+        {rodLike && <rect data-source-body="true" x={upright ? O.x - rodHalf : rodLow} y={upright ? rodLow : O.y - rodHalf} width={upright ? rodHalf * 2 : rodHigh - rodLow} height={upright ? rodHigh - rodLow : rodHalf * 2} rx={id === 'bisector' || id === 'axial' || footed ? rodHalf : 0} fill={ramp ? 'none' : 'var(--charge-fill)'} stroke="var(--charge)" strokeWidth="1.5" />}
+        {(id === 'ring' || id === 'arc') && <path data-source-body="true" d={pathThrough(circlePoints(R, id === 'arc' ? -p.phi / 2 : 0, id === 'arc' ? p.phi / 2 : 2 * Math.PI))} className="cd-charge-base" />}
+        {!surface && samples.map((s, i) => {
           const pos = project(s.position), active = i === selectedIndex, accumulated = Math.abs(weights[i]) > 0 && (mode === 'sum' || mode === 'integrate');
           const inInterval = Math.abs(wholeWeights[i])>0;
           const opacity = !inInterval ? .14 : active ? 1 : accumulated ? .94 : .48 + continuum * .3;
           const heat = scalar && !active ? .28 + .72 * Math.abs(s.potential) / dVmax : 1;
+          const identity = intervalKey(i, n);
           let shape;
-          if (surface) shape = <motion.path initial={false} animate={{ d: pathThrough(circlePoints(s.position.x)) }} transition={{ duration: still ? 0 : .18 }} fill="none" strokeWidth={active ? 4 : continuum > .8 ? 1 : 1.7} />;
-          else if (id === 'ring' || id === 'arc') {
-            const span = (id === 'ring' ? 2 * Math.PI : p.phi) / n * (1 - .18 * (1 - continuum));
-            shape = <motion.path initial={false} animate={{ d: pathThrough(circlePoints(R, s.coordinate - span / 2, s.coordinate + span / 2)) }} transition={{ duration: still ? 0 : .18 }} fill="none" strokeWidth={active ? 10 : 7} />;
+          if (id === 'ring' || id === 'arc') {
+            const a0 = id === 'ring' ? 2 * Math.PI * i / n : p.phi * (i / n - .5);
+            const a1 = id === 'ring' ? 2 * Math.PI * (i + 1) / n : p.phi * ((i + 1) / n - .5);
+            shape = <motion.path initial={false} animate={{ d: pathThrough(circlePoints(R, a0, a1)) }} transition={{ duration: still ? 0 : .18 }} fill="none" strokeWidth={active ? 10 : 7} />;
           } else {
-            const [head, tail] = spans[renderSamples.findIndex(d => d.i === i)] ?? [along(pos) - 6, along(pos) + 6];
-            const extent = Math.max(1, tail - head);
+            const head = along(project(world(i / n))), tail = along(project(world((i + 1) / n)));
+            const lo = Math.min(head, tail), hi = Math.max(head, tail), extent = Math.max(1, hi - lo);
+            if (hi < rodLow - 8 || lo > rodHigh + 8) return null;
             // A ramp piece's tint follows its own density λ(y)/λ₀, so the rod visibly empties toward its foot.
             const shade = ramp && !active ? { fillOpacity: .08 + .92 * s.position.y / p.size } : undefined;
-            shape = upright ? <rect x={pos.x - rodHalf} y={head} width={rodHalf * 2} height={extent} {...shade} /> : <rect x={head} y={pos.y - rodHalf} width={extent} height={rodHalf * 2} />;
+            shape = upright ? <rect x={pos.x - rodHalf} y={lo} width={rodHalf * 2} height={extent} {...shade} /> : <rect x={lo} y={pos.y - rodHalf} width={extent} height={rodHalf * 2} />;
           }
-          return <g key={i} className={`cd-piece ${active ? 'is-selected' : ''}`} style={{ opacity: opacity * heat }} onPointerDown={ev => { ev.stopPropagation(); onSelect(i); }}>{shape}</g>;
+          return <g key={identity} data-piece-key={identity} className={`cd-piece ${active ? 'is-selected' : ''}`} style={{ opacity: opacity * heat }} onPointerDown={ev => { ev.stopPropagation(); onSelect(i); }}>{shape}</g>;
         })}
+        {surface && showContribution && <g className="cd-piece is-selected" data-piece-key={intervalKey(selectedIndex, n)} style={{ pointerEvents: 'none' }}><motion.path initial={false} animate={{ d: pathThrough(circlePoints(sample.position.x)) }} transition={{ duration: still ? 0 : .18 }} fill="none" strokeWidth="4" /></g>}
         {rodLike && <g className="cd-plus" aria-hidden="true">{chargeMarks.map(v => <text key={v} x={upright ? O.x : v} y={(upright ? v : O.y) + 3.6} textAnchor="middle">+</text>)}</g>}
-        {rodLike && continuum < .995 && <g style={{ opacity: .55 * (1 - continuum) }} aria-hidden="true">{spans.slice(1).map(([head], j) => upright
-          ? <line key={j} x1={O.x - rodHalf} y1={head} x2={O.x + rodHalf} y2={head} stroke="var(--charge)" strokeWidth="1.1" />
-          : <line key={j} x1={head} y1={O.y - rodHalf} x2={head} y2={O.y + rodHalf} stroke="var(--charge)" strokeWidth="1.1" />)}</g>}
+        {!surface && continuum < .995 && <g className="cd-seams" aria-hidden="true" style={{ opacity: .7 * (1 - continuum) }}>
+          {seamFractions(n).map(t => { const mark = seamStroke(t, 1); return mark ? <g key={seamKey(t)} data-seam={seamKey(t)} className="cd-seam">{mark}</g> : null; })}
+          {split > .04 && split < .995 && splitFractions(n).map(t => { const mark = seamStroke(t, split); return mark ? <g key={seamKey(t)} data-seam={seamKey(t)} className="cd-seam is-growing" style={{ opacity: split }}>{mark}</g> : null; })}
+        </g>}
         {!surface && supportsPair && pair && showContribution && <><line x1={partnerPos.x} y1={partnerPos.y} x2={P.x} y2={P.y} className="cd-construction cd-pair" /><circle cx={partnerPos.x} cy={partnerPos.y} r="9" className="cd-partner" /></>}
         {showContribution && <line x1={selectedPoint.x} y1={selectedPoint.y} x2={P.x} y2={P.y} className="cd-construction" />}
       </g>
@@ -262,7 +270,7 @@ export function ChargeDiagram({ problem, params: p, setParams, count, continuum,
       </g>}
       <line x1="30" y1="387" x2="690" y2="387" className="cd-divider" />
       <text x="30" y="409" className="cd-footer">{sourceLabel}</text>
-      <text x="690" y="409" textAnchor="end" className="cd-footer">{scalar ? `${continuum>=.999?'dV':'ΔV'} · V: ${pretty(vNow)} V` : showContribution ? `${fieldSymbol} × ${pretty(selectedGain)} · E: ${pretty(scaleValue)} N/C per 100 px` : n > 80 ? `${n} numerical pieces · simplified display` : `${n} charge pieces`}</text>
+      <text x="690" y="409" textAnchor="end" className="cd-footer">{scalar ? `${continuum>=.999?'dV':'ΔV'} · V: ${pretty(vNow)} V` : showContribution ? `${fieldSymbol} × ${pretty(selectedGain)} · E: ${pretty(scaleValue)} N/C per 100 px` : `${n} charge pieces`}</text>
     </svg>
     <details className="cd-controls" open><summary>Diagram controls and keyboard help</summary><p id={`${uid}help`}>Tab moves between controls. Arrow keys adjust the focused control; Home and End select its limits. You can also drag P and the integration bounds in the figure.</p>
     <div className="cd-control-grid">
