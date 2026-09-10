@@ -57,6 +57,13 @@ Import **merges by lesson key**. Lessons already saved on this device that are n
 
 Touch works on the figure: drag point P and the integration-bound handles. Verified at phone (390×844) and tablet (768×1024) widths.
 
+### Charge sign, blanks, and the limit plot
+
+- Charge, λ, and σ sliders (Q, Line density λ, Surface density σ, Peak density λ₀) run through zero to negative. A negative rod draws minus marks instead of plus.
+- Under each typed blank, **Preview** shows live math, or **Check the expression** if it does not parse. **Check this step** still grades. Typing does not spend hints — only **A little guidance** does.
+- The MathLive keyboard’s first tab is Course (`λ ε₀`): λ, σ, ε₀, θ, φ, π, square root, fraction, exponent.
+- The limit plot keeps its SVG and adds a screen-reader table with columns **t**, **exact**, and **reference**.
+
 ### Potential is a shorter path
 
 Field lessons still walk coordinates → charge element → one contribution → **symmetry / projection** → substitution → bounds → integration → sanity check.
