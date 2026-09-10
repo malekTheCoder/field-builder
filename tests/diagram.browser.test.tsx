@@ -1,4 +1,4 @@
-import {cleanup, render} from '@testing-library/react';
+import {cleanup, fireEvent, render} from '@testing-library/react';
 import {userEvent} from 'vitest/browser';
 import {afterEach, describe, expect, it, vi} from 'vitest';
 import {ChargeDiagram} from '../src/diagrams/ChargeDiagram';
@@ -114,6 +114,48 @@ describe('ChargeDiagram in a real browser', () => {
     const next = [...fine.view.container.querySelectorAll('[data-piece-key]')].map(el => el.getAttribute('data-piece-key'));
     for (const key of coarse) expect(next).toContain(key);
     expect(next.length).toBe(8);
+  });
+  it('grows a tip-to-tail chain in sum mode instead of drawing every arrow at once', () => {
+    const empty = mount('bisector', {}, {mode: 'sum', progress: 0});
+    expect(empty.view.container.querySelector('[data-sum-chain]')).toBeNull();
+    cleanup();
+    const partial = mount('bisector', {}, {mode: 'sum', progress: .4});
+    const n = Number(partial.view.container.querySelector('[data-sum-chain]')?.getAttribute('data-sum-chain'));
+    expect(n).toBeGreaterThan(2);
+    expect(n).toBeLessThan(9);
+    cleanup();
+    const full = mount('bisector', {}, {mode: 'sum', progress: 1});
+    expect(Number(full.view.container.querySelector('[data-sum-chain]')?.getAttribute('data-sum-chain'))).toBe(9);
+  });
+  it('animates cancellation only where a symmetric partner exists', () => {
+    const {view} = mount('bisector', {}, {pair: true, mode: 'project'});
+    expect(view.container.querySelector('[data-cancel-transverse]')).toBeTruthy();
+    cleanup();
+    for (const id of ['axial', 'semi', 'endpoint', 'ramp'] as const) {
+      const next = mount(id, {}, {pair: true, mode: 'project'});
+      expect(next.view.container.querySelector('[data-cancel-transverse]'), id).toBeNull();
+      cleanup();
+    }
+    const ring = mount('ring', {}, {pair: true, mode: 'project'});
+    expect(ring.view.container.querySelector('[data-cancel-transverse]')).toBeTruthy();
+  });
+  it('sweeps one disk ring rather than stacking independent rings', () => {
+    const {view} = mount('disk', {}, {count: 8, mode: 'sum', progress: .5});
+    expect(view.container.querySelector('[data-disk-sweep]')).toBeTruthy();
+    expect(view.container.querySelectorAll('[data-piece-key]').length).toBe(1);
+  });
+  it('orbits from motion values without a React render per pointermove', () => {
+    const {view} = mount('ring');
+    const root = view.container.querySelector('.charge-diagram')!;
+    const svg = view.container.querySelector('svg')!;
+    const plane = view.container.querySelector('.cd-orbit-plane')!;
+    const before = plane.getAttribute('transform');
+    fireEvent.pointerDown(svg, {clientX: 400, clientY: 200, pointerId: 1, buttons: 1});
+    const afterDown = Number(root.getAttribute('data-renders'));
+    for (let i = 1; i <= 10; i++) fireEvent.pointerMove(svg, {clientX: 400 + i * 12, clientY: 200, pointerId: 1, buttons: 1});
+    expect(Number(root.getAttribute('data-renders'))).toBe(afterDown);
+    expect(plane.getAttribute('transform')).not.toBe(before);
+    expect(svg.getAttribute('data-orbit-ms')).toBeTruthy();
   });
   it('keeps the observation point fixed at the centre for the arc', () => {
     const {view} = mount('arc');

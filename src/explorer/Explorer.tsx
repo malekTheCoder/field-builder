@@ -71,7 +71,9 @@ export default function Explorer(){
  function stop(){run.current?.stop();setPlaying(false)}
  function changeDistribution(next:string){stop();morph.current?.stop();setId(next as ProblemId);setSelected(3);setProgress(1);setBounds([0,100]);setLibrary(false);setLimitIndex(0);setStatus('');setHighlight('');}
  function chooseMode(next:Mode){setMode(next);setView('explore');if(next==='project'&&!scalar)setComponents(true);if(next==='integrate'){setProgress(1);stop()}}
- function playSum(){if(playing){stop();return}setMode('sum');setView('explore');if(reduced){setProgress(1);setStatus('All contributions are now included.');return}setPlaying(true);const start=progress>=.999?0:progress;setProgress(start);run.current=animate(start,1,{duration:reduced?.3:7*(1-start),ease:'linear',onUpdate:setProgress,onComplete:()=>{setPlaying(false);setStatus('All contributions are now included.')}})}
+ function playSum(){if(playing){stop();return}setMode('sum');setView('explore');if(reduced){setProgress(1);setStatus('All contributions are now included.');return}setPlaying(true);const start=progress>=.999?0:progress;setProgress(start);
+ // 7s linear: each ΔE has to be apprehended tip-to-tail. Ease would bunch the last pieces.
+ run.current=animate(start,1,{duration:reduced?.3:7*(1-start),ease:'linear',onUpdate:setProgress,onComplete:()=>{setPlaying(false);setStatus('All contributions are now included.')}})}
  function continuumAnimation(){stop();morph.current?.stop();setMode('integrate');setProgress(1);if(reduced){updateParams({continuum:continuum>.99?0:1});return}
  // 2.4s ease: each dyadic doubling has to be seen as extra cuts on the same rod, not a new object.
  morph.current=animate(continuum,continuum>.99?0:1,{duration:reduced?.01:2.4,ease:[.22,.7,.2,1],onUpdate:v=>updateParams({continuum:v})})}
