@@ -29,6 +29,13 @@ describe('mathematical input',()=>{
   expect(eq('lambda0','lambda')).toBe(false);expect(eq('λ₀','lambda0')).toBe(true);
   expect(preview(String.raw`\lambda_0`)).not.toContain('Keep typing');
  });
+ it('a subscript zero never swallows the brace that closes a fraction',()=>{
+  // \lambda_0} and \varepsilon_0} used to consume the } as if it were the optional _{0} form.
+  expect(eq(String.raw`\frac{\sigma}{2\varepsilon_0}`,'sigma/(2*eps0)')).toBe(true);
+  expect(eq(String.raw`\frac{\sigma}{2\epsilon_{0}}`,'sigma/(2*eps0)')).toBe(true);
+  expect(eq(String.raw`-\frac{k\lambda_0}{L}\left(1-\frac{r}{\sqrt{L^2+r^2}}\right)`,'-k*lambda0/L*(1-r/sqrt(L^2+r^2))')).toBe(true);
+  expect(eq(String.raw`\frac{k\lambda_0}{L}\left(1-\frac{r}{\sqrt{L^2+r^2}}\right)`,'-k*lambda0/L*(1-r/sqrt(L^2+r^2))')).toBe(false);
+ });
  it('keeps distance and differential symbols independent',()=>{
   expect(eq('d*dQ','dQ')).toBe(false);
   expect(eq('d','r')).toBe(false);
