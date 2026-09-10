@@ -13,3 +13,4 @@
 .mathfield-options small{flex:1 1 200px;font-size:.75rem}
 .mathfield-options button{font:inherit;font-size:.75rem;background:none;border:0;color:var(--primary);text-decoration:underline;text-underline-offset:3px;padding:4px 0;cursor:pointer;min-height:24px}
 .mathfield-options button:focus-visible{outline:2px solid var(--field);outline-offset:3px}
+.live-preview.is-error{color:color-mix(in srgb,var(--charge) 65%,var(--foreground))}

@@ -71,6 +71,21 @@ describe('AnswerInput wired to MathField', () => {
     await waitFor(() => expect(raw(container)).toContain('lambda'));
   });
 
+  it('renders a live KaTeX preview under the blank without grading', async () => {
+    const {container} = render(<Harness field={distance} palette={false} />);
+    await ready(container);
+    drop(container, preview(distance.expected));
+    await waitFor(() => expect(container.querySelector('.live-preview .math, .live-preview .katex')).toBeTruthy());
+    expect(container.querySelector('.feedback')).toBeNull();
+    expect(container.querySelector('.live-preview.is-error')).toBeNull();
+  });
+  it('shows a safeParse error under the blank without grading', async () => {
+    const {container} = render(<Harness field={distance} palette={false} />);
+    await ready(container);
+    drop(container, 'unknown');
+    await waitFor(() => expect(container.querySelector('.live-preview.is-error')?.textContent).toMatch(/Unknown symbol/i));
+    expect(container.querySelector('.feedback')).toBeNull();
+  });
   it('leaves the guided multiple-choice path alone', async () => {
     const {container} = render(<Harness field={distance} palette={false} guided />);
     expect(container.querySelector('.math-options')).toBeTruthy();

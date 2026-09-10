@@ -1,9 +1,9 @@
 'use client';
-import {useId,useRef,useState} from 'react';
+import {useEffect,useId,useRef,useState} from 'react';
 import {RadioGroup,RadioGroupItem} from '@/components/ui/radio-group';
 import {MathText} from './Math';
 import {MathField,type MathFieldHandle} from './MathField';
-import {preview} from '../symbolic/equivalence';
+import {preview,safeParse} from '../symbolic/equivalence';
 import type {Answer} from '../problems/types';
 export function Choices({value,onChange,options,label}:{value:string;onChange:(s:string)=>void;options:string[];label:string}){const id=useId();return <RadioGroup value={value} onValueChange={v=>onChange(String(v))} aria-label={label} className="choices">{options.map((o,i)=><label key={o} htmlFor={id+i} className={'option '+(value===o?'selected':'')}><RadioGroupItem id={id+i} value={o}/><span>{o}</span></label>)}</RadioGroup>}
 // The symbols this course actually needs, in one row so a tablet user never has
@@ -11,6 +11,15 @@ export function Choices({value,onChange,options,label}:{value:string;onChange:(s
 // field in the wizard is an integral, and safeParse rejects it, so offering the
 // sign would only manufacture wrong answers.
 const SYMBOLS:[string,string,string][]=[['λ',String.raw`\lambda`,'lambda'],['σ',String.raw`\sigma`,'sigma'],['ε₀',String.raw`\varepsilon_0`,'epsilon nought'],['θ',String.raw`\theta`,'theta'],['φ',String.raw`\phi`,'phi'],['π',String.raw`\pi`,'pi'],['√',String.raw`\sqrt{#?}`,'square root'],['⁄',String.raw`\frac{#?}{#?}`,'fraction'],['xⁿ',String.raw`^{#?}`,'exponent']];
+function LiveMath({value}:{value:string}){
+ const [shown,setShown]=useState(value);
+ useEffect(()=>{const t=window.setTimeout(()=>setShown(value),140);return()=>clearTimeout(t)},[value]);
+ if(!shown.trim())return null;
+ let tex='';let error='';
+ try{tex=safeParse(shown).toTex({parenthesis:'auto',implicit:'hide'})}catch(e){error=e instanceof Error?e.message:'Use a mathematical expression.'}
+ if(error)return <output className="live-preview is-error" aria-live="polite"><span className="eyebrow">Check the expression</span><span>{error}</span></output>;
+ return <div className="live-preview" aria-live="polite"><span className="eyebrow">Preview</span><MathText tex={tex}/></div>;
+}
 export function AnswerInput({field,value,onChange,guided,error,palette=false,onEnter}:{field:Answer;value:string;onChange:(s:string)=>void;guided:boolean;error?:boolean;palette?:boolean;onEnter?:()=>void}){
  const id=useId();const mf=useRef<MathFieldHandle|null>(null);const [over,setOver]=useState(false);
  const options=[...field.options].sort((a,b)=>{const hash=(s:string)=>{let n=7;for(let i=0;i<s.length;i++)n=(n*31+s.charCodeAt(i))|0;return n};return hash(a)-hash(b)});
@@ -24,5 +33,6 @@ export function AnswerInput({field,value,onChange,guided,error,palette=false,onE
   </div>
   <fieldset className="symbol-row" aria-label={'Symbols for '+field.label} style={{border:0,padding:0,margin:0,minWidth:0}}>{SYMBOLS.map(([glyph,latex,name])=><button key={name} type="button" className="symbol-key" aria-label={name} title={name} onMouseDown={e=>e.preventDefault()} onClick={()=>insert(latex)}>{glyph}</button>)}</fieldset>
   {palette&&<div className="palette" aria-label={'Facts for '+field.label}>{options.map(o=><button key={o} className="fact-chip" draggable onDragStart={e=>e.dataTransfer.setData('text/plain',preview(o))} onClick={()=>insert(preview(o))} title="Drag this fact into the blank, or click to use it"><MathText tex={preview(o)}/></button>)}</div>}
+  <LiveMath value={value}/>
  </>}</div>;
 }
