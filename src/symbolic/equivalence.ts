@@ -1,5 +1,6 @@
 import {parse,type MathNode,type SymbolNode,type FunctionNode,type OperatorNode,type ConstantNode} from 'mathjs';
 import type {Problem} from '../problems/types';
+import {REGISTRY} from '../distributions';
 const allowedFunctions=new Set(['sqrt','sin','cos','tan','sec','abs','log']);
 const allowedSymbols=new Set(['d','Q','L','R','r','a','z','x','y','s','theta','alpha','phi','lambda','lambda0','sigma','eps0','pi','k','ri','dQ','dE','dx','dy','ds','dr','dtheta','dA','Infinity']);
 export function normalize(input:string):string {
@@ -38,7 +39,7 @@ export function safeParse(input:string):MathNode {
   n.forEach(child=>visit(child,depth+1));
  };visit(node,0);return node;
 }
-function substitutions(problem:Problem):Record<string,string>{const values:Record<string,string>={k:'1/(4*pi*eps0)'};if(problem.id==='ring')values.Q='lambda*2*pi*R';else if(problem.id==='arc')values.Q='lambda*R*phi';else if(problem.id==='disk')values.Q='sigma*pi*R^2';else if(problem.id==='bisector'||problem.id==='axial'||problem.id==='infinite'||problem.id==='endpoint')values.Q='lambda*L';return values;}
+function substitutions(problem:Problem):Record<string,string>{return{k:'1/(4*pi*eps0)',...REGISTRY[problem.id].substitutions};}
 function expand(node:MathNode,p:Problem){const sub=substitutions(p);return node.transform(n=>n.type==='SymbolNode'&&sub[(n as SymbolNode).name]?parse(sub[(n as SymbolNode).name]):n);}
 export type Check={ok:boolean;error?:string;method?:'symbolic'|'numeric'};
 function infinitySign(node:MathNode):number|null {const value=node.toString().replace(/[()\s]/g,'');return value==='Infinity'||value==='+Infinity'?1:value==='-Infinity'?-1:null;}
