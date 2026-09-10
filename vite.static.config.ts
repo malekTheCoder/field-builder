@@ -4,6 +4,7 @@ import tailwindcss from '@tailwindcss/postcss';
 
 // Portable client-only build: no hosting SDK, server, or authentication gateway.
 export default defineConfig({
+  base: './',
   plugins: [react()],
   resolve: { alias: { '@': new URL('.', import.meta.url).pathname.replace(/\/$/, '') } },
   css: { postcss: { plugins: [tailwindcss()] } },

@@ -12,7 +12,7 @@ let loader:Promise<unknown>|null=null;
 // resolves relative to the document. Left at their defaults both 404, and the
 // failed fetch leaves the element unfocusable. The fonts are the KaTeX faces we
 // already ship, copied into public/; the sounds are switched off outright.
-const load=()=>(loader??=import('mathlive').then(m=>{const E=m.MathfieldElement as unknown as {fontsDirectory:string|null;soundsDirectory:string|null};E.fontsDirectory='/mathlive-fonts';E.soundsDirectory=null;return m}));
+const load=()=>(loader??=import('mathlive').then(m=>{const E=m.MathfieldElement as unknown as {fontsDirectory:string|null;soundsDirectory:string|null};E.fontsDirectory=new URL('mathlive-fonts/',document.baseURI).href;E.soundsDirectory=null;return m}));
 /** Lets callers drop or click a fact chip straight into the caret position. */
 export type MathFieldHandle={insert:(latex:string)=>void};
 export type MathFieldProps={value:string;onChange:(latex:string)=>void;label:string;placeholder?:string;invalid?:boolean;id?:string;onEnter?:()=>void;ref?:React.Ref<MathFieldHandle>};
