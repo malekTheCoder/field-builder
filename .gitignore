@@ -41,3 +41,5 @@ next-env.d.ts
 
 # Local agent continuity notes (never publish)
 /PROJECT_HANDOFF.local.md
+
+/dist-static/

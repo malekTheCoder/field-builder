@@ -77,3 +77,9 @@ Deployment and validation:
 Local checkout: `/Users/malekswilam/Developer/field-builder`. The Git repository is private.
 
 Application address: https://field.malekswilam.dev. Hosting origin: https://field-builder-lab.malekgswilam.chatgpt.site. Hosting configuration is in `.openai/hosting.json`; credentials are never stored in the repository.
+
+## Hosting migration (prepared, not yet switched)
+
+The portable build has no authentication gateway or OpenAI hosting runtime. Run `npm run build:static` to produce `dist-static/`; `npm run preview:static` serves it locally. Fonts are bundled locally.
+
+For Vercel, import `malekTheCoder/field-builder` from GitHub. `vercel.json` sets the Vite preset, build command `npm run build:static`, and output directory `dist-static`. Verify the production deployment is publicly accessible before adding `field.malekswilam.dev`. Use the exact DNS target Vercel provides; the owner will enter the DNS changes. Keep the existing deployment until the replacement works. Old Sites configuration remains only for rollback during migration.

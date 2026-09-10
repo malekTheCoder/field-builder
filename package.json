@@ -14,10 +14,16 @@
     "test": "vitest run",
     "test:browser": "vitest run --project browser",
     "test:all": "vitest run",
-    "check": "tsc --noEmit"
+    "check": "tsc --noEmit",
+    "dev:static": "vite --config vite.static.config.ts",
+    "build:static": "vite build --config vite.static.config.ts",
+    "preview:static": "vite preview --config vite.static.config.ts"
   },
   "dependencies": {
     "@base-ui/react": "1.7.0",
+    "@fontsource-variable/geist": "^5.3.0",
+    "@fontsource-variable/geist-mono": "^5.3.0",
+    "@fontsource-variable/source-serif-4": "^5.3.0",
     "@shadcn/react": "0.3.0",
     "class-variance-authority": "0.7.1",
     "clsx": "2.1.1",
