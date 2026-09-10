@@ -8,6 +8,11 @@ sum. Results that passed carry **[verified]**. Results I did not machine-check c
 **[unverified — check at implementation time]**. Nothing in this document should be taken
 on the author's authority alone; §7 is an explicit confidence register.
 
+**Update 2026-09-10:** the sixteen formerly unverified items in §7 have all been machine-checked
+by an independent harness (`tests/spec-formulas.test.ts`) and all held. Achieved errors are
+tabulated in §7; the `[unverified]` tags in the body of §4 are retained as history but are
+superseded by that table.
+
 Conventions used throughout:
 
 - `k = 1/(4πε₀)`, `μ₀/4π` is written out when it appears.
@@ -438,8 +443,18 @@ against quadrature — assumes a closed form exists.
 
 If a second symmetric non-uniform density with a closed form is wanted, use
 **`λ(y) = λ₀(1 − 4y²/L²)`** on `−L/2 ≤ y ≤ L/2` (a parabola vanishing at both ends), which
-is symmetric, has `Q = 2λ₀L/3`, and integrates in elementary functions. **[Closed form not
-derived here — flagged for derivation and verification if adopted.]**
+is symmetric, has `Q = 2λ₀L/3`, and integrates in elementary functions. With `P = (r, 0)` on
+the bisector and `A = L²/4 + r²`:
+```
+E_x = kλ₀ [ L/(r√A) − (4r/L²)( 2 ln((L/2 + √A)/r) − L/√A ) ],     E_y = 0
+```
+(the two pieces are `∫dy/(y²+r²)^{3/2} = L/(r²√A)` and `∫y²dy/(y²+r²)^{3/2} = 2 ln((L/2+√A)/r) − L/√A`
+over the symmetric interval). **[verified]** — direct Coulomb quadrature at three
+`(λ₀, L, r)` triples agrees to `5.5×10⁻¹⁴`, `E_y` vanishes to `10⁻¹²`, and at `r = 400L` the field
+is `kQ/r²` with `Q = 2λ₀L/3` to `3.6×10⁻⁷`. Machine form:
+`'k*lambda0*(L/(r*sqrt(L^2/4+r^2))-4*r/L^2*(2*log((L/2+sqrt(L^2/4+r^2))/r)-L/sqrt(L^2/4+r^2)))'`.
+Note that, like the `ramp`, this density needs `log` in the answer even though the geometry is
+the plain `bisector`.
 
 ---
 
@@ -1434,37 +1449,34 @@ errors as stated in each entry — all `< 3×10⁻⁵`, most `< 10⁻¹¹`):
 - 4.6.1 flux through a rectangular loop beside a wire
 - 4.6.2 rotating-rod emf `½BωL²`
 
-**NOT machine-verified — flag for numerical check at implementation time:**
+**Formerly unverified; machine-checked 2026-09-10 in `tests/spec-formulas.test.ts`.** Every
+one of the sixteen items below was confirmed against quadrature of point sources written
+fresh from the geometry (Coulomb / Biot–Savart, never the closed form under test). None was
+wrong. The permanent harness runs with the unit suite; `SPEC_REPORT=1` prints this table.
+Far-field checks are limited by genuine higher-multipole terms at the finite `D/R` used
+(`300–500×`), not by quadrature; everything else is at `~10⁻¹⁰` or better.
 
-1. **4.1.3 limit 1** — the far-field *coefficient* of the `cos θ` ring's dipole
-   (`p = πλ₀R² x̂`). The `1/r³` scaling is certain; the coefficient is not checked.
-2. **4.1.3 limit 2** — the `λ₀ sin θ` variant (`E_y = −πkλ₀/R`). Follows by an angular
-   shift and is very likely right, but not run.
-3. **4.1.4 alternative** — the suggested `λ(y) = λ₀(1 − 4y²/L²)` replacement density.
-   **No closed form was derived for it at all.** Derive and verify before adopting.
-4. **4.2.2 limit 3** — the annulus far field `kQ/z²` with `Q = σπ(b²−a²)`.
-5. **4.2.4 `gapring`** — `|E| = 2kλ sin(δ/2)/R` toward the gap. Composed from the already-
-   verified `arc` result; the composition is trivial but the *direction* claim deserves a
-   check.
-6. **4.2.5 `dipole`** — `2kp/y³` on axis, `kp/x³` on the bisector, and the relative sign.
-   Standard, but this is exactly the kind of factor-of-2/sign fact that should never be
-   shipped from memory.
-7. **4.3.3 limit 1** — the `r ≫ L` expansion of the rod's `V` giving `kQ/r`. The series was
-   done by hand here; run it numerically.
-8. **4.3.6** — `ΔV = 2kλ ln(r₂/r₁)` for the infinite line.
-9. **4.4.2 limit 2** — the magnetic-moment identification `m = IπR²` in the far field.
-10. **4.5.1** — the spherical shell (`E = 0` inside, `kQ/r²` outside, `V = kQ/R` inside).
-    Standard but not run.
-11. **4.5.4** — infinite solid cylinder, both branches.
-12. **4.5.5** — coaxial cable, including the induced surface charges.
-13. **4.5.6** — the slab (`ρx/ε₀` inside, `ρd/ε₀` outside) and the conductor surface
-    `σ/ε₀`. The algebra is written out in full in the entry and is straightforward, but
-    given that the `σ/ε₀` vs `σ/(2ε₀)` contrast is the headline teaching point of the whole
-    Gauss stage, **verify it before shipping it.**
-14. **4.5.9** — thick wire `μ₀Ir/(2πR²)` and toroid `μ₀NI/(2πr)`.
-15. **4.6.1 limit 3** — the emf `(μ₀Iℓ/2π)·vw/(a(a+w))` for a loop receding from a wire.
-    Chain-rule algebra done by hand only.
-16. **4.5.8 comparison value** — the shell self-energy `kQ²/(2R)` used in the comparison.
+| # | Item | Result | Achieved relative error |
+| --- | --- | --- | --- |
+| 1 | 4.1.3 limit 1 — `cos θ` ring dipole coefficient `p = πλ₀R² x̂` | **verified**: `+2kp/D³` on the `x`-axis, `−kp/D³` along `y` and along `z`, with no component along `D` in the transverse cases | `8.3e-6`, `4.2e-6`, `1.7e-5` at `D = 300R` |
+| 2 | 4.1.3 limit 2 — `λ₀ sin θ` variant | **verified**: `E_y = −πkλ₀/R`, `E_x = 0` | `2.3e-15` |
+| 3 | 4.1.4 alternative — `λ₀(1 − 4y²/L²)` | **derived and verified** — closed form now in §4.1.4 | `5.5e-14`; far field `kQ/r²` to `3.6e-7` |
+| 4 | 4.2.2 limit 3 — annulus far field `kQ/z²`, `Q = σπ(b²−a²)` | **verified** | `5.1e-6` at `z = 400b` |
+| 5 | 4.2.4 `gapring` — `2kλ sin(δ/2)/R` **toward** the gap | **verified**, including direction (`E_x > 0` for a gap on `+x`, `E_y = 0`) at `δ ∈ {0.3, 0.9, π, 4.5}`; small gap → `kq_gap/R²` | `2.5e-14`; small-gap `1.7e-5` at `δ = 0.02` |
+| 6 | 4.2.5 `dipole` — `+2kp/y³` on axis, `−kp/x³` on the bisector | **verified**, ratio exactly `−2`, bisector field antiparallel to `p` | `2.0e-6`, `1.5e-6` at `500d` |
+| 7 | 4.3.3 limit 1 — rod `V → kQ/r` | **verified** | `2.6e-7` at `r = 400L` |
+| 8 | 4.3.6 — `ΔV = 2kλ ln(r₂/r₁)` for the infinite line | **verified** by integrating the *difference* of the two point potentials along the whole line (converges as `1/y³`) | `5.6e-12` |
+| 9 | 4.4.2 limit 2 — loop far field `μ₀m/(2πz³)`, `m = IπR²` | **verified** | `1.7e-5` at `z = 300R` |
+| 10 | 4.5.1 — spherical shell | **verified**: `E = 0` inside, `kQ/r²` radial outside, `V = kQ/R` at two interior points, `kQ/r` outside (2-D surface quadrature) | `1.7e-10` (inside, rel. `kQ/R²`), `1.8e-12`, `2.4e-11`, `1.9e-11` |
+| 11 | 4.5.4 — infinite solid cylinder | **verified**: `ρr/(2ε₀)` at `r = 0.5R`, `ρR²/(2ε₀r)` at `2.5R`, radial (3-D quadrature, polar about `P`) | `1.3e-10` both |
+| 12 | 4.5.5 — coaxial cable | **verified**: `E = 0` inside the inner conductor, `2kλ/r` in the gap, `0` outside **only** with `−λ` on the shell's inner surface (without it the exterior field is >10 % of the gap field — the induced charge is load-bearing) | `1e-16`, `1.3e-10`, `1e-16` |
+| 13 | 4.5.6 — slab and conductor surface | **verified**: slab `ρx/ε₀` inside (two points), `ρd/ε₀` outside (two points); isolated sheet `σ/(2ε₀)`; a conducting slab with `σ` on each face gives **`σ/ε₀` outside and `0` inside** — the second face supplies the missing half, which is exactly the pillbox argument | `1.2e-10` throughout; interior `1e-16` |
+| 14 | 4.5.9 — thick wire and toroid | **verified**: `μ₀Ir/(2πR²)` at `0.5R`, `μ₀I/(2πr)` at `2.5R`, azimuthal; toroid `μ₀NI/(2πr)` at three radii with `N = 720` discrete turns, exterior field `~0` | wire `1.3e-10` both; toroid `≤2.3e-15`, exterior `1e-15` |
+| 15 | 4.6.1 limit 3 — receding-loop emf `(μ₀Iℓ/2π)·vw/(a(a+w))` | **verified** by central difference of a flux computed from direct Biot–Savart; sign positive as the flux falls | `1.7e-6` |
+| 16 | 4.5.8 comparison value — shell self-energy `kQ²/(2R)` | **verified** as `½QV` with `V` the interior potential from item 10 | `2.1e-11` |
+
+Also re-derived, not transcribed: the finite-wire sign — current in `+ŷ`, `P` on `+x̂` gives
+`B_z < 0`, to `1e-12`.
 
 **Sign conventions that must be re-derived, not copied, at implementation time:**
 
