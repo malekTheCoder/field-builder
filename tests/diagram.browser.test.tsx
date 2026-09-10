@@ -29,6 +29,17 @@ describe('ChargeDiagram in a real browser', () => {
       cleanup();
     }
   });
+  it('potential problems reuse the shared layout and show a scalar gauge, not field arrows', () => {
+    for (const id of ['v-ring', 'v-disk', 'v-arc', 'v-rod-bisector', 'v-rod-axial'] as const) {
+      const {view} = mount(id);
+      const svg = view.container.querySelector('svg');
+      expect(svg!.getAttribute('aria-label'), id).toContain('electric potential');
+      expect(view.container.querySelector('.cd-gauge'), id).toBeTruthy();
+      expect(view.container.querySelector('.cd-vector'), id).toBeNull();
+      expect(view.container.querySelectorAll('path,rect,circle,line').length, id).toBeGreaterThan(5);
+      cleanup();
+    }
+  });
   // Regression guard: the svg root may gain its own arrow-key handler for camera
   // orbit. It must not swallow the keys these three inner controls already own.
   it('steps the selected charge element with arrow keys', async () => {

@@ -1,16 +1,18 @@
 import {describe,it,expect} from 'vitest';
 import katex from 'katex';
 import {PROBLEMS,getProblem} from '../src/problems/definitions';
+import {stageOf} from '../src/problems/types';
 import {expectedAnswers,gradeStage,freshLesson,freshProgress,loadProgress,mastery} from '../src/state/progress';
 const cases=[...PROBLEMS,getProblem('infinite','limit')];
 describe('complete practice grading',()=>{
  for(const p of cases)it(`${p.id}/${p.variable}: all correct stages grade successfully`,()=>{
-  const answers=expectedAnswers(p);for(let stage=0;stage<8;stage++)expect(gradeStage(p,stage,answers).ok,`${stage}: ${gradeStage(p,stage,answers).text}`).toBe(true);
-  for(let i=0;i<p.limits.length;i++)expect(gradeStage(p,7,{...answers,limit:p.limits[i].answer},i).ok).toBe(true);
+  const answers=expectedAnswers(p),limits=stageOf(p,'limits');
+  for(let stage=0;stage<p.steps.length;stage++)expect(gradeStage(p,stage,answers).ok,`${stage}: ${gradeStage(p,stage,answers).text}`).toBe(true);
+  for(let i=0;i<p.limits.length;i++)expect(gradeStage(p,limits,{...answers,limit:p.limits[i].answer},i).ok).toBe(true);
  });
  for(const p of cases)it(`${p.id}/${p.variable}: reversed and missing bounds receive feedback`,()=>{
-  const answers=expectedAnswers(p),reversed=gradeStage(p,5,{...answers,lower:p.bounds[1],upper:p.bounds[0]});expect(reversed.ok).toBe(false);expect(reversed.text).toContain('backwards');
-  expect(gradeStage(p,5,{...answers,lower:''}).ok).toBe(false);
+  const answers=expectedAnswers(p),b=stageOf(p,'bounds'),reversed=gradeStage(p,b,{...answers,lower:p.bounds[1],upper:p.bounds[0]});expect(reversed.ok).toBe(false);expect(reversed.text).toContain('backwards');
+  expect(gradeStage(p,b,{...answers,lower:''}).ok).toBe(false);
  });
  it('requires both surviving semi-infinite components and angular Jacobian',()=>{
   const p=getProblem('semi');expect(gradeStage(p,6,{...expectedAnswers(p),result2:'0'}).fieldId).toBe('result2');
@@ -30,7 +32,29 @@ describe('complete practice grading',()=>{
   expect(gradeStage(p,6,{...ok,result2:String.raw`-\frac{k\lambda_0}{L}\left(\ln\frac{L+\sqrt{L^2+r^2}}{r}-\frac{L}{\sqrt{L^2+r^2}}\right)`}).ok).toBe(true);
  });
  it('returns a helpful failure for stale stage and limit indexes',()=>{
-  expect(gradeStage(PROBLEMS[0],9,{}).ok).toBe(false);expect(gradeStage(PROBLEMS[0],7,{},99).ok).toBe(false);
+  expect(gradeStage(PROBLEMS[0],9,{}).ok).toBe(false);expect(gradeStage(PROBLEMS[0],stageOf(PROBLEMS[0],'limits'),{},99).ok).toBe(false);
+ });
+ it('diagnoses the ring-potential misconceptions: 1/r², the field integrand, and E=0 implying V=0',()=>{
+  const p=getProblem('v-ring'),ok=expectedAnswers(p);
+  const coulomb=gradeStage(p,stageOf(p,'contribution'),{...ok,field:'k*dQ/ri^2'});expect(coulomb.ok).toBe(false);expect(coulomb.text).toContain('1/r²');
+  const kernel=gradeStage(p,stageOf(p,'variable'),{...ok,kernel:'k*lambda*R*z/(R^2+z^2)^(3/2)'});expect(kernel.ok).toBe(false);expect(kernel.text).toContain('projection');
+  const centre=gradeStage(p,stageOf(p,'integrate'),{...ok,result:'0'});expect(centre.ok).toBe(false);expect(centre.text).toContain('flat');
+  const sign=gradeStage(p,stageOf(p,'gradient'),{...ok,gradient:'-k*Q*z/(R^2+z^2)^(3/2)'});expect(sign.ok).toBe(false);expect(sign.text).toContain('minus');
+ });
+ it('the remaining potential lessons reject the matching field integrand and a sign or log mistake',()=>{
+  const p=getProblem('v-arc'),ok=expectedAnswers(p);
+  const field=gradeStage(p,stageOf(p,'integrate'),{...ok,result:'-2*k*lambda*sin(phi/2)/R'});expect(field.ok).toBe(false);expect(field.text).toContain('opening angle');
+  const zero=gradeStage(p,stageOf(p,'integrate'),{...ok,result:'0'});expect(zero.ok).toBe(false);expect(zero.text).toContain('flat');
+  const cosine=gradeStage(p,stageOf(p,'variable'),{...ok,kernel:'-k*lambda*cos(theta)/R'});expect(cosine.ok).toBe(false);expect(cosine.text).toContain('cosine');
+  const disk=getProblem('v-disk'),diskOk=expectedAnswers(disk);
+  const diskKernel=gradeStage(disk,stageOf(disk,'variable'),{...diskOk,kernel:'k*z*sigma*2*pi*s/(s^2+z^2)^(3/2)'});expect(diskKernel.ok).toBe(false);expect(diskKernel.text).toContain('field integrand');
+  const sheet=gradeStage(disk,stageOf(disk,'integrate'),{...diskOk,result:'sigma/(2*eps0)'});expect(sheet.ok).toBe(false);expect(sheet.text).toContain('diverges');
+  const rod=getProblem('v-rod-bisector'),rodOk=expectedAnswers(rod);
+  const rodKernel=gradeStage(rod,stageOf(rod,'variable'),{...rodOk,kernel:'k*lambda*r/(y^2+r^2)^(3/2)'});expect(rodKernel.ok).toBe(false);expect(rodKernel.text).toContain('projection');
+  const half=gradeStage(rod,stageOf(rod,'integrate'),{...rodOk,result:'k*lambda*log((L/2+sqrt(L^2/4+r^2))/r)'});expect(half.ok).toBe(false);expect(half.text).toContain('half');
+  const axial=getProblem('v-rod-axial'),axialOk=expectedAnswers(axial);
+  const minus=gradeStage(axial,stageOf(axial,'integrate'),{...axialOk,result:'k*lambda*log(a/(a+L))'});expect(minus.ok).toBe(false);expect(minus.text).toContain('positive rod');
+  const length=gradeStage(axial,stageOf(axial,'integrate'),{...axialOk,result:'k*lambda*log(a+L)'});expect(length.ok).toBe(false);expect(length.text).toContain('pure number');
  });
 });
 describe('formula content integrity',()=>{

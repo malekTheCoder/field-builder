@@ -1,6 +1,6 @@
 import {describe,it,expect} from 'vitest';
 import {DEFAULT_PARAMS,type Params,type ProblemId} from '../src/problems/types';
-import {field,numerical,magnitude,K,EPS0,type Vec} from '../src/symbolic/physics';
+import {field,numerical,magnitude,potential,K,EPS0,type Vec} from '../src/symbolic/physics';
 const params=(extra:Partial<Params>={}):Params=>({...DEFAULT_PARAMS,...extra});
 const ids:ProblemId[]=['bisector','axial','infinite','ring','disk','semi','arc','sheet','endpoint','ramp'];
 function closeVector(actual:Vec,expected:Vec,tolerance=3e-5){const scale=magnitude(expected);for(const axis of ['x','y','z'] as const)expect(Math.abs(actual[axis]-expected[axis])).toBeLessThan(tolerance*Math.max(scale,1e-12));}
@@ -68,5 +68,11 @@ describe('geometry, signs and limiting cases',()=>{
  });
  for(const id of ['disk','sheet'] as const)it(`${id} excludes the ideal charged surface`,()=>{
   expect(field(id,params({distance:0})).z).toBeNaN();expect(numerical(id,params({distance:0})).z).toBeNaN();
+ });
+ it('potential problems share the field distribution they sit on',()=>{
+  const p=params();
+  for(const [v,g] of [['v-ring','ring'],['v-disk','disk'],['v-arc','arc'],['v-rod-bisector','bisector'],['v-rod-axial','axial']] as const){
+   closeVector(field(v,p),field(g,p),1e-15);expect(potential(v,p)).toBe(potential(g,p));
+  }
  });
 });

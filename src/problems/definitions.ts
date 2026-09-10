@@ -1,5 +1,5 @@
 import type {Problem,Answer} from './types';
-import {axial,ring,disk,semi,arc,sheet,endpoint,ramp,infiniteFrom} from './more';
+import {axial,ring,disk,semi,arc,sheet,endpoint,ramp,infiniteFrom,vRing,vDisk,vArc,vRodBisector,vRodAxial} from './more';
 const raw=String.raw;
 export const SOURCE={title:'OpenStax · University Physics 2, §5.5',url:'https://openstax.org/books/university-physics-volume-2/pages/5-5-calculating-electric-fields-of-charge-distributions'};
 const f=(id:string,label:string,expected:string,tex:string,options:string[],hint:string,mistakes:Answer['mistakes']=[]):Answer=>({id,label,expected,tex,options,hint,mistakes});
@@ -18,5 +18,5 @@ export const bisector:Problem={
  {kind:'limits',title:'Does the physics make sense?',text:'A formula earns our trust when it behaves correctly at the extremes. Make a prediction, then explore the comparison.',hint:'Far away, the rod’s length becomes negligible relative to your distance.'}
  ],limits:[{id:'far',title:'Far away, a rod becomes a point',prompt:'When r ≫ L, which expression should the field approach?',answer:'kQ/r²',choices:['kQ/r²','2kλ/r','0 at every distance'],explanation:'From far away, the rod’s internal structure is too small to resolve. With Q fixed, the field approaches that of a point charge.',formula:raw`r\gg L:\quad E_x\longrightarrow\frac{kQ}{r^2}`,mode:'far',reference:'Point charge'},{id:'infinite',title:'Let the rod extend without end',prompt:'Hold λ fixed and let L → ∞. What happens?',answer:'E → 2kλ/r',choices:['E → 2kλ/r','E → kQ/r² with Q fixed','E → 0'],explanation:'Charge density stays fixed, so total charge grows with L. Dividing the exact result by L reveals 2kλ/r.',formula:raw`L\to\infty\; (\lambda\text{ fixed}):\quad E_x\to\frac{2k\lambda}{r}`,mode:'infinite',reference:'Infinite line'}],sources:[SOURCE],link:{id:'infinite',text:'Take this rod to infinity'}
 };
-export const PROBLEMS:Problem[]=[bisector,axial,infiniteFrom(bisector),ring,disk,semi,arc,sheet,endpoint,ramp];
+export const PROBLEMS:Problem[]=[bisector,axial,infiniteFrom(bisector),ring,disk,semi,arc,sheet,endpoint,ramp,vRing,vDisk,vArc,vRodBisector,vRodAxial];
 export function getProblem(id:string,path='angular'):Problem{return id==='infinite'?infiniteFrom(bisector,path):PROBLEMS.find(p=>p.id===id)??bisector;}

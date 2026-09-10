@@ -1,6 +1,7 @@
 import {describe,it,expect} from 'vitest';
 import {field,magnitude,potential,EPS0,K,type Vec} from '../src/symbolic/physics';
 import {getProblem,PROBLEMS} from '../src/problems/definitions';
+import {PROBLEM_IDS} from '../src/distributions';
 import {safeParse} from '../src/symbolic/equivalence';
 import {DEFAULT_PARAMS,type Params,type ProblemId} from '../src/problems/types';
 import {sampleDistribution,sumSamples,sumPotential} from '../src/diagrams/sampling';
@@ -60,6 +61,7 @@ function truth(id:ProblemId,p:Params):V3{
   // Infinite plane, same surface integral pushed to infinity in the radius.
   case 'sheet':{const sig=q,g=(s:number,t:number)=>coulomb(sig*s,[s*Math.cos(t),s*Math.sin(t),0],[0,0,d]);
    const a=Math.abs(d);return add(double2d(g,0,a,200,0,2*Math.PI,80),toInfinity(s=>simpson(t=>g(s,t),0,2*Math.PI,80),a,a,60,64));}
+  default:throw Error(`${id} has no independent field ground truth`);
  }
 }
 const ids:ProblemId[]=['bisector','axial','infinite','ring','disk','semi','arc','sheet','endpoint','ramp'];
@@ -105,17 +107,17 @@ describe('closed forms vs an independently written Coulomb integrator',()=>{
 // ---------------------------------------------------------------------------
 const ev=(expr:string,scope:Record<string,number>)=>safeParse(expr).compile().evaluate({pi:Math.PI,...scope}) as number;
 function scopeFor(id:ProblemId,p:Params):Record<string,number>{
- const q=p.charge*1e-9,L=p.size,R=p.size/2,d=p.distance;
+ const geom=id==='infinite'?id:getProblem(id).geometry,q=p.charge*1e-9,L=p.size,R=p.size/2,d=p.distance;
  const base={k:K,eps0:EPS0,Q:q,L,R,a:d,r:d,z:d,phi:p.phi};
- if(id==='bisector')return{...base,lambda:q/L};
- if(id==='axial')return{...base,lambda:q/L};
- if(id==='infinite')return{...base,lambda:q,Q:q*L};
- if(id==='ring')return{...base,lambda:q/(2*Math.PI*R)};
- if(id==='arc')return{...base,lambda:q/(R*p.phi)};
- if(id==='disk')return{...base,sigma:q/(Math.PI*R*R),lambda:q/L};
- if(id==='semi')return{...base,lambda:q};
- if(id==='endpoint')return{...base,lambda:q/L};
- if(id==='ramp')return{...base,lambda0:q,Q:q*L/2,y:.7*L};
+ if(geom==='bisector')return{...base,lambda:q/L};
+ if(geom==='axial')return{...base,lambda:q/L};
+ if(geom==='infinite')return{...base,lambda:q,Q:q*L};
+ if(geom==='ring')return{...base,lambda:q/(2*Math.PI*R)};
+ if(geom==='arc')return{...base,lambda:q/(R*p.phi)};
+ if(geom==='disk')return{...base,sigma:q/(Math.PI*R*R),lambda:q/L};
+ if(geom==='semi')return{...base,lambda:q};
+ if(geom==='endpoint')return{...base,lambda:q/L};
+ if(geom==='ramp')return{...base,lambda0:q,Q:q*L/2,y:.7*L};
  return{...base,sigma:q,lambda:q};
 }
 /** Scalar Simpson of the definition's own integrand string over its own bounds. */
@@ -162,8 +164,8 @@ describe('the displayed derivation reproduces the displayed answer',()=>{
   const secondary=row.secondary;
   if(secondary){
    it(`${row.id}: the second component's integrand and result agree too`,()=>{
-    const step=problem.steps[4];
-    const f=step.fields?.find(x=>x.id===secondary.kernelId);
+    const step=problem.steps.find(s=>s.kind==='variable');
+    const f=step?.fields?.find(x=>x.id===secondary.kernelId);
     expect(f,'kernel2 field present').toBeTruthy();
     const got=integrateKernel(f!.expected,problem.variable,row.lo,row.hi,scope);
     const want=ev(secondary.expected,scope);
@@ -250,6 +252,40 @@ describe('E = −dV/d(coordinate) recovers every field closed form',()=>{
   expect(Math.abs(minusDV/component-1),`${id}: −dV/dz ${minusDV} vs E ${component}`).toBeLessThan(1e-7);
  });
 });
+describe('the displayed potential derivation reproduces V',()=>{
+ const p=params({distance:1.9,size:3.8,charge:2.4,phi:2.3});
+ const rows: {id:ProblemId;lo:number;hi:number;element:string}[]=[
+  {id:'v-ring',lo:0,hi:2*Math.PI,element:'R*dtheta'},
+  {id:'v-disk',lo:0,hi:p.size/2,element:'2*pi*s*ds'},
+  {id:'v-arc',lo:-p.phi/2,hi:p.phi/2,element:'R*dtheta'},
+  {id:'v-rod-bisector',lo:-p.size/2,hi:p.size/2,element:'dy'},
+  {id:'v-rod-axial',lo:0,hi:p.size,element:'dx'},
+ ];
+ for(const row of rows){
+  const problem=getProblem(row.id),scope=scopeFor(row.id,p),axis=problem.geometry==='ring'||problem.geometry==='disk'?'z' as const:'x' as const;
+  it(`${row.id}: stated result equals potential()`,()=>{
+   expect(ev(problem.result,scope)).toBeCloseTo(potential(problem.geometry,p),12);
+  });
+  it(`${row.id}: integrating the stated integrand over the stated bounds gives the stated result`,()=>{
+   const got=integrateKernel(problem.kernel,problem.variable,row.lo,row.hi,scope),want=ev(problem.result,scope);
+   expect(Math.abs(got-want)/Math.max(Math.abs(want),1e-30)).toBeLessThan(1e-6);
+  });
+  it(`${row.id}: is a reduced scalar flow with a citation, two limits, and targeted misconceptions`,()=>{
+   expect(problem.quantity).toBe('V');expect(problem.steps.some(s=>s.kind==='symmetry')).toBe(false);
+   expect(problem.steps.find(s=>s.kind==='variable')!.fields!.some(f=>f.id==='projection')).toBe(false);
+   expect(problem.limits.length).toBeGreaterThanOrEqual(2);expect(problem.sources.length).toBeGreaterThanOrEqual(1);
+   expect(problem.steps.flatMap(s=>s.fields??[]).flatMap(f=>f.mistakes??[]).length).toBeGreaterThanOrEqual(3);
+   const g=problem.steps.find(s=>s.kind==='gradient');
+   if(row.id==='v-arc')expect(g).toBeUndefined();
+   else expect(ev(g!.fields![0].expected,scope)).toBeCloseTo(field(problem.geometry,p)[axis],12);
+  });
+  it(`${row.id}: dQ equals the stated density times the stated element`,()=>{
+   const d={...scope,s:1.234,dy:1,dx:1,ds:1,dtheta:1};
+   const got=ev(problem.dq,d),want=ev(problem.density,d)*ev(row.element,d);
+   expect(Math.abs(got-want)/Math.abs(want)).toBeLessThan(1e-14);
+  });
+ }
+});
 describe('units and parameter scaling',()=>{
  it('epsilon0 and k are mutually consistent and physically accurate',()=>{
   expect(K).toBe(1/(4*Math.PI*EPS0));
@@ -278,8 +314,8 @@ describe('degenerate and edge cases',()=>{
   for(const id of ['bisector','infinite','semi','axial'] as const)
    expect(magnitude(field(id,params({distance:1e-9})))).toBeGreaterThan(1e5);
  });
- it('problem definitions cover all ten geometries exactly once',()=>{
-  expect(PROBLEMS.map(x=>x.id).sort()).toEqual([...ids].sort());
+ it('problem definitions cover every registry id exactly once',()=>{
+  expect(PROBLEMS.map(x=>x.id).sort()).toEqual([...PROBLEM_IDS].sort());
  });
 });
 

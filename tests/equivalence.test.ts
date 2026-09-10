@@ -63,6 +63,8 @@ describe('mathematical input',()=>{
   expect(eq('λ dz','lambda*dz')).toBe(true);expect(eq('λ d z','lambda*dz')).toBe(true);expect(eq('λ dℓ','lambda*dl')).toBe(true);expect(eq('dV/dz','dV/dz','ring')).toBe(true);
   // −dV/dz is the recipe, not the derivative: it must not grade as the ring's field.
   expect(eq('-dV/dz','k*Q*z/(R^2+z^2)^(3/2)','ring')).toBe(false);
+  expect(eq('k*dQ/ri','k*dQ/ri','v-ring')).toBe(true);expect(eq('k*dQ/ri^2','k*dQ/ri','v-ring')).toBe(false);
+  expect(eq('k*Q/sqrt(R^2+z^2)','k*Q/sqrt(R^2+z^2)','v-ring')).toBe(true);
   for(const input of ['W','dW','dv','v*dz'])expect(equivalent(input,'V',getProblem('ring')).error).toContain('Unknown symbol');
  });
  it('rejects sign, projection and small-value mistakes',()=>{

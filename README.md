@@ -66,7 +66,7 @@ The suite includes real Chromium tests for math entry, geometry rendering, obser
 
 ## Status
 
-Working: all ten geometries, the explorer, the optional practice wizard, onboarding, symbolic grading, and locally stored progress.
+Working: ten field geometries and five potential lessons, the explorer, the optional practice wizard, onboarding, symbolic grading, and locally stored progress.
 
 Deployment and validation:
 
