@@ -1,22 +1,19 @@
 import {cleanup, render} from '@testing-library/react';
-import {userEvent} from 'vitest/browser';
 import {afterEach, describe, expect, it, vi} from 'vitest';
 import {ChargeDiagram} from '../src/diagrams/ChargeDiagram';
 import {EquationWorkbench} from '../src/components/EquationWorkbench';
-import {getProblem, PROBLEMS} from '../src/problems/definitions';
+import {getProblem} from '../src/problems/definitions';
 import {DEFAULT_PARAMS, type ProblemId} from '../src/problems/types';
 import {requiredTerms, termsFor, type TermId} from '../src/workbench/assembly';
 
 afterEach(cleanup);
 // Real Chromium: the figure computes hotspot positions from the live projection, and
 // KaTeX has to actually render for the empty slots to be countable on screen.
-const collectableFor = (id: ProblemId) => termsFor(getProblem(id)).map(t => ({figure: t.figure, label: t.label}));
-function figure(id: ProblemId, collected: ReadonlySet<string>, onCollectFigure = vi.fn(), highlight = '', onPointFigure = vi.fn()) {
+function figure(id: ProblemId, highlight = '') {
   const view = render(<ChargeDiagram problem={getProblem(id)} params={DEFAULT_PARAMS} setParams={vi.fn()}
     count={8} continuum={0} selected={3} onSelect={vi.fn()} progress={1} components={false} pair={false}
-    mode="divide" boundRange={[0, 100]} onBoundRangeChange={vi.fn()}
-    collectable={collectableFor(id)} collected={collected} onCollectFigure={onCollectFigure} onPointFigure={onPointFigure} highlight={highlight} />);
-  return {view, onCollectFigure, onPointFigure};
+    mode="divide" boundRange={[0, 100]} onBoundRangeChange={vi.fn()} highlight={highlight} />);
+  return {view};
 }
 function panel(id: ProblemId, collected: ReadonlySet<TermId>, highlight = '') {
   return render(<EquationWorkbench problem={getProblem(id)} params={DEFAULT_PARAMS} count={8} continuum={0}
@@ -26,44 +23,6 @@ function panel(id: ProblemId, collected: ReadonlySet<TermId>, highlight = '') {
 const holes = (el: Element | null) => (el?.textContent?.match(/□/g) ?? []).length;
 
 describe('building the integral off the figure', () => {
-  it('puts one target on the figure for every factor still to be taken', () => {
-    for (const p of PROBLEMS) {
-      const {view} = figure(p.id, new Set());
-      expect(view.container.querySelectorAll('.cd-hotspot').length, p.id).toBe(requiredTerms(p).length);
-      cleanup();
-    }
-  });
-  it('reports which feature was taken, and takes that target off the drawing', async () => {
-    const all = termsFor(getProblem('bisector'));
-    const {view, onCollectFigure} = figure('bisector', new Set());
-    const spots = view.container.querySelectorAll<SVGGElement>('.cd-hotspot');
-    await userEvent.click(spots[1]);
-    expect(onCollectFigure).toHaveBeenCalledWith(all[1].figure);
-    expect(view.container.querySelectorAll('.cd-hotspot').length).toBe(all.length); // caller owns the state
-    cleanup();
-    // Once a factor is in the integral its target is gone, rather than sitting on the
-    // physics wearing a tick. The panel is what records it.
-    const held = figure('bisector', new Set(['distance']));
-    expect(held.view.container.querySelectorAll('.cd-hotspot').length).toBe(all.length - 1);
-    const labels = [...held.view.container.querySelectorAll('.cd-hotspot')].map(s => s.getAttribute('aria-label') ?? '');
-    expect(labels.some(l => l.includes('Distance to P'))).toBe(false);
-  });
-  it('is reachable by keyboard, since the figure is the only way to take a factor', async () => {
-    const {view, onCollectFigure} = figure('ring', new Set());
-    const spot = view.container.querySelector<SVGGElement>('.cd-hotspot')!;
-    expect(spot.getAttribute('tabindex')).toBe('0');
-    spot.focus();
-    await userEvent.keyboard('{Enter}');
-    expect(onCollectFigure).toHaveBeenCalledTimes(1);
-    await userEvent.keyboard(' ');
-    expect(onCollectFigure).toHaveBeenCalledTimes(2);
-  });
-  it('names every remaining target by what it measures', () => {
-    const {view} = figure('bisector', new Set(['element']));
-    const labels = [...view.container.querySelectorAll('.cd-hotspot')].map(s => s.getAttribute('aria-label') ?? '');
-    expect(labels.length).toBeGreaterThan(0);
-    for (const label of labels) expect(label).toMatch(/^Take .+ into the integral$/);
-  });
   it('fills one hole in the expression per factor collected, and none are left at the end', () => {
     const need = requiredTerms(getProblem('bisector'));
     const empty = panel('bisector', new Set());
@@ -99,24 +58,6 @@ describe('building the integral off the figure', () => {
 });
 
 describe('the figure and the panel answer each other', () => {
-  it('names the feature under the pointer, and stops naming it on the way out', async () => {
-    const {view, onPointFigure} = figure('bisector', new Set());
-    const spots = view.container.querySelectorAll<SVGGElement>('.cd-hotspot');
-    const want = termsFor(getProblem('bisector'))[2].figure;
-    await userEvent.hover(spots[2]);
-    expect(onPointFigure).toHaveBeenLastCalledWith(want);
-    await userEvent.unhover(spots[2]);
-    // Clearing matters as much as setting: a stale name would leave the panel lit.
-    expect(onPointFigure).toHaveBeenLastCalledWith('');
-  });
-  it('answers the keyboard too, so focus lights the same factor as the pointer', async () => {
-    const {view, onPointFigure} = figure('bisector', new Set());
-    const spot = view.container.querySelectorAll<SVGGElement>('.cd-hotspot')[1];
-    spot.focus();
-    expect(onPointFigure).toHaveBeenLastCalledWith(termsFor(getProblem('bisector'))[1].figure);
-    spot.blur();
-    expect(onPointFigure).toHaveBeenLastCalledWith('');
-  });
   it('lights exactly the factor the pointed-at feature supplies', () => {
     const p = getProblem('bisector'), terms = termsFor(p);
     for (const t of terms) {
@@ -131,10 +72,10 @@ describe('the figure and the panel answer each other', () => {
     expect(none.container.querySelectorAll('.ew-slot.is-lit').length).toBe(0);
   });
   it('carries the pointed-at feature onto the figure so its construction can answer', () => {
-    const lit = figure('bisector', new Set(), vi.fn(), 'distance');
+    const lit = figure('bisector', 'distance');
     expect(lit.view.container.querySelector('.charge-diagram')?.className).toContain('cd-focus-distance');
     cleanup();
-    const rest = figure('bisector', new Set());
+    const rest = figure('bisector');
     expect(rest.view.container.querySelector('.charge-diagram')?.className).not.toContain('cd-focus-distance');
   });
 });

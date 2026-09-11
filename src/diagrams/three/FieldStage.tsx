@@ -2,6 +2,7 @@
 import {useEffect,useRef} from 'react';
 import type {ChargeSample} from '../../distributions/types';
 import {cameraBasis,cameraPosition,frameTarget,frustum} from './orthoCamera';
+import {bodyReach,surfaceOpacity,visibleRadii,type BodyKind} from './bodies';
 /** The 3D half of the figure: the charge as a real body with depth, under the SVG that
  * carries every label and every control.
  *
@@ -12,9 +13,10 @@ import {cameraBasis,cameraPosition,frameTarget,frustum} from './orthoCamera';
  * The camera is built from the same yaw and pitch the SVG projects with, through a basis a
  * test pins against `projectCamera`. That is what keeps a label on the thing it labels. */
 export type FieldStageProps={
- samples:readonly ChargeSample[];
- /** Ring radius in world metres, and the observation height on the axis. */
- radius:number; distance:number;
+/** Which body to build, its radius in world metres, and the observation height. */
+ kind:BodyKind; radius:number; distance:number;
+ /** The partition, so a disk can show the rings it is a stack of. */
+ samples:readonly ChargeSample[]; selected:number;
  yaw:number; pitch:number;
  /** Pixels per world unit, and the viewBox the SVG above is drawn in. */
  unit:number; frame:{width:number;height:number};
@@ -50,9 +52,32 @@ export function FieldStage(props:FieldStageProps){
    scene.add(new THREE.AmbientLight(0xffffff,1.35));
    const key=new THREE.DirectionalLight(0xffffff,2.1);key.position.set(4,6,9);scene.add(key);
    const rim=new THREE.DirectionalLight(0x9ad8ff,.85);rim.position.set(-6,-3,-4);scene.add(rim);
-   const ringMaterial=new THREE.MeshStandardMaterial({roughness:.42,metalness:.06});
-   const ring=new THREE.Mesh(new THREE.TorusGeometry(1,.055,20,220),ringMaterial);
-   scene.add(ring);
+   // One material for the charged body, one for the rings a surface is built from. The
+   // surfaces are translucent so the construction lines behind them stay readable: the old
+   // disk was drawn near-opaque and read as a hole punched in the page.
+   const bodyMaterial=new THREE.MeshStandardMaterial({roughness:.42,metalness:.06,side:THREE.DoubleSide});
+   const sliceMaterial=new THREE.LineBasicMaterial({transparent:true,opacity:.5});
+   const pickedMaterial=new THREE.LineBasicMaterial({transparent:true,opacity:1});
+   const body=new THREE.Group();scene.add(body);
+   const slices=new THREE.Group();scene.add(slices);
+   let builtFor:BodyKind|null=null;
+   const unitCircle=(segments=128)=>new THREE.BufferGeometry().setFromPoints(
+    Array.from({length:segments+1},(_,i)=>{const t=2*Math.PI*i/segments;return new THREE.Vector3(Math.cos(t),Math.sin(t),0);}));
+   const clearGroup=(group:InstanceType<typeof THREE.Group>)=>{
+    while(group.children.length){
+     const child=group.children[group.children.length-1];
+     group.remove(child);
+     (child as {geometry?:{dispose:()=>void}}).geometry?.dispose();
+    }
+   };
+   const buildBody=(kind:BodyKind)=>{
+    clearGroup(body);builtFor=kind;
+    if(kind==='ring'){body.add(new THREE.Mesh(new THREE.TorusGeometry(1,.055,20,220),bodyMaterial));return;}
+    // A disk and a sheet are both flat surfaces; only how far they reach differs, and a
+    // sheet gets no rim because it has no edge.
+    body.add(new THREE.Mesh(new THREE.CircleGeometry(1,128),bodyMaterial));
+    if(kind==='disk')body.add(new THREE.Line(unitCircle(),pickedMaterial));
+   };
    // The axis the field is measured along, drawn faintly so the SVG's own axis reads on top.
    const axisMaterial=new THREE.LineBasicMaterial({transparent:true,opacity:.55});
    const axis=new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0,0,-6),new THREE.Vector3(0,0,6)]),axisMaterial);
@@ -73,14 +98,28 @@ export function FieldStage(props:FieldStageProps){
     camera.up.set(up.x,up.y,up.z);
     camera.lookAt(target.x,target.y,target.z);
     camera.updateProjectionMatrix();
-    ring.scale.setScalar(Math.max(.05,p.radius));
+    if(builtFor!==p.kind)buildBody(p.kind);
+    const frameWorld=Math.max(f.right-f.left,f.top-f.bottom);
+    body.scale.setScalar(bodyReach(p.kind,p.radius,frameWorld));
+    // Rebuild the rings only when the partition actually changes; scaling is free, geometry
+    // is not, and this runs on every camera frame during an orbit.
+    const radii=p.kind==='disk'?visibleRadii(p.samples,p.selected):[];
+    const key=radii.length?`${radii.length}:${radii[radii.length-1].toFixed(4)}`:'none';
+    if(slices.userData.key!==key){
+     clearGroup(slices);slices.userData.key=key;
+     for(const r of radii){const loop=new THREE.Line(unitCircle(96),sliceMaterial);loop.scale.setScalar(Math.max(.01,r));slices.add(loop);}
+    }
     const positive=p.charge>=0;
-    ringMaterial.color.set(positive?0xf0975c:0x5cb8f0);
-    ringMaterial.emissive.set(positive?0x3a1c08:0x08243a);
+    bodyMaterial.color.set(positive?0xf0975c:0x5cb8f0);
+    bodyMaterial.emissive.set(positive?0x3a1c08:0x08243a);
+    bodyMaterial.transparent=p.kind!=='ring';
+    bodyMaterial.opacity=p.kind==='ring'?1:surfaceOpacity(p.kind);
+    sliceMaterial.color.set(positive?0xc2703a:0x3a7fc2);
+    pickedMaterial.color.set(positive?0xf0975c:0x5cb8f0);
     // The theme lives on the document, not in props: one source of truth, and it stays
     // correct when the toggle flips without this component re-rendering.
     const dark=document.documentElement.classList.contains('dark');
-    ringMaterial.emissiveIntensity=dark?.85:.35;
+    bodyMaterial.emissiveIntensity=dark?.85:.35;
     axisMaterial.color.set(dark?0x8ea4b4:0x52697a);
     renderer.render(scene,camera);
    };
@@ -95,7 +134,7 @@ export function FieldStage(props:FieldStageProps){
     update:p=>{if(disposed)return;apply(p);wake();},
     dispose:()=>{
      disposed=true;cancelAnimationFrame(frameId);observer.disconnect();
-     ring.geometry.dispose();ringMaterial.dispose();axis.geometry.dispose();axisMaterial.dispose();
+     clearGroup(body);clearGroup(slices);bodyMaterial.dispose();sliceMaterial.dispose();pickedMaterial.dispose();axis.geometry.dispose();axisMaterial.dispose();
      renderer.dispose();
      if(renderer.domElement.parentNode===mount)mount.removeChild(renderer.domElement);
     },

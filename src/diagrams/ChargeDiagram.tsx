@@ -8,7 +8,6 @@ import { field, magnitude, pretty, potential, type Vec } from '../symbolic/physi
 import { sampleDistribution, sumSamples, sumInterval, intervalWeights, sumPotential } from './sampling';
 import { intervalKey, partitionCount, seamFractions, seamKey, splitFractions, splitProgress } from './subdivision';
 import { DEFAULT_CAMERA, depthFromScreen, keyboardCamera, orbitCamera, projectCamera, type CameraView } from './camera';
-import { spreadSpots } from './hotspots';
 import { FieldCanvas } from './FieldCanvas';
 import { FieldStage } from './three/FieldStage';
 import './charge-diagram.css';
@@ -21,11 +20,6 @@ export type ChargeDiagramProps = {
   progress: number; components: boolean; pair: boolean;
   mode: 'divide' | 'project' | 'sum' | 'integrate';
   highlight?: string; boundRange?: [number, number]; onBoundRangeChange?: (r: [number, number]) => void;
-  /** Assembly: features the student can lift off the figure into the integral. */
-  collectable?: readonly {figure: string; label: string}[];
-  collected?: ReadonlySet<string>; onCollectFigure?: (figure: string) => void;
-  /** Pointing at a feature names it, so the panel can answer. '' when nothing is under the cursor. */
-  onPointFigure?: (figure: string) => void;
   /** Predict-first. While `predicting`, the field is withheld and the guess is draggable.
    * Afterwards the guess stays on the figure beside the field so the two can be compared. */
   predicting?: boolean; prediction?: Point | null; onPredict?: (offset: Point) => void;
@@ -54,7 +48,7 @@ function Vector({ from, to, color = 'var(--field)', width = 2.5, dashed = false,
     {label && length > 10 && <text x={to.x + (to.x < from.x ? -9 : 9)} y={to.y - 9} textAnchor={to.x < from.x ? 'end' : 'start'} className="cd-vector-label" fill="currentColor">{label}</text>}
   </g>;
 }
-export function ChargeDiagram({ problem, params: p, setParams, count, continuum, selected, onSelect, progress, components, pair, mode, boundRange = [0, 100], onBoundRangeChange, highlight = '', collectable, collected, onCollectFigure, onPointFigure, predicting, prediction, onPredict, onNetScreen }: ChargeDiagramProps) {
+export function ChargeDiagram({ problem, params: p, setParams, count, continuum, selected, onSelect, progress, components, pair, mode, boundRange = [0, 100], onBoundRangeChange, highlight = '', predicting, prediction, onPredict, onNetScreen }: ChargeDiagramProps) {
   const cameraControl = useRef<HTMLButtonElement>(null);
   const svg = useRef<SVGSVGElement>(null), plane = useRef<SVGGElement>(null), dragging = useRef<string | null>(null), uid = useId().replace(/:/g, '');
   const yawMv = useMotionValue(DEFAULT_CAMERA.yaw), pitchMv = useMotionValue(DEFAULT_CAMERA.pitch);
@@ -300,7 +294,8 @@ export function ChargeDiagram({ problem, params: p, setParams, count, continuum,
         traced in three dimensions and sorted against the surface, a different job. */}
     <div className="cd-stage">
     {!perspective && !scalar && <FieldCanvas samples={samples} project={project} frame={{ width: 720, height: 430 }} />}
-    {id === 'ring' && <FieldStage samples={samples} radius={R} distance={p.distance} yaw={camera.yaw} pitch={camera.pitch}
+    {perspective && <FieldStage kind={id === 'ring' ? 'ring' : id === 'disk' ? 'disk' : 'sheet'} samples={samples} selected={selectedIndex}
+      radius={R} distance={p.distance} yaw={camera.yaw} pitch={camera.pitch}
       unit={unit} frame={{ width: 720, height: 430 }} origin={O} charge={p.charge} animating={activeDrag}
       getView={() => ({ yaw: yawMv.get(), pitch: pitchMv.get() })} />}
     <svg ref={svg} className={`cd-svg${perspective ? ' cd-orbitable' : ''}${scalar ? ' cd-scalar' : ''}`} viewBox="0 0 720 430" role="img" {...(perspective ? orbit : {})} aria-label={`${problem.title}. Interactive charge distribution and ${scalar ? 'electric potential' : 'electric field'} visualization.${perspective ? ' Drag or use the arrow keys to rotate the view, Home to reset it.' : ''}`}>
@@ -438,33 +433,6 @@ export function ChargeDiagram({ problem, params: p, setParams, count, continuum,
       <line x1="30" y1="387" x2="690" y2="387" className="cd-divider" />
       <text x="30" y="409" className="cd-footer">{sourceLabel}</text>
       <text x="690" y="409" textAnchor="end" className="cd-footer">{scalar ? `${continuum>=.999?'dV':'ΔV'} · V: ${pretty(vNow)} V` : showContribution ? `${fieldSymbol} × ${pretty(selectedGain)} · E: ${pretty(scaleValue)} N/C per 100 px` : `${n} charge pieces`}</text>
-      {collectable?.length ? (() => {
-        // Each target sits on the feature it names, so lifting a factor into the integral
-        // means pointing at the thing in the picture that measures it. Where two features
-        // genuinely coincide — on the disk the charge ring and the bracket land 23px apart,
-        // inside the 26px at which these circles touch — they are relaxed just far enough
-        // apart to stay separately clickable without leaving their feature behind.
-        const wanted = collectable.map(h => h.figure === 'element' ? source
-          : h.figure === 'distance' ? { x: (selectedPoint.x + P.x) / 2, y: (selectedPoint.y + P.y) / 2 }
-          : h.figure === 'projection' ? { x: P.x - 26, y: P.y - 18 }
-          : { x: clamp(project(world(boundRange[1] / 100)).x, 57, 650), y: clamp(project(world(boundRange[1] / 100)).y, 66, 358) });
-        const placed = spreadSpots(wanted, 32, { x0: 57, y0: 66, x1: 650, y1: 358 });
-        return <g className="cd-hotspots">{collectable.map((h, index) => {
-        const at = placed[index];
-        const has = collected?.has(h.figure), lit = highlight === h.figure;
-        // A collected factor leaves the drawing. A tick sitting on the rod says "done"
-        // rather than naming what was taken, and four of them cover the physics they were
-        // supposed to point at. What is still available shows; the panel records the rest.
-        if (has) return null;
-        return <g key={h.figure} className={`cd-hotspot${lit ? ' is-lit' : ''}`} role="button" tabIndex={0}
-          aria-label={`Take ${h.label} into the integral`}
-          onClick={() => onCollectFigure?.(h.figure)}
-          onPointerEnter={() => onPointFigure?.(h.figure)} onPointerLeave={() => onPointFigure?.('')}
-          onFocus={() => onPointFigure?.(h.figure)} onBlur={() => onPointFigure?.('')}
-          onKeyDown={ev => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); onCollectFigure?.(h.figure); } }}>
-          <circle cx={at.x} cy={at.y} r="11" />
-        </g>;
-      })}</g>; })() : null}
     </svg>
     </div>
     <details className="cd-controls" open><summary>Diagram controls and keyboard help</summary><p id={`${uid}help`}>Tab moves between controls. Arrow keys adjust the focused control; Home and End select its limits. You can also drag P and the integration bounds in the figure.</p>
