@@ -128,3 +128,9 @@
 .cd-focus-projection .cd-triangle text{fill:var(--field);font-weight:600}
 .cd-focus-bounds .cd-bound rect{fill:var(--field);stroke:var(--field)}
 .cd-focus-bounds .cd-bound text{fill:var(--field);font-weight:600}
+
+/* The guess sits in the same place and units as the field it will be compared against. */
+.cd-guess-grip circle{fill:color-mix(in oklab,var(--charge) 20%,transparent);stroke:var(--charge);stroke-width:1.6;cursor:grab}
+.cd-guess-grip:hover circle{fill:color-mix(in oklab,var(--charge) 34%,transparent)}
+.cd-guess-grip:focus-visible circle{stroke-width:2.6;outline:none}
+.cd-guess.is-drawing .cd-vector{opacity:1}
