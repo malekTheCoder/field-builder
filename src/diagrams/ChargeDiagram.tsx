@@ -18,6 +18,9 @@ export type ChargeDiagramProps = {
   progress: number; components: boolean; pair: boolean;
   mode: 'divide' | 'project' | 'sum' | 'integrate';
   highlight?: string; boundRange?: [number, number]; onBoundRangeChange?: (r: [number, number]) => void;
+  /** Assembly: features the student can lift off the figure into the integral. */
+  collectable?: readonly {figure: string; label: string}[];
+  collected?: ReadonlySet<string>; onCollectFigure?: (figure: string) => void;
 };
 const clamp = (n: number, a: number, b: number) => Math.max(a, Math.min(b, n));
 const plus = (a: Point, b: Point): Point => ({ x: a.x + b.x, y: a.y + b.y });
@@ -41,7 +44,7 @@ function Vector({ from, to, color = 'var(--field)', width = 2.5, dashed = false,
     {label && length > 10 && <text x={to.x + (to.x < from.x ? -9 : 9)} y={to.y - 9} textAnchor={to.x < from.x ? 'end' : 'start'} className="cd-vector-label" fill="currentColor">{label}</text>}
   </g>;
 }
-export function ChargeDiagram({ problem, params: p, setParams, count, continuum, selected, onSelect, progress, components, pair, mode, boundRange = [0, 100], onBoundRangeChange, highlight = '' }: ChargeDiagramProps) {
+export function ChargeDiagram({ problem, params: p, setParams, count, continuum, selected, onSelect, progress, components, pair, mode, boundRange = [0, 100], onBoundRangeChange, highlight = '', collectable, collected, onCollectFigure }: ChargeDiagramProps) {
   const cameraControl = useRef<HTMLButtonElement>(null);
   const svg = useRef<SVGSVGElement>(null), plane = useRef<SVGGElement>(null), dragging = useRef<string | null>(null), uid = useId().replace(/:/g, '');
   const yawMv = useMotionValue(DEFAULT_CAMERA.yaw), pitchMv = useMotionValue(DEFAULT_CAMERA.pitch);
@@ -378,6 +381,21 @@ export function ChargeDiagram({ problem, params: p, setParams, count, continuum,
       <line x1="30" y1="387" x2="690" y2="387" className="cd-divider" />
       <text x="30" y="409" className="cd-footer">{sourceLabel}</text>
       <text x="690" y="409" textAnchor="end" className="cd-footer">{scalar ? `${continuum>=.999?'dV':'ΔV'} · V: ${pretty(vNow)} V` : showContribution ? `${fieldSymbol} × ${pretty(selectedGain)} · E: ${pretty(scaleValue)} N/C per 100 px` : `${n} charge pieces`}</text>
+      {collectable?.length ? <g className="cd-hotspots">{collectable.map(h => {
+        // Each hotspot sits on the feature it names, so lifting a factor into the
+        // integral means pointing at the thing in the picture that it measures.
+        const at = h.figure === 'element' ? source
+          : h.figure === 'distance' ? { x: (selectedPoint.x + P.x) / 2, y: (selectedPoint.y + P.y) / 2 }
+          : h.figure === 'projection' ? { x: P.x - 26, y: P.y - 18 }
+          : { x: clamp(project(world(boundRange[1] / 100)).x, 57, 650), y: clamp(project(world(boundRange[1] / 100)).y, 66, 358) };
+        const has = collected?.has(h.figure), lit = highlight === h.figure;
+        return <g key={h.figure} className={`cd-hotspot${has ? ' is-taken' : ''}${lit ? ' is-lit' : ''}`} role="button" tabIndex={0}
+          aria-label={has ? `${h.label} already in the integral` : `Take ${h.label} into the integral`} aria-pressed={!!has}
+          onClick={() => onCollectFigure?.(h.figure)}
+          onKeyDown={ev => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); onCollectFigure?.(h.figure); } }}>
+          <circle cx={at.x} cy={at.y} r="13" />{has && <path d={`M${at.x - 4.5},${at.y} l3.2,3.4 l6,-6.6`} className="cd-hotspot-tick" />}
+        </g>;
+      })}</g> : null}
     </svg>
     <details className="cd-controls" open><summary>Diagram controls and keyboard help</summary><p id={`${uid}help`}>Tab moves between controls. Arrow keys adjust the focused control; Home and End select its limits. You can also drag P and the integration bounds in the figure.</p>
     <div className="cd-control-grid">

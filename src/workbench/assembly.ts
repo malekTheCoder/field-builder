@@ -18,15 +18,25 @@ export const isScalar=(p:Problem)=>p.quantity==='V';
 const LETTER:Record<string,string>={theta:'θ',phi:'φ',alpha:'α',lambda:'λ',sigma:'σ'};
 const spoken=(tex:string)=>LETTER[tex.replace(/^\\/,'')]??tex.replace(/^\\/,'');
 export function termsFor(p:Problem):Term[]{
- const v=spoken(p.variableTex),scalar=isScalar(p);
+ const v=spoken(p.variableTex),scalar=isScalar(p),surface=p.geometry==='disk'||p.geometry==='sheet';
+ const elementWhy=surface
+  ?'The highlighted piece is a whole thin ring. Its area is circumference × radial width, and the ring’s own sideways contributions have already cancelled.'
+  :p.id==='infinite'&&p.variable==='theta'
+  ?'The source is still a line. Changing to an angle costs a factor dy = r sec²θ dθ, and that factor changes how much charge each angular slice holds.'
+  :p.id==='ramp'
+  ?'The density is a function of position: λ(y) = λ₀y/L. Multiply the local density at the highlighted piece — not the peak λ₀ — by its length. Pieces near the foot carry almost nothing.'
+  :'Density gives the charge per unit length. Multiply it by the highlighted length to get the charge in this one piece.';
+ const projectionWhy=p.id==='semi'
+  ?'The displacement from source to P is (−x, r), so both components survive: leftward and upward for positive charge. Nothing cancels here.'
+  :p.id==='endpoint'||p.id==='ramp'
+  ?'The displacement from source to P is (r, −y), so both components survive: rightward and downward for positive charge. Nothing cancels here.'
+  :'Project each contribution before adding it. A signed component can be negative, while the magnitude of the field never is.';
  const out:Term[]=[
-  {id:'element',label:'Charge in one piece',tex:p.dqTex,figure:'element',
-   why:`The highlighted piece of the distribution carries this much charge. Everything else in the integral describes where it sits, not how much of it there is.`},
+  {id:'element',label:surface?'Charge in a thin ring':'Charge in one piece',tex:p.dqTex,figure:'element',why:elementWhy},
   {id:'distance',label:'Distance to P',tex:String.raw`r_i=${preview(p.distance)}`,figure:'distance',
-   why:`The dashed line from the piece to P. It is the hypotenuse of the triangle in the figure, and it changes as ${v} runs along the distribution — which is exactly why it cannot come outside the integral.`},
+   why:`The dashed line from the piece to P. The source coordinate ${v} runs through the sum while P stays put, so this length keeps changing — which is exactly why it cannot come outside the integral.`},
  ];
- if(!scalar)out.push({id:'projection',label:'Surviving direction',tex:String.raw`\cos\theta=${preview(p.projection)}`,figure:'projection',
-  why:`Only the component along the surviving axis adds up. This factor is the ratio of two sides of the same triangle, so it is fixed by the geometry you can see.`});
+ if(!scalar)out.push({id:'projection',label:'Surviving direction',tex:String.raw`\cos\theta=${preview(p.projection)}`,figure:'projection',why:projectionWhy});
  out.push({id:'bounds',label:'Where the charge starts and ends',tex:String.raw`${p.boundTex[0]}\;\rightarrow\;${p.boundTex[1]}`,figure:'bounds',
   why:`The brackets on the figure. They have to sweep the whole distribution exactly once — no more, and no less.`});
  return out;

@@ -106,3 +106,13 @@
 .cd-gauge .cd-gauge-dv{fill:var(--contribution,#2f9089)}
 .cd-svg .cd-gauge text{fill:var(--field,#0b6b63);font-family:var(--font-display),Georgia,serif;font-style:italic;font-size:16px;font-weight:600;paint-order:stroke;stroke:var(--diagram,#ffffff);stroke-width:5px}
 .cd-svg .cd-gauge-readout{font-style:normal;font-family:var(--font-mono),monospace;font-size:12px}
+
+/* A factor of the integral is lifted off the feature that measures it, so the target
+   sits on the drawing rather than beside it. Quiet until you look for it. */
+.cd-hotspot circle{fill:color-mix(in oklab,var(--field) 16%,transparent);stroke:var(--field);stroke-width:1.4;stroke-dasharray:3 3;cursor:pointer;transition:fill .18s ease,stroke-width .18s ease}
+.cd-hotspot:hover circle,.cd-hotspot.is-lit circle{fill:color-mix(in oklab,var(--field) 30%,transparent);stroke-width:2.2;stroke-dasharray:none}
+.cd-hotspot:focus-visible{outline:none}
+.cd-hotspot:focus-visible circle{stroke-width:2.6;stroke-dasharray:none}
+.cd-hotspot.is-taken circle{fill:var(--field);stroke:var(--field);stroke-dasharray:none}
+.cd-hotspot-tick{fill:none;stroke:var(--on-accent,#fff);stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+@media (prefers-reduced-motion:reduce){.cd-hotspot circle{transition:none}}
