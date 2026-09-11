@@ -26,22 +26,27 @@ function panel(id: ProblemId, collected: ReadonlySet<TermId>, highlight = '') {
 const holes = (el: Element | null) => (el?.textContent?.match(/□/g) ?? []).length;
 
 describe('building the integral off the figure', () => {
-  it('puts one target on the figure for every factor, and none for a potential it does not have', () => {
+  it('puts one target on the figure for every factor still to be taken', () => {
     for (const p of PROBLEMS) {
       const {view} = figure(p.id, new Set());
       expect(view.container.querySelectorAll('.cd-hotspot').length, p.id).toBe(requiredTerms(p).length);
       cleanup();
     }
   });
-  it('reports which feature was taken, and marks only that one', async () => {
+  it('reports which feature was taken, and takes that target off the drawing', async () => {
+    const all = termsFor(getProblem('bisector'));
     const {view, onCollectFigure} = figure('bisector', new Set());
     const spots = view.container.querySelectorAll<SVGGElement>('.cd-hotspot');
     await userEvent.click(spots[1]);
-    expect(onCollectFigure).toHaveBeenCalledWith(termsFor(getProblem('bisector'))[1].figure);
-    expect(view.container.querySelectorAll('.cd-hotspot.is-taken').length).toBe(0); // caller owns the state
+    expect(onCollectFigure).toHaveBeenCalledWith(all[1].figure);
+    expect(view.container.querySelectorAll('.cd-hotspot').length).toBe(all.length); // caller owns the state
     cleanup();
+    // Once a factor is in the integral its target is gone, rather than sitting on the
+    // physics wearing a tick. The panel is what records it.
     const held = figure('bisector', new Set(['distance']));
-    expect(held.view.container.querySelectorAll('.cd-hotspot.is-taken').length).toBe(1);
+    expect(held.view.container.querySelectorAll('.cd-hotspot').length).toBe(all.length - 1);
+    const labels = [...held.view.container.querySelectorAll('.cd-hotspot')].map(s => s.getAttribute('aria-label') ?? '');
+    expect(labels.some(l => l.includes('Distance to P'))).toBe(false);
   });
   it('is reachable by keyboard, since the figure is the only way to take a factor', async () => {
     const {view, onCollectFigure} = figure('ring', new Set());
@@ -53,12 +58,11 @@ describe('building the integral off the figure', () => {
     await userEvent.keyboard(' ');
     expect(onCollectFigure).toHaveBeenCalledTimes(2);
   });
-  it('names the target by what it measures, and says when it is already in', () => {
+  it('names every remaining target by what it measures', () => {
     const {view} = figure('bisector', new Set(['element']));
     const labels = [...view.container.querySelectorAll('.cd-hotspot')].map(s => s.getAttribute('aria-label') ?? '');
-    expect(labels[0]).toMatch(/already in the integral/);
-    expect(labels[1]).toMatch(/^Take .+ into the integral$/);
-    expect(view.container.querySelector('.cd-hotspot')?.getAttribute('aria-pressed')).toBe('true');
+    expect(labels.length).toBeGreaterThan(0);
+    for (const label of labels) expect(label).toMatch(/^Take .+ into the integral$/);
   });
   it('fills one hole in the expression per factor collected, and none are left at the end', () => {
     const need = requiredTerms(getProblem('bisector'));

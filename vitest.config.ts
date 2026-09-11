@@ -13,6 +13,11 @@ export default defineConfig({
         resolve: {alias: {'@': new URL('.', import.meta.url).pathname.replace(/\/$/, '')}},
         test: {
           name: 'browser', include: ['tests/**/*.browser.test.tsx'], testTimeout: 20000,
+          // Focus, the active element and the document are global to a page, so browser
+          // files cannot be isolated from each other by running them at once. Concurrently
+          // the focus-trap test intermittently sees focus land outside the dialog; run
+          // serially it passes every time. Correctness over a second of wall clock.
+          fileParallelism: false,
           browser: {enabled: true, provider: playwright(), headless: true, screenshotFailures: false, instances: [{browser: 'chromium'}]},
         },
       },

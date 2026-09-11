@@ -1,7 +1,7 @@
 import {describe,expect,it} from 'vitest';
 import {K} from '../src/distributions/constants';
 import type {ChargeSample} from '../src/distributions/types';
-import {fieldLines,planeField,seedRing,traceLine} from '../src/diagrams/fieldlines';
+import {chargeSeeds,fieldLines,planeField,seedRing,traceLine} from '../src/diagrams/fieldlines';
 const charge=(x:number,y:number,dq:number):ChargeSample=>({position:{x,y,z:0},dq,field:{x:0,y:0,z:0},potential:0,coordinate:0});
 const point=[charge(0,0,2e-9)];
 const rod=Array.from({length:60},(_,i)=>charge(0,-2+4*(i+.5)/60,2e-9/60));
@@ -88,5 +88,40 @@ describe('seeding',()=>{
   // A line starts at the charge and ends far away when the charge is positive.
   expect(len(outward[0])).toBeLessThan(len(outward[outward.length-1]));
   expect(len(inward[0])).toBeGreaterThan(len(inward[inward.length-1]));
+ });
+});
+describe('seeding in proportion to charge, so density means field strength',()=>{
+ const along=(seeds:{x:number;y:number}[])=>seeds.map(s=>s.y).sort((a,b)=>a-b);
+ it('spaces seeds evenly along a rod of uniform density',()=>{
+  const seeds=chargeSeeds(rod,16,.1);
+  expect(seeds.length).toBe(16);
+  const ys=[...new Set(along(seeds).map(y=>+y.toFixed(4)))];
+  const gaps=ys.slice(1).map((y,i)=>y-ys[i]);
+  const mean=gaps.reduce((a,b)=>a+b,0)/gaps.length;
+  for(const g of gaps)expect(Math.abs(g-mean)/mean).toBeLessThan(.35);
+ });
+ it('crowds them toward the heavy end when the density is not uniform',()=>{
+  // lambda growing along the rod, exactly the ramp lesson's distribution
+  const ramp=Array.from({length:80},(_,i)=>{const y=(i+.5)*4/80;return charge(0,y,(y/4)*1e-9);});
+  const seeds=chargeSeeds(ramp,24,.1);
+  const ys=along(seeds);
+  const lower=ys.filter(y=>y<2).length,upper=ys.filter(y=>y>=2).length;
+  // Half the charge sits in the top 29% of a linear ramp, so seeds must favour it.
+  expect(upper).toBeGreaterThan(lower);
+  const median=ys[Math.floor(ys.length/2)];
+  expect(median).toBeGreaterThan(2.4);
+ });
+ it('launches on both sides of the distribution, never on it',()=>{
+  const seeds=chargeSeeds(rod,12,.2);
+  expect(seeds.some(s=>s.x>.1)).toBe(true);
+  expect(seeds.some(s=>s.x<-.1)).toBe(true);
+  for(const s of seeds)expect(Math.abs(s.x)).toBeCloseTo(.2,6);
+ });
+ it('falls back to a ring when there is nothing to take a tangent from',()=>{
+  expect(chargeSeeds([charge(0,0,1e-9)],8,.1)).toHaveLength(0);
+  expect(fieldLines([charge(0,0,1e-9)],8,{outerLimit:6}).length).toBeGreaterThan(3);
+ });
+ it('ignores a distribution with no charge rather than dividing by zero',()=>{
+  expect(chargeSeeds([charge(0,0,0),charge(0,1,0)],8,.1)).toHaveLength(0);
  });
 });

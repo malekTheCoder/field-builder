@@ -60,13 +60,41 @@ export function traceLine(samples:readonly ChargeSample[],start:Plane,options:Tr
  }
  return path;
 }
-/** Where to start the lines.
+/** Where to start the lines, and the reason the picture means anything.
  *
- * Seeding on the charge itself is fiddly for a shape that is a line rather than a surface,
- * so seeds sit on a circle enclosing the whole distribution and each one is traced BOTH
- * ways: outwards to where the line escapes, inwards to where it meets the charge. Joined,
- * that is the whole streamline through that point, and it works for any planar layout
- * without the seeding knowing what shape it is looking at. */
+ * The density of field lines is not decoration: it is proportional to field strength,
+ * because it is lines per unit area and that is flux. Density only carries that meaning if
+ * every line represents the same amount of flux, which means seeding in proportion to
+ * CHARGE rather than evenly around a circle. Evenly spaced seeds draw a picture where
+ * crowding says nothing at all.
+ *
+ * Seeds are therefore taken at equal steps of accumulated |dq| along the distribution and
+ * launched perpendicular to it, on both sides. For a uniform rod that comes out evenly
+ * spaced; for the ramp, whose density grows along its length, the lines visibly crowd
+ * toward the heavy end, which is the lesson that rod exists to teach. */
+export function chargeSeeds(samples:readonly ChargeSample[],count:number,offset:number):Plane[]{
+ const weights=samples.map(s=>Math.abs(s.dq));
+ const total=weights.reduce((a,b)=>a+b,0);
+ if(!(total>0)||samples.length<2)return [];
+ const wanted=Math.max(1,Math.round(count/2));
+ const seeds:Plane[]=[];
+ let index=0,carried=weights[0];
+ for(let j=0;j<wanted;j++){
+  const target=total*(j+.5)/wanted;
+  while(carried<target&&index<weights.length-1){index+=1;carried+=weights[index];}
+  const here=samples[index].position;
+  // Local tangent from the neighbours, so the launch is perpendicular to the distribution
+  // whatever shape it runs in. A rod, an arc and a bent rod all work without special cases.
+  const before=samples[Math.max(0,index-1)].position,after=samples[Math.min(samples.length-1,index+1)].position;
+  const tx=after.x-before.x,ty=after.y-before.y,tl=Math.hypot(tx,ty);
+  const nx=tl>1e-12?-ty/tl:0,ny=tl>1e-12?tx/tl:1;
+  seeds.push({x:here.x+nx*offset,y:here.y+ny*offset});
+  seeds.push({x:here.x-nx*offset,y:here.y-ny*offset});
+ }
+ return seeds;
+}
+/** A circle enclosing everything. Kept as the fallback for layouts the tangent trick cannot
+ * read, such as a single element with no neighbours to take a direction from. */
 export function seedRing(samples:readonly ChargeSample[],count:number):Plane[]{
  let reach=0;
  for(const s of samples)reach=Math.max(reach,Math.hypot(s.position.x,s.position.y,s.position.z));
@@ -85,7 +113,10 @@ export function fieldLines(samples:readonly ChargeSample[],count:number,options:
  // Each line is ordered ALONG the field, whichever way that runs: out of a positive
  // distribution, into a negative one. An arrowhead can then simply follow the polyline
  // instead of needing to know the sign of the charge.
- return seedRing(samples,count).map(seed=>{
+ const reach=Math.max(...samples.map(s=>Math.hypot(s.position.x,s.position.y,s.position.z)),.5);
+ const seeded=chargeSeeds(samples,count,Math.max(ARRIVED*1.6,reach*.05));
+ const starts=seeded.length?seeded:seedRing(samples,count);
+ return starts.map(seed=>{
   const along=traceLine(samples,seed,{...options,sign:1});
   const against=traceLine(samples,seed,{...options,sign:-1});
   return [...against.slice(1).reverse(),...along];

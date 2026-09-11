@@ -452,13 +452,17 @@ export function ChargeDiagram({ problem, params: p, setParams, count, continuum,
         return <g className="cd-hotspots">{collectable.map((h, index) => {
         const at = placed[index];
         const has = collected?.has(h.figure), lit = highlight === h.figure;
-        return <g key={h.figure} className={`cd-hotspot${has ? ' is-taken' : ''}${lit ? ' is-lit' : ''}`} role="button" tabIndex={0}
-          aria-label={has ? `${h.label} already in the integral` : `Take ${h.label} into the integral`} aria-pressed={!!has}
+        // A collected factor leaves the drawing. A tick sitting on the rod says "done"
+        // rather than naming what was taken, and four of them cover the physics they were
+        // supposed to point at. What is still available shows; the panel records the rest.
+        if (has) return null;
+        return <g key={h.figure} className={`cd-hotspot${lit ? ' is-lit' : ''}`} role="button" tabIndex={0}
+          aria-label={`Take ${h.label} into the integral`}
           onClick={() => onCollectFigure?.(h.figure)}
           onPointerEnter={() => onPointFigure?.(h.figure)} onPointerLeave={() => onPointFigure?.('')}
           onFocus={() => onPointFigure?.(h.figure)} onBlur={() => onPointFigure?.('')}
           onKeyDown={ev => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); onCollectFigure?.(h.figure); } }}>
-          <circle cx={at.x} cy={at.y} r="13" />{has && <path d={`M${at.x - 4.5},${at.y} l3.2,3.4 l6,-6.6`} className="cd-hotspot-tick" />}
+          <circle cx={at.x} cy={at.y} r="11" />
         </g>;
       })}</g>; })() : null}
     </svg>
