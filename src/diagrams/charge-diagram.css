@@ -149,3 +149,21 @@
 /* The 3D body sits with the field layer, beneath every label and control. */
 .cd-field-stage{position:absolute;inset:0;pointer-events:none;z-index:0}
 .cd-field-stage canvas{display:block;width:100%;height:100%}
+
+/* The sweep that fills the disk ring by ring. It had no rule at all, so SVG painted it the
+   default black and the flagship "a disk is a stack of rings" animation read as a hole
+   punched in the page. It is the charge, part-drawn, and should look like it. */
+.cd-disk-sweep{fill:var(--charge,#b8460f);fill-opacity:.3;stroke:var(--charge,#b8460f);stroke-opacity:.5;stroke-width:1}
+.dark .cd-disk-sweep{fill-opacity:.38}
+
+/* Flat or in space. Two states of one control, so they look like a pair rather than two
+   different kinds of button. */
+.cd-view-modes{display:flex;align-items:center;gap:6px;padding:8px 2px 0;font-size:12px}
+.cd-view-mode{padding:3px 10px;border:1px solid var(--border);border-radius:6px;background:none;color:var(--muted-foreground);cursor:pointer;font:inherit;font-variant-numeric:tabular-nums;transition:background .16s ease,color .16s ease,border-color .16s ease}
+.cd-view-mode.is-on{background:color-mix(in oklab,var(--field) 13%,transparent);border-color:var(--field);color:var(--foreground)}
+.cd-view-mode:focus-visible{outline:2px solid var(--field);outline-offset:1px}
+.cd-view-hint{margin-left:6px;color:var(--muted-foreground)}
+/* Brackets and axis labels are placed at fixed screen coordinates, so once the view can
+   turn they would sit away from what they measure. */
+.cd-dimension.is-hidden{display:none}
+@media (prefers-reduced-motion:reduce){.cd-view-mode{transition:none}}

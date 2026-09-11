@@ -53,11 +53,19 @@ export function ChargeDiagram({ problem, params: p, setParams, count, continuum,
   const svg = useRef<SVGSVGElement>(null), plane = useRef<SVGGElement>(null), dragging = useRef<string | null>(null), uid = useId().replace(/:/g, '');
   const yawMv = useMotionValue(DEFAULT_CAMERA.yaw), pitchMv = useMotionValue(DEFAULT_CAMERA.pitch);
   const [camera, setCamera] = useState<CameraView>(DEFAULT_CAMERA), orbitFrom = useRef<Point>({ x: 0, y: 0 });
+  // Looking straight down the z axis IS the flat drawing: projectCamera at yaw 0 and pitch
+  // a quarter turn reproduces the old planar projection to within 4e-16. So 2D and 3D are
+  // one projection with the camera either locked or free, rather than two to keep in step.
+  const FLAT: CameraView = { yaw: 0, pitch: Math.PI / 2 };
   const root = useRef<HTMLDivElement>(null), renders = useRef(0);
   useLayoutEffect(() => { renders.current += 1; if (root.current) root.current.dataset.renders = String(renders.current); });
+  const [spatial, setSpatial] = useState<boolean | null>(null);
   const reduced = !!useReducedMotion(), id = problem.geometry, scalar = problem.quantity === 'V', surface = id === 'disk' || id === 'sheet', perspective = surface || id === 'ring';
   // The ramp is the endpoint rod with a non-uniform density: same layout, different charge.
   const footed = id === 'endpoint' || id === 'ramp', ramp = id === 'ramp';
+  // null means "whatever this geometry is normally drawn as"; the toggle sets it explicitly.
+  const inSpace = spatial ?? perspective;
+  const view = inSpace ? camera : FLAT;
   // An orbit drag writes a SVG matrix from motion values; setState would rebuild the tree every frame.
   const [activeDrag,setActiveDrag] = useState(false);
   const still = reduced || activeDrag;
@@ -85,9 +93,9 @@ export function ChargeDiagram({ problem, params: p, setParams, count, continuum,
   useEffect(()=>()=>{if(timer.current)clearTimeout(timer.current);},[]);
   const O: Point = perspective ? { x: 315, y: 296 } : footed ? { x: 210, y: 300 } : id === 'semi' ? { x: 300, y: 310 } : id === 'axial' ? { x: 130, y: 230 } : id === 'arc' ? { x: 375, y: 218 } : { x: 220, y: 216 };
   const unit = perspective ? 42 : footed ? Math.min(45,150/p.size) : id==='bisector' ? Math.min(45,140/R) : id==='arc' ? 40 : 35;
-  const project = (v: Vec): Point => { if (!perspective) return { x: O.x + unit * v.x, y: O.y - unit * v.y }; const s = projectCamera(v, camera.yaw, camera.pitch); return { x: O.x + unit * s.x, y: O.y + unit * s.y }; };
+  const project = (v: Vec): Point => { const s = projectCamera(v, view.yaw, view.pitch); return { x: O.x + unit * s.x, y: O.y + unit * s.y }; };
   // Screen point a distance `length` out along a world direction, for the axes and the R/s bracket.
-  const ray = (v: Vec, length: number): Point => { const s = projectCamera(v, camera.yaw, camera.pitch); return { x: O.x + length * s.x, y: O.y + length * s.y }; };
+  const ray = (v: Vec, length: number): Point => { const s = projectCamera(v, view.yaw, view.pitch); return { x: O.x + length * s.x, y: O.y + length * s.y }; };
   const axisX = ray({ x: 1, y: 0, z: 0 }, 185), axisY = ray({ x: 0, y: 1, z: 0 }, 122);
   const axisTip = (a: Point, dx: number, dy: number): Point => ({ x: clamp(a.x + dx, 52, 652), y: clamp(a.y + dy, 70, 360) });
   const P = project(id === 'arc' ? zero : id === 'axial' ? { x: p.size + p.distance, y: 0, z: 0 } : id === 'semi' ? { x: 0, y: p.distance, z: 0 } : perspective ? { x: 0, y: 0, z: p.distance } : { x: p.distance, y: 0, z: 0 });
@@ -109,7 +117,7 @@ export function ChargeDiagram({ problem, params: p, setParams, count, continuum,
   const fieldNorm = Math.max(magnitude(total), ...samples.map(s => magnitude(s.field)), 1e-9);
   const scaleValue = 2 ** Math.ceil(Math.log2(fieldNorm));
   const gain = 100 / scaleValue;
-  const fieldScreen = (v: Vec, multiplier = 1): Point => { const k = gain * multiplier; if (!perspective) return { x: k * v.x, y: -k * v.y }; const s = projectCamera(v, camera.yaw, camera.pitch); return { x: k * s.x, y: k * s.y }; };
+  const fieldScreen = (v: Vec, multiplier = 1): Point => { const k = gain * multiplier; const s = projectCamera(v, view.yaw, view.pitch); return { x: k * s.x, y: k * s.y }; };
   const selectedGain = Math.max(1, Math.min(1000, 55 / Math.max(.001, Math.hypot(fieldScreen(sample.field).x, fieldScreen(sample.field).y))));
   const contribution = fieldScreen(sample.field, selectedGain);
   const projectedComponent = fieldScreen(perspective ? { x: 0, y: 0, z: sample.field.z } : { x: sample.field.x, y: 0, z: 0 }, selectedGain);
@@ -182,7 +190,7 @@ export function ChargeDiagram({ problem, params: p, setParams, count, continuum,
     const cursor = eventPoint(ev);
     if (dragging.current === 'predict') { const next = { x: cursor.x - P.x, y: cursor.y - P.y }; liveGuess.current = next; onPredict?.(next); return; }
     if (dragging.current === 'P') {
-      const distance = perspective ? depthFromScreen(O.y - cursor.y, unit, camera.pitch) : id === 'semi' ? (O.y - cursor.y) / unit : id === 'axial' ? p.distance + (cursor.x - P.x) / unit : (cursor.x - O.x) / unit;
+      const distance = perspective ? depthFromScreen(O.y - cursor.y, unit, view.pitch) : id === 'semi' ? (O.y - cursor.y) / unit : id === 'axial' ? p.distance + (cursor.x - P.x) / unit : (cursor.x - O.x) / unit;
       setParams({ distance: Math.round(clamp(distance, .5, 6) * 20) / 20 });
     } else {
       // Find the nearest coordinate along the projected distribution. Endpoints
@@ -214,10 +222,17 @@ export function ChargeDiagram({ problem, params: p, setParams, count, continuum,
   const commitView = (next: CameraView) => { yawMv.set(next.yaw); pitchMv.set(next.pitch); setCamera(next); };
   /* oxlint-disable react/react-compiler */
   const release = () => { if (dragging.current === 'orbit') { dragging.current = null; commitView({ yaw: yawMv.get(), pitch: pitchMv.get() }); } setActiveDrag(false); };
-  // Orbit is offered only where the projection is already pseudo-3D; the planar views carry
-  // hardcoded axis labels and dimension brackets that a rotation would misplace.
+  // Orbit follows the 2D/3D choice rather than the geometry. The planar lessons carry axis
+  // labels and dimension brackets pinned to fixed screen coordinates, so those are withheld
+  // in 3D rather than allowed to drift away from what they measure.
   // Springs would lag a 1:1 drag; motion values + frame.render write the SVG matrix without setState.
   const orbit = {
+    // A trackpad's two-finger drag arrives as a wheel event, not a pointer drag, so without
+    // this the most natural gesture on a laptop does nothing at all.
+    onWheel: (ev: { deltaX: number; deltaY: number; preventDefault: () => void }) => {
+      ev.preventDefault();
+      commitView(orbitCamera({ yaw: yawMv.get(), pitch: pitchMv.get() }, -ev.deltaX * .6, -ev.deltaY * .6));
+    },
     onPointerDown: (ev: PointerEvent<SVGSVGElement>) => { if (onControl(ev.target)) return; cameraControl.current?.focus(); ev.currentTarget.setPointerCapture(ev.pointerId); dragging.current = 'orbit'; setActiveDrag(true); orbitFrom.current = { x: ev.clientX, y: ev.clientY }; },
     onPointerMove: (ev: PointerEvent<SVGSVGElement>) => {
       if (dragging.current !== 'orbit') return;
@@ -293,12 +308,12 @@ export function ChargeDiagram({ problem, params: p, setParams, count, continuum,
         drift. Planar lessons only for now: the perspective geometries need their lines
         traced in three dimensions and sorted against the surface, a different job. */}
     <div className="cd-stage">
-    {!perspective && !scalar && <FieldCanvas samples={samples} project={project} frame={{ width: 720, height: 430 }} />}
-    {perspective && <FieldStage kind={id === 'ring' ? 'ring' : id === 'disk' ? 'disk' : 'sheet'} samples={samples} selected={selectedIndex}
-      radius={R} distance={p.distance} yaw={camera.yaw} pitch={camera.pitch}
+    {!inSpace && !scalar && <FieldCanvas samples={samples} project={project} frame={{ width: 720, height: 430 }} />}
+    {inSpace && perspective && <FieldStage kind={id === 'ring' ? 'ring' : id === 'disk' ? 'disk' : 'sheet'} samples={samples} selected={selectedIndex}
+      radius={R} distance={p.distance} yaw={view.yaw} pitch={view.pitch}
       unit={unit} frame={{ width: 720, height: 430 }} origin={O} charge={p.charge} animating={activeDrag}
       getView={() => ({ yaw: yawMv.get(), pitch: pitchMv.get() })} />}
-    <svg ref={svg} className={`cd-svg${perspective ? ' cd-orbitable' : ''}${scalar ? ' cd-scalar' : ''}`} viewBox="0 0 720 430" role="img" {...(perspective ? orbit : {})} aria-label={`${problem.title}. Interactive charge distribution and ${scalar ? 'electric potential' : 'electric field'} visualization.${perspective ? ' Drag or use the arrow keys to rotate the view, Home to reset it.' : ''}`}>
+    <svg ref={svg} className={`cd-svg${inSpace ? ' cd-orbitable' : ''}${scalar ? ' cd-scalar' : ''}`} viewBox="0 0 720 430" role="img" {...(inSpace ? orbit : {})} aria-label={`${problem.title}. Interactive charge distribution and ${scalar ? 'electric potential' : 'electric field'} visualization.${perspective ? ' Drag or use the arrow keys to rotate the view, Home to reset it.' : ''}`}>
       <defs>
         <pattern id={`${uid}grid`} width="28" height="28" patternUnits="userSpaceOnUse"><circle cx="1" cy="1" r=".7" fill="var(--grid)" /></pattern>
         <clipPath id={`${uid}clip`}><rect x="42" y="54" width="626" height="317" rx="10" /></clipPath>
@@ -307,11 +322,13 @@ export function ChargeDiagram({ problem, params: p, setParams, count, continuum,
       <rect x="20" y="48" width="680" height="336" rx="12" fill={`url(#${uid}grid)`} opacity=".55" />
       <text x="30" y="29" className="cd-kicker">{perspective ? 'AXIAL VIEW · xy PLANE IN PERSPECTIVE' : ''}</text>
       <g className="cd-scale"><line x1="585" y1="25" x2="635" y2="25" /><path d="M585 21V29 M635 21V29" /><text x="610" y="43" textAnchor="middle">{pretty(50 / unit)} m</text></g>
-      <g className="cd-axes" clipPath={perspective ? `url(#${uid}clip)` : undefined}>
-        {perspective ? <><path d={`M${2 * O.x - axisX.x} ${2 * O.y - axisX.y}L${axisX.x} ${axisX.y} M${2 * O.x - axisY.x} ${2 * O.y - axisY.y}L${axisY.x} ${axisY.y} M${O.x} ${O.y + 27}V60`} /><text {...axisTip(axisX, 13, 5)}>x</text><text {...axisTip(axisY, 13, 5)}>y</text><text x={O.x + 10} y="67">z</text></> : <><path d={`M64 ${O.y}H656 M${O.x} 365V60`} /><text x="664" y={O.y + 5}>x</text><text x={O.x + 11} y="64">y</text></>}
+      <g className="cd-axes" clipPath={inSpace ? `url(#${uid}clip)` : undefined}>
+        {/* Projected axes whenever the view can turn, so they rotate with what they measure;
+            the flat pair is only right when the camera is locked. */}
+        {inSpace ? <><path d={`M${2 * O.x - axisX.x} ${2 * O.y - axisX.y}L${axisX.x} ${axisX.y} M${2 * O.x - axisY.x} ${2 * O.y - axisY.y}L${axisY.x} ${axisY.y} M${O.x} ${O.y + 27}V60`} /><text {...axisTip(axisX, 13, 5)}>x</text><text {...axisTip(axisY, 13, 5)}>y</text><text x={O.x + 10} y="67">z</text></> : <><path d={`M64 ${O.y}H656 M${O.x} 365V60`} /><text x="664" y={O.y + 5}>x</text><text x={O.x + 11} y="64">y</text></>}
       </g>
       <g clipPath={`url(#${uid}clip)`}>
-        {perspective && <g ref={plane} className="cd-orbit-plane" transform={planeMatrix(camera.yaw, camera.pitch, O, unit)}>
+        {perspective && <g ref={plane} className="cd-orbit-plane" transform={planeMatrix(view.yaw, view.pitch, O, unit)}>
           {id === 'sheet' && <motion.path layoutId="fb-source-surface" data-source-body="true" initial={false} animate={{ d: pathThrough(worldArc(7), true) }} transition={{ duration: still ? 0 : .45 }} className="cd-surface" />}
           {id === 'disk' && <>
             <motion.path layoutId="fb-source-surface" data-source-body="true" initial={false} animate={{ d: pathThrough(worldArc(R), true) }} transition={{ duration: still ? 0 : .45 }} className="cd-surface" />
@@ -337,7 +354,7 @@ export function ChargeDiagram({ problem, params: p, setParams, count, continuum,
           </>}
         </g>}
         {id === 'sheet' && <path d="M80 340l30 12m-8-16 30 12m444-78 30 12m-8-16 30 12" className="cd-continuation" />}
-        {id === 'sheet' && showContribution && <g className="cd-orbit-plane" transform={planeMatrix(camera.yaw, camera.pitch, O, unit)}><g className="cd-piece is-selected" data-piece-key={intervalKey(selectedIndex, n)} style={{ pointerEvents: 'none' }}><motion.path initial={false} animate={{ d: pathThrough(worldArc(Math.max(.001, sample.position.x))) }} transition={{ duration: still ? 0 : .18 }} fill="none" strokeWidth="4" /></g></g>}
+        {id === 'sheet' && showContribution && <g className="cd-orbit-plane" transform={planeMatrix(view.yaw, view.pitch, O, unit)}><g className="cd-piece is-selected" data-piece-key={intervalKey(selectedIndex, n)} style={{ pointerEvents: 'none' }}><motion.path initial={false} animate={{ d: pathThrough(worldArc(Math.max(.001, sample.position.x))) }} transition={{ duration: still ? 0 : .18 }} fill="none" strokeWidth="4" /></g></g>}
         {!perspective && rodLike && <motion.path layoutId={`fb-source-${family}`} data-source-body="true" className={ramp ? 'cd-charge-base' : 'cd-source-rod'} initial={false} animate={{ d: rodPath() }} transition={{ duration: still ? 0 : .45 }} />}
         {!perspective && id === 'arc' && <motion.path layoutId={`fb-source-${family}`} data-source-body="true" initial={false} animate={{ d: pathThrough(circlePoints(R, -p.phi / 2, p.phi / 2)) }} transition={{ duration: still ? 0 : .45 }} className="cd-charge-base" />}
         {!perspective && samples.map((s, i) => {
@@ -370,12 +387,12 @@ export function ChargeDiagram({ problem, params: p, setParams, count, continuum,
       {id === 'infinite' && <g className="cd-infinity"><path d={`M${O.x-10} 73l20-9m-20 17 20-9M${O.x-10} 351l20-9m-20 17 20-9`} /><text x={O.x - 38} y="76">+∞</text><text x={O.x - 38} y="356">−∞</text></g>}
       {id === 'semi' && <g className="cd-infinity"><path d={`M628 ${O.y-10}l-9 20m17-20-9 20`} /><text x="641" y={O.y - 17}>∞</text></g>}
       {id === 'sheet' && <text x="544" y="354" className="cd-small">s → ∞</text>}
-      {id === 'bisector' && <g className="cd-dimension"><path d={`M${O.x-39} ${O.y-R*unit}h-7m3.5 0V${O.y+R*unit}m-3.5 0h7`} /><text x={O.x-57} y={O.y+4}>L</text><text x={O.x+17} y={O.y-R*unit-8}>+L/2</text><text x={O.x+17} y={O.y+R*unit+20}>−L/2</text></g>}
-      {footed && <g className="cd-dimension"><path d={`M${O.x-39} ${O.y-p.size*unit}h-7m3.5 0V${O.y}m-3.5 0h7`} /><text x={O.x-57} y={O.y-p.size*unit/2+4}>L</text><text x={O.x+17} y={O.y-p.size*unit-8}>{ramp ? 'y = L · λ = λ₀' : 'y = L'}</text><text x={O.x+19} y={O.y-9}>{ramp ? 'y = 0 · λ = 0' : 'y = 0'}</text></g>}
-      {id === 'axial' && <g className="cd-dimension"><path d={`M${O.x} ${O.y+31}H${O.x+p.size*unit}`} /><text x={O.x+p.size*unit/2} y={O.y+50}>L</text><text x={O.x+p.size*unit+3} y={O.y-19}>L</text><text x={(O.x+p.size*unit+P.x)/2} y={O.y+31}>a</text></g>}
-      {perspective && <g className="cd-dimension"><path d={`M${O.x} ${O.y}L${radiusTip.x} ${radiusTip.y}`} /><text x={O.x+(radiusTip.x-O.x)*.6} y={O.y+(radiusTip.y-O.y)*.6+19}>{surface ? 's' : 'R'}</text><text x={O.x-20} y={(O.y+P.y)/2}>z</text></g>}
-      {id === 'arc' && <g className="cd-dimension"><path d={pathThrough(circlePoints(R*.32, -p.phi/2, p.phi/2))} /><text x={O.x+R*unit*.32+9} y={O.y-9}>φ</text><line x1={O.x} y1={O.y} x2={O.x+R*unit} y2={O.y} /><text x={O.x+R*unit*.6} y={O.y+23}>R</text></g>}
-      {(id === 'bisector' || id === 'infinite' || footed) && <g className="cd-dimension"><path d={`M${O.x+13} ${O.y+33}H${P.x-10}`} /><text x={(O.x+P.x)/2} y={O.y+52}>r</text></g>}
+      {id === 'bisector' && <g className={`cd-dimension${inSpace && !perspective ? ' is-hidden' : ''}`}><path d={`M${O.x-39} ${O.y-R*unit}h-7m3.5 0V${O.y+R*unit}m-3.5 0h7`} /><text x={O.x-57} y={O.y+4}>L</text><text x={O.x+17} y={O.y-R*unit-8}>+L/2</text><text x={O.x+17} y={O.y+R*unit+20}>−L/2</text></g>}
+      {footed && <g className={`cd-dimension${inSpace && !perspective ? ' is-hidden' : ''}`}><path d={`M${O.x-39} ${O.y-p.size*unit}h-7m3.5 0V${O.y}m-3.5 0h7`} /><text x={O.x-57} y={O.y-p.size*unit/2+4}>L</text><text x={O.x+17} y={O.y-p.size*unit-8}>{ramp ? 'y = L · λ = λ₀' : 'y = L'}</text><text x={O.x+19} y={O.y-9}>{ramp ? 'y = 0 · λ = 0' : 'y = 0'}</text></g>}
+      {id === 'axial' && <g className={`cd-dimension${inSpace && !perspective ? ' is-hidden' : ''}`}><path d={`M${O.x} ${O.y+31}H${O.x+p.size*unit}`} /><text x={O.x+p.size*unit/2} y={O.y+50}>L</text><text x={O.x+p.size*unit+3} y={O.y-19}>L</text><text x={(O.x+p.size*unit+P.x)/2} y={O.y+31}>a</text></g>}
+      {perspective && <g className={`cd-dimension${inSpace && !perspective ? ' is-hidden' : ''}`}><path d={`M${O.x} ${O.y}L${radiusTip.x} ${radiusTip.y}`} /><text x={O.x+(radiusTip.x-O.x)*.6} y={O.y+(radiusTip.y-O.y)*.6+19}>{surface ? 's' : 'R'}</text><text x={O.x-20} y={(O.y+P.y)/2}>z</text></g>}
+      {id === 'arc' && <g className={`cd-dimension${inSpace && !perspective ? ' is-hidden' : ''}`}><path d={pathThrough(circlePoints(R*.32, -p.phi/2, p.phi/2))} /><text x={O.x+R*unit*.32+9} y={O.y-9}>φ</text><line x1={O.x} y1={O.y} x2={O.x+R*unit} y2={O.y} /><text x={O.x+R*unit*.6} y={O.y+23}>R</text></g>}
+      {(id === 'bisector' || id === 'infinite' || footed) && <g className={`cd-dimension${inSpace && !perspective ? ' is-hidden' : ''}`}><path d={`M${O.x+13} ${O.y+33}H${P.x-10}`} /><text x={(O.x+P.x)/2} y={O.y+52}>r</text></g>}
       {id === 'semi' && <text x={O.x+19} y={(P.y+O.y)/2} className="cd-small">r</text>}
       {id !== 'arc' && <text x={O.x-17} y={O.y+20} className="cd-origin">O</text>}
       {showContribution && !scalar && mode !== 'sum' && <>
@@ -443,7 +460,13 @@ export function ChargeDiagram({ problem, params: p, setParams, count, continuum,
       {mode==='integrate'&&onBoundRangeChange&&[0,1].map(i=><label key={i}>{i?'Upper':'Lower'} bound: {boundRange[i]}%<input type="range" aria-label={`${i?'Upper':'Lower'} integration bound`} aria-valuetext={`${boundRange[i]} percent of the source coordinate`} min={0} max={100} step={1} value={boundRange[i]} onChange={ev=>{const next:[number,number]=[...boundRange];next[i]=Number(ev.target.value);onBoundRangeChange(next);}}/></label>)}
     </div></details>
     <output className="cd-announcement" aria-live="polite" aria-atomic="true">{announcement}</output>
-    {perspective && <div className="cd-orbit-chrome"><span>Drag to rotate, or use the view control above</span><button type="button" className="cd-orbit-reset" onClick={() => commitView({...DEFAULT_CAMERA})} disabled={camera.yaw === DEFAULT_CAMERA.yaw && camera.pitch === DEFAULT_CAMERA.pitch}>Reset view</button></div>}
+    <div className="cd-view-modes" role="group" aria-label="How to view the figure">
+      {([['2D', false], ['3D', true]] as const).map(([label, wants]) => <button key={label} type="button"
+        className={`cd-view-mode${inSpace === wants ? ' is-on' : ''}`} aria-pressed={inSpace === wants}
+        onClick={() => { setSpatial(wants); if (wants) commitView(DEFAULT_CAMERA); }}>{label}</button>)}
+      <span className="cd-view-hint">{inSpace ? 'Drag, scroll, or use the arrow keys to turn it' : 'Flat on, looking straight down the axis'}</span>
+    </div>
+    {inSpace && <div className="cd-orbit-chrome"><span>Drag to rotate, or use the view control above</span><button type="button" className="cd-orbit-reset" onClick={() => commitView({...DEFAULT_CAMERA})} disabled={camera.yaw === DEFAULT_CAMERA.yaw && camera.pitch === DEFAULT_CAMERA.pitch}>Reset view</button></div>}
     <div className="cd-caption"><span><i className="cd-dot" />{sourceText}</span><span>{!full?'Selected interval':mode === 'sum' || mode === 'integrate' ? `${Math.round(progress*100)}% accumulated` : continuum >= .999 ? 'Infinitesimal limit' : 'Finite elements'}</span></div>
   </div>;
 }
