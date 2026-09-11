@@ -9,6 +9,7 @@ import { sampleDistribution, sumSamples, sumInterval, intervalWeights, sumPotent
 import { intervalKey, partitionCount, seamFractions, seamKey, splitFractions, splitProgress } from './subdivision';
 import { DEFAULT_CAMERA, depthFromScreen, keyboardCamera, orbitCamera, projectCamera, type CameraView } from './camera';
 import { spreadSpots } from './hotspots';
+import { FieldCanvas } from './FieldCanvas';
 import './charge-diagram.css';
 import './camera.css';
 
@@ -293,6 +294,11 @@ export function ChargeDiagram({ problem, params: p, setParams, count, continuum,
   const sourceText = id === 'disk' ? 'One ring sweeps out the disk' : surface ? 'Whole annulus · transverse fields cancel' : id === 'infinite' || id === 'semi' ? 'Unbounded source · visible window shown' : id === 'arc' ? 'Observation point fixed at center' : 'Select a piece · drag P to explore';
   const gaugeH = scalar ? 88 * vNow / vScale : 0, dvH = scalar ? 36 * sample.potential / dVmax : 0;
   return <div ref={root} className={"charge-diagram cd-focus-"+highlight}>
+    {/* Field under construction, sharing one box so the two coordinate spaces cannot
+        drift. Planar lessons only for now: the perspective geometries need their lines
+        traced in three dimensions and sorted against the surface, a different job. */}
+    <div className="cd-stage">
+    {!perspective && !scalar && <FieldCanvas samples={samples} project={project} frame={{ width: 720, height: 430 }} />}
     <svg ref={svg} className={`cd-svg${perspective ? ' cd-orbitable' : ''}${scalar ? ' cd-scalar' : ''}`} viewBox="0 0 720 430" role="img" {...(perspective ? orbit : {})} aria-label={`${problem.title}. Interactive charge distribution and ${scalar ? 'electric potential' : 'electric field'} visualization.${perspective ? ' Drag or use the arrow keys to rotate the view, Home to reset it.' : ''}`}>
       <defs>
         <pattern id={`${uid}grid`} width="28" height="28" patternUnits="userSpaceOnUse"><circle cx="1" cy="1" r=".7" fill="var(--grid)" /></pattern>
@@ -449,6 +455,7 @@ export function ChargeDiagram({ problem, params: p, setParams, count, continuum,
         </g>;
       })}</g>; })() : null}
     </svg>
+    </div>
     <details className="cd-controls" open><summary>Diagram controls and keyboard help</summary><p id={`${uid}help`}>Tab moves between controls. Arrow keys adjust the focused control; Home and End select its limits. You can also drag P and the integration bounds in the figure.</p>
     <div className="cd-control-grid">
       {perspective&&<button ref={cameraControl} type="button" className="cd-camera-control" aria-describedby={`${uid}camera-help`} onKeyDown={ev=>{if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Home'].includes(ev.key)){ev.preventDefault();commitView(keyboardCamera({yaw:yawMv.get(),pitch:pitchMv.get()},ev.key));}}} onClick={()=>commitView({...DEFAULT_CAMERA})}>Rotate view with arrow keys<span id={`${uid}camera-help`}>Left/right rotate; up/down tilt; Home or Enter resets.</span></button>}

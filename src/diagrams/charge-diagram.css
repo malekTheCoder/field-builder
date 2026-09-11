@@ -134,3 +134,12 @@
 .cd-guess-grip:hover circle{fill:color-mix(in oklab,var(--charge) 34%,transparent)}
 .cd-guess-grip:focus-visible circle{stroke-width:2.6;outline:none}
 .cd-guess.is-drawing .cd-vector{opacity:1}
+
+/* The field layer sits under the construction and never takes a pointer: everything
+   interactive lives in the SVG above it. */
+.cd-stage{position:relative}
+.cd-field-canvas{position:absolute;inset:0;pointer-events:none;z-index:0}
+.cd-field-canvas canvas{display:block;width:100%;height:100%}
+.cd-stage .cd-svg{position:relative;z-index:1}
+:root{--field-line:color-mix(in oklab,var(--field) 42%,transparent)}
+.dark{--field-line:color-mix(in oklab,var(--field) 46%,transparent)}
