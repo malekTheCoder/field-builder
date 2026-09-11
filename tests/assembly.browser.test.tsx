@@ -11,16 +11,16 @@ afterEach(cleanup);
 // Real Chromium: the figure computes hotspot positions from the live projection, and
 // KaTeX has to actually render for the empty slots to be countable on screen.
 const collectableFor = (id: ProblemId) => termsFor(getProblem(id)).map(t => ({figure: t.figure, label: t.label}));
-function figure(id: ProblemId, collected: ReadonlySet<string>, onCollectFigure = vi.fn()) {
+function figure(id: ProblemId, collected: ReadonlySet<string>, onCollectFigure = vi.fn(), highlight = '', onPointFigure = vi.fn()) {
   const view = render(<ChargeDiagram problem={getProblem(id)} params={DEFAULT_PARAMS} setParams={vi.fn()}
     count={8} continuum={0} selected={3} onSelect={vi.fn()} progress={1} components={false} pair={false}
     mode="divide" boundRange={[0, 100]} onBoundRangeChange={vi.fn()}
-    collectable={collectableFor(id)} collected={collected} onCollectFigure={onCollectFigure} />);
-  return {view, onCollectFigure};
+    collectable={collectableFor(id)} collected={collected} onCollectFigure={onCollectFigure} onPointFigure={onPointFigure} highlight={highlight} />);
+  return {view, onCollectFigure, onPointFigure};
 }
-function panel(id: ProblemId, collected: ReadonlySet<TermId>) {
+function panel(id: ProblemId, collected: ReadonlySet<TermId>, highlight = '') {
   return render(<EquationWorkbench problem={getProblem(id)} params={DEFAULT_PARAMS} count={8} continuum={0}
-    progress={1} mode="divide" onModeChange={vi.fn()} boundRange={[0, 100]} onBoundRangeChange={vi.fn()} collected={collected} />);
+    progress={1} mode="divide" onModeChange={vi.fn()} boundRange={[0, 100]} onBoundRangeChange={vi.fn()} collected={collected} highlight={highlight} />);
 }
 // KaTeX emits both MathML and HTML, so a rendered glyph appears twice in textContent.
 const holes = (el: Element | null) => (el?.textContent?.match(/□/g) ?? []).length;
@@ -91,5 +91,46 @@ describe('building the integral off the figure', () => {
     for (const b of view.container.querySelectorAll('.ew-slots button'))
       expect(b.textContent ?? '').not.toMatch(/take|add|reveal|show/i);
     expect(view.container.querySelector('.ew-slot-empty')?.textContent).toMatch(/figure/i);
+  });
+});
+
+describe('the figure and the panel answer each other', () => {
+  it('names the feature under the pointer, and stops naming it on the way out', async () => {
+    const {view, onPointFigure} = figure('bisector', new Set());
+    const spots = view.container.querySelectorAll<SVGGElement>('.cd-hotspot');
+    const want = termsFor(getProblem('bisector'))[2].figure;
+    await userEvent.hover(spots[2]);
+    expect(onPointFigure).toHaveBeenLastCalledWith(want);
+    await userEvent.unhover(spots[2]);
+    // Clearing matters as much as setting: a stale name would leave the panel lit.
+    expect(onPointFigure).toHaveBeenLastCalledWith('');
+  });
+  it('answers the keyboard too, so focus lights the same factor as the pointer', async () => {
+    const {view, onPointFigure} = figure('bisector', new Set());
+    const spot = view.container.querySelectorAll<SVGGElement>('.cd-hotspot')[1];
+    spot.focus();
+    expect(onPointFigure).toHaveBeenLastCalledWith(termsFor(getProblem('bisector'))[1].figure);
+    spot.blur();
+    expect(onPointFigure).toHaveBeenLastCalledWith('');
+  });
+  it('lights exactly the factor the pointed-at feature supplies', () => {
+    const p = getProblem('bisector'), terms = termsFor(p);
+    for (const t of terms) {
+      const view = panel('bisector', new Set(), t.figure);
+      const lit = [...view.container.querySelectorAll('.ew-slot.is-lit')];
+      expect(lit.length, t.figure).toBe(1);
+      expect(lit[0].querySelector('small')?.textContent, t.figure).toBe(t.label);
+      cleanup();
+    }
+    // A feature that supplies no factor must not light anything at all.
+    const none = panel('bisector', new Set(), 'not-a-feature');
+    expect(none.container.querySelectorAll('.ew-slot.is-lit').length).toBe(0);
+  });
+  it('carries the pointed-at feature onto the figure so its construction can answer', () => {
+    const lit = figure('bisector', new Set(), vi.fn(), 'distance');
+    expect(lit.view.container.querySelector('.charge-diagram')?.className).toContain('cd-focus-distance');
+    cleanup();
+    const rest = figure('bisector', new Set());
+    expect(rest.view.container.querySelector('.charge-diagram')?.className).not.toContain('cd-focus-distance');
   });
 });

@@ -39,7 +39,7 @@
 .cd-caption{display:flex;justify-content:space-between;gap:12px;padding:11px 24px 17px;color:var(--cd-muted);font-size:11px;line-height:1.5;letter-spacing:.02em}.cd-caption>span:first-child{display:flex;align-items:center;gap:7px}.cd-caption>span:last-child{white-space:nowrap}.cd-dot{display:inline-block;width:5px;height:5px;border-radius:50%;background:var(--charge,#b8460f);flex:none}
 @media(max-width:600px){.cd-caption{padding:6px 13px 12px;font-size:9px;gap:7px}.cd-caption>span:last-child{display:none}.cd-svg .cd-footer{font-size:11px}}
 @media(prefers-reduced-motion:reduce){.cd-piece,.cd-point-halo{transition:none!important}}
-.cd-svg{max-height:430px;min-height:290px}.cd-triangle path,.cd-triangle line{fill:none;stroke:var(--ghost);stroke-width:1.4;stroke-dasharray:4 3}.cd-triangle text{fill:var(--foreground);font-family:Georgia,serif;font-style:italic;font-size:15px}.cd-triangle .cd-triangle-note{font-family:var(--font-geist-sans),sans-serif;font-size:9px;font-style:normal;fill:var(--muted-foreground)}.cd-focus-distance .cd-construction{stroke:var(--field);stroke-width:2.5;stroke-opacity:1}.cd-focus-element .cd-piece.is-selected{filter:drop-shadow(0 0 10px var(--charge))}.cd-focus-components .cd-vector{filter:drop-shadow(0 0 2px var(--field))}
+.cd-svg{max-height:430px;min-height:290px}.cd-triangle path,.cd-triangle line{fill:none;stroke:var(--ghost);stroke-width:1.4;stroke-dasharray:4 3}.cd-triangle text{fill:var(--foreground);font-family:Georgia,serif;font-style:italic;font-size:15px}.cd-triangle .cd-triangle-note{font-family:var(--font-geist-sans),sans-serif;font-size:9px;font-style:normal;fill:var(--muted-foreground)}
 
 /* =====================================================================
    SECOND VISUAL PASS — the figure is the reason the app exists.
@@ -116,3 +116,15 @@
 .cd-hotspot.is-taken circle{fill:var(--field);stroke:var(--field);stroke-dasharray:none}
 .cd-hotspot-tick{fill:none;stroke:var(--on-accent,#fff);stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
 @media (prefers-reduced-motion:reduce){.cd-hotspot circle{transition:none}}
+
+/* Pointing at one factor makes the figure answer: the feature that measures it comes
+   forward and the rest steps back. The four names are spelled out rather than matched
+   with a wildcard, because with nothing selected the root class is a bare `cd-focus-`
+   and a wildcard would dim the drawing permanently. */
+.cd-focus-element .cd-piece.is-selected{filter:drop-shadow(0 0 9px var(--charge))}
+.cd-focus-element .cd-source-tag text{fill:var(--charge);font-weight:600}
+.cd-focus-distance .cd-construction{stroke:var(--field);stroke-width:2.8;stroke-opacity:1;stroke-dasharray:none}
+.cd-focus-projection .cd-triangle path,.cd-focus-projection .cd-triangle line{stroke:var(--field);stroke-width:2.1;stroke-dasharray:none}
+.cd-focus-projection .cd-triangle text{fill:var(--field);font-weight:600}
+.cd-focus-bounds .cd-bound rect{fill:var(--field);stroke:var(--field)}
+.cd-focus-bounds .cd-bound text{fill:var(--field);font-weight:600}

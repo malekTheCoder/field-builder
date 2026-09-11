@@ -114,3 +114,6 @@
 .ew-slot-nudge{margin-top:4px;font-size:12px;color:var(--muted-foreground)}
 .ew-assembly-done{margin-top:10px;font-size:13px;color:var(--muted-foreground)}
 @media (prefers-reduced-motion:reduce){.ew-assembled,.ew-slot-button,.ew-dot{transition:none}}
+/* The figure answering back: pointing at a feature lights the factor it supplies. */
+.ew-slot.is-lit .ew-slot-button{border-color:var(--field);background:color-mix(in oklab,var(--field) 13%,transparent)}
+.ew-slot.is-lit .ew-dot{background:var(--field);box-shadow:0 0 0 3px color-mix(in oklab,var(--field) 26%,transparent)}

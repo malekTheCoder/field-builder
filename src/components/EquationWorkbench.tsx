@@ -5,11 +5,11 @@ import { Button } from '@/components/ui/button';
 import { MathText } from './Math';
 import { equivalent, preview, safeParse } from '../symbolic/equivalence';
 import {intervalWeights} from '../diagrams/sampling';
-import {assembledTex,figureOf,isComplete,substitutedTex,termsFor,type TermId} from '../workbench/assembly';
+import {assembledTex,figureOf,isComplete,substitutedTex,termOfFigure,termsFor,type TermId} from '../workbench/assembly';
 import type { Params, Problem } from '../problems/types';
 import './workbench.css';
 type Mode = 'divide' | 'project' | 'sum' | 'integrate';
-export type EquationWorkbenchProps = {problem:Problem;derivationProblem?:Problem;params:Params;count:number;continuum:number;progress:number;mode:Mode;onModeChange:(mode:Mode)=>void;onHighlight?:(name:string)=>void;boundRange:[number,number];onBoundRangeChange:(range:[number,number])=>void;collected?:ReadonlySet<TermId>};
+export type EquationWorkbenchProps = {problem:Problem;derivationProblem?:Problem;params:Params;count:number;continuum:number;progress:number;mode:Mode;onModeChange:(mode:Mode)=>void;onHighlight?:(name:string)=>void;boundRange:[number,number];onBoundRangeChange:(range:[number,number])=>void;collected?:ReadonlySet<TermId>;highlight?:string};
 const raw=String.raw;
 const EMPTY:ReadonlySet<TermId>=new Set();
 const clamp=(n:number)=>Math.max(0,Math.min(1,n));
@@ -19,8 +19,8 @@ function boundExpression(p:Problem,percent:number){const t=clamp(percent/100),g=
 function boundPercent(p:Problem,value:string,params:Params){if(equivalent(value,p.bounds[0],p).ok)return 0;if(equivalent(value,p.bounds[1],p).ok)return 100;const x=safeParse(value).compile().evaluate({L:params.size,R:params.size/2,z:params.distance,r:params.distance,a:params.distance,pi:Math.PI,phi:params.phi,Infinity});if(typeof x!=='number'||!Number.isFinite(x))throw Error('Use a bound inside this distribution.');const g=p.geometry;if(g==='bisector'||(p.id==='infinite'&&p.variable==='y'))return 100*(x/params.size+.5);if(g==='axial'||g==='endpoint'||g==='ramp')return 100*x/params.size;if(g==='ring')return 100*x/(2*Math.PI);if(g==='arc')return 100*(x/params.phi+.5);if(g==='disk')return 200*x/params.size;if(p.id==='infinite')return 100*(x/Math.PI+.5);return 200*Math.atan(x/Math.abs(params.distance))/Math.PI;}
 const labels:Record<Mode,string>={divide:'One piece of charge',project:'One field contribution',sum:'Add the contributions',integrate:'The continuous field'};
 const vLabels:Record<Mode,string>={divide:'One piece of charge',project:'One scalar contribution',sum:'Add the scalars',integrate:'The continuous potential'};
-export function EquationWorkbench({problem:p,derivationProblem,params,count,continuum,progress,mode,onModeChange,onHighlight,boundRange,onBoundRangeChange,collected}:EquationWorkbenchProps){
- const uid=useId();const[focus,setFocus]=useState<string|null>(null);const terms=termsFor(p),taken=collected??EMPTY,built=isComplete(p,taken);const[worked,setWorked]=useState(false);const[stepCount,setStepCount]=useState(1);const[boundsOpen,setBoundsOpen]=useState(false);const[bounds,setBounds]=useState<[string,string]>(p.bounds);const[feedback,setFeedback]=useState('');
+export function EquationWorkbench({problem:p,derivationProblem,params,count,continuum,progress,mode,onModeChange,onHighlight,boundRange,onBoundRangeChange,collected,highlight:litFigure=''}:EquationWorkbenchProps){
+ const uid=useId();const[focus,setFocus]=useState<string|null>(null);const terms=termsFor(p),taken=collected??EMPTY,built=isComplete(p,taken),lit=termOfFigure(p,litFigure);const[worked,setWorked]=useState(false);const[stepCount,setStepCount]=useState(1);const[boundsOpen,setBoundsOpen]=useState(false);const[bounds,setBounds]=useState<[string,string]>(p.bounds);const[feedback,setFeedback]=useState('');
  const[syncedRange,setSyncedRange]=useState(boundRange);
  if(syncedRange[0]!==boundRange[0]||syncedRange[1]!==boundRange[1]){setSyncedRange(boundRange);setBounds([boundExpression(p,boundRange[0]),boundExpression(p,boundRange[1])]);}
  const g=p.geometry,scalar=p.quantity==='V',surface=g==='disk'||g==='sheet',component=['ring','disk','sheet'].includes(g)?'z':'x',allBounds=boundRange[0]<=.001&&boundRange[1]>=99.999,continuous=continuum>=.99;
@@ -46,7 +46,7 @@ export function EquationWorkbench({problem:p,derivationProblem,params,count,cont
  <div className="ew-assembly"><div className="ew-section-title"><span>Build the integral</span><span>{taken.size} of {terms.length} from the figure</span></div>
  <div className={"ew-assembled"+(built?" is-built":"")}><MathText tex={assembledTex(p,taken)} block/></div>
  {taken.size>0&&<div className="ew-substituted" aria-label="With each symbol replaced by what it stands for"><MathText tex={substitutedTex(p,taken)} block/></div>}
- <ul className="ew-slots">{terms.map(t=>{const has=taken.has(t.id),open=focus===t.id;return <li key={t.id} className={`ew-slot${has?' is-filled':''}${open?' is-open':''}`}>
+ <ul className="ew-slots">{terms.map(t=>{const has=taken.has(t.id),open=focus===t.id;return <li key={t.id} className={`ew-slot${has?' is-filled':''}${open?' is-open':''}${lit===t.id?' is-lit':''}`}>
   <button type="button" className="ew-slot-button" onClick={()=>highlight(t.id)} onFocus={()=>onHighlight?.(t.figure)} onMouseEnter={()=>onHighlight?.(t.figure)} onMouseLeave={()=>onHighlight?.(focus?figureOf(p,focus as TermId):'')} aria-expanded={open} aria-controls={`${uid}-${t.id}`}>
    <span className={`ew-dot ew-dot-${t.id}`}/><span className="ew-slot-body"><small>{t.label}</small>{has?<MathText tex={t.tex}/>:<em className="ew-slot-empty">Click it in the figure</em>}</span><ChevronDown size={14}/></button>
   {open&&<div className="ew-concept-detail" id={`${uid}-${t.id}`}><p>{t.why}</p>{!has&&<p className="ew-slot-nudge">It is already on the figure — the highlighted part is this quantity.</p>}</div>}</li>;})}</ul>

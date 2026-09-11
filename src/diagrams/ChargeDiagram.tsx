@@ -21,6 +21,8 @@ export type ChargeDiagramProps = {
   /** Assembly: features the student can lift off the figure into the integral. */
   collectable?: readonly {figure: string; label: string}[];
   collected?: ReadonlySet<string>; onCollectFigure?: (figure: string) => void;
+  /** Pointing at a feature names it, so the panel can answer. '' when nothing is under the cursor. */
+  onPointFigure?: (figure: string) => void;
 };
 const clamp = (n: number, a: number, b: number) => Math.max(a, Math.min(b, n));
 const plus = (a: Point, b: Point): Point => ({ x: a.x + b.x, y: a.y + b.y });
@@ -44,7 +46,7 @@ function Vector({ from, to, color = 'var(--field)', width = 2.5, dashed = false,
     {label && length > 10 && <text x={to.x + (to.x < from.x ? -9 : 9)} y={to.y - 9} textAnchor={to.x < from.x ? 'end' : 'start'} className="cd-vector-label" fill="currentColor">{label}</text>}
   </g>;
 }
-export function ChargeDiagram({ problem, params: p, setParams, count, continuum, selected, onSelect, progress, components, pair, mode, boundRange = [0, 100], onBoundRangeChange, highlight = '', collectable, collected, onCollectFigure }: ChargeDiagramProps) {
+export function ChargeDiagram({ problem, params: p, setParams, count, continuum, selected, onSelect, progress, components, pair, mode, boundRange = [0, 100], onBoundRangeChange, highlight = '', collectable, collected, onCollectFigure, onPointFigure }: ChargeDiagramProps) {
   const cameraControl = useRef<HTMLButtonElement>(null);
   const svg = useRef<SVGSVGElement>(null), plane = useRef<SVGGElement>(null), dragging = useRef<string | null>(null), uid = useId().replace(/:/g, '');
   const yawMv = useMotionValue(DEFAULT_CAMERA.yaw), pitchMv = useMotionValue(DEFAULT_CAMERA.pitch);
@@ -392,6 +394,8 @@ export function ChargeDiagram({ problem, params: p, setParams, count, continuum,
         return <g key={h.figure} className={`cd-hotspot${has ? ' is-taken' : ''}${lit ? ' is-lit' : ''}`} role="button" tabIndex={0}
           aria-label={has ? `${h.label} already in the integral` : `Take ${h.label} into the integral`} aria-pressed={!!has}
           onClick={() => onCollectFigure?.(h.figure)}
+          onPointerEnter={() => onPointFigure?.(h.figure)} onPointerLeave={() => onPointFigure?.('')}
+          onFocus={() => onPointFigure?.(h.figure)} onBlur={() => onPointFigure?.('')}
           onKeyDown={ev => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); onCollectFigure?.(h.figure); } }}>
           <circle cx={at.x} cy={at.y} r="13" />{has && <path d={`M${at.x - 4.5},${at.y} l3.2,3.4 l6,-6.6`} className="cd-hotspot-tick" />}
         </g>;
