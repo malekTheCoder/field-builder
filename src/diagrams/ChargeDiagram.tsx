@@ -10,6 +10,7 @@ import { intervalKey, partitionCount, seamFractions, seamKey, splitFractions, sp
 import { DEFAULT_CAMERA, depthFromScreen, keyboardCamera, orbitCamera, projectCamera, type CameraView } from './camera';
 import { spreadSpots } from './hotspots';
 import { FieldCanvas } from './FieldCanvas';
+import { FieldStage } from './three/FieldStage';
 import './charge-diagram.css';
 import './camera.css';
 
@@ -299,6 +300,9 @@ export function ChargeDiagram({ problem, params: p, setParams, count, continuum,
         traced in three dimensions and sorted against the surface, a different job. */}
     <div className="cd-stage">
     {!perspective && !scalar && <FieldCanvas samples={samples} project={project} frame={{ width: 720, height: 430 }} />}
+    {id === 'ring' && <FieldStage samples={samples} radius={R} distance={p.distance} yaw={camera.yaw} pitch={camera.pitch}
+      unit={unit} frame={{ width: 720, height: 430 }} origin={O} charge={p.charge} animating={activeDrag}
+      getView={() => ({ yaw: yawMv.get(), pitch: pitchMv.get() })} />}
     <svg ref={svg} className={`cd-svg${perspective ? ' cd-orbitable' : ''}${scalar ? ' cd-scalar' : ''}`} viewBox="0 0 720 430" role="img" {...(perspective ? orbit : {})} aria-label={`${problem.title}. Interactive charge distribution and ${scalar ? 'electric potential' : 'electric field'} visualization.${perspective ? ' Drag or use the arrow keys to rotate the view, Home to reset it.' : ''}`}>
       <defs>
         <pattern id={`${uid}grid`} width="28" height="28" patternUnits="userSpaceOnUse"><circle cx="1" cy="1" r=".7" fill="var(--grid)" /></pattern>
@@ -320,7 +324,10 @@ export function ChargeDiagram({ problem, params: p, setParams, count, continuum,
             <g className="cd-piece is-selected" data-piece-key={intervalKey(selectedIndex, n)} style={{ pointerEvents: 'none' }}><motion.path initial={false} animate={{ d: pathThrough(worldArc(Math.max(.001, fillR))) }} transition={{ duration: still ? 0 : .2 }} fill="none" strokeWidth="4" /></g>
           </>}
           {id === 'ring' && <>
-            <motion.path layoutId={`fb-source-${family}`} data-source-body="true" initial={false} animate={{ d: pathThrough(worldArc(R)) }} transition={{ duration: still ? 0 : .45 }} className="cd-charge-base" />
+            {/* The 3D stage draws the ring as a body with real depth, so the flat band
+                would only be a second copy of it lying on top. The path stays in the tree
+                because the shared layout animation between lessons is keyed to it. */}
+            <motion.path layoutId={`fb-source-${family}`} data-source-body="true" initial={false} animate={{ d: pathThrough(worldArc(R)) }} transition={{ duration: still ? 0 : .45 }} className="cd-charge-base" style={{ opacity: 0 }} />
             {samples.map((_, i) => {
               const active = i === selectedIndex, accumulated = Math.abs(weights[i]) > 0 && (mode === 'sum' || mode === 'integrate');
               const inInterval = Math.abs(wholeWeights[i]) > 0;

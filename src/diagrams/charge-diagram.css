@@ -143,3 +143,7 @@
 .cd-stage .cd-svg{position:relative;z-index:1}
 :root{--field-line:color-mix(in oklab,var(--field) 42%,transparent)}
 .dark{--field-line:color-mix(in oklab,var(--field) 46%,transparent)}
+
+/* The 3D body sits with the field layer, beneath every label and control. */
+.cd-field-stage{position:absolute;inset:0;pointer-events:none;z-index:0}
+.cd-field-stage canvas{display:block;width:100%;height:100%}
