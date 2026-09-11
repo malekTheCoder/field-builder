@@ -8,6 +8,7 @@ import { field, magnitude, pretty, potential, type Vec } from '../symbolic/physi
 import { sampleDistribution, sumSamples, sumInterval, intervalWeights, sumPotential } from './sampling';
 import { intervalKey, partitionCount, seamFractions, seamKey, splitFractions, splitProgress } from './subdivision';
 import { DEFAULT_CAMERA, depthFromScreen, keyboardCamera, orbitCamera, projectCamera, type CameraView } from './camera';
+import { spreadSpots } from './hotspots';
 import './charge-diagram.css';
 import './camera.css';
 
@@ -383,13 +384,19 @@ export function ChargeDiagram({ problem, params: p, setParams, count, continuum,
       <line x1="30" y1="387" x2="690" y2="387" className="cd-divider" />
       <text x="30" y="409" className="cd-footer">{sourceLabel}</text>
       <text x="690" y="409" textAnchor="end" className="cd-footer">{scalar ? `${continuum>=.999?'dV':'ΔV'} · V: ${pretty(vNow)} V` : showContribution ? `${fieldSymbol} × ${pretty(selectedGain)} · E: ${pretty(scaleValue)} N/C per 100 px` : `${n} charge pieces`}</text>
-      {collectable?.length ? <g className="cd-hotspots">{collectable.map(h => {
-        // Each hotspot sits on the feature it names, so lifting a factor into the
-        // integral means pointing at the thing in the picture that it measures.
-        const at = h.figure === 'element' ? source
+      {collectable?.length ? (() => {
+        // Each target sits on the feature it names, so lifting a factor into the integral
+        // means pointing at the thing in the picture that measures it. Where two features
+        // genuinely coincide — on the disk the charge ring and the bracket land 23px apart,
+        // inside the 26px at which these circles touch — they are relaxed just far enough
+        // apart to stay separately clickable without leaving their feature behind.
+        const wanted = collectable.map(h => h.figure === 'element' ? source
           : h.figure === 'distance' ? { x: (selectedPoint.x + P.x) / 2, y: (selectedPoint.y + P.y) / 2 }
           : h.figure === 'projection' ? { x: P.x - 26, y: P.y - 18 }
-          : { x: clamp(project(world(boundRange[1] / 100)).x, 57, 650), y: clamp(project(world(boundRange[1] / 100)).y, 66, 358) };
+          : { x: clamp(project(world(boundRange[1] / 100)).x, 57, 650), y: clamp(project(world(boundRange[1] / 100)).y, 66, 358) });
+        const placed = spreadSpots(wanted, 32, { x0: 57, y0: 66, x1: 650, y1: 358 });
+        return <g className="cd-hotspots">{collectable.map((h, index) => {
+        const at = placed[index];
         const has = collected?.has(h.figure), lit = highlight === h.figure;
         return <g key={h.figure} className={`cd-hotspot${has ? ' is-taken' : ''}${lit ? ' is-lit' : ''}`} role="button" tabIndex={0}
           aria-label={has ? `${h.label} already in the integral` : `Take ${h.label} into the integral`} aria-pressed={!!has}
@@ -399,7 +406,7 @@ export function ChargeDiagram({ problem, params: p, setParams, count, continuum,
           onKeyDown={ev => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); onCollectFigure?.(h.figure); } }}>
           <circle cx={at.x} cy={at.y} r="13" />{has && <path d={`M${at.x - 4.5},${at.y} l3.2,3.4 l6,-6.6`} className="cd-hotspot-tick" />}
         </g>;
-      })}</g> : null}
+      })}</g>; })() : null}
     </svg>
     <details className="cd-controls" open><summary>Diagram controls and keyboard help</summary><p id={`${uid}help`}>Tab moves between controls. Arrow keys adjust the focused control; Home and End select its limits. You can also drag P and the integration bounds in the figure.</p>
     <div className="cd-control-grid">
