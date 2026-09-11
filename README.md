@@ -130,7 +130,7 @@ Source references are embedded in the problem definitions and shown with the wor
 
 ## Tests
 
-`npm test` currently runs **690 passing tests** across **24 files**. They cover:
+`npm test` currently runs **697 passing tests** across **24 files**. They cover:
 
 - every closed form against independent point-charge quadrature, including the five potentials and both charge polarities;
 - the limiting cases the app asserts — rod to point charge, rod to infinite line, disk to sheet, zero field at a ring's center with its axial maximum at z = R/√2, a closing arc cancelling to zero, distance-independence of the sheet, ramp far-field and first-moment;
