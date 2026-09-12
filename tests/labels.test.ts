@@ -35,6 +35,24 @@ describe('placing them',()=>{
   const out=placeLabels(labels,{frame:FRAME});
   expect(collisions(moved(labels,out))).toEqual([]);
  });
+ it('pulls back a label that starts outside the frame',()=>{
+  // Every candidate is rejected for leaving the frame, so a label already outside used to have
+  // no candidate at all and was left exactly where it was. The net field arrow grows long
+  // enough on one lesson to carry its own label off the edge, which is how this was found.
+  const labels=[{box:box(900,-40,34,13)}];
+  const [n]=placeLabels(labels,{frame:FRAME});
+  const [b]=moved(labels,[n]);
+  expect(b.x).toBeGreaterThanOrEqual(0);
+  expect(b.y).toBeGreaterThanOrEqual(0);
+  expect(b.x+b.width).toBeLessThanOrEqual(FRAME.width);
+  expect(b.y+b.height).toBeLessThanOrEqual(FRAME.height);
+ });
+ it('still keeps a pulled-back label off the ones already placed',()=>{
+  const labels=[{box:box(700,415,34,13)},{box:box(900,600,34,13)}];
+  const out=placeLabels(labels,{frame:FRAME});
+  expect(collisions(moved(labels,out))).toEqual([]);
+  for(const b of moved(labels,out))expect(b.x+b.width).toBeLessThanOrEqual(FRAME.width);
+ });
  it('never pushes a label off the frame',()=>{
   const labels=[{box:box(690,6,28,12)},{box:box(692,8,28,12)},{box:box(688,10,28,12)}];
   const out=placeLabels(labels,{frame:FRAME});
