@@ -39,3 +39,14 @@
   .cd-svg { max-height: none !important; width: 100% !important; }
   .exp-parameters output, .symbolic-view .exp-parameters output { display: inline !important; }
 }
+
+/* Worked steps in the derivation reader: the expression, named, with the confusions worth
+   naming under it. These replaced graded blanks; the layout keeps the old rhythm. */
+.worked-field{margin:14px 0 4px}
+.worked-field .answer-label{display:block;margin-bottom:6px}
+.worked-choice{font-size:1.02em;margin:2px 0 8px;color:var(--foreground)}
+.common-slips{margin-top:10px;padding:10px 12px;border-left:2px solid var(--border);color:var(--muted-foreground);font-size:.93em}
+.common-slips .eyebrow{display:block;margin-bottom:6px}
+.slip{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;align-items:baseline;margin:4px 0}
+.slip p{margin:0}
+.stage-progress button.done{color:var(--foreground)}

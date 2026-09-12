@@ -1,10 +1,9 @@
 import {cleanup, fireEvent, render, waitFor} from '@testing-library/react';
 import {userEvent} from 'vitest/browser';
 import {useState} from 'react';
-import {afterEach, describe, expect, it, vi} from 'vitest';
+import {afterEach, describe, expect, it} from 'vitest';
 import Explorer from '../src/explorer/Explorer';
 import FieldBuilder from '../src/wizard/FieldBuilder';
-import {MathField} from '../src/components/MathField';
 import {ChargeDiagram} from '../src/diagrams/ChargeDiagram';
 import {Assessment} from '../src/components/Assessment';
 import {getProblem} from '../src/problems/definitions';
@@ -48,40 +47,6 @@ describe('keyboard and screen-reader path', () => {
     expect(intro.textContent).toMatch(/all 15 lessons, including electric potential/);
     await userEvent.keyboard('{Escape}');
     await waitFor(() => expect(document.activeElement).toBe(help));
-  });
-
-  it('lets a keyboard user pick an origin, check it, and hear the grade', async () => {
-    const {findByRole, getByRole, container} = render(<FieldBuilder initialProblem="bisector" />);
-    expect(await findByRole('heading', {name: /A line of charge/})).toBeTruthy();
-    const origin = getByRole('radio', {name: 'At the center of the rod'});
-    origin.focus();
-    await userEvent.keyboard(' ');
-    await waitFor(() => expect(origin.getAttribute('aria-checked') === 'true' || origin.getAttribute('data-checked') !== null || container.querySelector('.option.selected')?.textContent).toBeTruthy());
-    getByRole('button', {name: /Check this step/}).focus();
-    await userEvent.keyboard('{Enter}');
-    const feedback = await waitFor(() => {
-      const el = container.querySelector<HTMLOutputElement>('output.feedback');
-      expect(el?.textContent).toMatch(/coordinate system/i);
-      return el!;
-    });
-    expect(feedback.getAttribute('aria-live')).toBe('polite');
-    expect(feedback.getAttribute('aria-atomic')).toBe('true');
-  });
-
-  it('keeps MathLive in the tab order and lets Enter submit from the plain-text fallback', async () => {
-    const onEnter = vi.fn(), onChange = vi.fn();
-    const {container, getByRole} = render(<MathField value="" onChange={onChange} label="Charge element" onEnter={onEnter} />);
-    await waitFor(() => expect(container.querySelector('math-field')).toBeTruthy(), {timeout: 15000});
-    const field = container.querySelector<HTMLElement>('math-field')!;
-    expect(field.getAttribute('role')).toBe('textbox');
-    expect(field.tabIndex).toBeGreaterThanOrEqual(0);
-    await userEvent.click(getByRole('button', {name: 'Use plain text'}));
-    const fallback = container.querySelector<HTMLInputElement>('input.mathfield-fallback')!;
-    expect(fallback.getAttribute('aria-label')).toBe('Charge element');
-    fallback.focus();
-    await userEvent.fill(fallback, 'Q/L');
-    await userEvent.keyboard('{Enter}');
-    expect(onEnter).toHaveBeenCalled();
   });
 
   it('announces the selected element and a distance change in SI units', async () => {
