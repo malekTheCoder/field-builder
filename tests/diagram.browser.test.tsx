@@ -74,10 +74,10 @@ describe('ChargeDiagram in a real browser', () => {
   });
   it('orbits with arrow keys, resets with Home, and leaves nested controls independent', async () => {
     const {view, setParams} = mount('ring');
-    const svg = view.container.querySelector<HTMLButtonElement>('.cd-camera-control')!;
+    const camera = view.container.querySelector<HTMLButtonElement>('.cd-camera-control')!;
     const reset = view.getByRole('button', {name: 'Reset view'}) as HTMLButtonElement;
     expect(reset.disabled).toBe(true);
-    svg.focus();
+    camera.focus();
     await userEvent.keyboard('{ArrowRight}');
     expect(reset.disabled).toBe(false);
     await userEvent.keyboard('{Home}');
@@ -86,6 +86,44 @@ describe('ChargeDiagram in a real browser', () => {
     point.focus();
     await userEvent.keyboard('{ArrowUp}');
     expect(setParams).toHaveBeenCalledWith({distance: 3.1});
+    expect(reset.disabled).toBe(true);
+  });
+  // The path a reader actually takes: touch the picture, then press an arrow. It did nothing.
+  //
+  // The figure had no tabindex, so the pointer left focus on <body>; the only key handler that
+  // could reach the camera hung off `.cd-camera-control`, a button inside the `.cd-controls`
+  // disclosure -- and the Explorer renders that disclosure COLLAPSED (`compact`). A closed
+  // <details> holds its content INERT FOR FOCUS even where CSS has forced it visible with a
+  // real layout box, so the `.focus()` call silently did nothing and every arrow key went to
+  // the page instead, while the drawn legend went on promising they turned the view.
+  //
+  // The test above passed throughout, because it focuses that button directly and mounts
+  // without `compact`, so the disclosure is open. Mount it the way the Explorer does.
+  it('turns when a reader touches the figure and presses a key, with the controls collapsed', async () => {
+    const {view} = mount('ring', {}, {compact: true});
+    const svg = view.container.querySelector<SVGSVGElement>('.cd-svg')!;
+    expect(svg.classList.contains('cd-orbitable')).toBe(true);
+    expect(view.container.querySelector('details.cd-controls')!.hasAttribute('open')).toBe(false);
+    // P is drawn from the camera, so where it lands says which way the figure is facing --
+    // except under yaw, which on this lesson turns about the very axis P sits on. Reset knows
+    // about both angles and the zoom, so it is the honest witness for a left/right turn.
+    const facing = () => [...view.container.querySelectorAll('[data-orbit-p]')]
+      .map(el => `${el.getAttribute('cx') ?? el.getAttribute('x')},${el.getAttribute('cy') ?? el.getAttribute('y')}`).join(' ');
+    const reset = view.getByRole('button', {name: 'Reset view'}) as HTMLButtonElement;
+    const square = facing();
+    expect(reset.disabled).toBe(true);
+    fireEvent.pointerDown(svg, {clientX: 60, clientY: 60, pointerId: 1});
+    fireEvent.pointerUp(svg, {pointerId: 1});
+    expect(document.activeElement, 'focus stayed on the body, so the keys go to the page').toBe(svg);
+    await userEvent.keyboard('{ArrowLeft}');
+    expect(reset.disabled, 'the arrow key never reached the figure').toBe(false);
+    await userEvent.keyboard('{ArrowUp}');               // tilt lifts P off the axis it spins on
+    const tilted = facing();
+    expect(tilted).not.toBe(square);
+    await userEvent.keyboard('=');                       // the zoom keys ride the same handler
+    expect(facing()).not.toBe(tilted);
+    await userEvent.keyboard('{Home}');                  // and Home puts back angle and zoom at once
+    expect(facing()).toBe(square);
     expect(reset.disabled).toBe(true);
   });
   it('keeps existing seam and piece identities when the partition doubles', () => {

@@ -1,5 +1,10 @@
 .charge-diagram{width:100%;isolation:isolate;--cd-muted:var(--muted-foreground,#4a6274);--cd-ink:var(--foreground,#0e2333)}
 .cd-svg{display:block;width:100%;height:auto;overflow:visible;font-family:var(--font-mono,'SFMono-Regular',Consolas,monospace);user-select:none}
+/* The figure is focusable in 3D because it is what the arrow keys turn. Keyboard focus shows a
+   ring; a mouse click focuses it too but shows nothing, which is why :focus-visible is right --
+   the clicker already knows where they are, the tabber does not. */
+.cd-svg:focus{outline:none}
+.cd-svg.cd-orbitable:focus-visible{outline:2px solid var(--field);outline-offset:2px;border-radius:6px}
 .cd-svg text{font-size:13px;fill:var(--cd-muted);font-weight:550;letter-spacing:0}
 .cd-svg .cd-kicker{font-size:9px;letter-spacing:1.8px;fill:var(--cd-muted)}
 .cd-scale line,.cd-scale path{stroke:var(--ghost,#6d8492);stroke-width:1.25}

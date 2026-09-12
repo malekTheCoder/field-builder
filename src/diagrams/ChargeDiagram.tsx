@@ -1,6 +1,15 @@
 'use client';
 /* Inline SVG needs role=img to expose one named figure; an HTML img cannot contain the interactive drawing. */
 /* oxlint-disable jsx-a11y/prefer-tag-over-role */
+/* In 3D the figure carries `tabIndex` as well, which the rule below reads as a focusable
+   non-interactive element. It is deliberate, and the alternatives are worse for the reader.
+   The figure IS the control -- it is what the arrow keys turn -- so it has to be reachable by
+   focus, and routing that through some neighbouring button is exactly the bug this replaced.
+   `role="application"` would satisfy the rule and cost more: it switches a screen reader out of
+   reading mode over the whole figure. `role="img"` already collapses the drawing to its
+   accessible name, and that name now states the gestures, so what a screen reader is told
+   matches what the keys do. */
+/* oxlint-disable jsx-a11y/no-noninteractive-tabindex */
 import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent, type PointerEvent } from 'react';
 import { animate, frame, motion, useMotionValue, useReducedMotion } from 'motion/react';
 import type { Params, Problem } from '../problems/types';
@@ -427,8 +436,15 @@ export function ChargeDiagram({ problem, params: p, setParams, count, continuum,
   // labels and dimension brackets pinned to fixed screen coordinates, so those are withheld
   // in 3D rather than allowed to drift away from what they measure.
   // Springs would lag a 1:1 drag; motion values + frame.render write the SVG matrix without setState.
+  // The figure itself takes focus, so the arrow keys and +/- reach it. This used to focus the
+  // `.cd-camera-control` button instead, which is inside the `.cd-controls` disclosure -- and
+  // that disclosure is CLOSED on the Explorer page (`compact`). A closed <details> keeps its
+  // content INERT FOR FOCUS even where CSS has forced it visible with a real layout box, so
+  // `.focus()` on it silently did nothing, focus stayed on <body>, and every arrow key went to
+  // the page while the drawn legend went on promising they turned the view. Do not route the
+  // figure's keyboard reach through anything that can be collapsed.
   const orbit = {
-    onPointerDown: (ev: PointerEvent<SVGSVGElement>) => { if (onControl(ev.target)) return; stopGlide(); cameraControl.current?.focus(); try { ev.currentTarget.setPointerCapture(ev.pointerId); } catch { /* no live pointer to capture: the drag still starts */ } dragging.current = 'orbit'; setActiveDrag(true); orbitFrom.current = { x: ev.clientX, y: ev.clientY }; spin.current = { yaw: 0, pitch: 0, at: performance.now() }; },
+    onPointerDown: (ev: PointerEvent<SVGSVGElement>) => { if (onControl(ev.target)) return; stopGlide(); ev.currentTarget.focus(); try { ev.currentTarget.setPointerCapture(ev.pointerId); } catch { /* no live pointer to capture: the drag still starts */ } dragging.current = 'orbit'; setActiveDrag(true); orbitFrom.current = { x: ev.clientX, y: ev.clientY }; spin.current = { yaw: 0, pitch: 0, at: performance.now() }; },
     onPointerMove: (ev: PointerEvent<SVGSVGElement>) => {
       if (dragging.current !== 'orbit') return;
       const t0 = performance.now();
@@ -538,6 +554,9 @@ export function ChargeDiagram({ problem, params: p, setParams, count, continuum,
         onClick={() => setFieldView(value)}>{label}</button>)}
     </div>}
     {/* The pad and the drawn help say the same thing two ways: one to click, one to read. */}
+    {/* Arrow keys are NOT bound here on purpose: inside a group of buttons they belong to
+        moving between the buttons, and stealing them for the camera would mislead anyone
+        driving this by screen reader. The figure is the thing that owns the arrow keys. */}
     <div className="cd-pad" role="group" aria-label="Move the view">
       {inSpace && ([['ArrowLeft', '\u2190', 'Turn left'], ['ArrowUp', '\u2191', 'Tilt up'], ['ArrowDown', '\u2193', 'Tilt down'], ['ArrowRight', '\u2192', 'Turn right']] as const)
         .map(([key, glyph, title]) => <button key={key} type="button" className="cd-pad-key" title={`${title} (${key.replace('Arrow', '')} arrow key)`} aria-label={title} onClick={() => nudge(key)}>{glyph}</button>)}
@@ -555,7 +574,7 @@ export function ChargeDiagram({ problem, params: p, setParams, count, continuum,
       bodyPath={bodyPath} point={pWorld} element={sceneElement} net={scalar || predicting ? null : scaleVec(displayed, gain / unit)} contribution={scalar || !showContribution ? null : scaleVec(sample.field, selectedGain * gain / unit)}
       unit={unit} frame={{ width: 720, height: 430 }} origin={O} charge={p.charge} animating={moving}
       getView={() => ({ yaw: yawMv.get(), pitch: pitchMv.get() })} />}
-    <svg ref={svg} className={`cd-svg${inSpace ? ' cd-orbitable' : ''}${scalar ? ' cd-scalar' : ''}`} viewBox="0 0 720 430" role="img" {...(inSpace ? orbit : {})} aria-label={`${problem.title}. Interactive charge distribution and ${scalar ? 'electric potential' : 'electric field'} visualization.${perspective ? ' Drag or use the arrow keys to rotate the view, Home to reset it.' : ''}`}>
+    <svg ref={svg} className={`cd-svg${inSpace ? ' cd-orbitable' : ''}${scalar ? ' cd-scalar' : ''}`} viewBox="0 0 720 430" role="img" tabIndex={inSpace ? 0 : undefined} {...(inSpace ? orbit : {})} aria-label={`${problem.title}. Interactive charge distribution and ${scalar ? 'electric potential' : 'electric field'} visualization.${inSpace ? ' Drag or use the arrow keys to rotate the view, plus and minus to zoom, Home to reset it.' : ''}`}>
       <defs>
         <pattern id={`${uid}grid`} width="28" height="28" patternUnits="userSpaceOnUse"><circle cx="1" cy="1" r=".7" fill="var(--grid)" /></pattern>
         <clipPath id={`${uid}clip`}><rect x="42" y="54" width="626" height="317" rx="10" /></clipPath>
@@ -699,7 +718,7 @@ export function ChargeDiagram({ problem, params: p, setParams, count, continuum,
       <text x="690" y="409" textAnchor="end" className="cd-footer">{scalar ? `${continuum>=.999?'dV':'ΔV'} · V: ${pretty(vNow)} V` : showContribution ? `${fieldSymbol} × ${pretty(selectedGain)} · E: ${pretty(scaleValue)} N/C per 100 px` : `${n} charge pieces`}</text>
     </svg>
     </div>
-    <details className="cd-controls" open={!compact}><summary>Diagram controls and keyboard help</summary>{/* The drawn legend in the figure says how to turn and zoom it. This stays for the things a drawing cannot show -- what Tab reaches, what Home and End do -- and for a screen reader, which cannot see the legend at all. */}<p id={`${uid}help`}>Tab moves between controls. Arrow keys adjust the focused control; Home and End select its limits. You can also drag P and the integration bounds in the figure.</p>
+    <details className="cd-controls" open={!compact}><summary>Diagram controls and keyboard help</summary>{/* The drawn legend in the figure says how to turn and zoom it. This stays for the things a drawing cannot show -- what Tab reaches, what Home and End do -- and for a screen reader, which cannot see the legend at all. */}<p id={`${uid}help`}>Tab moves between controls. Arrow keys adjust the focused control; Home and End select its limits. You can also drag P and the integration bounds in the figure.{inSpace?' The figure itself takes focus: arrow keys turn it, plus and minus zoom, Home puts it back.':''}</p>
     <div className="cd-control-grid">
       {inSpace&&<button ref={cameraControl} type="button" className="cd-camera-control" aria-describedby={`${uid}camera-help`} onKeyDown={ev=>{if(['+','=','-','_'].includes(ev.key)){ev.preventDefault();zoomBy(ev.key==='-'||ev.key==='_'?1/1.18:1.18);}else if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Home'].includes(ev.key)){ev.preventDefault();if(ev.key==='Home')setZoom(1);nudge(ev.key);}}} onClick={resetView}>Rotate view with arrow keys<span id={`${uid}camera-help`}>Left/right rotate; up/down tilt; Home or Enter resets.</span></button>}
       <label>Charge element {selectedIndex+1} of {n}<input type="range" aria-label="Selected charge element" min={0} max={n-1} step={1} value={selectedIndex} onChange={ev=>onSelect(Number(ev.target.value))}/></label>
