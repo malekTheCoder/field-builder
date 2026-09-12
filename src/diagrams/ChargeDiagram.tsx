@@ -42,12 +42,12 @@ function planeMatrix(yaw: number, pitch: number, origin: Point, unit: number): s
   const cy = Math.cos(yaw), sy = Math.sin(yaw), sp = Math.sin(pitch);
   return `matrix(${unit * cy} ${unit * sy * sp} ${unit * sy} ${-unit * cy * sp} ${origin.x} ${origin.y})`;
 }
-function Vector({ from, to, color = 'var(--field)', width = 2.5, dashed = false, label, reduced = false }: { from: Point; to: Point; color?: string; width?: number; dashed?: boolean; label?: string; reduced?: boolean }) {
+function Vector({ from, to, color = 'var(--field)', width = 2.5, dashed = false, label, reduced = false, ghost = false }: { from: Point; to: Point; color?: string; width?: number; dashed?: boolean; label?: string; reduced?: boolean; ghost?: boolean }) {
   const length = Math.hypot(to.x - from.x, to.y - from.y), angle = Math.atan2(to.y - from.y, to.x - from.x);
   const head = Math.min(7, length * .32), a = { x: to.x - head * Math.cos(angle - .45), y: to.y - head * Math.sin(angle - .45) }, b = { x: to.x - head * Math.cos(angle + .45), y: to.y - head * Math.sin(angle + .45) };
   return <g className="cd-vector" style={{ color }} opacity={length < .2 ? 0 : 1}>
-    <motion.line initial={false} animate={{ x1: from.x, y1: from.y, x2: to.x, y2: to.y }} transition={{ duration: reduced ? 0 : .13, ease: 'easeOut' }} stroke="currentColor" strokeWidth={width} strokeDasharray={dashed ? '4 4' : undefined} />
-    <motion.path initial={false} animate={{ d: `M${a.x},${a.y}L${to.x},${to.y}L${b.x},${b.y}` }} transition={{ duration: reduced ? 0 : .13 }} fill="none" stroke="currentColor" strokeWidth={width} />
+    <motion.line initial={false} animate={{ x1: from.x, y1: from.y, x2: to.x, y2: to.y }} transition={{ duration: reduced ? 0 : .13, ease: 'easeOut' }} stroke="currentColor" strokeWidth={width} strokeDasharray={dashed ? '4 4' : undefined} style={{ opacity: ghost ? 0 : 1 }} />
+    <motion.path initial={false} animate={{ d: `M${a.x},${a.y}L${to.x},${to.y}L${b.x},${b.y}` }} transition={{ duration: reduced ? 0 : .13 }} fill="none" stroke="currentColor" strokeWidth={width} style={{ opacity: ghost ? 0 : 1 }} />
     {label && length > 10 && <text x={to.x + (to.x < from.x ? -9 : 9)} y={to.y - 9} textAnchor={to.x < from.x ? 'end' : 'start'} className="cd-vector-label" fill="currentColor">{label}</text>}
   </g>;
 }
@@ -113,7 +113,11 @@ export function ChargeDiagram({ problem, params: p, setParams, count, continuum,
   const ray = (v: Vec, length: number): Point => { const s = projectCamera(v, view.yaw, view.pitch); return { x: O.x + length * s.x, y: O.y + length * s.y }; };
   const axisX = ray({ x: 1, y: 0, z: 0 }, 185), axisY = ray({ x: 0, y: 1, z: 0 }, 122);
   const axisTip = (a: Point, dx: number, dy: number): Point => ({ x: clamp(a.x + dx, 52, 652), y: clamp(a.y + dy, 70, 360) });
-  const P = project(id === 'arc' ? zero : id === 'axial' ? { x: p.size + p.distance, y: 0, z: 0 } : id === 'semi' ? { x: 0, y: p.distance, z: 0 } : perspective ? { x: 0, y: 0, z: p.distance } : { x: p.distance, y: 0, z: 0 });
+  // Where P lives, and the line it is allowed to move along: from `pivot`, `axisDir` per unit of `distance`.
+  const axisDir: Vec = id === 'arc' ? zero : id === 'axial' ? { x: 1, y: 0, z: 0 } : id === 'semi' ? { x: 0, y: 1, z: 0 } : perspective ? { x: 0, y: 0, z: 1 } : { x: 1, y: 0, z: 0 };
+  const pivot: Vec = id === 'axial' ? { x: p.size, y: 0, z: 0 } : zero;
+  const pWorld: Vec = { x: pivot.x + axisDir.x * p.distance, y: pivot.y + axisDir.y * p.distance, z: pivot.z + axisDir.z * p.distance };
+  const P = project(pWorld);
   const world = (t: number): Vec => {
     if (id === 'bisector') return { x: 0, y: p.size * (t - .5), z: 0 };
     if (id === 'axial') return { x: p.size * t, y: 0, z: 0 };
@@ -164,6 +168,14 @@ export function ChargeDiagram({ problem, params: p, setParams, count, continuum,
   // reported once the motion settles, which is the only time a comparison is read anyway.
   useEffect(() => { if (moving) return; const [x, y] = netKey.split(',').map(Number); netCallback.current?.({ x, y }); }, [netKey, moving]);
   const showContribution = mode !== 'divide' || !!highlight;
+  // The selected element as a length of wire: between its neighbours, as long as one piece.
+  const sceneElement = (() => {
+    if (surface) return null;
+    const before = samples[Math.max(0, selectedIndex - 1)].position, after = samples[Math.min(samples.length - 1, selectedIndex + 1)].position;
+    const along: Vec = { x: after.x - before.x, y: after.y - before.y, z: after.z - before.z };
+    const span = Math.hypot(along.x, along.y, along.z) / (selectedIndex === 0 || selectedIndex === samples.length - 1 ? 1 : 2);
+    return { position: sample.position, along, length: Math.max(span, .02) };
+  })();
   const elementSymbol = continuum>=.999 ? 'dQ' : 'ΔQ';
   const fieldSymbol = continuum>=.999 ? 'dE' : 'ΔE';
   const partnerIndex = id === 'ring' ? (selectedIndex + Math.floor(n / 2)) % n : n - 1 - selectedIndex;
@@ -208,7 +220,13 @@ export function ChargeDiagram({ problem, params: p, setParams, count, continuum,
     const cursor = eventPoint(ev);
     if (dragging.current === 'predict') { const next = { x: cursor.x - P.x, y: cursor.y - P.y }; liveGuess.current = next; onPredict?.(next); return; }
     if (dragging.current === 'P') {
-      const distance = perspective ? depthFromScreen(O.y - cursor.y, unit, view.pitch) : id === 'semi' ? (O.y - cursor.y) / unit : id === 'axial' ? p.distance + (cursor.x - P.x) / unit : (cursor.x - O.x) / unit;
+      // In space the axis P moves along is foreshortened by the camera, so a screen delta
+      // is the wrong ruler. The cursor is dropped onto the projected axis instead: the
+      // parameter of the closest point on that line is the distance, in any view.
+      const base = project(pivot), tip = project({ x: pivot.x + axisDir.x, y: pivot.y + axisDir.y, z: pivot.z + axisDir.z });
+      const dx = tip.x - base.x, dy = tip.y - base.y, dd = dx * dx + dy * dy;
+      const alongAxis = dd > 1e-6 ? ((cursor.x - base.x) * dx + (cursor.y - base.y) * dy) / dd : p.distance;
+      const distance = inSpace ? alongAxis : perspective ? depthFromScreen(O.y - cursor.y, unit, view.pitch) : id === 'semi' ? (O.y - cursor.y) / unit : id === 'axial' ? p.distance + (cursor.x - P.x) / unit : (cursor.x - O.x) / unit;
       setParams({ distance: Math.round(clamp(distance, .5, 6) * 20) / 20 });
     } else {
       // Find the nearest coordinate along the projected distribution. Endpoints
@@ -232,7 +250,7 @@ export function ChargeDiagram({ problem, params: p, setParams, count, continuum,
     // whole diagram on every pointer move.
     /* oxlint-disable react/react-compiler */
     // stopPropagation keeps a grab on P or a bound from also starting an orbit on the root.
-    onPointerDown: (ev: PointerEvent<SVGGElement>) => { ev.stopPropagation(); ev.currentTarget.setPointerCapture(ev.pointerId); dragging.current = name; setActiveDrag(true); },
+    onPointerDown: (ev: PointerEvent<SVGGElement>) => { ev.stopPropagation(); try { ev.currentTarget.setPointerCapture(ev.pointerId); } catch { /* no live pointer to capture: the drag still starts */ } dragging.current = name; setActiveDrag(true); },
     onPointerMove: move, onPointerUp: () => { dragging.current = null; setActiveDrag(false); }, onPointerCancel: () => { dragging.current = null; setActiveDrag(false); }, onLostPointerCapture: () => { dragging.current = null; setActiveDrag(false); },
     /* oxlint-enable react/react-compiler */
   });
@@ -289,7 +307,7 @@ export function ChargeDiagram({ problem, params: p, setParams, count, continuum,
       const next = orbitCamera({ yaw: yawMv.get(), pitch: pitchMv.get() }, -ev.deltaX * .6, -ev.deltaY * .6);
       yawMv.set(next.yaw); pitchMv.set(next.pitch); syncCamera();
     },
-    onPointerDown: (ev: PointerEvent<SVGSVGElement>) => { if (onControl(ev.target)) return; stopGlide(); cameraControl.current?.focus(); ev.currentTarget.setPointerCapture(ev.pointerId); dragging.current = 'orbit'; setActiveDrag(true); orbitFrom.current = { x: ev.clientX, y: ev.clientY }; spin.current = { yaw: 0, pitch: 0, at: performance.now() }; },
+    onPointerDown: (ev: PointerEvent<SVGSVGElement>) => { if (onControl(ev.target)) return; stopGlide(); cameraControl.current?.focus(); try { ev.currentTarget.setPointerCapture(ev.pointerId); } catch { /* no live pointer to capture: the drag still starts */ } dragging.current = 'orbit'; setActiveDrag(true); orbitFrom.current = { x: ev.clientX, y: ev.clientY }; spin.current = { yaw: 0, pitch: 0, at: performance.now() }; },
     onPointerMove: (ev: PointerEvent<SVGSVGElement>) => {
       if (dragging.current !== 'orbit') return;
       const t0 = performance.now();
@@ -361,7 +379,7 @@ export function ChargeDiagram({ problem, params: p, setParams, count, continuum,
   const sourceLabel = surface ? `${elementSymbol} ${continuum>=.999?'=':'≈'} σ · 2πs ${continuum>=.999?'ds':'Δs'}` : id === 'ring' || id === 'arc' ? `${elementSymbol} = λR ${continuum>=.999?'dθ':'Δθ'}` : ramp ? `${elementSymbol} = λ₀(y/L) ${continuum>=.999?'dy':'Δy'}` : `${elementSymbol} = λ ${continuum>=.999?'dℓ':'Δℓ'}`;
   const sourceText = id === 'disk' ? 'One ring sweeps out the disk' : surface ? 'Whole annulus · transverse fields cancel' : id === 'infinite' || id === 'semi' ? 'Unbounded source · visible window shown' : id === 'arc' ? 'Observation point fixed at center' : 'Select a piece · drag P to explore';
   const gaugeH = scalar ? 88 * vNow / vScale : 0, dvH = scalar ? 36 * sample.potential / dVmax : 0;
-  return <div ref={root} className={"charge-diagram cd-focus-"+highlight}>
+  return <div ref={root} className={"charge-diagram cd-focus-"+highlight+(inSpace?" cd-in-space":"")+(perspective?" cd-surface-kind":" cd-wire-kind")}>
     {/* Field under construction, sharing one box so the two coordinate spaces cannot
         drift. Planar lessons only for now: the perspective geometries need their lines
         traced in three dimensions and sorted against the surface, a different job. */}
@@ -370,6 +388,7 @@ export function ChargeDiagram({ problem, params: p, setParams, count, continuum,
       plane={perspective ? 'xz' : 'xy'} layout={surface ? 'surface' : 'wire'} />}
     {inSpace && <FieldStage kind={id === 'disk' ? 'disk' : id === 'sheet' ? 'sheet' : 'wire'} closed={id === 'ring'} samples={samples} selected={selectedIndex}
       radius={R} distance={p.distance} yaw={view.yaw} pitch={view.pitch} fieldView={scalar ? 'off' : fieldView} reach={fieldReach}
+      point={pWorld} element={sceneElement} net={scalar || predicting ? null : scaleVec(displayed, gain / unit)} contribution={scalar || !showContribution ? null : scaleVec(sample.field, selectedGain * gain / unit)}
       unit={unit} frame={{ width: 720, height: 430 }} origin={O} charge={p.charge} animating={moving}
       getView={() => ({ yaw: yawMv.get(), pitch: pitchMv.get() })} />}
     <svg ref={svg} className={`cd-svg${inSpace ? ' cd-orbitable' : ''}${scalar ? ' cd-scalar' : ''}`} viewBox="0 0 720 430" role="img" {...(inSpace ? orbit : {})} aria-label={`${problem.title}. Interactive charge distribution and ${scalar ? 'electric potential' : 'electric field'} visualization.${perspective ? ' Drag or use the arrow keys to rotate the view, Home to reset it.' : ''}`}>
@@ -463,10 +482,10 @@ export function ChargeDiagram({ problem, params: p, setParams, count, continuum,
           </g>
         </>}
         {components && <><Vector from={P} to={plus(P, projectedComponent)} color="var(--contribution)" width={1.3} dashed reduced={still} /><Vector from={plus(P, projectedComponent)} to={plus(P, contribution)} color="var(--contribution)" width={1.3} dashed reduced={still} /></>}
-        <Vector from={P} to={plus(P, contribution)} color="var(--contribution)" width={1.8} label={surface ? fieldSymbol+'z' : fieldSymbol} reduced={still} />
+        <Vector from={P} to={plus(P, contribution)} color="var(--contribution)" width={1.8} label={surface ? fieldSymbol+'z' : fieldSymbol} reduced={still}  ghost={inSpace} />
       </>}
       {!scalar && mode === 'sum' && chainPoints.length > 1 && <path className="cd-sum-chain" data-sum-chain={String(chainPoints.length)} d={pathThrough(chainPoints)} fill="none" />}
-      {!scalar && !predicting && <Vector from={P} to={plus(P, net)} width={3.5} label={continuum>=.999&&full&&progress>=.999?'E':'Σ ΔE'} reduced={still} />}
+      {!scalar && !predicting && <Vector from={P} to={plus(P, net)} width={3.5} label={continuum>=.999&&full&&progress>=.999?'E':'Σ ΔE'} reduced={still} ghost={inSpace} />}
       {!scalar && (predicting || prediction) && (() => {
         // The guess is drawn in the same place and the same units as the field it will be
         // compared against, so the comparison is the one the student can see rather than a
@@ -499,7 +518,7 @@ export function ChargeDiagram({ problem, params: p, setParams, count, continuum,
         <text x={P.x+42} y={P.y - Math.max(14, Math.abs(gaugeH) + 8) + 16} className="cd-gauge-readout">{pretty(vNow)} V</text>
       </g>}
       <g {...(id === 'arc' ? {} : handle('P'))} className={`cd-observation ${id === 'arc' ? 'is-fixed' : ''}`}>
-        <circle data-orbit-p="true" cx={P.x} cy={P.y} r="28" fill={`url(#${uid}point)`} /><circle data-orbit-p="true" cx={P.x} cy={P.y} r="16" className="cd-point-halo" /><circle data-orbit-p="true" cx={P.x} cy={P.y} r="5" className="cd-point" /><text data-orbit-p="true" x={P.x-10} y={P.y+31} className="cd-point-label">{id === 'arc' ? 'P = O' : 'P'}</text>
+        <circle data-orbit-p="true" cx={P.x} cy={P.y} r="28" fill={`url(#${uid}point)`} style={{ opacity: inSpace ? 0 : 1 }} /><circle data-orbit-p="true" cx={P.x} cy={P.y} r="16" className="cd-point-halo" style={{ opacity: inSpace ? 0 : 1 }} /><circle data-orbit-p="true" cx={P.x} cy={P.y} r="5" className="cd-point" style={{ opacity: inSpace ? 0 : 1 }} /><text data-orbit-p="true" x={P.x-10} y={P.y+31} className="cd-point-label">{id === 'arc' ? 'P = O' : 'P'}</text>
       </g>
       {showContribution && <g className="cd-source-tag"><line x1={source.x} y1={source.y} x2={source.x+(source.x>560?-22:22)} y2={source.y+(source.y<95?22:-20)} /><text x={source.x+(source.x>560?-27:27)} y={source.y+(source.y<95?27:-21)} textAnchor={source.x>560?'end':'start'}>{sourceVisible ? (surface ? 'ring '+elementSymbol : elementSymbol) : elementSymbol+' outside view'}</text></g>}
       {mode === 'integrate' && onBoundRangeChange && [0, 1].map(i => { const raw = project(world(boundRange[i]/100)); const point = { x: clamp(raw.x, 57, 650), y: clamp(raw.y, 66, 358) + ((id === 'ring' || (id === 'arc' && p.phi > 6.2)) ? (i ? 13 : -13) : 0) }; return <g key={i} {...handle(String(i))} className="cd-bound"><circle cx={point.x} cy={point.y} r="17" fill="transparent" /><rect x={point.x-8} y={point.y-8} width="16" height="16" rx="4" /><text x={point.x+(i ? 18 : -18)} y={point.y+5} textAnchor={i ? 'start' : 'end'}>{i ? 'b' : 'a'}</text></g>; })}

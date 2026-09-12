@@ -1,6 +1,7 @@
 'use client';
 import {useEffect,useRef} from 'react';
 import type {ChargeSample} from '../../distributions/types';
+import type {Vec} from '../../symbolic/physics';
 import {cameraBasis,cameraPosition,frameTarget,frustum} from './orthoCamera';
 import {bodyReach,surfaceOpacity,visibleRadii,wirePath,wireRadius,type BodyKind} from './bodies';
 import {spaceGrid,spaceLines,type Layout} from '../field3d';
@@ -26,6 +27,11 @@ export type FieldStageProps={
  charge:number;
  /** How to show the field, and how far out to draw it, in world metres. */
  fieldView:'lines'|'vectors'|'off'; reach:number;
+ /** The observation point, the element being pointed at, and the two arrows the lesson is
+  * about, all in world metres. In space these are bodies in the scene rather than marks
+  * drawn flat over it; the SVG keeps the labels and the handles. */
+ point:Vec; element:{position:Vec;along:Vec;length:number}|null;
+ net:Vec|null; contribution:Vec|null;
  /** During an orbit the SVG moves from motion values without re-rendering, so reading yaw
   * and pitch from props would leave the body behind the drawing. While `animating`, the
   * stage reads the live view every frame instead. */
@@ -70,8 +76,34 @@ export function FieldStage(props:FieldStageProps){
    // instead of stopping dead at the frame edge.
    const lineMaterial=new THREE.MeshStandardMaterial({roughness:.6,metalness:0,transparent:true,opacity:.78,vertexColors:true,depthWrite:false});
    const arrowMaterial=new THREE.MeshStandardMaterial({roughness:.5,metalness:0,color:0xffffff});
-   const body=new THREE.Group(),slices=new THREE.Group(),field=new THREE.Group();
-   scene.add(body,slices,field);
+   const body=new THREE.Group(),slices=new THREE.Group(),field=new THREE.Group(),marks=new THREE.Group();
+   scene.add(body,slices,field,marks);
+   // P is a small solid with a soft halo; the element is a brighter, thicker length of the
+   // wire; each arrow is a shaft and a head that keep their proportions at any length.
+   const pointMaterial=new THREE.MeshStandardMaterial({roughness:.35,metalness:.05});
+   const haloMaterial=new THREE.MeshBasicMaterial({transparent:true,opacity:.16,depthWrite:false});
+   const elementMaterial=new THREE.MeshStandardMaterial({roughness:.4,metalness:.05});
+   const netMaterial=new THREE.MeshStandardMaterial({roughness:.45,metalness:.05});
+   const partMaterial=new THREE.MeshStandardMaterial({roughness:.45,metalness:.05});
+   const point=new THREE.Mesh(new THREE.SphereGeometry(1,28,20),pointMaterial),halo=new THREE.Mesh(new THREE.SphereGeometry(1,20,14),haloMaterial);
+   const element=new THREE.Mesh(new THREE.CylinderGeometry(1,1,1,14,1),elementMaterial);
+   const arrow=(material:InstanceType<typeof THREE.MeshStandardMaterial>)=>{
+    const g=new THREE.Group(),shaft=new THREE.Mesh(new THREE.CylinderGeometry(1,1,1,10,1),material),head=new THREE.Mesh(new THREE.ConeGeometry(1,1,16),material);
+    g.add(shaft,head);return {group:g,shaft,head};
+   };
+   const netArrow=arrow(netMaterial),partArrow=arrow(partMaterial);
+   marks.add(point,halo,element,netArrow.group,partArrow.group);
+   const Y=new THREE.Vector3(0,1,0),tmpQ=new THREE.Quaternion(),tmpV=new THREE.Vector3();
+   /** Lay an arrow from `from` along `dir` for `length`, with a head that never outgrows it. */
+   const layArrow=(a:ReturnType<typeof arrow>,from:Vec,dir:Vec,length:number,thick:number)=>{
+    const l=Math.hypot(dir.x,dir.y,dir.z);
+    if(!(length>1e-4)||l<1e-9){a.group.visible=false;return;}
+    a.group.visible=true;
+    const u=tmpV.set(dir.x/l,dir.y/l,dir.z/l);tmpQ.setFromUnitVectors(Y,u);
+    const headLen=Math.min(length*.45,thick*4.2),shaftLen=Math.max(length-headLen,1e-4);
+    a.shaft.quaternion.copy(tmpQ);a.shaft.scale.set(thick,shaftLen,thick);a.shaft.position.set(from.x+u.x*shaftLen/2,from.y+u.y*shaftLen/2,from.z+u.z*shaftLen/2);
+    a.head.quaternion.copy(tmpQ);a.head.scale.set(thick*2.6,headLen,thick*2.6);a.head.position.set(from.x+u.x*(shaftLen+headLen/2),from.y+u.y*(shaftLen+headLen/2),from.z+u.z*(shaftLen+headLen/2));
+   };
    // A unit arrow along +y, from 0 to 1: shaft then head, merged so one instanced draw covers
    // the whole lattice.
    const shaft=new THREE.CylinderGeometry(.05,.05,.66,7);shaft.translate(0,.33,0);
@@ -86,10 +118,28 @@ export function FieldStage(props:FieldStageProps){
      (child as {geometry?:{dispose:()=>void}}).geometry?.dispose();
     }
    };
-   // The axis the field is measured along, drawn faintly so the SVG's own axis reads on top.
-   const axisMaterial=new THREE.LineBasicMaterial({transparent:true,opacity:.55});
-   const axis=new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0,0,-6),new THREE.Vector3(0,0,6)]),axisMaterial);
-   scene.add(axis);
+   // Axes with metre ticks, and a faint grid on the plane the charge lies in, so the scene
+   // carries its own sense of scale and depth the way a graphing calculator's does. The SVG
+   // keeps the axis letters; its axis strokes are hidden while the scene draws these.
+   const axisMaterial=new THREE.LineBasicMaterial({transparent:true,opacity:.7});
+   const gridMaterial=new THREE.LineBasicMaterial({transparent:true,opacity:.13});
+   const axes=new THREE.LineSegments(new THREE.BufferGeometry(),axisMaterial),grid=new THREE.LineSegments(new THREE.BufferGeometry(),gridMaterial);
+   scene.add(grid,axes);
+   let frameKey='';
+   const buildFrame=(extent:number)=>{
+    const a:number[]=[],g:number[]=[],tick=.07;
+    for(const [x,y,z] of [[1,0,0],[0,1,0],[0,0,1]] as const){
+     a.push(-extent*x,-extent*y,-extent*z,extent*x,extent*y,extent*z);
+     for(let t=-Math.floor(extent);t<=Math.floor(extent);t++){if(t===0)continue;
+      // a tick lies across the axis, in the plane of the grid where it can
+      const [ux,uy,uz]=z?[1,0,0]:[0,0,1];
+      a.push(t*x-ux*tick,t*y-uy*tick,t*z-uz*tick,t*x+ux*tick,t*y+uy*tick,t*z+uz*tick);}
+    }
+    for(let t=-Math.floor(extent);t<=Math.floor(extent);t++){g.push(t,-extent,0,t,extent,0,-extent,t,0,extent,t,0);}
+    axes.geometry.dispose();grid.geometry.dispose();
+    axes.geometry=new THREE.BufferGeometry().setAttribute('position',new THREE.Float32BufferAttribute(a,3));
+    grid.geometry=new THREE.BufferGeometry().setAttribute('position',new THREE.Float32BufferAttribute(g,3));
+   };
    let bodyKey='',fieldKey='',sliceKey='',disposed=false;
    const cssColor=(name:string,fallback:number)=>{
     try{const v=getComputedStyle(mount).getPropertyValue(name).trim();if(/^#|^rgb|^hsl/.test(v))return new THREE.Color(v);}catch{/* unreadable: fall through to the fallback */}
@@ -185,6 +235,8 @@ export function FieldStage(props:FieldStageProps){
     const shape=sampleKey(p);
     if(bodyKey!==shape){buildBody(p);bodyKey=shape;}
     const frameWorld=Math.max(f.right-f.left,f.top-f.bottom);
+    const extent=Math.ceil(Math.max(p.reach*1.15,frameWorld*.6,3));
+    if(frameKey!==String(extent)){buildFrame(extent);frameKey=String(extent);}
     body.scale.setScalar(p.kind==='wire'?1:bodyReach(p.kind,p.radius,frameWorld));
     // Rebuild the rings only when the partition actually changes; scaling is free, geometry
     // is not, and this runs on every camera frame during an orbit.
@@ -198,6 +250,19 @@ export function FieldStage(props:FieldStageProps){
     // rebuilt only when what it depends on changes, never on a camera frame.
     const nextField=`${p.fieldView}:${shape}:${p.reach.toFixed(2)}:${positive}:${dark}`;
     if(fieldKey!==nextField){buildField(p,tint,pale,dark);fieldKey=nextField;}
+    // The marks: cheap to place every frame, so they always sit on the live geometry.
+    const wr=wireRadius(p.reach);
+    point.position.set(p.point.x,p.point.y,p.point.z);point.scale.setScalar(wr*1.7);
+    halo.position.copy(point.position);halo.scale.setScalar(wr*4.2);
+    if(p.element&&p.kind==='wire'){
+     element.visible=true;
+     const e=p.element,al=Math.hypot(e.along.x,e.along.y,e.along.z)||1;
+     tmpQ.setFromUnitVectors(Y,tmpV.set(e.along.x/al,e.along.y/al,e.along.z/al));
+     element.quaternion.copy(tmpQ);element.scale.set(wr*1.45,Math.max(e.length,wr*2),wr*1.45);element.position.set(e.position.x,e.position.y,e.position.z);
+    }else element.visible=false;
+    if(p.net)layArrow(netArrow,p.point,p.net,Math.hypot(p.net.x,p.net.y,p.net.z),wr*.75);else netArrow.group.visible=false;
+    // One element's contribution is the field AT P due to that element, so it is laid from P.
+    if(p.contribution)layArrow(partArrow,p.point,p.contribution,Math.hypot(p.contribution.x,p.contribution.y,p.contribution.z),wr*.55);else partArrow.group.visible=false;
     bodyMaterial.color.set(positive?0xf0975c:0x5cb8f0);
     bodyMaterial.emissive.set(positive?0x3a1c08:0x08243a);
     bodyMaterial.transparent=p.kind!=='wire';
@@ -206,7 +271,12 @@ export function FieldStage(props:FieldStageProps){
     sliceMaterial.color.set(positive?0xc2703a:0x3a7fc2);
     pickedMaterial.color.set(positive?0xf0975c:0x5cb8f0);
     lineMaterial.emissive.copy(tint);lineMaterial.emissiveIntensity=dark?.4:.12;
-    axisMaterial.color.set(dark?0x8ea4b4:0x52697a);
+    pointMaterial.color.copy(tint);pointMaterial.emissive.copy(tint);pointMaterial.emissiveIntensity=dark?.7:.3;
+    haloMaterial.color.copy(tint);
+    elementMaterial.color.set(0xb8460f);elementMaterial.emissive.set(0x5a2208);elementMaterial.emissiveIntensity=dark?.9:.45;
+    netMaterial.color.copy(tint);netMaterial.emissive.copy(tint);netMaterial.emissiveIntensity=dark?.6:.25;
+    partMaterial.color.copy(tint.clone().lerp(new THREE.Color(0xffffff),.25));partMaterial.emissive.copy(tint);partMaterial.emissiveIntensity=dark?.35:.12;
+    axisMaterial.color.set(dark?0x9fb3c1:0x4a6172);gridMaterial.color.set(dark?0x9fb3c1:0x4a6172);
     renderer.render(scene,camera);
    };
    const observer=new ResizeObserver(()=>{if(!disposed)apply(latest.current);});
@@ -221,8 +291,9 @@ export function FieldStage(props:FieldStageProps){
     dispose:()=>{
      disposed=true;cancelAnimationFrame(frameId);observer.disconnect();
      clearGroup(body);clearGroup(slices);clearGroup(field);arrowGeometry.dispose();
-     for(const m of [bodyMaterial,sliceMaterial,pickedMaterial,lineMaterial,arrowMaterial,axisMaterial])m.dispose();
-     axis.geometry.dispose();
+     for(const mesh of [point,halo,element,netArrow.shaft,netArrow.head,partArrow.shaft,partArrow.head])mesh.geometry.dispose();
+     for(const m of [bodyMaterial,sliceMaterial,pickedMaterial,lineMaterial,arrowMaterial,axisMaterial,gridMaterial,pointMaterial,haloMaterial,elementMaterial,netMaterial,partMaterial])m.dispose();
+     axes.geometry.dispose();grid.geometry.dispose();
      renderer.dispose();
      if(renderer.domElement.parentNode===mount)mount.removeChild(renderer.domElement);
     },
