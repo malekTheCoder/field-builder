@@ -60,6 +60,7 @@ export function ChargeDiagram({ problem, params: p, setParams, count, continuum,
   const root = useRef<HTMLDivElement>(null), renders = useRef(0);
   useLayoutEffect(() => { renders.current += 1; if (root.current) root.current.dataset.renders = String(renders.current); });
   const [spatial, setSpatial] = useState<boolean | null>(null);
+  const [fieldView, setFieldView] = useState<'lines' | 'vectors' | 'off'>('lines');
   const reduced = !!useReducedMotion(), id = problem.geometry, scalar = problem.quantity === 'V', surface = id === 'disk' || id === 'sheet', perspective = surface || id === 'ring';
   // The ramp is the endpoint rod with a non-uniform density: same layout, different charge.
   const footed = id === 'endpoint' || id === 'ramp', ramp = id === 'ramp';
@@ -308,7 +309,7 @@ export function ChargeDiagram({ problem, params: p, setParams, count, continuum,
         drift. Planar lessons only for now: the perspective geometries need their lines
         traced in three dimensions and sorted against the surface, a different job. */}
     <div className="cd-stage">
-    {!inSpace && !scalar && <FieldCanvas samples={samples} project={project} frame={{ width: 720, height: 430 }} />}
+    {!inSpace && !scalar && fieldView !== 'off' && <FieldCanvas samples={samples} project={project} frame={{ width: 720, height: 430 }} mode={fieldView} reach={Math.max(2.5, p.distance * 1.7, p.size)} />}
     {inSpace && perspective && <FieldStage kind={id === 'ring' ? 'ring' : id === 'disk' ? 'disk' : 'sheet'} samples={samples} selected={selectedIndex}
       radius={R} distance={p.distance} yaw={view.yaw} pitch={view.pitch}
       unit={unit} frame={{ width: 720, height: 430 }} origin={O} charge={p.charge} animating={activeDrag}
@@ -466,6 +467,12 @@ export function ChargeDiagram({ problem, params: p, setParams, count, continuum,
         onClick={() => { setSpatial(wants); if (wants) commitView(DEFAULT_CAMERA); }}>{label}</button>)}
       <span className="cd-view-hint">{inSpace ? 'Drag, scroll, or use the arrow keys to turn it' : 'Flat on, looking straight down the axis'}</span>
     </div>
+    {!inSpace && !scalar && <div className="cd-view-modes" role="group" aria-label="How to show the field around the charge">
+      {([['Field lines', 'lines'], ['Arrows', 'vectors'], ['Off', 'off']] as const).map(([label, value]) => <button key={value} type="button"
+        className={`cd-view-mode${fieldView === value ? ' is-on' : ''}`} aria-pressed={fieldView === value}
+        onClick={() => setFieldView(value)}>{label}</button>)}
+      <span className="cd-view-hint">{fieldView === 'lines' ? 'Crowded lines mean a stronger field' : fieldView === 'vectors' ? 'Each arrow is the field where it sits' : 'Just the construction'}</span>
+    </div>}
     {inSpace && <div className="cd-orbit-chrome"><span>Drag to rotate, or use the view control above</span><button type="button" className="cd-orbit-reset" onClick={() => commitView({...DEFAULT_CAMERA})} disabled={camera.yaw === DEFAULT_CAMERA.yaw && camera.pitch === DEFAULT_CAMERA.pitch}>Reset view</button></div>}
     <div className="cd-caption"><span><i className="cd-dot" />{sourceText}</span><span>{!full?'Selected interval':mode === 'sum' || mode === 'integrate' ? `${Math.round(progress*100)}% accumulated` : continuum >= .999 ? 'Infinitesimal limit' : 'Finite elements'}</span></div>
   </div>;

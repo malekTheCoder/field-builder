@@ -3,6 +3,7 @@ import {useEffect,useMemo,useRef} from 'react';
 import type {ChargeSample} from '../distributions/types';
 import type {Vec} from '../symbolic/physics';
 import {fieldLines,type Plane} from './fieldlines';
+import {arrowLength,vectorGrid} from './vectorfield';
 /** The field itself, under the construction drawing.
  *
  * SVG is the right medium for the things that must stay crisp and reachable — labels,
@@ -18,11 +19,15 @@ export type FieldCanvasProps={
  /** The SVG's viewBox, so the canvas can map into the identical space. */
  frame:{width:number;height:number};
  lines?:number;
+ /** Lines show where the field goes; arrows show how hard it pushes at a chosen place. */
+ mode?:'lines'|'vectors';
+ /** World extent the arrows cover, and how far apart to place them. */
+ reach?:number;
  className?:string;
 };
 /** Tracing is far heavier than drawing, so it runs on the charge alone and is reused while
  * the camera, the highlight or the selected element change. */
-export function FieldCanvas({samples,project,frame,lines=15,className=''}:FieldCanvasProps){
+export function FieldCanvas({samples,project,frame,lines=15,mode='lines',reach=6,className=''}:FieldCanvasProps){
  const canvas=useRef<HTMLCanvasElement>(null),box=useRef<HTMLDivElement>(null);
  const traced=useMemo(()=>{
   if(!samples.length)return [];
@@ -33,24 +38,56 @@ export function FieldCanvas({samples,project,frame,lines=15,className=''}:FieldC
   const reach=Math.max(...coarse.map(s=>Math.hypot(s.position.x,s.position.y,s.position.z)),1);
   return fieldLines(coarse,lines,{step:reach*.05,maxSteps:420,outerLimit:reach*9});
  },[samples,lines]);
+ const arrows=useMemo(()=>{
+  if(mode!=='vectors'||!samples.length)return [];
+  const stride=Math.max(1,Math.ceil(samples.length/64));
+  const coarse=samples.filter((_,i)=>i%stride===0);
+  const spacing=reach/7;
+  return vectorGrid(coarse,{x0:-reach,y0:-reach,x1:reach,y1:reach},spacing).map(a=>({...a,spacing}));
+ },[samples,mode,reach]);
  useEffect(()=>{
   const el=canvas.current,host=box.current;
   if(!el||!host)return;
   let frameId=0;
   const draw=()=>{
-   const rect=host.getBoundingClientRect();
-   if(rect.width<2||rect.height<2)return;
+   // clientWidth, not getBoundingClientRect: the rect is in visual pixels and so includes
+   // any page zoom or CSS transform above us. Writing that back as the element's CSS size
+   // feeds the zoom into the element itself, and the canvas grows every pass — it reached
+   // 5280px inside a 2031px box before this was caught. The CSS already sizes the element
+   // at 100%; only the backing store is set here.
+   const w=host.clientWidth,h=host.clientHeight;
+   if(w<2||h<2)return;
    const dpr=Math.min(window.devicePixelRatio||1,2);
-   el.width=Math.round(rect.width*dpr);el.height=Math.round(rect.height*dpr);
-   el.style.width=`${rect.width}px`;el.style.height=`${rect.height}px`;
+   el.width=Math.round(w*dpr);el.height=Math.round(h*dpr);
    const ctx=el.getContext('2d');
    if(!ctx)return;
-   ctx.setTransform(dpr*rect.width/frame.width,0,0,dpr*rect.height/frame.height,0,0);
+   ctx.setTransform(dpr*w/frame.width,0,0,dpr*h/frame.height,0,0);
    ctx.clearRect(0,0,frame.width,frame.height);
    // The lines are scenery for the construction on top, so they are drawn thin and faint.
    // Reading a value off them is not the point; seeing the shape of the field is.
    ctx.lineWidth=1.1;ctx.lineCap='round';ctx.lineJoin='round';
-   ctx.strokeStyle=getComputedStyle(host).getPropertyValue('--field-line').trim()||'rgba(120,160,175,.5)';
+   const stroke=getComputedStyle(host).getPropertyValue('--field-line').trim()||'rgba(120,160,175,.5)';
+   ctx.strokeStyle=stroke;
+   if(mode==='vectors'){
+    for(const a of arrows){
+     const half=arrowLength(a.weight,a.spacing)/2;
+     const tail=project({x:a.at.x-a.dir.x*half,y:a.at.y-a.dir.y*half,z:0});
+     const head=project({x:a.at.x+a.dir.x*half,y:a.at.y+a.dir.y*half,z:0});
+     if(![tail.x,tail.y,head.x,head.y].every(Number.isFinite))continue;
+     // Weight reads twice — once as length, once as weight of line — so a strong arrow is
+     // unmistakable even where the grid is dense.
+     ctx.globalAlpha=.28+.62*a.weight;ctx.lineWidth=.9+1.3*a.weight;
+     const dx=head.x-tail.x,dy=head.y-tail.y,len=Math.hypot(dx,dy)||1;
+     const ux=dx/len,uy=dy/len,barb=Math.min(5.5,len*.42);
+     ctx.beginPath();ctx.moveTo(tail.x,tail.y);ctx.lineTo(head.x,head.y);
+     ctx.moveTo(head.x-barb*(ux*.87-uy*.5),head.y-barb*(uy*.87+ux*.5));
+     ctx.lineTo(head.x,head.y);
+     ctx.lineTo(head.x-barb*(ux*.87+uy*.5),head.y-barb*(uy*.87-ux*.5));
+     ctx.stroke();
+    }
+    ctx.globalAlpha=1;
+    return;
+   }
    for(const line of traced){
     const screen=line.map(p=>project({x:p.x,y:p.y,z:0}));
     ctx.beginPath();
@@ -66,7 +103,7 @@ export function FieldCanvas({samples,project,frame,lines=15,className=''}:FieldC
   const observer=new ResizeObserver(()=>{cancelAnimationFrame(frameId);frameId=requestAnimationFrame(draw);});
   observer.observe(host);
   return ()=>{cancelAnimationFrame(frameId);observer.disconnect();};
- },[traced,project,frame.width,frame.height]);
+ },[traced,arrows,mode,project,frame.width,frame.height]);
  return <div ref={box} className={`cd-field-canvas ${className}`} aria-hidden="true"><canvas ref={canvas}/></div>;
 }
 export type {Plane};

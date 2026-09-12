@@ -84,9 +84,11 @@ export function FieldStage(props:FieldStageProps){
    scene.add(axis);
    let disposed=false;
    const apply=(p:FieldStageProps)=>{
-    const rect=mount.getBoundingClientRect();
-    if(rect.width<2||rect.height<2)return;
-    renderer.setSize(rect.width,rect.height,false);
+    // clientWidth for the same reason the 2D layer uses it: a bounding rect carries page
+    // zoom, and sizing a drawing buffer from it makes the buffer grow with the zoom.
+    const w=mount.clientWidth,h=mount.clientHeight;
+    if(w<2||h<2)return;
+    renderer.setSize(w,h,false);
     const f=frustum(p.frame.width,p.frame.height,p.unit);
     camera.left=f.left;camera.right=f.right;camera.top=f.top;camera.bottom=f.bottom;
     const view=p.animating&&p.getView?p.getView():{yaw:p.yaw,pitch:p.pitch};
