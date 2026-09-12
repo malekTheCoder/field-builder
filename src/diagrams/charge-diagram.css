@@ -154,6 +154,15 @@
 /* The 3D body sits with the field layer, beneath every label and control. */
 .cd-field-stage{position:absolute;inset:0;pointer-events:none;z-index:0}
 .cd-field-stage canvas{display:block;width:100%;height:100%}
+.cd-stage-gl{position:absolute;inset:0}
+/* The numbers on the axis ticks, in the page rather than in the scene: crisp at any size, and
+   theirs is the theme's ink. `inline-size` containment gives them cqw, so they grow and shrink
+   with the figure exactly as the SVG's own text does -- with a floor, because a number too
+   small to read is worse than no number. */
+.cd-stage-ticks{position:absolute;inset:0;container-type:inline-size;pointer-events:none}
+.cd-stage-tick{position:absolute;transform:translate(-50%,-50%);white-space:nowrap;line-height:1;
+ font-family:var(--font-mono,'SFMono-Regular',Consolas,monospace);font-size:clamp(10px,1.7cqw,16px);
+ font-weight:600;font-variant-numeric:tabular-nums;color:color-mix(in oklab,var(--cd-ink) 68%,transparent)}
 
 /* The sweep that fills the disk ring by ring. It had no rule at all, so SVG painted it the
    default black and the flagship "a disk is a stack of rings" animation read as a hole

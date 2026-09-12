@@ -190,3 +190,34 @@ describe('the same rule in space',()=>{
   for(const q of meridianLines(ring,'wire',12,{outerLimit:6,maxSteps:200}).flat())expect(Math.abs(q.y)).toBeLessThan(.06);
  });
 });
+describe('the sheet, whose partition defeats flux seeding',()=>{
+ // Every other lesson is cut evenly enough that seeding by charge lands seeds across the
+ // drawing. The sheet is cut at |z|·tan(pi t/2), so its outermost annulus is not merely the
+ // biggest -- it holds most of the charge on the plane, and sits tens of metres out. Choosing
+ // elements by |dq| therefore put EVERY seed beyond the drawn region, every line left the
+ // picture within a step or two, and all of them were discarded: the lesson about the field of
+ // an infinite sheet drew no field at all.
+ const sheet=sampleDistribution('sheet',DEFAULT_PARAMS,24);
+ it('holds most of its charge in the last ring, which is what breaks the seeding',()=>{
+  const dq=sheet.map(s=>Math.abs(s.dq)),total=dq.reduce((a,b)=>a+b,0);
+  expect(dq[dq.length-1]/total).toBeGreaterThan(.5);
+  expect(Math.abs(sheet[sheet.length-1].coordinate)).toBeGreaterThan(10*DEFAULT_PARAMS.distance);
+ });
+ it('seeds inside the picture, not out where the charge happens to be',()=>{
+  const limit=DEFAULT_PARAMS.distance*2.5;
+  const seeds=spaceSeeds(sheet,'surface',24,.2,4,limit);
+  expect(seeds.length).toBeGreaterThan(4);
+  for(const s of seeds)expect(Math.hypot(s.x,s.y),`seed at ${Math.hypot(s.x,s.y).toFixed(1)} m`).toBeLessThanOrEqual(limit);
+ });
+ it('actually draws lines for it',()=>{
+  const lines=spaceLines(sheet,'surface',24,{outerLimit:DEFAULT_PARAMS.distance*2.5,maxSteps:300});
+  expect(lines.length,'the infinite sheet drew no field lines').toBeGreaterThan(4);
+  for(const line of lines)expect(line.length).toBeGreaterThan(3);
+ });
+ it('sends them away from the plane on both faces, since that is the whole result',()=>{
+  const lines=spaceLines(sheet,'surface',24,{outerLimit:DEFAULT_PARAMS.distance*2.5,maxSteps:300});
+  const ends=lines.map(l=>l[l.length-1].z-l[0].z);
+  expect(ends.some(d=>d>0),'no line ran up off the sheet').toBe(true);
+  expect(ends.some(d=>d<0),'no line ran down off the sheet').toBe(true);
+ });
+});

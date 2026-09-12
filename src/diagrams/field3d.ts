@@ -73,6 +73,10 @@ function drawnPoints(cell:number){
  };
 }
 export type TraceOptions={step?:number;maxSteps?:number;outerLimit?:number;sign?:number;
+ /** How far out lines may START, as opposed to how far they may run. The two differ on the
+  * sheet: a line may usefully run well past the edge of the drawing, but one that BEGINS out
+  * there is drawn entirely off the picture. Defaults to `outerLimit`. */
+ seedLimit?:number;
  /** How close to a point charge counts as having arrived. */
  arrive?:number;
  /** Jobard and Lefer's dtest rule, and only that rule — their even seeding would destroy
@@ -123,7 +127,7 @@ function chosen(samples:readonly ChargeSample[],wanted:number):number[]{
 /** Seeds around a wire: a few directions perpendicular to it at each chosen element, so the
  * lines leave the wire on every side rather than only in one plane. Around a surface: points
  * on the chosen annulus at several azimuths, launched off both faces. */
-export function spaceSeeds(samples:readonly ChargeSample[],layout:Layout,count:number,offset:number,around=4):Vec[]{
+export function spaceSeeds(samples:readonly ChargeSample[],layout:Layout,count:number,offset:number,around=4,limit=Infinity):Vec[]{
  const seeds:Vec[]=[];
  if(samples.length<2)return seeds;
  if(layout==='wire'){
@@ -144,8 +148,24 @@ export function spaceSeeds(samples:readonly ChargeSample[],layout:Layout,count:n
   return seeds;
  }
  const wanted=Math.max(1,Math.round(count/(around*2)));
- for(const i of chosen(samples,wanted)){
-  const r=Math.max(Math.abs(samples[i].coordinate),offset*.5);
+ // Choose only among the rings that are actually on the picture.
+ //
+ // Seeding by charge is what makes crowding mean field strength, and on every other lesson the
+ // partition is even enough that it lands seeds across the drawing. The sheet is cut at
+ // |z|·tan(pi t/2), so its outermost ring is not merely the widest: it carries most of the
+ // charge on the plane and sits tens of metres out. Choosing by |dq| alone put EVERY seed
+ // beyond the frame -- measured at 91 m against a drawn region of 7.5 -- every line left the
+ // picture within a step, and all of them were discarded. The lesson about the field of an
+ // infinite sheet drew no field at all.
+ //
+ // Restricting the choice does not weaken the meaning: within the visible rings the seeding is
+ // still proportional to charge, and since a ring at radius s carries charge proportional to
+ // s ds, that is a constant number of lines per unit area -- which is exactly the uniform
+ // field an infinite sheet has. The disk, whose rings all lie on the picture, is unchanged.
+ const near=samples.filter(s=>Math.abs(s.coordinate)<=limit);
+ const pool=near.length?near:samples.slice(0,Math.max(1,Math.ceil(samples.length/4)));
+ for(const i of chosen(pool,wanted)){
+  const r=Math.max(Math.abs(pool[i].coordinate),offset*.5);
   for(let k=0;k<around;k++){
    const a=2*Math.PI*(k+.5)/around+i*.37;
    seeds.push({x:r*Math.cos(a),y:r*Math.sin(a),z:offset});
@@ -158,7 +178,7 @@ export function spaceSeeds(samples:readonly ChargeSample[],layout:Layout,count:n
 export function spaceLines(samples:readonly ChargeSample[],layout:Layout,count:number,options:TraceOptions={}):Vec[][]{
  const points=cloud(samples,layout),arrive=Math.max(ARRIVED,.55*typicalSpacing(points));
  const reach=Math.max(...samples.map(s=>LEN(s.position)),.5);
- const seeds=spaceSeeds(samples,layout,count,Math.max(arrive*1.6,reach*.06));
+ const seeds=spaceSeeds(samples,layout,count,Math.max(arrive*1.6,reach*.06),4,options.seedLimit??options.outerLimit??Infinity);
  // Both halves are traced against the grid as it stood BEFORE this line, then added
  // together: otherwise the second half stops against the first at the seed they share.
  const crowd=options.crowd??reach*.012;
