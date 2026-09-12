@@ -49,6 +49,9 @@ const GLYPHS:Record<ProblemId,React.ReactNode>={
 // The inline SVG is a named figure, not an external bitmap.
 // oxlint-disable-next-line jsx-a11y/prefer-tag-over-role
 function ShapeGlyph({id,size=18}:{id:ProblemId;size?:number}){const label=PROBLEMS.find(p=>p.id===id)?.short??id;return <svg width={size} height={size} viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" role="img" aria-label={label}>{GLYPHS[id]}</svg>}
+/** How long a parameter must hold still before it is written anywhere. Long enough that a
+ * drag writes once at the end, short enough to survive a quick change and a reload. */
+const SETTLE=220;
 const STORAGE='field-builder:explorer:v1';
 // Variable-first: every control is named by its symbol. The words are the
 // gloss, the number is the consequence — so the symbol is set large in the
@@ -63,8 +66,19 @@ export default function Explorer(){
  // oxlint-disable-next-line react/react-compiler
  useEffect(()=>{try{const raw=localStorage.getItem(STORAGE);const parsed=raw?JSON.parse(raw):null;const saved=parsed&&typeof parsed==='object'&&!Array.isArray(parsed)?parsed:{};const pm:Partial<Record<ProblemId,Params>>={};for(const pr of PROBLEMS)if(saved.params?.[pr.id])pm[pr.id]=cleanParams(saved.params[pr.id]);const url=parseAssignment(typeof location==='undefined'?'':location.search);const assigned=!!(url.id||url.mode||url.params||url.pair||url.components);if(url.id)setId(url.id);else if(PROBLEMS.some(p=>p.id===saved.id))setId(saved.id);setDark(saved.dark===true);setShowNumbers(saved.showNumbers===true);setSidebarOpen(saved.sidebarOpen!==false);if(url.params){const target=url.id??(PROBLEMS.some(p=>p.id===saved.id)?saved.id as ProblemId:'bisector');pm[target]=cleanParams({...(pm[target]??DEFAULT_PARAMS),...url.params});}setParamsMap(pm);if(url.mode)setMode(url.mode);if(url.pair)setPair(true);if(url.components)setComponents(true);setSeen(!!saved.seen);setOnboarding(assigned?false:!saved.seen);}catch{setStorageOK(false);setOnboarding(true)}setReady(true);return()=>{run.current?.stop();morph.current?.stop()}},[]);
  // oxlint-disable-next-line react/react-compiler -- Synchronize persisted preferences; quota/security errors update the save indicator.
- useEffect(()=>{document.documentElement.classList.toggle('dark',dark);if(ready)try{localStorage.setItem(STORAGE,JSON.stringify({id,dark,params:paramsMap,seen,showNumbers,sidebarOpen}))}catch{setStorageOK(false)}},[id,dark,paramsMap,ready,seen,practice,showNumbers,sidebarOpen]);
- useEffect(()=>{if(!ready||typeof history==='undefined')return;const q=serializeAssignment({id,mode,params,pair,components});const next=q?`?${q}`:location.pathname||'/';if(`${location.search}`!==(q?`?${q}`:'') )history.replaceState(null,'',next);},[ready,id,mode,params,pair,components]);
+ useEffect(()=>{document.documentElement.classList.toggle('dark',dark)},[dark]);
+ // Persistence is debounced because a drag changes a parameter every frame. Writing the
+ // whole parameter map to localStorage per frame is a synchronous serialize-and-store on
+ // the main thread, and writing the URL per frame trips the browser's own rate limit --
+ // Safari and Chrome throw SecurityError past 100 replaceState calls in 10 seconds, which
+ // reached the error boundary and took the whole view down mid-drag. Only the settled
+ // value is written; React clears the pending timer on every change.
+ useEffect(()=>{if(!ready)return;const t=setTimeout(()=>{try{localStorage.setItem(STORAGE,JSON.stringify({id,dark,params:paramsMap,seen,showNumbers,sidebarOpen}))}catch{setStorageOK(false)}},SETTLE);return()=>clearTimeout(t)},[id,dark,paramsMap,ready,seen,practice,showNumbers,sidebarOpen]);
+ useEffect(()=>{if(!ready||typeof history==='undefined')return;
+  const t=setTimeout(()=>{const q=serializeAssignment({id,mode,params,pair,components});const next=q?`?${q}`:location.pathname||'/';
+   // Still guarded: a throw here would reach the error boundary and blank the lesson.
+   if(`${location.search}`!==(q?`?${q}`:''))try{history.replaceState(null,'',next)}catch{/* rate-limited or blocked: the URL is a convenience, the lesson is not */}},SETTLE);
+  return()=>clearTimeout(t)},[ready,id,mode,params,pair,components]);
 
  const activeIndex=playing?activeIntervalIndex(count,bounds,progress):Math.min(count-1,Math.max(0,selected));
  // Walking the derivation: each step lights one feature on the figure and adds its factor

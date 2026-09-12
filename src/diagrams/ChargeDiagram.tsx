@@ -80,7 +80,11 @@ export function ChargeDiagram({ problem, params: p, setParams, count, continuum,
   const view = inSpace ? camera : FLAT;
   // How far out to draw the field, in world metres: past P and past the charge, capped so a
   // long rod does not shrink its own field to a smear.
-  const fieldReach = Math.min(9, Math.max(2.5, p.distance * 1.6, perspective ? p.size * 1.1 : p.size * 1.1));
+  // How far out to draw the field is set by the CHARGE, never by where P happens to be.
+  // Tying it to P meant every drag rebuilt every streamline and every arrow -- a third of a
+  // second of tracing, mid-gesture -- to change nothing but how far the scenery extended.
+  // The charge does not move while P does, so the field it makes does not either.
+  const fieldReach = Math.round(Math.min(9, Math.max(3.5, p.size * 1.5)) * 2) / 2;
   // An orbit drag writes a SVG matrix from motion values; setState would rebuild the tree every frame.
   const [activeDrag,setActiveDrag] = useState(false);
   const still = reduced || activeDrag || gliding, moving = activeDrag || gliding;

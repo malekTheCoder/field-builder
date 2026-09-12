@@ -33,6 +33,17 @@ export type FieldCanvasProps={
  * the camera, the highlight or the selected element change. */
 export function FieldCanvas({samples,project,frame,lines=15,mode='lines',reach=6,plane='xy',layout='wire',className=''}:FieldCanvasProps){
  const canvas=useRef<HTMLCanvasElement>(null),box=useRef<HTMLDivElement>(null);
+ // Tracing depends on the charge alone -- positions and dq -- never on where P is. For
+ // twelve of the fifteen geometries those are identical from frame to frame while P is
+ // dragged, so keying the trace on the array's identity retraced every streamline for
+ // nothing. This summarises the charge instead; the three unbounded lessons genuinely do
+ // move their charge with P, and their key changes, so they still retrace.
+ const chargeKey=useMemo(()=>{let h=17;for(const s of samples){h=(h*31+Math.round(s.position.x*1e4))|0;h=(h*31+Math.round(s.position.y*1e4))|0;h=(h*31+Math.round(s.position.z*1e4))|0;h=(h*31+Math.round(s.dq*1e18))|0;}return `${samples.length}:${h}`},[samples]);
+ /* Both memos below key on `chargeKey`, not on `samples`. That is the whole point: the
+    array is rebuilt every frame while P is dragged, but the charge it describes is not, and
+    depending on the array retraced every streamline for nothing. */
+ /* oxlint-disable react-hooks/exhaustive-deps */
+ /* oxlint-disable react/react-compiler */
  const traced=useMemo(()=>{
   if(!samples.length)return [];
   // A hundred-element partition and a twenty-element one give the same field to well
@@ -42,7 +53,7 @@ export function FieldCanvas({samples,project,frame,lines=15,mode='lines',reach=6
   const reach=Math.max(...coarse.map(s=>Math.hypot(s.position.x,s.position.y,s.position.z)),1);
   if(plane==='xz')return meridianLines(coarse,layout,lines,{step:reach*.05,maxSteps:420,outerLimit:reach*9}).map(line=>line.map(v=>({x:v.x,y:v.z})));
   return fieldLines(coarse,lines,{step:reach*.05,maxSteps:420,outerLimit:reach*9});
- },[samples,lines,plane,layout]);
+ },[chargeKey,lines,plane,layout]);
  const arrows=useMemo(()=>{
   if(mode!=='vectors'||!samples.length)return [];
   const stride=Math.max(1,Math.ceil(samples.length/64));
@@ -50,7 +61,9 @@ export function FieldCanvas({samples,project,frame,lines=15,mode='lines',reach=6
   const spacing=reach/7;
   if(plane==='xz')return spaceGrid(coarse,reach,spacing,.12,'xz',layout).map(a=>({at:{x:a.at.x,y:a.at.z},dir:{x:a.dir.x,y:a.dir.z},magnitude:a.magnitude,weight:a.weight,spacing}));
   return vectorGrid(coarse,{x0:-reach,y0:-reach,x1:reach,y1:reach},spacing).map(a=>({...a,spacing}));
- },[samples,mode,reach,plane,layout]);
+ },[chargeKey,mode,reach,plane,layout]);
+ /* oxlint-enable react/react-compiler */
+ /* oxlint-enable react-hooks/exhaustive-deps */
  useEffect(()=>{
   const el=canvas.current,host=box.current;
   if(!el||!host)return;
