@@ -14,7 +14,7 @@ import {partitionCount} from '../diagrams/subdivision';
 import {cleanParams,parseAssignment,serializeAssignment,type ExploreMode} from '../state/assignment';
 import {ChargeDiagram} from '../diagrams/ChargeDiagram';
 import {termsFor} from '../workbench/assembly';
-import {describe as describeGuess} from '../workbench/prediction';
+import {phrase as phraseGuess,read as readGuess} from '../workbench/prediction';
 import {EquationWorkbench} from '../components/EquationWorkbench';
 import {Onboarding} from '../components/Onboarding';
 import {MathText} from '../components/Math';
@@ -128,10 +128,13 @@ export default function Explorer(){
 </div>
 {!scalar&&<div className={"exp-predict"+(predicting?" is-open":"")}>
   {!predicting&&!guess&&<button type="button" className="text-button" onClick={()=>{setPredicting(true);setGuess(null)}}>Predict the field first</button>}
-  {predicting&&<><span className="exp-predict-ask">Aim the dashed arrow where you think the field points at P, and how strong. The field stays hidden until you look.</span>
+  {predicting&&<><span className="exp-predict-ask">Aim the dashed arrow the way you think the field points at P. Direction only — the strength is not something you can eyeball. The field stays hidden until you look.</span>
     <span className="exp-predict-actions"><button type="button" className="secondary-button" onClick={()=>setPredicting(false)}>Show the field</button>
     <button type="button" className="text-button" onClick={()=>{setPredicting(false);setGuess(null)}}>Skip</button></span></>}
-  {!predicting&&guess&&<><span className="exp-predict-verdict">{describeGuess(guess,netScreen)}</span>
+  {!predicting&&guess&&<><span className="exp-predict-verdict">{phraseGuess(readGuess(guess,netScreen),params.charge>=0)}{' '}
+    {/* The reason is the lesson's own symmetry argument: what cancels here, and why. That
+        is the physics the prediction was for; a reading of the geometry alone is not. */}
+    <span className="exp-predict-why">{p.symmetry.text}</span></span>
     <span className="exp-predict-actions"><button type="button" className="text-button" onClick={()=>{setPredicting(true)}}>Guess again</button>
     <button type="button" className="text-button" onClick={()=>setGuess(null)}>Clear</button></span></>}
 </div>}</section>

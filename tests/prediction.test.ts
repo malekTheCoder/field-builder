@@ -1,87 +1,75 @@
 import {describe,expect,it} from 'vitest';
-import {compare,describe as say,strayComponent,type Plane} from '../src/workbench/prediction';
+import {angleBetween,phrase,read,strayComponent,type Plane} from '../src/workbench/prediction';
 const v=(x:number,y:number):Plane=>({x,y});
-describe('comparing a guess with the field',()=>{
- it('reads a perfect guess as agreement, in both direction and length',()=>{
-  const c=compare(v(3,4),v(3,4));
-  expect(c.angle).toBeCloseTo(0,12);expect(c.ratio).toBeCloseTo(1,12);
-  expect(c.aligned).toBe(true);expect(c.vanishing).toBe(false);
+const both=(r:ReturnType<typeof read>)=>[phrase(r,true),phrase(r,false)];
+describe('reading a guess against the field',()=>{
+ it('reads only the direction, at any length, because magnitude was never asked for',()=>{
+  // The same direction at a tenth and at a hundred times the length is the same answer.
+  for(const k of [.01,.5,1,7,140])expect(read(v(3*k,4*k),v(3,4))).toBe('aligned');
  });
- it('measures the angle between the arrows regardless of their lengths',()=>{
-  expect(compare(v(1,0),v(0,1)).angle).toBeCloseTo(90,10);
-  expect(compare(v(50,0),v(0,.001)).angle).toBeCloseTo(90,10);
-  expect(compare(v(1,0),v(-1,0)).angle).toBeCloseTo(180,10);
-  expect(compare(v(1,1),v(1,0)).angle).toBeCloseTo(45,10);
+ it('is generous about a hand-aimed arrow, and firm about a real disagreement',()=>{
+  expect(read(v(1,0),v(1,.2))).toBe('aligned');      // ~11 degrees: arguing, not measuring
+  expect(read(v(1,0),v(1,1))).toBe('off');           // 45
+  expect(read(v(1,0),v(0,1))).toBe('across');        // 90
+  expect(read(v(1,0),v(-1,.1))).toBe('opposite');    // ~174
  });
- it('measures length as a ratio, which is what the two arrows look like',()=>{
-  expect(compare(v(2,0),v(1,0)).ratio).toBeCloseTo(2,12);
-  expect(compare(v(1,0),v(4,0)).ratio).toBeCloseTo(.25,12);
+ it('knows the ring centre has no direction to guess at',()=>{
+  expect(read(v(1,0),v(0,0))).toBe('vanishing');
+  expect(read(v(0,0),v(0,0))).toBe('vanishing');
  });
- it('treats a near miss as agreement, so the remaining sliver is not the lesson',()=>{
-  expect(compare(v(1,0),v(1,0.08)).aligned).toBe(true);
-  expect(compare(v(1.1,0),v(1,0)).aligned).toBe(true);
-  // Far enough out to be worth saying something about.
-  expect(compare(v(1,0),v(1,1)).aligned).toBe(false);
-  expect(compare(v(3,0),v(1,0)).aligned).toBe(false);
+ it('asks for an arrow rather than judging an absent one',()=>{
+  expect(read(v(0,0),v(1,0))).toBe('none');
  });
- it('handles the ring centre, where the field really is zero',()=>{
-  const none=compare(v(0,0),v(0,0));
-  expect(none.vanishing).toBe(true);expect(none.aligned).toBe(true);
-  const drewOne=compare(v(1,0),v(0,0));
-  expect(drewOne.vanishing).toBe(true);expect(drewOne.aligned).toBe(false);
- });
- it('handles no guess yet without dividing by zero',()=>{
-  const c=compare(v(0,0),v(1,0));
-  expect(c.ratio).toBe(0);expect(c.aligned).toBe(false);expect(Number.isFinite(c.angle)).toBe(true);
- });
- it('never returns an angle outside 0 to 180, even for hostile input',()=>{
-  for(const [a,b] of [[v(1e-9,0),v(1e9,0)],[v(-1e9,1e9),v(1e-9,-1e-9)],[v(1,0),v(1,0)]] as [Plane,Plane][]){
-   const {angle}=compare(a,b);
-   expect(angle).toBeGreaterThanOrEqual(0);expect(angle).toBeLessThanOrEqual(180);
-   expect(Number.isNaN(angle)).toBe(false);
-  }
+ it('measures the angle only to choose a sentence, never to report one',()=>{
+  expect(angleBetween(v(1,0),v(0,1))).toBeCloseTo(90,10);
+  expect(angleBetween(v(1,0),v(-1,0))).toBeCloseTo(180,10);
+  expect(angleBetween(v(50,0),v(.001,0))).toBeCloseTo(0,10);
+  // degenerate input must not produce NaN, since it picks a branch
+  for(const [a,b] of [[v(0,0),v(1,0)],[v(1,0),v(0,0)],[v(0,0),v(0,0)]] as [Plane,Plane][])
+   expect(Number.isFinite(angleBetween(a,b))).toBe(true);
  });
 });
 describe('what the student is told',()=>{
+ const readings=['none','vanishing','aligned','across','opposite','off'] as const;
  it('never marks the guess right or wrong',()=>{
-  const forbidden=/\b(correct|incorrect|wrong|right answer|good|bad|well done|try again|score|points?)\b/i;
-  const cases:[Plane,Plane][]=[[v(1,0),v(1,0)],[v(1,0),v(0,1)],[v(1,0),v(-1,0)],[v(5,0),v(1,0)],[v(.2,0),v(1,0)],
-   [v(0,0),v(1,0)],[v(0,0),v(0,0)],[v(1,0),v(0,0)],[v(1,1),v(1,0)],[v(1,.05),v(1,0)]];
-  for(const [g,t] of cases){
-   const line=say(g,t);
-   expect(line,`${JSON.stringify(g)} vs ${JSON.stringify(t)}`).not.toMatch(forbidden);
-   expect(line.length).toBeGreaterThan(10);
-   expect(line).not.toMatch(/\\[a-zA-Z]+/); // spoken aloud, never through KaTeX
-   expect(line.trim()).toBe(line);
+  // "point" is unavoidable vocabulary when the whole subject is which way something points,
+  // so only the scoring senses are forbidden.
+  const forbidden=/\b(correct|incorrect|wrong|right answer|good|bad|well done|try again|scored?|mastery|marks?|\d+\s*points?|points? (earned|awarded|lost))\b/i;
+  for(const r of readings)for(const line of both(r)){
+   expect(line,r).not.toMatch(forbidden);
+   expect(line.length,r).toBeGreaterThan(10);
+   expect(line,r).not.toMatch(/\\[a-zA-Z]+/);   // spoken aloud, never through KaTeX
+   expect(line.trim(),r).toBe(line);
   }
  });
- it('separates a direction miss from a length miss',()=>{
-  expect(say(v(2,0),v(1,0))).toMatch(/right direction/i);
-  expect(say(v(2,0),v(1,0))).toMatch(/too long/);
-  expect(say(v(0,1),v(1,0))).toMatch(/right length/i);
-  expect(say(v(0,1),v(1,0))).toMatch(/right angles/);
-  expect(say(v(1,0),v(1,0))).toMatch(/agree/);
+ it('never reports a number — no degrees, no percentages, no ratios',()=>{
+  // A measurement is not an explanation. "Forty degrees off" teaches nothing about why.
+  for(const r of readings)for(const line of both(r)){
+   expect(line,r).not.toMatch(/\d/);
+   expect(line,r).not.toMatch(/\b(degrees?|percent|times|longer|shorter|too (long|short))\b/i);
+  }
  });
- it('explains a zero field instead of calling an empty guess correct',()=>{
-  expect(say(v(0,0),v(0,0))).toMatch(/no field here|cancelling/i);
-  expect(say(v(1,0),v(0,0))).toMatch(/zero/i);
-  // The reason is the teaching, so the pairing has to be named.
-  expect(say(v(1,0),v(0,0))).toMatch(/partner|cancel/i);
+ it('explains the physics of the direction rather than the geometry of the miss',()=>{
+  expect(phrase('across',true)).toMatch(/cancel/i);
+  expect(phrase('across',true)).toMatch(/pairs?/i);
+  expect(phrase('vanishing',true)).toMatch(/zero/i);
+  expect(phrase('vanishing',true)).toMatch(/partner|cancel/i);
  });
- it('asks for an arrow rather than judging an empty one',()=>{
-  expect(say(v(0,0),v(1,0))).toMatch(/drag/i);
+ it('gets the sign of the charge right, since which way "away" runs depends on it',()=>{
+  expect(phrase('opposite',true)).toMatch(/away from positive/i);
+  expect(phrase('opposite',false)).toMatch(/toward negative/i);
+  expect(phrase('opposite',true)).not.toMatch(/toward negative/i);
  });
- it('reports a reversed arrow as opposite, not as a large angle',()=>{
-  expect(say(v(-1,0),v(1,0))).toMatch(/opposite way/);
+ it('asks for an arrow when there is none, without comment on the reader',()=>{
+  expect(phrase('none',true)).toMatch(/aim/i);
  });
 });
 describe('the component that should not be there',()=>{
- it('is zero when the guess lies along the field',()=>{
+ it('is zero when the guess lies along the field, at any length or sign',()=>{
   expect(strayComponent(v(3,0),v(1,0))).toBeCloseTo(0,12);
   expect(strayComponent(v(-5,0),v(1,0))).toBeCloseTo(0,12);
  });
  it('measures what a student added along the axis the geometry cancels',()=>{
-  // A rod on its bisector has no field along the rod; expecting one is the misconception.
   expect(strayComponent(v(1,1),v(1,0))).toBeCloseTo(1,12);
   expect(strayComponent(v(0,4),v(1,0))).toBeCloseTo(4,12);
  });

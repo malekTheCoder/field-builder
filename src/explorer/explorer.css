@@ -267,3 +267,7 @@
 .exp-parameters .exp-reset{align-self:end;padding:6px;color:var(--muted-foreground)}
 .exp-walk-extra{display:flex;align-items:center;gap:14px;flex:1;min-width:16rem}
 .exp-walk-extra .exp-range{flex:1;min-width:10rem}
+
+/* The reading of the arrow, then the reason it holds. The reason is the longer half and
+   the one worth reading, so it is not dimmed into a footnote. */
+.exp-predict-why{color:var(--muted-foreground)}

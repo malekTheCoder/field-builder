@@ -30,6 +30,9 @@ export type ChargeDiagramProps = {
   compact?: boolean;
 };
 const clamp = (n: number, a: number, b: number) => Math.max(a, Math.min(b, n));
+/** How long the predicted arrow is drawn, in viewBox units. One length for every guess:
+ * the prediction is a direction, and a length that varied would read as a claim. */
+const GUESS_LENGTH = 64;
 const plus = (a: Point, b: Point): Point => ({ x: a.x + b.x, y: a.y + b.y });
 const scaleVec = (v: Vec, k: number): Vec => ({ x: v.x * k, y: v.y * k, z: v.z * k });
 const zero: Vec = { x: 0, y: 0, z: 0 };
@@ -262,7 +265,14 @@ export function ChargeDiagram({ problem, params: p, setParams, count, continuum,
   function move(ev: PointerEvent) {
     if (!dragging.current) return;
     const cursor = eventPoint(ev);
-    if (dragging.current === 'predict') { const next = { x: cursor.x - P.x, y: cursor.y - P.y }; liveGuess.current = next; onPredict?.(next); return; }
+    if (dragging.current === 'predict') {
+      // Direction only. The length is fixed because nobody can predict the magnitude of E
+      // at a point, so letting the arrow grow would collect an answer to a question that
+      // was never asked and then look like a wrong one.
+      const dx = cursor.x - P.x, dy = cursor.y - P.y, len = Math.hypot(dx, dy);
+      const next = len > 1 ? { x: dx / len * GUESS_LENGTH, y: dy / len * GUESS_LENGTH } : { x: GUESS_LENGTH, y: 0 };
+      liveGuess.current = next; onPredict?.(next); return;
+    }
     if (dragging.current === 'P') {
       // In space the axis P moves along is foreshortened by the camera, so a screen delta
       // is the wrong ruler. The cursor is dropped onto the projected axis instead: the
@@ -541,20 +551,24 @@ export function ChargeDiagram({ problem, params: p, setParams, count, continuum,
         // The guess is drawn in the same place and the same units as the field it will be
         // compared against, so the comparison is the one the student can see rather than a
         // number they have to trust.
-        const tip = plus(P, prediction ?? { x: 62, y: 0 });
+        const tip = plus(P, prediction ?? { x: GUESS_LENGTH, y: 0 });
         return <g className={`cd-guess${predicting ? ' is-drawing' : ''}`}>
-          <Vector from={P} to={tip} color="var(--charge)" width={2.6} dashed label="your guess" reduced={still} />
+          <Vector from={P} to={tip} color="var(--charge)" width={2.6} dashed label="your direction" reduced={still} />
           {predicting && <g {...handle('predict')} className="cd-guess-grip" role="slider" tabIndex={0}
-            aria-label="Your predicted field at P. Drag, or use the arrow keys to aim and size it."
+            aria-label="Which way the field points at P. Drag, or turn it with the arrow keys."
             aria-valuemin={0} aria-valuemax={360} aria-valuenow={Math.round((Math.atan2(-(tip.y - P.y), tip.x - P.x) * 180 / Math.PI + 360) % 360)}
             onKeyDown={ev => {
               // Built during render, but only ever read inside the event: a ref is exactly
               // the right tool for a value that must survive a burst of key repeats.
+              // All four arrows turn it, none resize it: there is only one thing to set.
+              if (!['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(ev.key)) return;
+              ev.preventDefault();
               /* oxlint-disable-next-line react/react-compiler */
-              const step = ev.shiftKey ? 1 : 6, here = liveGuess.current ?? { x: 62, y: 0 };
-              const len = Math.hypot(here.x, here.y) || 1, ang = Math.atan2(here.y, here.x);
-              if (ev.key === 'ArrowLeft' || ev.key === 'ArrowRight') { ev.preventDefault(); const turn = ang + (ev.key === 'ArrowRight' ? 1 : -1) * step * Math.PI / 180; const next = { x: Math.cos(turn) * len, y: Math.sin(turn) * len }; liveGuess.current = next; onPredict?.(next); }
-              if (ev.key === 'ArrowUp' || ev.key === 'ArrowDown') { ev.preventDefault(); const grow = clamp(len + (ev.key === 'ArrowUp' ? step : -step), 12, 190); const next = { x: Math.cos(ang) * grow, y: Math.sin(ang) * grow }; liveGuess.current = next; onPredict?.(next); }
+              const step = ev.shiftKey ? 1 : 6, here = liveGuess.current ?? { x: GUESS_LENGTH, y: 0 };
+              const ang = Math.atan2(here.y, here.x);
+              const turn = ang + (ev.key === 'ArrowRight' || ev.key === 'ArrowDown' ? 1 : -1) * step * Math.PI / 180;
+              const next = { x: Math.cos(turn) * GUESS_LENGTH, y: Math.sin(turn) * GUESS_LENGTH };
+              liveGuess.current = next; onPredict?.(next);
             }}>
             <circle cx={tip.x} cy={tip.y} r="15" />
           </g>}
