@@ -30,6 +30,23 @@ function heading(samples:readonly ChargeSample[],at:Plane,sign:number):Plane|nul
  if(!Number.isFinite(len)||len<1e-30)return null;
  return {x:sign*e.x/len,y:sign*e.y/len};
 }
+/** Points already drawn, bucketed so "is anything within d of here" is a look at nine cells
+ * rather than a scan of every point on every line. */
+function drawnPoints(cell:number){
+ const buckets=new Map<string,Plane[]>();
+ const at=(x:number,y:number)=>`${Math.floor(x/cell)},${Math.floor(y/cell)}`;
+ return {
+  add(p:Plane){const k=at(p.x,p.y),b=buckets.get(k);if(b)b.push(p);else buckets.set(k,[p]);},
+  within(p:Plane,d:number){
+   const gx=Math.floor(p.x/cell),gy=Math.floor(p.y/cell),d2=d*d;
+   for(let i=gx-1;i<=gx+1;i++)for(let j=gy-1;j<=gy+1;j++){
+    const b=buckets.get(`${i},${j}`);
+    if(b)for(const q of b){const dx=p.x-q.x,dy=p.y-q.y;if(dx*dx+dy*dy<d2)return true;}
+   }
+   return false;
+  },
+ };
+}
 export type TraceOptions={
  /** Arc length per step, in world metres. Smaller is smoother and slower. */
  step?:number;
@@ -42,11 +59,19 @@ export type TraceOptions={
  outerLimit?:number;
  /** +1 follows the field, −1 walks back against it. */
  sign?:number;
+ /** Stop when the line comes this close to one already drawn. Jobard and Lefer's dtest rule,
+  * and ONLY that rule: their seeding spaces streamlines evenly, which would destroy the one
+  * thing our seeding buys — that line density means field strength, because every line
+  * carries the same flux. So the threshold here is not a pleasing separation. It is about
+  * one drawn line width, the distance below which two lines are the same stroke on screen
+  * and the second carries no information the first did not. Culling redundancy, not density. */
+ crowd?:number; drawn?:ReturnType<typeof drawnPoints>;
 };
 /** One streamline, stepped by RK4 on the unit field direction so the arc length per step is
  * honest and the curve does not drift wide on tight bends the way Euler does. */
 export function traceLine(samples:readonly ChargeSample[],start:Plane,options:TraceOptions={}):Plane[]{
  const step=options.step??.06,maxSteps=options.maxSteps??900,outer=options.outerLimit??40,sign=options.sign??1,arrive=options.arrive??ARRIVED;
+ const {crowd=0,drawn}=options;
  const path:Plane[]=[{x:start.x,y:start.y}];
  let here={x:start.x,y:start.y};
  for(let i=0;i<maxSteps;i++){
@@ -58,6 +83,9 @@ export function traceLine(samples:readonly ChargeSample[],start:Plane,options:Tr
   if(!Number.isFinite(next.x)||!Number.isFinite(next.y))break;
   path.push(next);here=next;
   if(LEN(here)>outer)break;
+  // Not in the first few steps: every line leaves the charge from nearly the same place, so
+  // testing at the root would stop each one the moment it started.
+  if(crowd>0&&drawn&&i>4&&drawn.within(here,crowd))break;
   let arrived=false;
   for(const s of samples)if(Math.hypot(here.x-s.position.x,here.y-s.position.y,s.position.z)<arrive){arrived=true;break;}
   if(arrived)break;
@@ -122,9 +150,17 @@ export function fieldLines(samples:readonly ChargeSample[],count:number,options:
  const arrive=Math.max(ARRIVED,.55*(gaps[Math.floor(gaps.length/2)]??0));
  const seeded=chargeSeeds(samples,count,Math.max(arrive*1.6,reach*.05));
  const starts=seeded.length?seeded:seedRing(samples,count);
- return starts.map(seed=>{
-  const along=traceLine(samples,seed,{...options,arrive,sign:1});
-  const against=traceLine(samples,seed,{...options,arrive,sign:-1});
-  return [...against.slice(1).reverse(),...along];
- }).filter(line=>line.length>3);
+ // About a drawn line width in world units. Both halves of one line are traced against the
+ // grid as it stood BEFORE the line began, then added together: otherwise the second half
+ // would stop against the first at the seed they share.
+ const crowd=options.crowd??reach*.012;
+ const drawn=drawnPoints(Math.max(crowd,1e-6));
+ const lines:Plane[][]=[];
+ for(const seed of starts){
+  const along=traceLine(samples,seed,{...options,arrive,crowd,drawn,sign:1});
+  const against=traceLine(samples,seed,{...options,arrive,crowd,drawn,sign:-1});
+  const line=[...against.slice(1).reverse(),...along];
+  if(line.length>3){lines.push(line);for(const q of line)drawn.add(q);}
+ }
+ return lines;
 }

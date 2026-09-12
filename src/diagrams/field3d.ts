@@ -55,13 +55,35 @@ function heading(samples:readonly ChargeSample[],at:Vec,sign:number):Vec|null{
  if(!Number.isFinite(l)||l<1e-30)return null;
  return scale(e,sign/l);
 }
+/** Points already drawn, bucketed in three dimensions: "is anything within d of here" is a
+ * look at twenty-seven cells rather than a scan of every point on every line. */
+function drawnPoints(cell:number){
+ const buckets=new Map<string,Vec[]>();
+ const at=(v:Vec)=>`${Math.floor(v.x/cell)},${Math.floor(v.y/cell)},${Math.floor(v.z/cell)}`;
+ return {
+  add(v:Vec){const k=at(v),b=buckets.get(k);if(b)b.push(v);else buckets.set(k,[v]);},
+  within(v:Vec,d:number){
+   const gx=Math.floor(v.x/cell),gy=Math.floor(v.y/cell),gz=Math.floor(v.z/cell),d2=d*d;
+   for(let i=gx-1;i<=gx+1;i++)for(let j=gy-1;j<=gy+1;j++)for(let k=gz-1;k<=gz+1;k++){
+    const b=buckets.get(`${i},${j},${k}`);
+    if(b)for(const q of b){const dx=v.x-q.x,dy=v.y-q.y,dz=v.z-q.z;if(dx*dx+dy*dy+dz*dz<d2)return true;}
+   }
+   return false;
+  },
+ };
+}
 export type TraceOptions={step?:number;maxSteps?:number;outerLimit?:number;sign?:number;
  /** How close to a point charge counts as having arrived. */
- arrive?:number};
+ arrive?:number;
+ /** Jobard and Lefer's dtest rule, and only that rule — their even seeding would destroy
+  * density meaning field strength. About one drawn line width: below it two lines are the
+  * same stroke and the second says nothing the first did not. */
+ crowd?:number; drawn?:ReturnType<typeof drawnPoints>};
 /** One streamline in space, RK4 on the unit field direction so each step is one honest
  * increment of arc length; stops on leaving the picture or arriving at the charge. */
 export function traceLine3(samples:readonly ChargeSample[],start:Vec,options:TraceOptions={}):Vec[]{
  const step=options.step??.06,maxSteps=options.maxSteps??600,outer=options.outerLimit??40,sign=options.sign??1,arrive=options.arrive??ARRIVED;
+ const {crowd=0,drawn}=options;
  const path:Vec[]=[{...start}];
  let here:Vec={...start};
  for(let i=0;i<maxSteps;i++){
@@ -73,6 +95,8 @@ export function traceLine3(samples:readonly ChargeSample[],start:Vec,options:Tra
   if(![next.x,next.y,next.z].every(Number.isFinite))break;
   path.push(next);here=next;
   if(LEN(here)>outer)break;
+  // Not at the root: every line leaves the charge from nearly the same place.
+  if(crowd>0&&drawn&&i>4&&drawn.within(here,crowd))break;
   let arrived=false;
   for(const s of samples)if(Math.hypot(here.x-s.position.x,here.y-s.position.y,here.z-s.position.z)<arrive){arrived=true;break;}
   if(arrived)break;
@@ -135,11 +159,18 @@ export function spaceLines(samples:readonly ChargeSample[],layout:Layout,count:n
  const points=cloud(samples,layout),arrive=Math.max(ARRIVED,.55*typicalSpacing(points));
  const reach=Math.max(...samples.map(s=>LEN(s.position)),.5);
  const seeds=spaceSeeds(samples,layout,count,Math.max(arrive*1.6,reach*.06));
- return seeds.map(seed=>{
-  const along=traceLine3(points,seed,{...options,arrive,sign:1});
-  const against=traceLine3(points,seed,{...options,arrive,sign:-1});
-  return [...against.slice(1).reverse(),...along];
- }).filter(line=>line.length>3);
+ // Both halves are traced against the grid as it stood BEFORE this line, then added
+ // together: otherwise the second half stops against the first at the seed they share.
+ const crowd=options.crowd??reach*.012;
+ const drawn=drawnPoints(Math.max(crowd,1e-6));
+ const lines:Vec[][]=[];
+ for(const seed of seeds){
+  const along=traceLine3(points,seed,{...options,arrive,crowd,drawn,sign:1});
+  const against=traceLine3(points,seed,{...options,arrive,crowd,drawn,sign:-1});
+  const line=[...against.slice(1).reverse(),...along];
+  if(line.length>3){lines.push(line);for(const q of line)drawn.add(q);}
+ }
+ return lines;
 }
 /** The side view of a ring, a disk or a sheet is a cut through the plane y = 0, and every
  * one of them is symmetric about its axis, so a line that starts in that plane stays in it.
@@ -166,11 +197,18 @@ export function meridianLines(samples:readonly ChargeSample[],layout:Layout,coun
    for(const side of [1,-1])for(const sign of [1,-1])seeds.push({x:side*r,y:0,z:sign*offset});
   }
  }
- return seeds.map(seed=>{
-  const along=traceLine3(points,seed,{...options,arrive,sign:1});
-  const against=traceLine3(points,seed,{...options,arrive,sign:-1});
-  return [...against.slice(1).reverse(),...along];
- }).filter(line=>line.length>3);
+ // Both halves are traced against the grid as it stood BEFORE this line, then added
+ // together: otherwise the second half stops against the first at the seed they share.
+ const crowd=options.crowd??reach*.012;
+ const drawn=drawnPoints(Math.max(crowd,1e-6));
+ const lines:Vec[][]=[];
+ for(const seed of seeds){
+  const along=traceLine3(points,seed,{...options,arrive,crowd,drawn,sign:1});
+  const against=traceLine3(points,seed,{...options,arrive,crowd,drawn,sign:-1});
+  const line=[...against.slice(1).reverse(),...along];
+  if(line.length>3){lines.push(line);for(const q of line)drawn.add(q);}
+ }
+ return lines;
 }
 export type Arrow3={at:Vec;dir:Vec;magnitude:number;weight:number};
 /** A lattice of arrows through the volume, weighted on the same log scale as the flat view.

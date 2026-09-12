@@ -167,3 +167,26 @@ describe('a surface is summed as a surface',()=>{
   expect(cloud(ring,'wire')).toHaveLength(ring.length);
  });
 });
+describe('the same rule in space',()=>{
+ it('keeps every seeded line, shortening rather than dropping',()=>{
+  for(const [samples,layout] of [[ring,'wire'],[disk,'surface']] as const){
+   const withRule=spaceLines(samples,layout,16,{outerLimit:8,maxSteps:300});
+   const without=spaceLines(samples,layout,16,{outerLimit:8,maxSteps:300,crowd:0});
+   expect(withRule.length).toBe(without.length);
+   for(const l of withRule)expect(l.length).toBeGreaterThan(3);
+  }
+ });
+ it('does not draw two lines along the same stroke away from the charge',()=>{
+  const lines=spaceLines(ring,'wire',20,{outerLimit:8,maxSteps:300});
+  const crowd=Math.max(...ring.map(s=>len(s.position)),.5)*.012;
+  const far=lines.map(l=>l.filter(q=>len(q)>2.2)).filter(l=>l.length>2);
+  for(let i=0;i<far.length;i++)for(let j=i+1;j<far.length;j++){
+   let worst=Infinity;
+   for(const a of far[i])for(const b of far[j])worst=Math.min(worst,len({x:a.x-b.x,y:a.y-b.y,z:a.z-b.z}));
+   expect(worst).toBeGreaterThan(crowd*.5);
+  }
+ });
+ it('keeps the meridian cut in its plane with the rule on',()=>{
+  for(const q of meridianLines(ring,'wire',12,{outerLimit:6,maxSteps:200}).flat())expect(Math.abs(q.y)).toBeLessThan(.06);
+ });
+});

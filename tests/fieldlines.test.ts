@@ -125,3 +125,39 @@ describe('seeding in proportion to charge, so density means field strength',()=>
   expect(chargeSeeds([charge(0,0,0),charge(0,1,0)],8,.1)).toHaveLength(0);
  });
 });
+describe('stopping a line that merely repeats one already drawn',()=>{
+ const spacing=(a:{x:number;y:number}[],b:{x:number;y:number}[])=>{
+  let worst=Infinity;
+  for(const p of a)for(const q of b)worst=Math.min(worst,Math.hypot(p.x-q.x,p.y-q.y));
+  return worst;
+ };
+ it('keeps flux seeding untouched: the same number of lines still start',()=>{
+  // The rule culls redundancy, never density. Every seed still produces a line, because
+  // density meaning field strength is the whole point of seeding in proportion to charge.
+  const withRule=fieldLines(rod,16,{outerLimit:9});
+  const without=fieldLines(rod,16,{outerLimit:9,crowd:0});
+  expect(withRule.length).toBe(without.length);
+ });
+ it('does not let two lines run on top of each other away from the charge',()=>{
+  const lines=fieldLines(rod,24,{outerLimit:9});
+  const crowd=Math.max(...rod.map(s=>Math.hypot(s.position.x,s.position.y,s.position.z)),.5)*.012;
+  // Near the charge every line leaves from nearly the same place, so only the parts well
+  // clear of it are asked to be distinct.
+  const far=lines.map(l=>l.filter(q=>Math.hypot(q.x,q.y)>2.6)).filter(l=>l.length>2);
+  for(let i=0;i<far.length;i++)for(let j=i+1;j<far.length;j++)
+   expect(spacing(far[i],far[j])).toBeGreaterThan(crowd*.5);
+ });
+ it('shortens a line rather than dropping it',()=>{
+  const lines=fieldLines(rod,24,{outerLimit:9});
+  for(const l of lines)expect(l.length).toBeGreaterThan(3);
+ });
+ it('leaves a lone line its full length',()=>{
+  const one=fieldLines(point,2,{outerLimit:7});
+  for(const l of one)expect(Math.hypot(l[l.length-1].x,l[l.length-1].y)).toBeGreaterThan(6);
+ });
+ it('is not quadratic in the number of points',()=>{
+  // A naive pair scan made this unusable; the bucket lookup keeps it near linear.
+  const t0=performance.now();fieldLines(rod,40,{outerLimit:12,step:.03});
+  expect(performance.now()-t0).toBeLessThan(3000);
+ });
+});
