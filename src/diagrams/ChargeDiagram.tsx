@@ -102,7 +102,8 @@ export function ChargeDiagram({ problem, params: p, setParams, count, continuum,
   // because of something after it.
   useLayoutEffect(() => { renders.current += 1; if (root.current) { root.current.dataset.renders = String(renders.current); root.current.dataset.renderMs = (performance.now() - renderStart).toFixed(1); } });
   const [spatial, setSpatial] = useState<boolean | null>(null);
-  const [zoom, setZoom] = useState(1);
+  const ZOOM_MIN = .45, ZOOM_MAX = 3.2;
+  const [zoomWanted, setZoom] = useState(1);
   const [fieldView, setFieldView] = useState<'lines' | 'vectors' | 'off'>('lines');
   const reduced = !!useReducedMotion(), id = problem.geometry, scalar = problem.quantity === 'V', surface = id === 'disk' || id === 'sheet', perspective = surface || id === 'ring';
   // The ramp is the endpoint rod with a non-uniform density: same layout, different charge.
@@ -148,7 +149,8 @@ export function ChargeDiagram({ problem, params: p, setParams, count, continuum,
     if(!timer.current)timer.current=setTimeout(()=>{setAnnouncement(pending.current);timer.current=null;},500);
   },[id,p.distance,p.size,p.charge,p.phi,n,selectedIndex,progress,continuum,boundRange,problem.title,sample.field,sample.potential,displayed,scalar,vNow]);
   useEffect(()=>()=>{if(timer.current)clearTimeout(timer.current);},[]);
-  const O: Point = perspective ? { x: 315, y: 296 } : footed ? { x: 210, y: 300 } : id === 'semi' ? { x: 300, y: 310 } : id === 'axial' ? { x: 130, y: 230 } : id === 'arc' ? { x: 375, y: 218 } : { x: 220, y: 216 };
+  // Each geometry puts its origin where its own labels need it, which is not the middle.
+  const originAt1: Point = perspective ? { x: 315, y: 296 } : footed ? { x: 210, y: 300 } : id === 'semi' ? { x: 300, y: 310 } : id === 'axial' ? { x: 130, y: 230 } : id === 'arc' ? { x: 375, y: 218 } : { x: 220, y: 216 };
   // Pixels per metre, times whatever the reader has zoomed to. The projection, the canvas
   // and the 3D frustum all read this, so one multiply zooms the whole figure and no layer
   // can disagree with another about scale.
@@ -170,16 +172,49 @@ export function ChargeDiagram({ problem, params: p, setParams, count, continuum,
     : id === 'axial' ? fit(p.size + p.distance, 510, 20, 70)
     : id === 'arc' ? fit(2 * R, 300, 25, 65)
     : 35;
+  // Where P lives, and the line it is allowed to move along: from `pivot`, `axisDir` per unit of `distance`.
+  const axisDir: Vec = id === 'arc' ? zero : id === 'axial' ? { x: 1, y: 0, z: 0 } : id === 'semi' ? { x: 0, y: 1, z: 0 } : perspective ? { x: 0, y: 0, z: 1 } : { x: 1, y: 0, z: 0 };
+  const pivot: Vec = id === 'axial' ? { x: p.size, y: 0, z: 0 } : zero;
+  const pWorld: Vec = { x: pivot.x + axisDir.x * p.distance, y: pivot.y + axisDir.y * p.distance, z: pivot.z + axisDir.z * p.distance };
+  // Zoom magnifies the picture about the two things the picture is ABOUT -- the charge and P
+  // -- rather than about the drawing origin.
+  //
+  // Scaling `unit` alone scales everything about that origin, and the origin is wherever a
+  // geometry's labels wanted it, not the middle of anything. So the further a feature sat
+  // from it, the faster zooming threw that feature out of the frame, and P sits further from
+  // it than anything else does. Measured on the ring at full zoom: P was forty pixels above
+  // the top edge, its halo cut in half by the frame, while the charge overflowed the width.
+  // Zooming in hid the one point the whole figure exists to describe.
+  //
+  // Anchoring halfway between them holds that midpoint still and moves both outwards at the
+  // same rate, which is the most of both that any magnification can keep. Where P sits on the
+  // charge, as on the arc, the anchor is the origin and this changes nothing.
+  const pAt1 = (() => { const s = projectCamera(pWorld, view.yaw, view.pitch); return { x: originAt1.x + baseUnit * s.x, y: originAt1.y + baseUnit * s.y }; })();
+  const anchor: Point = { x: (originAt1.x + pAt1.x) / 2, y: (originAt1.y + pAt1.y) / 2 };
+  // How far in this lesson can be zoomed before the frame stops holding its subject.
+  //
+  // The scale is already fitted so each lesson fills its frame at rest, which leaves the wide
+  // ones almost no room: the axial rod spans seven metres, charge to P, and at three times
+  // that nothing could hold both ends. There is no panning, so past this point zooming only
+  // pushes the physics out of sight -- the plus key stops instead, which is honest, and the
+  // minus key always has somewhere to go.
+  const MARGIN = 26;
+  const room = (centre: number, half: number, extent: number) =>
+    Math.abs(half) < .5 ? Infinity : Math.min((extent - MARGIN - centre) / Math.abs(half), (centre - MARGIN) / Math.abs(half));
+  const roomX = room(anchor.x, pAt1.x - anchor.x, 720), roomY = room(anchor.y, pAt1.y - anchor.y, 430);
+  const fits = roomX < roomY ? roomX : roomY;
+  const zoomCeiling = fits > ZOOM_MAX ? ZOOM_MAX : fits < 1 ? 1 : fits;
+  const zoom = zoomWanted < zoomCeiling ? zoomWanted : zoomCeiling;
+  const O: Point = zoom === 1 ? originAt1
+    : { x: anchor.x + zoom * (originAt1.x - anchor.x), y: anchor.y + zoom * (originAt1.y - anchor.y) };
+  // Pixels per metre, times whatever the reader has zoomed to. The projection, the canvas and
+  // the 3D frustum all read this, so one multiply zooms every layer and none can disagree.
   const unit = baseUnit * zoom;
   const project = (v: Vec): Point => { const s = projectCamera(v, view.yaw, view.pitch); return { x: O.x + unit * s.x, y: O.y + unit * s.y }; };
   // Screen point a distance `length` out along a world direction, for the axes and the R/s bracket.
   const ray = (v: Vec, length: number): Point => { const s = projectCamera(v, view.yaw, view.pitch); return { x: O.x + length * s.x, y: O.y + length * s.y }; };
   const axisX = ray({ x: 1, y: 0, z: 0 }, 185), axisY = ray({ x: 0, y: 1, z: 0 }, 122);
   const axisTip = (a: Point, dx: number, dy: number): Point => ({ x: clamp(a.x + dx, 52, 652), y: clamp(a.y + dy, 70, 360) });
-  // Where P lives, and the line it is allowed to move along: from `pivot`, `axisDir` per unit of `distance`.
-  const axisDir: Vec = id === 'arc' ? zero : id === 'axial' ? { x: 1, y: 0, z: 0 } : id === 'semi' ? { x: 0, y: 1, z: 0 } : perspective ? { x: 0, y: 0, z: 1 } : { x: 1, y: 0, z: 0 };
-  const pivot: Vec = id === 'axial' ? { x: p.size, y: 0, z: 0 } : zero;
-  const pWorld: Vec = { x: pivot.x + axisDir.x * p.distance, y: pivot.y + axisDir.y * p.distance, z: pivot.z + axisDir.z * p.distance };
   const P = project(pWorld);
   const world = (t: number): Vec => {
     if (id === 'bisector') return { x: 0, y: p.size * (t - .5), z: 0 };
@@ -372,8 +407,7 @@ export function ChargeDiagram({ problem, params: p, setParams, count, continuum,
     onPointerMove: move, onPointerUp: () => { dragging.current = null; setActiveDrag(false); }, onPointerCancel: () => { dragging.current = null; setActiveDrag(false); }, onLostPointerCapture: () => { dragging.current = null; setActiveDrag(false); },
     /* oxlint-enable react/react-compiler */
   });
-  const ZOOM_MIN = .45, ZOOM_MAX = 3.2;
-  const zoomBy = (factor: number) => setZoom(z => clamp(z * factor, ZOOM_MIN, ZOOM_MAX));
+  const zoomBy = (factor: number) => setZoom(z => clamp(Math.min(z, zoomCeiling) * factor, ZOOM_MIN, zoomCeiling));
   // Scroll zooms. It used to rotate, which is why turning the figure felt wrong: the one
   // gesture every 3D tool spends on getting closer was spinning the scene instead.
   // React delegates wheel to the root, where the listener is passive, so preventDefault is
@@ -391,6 +425,23 @@ export function ChargeDiagram({ problem, params: p, setParams, count, continuum,
   /** One nudge of the view, shared by the on-screen pad and the arrow keys. */
   const nudge = (key: string) => { stopGlide(); commitView(keyboardCamera({ yaw: yawMv.get(), pitch: pitchMv.get() }, key)); };
   const resetView = () => { setZoom(1); glideTo({ ...DEFAULT_CAMERA }, .45); };
+  /** The view keys, wherever they are pressed from. Shared by the figure and by the pad below
+   * it, so a reader who has just pressed a pad button and then reaches for an arrow gets what
+   * the button's own tooltip promised them rather than a scrolled page.
+   *
+   * Safe on the pad: `role="group"` carries no roving-focus convention -- that belongs to
+   * toolbars, tablists and radio groups -- so nothing here takes arrow keys away from anyone
+   * driving this by screen reader. Anything that owns its own arrows, a slider or a dragged
+   * handle in the figure, is skipped. */
+  const viewKeys = (ev: KeyboardEvent<Element>) => {
+    if (ev.defaultPrevented || onControl(ev.target) || ev.target instanceof HTMLInputElement) return;
+    // Zoom works flat as well as in space -- the pad offers it in both -- but there is nothing
+    // to turn in a view that is already looking straight down the axis.
+    if (['+', '=', '-', '_'].includes(ev.key)) { ev.preventDefault(); zoomBy(ev.key === '-' || ev.key === '_' ? 1 / 1.18 : 1.18); return; }
+    if (ev.key === 'Home') { ev.preventDefault(); setZoom(1); if (inSpace) nudge(ev.key); return; }
+    if (!inSpace || !['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(ev.key)) return;
+    ev.preventDefault(); nudge(ev.key);
+  };
   const onControl = (target: EventTarget | null) => target instanceof Element && !!target.closest('.cd-piece,.cd-observation,.cd-bound');
   const commitView = (next: CameraView) => { yawMv.set(next.yaw); pitchMv.set(next.pitch); setCamera(next); };
   /* oxlint-disable react/react-compiler */
@@ -467,12 +518,7 @@ export function ChargeDiagram({ problem, params: p, setParams, count, continuum,
       if (svg.current) svg.current.dataset.orbitMs = (performance.now() - t0).toFixed(3);
     },
     onPointerUp: release, onPointerCancel: release, onLostPointerCapture: release,
-    onKeyDown: (ev: KeyboardEvent<SVGSVGElement>) => {
-      if (ev.defaultPrevented || onControl(ev.target)) return;
-      if (['+', '=', '-', '_'].includes(ev.key)) { ev.preventDefault(); zoomBy(ev.key === '-' || ev.key === '_' ? 1 / 1.18 : 1.18); return; }
-      if (!['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home'].includes(ev.key)) return;
-      ev.preventDefault(); if (ev.key === 'Home') setZoom(1); nudge(ev.key);
-    },
+    onKeyDown: (ev: KeyboardEvent<SVGSVGElement>) => viewKeys(ev),
   };
   /* oxlint-enable react/react-compiler */
   const circlePoints = (radius: number, start = 0, end = Math.PI * 2) => Array.from({ length: 97 }, (_, i) => project({ x: radius * Math.cos(start + (end - start) * i / 96), y: radius * Math.sin(start + (end - start) * i / 96), z: 0 }));
@@ -554,15 +600,12 @@ export function ChargeDiagram({ problem, params: p, setParams, count, continuum,
         onClick={() => setFieldView(value)}>{label}</button>)}
     </div>}
     {/* The pad and the drawn help say the same thing two ways: one to click, one to read. */}
-    {/* Arrow keys are NOT bound here on purpose: inside a group of buttons they belong to
-        moving between the buttons, and stealing them for the camera would mislead anyone
-        driving this by screen reader. The figure is the thing that owns the arrow keys. */}
     <div className="cd-pad" role="group" aria-label="Move the view">
       {inSpace && ([['ArrowLeft', '\u2190', 'Turn left'], ['ArrowUp', '\u2191', 'Tilt up'], ['ArrowDown', '\u2193', 'Tilt down'], ['ArrowRight', '\u2192', 'Turn right']] as const)
-        .map(([key, glyph, title]) => <button key={key} type="button" className="cd-pad-key" title={`${title} (${key.replace('Arrow', '')} arrow key)`} aria-label={title} onClick={() => nudge(key)}>{glyph}</button>)}
-      <button type="button" className="cd-pad-key" title="Zoom out (minus key, or scroll)" aria-label="Zoom out" onClick={() => zoomBy(1 / 1.18)} disabled={zoom <= ZOOM_MIN + 1e-6}>&minus;</button>
-      <button type="button" className="cd-pad-key" title="Zoom in (plus key, or scroll)" aria-label="Zoom in" onClick={() => zoomBy(1.18)} disabled={zoom >= ZOOM_MAX - 1e-6}>+</button>
-      <button type="button" className="text-button cd-orbit-reset" onClick={resetView} disabled={zoom === 1 && camera.yaw === DEFAULT_CAMERA.yaw && camera.pitch === DEFAULT_CAMERA.pitch}>Reset view</button>
+        .map(([key, glyph, title]) => <button key={key} type="button" className="cd-pad-key" title={`${title} (${key.replace('Arrow', '')} arrow key)`} aria-label={title} onKeyDown={viewKeys} onClick={() => nudge(key)}>{glyph}</button>)}
+      <button type="button" className="cd-pad-key" title="Zoom out (minus key, or scroll)" aria-label="Zoom out" onKeyDown={viewKeys} onClick={() => zoomBy(1 / 1.18)} disabled={zoom <= ZOOM_MIN + 1e-6}>&minus;</button>
+      <button type="button" className="cd-pad-key" title="Zoom in (plus key, or scroll)" aria-label="Zoom in" onKeyDown={viewKeys} onClick={() => zoomBy(1.18)} disabled={zoom >= zoomCeiling - 1e-6}>+</button>
+      <button type="button" className="text-button cd-orbit-reset" onKeyDown={viewKeys} onClick={resetView} disabled={zoom === 1 && camera.yaw === DEFAULT_CAMERA.yaw && camera.pitch === DEFAULT_CAMERA.pitch}>Reset view</button>
     </div>
     <span className="cd-view-hint">{inSpace ? 'Drag to turn · scroll to zoom · drag P to move it' : 'Scroll to zoom · drag P to move it'}</span>
     </div>

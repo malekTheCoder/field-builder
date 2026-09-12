@@ -1,7 +1,7 @@
 import {cleanup, fireEvent, render} from '@testing-library/react';
 import {afterEach, describe, expect, it, vi} from 'vitest';
 import {ChargeDiagram} from '../src/diagrams/ChargeDiagram';
-import {getProblem} from '../src/problems/definitions';
+import {getProblem, PROBLEMS} from '../src/problems/definitions';
 import {DEFAULT_PARAMS, type Params, type ProblemId} from '../src/problems/types';
 
 afterEach(cleanup);
@@ -89,6 +89,32 @@ describe('the gestures the figure advertises', () => {
     fireEvent.keyDown(svg, {key: '-'});
     expect(facing()).not.toBe(closer);
   });
+  it('arrow keys reach the view from the pad as well, which its tooltips promise', () => {
+    // Every turn key on the pad is captioned with the arrow key that does the same thing. A
+    // reader who presses one button and then reaches for an arrow should get what the caption
+    // said, not a scrolled page. `role="group"` carries no roving-focus convention -- that is
+    // toolbars and tablists -- so nothing is taken from anyone driving this by screen reader.
+    const {view, facing} = mount('ring');
+    const button = view.getByRole('button', {name: 'Turn left'}) as HTMLButtonElement;
+    button.focus();
+    expect(document.activeElement).toBe(button);
+    const before = facing();
+    fireEvent.keyDown(button, {key: 'ArrowUp'});
+    expect(facing(), 'the arrow key did not reach the view from the pad').not.toBe(before);
+  });
+  it('leaves the sliders their own arrow keys', () => {
+    // The controls drawer steps its sliders with arrows. Turning the camera instead would be
+    // a worse bug than the one this all started with.
+    const {view, facing} = mount('ring');
+    const details = view.container.querySelector('details.cd-controls')!;
+    details.setAttribute('open', '');
+    const slider = view.container.querySelector<HTMLInputElement>('input[type="range"]')!;
+    slider.focus();
+    const before = facing();
+    const notCancelled = fireEvent.keyDown(slider, {key: 'ArrowRight'});
+    expect(notCancelled, 'the camera swallowed the slider key').toBe(true);
+    expect(facing(), 'an arrow on a slider turned the camera').toBe(before);
+  });
   it('every button on the pad does what its label says', () => {
     const {view, facing} = mount('ring');
     // Not reset between presses: Reset starts a glide rather than landing, so the next press
@@ -108,6 +134,29 @@ describe('the gestures the figure advertises', () => {
     const point = view.container.querySelector<SVGGElement>('.cd-observation')!;
     drag(point, [300, 200], [300, 260]);
     expect(setParams, 'dragging P reported no new distance').toHaveBeenCalled();
+  });
+  it('keeps P in the picture all the way to full zoom, on every lesson', () => {
+    // Zooming used to scale the drawing about each geometry's own origin, which is wherever
+    // that geometry's labels wanted it and not the middle of anything. The further a feature
+    // sat from that origin the faster zoom threw it out of the frame, and P sits further from
+    // it than anything else. On the ring at full zoom P was forty pixels ABOVE the top edge,
+    // its halo cut in half by the frame -- zooming in hid the one point the figure is about.
+    const lost: string[] = [];
+    for (const id of PROBLEMS.map(x => x.id)) {
+      const {view} = mount(id);
+      const svg = view.container.querySelector<SVGSVGElement>('.cd-svg')!;
+      const zoomIn = view.getByRole('button', {name: 'Zoom in'}) as HTMLButtonElement;
+      for (let i = 0; i < 40 && !zoomIn.disabled; i++) fireEvent.click(zoomIn);
+      expect(zoomIn.disabled, `${id} never reached full zoom`).toBe(true);
+      const frame = svg.getBoundingClientRect();
+      const halo = view.container.querySelector('.cd-point-halo')!.getBoundingClientRect();
+      // The whole halo, not merely the dot: half a mark hanging off the edge is what this
+      // looked like when it was wrong.
+      if (halo.top < frame.top || halo.bottom > frame.bottom || halo.left < frame.left || halo.right > frame.right)
+        lost.push(`${id}: P at ${Math.round(halo.x - frame.x)},${Math.round(halo.y - frame.y)} in ${Math.round(frame.width)}x${Math.round(frame.height)}`);
+      cleanup();
+    }
+    expect(lost, `${lost.length} lessons lose P when zoomed in`).toEqual([]);
   });
   it('says the same things to a screen reader, which cannot see the legend', () => {
     const {svg} = mount('ring');
