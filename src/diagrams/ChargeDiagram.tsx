@@ -55,8 +55,12 @@ export function ChargeDiagram({ problem, params: p, setParams, count, continuum,
   const [camera, setCamera] = useState<CameraView>(DEFAULT_CAMERA), orbitFrom = useRef<Point>({ x: 0, y: 0 });
   const glideId = useRef(0), syncId = useRef(0), spin = useRef({ yaw: 0, pitch: 0, at: 0 });
   const [gliding, setGliding] = useState(false);
-  const root = useRef<HTMLDivElement>(null), renders = useRef(0);
-  useLayoutEffect(() => { renders.current += 1; if (root.current) root.current.dataset.renders = String(renders.current); });
+  // oxlint-disable-next-line react/react-compiler -- deliberately impure: it is a stopwatch
+  const root = useRef<HTMLDivElement>(null), renders = useRef(0), renderStart = performance.now();
+  // Render count and cost are exposed on the root for the perf tests and for measuring in
+  // the browser: the cheapest way to know whether a frame is slow because of React or
+  // because of something after it.
+  useLayoutEffect(() => { renders.current += 1; if (root.current) { root.current.dataset.renders = String(renders.current); root.current.dataset.renderMs = (performance.now() - renderStart).toFixed(1); } });
   const [spatial, setSpatial] = useState<boolean | null>(null);
   const [fieldView, setFieldView] = useState<'lines' | 'vectors' | 'off'>('lines');
   const reduced = !!useReducedMotion(), id = problem.geometry, scalar = problem.quantity === 'V', surface = id === 'disk' || id === 'sheet', perspective = surface || id === 'ring';
