@@ -201,13 +201,24 @@ export function ChargeDiagram({ problem, params: p, setParams, count, continuum,
   // reported once the motion settles, which is the only time a comparison is read anyway.
   useEffect(() => { if (moving) return; const [x, y] = netKey.split(',').map(Number); netCallback.current?.({ x, y }); }, [netKey, moving]);
   const showContribution = mode !== 'divide' || !!highlight;
-  // The selected element as a length of wire: between its neighbours, as long as one piece.
+  // The selected element, as the shape it actually is.
+  //
+  // It used to be handed over as a point, a direction and a length, which the scene drew as
+  // one straight cylinder. On a rod that is right; on a ring with five pieces it is a chord
+  // across seventy-two degrees, which reads as a tangent line laid against the ring rather
+  // than a piece of it. A wire's element is a PATH now, sampled along the real geometry the
+  // same `world(t)` the flat drawing uses, so a curved wire gives a curved piece.
+  //
+  // A surface's element is not a length at all: it is the annulus between two radii, and it
+  // had no body in the scene, only a hairline stroke lying flat over a lit solid.
   const sceneElement = (() => {
-    if (surface) return null;
-    const before = samples[Math.max(0, selectedIndex - 1)].position, after = samples[Math.min(samples.length - 1, selectedIndex + 1)].position;
-    const along: Vec = { x: after.x - before.x, y: after.y - before.y, z: after.z - before.z };
-    const span = Math.hypot(along.x, along.y, along.z) / (selectedIndex === 0 || selectedIndex === samples.length - 1 ? 1 : 2);
-    return { position: sample.position, along, length: Math.max(span, .02) };
+    if (surface) {
+      const radii = samples.map(s => Math.abs(s.coordinate));
+      const here = radii[selectedIndex], step = radii.length > 1 ? Math.abs((radii[radii.length - 1] - radii[0]) / (radii.length - 1)) : here;
+      return { annulus: { inner: Math.max(0, here - step / 2), outer: here + step / 2 } };
+    }
+    const lo = selectedIndex / n, hi = (selectedIndex + 1) / n;
+    return { path: Array.from({ length: 13 }, (_, k) => world(lo + (hi - lo) * k / 12)) };
   })();
   const elementSymbol = continuum>=.999 ? 'dQ' : 'ΔQ';
   const fieldSymbol = continuum>=.999 ? 'dE' : 'ΔE';

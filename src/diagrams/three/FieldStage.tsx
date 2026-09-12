@@ -30,7 +30,10 @@ export type FieldStageProps={
  /** The observation point, the element being pointed at, and the two arrows the lesson is
   * about, all in world metres. In space these are bodies in the scene rather than marks
   * drawn flat over it; the SVG keeps the labels and the handles. */
- point:Vec; element:{position:Vec;along:Vec;length:number}|null;
+ /** A wire's element is the stretch of wire it occupies; a surface's is the annulus between
+  * two radii. Neither is a straight segment, and drawing one as a segment on a ring reads as
+  * a tangent line lying against it rather than a piece of it. */
+ point:Vec; element:{path:Vec[]}|{annulus:{inner:number;outer:number}}|null;
  net:Vec|null; contribution:Vec|null;
  /** During an orbit the SVG moves from motion values without re-rendering, so reading yaw
   * and pitch from props would leave the body behind the drawing. While `animating`, the
@@ -86,7 +89,23 @@ export function FieldStage(props:FieldStageProps){
    const netMaterial=new THREE.MeshStandardMaterial({roughness:.45,metalness:.05});
    const partMaterial=new THREE.MeshStandardMaterial({roughness:.45,metalness:.05});
    const point=new THREE.Mesh(new THREE.SphereGeometry(1,28,20),pointMaterial),halo=new THREE.Mesh(new THREE.SphereGeometry(1,20,14),haloMaterial);
-   const element=new THREE.Mesh(new THREE.CylinderGeometry(1,1,1,14,1),elementMaterial);
+   // Rebuilt, not transformed: an arc of tube and an annulus are different geometries, and
+   // neither can be reached by scaling a cylinder.
+   const element=new THREE.Mesh(new THREE.BufferGeometry(),elementMaterial);
+   let elementKey='';
+   const buildElement=(e:NonNullable<FieldStageProps['element']>,radius:number)=>{
+    element.geometry.dispose();
+    if('annulus' in e){
+     element.geometry=new THREE.RingGeometry(Math.max(1e-4,e.annulus.inner),Math.max(1e-3,e.annulus.outer),96);
+     return;
+    }
+    const points=e.path.map(v=>new THREE.Vector3(v.x,v.y,v.z));
+    // A straight rod's element is two points, which CatmullRom cannot curve; a ring's is
+    // thirteen along the real arc, so the piece bends exactly as the wire does.
+    element.geometry=points.length>1
+     ?new THREE.TubeGeometry(new THREE.CatmullRomCurve3(points,false,'centripetal'),Math.max(8,points.length*2),radius,14,false)
+     :new THREE.BufferGeometry();
+   };
    const arrow=(material:InstanceType<typeof THREE.MeshStandardMaterial>)=>{
     const g=new THREE.Group(),shaft=new THREE.Mesh(new THREE.CylinderGeometry(1,1,1,10,1),material),head=new THREE.Mesh(new THREE.ConeGeometry(1,1,16),material);
     g.add(shaft,head);return {group:g,shaft,head};
@@ -254,11 +273,13 @@ export function FieldStage(props:FieldStageProps){
     const wr=wireRadius(p.reach);
     point.position.set(p.point.x,p.point.y,p.point.z);point.scale.setScalar(wr*1.7);
     halo.position.copy(point.position);halo.scale.setScalar(wr*4.2);
-    if(p.element&&p.kind==='wire'){
+    if(p.element){
      element.visible=true;
-     const e=p.element,al=Math.hypot(e.along.x,e.along.y,e.along.z)||1;
-     tmpQ.setFromUnitVectors(Y,tmpV.set(e.along.x/al,e.along.y/al,e.along.z/al));
-     element.quaternion.copy(tmpQ);element.scale.set(wr*1.45,Math.max(e.length,wr*2),wr*1.45);element.position.set(e.position.x,e.position.y,e.position.z);
+     const thick=wr*1.5;
+     const key='annulus' in p.element
+      ?`a:${p.element.annulus.inner.toFixed(4)}:${p.element.annulus.outer.toFixed(4)}`
+      :`p:${thick.toFixed(4)}:${p.element.path.map(v=>`${v.x.toFixed(3)},${v.y.toFixed(3)},${v.z.toFixed(3)}`).join(';')}`;
+     if(elementKey!==key){buildElement(p.element,thick);elementKey=key;}
     }else element.visible=false;
     if(p.net)layArrow(netArrow,p.point,p.net,Math.hypot(p.net.x,p.net.y,p.net.z),wr*.75);else netArrow.group.visible=false;
     // One element's contribution is the field AT P due to that element, so it is laid from P.
