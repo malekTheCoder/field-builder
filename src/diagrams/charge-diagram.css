@@ -100,7 +100,7 @@
  .cd-orbit-chrome{padding:9px 2px 0;font-size:12px}
 }
 
-.cd-controls{margin-top:16px;border-top:1px solid var(--border);padding-top:12px;color:var(--foreground);font-size:13px}.cd-controls summary{cursor:pointer;min-height:28px}.cd-controls p{color:var(--muted-foreground);font-size:12px;line-height:1.6;margin:4px 0 12px}.cd-control-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px 20px}.cd-control-grid label{display:grid;gap:4px;min-width:0}.cd-control-grid input{width:100%;min-width:0;height:28px;accent-color:var(--field)}.cd-camera-control{grid-column:1/-1;text-align:left;background:var(--card);color:var(--foreground);border:1px solid var(--border);border-radius:6px;padding:10px;font:inherit}.cd-camera-control span{display:block;color:var(--muted-foreground);font-size:12px;margin-top:4px}.cd-controls :focus-visible{outline:2px solid var(--field);outline-offset:3px}.cd-announcement{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0}@media(max-width:600px){.cd-control-grid{grid-template-columns:1fr}}
+.cd-controls{margin-top:16px;border-top:1px solid var(--border);padding-top:12px;color:var(--muted-foreground);font-size:13px}.cd-controls summary{cursor:pointer;min-height:28px}.cd-controls p{color:var(--muted-foreground);font-size:12px;line-height:1.6;margin:4px 0 12px}.cd-control-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px 20px}.cd-control-grid label{display:grid;gap:4px;min-width:0}.cd-control-grid input{width:100%;min-width:0;height:28px;accent-color:var(--field)}.cd-camera-control{grid-column:1/-1;text-align:left;background:var(--card);color:var(--foreground);border:1px solid var(--border);border-radius:6px;padding:10px;font:inherit}.cd-camera-control span{display:block;color:var(--muted-foreground);font-size:12px;margin-top:4px}.cd-controls :focus-visible{outline:2px solid var(--field);outline-offset:3px}.cd-announcement{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0}@media(max-width:600px){.cd-control-grid{grid-template-columns:1fr}}
 .cd-gauge line{stroke:var(--ghost,#6d8492);stroke-width:1.6}
 .cd-gauge rect{fill:var(--field,#0b6b63);fill-opacity:.85}
 .cd-gauge .cd-gauge-dv{fill:var(--contribution,#2f9089)}
@@ -196,3 +196,7 @@
 .cd-help-art text{fill:var(--muted-foreground);stroke:none;font-size:6.5px}
 .cd-help-text{fill:var(--muted-foreground);font-size:8.5px;letter-spacing:.02em}
 @media (prefers-reduced-motion:reduce){.cd-help{transition:none}}
+
+/* The keyboard help is a fallback for what a drawing cannot show and for screen readers,
+   so it sits quietly under the figure rather than announcing itself. */
+.cd-controls summary{font-size:var(--type-meta);color:var(--muted-foreground)}
