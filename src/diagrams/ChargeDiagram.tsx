@@ -51,6 +51,30 @@ function Vector({ from, to, color = 'var(--field)', width = 2.5, dashed = false,
     {label && length > 10 && <text x={to.x + (to.x < from.x ? -9 : 9)} y={to.y - 9} textAnchor={to.x < from.x ? 'end' : 'start'} className="cd-vector-label" fill="currentColor">{label}</text>}
   </g>;
 }
+function ViewHelp({ x, y }: { x: number; y: number }) {
+  // Drawn into the figure rather than written beside it: a reader who has never orbited a
+  // 3D view does not know that dragging turns it, and a sentence in the chrome is read last
+  // if at all. A mouse with a turning arrow, a wheel with an up-down arrow, and four key
+  // caps say it without a sentence. One row per gesture, so nothing crowds anything.
+  const ROW = 20;
+  const cap = (kx: number, glyph: string) => <g key={glyph}>
+    <rect x={kx} y={-8} width="11" height="11" rx="2.5" />
+    <text x={kx + 5.5} y={.6} textAnchor="middle" dominantBaseline="middle">{glyph}</text>
+  </g>;
+  const row = (i: number, art: React.ReactNode, label: string) =>
+    <g transform={`translate(0 ${i * ROW})`}>
+      <g className="cd-help-art">{art}</g>
+      <text className="cd-help-text" x="59" y="1" dominantBaseline="middle">{label}</text>
+    </g>;
+  return <g className="cd-help" transform={`translate(${x} ${y})`} aria-hidden="true">
+    <rect className="cd-help-back" x="-9" y="-17" width="163" height="66" rx="9" />
+    {row(0, <><rect x="1" y="-9" width="12" height="17" rx="6" /><line x1="7" y1="-9" x2="7" y2="-3" />
+      <path d="M19 1a8 8 0 0 1 11-6" /><path d="M30-8.2l.5 3.2-3.2.5" /></>, 'drag to turn')}
+    {row(1, <><rect x="1" y="-9" width="12" height="17" rx="6" /><line x1="7" y1="-5" x2="7" y2="-1" strokeWidth="2.2" />
+      <path d="M24-8v14" /><path d="M21.5-5.5L24-8l2.5 2.5" /><path d="M21.5 3.5L24 6l2.5-2.5" /></>, 'scroll to zoom')}
+    {row(2, <>{[cap(1, '\u2190'), cap(14, '\u2191'), cap(27, '\u2193'), cap(40, '\u2192')]}</>, 'arrow keys')}
+  </g>;
+}
 export function ChargeDiagram({ problem, params: p, setParams, count, continuum, selected, onSelect, progress, components, pair, mode, boundRange = [0, 100], onBoundRangeChange, highlight = '', predicting, prediction, onPredict, onNetScreen, compact = false }: ChargeDiagramProps) {
   const cameraControl = useRef<HTMLButtonElement>(null);
   const svg = useRef<SVGSVGElement>(null), plane = useRef<SVGGElement>(null), dragging = useRef<string | null>(null), uid = useId().replace(/:/g, '');
@@ -65,6 +89,7 @@ export function ChargeDiagram({ problem, params: p, setParams, count, continuum,
   // because of something after it.
   useLayoutEffect(() => { renders.current += 1; if (root.current) { root.current.dataset.renders = String(renders.current); root.current.dataset.renderMs = (performance.now() - renderStart).toFixed(1); } });
   const [spatial, setSpatial] = useState<boolean | null>(null);
+  const [zoom, setZoom] = useState(1);
   const [fieldView, setFieldView] = useState<'lines' | 'vectors' | 'off'>('lines');
   const reduced = !!useReducedMotion(), id = problem.geometry, scalar = problem.quantity === 'V', surface = id === 'disk' || id === 'sheet', perspective = surface || id === 'ring';
   // The ramp is the endpoint rod with a non-uniform density: same layout, different charge.
@@ -111,7 +136,11 @@ export function ChargeDiagram({ problem, params: p, setParams, count, continuum,
   },[id,p.distance,p.size,p.charge,p.phi,n,selectedIndex,progress,continuum,boundRange,problem.title,sample.field,sample.potential,displayed,scalar,vNow]);
   useEffect(()=>()=>{if(timer.current)clearTimeout(timer.current);},[]);
   const O: Point = perspective ? { x: 315, y: 296 } : footed ? { x: 210, y: 300 } : id === 'semi' ? { x: 300, y: 310 } : id === 'axial' ? { x: 130, y: 230 } : id === 'arc' ? { x: 375, y: 218 } : { x: 220, y: 216 };
-  const unit = perspective ? 42 : footed ? Math.min(45,150/p.size) : id==='bisector' ? Math.min(45,140/R) : id==='arc' ? 40 : 35;
+  // Pixels per metre, times whatever the reader has zoomed to. The projection, the canvas
+  // and the 3D frustum all read this, so one multiply zooms the whole figure and no layer
+  // can disagree with another about scale.
+  const baseUnit = perspective ? 42 : footed ? Math.min(45,150/p.size) : id==='bisector' ? Math.min(45,140/R) : id==='arc' ? 40 : 35;
+  const unit = baseUnit * zoom;
   const project = (v: Vec): Point => { const s = projectCamera(v, view.yaw, view.pitch); return { x: O.x + unit * s.x, y: O.y + unit * s.y }; };
   // Screen point a distance `length` out along a world direction, for the axes and the R/s bracket.
   const ray = (v: Vec, length: number): Point => { const s = projectCamera(v, view.yaw, view.pitch); return { x: O.x + length * s.x, y: O.y + length * s.y }; };
@@ -258,6 +287,14 @@ export function ChargeDiagram({ problem, params: p, setParams, count, continuum,
     onPointerMove: move, onPointerUp: () => { dragging.current = null; setActiveDrag(false); }, onPointerCancel: () => { dragging.current = null; setActiveDrag(false); }, onLostPointerCapture: () => { dragging.current = null; setActiveDrag(false); },
     /* oxlint-enable react/react-compiler */
   });
+  const ZOOM_MIN = .45, ZOOM_MAX = 3.2;
+  const zoomBy = (factor: number) => setZoom(z => clamp(z * factor, ZOOM_MIN, ZOOM_MAX));
+  // Scroll zooms. It used to rotate, which is why turning the figure felt wrong: the one
+  // gesture every 3D tool spends on getting closer was spinning the scene instead.
+  const wheelZoom = (ev: { deltaY: number; preventDefault: () => void }) => { ev.preventDefault(); zoomBy(Math.exp(-ev.deltaY * .0016)); };
+  /** One nudge of the view, shared by the on-screen pad and the arrow keys. */
+  const nudge = (key: string) => { stopGlide(); commitView(keyboardCamera({ yaw: yawMv.get(), pitch: pitchMv.get() }, key)); };
+  const resetView = () => { setZoom(1); glideTo({ ...DEFAULT_CAMERA }, .45); };
   const onControl = (target: EventTarget | null) => target instanceof Element && !!target.closest('.cd-piece,.cd-observation,.cd-bound');
   const commitView = (next: CameraView) => { yawMv.set(next.yaw); pitchMv.set(next.pitch); setCamera(next); };
   /* oxlint-disable react/react-compiler */
@@ -304,13 +341,6 @@ export function ChargeDiagram({ problem, params: p, setParams, count, continuum,
   // in 3D rather than allowed to drift away from what they measure.
   // Springs would lag a 1:1 drag; motion values + frame.render write the SVG matrix without setState.
   const orbit = {
-    // A trackpad's two-finger drag arrives as a wheel event, not a pointer drag, so without
-    // this the most natural gesture on a laptop does nothing at all.
-    onWheel: (ev: { deltaX: number; deltaY: number; preventDefault: () => void }) => {
-      ev.preventDefault(); stopGlide();
-      const next = orbitCamera({ yaw: yawMv.get(), pitch: pitchMv.get() }, -ev.deltaX * .6, -ev.deltaY * .6);
-      yawMv.set(next.yaw); pitchMv.set(next.pitch); syncCamera();
-    },
     onPointerDown: (ev: PointerEvent<SVGSVGElement>) => { if (onControl(ev.target)) return; stopGlide(); cameraControl.current?.focus(); try { ev.currentTarget.setPointerCapture(ev.pointerId); } catch { /* no live pointer to capture: the drag still starts */ } dragging.current = 'orbit'; setActiveDrag(true); orbitFrom.current = { x: ev.clientX, y: ev.clientY }; spin.current = { yaw: 0, pitch: 0, at: performance.now() }; },
     onPointerMove: (ev: PointerEvent<SVGSVGElement>) => {
       if (dragging.current !== 'orbit') return;
@@ -334,7 +364,12 @@ export function ChargeDiagram({ problem, params: p, setParams, count, continuum,
       if (svg.current) svg.current.dataset.orbitMs = (performance.now() - t0).toFixed(3);
     },
     onPointerUp: release, onPointerCancel: release, onLostPointerCapture: release,
-    onKeyDown: (ev: KeyboardEvent<SVGSVGElement>) => { if (ev.defaultPrevented || onControl(ev.target) || !['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home'].includes(ev.key)) return; ev.preventDefault(); stopGlide(); commitView(keyboardCamera({ yaw: yawMv.get(), pitch: pitchMv.get() }, ev.key)); },
+    onKeyDown: (ev: KeyboardEvent<SVGSVGElement>) => {
+      if (ev.defaultPrevented || onControl(ev.target)) return;
+      if (['+', '=', '-', '_'].includes(ev.key)) { ev.preventDefault(); zoomBy(ev.key === '-' || ev.key === '_' ? 1 / 1.18 : 1.18); return; }
+      if (!['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home'].includes(ev.key)) return;
+      ev.preventDefault(); if (ev.key === 'Home') setZoom(1); nudge(ev.key);
+    },
   };
   /* oxlint-enable react/react-compiler */
   const circlePoints = (radius: number, start = 0, end = Math.PI * 2) => Array.from({ length: 97 }, (_, i) => project({ x: radius * Math.cos(start + (end - start) * i / 96), y: radius * Math.sin(start + (end - start) * i / 96), z: 0 }));
@@ -395,7 +430,7 @@ export function ChargeDiagram({ problem, params: p, setParams, count, continuum,
       point={pWorld} element={sceneElement} net={scalar || predicting ? null : scaleVec(displayed, gain / unit)} contribution={scalar || !showContribution ? null : scaleVec(sample.field, selectedGain * gain / unit)}
       unit={unit} frame={{ width: 720, height: 430 }} origin={O} charge={p.charge} animating={moving}
       getView={() => ({ yaw: yawMv.get(), pitch: pitchMv.get() })} />}
-    <svg ref={svg} className={`cd-svg${inSpace ? ' cd-orbitable' : ''}${scalar ? ' cd-scalar' : ''}`} viewBox="0 0 720 430" role="img" {...(inSpace ? orbit : {})} aria-label={`${problem.title}. Interactive charge distribution and ${scalar ? 'electric potential' : 'electric field'} visualization.${perspective ? ' Drag or use the arrow keys to rotate the view, Home to reset it.' : ''}`}>
+    <svg ref={svg} className={`cd-svg${inSpace ? ' cd-orbitable' : ''}${scalar ? ' cd-scalar' : ''}`} viewBox="0 0 720 430" role="img" {...(inSpace ? orbit : {})} onWheel={wheelZoom} aria-label={`${problem.title}. Interactive charge distribution and ${scalar ? 'electric potential' : 'electric field'} visualization.${perspective ? ' Drag or use the arrow keys to rotate the view, Home to reset it.' : ''}`}>
       <defs>
         <pattern id={`${uid}grid`} width="28" height="28" patternUnits="userSpaceOnUse"><circle cx="1" cy="1" r=".7" fill="var(--grid)" /></pattern>
         <clipPath id={`${uid}clip`}><rect x="42" y="54" width="626" height="317" rx="10" /></clipPath>
@@ -489,6 +524,7 @@ export function ChargeDiagram({ problem, params: p, setParams, count, continuum,
         <Vector from={P} to={plus(P, contribution)} color="var(--contribution)" width={1.8} label={surface ? fieldSymbol+'z' : fieldSymbol} reduced={still}  ghost={inSpace} />
       </>}
       {!scalar && mode === 'sum' && chainPoints.length > 1 && <path className="cd-sum-chain" data-sum-chain={String(chainPoints.length)} d={pathThrough(chainPoints)} fill="none" />}
+      {inSpace && <ViewHelp x={70} y={300} />}
       {!scalar && !predicting && <Vector from={P} to={plus(P, net)} width={3.5} label={continuum>=.999&&full&&progress>=.999?'E':'Σ ΔE'} reduced={still} ghost={inSpace} />}
       {!scalar && (predicting || prediction) && (() => {
         // The guess is drawn in the same place and the same units as the field it will be
@@ -536,7 +572,7 @@ export function ChargeDiagram({ problem, params: p, setParams, count, continuum,
     </div>
     <details className="cd-controls" open={!compact}><summary>Diagram controls and keyboard help</summary><p id={`${uid}help`}>Tab moves between controls. Arrow keys adjust the focused control; Home and End select its limits. You can also drag P and the integration bounds in the figure.</p>
     <div className="cd-control-grid">
-      {inSpace&&<button ref={cameraControl} type="button" className="cd-camera-control" aria-describedby={`${uid}camera-help`} onKeyDown={ev=>{if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Home'].includes(ev.key)){ev.preventDefault();stopGlide();commitView(keyboardCamera({yaw:yawMv.get(),pitch:pitchMv.get()},ev.key));}}} onClick={()=>glideTo({...DEFAULT_CAMERA},.45)}>Rotate view with arrow keys<span id={`${uid}camera-help`}>Left/right rotate; up/down tilt; Home or Enter resets.</span></button>}
+      {inSpace&&<button ref={cameraControl} type="button" className="cd-camera-control" aria-describedby={`${uid}camera-help`} onKeyDown={ev=>{if(['+','=','-','_'].includes(ev.key)){ev.preventDefault();zoomBy(ev.key==='-'||ev.key==='_'?1/1.18:1.18);}else if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Home'].includes(ev.key)){ev.preventDefault();if(ev.key==='Home')setZoom(1);nudge(ev.key);}}} onClick={resetView}>Rotate view with arrow keys<span id={`${uid}camera-help`}>Left/right rotate; up/down tilt; Home or Enter resets.</span></button>}
       <label>Charge element {selectedIndex+1} of {n}<input type="range" aria-label="Selected charge element" min={0} max={n-1} step={1} value={selectedIndex} onChange={ev=>onSelect(Number(ev.target.value))}/></label>
       {id!=='arc'&&<label>Observation distance: {pretty(p.distance)} m<input type="range" aria-label="Observation distance in meters" aria-valuetext={`${pretty(p.distance)} meters`} min={.5} max={6} step={.1} value={p.distance} onChange={ev=>setParams({distance:Number(ev.target.value)})}/></label>}
       {mode==='integrate'&&onBoundRangeChange&&[0,1].map(i=><label key={i}>{i?'Upper':'Lower'} bound: {boundRange[i]}%<input type="range" aria-label={`${i?'Upper':'Lower'} integration bound`} aria-valuetext={`${boundRange[i]} percent of the source coordinate`} min={0} max={100} step={1} value={boundRange[i]} onChange={ev=>{const next:[number,number]=[...boundRange];next[i]=Number(ev.target.value);onBoundRangeChange(next);}}/></label>)}
@@ -558,8 +594,15 @@ export function ChargeDiagram({ problem, params: p, setParams, count, continuum,
         className={`cd-view-mode${fieldView === value ? ' is-on' : ''}`} aria-pressed={fieldView === value}
         onClick={() => setFieldView(value)}>{label}</button>)}
     </div>}
-    {inSpace && <button type="button" className="text-button cd-orbit-reset" onClick={() => glideTo({...DEFAULT_CAMERA}, .45)} disabled={camera.yaw === DEFAULT_CAMERA.yaw && camera.pitch === DEFAULT_CAMERA.pitch}>Reset view</button>}
-    <span className="cd-view-hint">{inSpace ? 'Drag to turn · drag P to move it' : 'Drag P to move it'}</span>
+    {/* The pad and the drawn help say the same thing two ways: one to click, one to read. */}
+    <div className="cd-pad" role="group" aria-label="Move the view">
+      {inSpace && ([['ArrowLeft', '\u2190', 'Turn left'], ['ArrowUp', '\u2191', 'Tilt up'], ['ArrowDown', '\u2193', 'Tilt down'], ['ArrowRight', '\u2192', 'Turn right']] as const)
+        .map(([key, glyph, title]) => <button key={key} type="button" className="cd-pad-key" title={`${title} (${key.replace('Arrow', '')} arrow key)`} aria-label={title} onClick={() => nudge(key)}>{glyph}</button>)}
+      <button type="button" className="cd-pad-key" title="Zoom out (minus key, or scroll)" aria-label="Zoom out" onClick={() => zoomBy(1 / 1.18)} disabled={zoom <= ZOOM_MIN + 1e-6}>&minus;</button>
+      <button type="button" className="cd-pad-key" title="Zoom in (plus key, or scroll)" aria-label="Zoom in" onClick={() => zoomBy(1.18)} disabled={zoom >= ZOOM_MAX - 1e-6}>+</button>
+      <button type="button" className="text-button cd-orbit-reset" onClick={resetView} disabled={zoom === 1 && camera.yaw === DEFAULT_CAMERA.yaw && camera.pitch === DEFAULT_CAMERA.pitch}>Reset view</button>
+    </div>
+    <span className="cd-view-hint">{inSpace ? 'Drag to turn · scroll to zoom · drag P to move it' : 'Scroll to zoom · drag P to move it'}</span>
     </div>
 
     <div className="cd-caption"><span><i className="cd-dot" />{sourceText}</span><span>{!full?'Selected interval':mode === 'sum' || mode === 'integrate' ? `${Math.round(progress*100)}% accumulated` : continuum >= .999 ? 'Infinitesimal limit' : 'Finite elements'}</span></div>

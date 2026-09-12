@@ -176,3 +176,23 @@
 /* !important because the accumulation animates the pieces' opacity inline. */
 .cd-in-space.cd-wire-kind .cd-piece path,.cd-in-space.cd-wire-kind .cd-piece rect,.cd-in-space.cd-wire-kind .cd-plus{opacity:0!important}
 .cd-in-space .cd-axes path{opacity:0}
+
+/* The view pad. Every gesture the figure answers to has a button here, because a control
+   that only exists as a key you have to already know about is not a control. */
+.cd-pad{display:flex;align-items:center;gap:4px;margin-left:auto}
+.cd-pad-key{width:26px;height:26px;display:grid;place-items:center;border:1px solid var(--border);border-radius:6px;background:none;color:var(--muted-foreground);font:inherit;font-size:13px;line-height:1;cursor:pointer;transition:background .16s ease,color .16s ease}
+.cd-pad-key:hover:not(:disabled){background:var(--muted);color:var(--foreground)}
+.cd-pad-key:disabled{opacity:.35;cursor:default}
+.cd-pad-key:focus-visible{outline:2px solid var(--field);outline-offset:1px}
+.cd-pad .cd-orbit-reset{margin-left:6px}
+@media (prefers-reduced-motion:reduce){.cd-pad-key{transition:none}}
+
+/* The drawn control legend. Faint enough to ignore once learned, legible when looked at. */
+.cd-help{opacity:.5;transition:opacity .25s ease;pointer-events:none}
+.charge-diagram:hover .cd-help,.cd-svg:focus-within .cd-help{opacity:.92}
+.cd-help-back{fill:var(--background);opacity:.72}
+.cd-help-art{fill:none;stroke:var(--muted-foreground);stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
+.cd-help-art rect{fill:none}
+.cd-help-art text{fill:var(--muted-foreground);stroke:none;font-size:8px}
+.cd-help-text{fill:var(--muted-foreground);font-size:9.5px;letter-spacing:.02em}
+@media (prefers-reduced-motion:reduce){.cd-help{transition:none}}
