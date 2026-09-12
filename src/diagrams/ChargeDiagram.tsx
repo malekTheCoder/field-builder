@@ -143,7 +143,24 @@ export function ChargeDiagram({ problem, params: p, setParams, count, continuum,
   // Pixels per metre, times whatever the reader has zoomed to. The projection, the canvas
   // and the 3D frustum all read this, so one multiply zooms the whole figure and no layer
   // can disagree with another about scale.
-  const baseUnit = perspective ? 42 : footed ? Math.min(45,150/p.size) : id==='bisector' ? Math.min(45,140/R) : id==='arc' ? 40 : 35;
+  // Pixels per metre, fitted to what the lesson actually has to show.
+  //
+  // Most geometries only have to fit their charge, and did. The axis lesson has to fit the
+  // rod AND the gap out to P -- seven metres at the default, more than twice anything else
+  // -- and was given the smallest scale of all, a flat 35, so its rod drew at a fifth of
+  // the frame with dead space beyond it. The arc was fixed at 40 regardless of its radius.
+  // Both are fitted now: the span that must be visible, into the room available for it.
+  //
+  // Quantised to five-pixel steps so that dragging P, which changes the span, steps the
+  // scale occasionally instead of resizing the drawing continuously under the cursor.
+  const fit = (span: number, room: number, lo: number, hi: number) =>
+    Math.max(lo, Math.min(hi, Math.round(room / Math.max(.5, span) / 5) * 5));
+  const baseUnit = perspective ? 42
+    : footed ? Math.min(45, 150 / p.size)
+    : id === 'bisector' ? Math.min(45, 140 / R)
+    : id === 'axial' ? fit(p.size + p.distance, 510, 20, 70)
+    : id === 'arc' ? fit(2 * R, 300, 25, 65)
+    : 35;
   const unit = baseUnit * zoom;
   const project = (v: Vec): Point => { const s = projectCamera(v, view.yaw, view.pitch); return { x: O.x + unit * s.x, y: O.y + unit * s.y }; };
   // Screen point a distance `length` out along a world direction, for the axes and the R/s bracket.
