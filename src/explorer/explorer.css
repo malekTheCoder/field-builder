@@ -208,7 +208,6 @@
 .exp-number-choice label{display:flex;align-items:center;gap:10px;color:var(--foreground);white-space:nowrap;cursor:pointer}
 .exp-number-choice>span{font-size:12px;max-width:280px;line-height:1.5}
 .symbolic-view .exp-parameters output,.symbolic-view .exp-unit,.symbolic-view .cd-scale{display:none}
-.exp-library-toggle{margin-right:12px}
 @media(max-width:1000px){.exp-library-toggle{display:none!important}}
 @media(max-width:600px){.exp-number-choice{align-items:flex-start;flex-direction:column;gap:8px}}
 
@@ -228,3 +227,36 @@
 .exp-walk-text strong{font-weight:600}
 .exp-walk-actions{display:flex;align-items:center;gap:12px;margin-left:auto}
 .exp-walk-actions button[disabled]{opacity:.4;cursor:default}
+
+/* ---- 8. Three controls that were reading as one --------------------
+   The row under the title held a sidebar toggle, a dialog opener and a
+   breadcrumb, all icon+text in the same size and colour, so none of them
+   said what it was. They are now three different kinds of thing:
+     a view control  square, icon only, hover surface
+     a crumb link    plain underlined-on-hover text
+     the location    the current lesson in the foreground colour, not a button
+   And the two view tabs are one control in two states: same type, same
+   metrics, one rule under the active label. -------------------------- */
+.exp-breadcrumb{gap:13px}
+/* The lesson list toggle is window furniture, not a crumb. Prefixed with .exp-breadcrumb
+   because the base sheet's `.exp-breadcrumb button` outranks a bare class. */
+.exp-breadcrumb .exp-library-toggle{display:grid;place-items:center;width:30px;height:30px;flex:none;margin-left:-7px;
+ padding:0;gap:0;border:0;border-radius:8px;background:none;color:var(--muted-foreground);
+ transition:background .18s ease,color .18s ease}
+.exp-breadcrumb .exp-library-toggle:hover{background:var(--muted);color:var(--foreground)}
+.exp-breadcrumb .exp-library-toggle[aria-expanded=false]{color:var(--foreground)}
+/* The crumbs are a location. Only the parent is clickable. */
+.exp-crumbs{display:flex;align-items:center;gap:9px;min-width:0}
+.exp-crumbs>svg{flex:none;color:color-mix(in oklab,var(--muted-foreground) 52%,transparent)}
+.exp-breadcrumb .exp-crumb-link{border:0;background:none;padding:0;color:var(--muted-foreground);font-size:var(--type-meta)}
+.exp-breadcrumb .exp-crumb-link:hover{color:var(--primary);text-decoration:underline;text-underline-offset:3px}
+.exp-crumb-here{color:var(--foreground);font-size:var(--type-meta);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* Two states of one control: no box, no radius, the active label sits on the rule. */
+.exp-views [data-slot=tabs-list]{height:46px;gap:30px;padding:0}
+.exp-views [data-slot=tabs-trigger]{height:100%;padding:0;border-width:0;border-radius:0;font-weight:400;color:var(--muted-foreground)}
+.exp-views [data-slot=tabs-trigger]:hover{color:var(--foreground)}
+.exp-views [data-slot=tabs-trigger][data-active]{color:var(--exp-primary)}
+.exp-views [data-slot=tabs-trigger]::after{background:var(--exp-primary);bottom:-1px;height:2px}
+/* Hover labels for the header's icon-only controls. */
+.hint-tip{font-size:var(--type-meta);line-height:1.4;letter-spacing:0}
+@media(max-width:520px){.exp-breadcrumb{gap:10px}.exp-views [data-slot=tabs-list]{gap:22px}}
