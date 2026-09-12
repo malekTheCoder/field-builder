@@ -7,7 +7,7 @@ import type { Params, Problem } from '../problems/types';
 import { field, magnitude, pretty, potential, type Vec } from '../symbolic/physics';
 import { sampleDistribution, sumSamples, sumInterval, intervalWeights, sumPotential } from './sampling';
 import { intervalKey, partitionCount, seamFractions, seamKey, splitFractions, splitProgress } from './subdivision';
-import { DEFAULT_CAMERA, depthFromScreen, keyboardCamera, orbitCamera, projectCamera, type CameraView } from './camera';
+import { DEFAULT_CAMERA, clampCamera, depthFromScreen, keyboardCamera, orbitCamera, projectCamera, type CameraView } from './camera';
 import { FieldCanvas } from './FieldCanvas';
 import { FieldStage } from './three/FieldStage';
 import './charge-diagram.css';
@@ -53,10 +53,8 @@ export function ChargeDiagram({ problem, params: p, setParams, count, continuum,
   const svg = useRef<SVGSVGElement>(null), plane = useRef<SVGGElement>(null), dragging = useRef<string | null>(null), uid = useId().replace(/:/g, '');
   const yawMv = useMotionValue(DEFAULT_CAMERA.yaw), pitchMv = useMotionValue(DEFAULT_CAMERA.pitch);
   const [camera, setCamera] = useState<CameraView>(DEFAULT_CAMERA), orbitFrom = useRef<Point>({ x: 0, y: 0 });
-  // Looking straight down the z axis IS the flat drawing: projectCamera at yaw 0 and pitch
-  // a quarter turn reproduces the old planar projection to within 4e-16. So 2D and 3D are
-  // one projection with the camera either locked or free, rather than two to keep in step.
-  const FLAT: CameraView = { yaw: 0, pitch: Math.PI / 2 };
+  const glideId = useRef(0), syncId = useRef(0), spin = useRef({ yaw: 0, pitch: 0, at: 0 });
+  const [gliding, setGliding] = useState(false);
   const root = useRef<HTMLDivElement>(null), renders = useRef(0);
   useLayoutEffect(() => { renders.current += 1; if (root.current) root.current.dataset.renders = String(renders.current); });
   const [spatial, setSpatial] = useState<boolean | null>(null);
@@ -64,12 +62,21 @@ export function ChargeDiagram({ problem, params: p, setParams, count, continuum,
   const reduced = !!useReducedMotion(), id = problem.geometry, scalar = problem.quantity === 'V', surface = id === 'disk' || id === 'sheet', perspective = surface || id === 'ring';
   // The ramp is the endpoint rod with a non-uniform density: same layout, different charge.
   const footed = id === 'endpoint' || id === 'ramp', ramp = id === 'ramp';
+  // Looking straight down the z axis IS the flat drawing of a planar lesson: projectCamera
+  // at yaw 0 and pitch a quarter turn reproduces the old planar projection to within 4e-16.
+  // For a ring, a disk or a sheet the flat drawing is the textbook side view instead, the
+  // plane nearly edge-on and P above it. So 2D and 3D are one projection with the camera
+  // either locked or free, rather than two to keep in step.
+  const FLAT: CameraView = perspective ? { yaw: 0, pitch: .15 } : { yaw: 0, pitch: Math.PI / 2 };
   // null means "whatever this geometry is normally drawn as"; the toggle sets it explicitly.
   const inSpace = spatial ?? perspective;
   const view = inSpace ? camera : FLAT;
+  // How far out to draw the field, in world metres: past P and past the charge, capped so a
+  // long rod does not shrink its own field to a smear.
+  const fieldReach = Math.min(9, Math.max(2.5, p.distance * 1.6, perspective ? p.size * 1.1 : p.size * 1.1));
   // An orbit drag writes a SVG matrix from motion values; setState would rebuild the tree every frame.
   const [activeDrag,setActiveDrag] = useState(false);
-  const still = reduced || activeDrag;
+  const still = reduced || activeDrag || gliding, moving = activeDrag || gliding;
   const n = Math.max(3, Math.round(count)), R = p.size / 2, selectedIndex = clamp(Math.round(selected), 0, n - 1);
   const samples = useMemo(() => sampleDistribution(id, p, n), [id, p, n]);
   const sample = samples[selectedIndex], total = sumSamples(samples), weights = intervalWeights(n,boundRange,progress), partial = sumInterval(samples,boundRange,progress);
@@ -145,7 +152,10 @@ export function ChargeDiagram({ problem, params: p, setParams, count, continuum,
   const netCallback = useRef(onNetScreen);
   useEffect(() => { netCallback.current = onNetScreen; });
   const netKey = `${net.x.toFixed(2)},${net.y.toFixed(2)}`;
-  useEffect(() => { const [x, y] = netKey.split(',').map(Number); netCallback.current?.({ x, y }); }, [netKey]);
+  // Not while the view is turning: the caller stores this in state, and a report per camera
+  // frame re-rendered the whole panel, KaTeX and all, on every frame of an orbit. It is
+  // reported once the motion settles, which is the only time a comparison is read anyway.
+  useEffect(() => { if (moving) return; const [x, y] = netKey.split(',').map(Number); netCallback.current?.({ x, y }); }, [netKey, moving]);
   const showContribution = mode !== 'divide' || !!highlight;
   const elementSymbol = continuum>=.999 ? 'dQ' : 'ΔQ';
   const fieldSymbol = continuum>=.999 ? 'dE' : 'ΔE';
@@ -222,7 +232,44 @@ export function ChargeDiagram({ problem, params: p, setParams, count, continuum,
   const onControl = (target: EventTarget | null) => target instanceof Element && !!target.closest('.cd-piece,.cd-observation,.cd-bound');
   const commitView = (next: CameraView) => { yawMv.set(next.yaw); pitchMv.set(next.pitch); setCamera(next); };
   /* oxlint-disable react/react-compiler */
-  const release = () => { if (dragging.current === 'orbit') { dragging.current = null; commitView({ yaw: yawMv.get(), pitch: pitchMv.get() }); } setActiveDrag(false); };
+  // One React render per animation frame at most, however many pointer or wheel events
+  // arrive in between. The motion values always hold the live view; this catches the
+  // rest of the drawing up to them.
+  const syncCamera = () => { if (syncId.current) return; syncId.current = requestAnimationFrame(() => { syncId.current = 0; setCamera({ yaw: yawMv.get(), pitch: pitchMv.get() }); }); };
+  const stopGlide = () => { if (glideId.current) cancelAnimationFrame(glideId.current); glideId.current = 0; };
+  // Ease the camera to a view rather than cutting to it. Yaw takes the short way round.
+  const glideTo = (to: CameraView, seconds: number, done?: () => void) => {
+    stopGlide();
+    const from = { yaw: yawMv.get(), pitch: pitchMv.get() }, turn = 2 * Math.PI;
+    const dYaw = ((to.yaw - from.yaw + Math.PI) % turn + turn) % turn - Math.PI, dPitch = to.pitch - from.pitch;
+    if (reduced || seconds <= 0) { commitView(to); done?.(); return; }
+    setGliding(true);
+    const t0 = performance.now();
+    const step = (now: number) => {
+      const k = Math.min(1, (now - t0) / (seconds * 1000)), e = k < .5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2;
+      const v = { yaw: from.yaw + dYaw * e, pitch: from.pitch + dPitch * e };
+      yawMv.set(v.yaw); pitchMv.set(v.pitch); setCamera(v);
+      if (k < 1) glideId.current = requestAnimationFrame(step); else { glideId.current = 0; setGliding(false); done?.(); }
+    };
+    glideId.current = requestAnimationFrame(step);
+  };
+  // A flung view keeps turning and settles, the way a globe does. The velocity is the
+  // pointer's over its last step; a pointer that paused before letting go flings nothing.
+  const coast = () => {
+    const v = spin.current, speed = Math.hypot(v.yaw, v.pitch);
+    if (reduced || performance.now() - v.at > 80 || speed < .0004) { commitView({ yaw: yawMv.get(), pitch: pitchMv.get() }); return; }
+    stopGlide(); setGliding(true);
+    let last = performance.now(), vy = v.yaw, vp = v.pitch;
+    const step = (now: number) => {
+      const dt = Math.min(48, now - last); last = now;
+      const next = clampCamera({ yaw: yawMv.get() + vy * dt, pitch: pitchMv.get() + vp * dt });
+      const decay = Math.exp(-dt / 170); vy *= decay; vp *= decay;
+      yawMv.set(next.yaw); pitchMv.set(next.pitch); setCamera(next);
+      if (Math.hypot(vy, vp) > .00003) glideId.current = requestAnimationFrame(step); else { glideId.current = 0; setGliding(false); }
+    };
+    glideId.current = requestAnimationFrame(step);
+  };
+  const release = () => { if (dragging.current === 'orbit') { dragging.current = null; coast(); } setActiveDrag(false); };
   // Orbit follows the 2D/3D choice rather than the geometry. The planar lessons carry axis
   // labels and dimension brackets pinned to fixed screen coordinates, so those are withheld
   // in 3D rather than allowed to drift away from what they measure.
@@ -231,16 +278,19 @@ export function ChargeDiagram({ problem, params: p, setParams, count, continuum,
     // A trackpad's two-finger drag arrives as a wheel event, not a pointer drag, so without
     // this the most natural gesture on a laptop does nothing at all.
     onWheel: (ev: { deltaX: number; deltaY: number; preventDefault: () => void }) => {
-      ev.preventDefault();
-      commitView(orbitCamera({ yaw: yawMv.get(), pitch: pitchMv.get() }, -ev.deltaX * .6, -ev.deltaY * .6));
+      ev.preventDefault(); stopGlide();
+      const next = orbitCamera({ yaw: yawMv.get(), pitch: pitchMv.get() }, -ev.deltaX * .6, -ev.deltaY * .6);
+      yawMv.set(next.yaw); pitchMv.set(next.pitch); syncCamera();
     },
-    onPointerDown: (ev: PointerEvent<SVGSVGElement>) => { if (onControl(ev.target)) return; cameraControl.current?.focus(); ev.currentTarget.setPointerCapture(ev.pointerId); dragging.current = 'orbit'; setActiveDrag(true); orbitFrom.current = { x: ev.clientX, y: ev.clientY }; },
+    onPointerDown: (ev: PointerEvent<SVGSVGElement>) => { if (onControl(ev.target)) return; stopGlide(); cameraControl.current?.focus(); ev.currentTarget.setPointerCapture(ev.pointerId); dragging.current = 'orbit'; setActiveDrag(true); orbitFrom.current = { x: ev.clientX, y: ev.clientY }; spin.current = { yaw: 0, pitch: 0, at: performance.now() }; },
     onPointerMove: (ev: PointerEvent<SVGSVGElement>) => {
       if (dragging.current !== 'orbit') return;
       const t0 = performance.now();
       const next = orbitCamera({ yaw: yawMv.get(), pitch: pitchMv.get() }, ev.clientX - orbitFrom.current.x, ev.clientY - orbitFrom.current.y);
       orbitFrom.current = { x: ev.clientX, y: ev.clientY };
-      yawMv.set(next.yaw); pitchMv.set(next.pitch);
+      const now = performance.now(), dt = Math.max(1, now - spin.current.at);
+      spin.current = { yaw: (next.yaw - yawMv.get()) / dt, pitch: (next.pitch - pitchMv.get()) / dt, at: now };
+      yawMv.set(next.yaw); pitchMv.set(next.pitch); syncCamera();
       const paint = () => {
         plane.current?.setAttribute('transform', planeMatrix(yawMv.get(), pitchMv.get(), O, unit));
         const s = projectCamera({ x: 0, y: 0, z: p.distance }, yawMv.get(), pitchMv.get());
@@ -255,7 +305,7 @@ export function ChargeDiagram({ problem, params: p, setParams, count, continuum,
       if (svg.current) svg.current.dataset.orbitMs = (performance.now() - t0).toFixed(3);
     },
     onPointerUp: release, onPointerCancel: release, onLostPointerCapture: release,
-    onKeyDown: (ev: KeyboardEvent<SVGSVGElement>) => { if (ev.defaultPrevented || onControl(ev.target) || !['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home'].includes(ev.key)) return; ev.preventDefault(); commitView(keyboardCamera({ yaw: yawMv.get(), pitch: pitchMv.get() }, ev.key)); },
+    onKeyDown: (ev: KeyboardEvent<SVGSVGElement>) => { if (ev.defaultPrevented || onControl(ev.target) || !['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home'].includes(ev.key)) return; ev.preventDefault(); stopGlide(); commitView(keyboardCamera({ yaw: yawMv.get(), pitch: pitchMv.get() }, ev.key)); },
   };
   /* oxlint-enable react/react-compiler */
   const circlePoints = (radius: number, start = 0, end = Math.PI * 2) => Array.from({ length: 97 }, (_, i) => project({ x: radius * Math.cos(start + (end - start) * i / 96), y: radius * Math.sin(start + (end - start) * i / 96), z: 0 }));
@@ -309,10 +359,11 @@ export function ChargeDiagram({ problem, params: p, setParams, count, continuum,
         drift. Planar lessons only for now: the perspective geometries need their lines
         traced in three dimensions and sorted against the surface, a different job. */}
     <div className="cd-stage">
-    {!inSpace && !scalar && fieldView !== 'off' && <FieldCanvas samples={samples} project={project} frame={{ width: 720, height: 430 }} mode={fieldView} reach={Math.max(2.5, p.distance * 1.7, p.size)} />}
-    {inSpace && perspective && <FieldStage kind={id === 'ring' ? 'ring' : id === 'disk' ? 'disk' : 'sheet'} samples={samples} selected={selectedIndex}
-      radius={R} distance={p.distance} yaw={view.yaw} pitch={view.pitch}
-      unit={unit} frame={{ width: 720, height: 430 }} origin={O} charge={p.charge} animating={activeDrag}
+    {!inSpace && !scalar && fieldView !== 'off' && <FieldCanvas samples={samples} project={project} frame={{ width: 720, height: 430 }} mode={fieldView} reach={Math.max(2.5, p.distance * 1.7, p.size)}
+      plane={perspective ? 'xz' : 'xy'} layout={surface ? 'surface' : 'wire'} />}
+    {inSpace && <FieldStage kind={id === 'disk' ? 'disk' : id === 'sheet' ? 'sheet' : 'wire'} closed={id === 'ring'} samples={samples} selected={selectedIndex}
+      radius={R} distance={p.distance} yaw={view.yaw} pitch={view.pitch} fieldView={scalar ? 'off' : fieldView} reach={fieldReach}
+      unit={unit} frame={{ width: 720, height: 430 }} origin={O} charge={p.charge} animating={moving}
       getView={() => ({ yaw: yawMv.get(), pitch: pitchMv.get() })} />}
     <svg ref={svg} className={`cd-svg${inSpace ? ' cd-orbitable' : ''}${scalar ? ' cd-scalar' : ''}`} viewBox="0 0 720 430" role="img" {...(inSpace ? orbit : {})} aria-label={`${problem.title}. Interactive charge distribution and ${scalar ? 'electric potential' : 'electric field'} visualization.${perspective ? ' Drag or use the arrow keys to rotate the view, Home to reset it.' : ''}`}>
       <defs>
@@ -330,17 +381,17 @@ export function ChargeDiagram({ problem, params: p, setParams, count, continuum,
       </g>
       <g clipPath={`url(#${uid}clip)`}>
         {perspective && <g ref={plane} className="cd-orbit-plane" transform={planeMatrix(view.yaw, view.pitch, O, unit)}>
-          {id === 'sheet' && <motion.path layoutId="fb-source-surface" data-source-body="true" initial={false} animate={{ d: pathThrough(worldArc(7), true) }} transition={{ duration: still ? 0 : .45 }} className="cd-surface" />}
+          {id === 'sheet' && <motion.path layoutId="fb-source-surface" data-source-body="true" initial={false} animate={{ d: pathThrough(worldArc(7), true) }} transition={{ duration: still ? 0 : .45 }} className="cd-surface" style={{ opacity: inSpace ? 0 : 1 }} />}
           {id === 'disk' && <>
-            <motion.path layoutId="fb-source-surface" data-source-body="true" initial={false} animate={{ d: pathThrough(worldArc(R), true) }} transition={{ duration: still ? 0 : .45 }} className="cd-surface" />
+            <motion.path layoutId="fb-source-surface" data-source-body="true" initial={false} animate={{ d: pathThrough(worldArc(R), true) }} transition={{ duration: still ? 0 : .45 }} className="cd-surface" style={{ opacity: inSpace ? 0 : 1 }} />
             <motion.path className="cd-disk-sweep" data-disk-sweep="true" initial={false} animate={{ d: pathThrough(worldArc(Math.max(.001, fillR)), true) }} transition={{ duration: still ? 0 : .2 }} />
             <g className="cd-piece is-selected" data-piece-key={intervalKey(selectedIndex, n)} style={{ pointerEvents: 'none' }}><motion.path initial={false} animate={{ d: pathThrough(worldArc(Math.max(.001, fillR))) }} transition={{ duration: still ? 0 : .2 }} fill="none" strokeWidth="4" /></g>
           </>}
           {id === 'ring' && <>
-            {/* The 3D stage draws the ring as a body with real depth, so the flat band
-                would only be a second copy of it lying on top. The path stays in the tree
-                because the shared layout animation between lessons is keyed to it. */}
-            <motion.path layoutId={`fb-source-${family}`} data-source-body="true" initial={false} animate={{ d: pathThrough(worldArc(R)) }} transition={{ duration: still ? 0 : .45 }} className="cd-charge-base" style={{ opacity: 0 }} />
+            {/* In space the stage draws the ring as a body with real depth, so the flat band
+                would only be a second copy lying on top. It stays in the tree because the
+                shared layout animation between lessons is keyed to it. */}
+            <motion.path layoutId={`fb-source-${family}`} data-source-body="true" initial={false} animate={{ d: pathThrough(worldArc(R)) }} transition={{ duration: still ? 0 : .45 }} className="cd-charge-base" style={{ opacity: inSpace ? 0 : 1 }} />
             {samples.map((_, i) => {
               const active = i === selectedIndex, accumulated = Math.abs(weights[i]) > 0 && (mode === 'sum' || mode === 'integrate');
               const inInterval = Math.abs(wholeWeights[i]) > 0;
@@ -356,7 +407,7 @@ export function ChargeDiagram({ problem, params: p, setParams, count, continuum,
         </g>}
         {id === 'sheet' && <path d="M80 340l30 12m-8-16 30 12m444-78 30 12m-8-16 30 12" className="cd-continuation" />}
         {id === 'sheet' && showContribution && <g className="cd-orbit-plane" transform={planeMatrix(view.yaw, view.pitch, O, unit)}><g className="cd-piece is-selected" data-piece-key={intervalKey(selectedIndex, n)} style={{ pointerEvents: 'none' }}><motion.path initial={false} animate={{ d: pathThrough(worldArc(Math.max(.001, sample.position.x))) }} transition={{ duration: still ? 0 : .18 }} fill="none" strokeWidth="4" /></g></g>}
-        {!perspective && rodLike && <motion.path layoutId={`fb-source-${family}`} data-source-body="true" className={ramp ? 'cd-charge-base' : 'cd-source-rod'} initial={false} animate={{ d: rodPath() }} transition={{ duration: still ? 0 : .45 }} />}
+        {!perspective && rodLike && <motion.path layoutId={`fb-source-${family}`} data-source-body="true" className={ramp ? 'cd-charge-base' : 'cd-source-rod'} style={{ opacity: inSpace ? 0 : 1 }} initial={false} animate={{ d: rodPath() }} transition={{ duration: still ? 0 : .45 }} />}
         {!perspective && id === 'arc' && <motion.path layoutId={`fb-source-${family}`} data-source-body="true" initial={false} animate={{ d: pathThrough(circlePoints(R, -p.phi / 2, p.phi / 2)) }} transition={{ duration: still ? 0 : .45 }} className="cd-charge-base" />}
         {!perspective && samples.map((s, i) => {
           const pos = project(s.position), active = i === selectedIndex, accumulated = Math.abs(weights[i]) > 0 && (mode === 'sum' || mode === 'integrate');
@@ -455,7 +506,7 @@ export function ChargeDiagram({ problem, params: p, setParams, count, continuum,
     </div>
     <details className="cd-controls" open><summary>Diagram controls and keyboard help</summary><p id={`${uid}help`}>Tab moves between controls. Arrow keys adjust the focused control; Home and End select its limits. You can also drag P and the integration bounds in the figure.</p>
     <div className="cd-control-grid">
-      {perspective&&<button ref={cameraControl} type="button" className="cd-camera-control" aria-describedby={`${uid}camera-help`} onKeyDown={ev=>{if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Home'].includes(ev.key)){ev.preventDefault();commitView(keyboardCamera({yaw:yawMv.get(),pitch:pitchMv.get()},ev.key));}}} onClick={()=>commitView({...DEFAULT_CAMERA})}>Rotate view with arrow keys<span id={`${uid}camera-help`}>Left/right rotate; up/down tilt; Home or Enter resets.</span></button>}
+      {inSpace&&<button ref={cameraControl} type="button" className="cd-camera-control" aria-describedby={`${uid}camera-help`} onKeyDown={ev=>{if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Home'].includes(ev.key)){ev.preventDefault();stopGlide();commitView(keyboardCamera({yaw:yawMv.get(),pitch:pitchMv.get()},ev.key));}}} onClick={()=>glideTo({...DEFAULT_CAMERA},.45)}>Rotate view with arrow keys<span id={`${uid}camera-help`}>Left/right rotate; up/down tilt; Home or Enter resets.</span></button>}
       <label>Charge element {selectedIndex+1} of {n}<input type="range" aria-label="Selected charge element" min={0} max={n-1} step={1} value={selectedIndex} onChange={ev=>onSelect(Number(ev.target.value))}/></label>
       {id!=='arc'&&<label>Observation distance: {pretty(p.distance)} m<input type="range" aria-label="Observation distance in meters" aria-valuetext={`${pretty(p.distance)} meters`} min={.5} max={6} step={.1} value={p.distance} onChange={ev=>setParams({distance:Number(ev.target.value)})}/></label>}
       {mode==='integrate'&&onBoundRangeChange&&[0,1].map(i=><label key={i}>{i?'Upper':'Lower'} bound: {boundRange[i]}%<input type="range" aria-label={`${i?'Upper':'Lower'} integration bound`} aria-valuetext={`${boundRange[i]} percent of the source coordinate`} min={0} max={100} step={1} value={boundRange[i]} onChange={ev=>{const next:[number,number]=[...boundRange];next[i]=Number(ev.target.value);onBoundRangeChange(next);}}/></label>)}
@@ -464,16 +515,21 @@ export function ChargeDiagram({ problem, params: p, setParams, count, continuum,
     <div className="cd-view-modes" role="group" aria-label="How to view the figure">
       {([['2D', false], ['3D', true]] as const).map(([label, wants]) => <button key={label} type="button"
         className={`cd-view-mode${inSpace === wants ? ' is-on' : ''}`} aria-pressed={inSpace === wants}
-        onClick={() => { setSpatial(wants); if (wants) commitView(DEFAULT_CAMERA); }}>{label}</button>)}
+        onClick={() => {
+          if (wants === inSpace) return;
+          stopGlide();
+          if (wants) { yawMv.set(FLAT.yaw); pitchMv.set(FLAT.pitch); setCamera({ ...FLAT }); setSpatial(true); glideTo({ ...DEFAULT_CAMERA }, .8); }
+          else glideTo(FLAT, .65, () => setSpatial(false));
+        }}>{label}</button>)}
       <span className="cd-view-hint">{inSpace ? 'Drag, scroll, or use the arrow keys to turn it' : 'Flat on, looking straight down the axis'}</span>
     </div>
-    {!inSpace && !scalar && <div className="cd-view-modes" role="group" aria-label="How to show the field around the charge">
+    {!scalar && <div className="cd-view-modes" role="group" aria-label="How to show the field around the charge">
       {([['Field lines', 'lines'], ['Arrows', 'vectors'], ['Off', 'off']] as const).map(([label, value]) => <button key={value} type="button"
         className={`cd-view-mode${fieldView === value ? ' is-on' : ''}`} aria-pressed={fieldView === value}
         onClick={() => setFieldView(value)}>{label}</button>)}
       <span className="cd-view-hint">{fieldView === 'lines' ? 'Crowded lines mean a stronger field' : fieldView === 'vectors' ? 'Each arrow is the field where it sits' : 'Just the construction'}</span>
     </div>}
-    {inSpace && <div className="cd-orbit-chrome"><span>Drag to rotate, or use the view control above</span><button type="button" className="cd-orbit-reset" onClick={() => commitView({...DEFAULT_CAMERA})} disabled={camera.yaw === DEFAULT_CAMERA.yaw && camera.pitch === DEFAULT_CAMERA.pitch}>Reset view</button></div>}
+    {inSpace && <div className="cd-orbit-chrome"><span>Drag to rotate, or use the view control above</span><button type="button" className="cd-orbit-reset" onClick={() => glideTo({...DEFAULT_CAMERA}, .45)} disabled={camera.yaw === DEFAULT_CAMERA.yaw && camera.pitch === DEFAULT_CAMERA.pitch}>Reset view</button></div>}
     <div className="cd-caption"><span><i className="cd-dot" />{sourceText}</span><span>{!full?'Selected interval':mode === 'sum' || mode === 'integrate' ? `${Math.round(progress*100)}% accumulated` : continuum >= .999 ? 'Infinitesimal limit' : 'Finite elements'}</span></div>
   </div>;
 }

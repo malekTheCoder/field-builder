@@ -33,6 +33,10 @@ function heading(samples:readonly ChargeSample[],at:Plane,sign:number):Plane|nul
 export type TraceOptions={
  /** Arc length per step, in world metres. Smaller is smoother and slower. */
  step?:number;
+ /** How close to an element counts as having arrived. Within about one element spacing the
+  * summed field bends toward that particular element rather than the charge it stands for,
+  * so stopping a spacing short keeps a line from wiggling at its root. */
+ arrive?:number;
  maxSteps?:number;
  /** Stop once this far from the origin; the line has left the picture. */
  outerLimit?:number;
@@ -42,7 +46,7 @@ export type TraceOptions={
 /** One streamline, stepped by RK4 on the unit field direction so the arc length per step is
  * honest and the curve does not drift wide on tight bends the way Euler does. */
 export function traceLine(samples:readonly ChargeSample[],start:Plane,options:TraceOptions={}):Plane[]{
- const step=options.step??.06,maxSteps=options.maxSteps??900,outer=options.outerLimit??40,sign=options.sign??1;
+ const step=options.step??.06,maxSteps=options.maxSteps??900,outer=options.outerLimit??40,sign=options.sign??1,arrive=options.arrive??ARRIVED;
  const path:Plane[]=[{x:start.x,y:start.y}];
  let here={x:start.x,y:start.y};
  for(let i=0;i<maxSteps;i++){
@@ -55,7 +59,7 @@ export function traceLine(samples:readonly ChargeSample[],start:Plane,options:Tr
   path.push(next);here=next;
   if(LEN(here)>outer)break;
   let arrived=false;
-  for(const s of samples)if(Math.hypot(here.x-s.position.x,here.y-s.position.y,s.position.z)<ARRIVED){arrived=true;break;}
+  for(const s of samples)if(Math.hypot(here.x-s.position.x,here.y-s.position.y,s.position.z)<arrive){arrived=true;break;}
   if(arrived)break;
  }
  return path;
@@ -114,11 +118,13 @@ export function fieldLines(samples:readonly ChargeSample[],count:number,options:
  // distribution, into a negative one. An arrowhead can then simply follow the polyline
  // instead of needing to know the sign of the charge.
  const reach=Math.max(...samples.map(s=>Math.hypot(s.position.x,s.position.y,s.position.z)),.5);
- const seeded=chargeSeeds(samples,count,Math.max(ARRIVED*1.6,reach*.05));
+ const gaps=samples.slice(1,50).map((s,i)=>Math.hypot(s.position.x-samples[i].position.x,s.position.y-samples[i].position.y)).sort((a,b)=>a-b);
+ const arrive=Math.max(ARRIVED,.55*(gaps[Math.floor(gaps.length/2)]??0));
+ const seeded=chargeSeeds(samples,count,Math.max(arrive*1.6,reach*.05));
  const starts=seeded.length?seeded:seedRing(samples,count);
  return starts.map(seed=>{
-  const along=traceLine(samples,seed,{...options,sign:1});
-  const against=traceLine(samples,seed,{...options,sign:-1});
+  const along=traceLine(samples,seed,{...options,arrive,sign:1});
+  const against=traceLine(samples,seed,{...options,arrive,sign:-1});
   return [...against.slice(1).reverse(),...along];
  }).filter(line=>line.length>3);
 }

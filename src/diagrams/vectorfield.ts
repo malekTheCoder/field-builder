@@ -31,16 +31,23 @@ export function vectorGrid(samples:readonly ChargeSample[],area:GridArea,spacing
   raw.push({at,dir:{x:e.x/magnitude,y:e.y/magnitude},magnitude});
  }
  if(!raw.length)return [];
- const strongest=Math.max(...raw.map(a=>a.magnitude));
- const weakest=Math.min(...raw.map(a=>a.magnitude));
- // A field that barely varies must not have its variation stretched across the whole
- // range: above a large sheet the field is very nearly constant, and normalising a
- // fraction of a percent up to full contrast would draw dramatic differences that are not
- // there. Below a ratio the eye would not notice anyway, every arrow is drawn at full
- // weight, which is the honest picture of a uniform field.
+ const weights=logWeights(raw.map(a=>a.magnitude));
+ return raw.map((a,i)=>({...a,weight:weights[i]}));
+}
+/** Relative weights for a set of magnitudes, on a log scale normalised to the set itself.
+ *
+ * A field that barely varies must not have its variation stretched across the whole range:
+ * above a large sheet the field is very nearly constant, and normalising a fraction of a
+ * percent up to full contrast would draw dramatic differences that are not there. Below a
+ * ratio the eye would not notice anyway, everything is given full weight, which is the honest
+ * picture of a uniform field. Shared by the flat lattice and the 3D one so the two cannot
+ * disagree about what "strong" means. */
+export function logWeights(magnitudes:readonly number[]):number[]{
+ if(!magnitudes.length)return [];
+ const logs=magnitudes.map(m=>Math.log(Math.max(m,1e-300)));
+ const top=Math.max(...logs),bottom=Math.min(...logs),span=top-bottom;
  const UNIFORM=Math.log(1.05);
- const span=Math.log(strongest)-Math.log(weakest);
- return raw.map(a=>({...a,weight:span<UNIFORM?1:(Math.log(a.magnitude)-Math.log(weakest))/span}));
+ return logs.map(l=>span<UNIFORM?1:(l-bottom)/span);
 }
 /** Arrow length in world units. Even the weakest arrow keeps a stub, because an arrow that
  * vanishes reads as "no field here", which is a different claim from "a weak field here". */
