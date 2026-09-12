@@ -1,0 +1,28 @@
+/* A reference, not a lecture. Each law is one scannable line — name, equation, what it buys you
+   here — and the paragraph that explains it exists only once the row is opened, so the block stays
+   short wherever it is dropped. Hierarchy is rules, whitespace and the type scale; there is
+   deliberately no badge, pill or eyebrow on any of it. */
+.laws{display:block}
+.laws-lede{font-size:var(--type-body);line-height:1.7;color:var(--muted-foreground);max-width:62ch;margin:0}
+.laws-lede+.laws-list,.laws-dialog .laws-lede+.laws{margin-top:20px}
+.laws-list{list-style:none;margin:0;padding:0}
+.law{border-top:1px solid var(--surface-rule)}
+.law:last-child{border-bottom:1px solid var(--surface-rule)}
+.law>button{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:9px 14px;width:100%;text-align:left;background:none;border:0;padding:15px 0;color:var(--foreground)}
+.law-name{font-family:var(--serif);font-size:var(--type-lead);line-height:1.25;align-self:center}
+.law>button>svg{align-self:center;color:var(--muted-foreground);transition:transform .2s ease,color .2s ease}
+.law>button:hover>svg,.law>button:hover .law-name{color:var(--field)}
+.law[data-open=true]>button>svg{transform:rotate(180deg);color:var(--field)}
+.law-tex{grid-column:1/-1;font-size:var(--type-body);overflow-x:auto;overflow-y:hidden}
+.law-why{grid-column:1/-1;font-size:var(--type-meta);line-height:1.7;color:var(--muted-foreground);max-width:58ch}
+.law-detail{display:grid;gap:13px;padding:2px 0 20px;font-size:var(--type-meta);line-height:1.8;color:var(--muted-foreground);max-width:58ch}
+.law-detail .math{font-size:var(--type-meta);color:var(--foreground);overflow-x:auto;overflow-y:hidden}
+.laws-dialog[data-slot=dialog-content]{max-width:min(560px,calc(100vw - 32px))!important;padding:28px!important;gap:0!important;
+ border:1px solid var(--border);border-radius:18px;max-height:calc(100dvh - 32px);overflow-y:auto}
+.laws-title[data-slot=dialog-title]{font-family:var(--serif);font-size:var(--type-sub)!important;font-weight:400;letter-spacing:-.015em;
+ line-height:1.25;margin:0 0 12px;padding-right:24px}
+/* Inside the tour the laws stand in for the figure, under the page's own framing sentence. */
+.fb-onboarding .laws{margin-top:4px}
+@media(max-width:520px){.laws-dialog[data-slot=dialog-content]{padding:22px 20px!important;border-radius:14px}
+ .law-name{font-size:var(--type-body)}.law>button{padding:13px 0}}
+@media(prefers-reduced-motion:reduce){.law>button>svg{transition:none}}
