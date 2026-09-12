@@ -16,7 +16,7 @@ describe('assignable URL state', () => {
   expect(await findByRole('heading', {name: /Potential on the axis of a ring/})).toBeTruthy();
   await waitFor(() => expect(container.querySelector('.cd-gauge')).toBeTruthy());
   expect(container.querySelector('.cd-vector')).toBeNull();
-  expect(container.querySelector('[data-sum-chain], [aria-label="Accumulation timeline"]')).toBeTruthy();
+  expect(container.querySelector('.exp-diagram-card.mode-sum')).toBeTruthy();
   await waitFor(() => {
    const saved = JSON.parse(localStorage.getItem('field-builder:explorer:v1')!);
    expect(saved.params.axial.distance).toBe(5);

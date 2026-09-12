@@ -11,9 +11,9 @@ afterEach(cleanup);
 
 describe('potential lessons in the live UI', () => {
  it('the workbench accumulates a scalar and has no projection or symmetry row', () => {
-  const {queryByText, getAllByText, getByLabelText} = render(<EquationWorkbench problem={getProblem('v-ring')} params={DEFAULT_PARAMS} count={8} continuum={1} progress={1} mode="project" onModeChange={vi.fn()} boundRange={[0, 100]} onBoundRangeChange={vi.fn()} />);
+  const {queryByText, getAllByText, container} = render(<EquationWorkbench problem={getProblem('v-ring')} params={DEFAULT_PARAMS} count={8} continuum={1} progress={1} mode="project" onModeChange={vi.fn()} boundRange={[0, 100]} onBoundRangeChange={vi.fn()} />);
   expect(getAllByText('One scalar contribution').length).toBeGreaterThan(0);
-  expect(getByLabelText('Equation exploration modes').textContent).toContain('dV');
+  expect(container.querySelector('.ew-assembled')?.textContent ?? '').toContain('V');
   expect(queryByText('Which directions survive?')).toBeNull();
   expect(queryByText('Signed projection')).toBeNull();
  });

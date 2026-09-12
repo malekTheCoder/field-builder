@@ -25,6 +25,9 @@ export type ChargeDiagramProps = {
   predicting?: boolean; prediction?: Point | null; onPredict?: (offset: Point) => void;
   /** The net arrow as drawn, so a guess can be compared against what is actually on screen. */
   onNetScreen?: (offset: Point) => void;
+  /** Start the control drawer closed: on a page that already carries its own controls, the
+   * drawer is a second copy of them. */
+  compact?: boolean;
 };
 const clamp = (n: number, a: number, b: number) => Math.max(a, Math.min(b, n));
 const plus = (a: Point, b: Point): Point => ({ x: a.x + b.x, y: a.y + b.y });
@@ -48,7 +51,7 @@ function Vector({ from, to, color = 'var(--field)', width = 2.5, dashed = false,
     {label && length > 10 && <text x={to.x + (to.x < from.x ? -9 : 9)} y={to.y - 9} textAnchor={to.x < from.x ? 'end' : 'start'} className="cd-vector-label" fill="currentColor">{label}</text>}
   </g>;
 }
-export function ChargeDiagram({ problem, params: p, setParams, count, continuum, selected, onSelect, progress, components, pair, mode, boundRange = [0, 100], onBoundRangeChange, highlight = '', predicting, prediction, onPredict, onNetScreen }: ChargeDiagramProps) {
+export function ChargeDiagram({ problem, params: p, setParams, count, continuum, selected, onSelect, progress, components, pair, mode, boundRange = [0, 100], onBoundRangeChange, highlight = '', predicting, prediction, onPredict, onNetScreen, compact = false }: ChargeDiagramProps) {
   const cameraControl = useRef<HTMLButtonElement>(null);
   const svg = useRef<SVGSVGElement>(null), plane = useRef<SVGGElement>(null), dragging = useRef<string | null>(null), uid = useId().replace(/:/g, '');
   const yawMv = useMotionValue(DEFAULT_CAMERA.yaw), pitchMv = useMotionValue(DEFAULT_CAMERA.pitch);
@@ -508,7 +511,7 @@ export function ChargeDiagram({ problem, params: p, setParams, count, continuum,
       <text x="690" y="409" textAnchor="end" className="cd-footer">{scalar ? `${continuum>=.999?'dV':'ΔV'} · V: ${pretty(vNow)} V` : showContribution ? `${fieldSymbol} × ${pretty(selectedGain)} · E: ${pretty(scaleValue)} N/C per 100 px` : `${n} charge pieces`}</text>
     </svg>
     </div>
-    <details className="cd-controls" open><summary>Diagram controls and keyboard help</summary><p id={`${uid}help`}>Tab moves between controls. Arrow keys adjust the focused control; Home and End select its limits. You can also drag P and the integration bounds in the figure.</p>
+    <details className="cd-controls" open={!compact}><summary>Diagram controls and keyboard help</summary><p id={`${uid}help`}>Tab moves between controls. Arrow keys adjust the focused control; Home and End select its limits. You can also drag P and the integration bounds in the figure.</p>
     <div className="cd-control-grid">
       {inSpace&&<button ref={cameraControl} type="button" className="cd-camera-control" aria-describedby={`${uid}camera-help`} onKeyDown={ev=>{if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Home'].includes(ev.key)){ev.preventDefault();stopGlide();commitView(keyboardCamera({yaw:yawMv.get(),pitch:pitchMv.get()},ev.key));}}} onClick={()=>glideTo({...DEFAULT_CAMERA},.45)}>Rotate view with arrow keys<span id={`${uid}camera-help`}>Left/right rotate; up/down tilt; Home or Enter resets.</span></button>}
       <label>Charge element {selectedIndex+1} of {n}<input type="range" aria-label="Selected charge element" min={0} max={n-1} step={1} value={selectedIndex} onChange={ev=>onSelect(Number(ev.target.value))}/></label>
@@ -516,8 +519,9 @@ export function ChargeDiagram({ problem, params: p, setParams, count, continuum,
       {mode==='integrate'&&onBoundRangeChange&&[0,1].map(i=><label key={i}>{i?'Upper':'Lower'} bound: {boundRange[i]}%<input type="range" aria-label={`${i?'Upper':'Lower'} integration bound`} aria-valuetext={`${boundRange[i]} percent of the source coordinate`} min={0} max={100} step={1} value={boundRange[i]} onChange={ev=>{const next:[number,number]=[...boundRange];next[i]=Number(ev.target.value);onBoundRangeChange(next);}}/></label>)}
     </div></details>
     <output className="cd-announcement" aria-live="polite" aria-atomic="true">{announcement}</output>
+    <div className="cd-toolbar">
     <div className="cd-view-modes" role="group" aria-label="How to view the figure">
-      {([['2D', false], ['3D', true]] as const).map(([label, wants]) => <button key={label} type="button"
+      {([['2D', false], ['3D', true]] as const).map(([label, wants]) => <button key={label} type="button" title={wants ? 'In space: drag, scroll or use the arrow keys to turn it' : 'Flat, looking straight down the axis'}
         className={`cd-view-mode${inSpace === wants ? ' is-on' : ''}`} aria-pressed={inSpace === wants}
         onClick={() => {
           if (wants === inSpace) return;
@@ -525,15 +529,16 @@ export function ChargeDiagram({ problem, params: p, setParams, count, continuum,
           if (wants) { yawMv.set(FLAT.yaw); pitchMv.set(FLAT.pitch); setCamera({ ...FLAT }); setSpatial(true); glideTo({ ...DEFAULT_CAMERA }, .8); }
           else glideTo(FLAT, .65, () => setSpatial(false));
         }}>{label}</button>)}
-      <span className="cd-view-hint">{inSpace ? 'Drag, scroll, or use the arrow keys to turn it' : 'Flat on, looking straight down the axis'}</span>
     </div>
     {!scalar && <div className="cd-view-modes" role="group" aria-label="How to show the field around the charge">
-      {([['Field lines', 'lines'], ['Arrows', 'vectors'], ['Off', 'off']] as const).map(([label, value]) => <button key={value} type="button"
+      {([['Field lines', 'lines', 'Crowded lines mean a stronger field'], ['Arrows', 'vectors', 'Each arrow is the field where it sits'], ['Off', 'off', 'Just the construction']] as const).map(([label, value, title]) => <button key={value} type="button" title={title}
         className={`cd-view-mode${fieldView === value ? ' is-on' : ''}`} aria-pressed={fieldView === value}
         onClick={() => setFieldView(value)}>{label}</button>)}
-      <span className="cd-view-hint">{fieldView === 'lines' ? 'Crowded lines mean a stronger field' : fieldView === 'vectors' ? 'Each arrow is the field where it sits' : 'Just the construction'}</span>
     </div>}
-    {inSpace && <div className="cd-orbit-chrome"><span>Drag to rotate, or use the view control above</span><button type="button" className="cd-orbit-reset" onClick={() => glideTo({...DEFAULT_CAMERA}, .45)} disabled={camera.yaw === DEFAULT_CAMERA.yaw && camera.pitch === DEFAULT_CAMERA.pitch}>Reset view</button></div>}
+    {inSpace && <button type="button" className="text-button cd-orbit-reset" onClick={() => glideTo({...DEFAULT_CAMERA}, .45)} disabled={camera.yaw === DEFAULT_CAMERA.yaw && camera.pitch === DEFAULT_CAMERA.pitch}>Reset view</button>}
+    <span className="cd-view-hint">{inSpace ? 'Drag to turn · drag P to move it' : 'Drag P to move it'}</span>
+    </div>
+
     <div className="cd-caption"><span><i className="cd-dot" />{sourceText}</span><span>{!full?'Selected interval':mode === 'sum' || mode === 'integrate' ? `${Math.round(progress*100)}% accumulated` : continuum >= .999 ? 'Infinitesimal limit' : 'Finite elements'}</span></div>
   </div>;
 }

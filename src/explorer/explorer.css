@@ -260,3 +260,10 @@
 /* Hover labels for the header's icon-only controls. */
 .hint-tip{font-size:var(--type-meta);line-height:1.4;letter-spacing:0}
 @media(max-width:520px){.exp-breadcrumb{gap:10px}.exp-views [data-slot=tabs-list]{gap:22px}}
+
+/* The page is the figure and the integral builder. The geometry sliders sit under the figure
+   in one quiet row, with a reset at its end; the walk carries the controls a step needs. */
+.exp-parameters .parameter-grid{align-items:end}
+.exp-parameters .exp-reset{align-self:end;padding:6px;color:var(--muted-foreground)}
+.exp-walk-extra{display:flex;align-items:center;gap:14px;flex:1;min-width:16rem}
+.exp-walk-extra .exp-range{flex:1;min-width:10rem}

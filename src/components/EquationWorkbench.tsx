@@ -4,7 +4,7 @@ import { ArrowDown, ArrowUpRight, Check, ChevronDown, ScanLine, Sparkles } from 
 import { Button } from '@/components/ui/button';
 import { MathText } from './Math';
 import { equivalent, preview, safeParse } from '../symbolic/equivalence';
-import {intervalWeights} from '../diagrams/sampling';
+import {} from '../diagrams/sampling';
 import {assembledTex,figureOf,isComplete,substitutedTex,termOfFigure,termsFor,type TermId} from '../workbench/assembly';
 import type { Params, Problem } from '../problems/types';
 import './workbench.css';
@@ -33,16 +33,15 @@ export function EquationWorkbench({problem:p,derivationProblem,params,count,cont
  const finiteCharge=(p.id==='infinite'?differential.replace('=','\\approx'):differential).replace(/dQ/g,raw`\Delta Q`).replace(/d([xys])/g,raw`\Delta $1`).replace(/d\\theta/g,raw`\Delta\theta`);
  const contribution=scalar?raw`dV=\frac{k\,dQ}{r_i}`:surface?raw`dE_z=\frac{kz\,dQ}{(s^2+z^2)^{3/2}}`:raw`d\mathbf E=\frac{k\,dQ}{r_i^2}\,\hat{\mathbf r}_i`;
  const finiteField=scalar?raw`\Delta V\approx\frac{k\,\Delta Q}{r_i}`:surface?raw`\Delta E_z\approx\frac{kz\,\Delta Q}{(s^2+z^2)^{3/2}}`:raw`\Delta\mathbf E_i\approx\frac{k\,\Delta Q_i}{r_i^2}\,\hat{\mathbf r}_i`;
- const m=Number(intervalWeights(count,boundRange,progress).reduce((sum,w)=>sum+Math.abs(w),0).toFixed(2));const intervalCount=Number((count*Math.abs(boundRange[1]-boundRange[0])/100).toFixed(2));
  const shown=mode==='divide'?(continuous?differential:finiteCharge):mode==='project'?(continuous?contribution:finiteField):mode==='sum'?(scalar?raw`V_{\mathrm{partial}}\approx\sum_{i=1}^{${count}}w_i\Delta V_i`:raw`\mathbf E_{\mathrm{partial}}\approx\sum_{i=1}^{${count}}w_i\Delta\mathbf E_i`):integral;
  const algebra=derivationProblem??p;const original=algebra.steps.find(s=>s.kind==='integrate')?.worked??[];
  const steps=g==='bisector'&&!scalar?[{text:'Turn the changing distance into an angle. Hold r fixed as the source position changes.',tex:raw`y=r\tan u,\quad dy=r\sec^2u\,du`},{text:'The Jacobian supplies two powers of secant. One remains in the denominator.',tex:raw`\int\frac{r\,dy}{(y^2+r^2)^{3/2}}=\frac1r\int\cos u\,du`},{text:'Integrate, then return to the original triangle.',tex:raw`\frac{\sin u}{r}=\frac{y}{r\sqrt{y^2+r^2}}`},...original.slice(1)]:original;
  function highlight(name:string){const next=focus===name?null:name;setFocus(next);onHighlight?.(next?figureOf(p,next as TermId):'');}
  function applyBounds(event:{preventDefault():void}){event.preventDefault();try{const a=boundPercent(p,bounds[0],params),b=boundPercent(p,bounds[1],params);if(a<-.000001||b>100.000001||a>=b)throw Error('Choose an increasing interval inside the distribution.');onBoundRangeChange([Math.max(0,a),Math.min(100,b)]);onModeChange('integrate');setFeedback(a===0&&b===100?'Whole distribution selected. Equivalent forms accepted.':'Interval applied. The integral and highlighted region now match.');}catch(e){setFeedback(e instanceof Error?e.message:'Check the expressions and try again.');}}
- return <aside className="ew-panel" aria-label="Live equation workbench"><header className="ew-header"><h2>See the sum take shape.</h2></header><div className="ew-content">
+ return <aside className="ew-panel" aria-label="Live equation workbench"><div className="ew-content">
  <div className="ew-equation-label"><span>{(scalar?vLabels:labels)[mode]}</span><span>{continuous?'Continuous':`${count} pieces`}</span></div><div className={`ew-equation ew-mode-${mode}`}><MathText tex={shown} block/>{mode==='integrate'&&!scalar&&(p.id==='semi'||p.id==='endpoint'||p.id==='ramp')&&<MathText tex={yIntegral} block/>}</div>
- <p className="ew-context">{mode==='divide'?(continuous?'dQ is the differential charge: the limit of an ever smaller piece.':'Each finite piece stands in for a small region of charge. Increase the count to make the approximation finer.'):mode==='project'?(scalar?'Potential is k dQ over distance. There is no cosine and no direction.':surface?'A complete annulus uses the ring’s axial field, with transverse components already canceled.':'The direction comes from the source-to-P displacement. Project this vector onto each axis.'):mode==='sum'?`${m} of ${intervalCount} equivalent pieces accumulated. A partly swept piece is weighted fractionally. The ≈ reminds us that finite pieces approximate a continuous distribution.`:progress<.999?'The upper limit follows the sweep. Every newly included slice adds its signed contribution.':allBounds?(limit?'First integrate a finite rod. Then extend L without limit while holding λ fixed.':'Every source element is included. The definite integral describes the continuous distribution exactly.'):'This integral covers the selected interval. Restore both endpoints to see the full-distribution result.'}</p>
- <div className="ew-flow" aria-label="Equation exploration modes">{(['divide','project','sum','integrate'] as Mode[]).map((v,i)=><button key={v} onClick={()=>onModeChange(v)} aria-pressed={v===mode}><span>{(scalar?['ΔQ','dV','Σ','∫']:['ΔQ','dE','Σ','∫'])[i]}</span><small>{(scalar?['Divide','dV','Sum','Integrate']:['Divide','Project','Sum','Integrate'])[i]}</small></button>)}</div>
+ 
+ 
  <div className="ew-assembly"><div className="ew-section-title"><span>Build the integral</span><span>{taken.size} of {terms.length} from the figure</span></div>
  <div className={"ew-assembled"+(built?" is-built":"")}><MathText tex={assembledTex(p,taken)} block/></div>
  {taken.size>0&&<div className="ew-substituted" aria-label="With each symbol replaced by what it stands for"><MathText tex={substitutedTex(p,taken)} block/></div>}
