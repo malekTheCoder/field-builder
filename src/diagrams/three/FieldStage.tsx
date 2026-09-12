@@ -19,6 +19,10 @@ export type FieldStageProps={
  /** Which body to build. A wire runs through its samples; a disk or a sheet is a surface. */
  kind:BodyKind; closed:boolean; radius:number; distance:number;
  samples:readonly ChargeSample[]; selected:number;
+ /** The wire's own shape, sampled from the geometry rather than from the partition. A ring
+  * is a ring however many pieces it has been cut into, and building the body from the
+  * samples made a five-piece ring render as a fifteen-sided polygon. */
+ bodyPath?:readonly Vec[];
  yaw:number; pitch:number;
  /** Pixels per world unit, and the viewBox the SVG above is drawn in. */
  unit:number; frame:{width:number;height:number};
@@ -42,6 +46,10 @@ export type FieldStageProps={
 };
 type Live={dispose:()=>void;update:(p:FieldStageProps)=>void};
 const sampleKey=(p:FieldStageProps)=>{
+ if(p.bodyPath?.length){
+  const f=p.bodyPath[0],l=p.bodyPath[p.bodyPath.length-1];
+  return `${p.kind}:${p.closed}:${p.bodyPath.length}:${f.x.toFixed(3)},${f.y.toFixed(3)},${f.z.toFixed(3)}:${l.x.toFixed(3)},${l.y.toFixed(3)},${l.z.toFixed(3)}:${p.radius.toFixed(3)}`;
+ }
  const a=p.samples[0]?.position,b=p.samples[p.samples.length-1]?.position;
  const at=(v?:{x:number;y:number;z:number})=>v?`${v.x.toFixed(3)},${v.y.toFixed(3)},${v.z.toFixed(3)}`:'-';
  return `${p.kind}:${p.closed}:${p.samples.length}:${at(a)}:${at(b)}:${p.radius.toFixed(3)}`;
@@ -167,10 +175,11 @@ export function FieldStage(props:FieldStageProps){
    const buildBody=(p:FieldStageProps)=>{
     clearGroup(body);
     if(p.kind==='wire'){
-     const points=wirePath(p.samples).map(v=>new THREE.Vector3(v.x,v.y,v.z));
+     const source=p.bodyPath?.length?p.bodyPath:wirePath(p.samples);
+     const points=source.map(v=>new THREE.Vector3(v.x,v.y,v.z));
      if(points.length<2)return;
      const curve=new THREE.CatmullRomCurve3(points,p.closed,'centripetal');
-     body.add(new THREE.Mesh(new THREE.TubeGeometry(curve,Math.min(240,points.length*3),wireRadius(p.reach),12,p.closed),bodyMaterial));
+     body.add(new THREE.Mesh(new THREE.TubeGeometry(curve,Math.min(320,Math.max(64,points.length*2)),wireRadius(p.reach),14,p.closed),bodyMaterial));
      return;
     }
     // A disk and a sheet are both flat surfaces; only how far they reach differs, and a

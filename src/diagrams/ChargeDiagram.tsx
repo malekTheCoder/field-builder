@@ -8,6 +8,7 @@ import { field, magnitude, pretty, potential, type Vec } from '../symbolic/physi
 import { sampleDistribution, sumSamples, sumInterval, intervalWeights, sumPotential } from './sampling';
 import { intervalKey, partitionCount, seamFractions, seamKey, splitFractions, splitProgress } from './subdivision';
 import { DEFAULT_CAMERA, clampCamera, depthFromScreen, keyboardCamera, orbitCamera, projectCamera, type CameraView } from './camera';
+import { placeLabels, type Box } from './labels';
 import { FieldCanvas } from './FieldCanvas';
 import { FieldStage } from './three/FieldStage';
 import './charge-diagram.css';
@@ -59,23 +60,23 @@ function ViewHelp({ x, y }: { x: number; y: number }) {
   // 3D view does not know that dragging turns it, and a sentence in the chrome is read last
   // if at all. A mouse with a turning arrow, a wheel with an up-down arrow, and four key
   // caps say it without a sentence. One row per gesture, so nothing crowds anything.
-  const ROW = 20;
+  const ROW = 16;
   const cap = (kx: number, glyph: string) => <g key={glyph}>
-    <rect x={kx} y={-8} width="11" height="11" rx="2.5" />
-    <text x={kx + 5.5} y={.6} textAnchor="middle" dominantBaseline="middle">{glyph}</text>
+    <rect x={kx} y={-6.5} width="9" height="9" rx="2" />
+    <text x={kx + 4.5} y={.4} textAnchor="middle" dominantBaseline="middle">{glyph}</text>
   </g>;
   const row = (i: number, art: React.ReactNode, label: string) =>
     <g transform={`translate(0 ${i * ROW})`}>
       <g className="cd-help-art">{art}</g>
-      <text className="cd-help-text" x="59" y="1" dominantBaseline="middle">{label}</text>
+      <text className="cd-help-text" x="48" y="1" dominantBaseline="middle">{label}</text>
     </g>;
   return <g className="cd-help" transform={`translate(${x} ${y})`} aria-hidden="true">
-    <rect className="cd-help-back" x="-9" y="-17" width="163" height="66" rx="9" />
+    <rect className="cd-help-back" x="-8" y="-13" width="132" height="54" rx="8" />
     {row(0, <><rect x="1" y="-9" width="12" height="17" rx="6" /><line x1="7" y1="-9" x2="7" y2="-3" />
       <path d="M19 1a8 8 0 0 1 11-6" /><path d="M30-8.2l.5 3.2-3.2.5" /></>, 'drag to turn')}
     {row(1, <><rect x="1" y="-9" width="12" height="17" rx="6" /><line x1="7" y1="-5" x2="7" y2="-1" strokeWidth="2.2" />
       <path d="M24-8v14" /><path d="M21.5-5.5L24-8l2.5 2.5" /><path d="M21.5 3.5L24 6l2.5-2.5" /></>, 'scroll to zoom')}
-    {row(2, <>{[cap(1, '\u2190'), cap(14, '\u2191'), cap(27, '\u2193'), cap(40, '\u2192')]}</>, 'arrow keys')}
+    {row(2, <>{[cap(1, '\u2190'), cap(11, '\u2191'), cap(21, '\u2193'), cap(31, '\u2192')]}</>, 'arrow keys')}
   </g>;
 }
 export function ChargeDiagram({ problem, params: p, setParams, count, continuum, selected, onSelect, progress, components, pair, mode, boundRange = [0, 100], onBoundRangeChange, highlight = '', predicting, prediction, onPredict, onNetScreen, compact = false }: ChargeDiagramProps) {
@@ -203,6 +204,43 @@ export function ChargeDiagram({ problem, params: p, setParams, count, continuum,
   // frame re-rendered the whole panel, KaTeX and all, on every frame of an orbit. It is
   // reported once the motion settles, which is the only time a comparison is read anyway.
   useEffect(() => { if (moving) return; const [x, y] = netKey.split(',').map(Number); netCallback.current?.({ x, y }); }, [netKey, moving]);
+  // Keep the labels off each other.
+  //
+  // Every label sits at an offset chosen by hand for one arrangement of the geometry, and
+  // those offsets go on being what they were when the geometry moves: measured across all
+  // fifteen lessons, twelve put two labels on top of each other at some parameter value.
+  // Re-tuning each offset would fix a reading and break the next one, because the fault is
+  // that no label knows what else is on the page. So they are laid out where they ask to be
+  // and then whichever ones actually collide are nudged to the nearest free spot.
+  //
+  // After layout, and not while anything is moving: a drag would pay for a second layout
+  // pass every frame to reposition labels nobody is reading mid-gesture.
+  useLayoutEffect(() => {
+    const root = svg.current;
+    if (!root || moving) return;
+    const texts = [...root.querySelectorAll<SVGGraphicsElement>('text')].filter(t => !t.closest('.cd-help'));
+    if (!texts.length) return;
+    // Measure with any previous nudge removed, so the desired position is what is measured
+    // and a label does not creep further on every pass.
+    for (const t of texts) t.removeAttribute('transform');
+    const frameRect = root.getBoundingClientRect();
+    if (frameRect.width < 2 || frameRect.height < 2) return;
+    const sx = 720 / frameRect.width, sy = 430 / frameRect.height;
+    // Client rects, not getBBox: a label inside the orbiting plane is measured in that
+    // plane's coordinates, and only the screen box puts every label in one space.
+    const toFrame = (r: DOMRect): Box => ({ x: (r.left - frameRect.left) * sx, y: (r.top - frameRect.top) * sy, width: r.width * sx, height: r.height * sy });
+    const labels = texts.map(t => ({ box: toFrame(t.getBoundingClientRect()), fixed: t.dataset.anchor === 'fixed' }));
+    const obstacles = [...root.querySelectorAll<SVGGraphicsElement>('.cd-point, .cd-point-halo')].map(el => toFrame(el.getBoundingClientRect()));
+    const nudges = placeLabels(labels, { frame: { width: 720, height: 430 }, obstacles, pad: 2 });
+    texts.forEach((t, i) => {
+      const { dx, dy } = nudges[i];
+      if (dx || dy) t.setAttribute('transform', `translate(${dx.toFixed(2)} ${dy.toFixed(2)})`);
+    });
+  });
+  // The wire's shape, from the geometry itself at a resolution that reads as smooth. Not
+  // from the samples: those are the partition, and a ring cut into five pieces is still a
+  // ring, not a pentagon.
+  const bodyPath = surface ? undefined : Array.from({ length: 129 }, (_, k) => world(k / 128));
   const showContribution = mode !== 'divide' || !!highlight;
   // The selected element, as the shape it actually is.
   //
@@ -312,7 +350,18 @@ export function ChargeDiagram({ problem, params: p, setParams, count, continuum,
   const zoomBy = (factor: number) => setZoom(z => clamp(z * factor, ZOOM_MIN, ZOOM_MAX));
   // Scroll zooms. It used to rotate, which is why turning the figure felt wrong: the one
   // gesture every 3D tool spends on getting closer was spinning the scene instead.
-  const wheelZoom = (ev: { deltaY: number; preventDefault: () => void }) => { ev.preventDefault(); zoomBy(Math.exp(-ev.deltaY * .0016)); };
+  // React delegates wheel to the root, where the listener is passive, so preventDefault is
+  // ignored and the page scrolls as well as the figure zooming. The only way to claim the
+  // gesture is a non-passive listener on the element itself.
+  const wheelZoom = useRef<(ev: WheelEvent) => void>(() => {});
+  useEffect(() => { wheelZoom.current = ev => { ev.preventDefault(); zoomBy(Math.exp(-ev.deltaY * .0016)); }; });
+  useEffect(() => {
+    const el = svg.current;
+    if (!el) return;
+    const onWheel = (ev: WheelEvent) => wheelZoom.current(ev);
+    el.addEventListener('wheel', onWheel, { passive: false });
+    return () => el.removeEventListener('wheel', onWheel);
+  }, []);
   /** One nudge of the view, shared by the on-screen pad and the arrow keys. */
   const nudge = (key: string) => { stopGlide(); commitView(keyboardCamera({ yaw: yawMv.get(), pitch: pitchMv.get() }, key)); };
   const resetView = () => { setZoom(1); glideTo({ ...DEFAULT_CAMERA }, .45); };
@@ -434,8 +483,20 @@ export function ChargeDiagram({ problem, params: p, setParams, count, continuum,
   // Charge marks belong to the rod, not to the partition: their spacing is fixed so
   // the rod does not appear to gain or lose charge as N changes.
   // For the ramp the marks are placed by cumulative charge, F(y) = (y/L)², so they crowd toward the top: the marks are the charge.
+  // One mark per piece, skipping pieces when they are too narrow to hold one. The marks
+  // used to be laid at a fixed pixel pitch that knew nothing about where the rod is cut, so
+  // shortening the rod slid them onto the divider lines. Anchoring them to piece centres
+  // means a mark can never land on a cut, whatever the length or the count.
+  const pieceSpan = (rodHigh - rodLow) / Math.max(1, n);
+  const markStride = Math.max(1, Math.ceil((ramp ? 26 : 19) / Math.max(1, pieceSpan)));
   const markCount = Math.max(0, Math.floor((rodHigh - rodLow) / (ramp ? 26 : 19)));
-  const chargeMarks = !rodLike ? [] : ramp ? Array.from({ length: markCount }, (_, k) => rodHigh - (rodHigh - rodLow) * Math.sqrt((k + .5) / markCount)) : Array.from({ length: markCount }, (_, k) => rodLow + 19 * (k + .5)).filter(v => v < rodHigh);
+  // The ramp keeps a density-weighted placement, because crowding IS the lesson there, but
+  // any mark that lands on a cut is dropped rather than drawn over it.
+  const cuts = Array.from({ length: Math.max(0, n - 1) }, (_, i) => rodLow + pieceSpan * (i + 1));
+  const clearOfCuts = (v: number) => cuts.every(c => Math.abs(v - c) > 5);
+  const chargeMarks = !rodLike ? []
+    : ramp ? Array.from({ length: markCount }, (_, k) => rodHigh - (rodHigh - rodLow) * Math.sqrt((k + .5) / markCount)).filter(clearOfCuts)
+    : Array.from({ length: Math.max(1, n) }, (_, i) => rodLow + pieceSpan * (i + .5)).filter((_, i) => i % markStride === 0);
   const sourceLabel = surface ? `${elementSymbol} ${continuum>=.999?'=':'≈'} σ · 2πs ${continuum>=.999?'ds':'Δs'}` : id === 'ring' || id === 'arc' ? `${elementSymbol} = λR ${continuum>=.999?'dθ':'Δθ'}` : ramp ? `${elementSymbol} = λ₀(y/L) ${continuum>=.999?'dy':'Δy'}` : `${elementSymbol} = λ ${continuum>=.999?'dℓ':'Δℓ'}`;
   const sourceText = id === 'disk' ? 'One ring sweeps out the disk' : surface ? 'Whole annulus · transverse fields cancel' : id === 'infinite' || id === 'semi' ? 'Unbounded source · visible window shown' : id === 'arc' ? 'Observation point fixed at center' : 'Select a piece · drag P to explore';
   const gaugeH = scalar ? 88 * vNow / vScale : 0, dvH = scalar ? 36 * sample.potential / dVmax : 0;
@@ -443,15 +504,41 @@ export function ChargeDiagram({ problem, params: p, setParams, count, continuum,
     {/* Field under construction, sharing one box so the two coordinate spaces cannot
         drift. Planar lessons only for now: the perspective geometries need their lines
         traced in three dimensions and sorted against the surface, a different job. */}
+    <div className="cd-toolbar">
+    <div className="cd-view-modes" role="group" aria-label="How to view the figure">
+      {([['2D', false], ['3D', true]] as const).map(([label, wants]) => <button key={label} type="button" title={wants ? 'In space: drag, scroll or use the arrow keys to turn it' : 'Flat, looking straight down the axis'}
+        className={`cd-view-mode${inSpace === wants ? ' is-on' : ''}`} aria-pressed={inSpace === wants}
+        onClick={() => {
+          if (wants === inSpace) return;
+          stopGlide();
+          if (wants) { yawMv.set(FLAT.yaw); pitchMv.set(FLAT.pitch); setCamera({ ...FLAT }); setSpatial(true); glideTo({ ...DEFAULT_CAMERA }, .8); }
+          else glideTo(FLAT, .65, () => setSpatial(false));
+        }}>{label}</button>)}
+    </div>
+    {!scalar && <div className="cd-view-modes" role="group" aria-label="How to show the field around the charge">
+      {([['Field lines', 'lines', 'Crowded lines mean a stronger field'], ['Arrows', 'vectors', 'Each arrow is the field where it sits'], ['Off', 'off', 'Just the construction']] as const).map(([label, value, title]) => <button key={value} type="button" title={title}
+        className={`cd-view-mode${fieldView === value ? ' is-on' : ''}`} aria-pressed={fieldView === value}
+        onClick={() => setFieldView(value)}>{label}</button>)}
+    </div>}
+    {/* The pad and the drawn help say the same thing two ways: one to click, one to read. */}
+    <div className="cd-pad" role="group" aria-label="Move the view">
+      {inSpace && ([['ArrowLeft', '\u2190', 'Turn left'], ['ArrowUp', '\u2191', 'Tilt up'], ['ArrowDown', '\u2193', 'Tilt down'], ['ArrowRight', '\u2192', 'Turn right']] as const)
+        .map(([key, glyph, title]) => <button key={key} type="button" className="cd-pad-key" title={`${title} (${key.replace('Arrow', '')} arrow key)`} aria-label={title} onClick={() => nudge(key)}>{glyph}</button>)}
+      <button type="button" className="cd-pad-key" title="Zoom out (minus key, or scroll)" aria-label="Zoom out" onClick={() => zoomBy(1 / 1.18)} disabled={zoom <= ZOOM_MIN + 1e-6}>&minus;</button>
+      <button type="button" className="cd-pad-key" title="Zoom in (plus key, or scroll)" aria-label="Zoom in" onClick={() => zoomBy(1.18)} disabled={zoom >= ZOOM_MAX - 1e-6}>+</button>
+      <button type="button" className="text-button cd-orbit-reset" onClick={resetView} disabled={zoom === 1 && camera.yaw === DEFAULT_CAMERA.yaw && camera.pitch === DEFAULT_CAMERA.pitch}>Reset view</button>
+    </div>
+    <span className="cd-view-hint">{inSpace ? 'Drag to turn · scroll to zoom · drag P to move it' : 'Scroll to zoom · drag P to move it'}</span>
+    </div>
     <div className="cd-stage">
     {!inSpace && !scalar && fieldView !== 'off' && <FieldCanvas samples={samples} project={project} frame={{ width: 720, height: 430 }} mode={fieldView} reach={Math.max(2.5, p.distance * 1.7, p.size)}
       plane={perspective ? 'xz' : 'xy'} layout={surface ? 'surface' : 'wire'} />}
     {inSpace && <FieldStage kind={id === 'disk' ? 'disk' : id === 'sheet' ? 'sheet' : 'wire'} closed={id === 'ring'} samples={samples} selected={selectedIndex}
       radius={R} distance={p.distance} yaw={view.yaw} pitch={view.pitch} fieldView={scalar ? 'off' : fieldView} reach={fieldReach}
-      point={pWorld} element={sceneElement} net={scalar || predicting ? null : scaleVec(displayed, gain / unit)} contribution={scalar || !showContribution ? null : scaleVec(sample.field, selectedGain * gain / unit)}
+      bodyPath={bodyPath} point={pWorld} element={sceneElement} net={scalar || predicting ? null : scaleVec(displayed, gain / unit)} contribution={scalar || !showContribution ? null : scaleVec(sample.field, selectedGain * gain / unit)}
       unit={unit} frame={{ width: 720, height: 430 }} origin={O} charge={p.charge} animating={moving}
       getView={() => ({ yaw: yawMv.get(), pitch: pitchMv.get() })} />}
-    <svg ref={svg} className={`cd-svg${inSpace ? ' cd-orbitable' : ''}${scalar ? ' cd-scalar' : ''}`} viewBox="0 0 720 430" role="img" {...(inSpace ? orbit : {})} onWheel={wheelZoom} aria-label={`${problem.title}. Interactive charge distribution and ${scalar ? 'electric potential' : 'electric field'} visualization.${perspective ? ' Drag or use the arrow keys to rotate the view, Home to reset it.' : ''}`}>
+    <svg ref={svg} className={`cd-svg${inSpace ? ' cd-orbitable' : ''}${scalar ? ' cd-scalar' : ''}`} viewBox="0 0 720 430" role="img" {...(inSpace ? orbit : {})} aria-label={`${problem.title}. Interactive charge distribution and ${scalar ? 'electric potential' : 'electric field'} visualization.${perspective ? ' Drag or use the arrow keys to rotate the view, Home to reset it.' : ''}`}>
       <defs>
         <pattern id={`${uid}grid`} width="28" height="28" patternUnits="userSpaceOnUse"><circle cx="1" cy="1" r=".7" fill="var(--grid)" /></pattern>
         <clipPath id={`${uid}clip`}><rect x="42" y="54" width="626" height="317" rx="10" /></clipPath>
@@ -463,7 +550,7 @@ export function ChargeDiagram({ problem, params: p, setParams, count, continuum,
       <g className="cd-axes" clipPath={inSpace ? `url(#${uid}clip)` : undefined}>
         {/* Projected axes whenever the view can turn, so they rotate with what they measure;
             the flat pair is only right when the camera is locked. */}
-        {inSpace ? <><path d={`M${2 * O.x - axisX.x} ${2 * O.y - axisX.y}L${axisX.x} ${axisX.y} M${2 * O.x - axisY.x} ${2 * O.y - axisY.y}L${axisY.x} ${axisY.y} M${O.x} ${O.y + 27}V60`} /><text {...axisTip(axisX, 13, 5)}>x</text><text {...axisTip(axisY, 13, 5)}>y</text><text x={O.x + 10} y="67">z</text></> : <><path d={`M64 ${O.y}H656 M${O.x} 365V60`} /><text x="664" y={O.y + 5}>x</text><text x={O.x + 11} y="64">y</text></>}
+        {inSpace ? <><path d={`M${2 * O.x - axisX.x} ${2 * O.y - axisX.y}L${axisX.x} ${axisX.y} M${2 * O.x - axisY.x} ${2 * O.y - axisY.y}L${axisY.x} ${axisY.y} M${O.x} ${O.y + 27}V60`} /><text data-anchor="fixed" {...axisTip(axisX, 13, 5)}>x</text><text data-anchor="fixed" {...axisTip(axisY, 13, 5)}>y</text><text data-anchor="fixed" x={O.x + 10} y="67">z</text></> : <><path d={`M64 ${O.y}H656 M${O.x} 365V60`} /><text data-anchor="fixed" x="664" y={O.y + 5}>x</text><text data-anchor="fixed" x={O.x + 11} y="64">y</text></>}
       </g>
       <g clipPath={`url(#${uid}clip)`}>
         {perspective && <g ref={plane} className="cd-orbit-plane" transform={planeMatrix(view.yaw, view.pitch, O, unit)}>
@@ -532,7 +619,7 @@ export function ChargeDiagram({ problem, params: p, setParams, count, continuum,
       {id === 'arc' && <g className={`cd-dimension${inSpace && !perspective ? ' is-hidden' : ''}`}><path d={pathThrough(circlePoints(R*.32, -p.phi/2, p.phi/2))} /><text x={O.x+R*unit*.32+9} y={O.y-9}>φ</text><line x1={O.x} y1={O.y} x2={O.x+R*unit} y2={O.y} /><text x={O.x+R*unit*.6} y={O.y+23}>R</text></g>}
       {(id === 'bisector' || id === 'infinite' || footed) && <g className={`cd-dimension${inSpace && !perspective ? ' is-hidden' : ''}`}><path d={`M${O.x+13} ${O.y+33}H${P.x-10}`} /><text x={(O.x+P.x)/2} y={O.y+52}>r</text></g>}
       {id === 'semi' && <text x={O.x+19} y={(P.y+O.y)/2} className="cd-small">r</text>}
-      {id !== 'arc' && <text x={O.x-17} y={O.y+20} className="cd-origin">O</text>}
+      {id !== 'arc' && <text data-anchor="fixed" x={O.x-17} y={O.y+20} className="cd-origin">O</text>}
       {showContribution && !scalar && mode !== 'sum' && <>
         {pair && supportsPair && <>
           <Vector from={P} to={plus(P, fieldScreen(partnerField, selectedGain))} color="var(--contribution)" dashed reduced={still} />
@@ -545,7 +632,7 @@ export function ChargeDiagram({ problem, params: p, setParams, count, continuum,
         <Vector from={P} to={plus(P, contribution)} color="var(--contribution)" width={1.8} label={surface ? fieldSymbol+'z' : fieldSymbol} reduced={still}  ghost={inSpace} />
       </>}
       {!scalar && mode === 'sum' && chainPoints.length > 1 && <path className="cd-sum-chain" data-sum-chain={String(chainPoints.length)} d={pathThrough(chainPoints)} fill="none" />}
-      {inSpace && <ViewHelp x={70} y={300} />}
+      {inSpace && <ViewHelp x={578} y={34} />}
       {!scalar && !predicting && <Vector from={P} to={plus(P, net)} width={3.5} label={continuum>=.999&&full&&progress>=.999?'E':'Σ ΔE'} reduced={still} ghost={inSpace} />}
       {!scalar && (predicting || prediction) && (() => {
         // The guess is drawn in the same place and the same units as the field it will be
@@ -603,32 +690,6 @@ export function ChargeDiagram({ problem, params: p, setParams, count, continuum,
       {mode==='integrate'&&onBoundRangeChange&&[0,1].map(i=><label key={i}>{i?'Upper':'Lower'} bound: {boundRange[i]}%<input type="range" aria-label={`${i?'Upper':'Lower'} integration bound`} aria-valuetext={`${boundRange[i]} percent of the source coordinate`} min={0} max={100} step={1} value={boundRange[i]} onChange={ev=>{const next:[number,number]=[...boundRange];next[i]=Number(ev.target.value);onBoundRangeChange(next);}}/></label>)}
     </div></details>
     <output className="cd-announcement" aria-live="polite" aria-atomic="true">{announcement}</output>
-    <div className="cd-toolbar">
-    <div className="cd-view-modes" role="group" aria-label="How to view the figure">
-      {([['2D', false], ['3D', true]] as const).map(([label, wants]) => <button key={label} type="button" title={wants ? 'In space: drag, scroll or use the arrow keys to turn it' : 'Flat, looking straight down the axis'}
-        className={`cd-view-mode${inSpace === wants ? ' is-on' : ''}`} aria-pressed={inSpace === wants}
-        onClick={() => {
-          if (wants === inSpace) return;
-          stopGlide();
-          if (wants) { yawMv.set(FLAT.yaw); pitchMv.set(FLAT.pitch); setCamera({ ...FLAT }); setSpatial(true); glideTo({ ...DEFAULT_CAMERA }, .8); }
-          else glideTo(FLAT, .65, () => setSpatial(false));
-        }}>{label}</button>)}
-    </div>
-    {!scalar && <div className="cd-view-modes" role="group" aria-label="How to show the field around the charge">
-      {([['Field lines', 'lines', 'Crowded lines mean a stronger field'], ['Arrows', 'vectors', 'Each arrow is the field where it sits'], ['Off', 'off', 'Just the construction']] as const).map(([label, value, title]) => <button key={value} type="button" title={title}
-        className={`cd-view-mode${fieldView === value ? ' is-on' : ''}`} aria-pressed={fieldView === value}
-        onClick={() => setFieldView(value)}>{label}</button>)}
-    </div>}
-    {/* The pad and the drawn help say the same thing two ways: one to click, one to read. */}
-    <div className="cd-pad" role="group" aria-label="Move the view">
-      {inSpace && ([['ArrowLeft', '\u2190', 'Turn left'], ['ArrowUp', '\u2191', 'Tilt up'], ['ArrowDown', '\u2193', 'Tilt down'], ['ArrowRight', '\u2192', 'Turn right']] as const)
-        .map(([key, glyph, title]) => <button key={key} type="button" className="cd-pad-key" title={`${title} (${key.replace('Arrow', '')} arrow key)`} aria-label={title} onClick={() => nudge(key)}>{glyph}</button>)}
-      <button type="button" className="cd-pad-key" title="Zoom out (minus key, or scroll)" aria-label="Zoom out" onClick={() => zoomBy(1 / 1.18)} disabled={zoom <= ZOOM_MIN + 1e-6}>&minus;</button>
-      <button type="button" className="cd-pad-key" title="Zoom in (plus key, or scroll)" aria-label="Zoom in" onClick={() => zoomBy(1.18)} disabled={zoom >= ZOOM_MAX - 1e-6}>+</button>
-      <button type="button" className="text-button cd-orbit-reset" onClick={resetView} disabled={zoom === 1 && camera.yaw === DEFAULT_CAMERA.yaw && camera.pitch === DEFAULT_CAMERA.pitch}>Reset view</button>
-    </div>
-    <span className="cd-view-hint">{inSpace ? 'Drag to turn · scroll to zoom · drag P to move it' : 'Scroll to zoom · drag P to move it'}</span>
-    </div>
 
     <div className="cd-caption"><span><i className="cd-dot" />{sourceText}</span><span>{!full?'Selected interval':mode === 'sum' || mode === 'integrate' ? `${Math.round(progress*100)}% accumulated` : continuum >= .999 ? 'Infinitesimal limit' : 'Finite elements'}</span></div>
   </div>;
