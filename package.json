@@ -34,7 +34,6 @@
     "katex": "^0.18.7",
     "lucide-react": "1.31.0",
     "mathjs": "^15.2.0",
-    "mathlive": "^0.110.0",
     "motion": "^13.2.0",
     "react": "19.2.6",
     "react-day-picker": "9.8.1",
