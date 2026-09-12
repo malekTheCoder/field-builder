@@ -314,11 +314,12 @@ export function ChargeDiagram({ problem, params: p, setParams, count, continuum,
   // A surface's element is not a length at all: it is the annulus between two radii, and it
   // had no body in the scene, only a hairline stroke lying flat over a lit solid.
   const sceneElement = (() => {
-    if (surface) {
-      const radii = samples.map(s => Math.abs(s.coordinate));
-      const here = radii[selectedIndex], step = radii.length > 1 ? Math.abs((radii[radii.length - 1] - radii[0]) / (radii.length - 1)) : here;
-      return { annulus: { inner: Math.max(0, here - step / 2), outer: here + step / 2 } };
-    }
+    // The band's edges are the partition's own, not one average width shared by every piece.
+    // A disk is cut at even radii, so a single step was right for it and hid the fault; the
+    // sheet is cut at |z|·tan(πt/2), where the outer rings are vastly wider than the inner
+    // ones, and a shared step drew the selected band nowhere near the ring being summed.
+    // `world` is the same function the sampler partitions by, so these edges are that ring's.
+    if (surface) return { annulus: { inner: Math.abs(world(selectedIndex / n).x), outer: Math.abs(world((selectedIndex + 1) / n).x) } };
     const lo = selectedIndex / n, hi = (selectedIndex + 1) / n;
     return { path: Array.from({ length: 13 }, (_, k) => world(lo + (hi - lo) * k / 12)) };
   })();
@@ -449,7 +450,12 @@ export function ChargeDiagram({ problem, params: p, setParams, count, continuum,
   // arrive in between. The motion values always hold the live view; this catches the
   // rest of the drawing up to them.
   const syncCamera = () => { if (syncId.current) return; syncId.current = requestAnimationFrame(() => { syncId.current = 0; setCamera({ yaw: yawMv.get(), pitch: pitchMv.get() }); }); };
-  const stopGlide = () => { if (glideId.current) cancelAnimationFrame(glideId.current); glideId.current = 0; };
+  // Cancelling the frame is not enough: `gliding` feeds `moving`, and `moving` is what holds
+  // off the label placer and the net-arrow report. Leaving it set meant one interrupted glide
+  // -- an arrow key during Reset view, or during the 2D-to-3D turn -- silently stopped the
+  // labels being placed for the rest of the session, and left the 3D stage holding a frame
+  // loop forever. Easy to hit now that the arrow keys reach the view from the pad as well.
+  const stopGlide = () => { if (glideId.current) cancelAnimationFrame(glideId.current); glideId.current = 0; setGliding(false); };
   // Ease the camera to a view rather than cutting to it. Yaw takes the short way round.
   const glideTo = (to: CameraView, seconds: number, done?: () => void) => {
     stopGlide();
@@ -579,7 +585,8 @@ export function ChargeDiagram({ problem, params: p, setParams, count, continuum,
   const sourceLabel = surface ? `${elementSymbol} ${continuum>=.999?'=':'≈'} σ · 2πs ${continuum>=.999?'ds':'Δs'}` : id === 'ring' || id === 'arc' ? `${elementSymbol} = λR ${continuum>=.999?'dθ':'Δθ'}` : ramp ? `${elementSymbol} = λ₀(y/L) ${continuum>=.999?'dy':'Δy'}` : `${elementSymbol} = λ ${continuum>=.999?'dℓ':'Δℓ'}`;
   const sourceText = id === 'disk' ? 'One ring sweeps out the disk' : surface ? 'Whole annulus · transverse fields cancel' : id === 'infinite' || id === 'semi' ? 'Unbounded source · visible window shown' : id === 'arc' ? 'Observation point fixed at center' : 'One piece at a time · the integral adds them all';
   const gaugeH = scalar ? 88 * vNow / vScale : 0, dvH = scalar ? 36 * sample.potential / dVmax : 0;
-  return <div ref={root} className={"charge-diagram cd-focus-"+highlight+(inSpace?" cd-in-space":"")+(perspective?" cd-surface-kind":" cd-wire-kind")}>
+  return <div ref={root} className={"charge-diagram cd-focus-"+highlight+(inSpace?" cd-in-space":"")+(perspective?" cd-surface-kind":" cd-wire-kind")}
+    data-element-annulus={sceneElement.annulus ? `${sceneElement.annulus.inner},${sceneElement.annulus.outer}` : undefined}>
     {/* Field under construction, sharing one box so the two coordinate spaces cannot
         drift. Planar lessons only for now: the perspective geometries need their lines
         traced in three dimensions and sorted against the surface, a different job. */}

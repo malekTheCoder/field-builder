@@ -18,11 +18,11 @@ afterEach(cleanup);
  *
  * So: mount it the way the Explorer does, read the promises off the rendered legend, and
  * check each one. Adding a row to that legend without implementing the gesture fails here. */
-function mount(id: ProblemId, over: Partial<Params> = {}) {
+function mount(id: ProblemId, over: Partial<Params> = {}, props: Record<string, unknown> = {}) {
   const setParams = vi.fn();
   const view = render(<ChargeDiagram problem={getProblem(id)} params={{...DEFAULT_PARAMS, ...over}} setParams={setParams}
     count={5} continuum={0} selected={2} onSelect={vi.fn()} progress={1} components={false} pair={false}
-    mode="divide" boundRange={[0, 100]} onBoundRangeChange={vi.fn()} compact />);
+    mode="divide" boundRange={[0, 100]} onBoundRangeChange={vi.fn()} compact {...props} />);
   const svg = view.container.querySelector<SVGSVGElement>('.cd-svg')!;
   const reset = view.getByRole('button', {name: 'Reset view'}) as HTMLButtonElement;
   // The charge plane's matrix is built from yaw, pitch and the zoom together, and a drag
@@ -157,6 +157,24 @@ describe('the gestures the figure advertises', () => {
       cleanup();
     }
     expect(lost, `${lost.length} lessons lose P when zoomed in`).toEqual([]);
+  });
+  it('recovers when a glide is interrupted, instead of wedging the figure', () => {
+    // `gliding` feeds `moving`, and `moving` holds off the label placer and the net-arrow
+    // report. Cancelling a glide's frame without clearing the flag left it set for the rest of
+    // the session: one arrow key pressed during Reset view, and the labels silently stopped
+    // being placed. Easy to reach now that the arrow keys work from the pad as well.
+    const onNetScreen = vi.fn();
+    const {view, svg} = mount('ring', {}, {onNetScreen});
+    fireEvent.click(view.getByRole('button', {name: 'Turn left'}));
+    const reset = view.getByRole('button', {name: 'Reset view'}) as HTMLButtonElement;
+    fireEvent.click(reset);
+    // Reset eases home over 450ms rather than cutting; if it had landed already there would be
+    // no glide left to interrupt and this test would be proving nothing.
+    expect(reset.disabled, 'no glide was in flight to interrupt').toBe(false);
+    fireEvent.keyDown(svg, {key: 'ArrowLeft'});      // interrupt it
+    onNetScreen.mockClear();
+    fireEvent.keyDown(svg, {key: 'ArrowUp'});        // move the field, which must be reported
+    expect(onNetScreen, 'the figure stayed wedged in its moving state').toHaveBeenCalled();
   });
   it('says the same things to a screen reader, which cannot see the legend', () => {
     const {svg} = mount('ring');
