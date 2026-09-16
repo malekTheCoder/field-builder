@@ -50,10 +50,17 @@ export function FieldCanvas({samples,project,frame,lines=15,mode='lines',reach=6
   // within a line's width, and tracing is quadratic in the count.
   const stride=Math.max(1,Math.ceil(samples.length/64));
   const coarse=samples.filter((_,i)=>i%stride===0);
-  const reach=Math.max(...coarse.map(s=>Math.hypot(s.position.x,s.position.y,s.position.z)),1);
-  if(plane==='xz')return meridianLines(coarse,layout,lines,{step:reach*.05,maxSteps:420,outerLimit:reach*9}).map(line=>line.map(v=>({x:v.x,y:v.z})));
-  return fieldLines(coarse,lines,{step:reach*.05,maxSteps:420,outerLimit:reach*9});
- },[chargeKey,lines,plane,layout]);
+  // `reach` here is the PICTURE's half-width, the prop. It used to be shadowed by the charge's
+  // own extent, and on the three unbounded lessons that is hundreds of metres -- so the step
+  // was metres long, lines were allowed to run for kilometres, and every seed landed far
+  // outside the frame. The infinite line and the semi-infinite line drew no visible field at
+  // all. The charge's span is still worth knowing, for nothing but a floor under the step.
+  const chargeSpan=Math.max(...coarse.map(s=>Math.hypot(s.position.x,s.position.y,s.position.z)),1);
+  const step=Math.min(reach,chargeSpan)*.05;
+  const opts={step,maxSteps:420,outerLimit:reach*1.6,seedLimit:reach*.95};
+  if(plane==='xz')return meridianLines(coarse,layout,lines,opts).map(line=>line.map(v=>({x:v.x,y:v.z})));
+  return fieldLines(coarse,lines,opts);
+ },[chargeKey,lines,plane,layout,reach]);
  const arrows=useMemo(()=>{
   if(mode!=='vectors'||!samples.length)return [];
   const stride=Math.max(1,Math.ceil(samples.length/64));

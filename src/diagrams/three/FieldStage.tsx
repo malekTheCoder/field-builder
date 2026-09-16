@@ -286,7 +286,7 @@ export function FieldStage(props:FieldStageProps){
     body.add(new THREE.Line(unitCircle(),pickedMaterial));
    };
    const coarse=(samples:readonly ChargeSample[],limit:number)=>{const stride=Math.max(1,Math.ceil(samples.length/limit));return samples.filter((_,i)=>i%stride===0);};
-   const buildField=(p:FieldStageProps,tint:InstanceType<typeof THREE.Color>,pale:InstanceType<typeof THREE.Color>,dark:boolean,frameWorld:number)=>{
+   const buildField=(p:FieldStageProps,tint:InstanceType<typeof THREE.Color>,pale:InstanceType<typeof THREE.Color>,dark:boolean)=>{
     clearGroup(field);
     if(p.fieldView==='off'||!p.samples.length)return;
     const layout:Layout=p.kind==='wire'?'wire':'surface';
@@ -300,8 +300,7 @@ export function FieldStage(props:FieldStageProps){
      // sweeps entering one edge and leaving another, with no visible root on the charge. Ending
      // them a little past the frame keeps the part that is about this charge. Seeds stay inside
      // it for the separate reason that the sheet's charge is mostly in huge outer rings.
-     const far=Math.max(p.reach*.6,frameWorld*.62);
-     const lines=spaceLines(few,layout,16,{step:Math.max(p.reach,frameWorld)*.03,maxSteps:420,outerLimit:far,seedLimit:Math.min(p.reach*.9,frameWorld*.42)});
+     const lines=spaceLines(few,layout,16,{step:p.reach*.04,maxSteps:420,outerLimit:p.reach*1.6,seedLimit:p.reach*.95});
      const bg=new THREE.Color(dark?0x0f1a1c:0xffffff),near=tint.clone().lerp(pale,.3),vertex=new THREE.Vector3(),c=new THREE.Color();
      const tubes=lines.map(line=>{
       const curve=new THREE.CatmullRomCurve3(line.map(v=>new THREE.Vector3(v.x,v.y,v.z)),false,'centripetal');
@@ -390,8 +389,8 @@ export function FieldStage(props:FieldStageProps){
     }
     // The field is the expensive part -- tracing is quadratic in the sample count -- so it is
     // rebuilt only when what it depends on changes, never on a camera frame.
-    const nextField=`${p.fieldView}:${shape}:${p.reach.toFixed(2)}:${frameWorld.toFixed(1)}:${positive}:${dark}`;
-    if(fieldKey!==nextField){buildField(p,tint,pale,dark,frameWorld);fieldKey=nextField;}
+    const nextField=`${p.fieldView}:${shape}:${p.reach.toFixed(2)}:${positive}:${dark}`;
+    if(fieldKey!==nextField){buildField(p,tint,pale,dark);fieldKey=nextField;}
     // The marks: cheap to place every frame, so they always sit on the live geometry.
     const wr=wireRadius(p.reach);
     point.position.set(p.point.x,p.point.y,p.point.z);point.scale.setScalar(wr*1.7);

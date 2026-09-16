@@ -57,6 +57,10 @@ export type TraceOptions={
  maxSteps?:number;
  /** Stop once this far from the origin; the line has left the picture. */
  outerLimit?:number;
+ /** How far out a line may START, as opposed to how far it may run. The two differ on the
+  * three unbounded lessons, whose charge reaches hundreds of metres: a line may usefully run
+  * a little past the frame, but one that BEGINS out there is drawn entirely off the picture. */
+ seedLimit?:number;
  /** +1 follows the field, −1 walks back against it. */
  sign?:number;
  /** Stop when the line comes this close to one already drawn. Jobard and Lefer's dtest rule,
@@ -104,20 +108,29 @@ export function traceLine(samples:readonly ChargeSample[],start:Plane,options:Tr
  * launched perpendicular to it, on both sides. For a uniform rod that comes out evenly
  * spaced; for the ramp, whose density grows along its length, the lines visibly crowd
  * toward the heavy end, which is the lesson that rod exists to teach. */
-export function chargeSeeds(samples:readonly ChargeSample[],count:number,offset:number):Plane[]{
- const weights=samples.map(s=>Math.abs(s.dq));
+export function chargeSeeds(samples:readonly ChargeSample[],count:number,offset:number,limit=Infinity):Plane[]{
+ // Only from the part of the charge that is on the picture. Seeding by accumulated |dq| is what
+ // makes crowding mean field strength, and on a bounded lesson it lands seeds right across the
+ // drawing. The infinite line and the semi-infinite line are cut at y = r·tan(...), so their
+ // outer elements are both enormous and enormously charged: every seed landed tens of metres
+ // out, every line was drawn off-frame, and those two lessons showed NO field lines at all.
+ // Restricting the pool costs nothing in meaning -- within the visible part the seeding is
+ // still proportional to charge.
+ const near=samples.filter(s=>Math.hypot(s.position.x,s.position.y,s.position.z)<=limit);
+ const pool=near.length>1?near:samples;
+ const weights=pool.map(s=>Math.abs(s.dq));
  const total=weights.reduce((a,b)=>a+b,0);
- if(!(total>0)||samples.length<2)return [];
+ if(!(total>0)||pool.length<2)return [];
  const wanted=Math.max(1,Math.round(count/2));
  const seeds:Plane[]=[];
  let index=0,carried=weights[0];
  for(let j=0;j<wanted;j++){
   const target=total*(j+.5)/wanted;
   while(carried<target&&index<weights.length-1){index+=1;carried+=weights[index];}
-  const here=samples[index].position;
+  const here=pool[index].position;
   // Local tangent from the neighbours, so the launch is perpendicular to the distribution
   // whatever shape it runs in. A rod, an arc and a bent rod all work without special cases.
-  const before=samples[Math.max(0,index-1)].position,after=samples[Math.min(samples.length-1,index+1)].position;
+  const before=pool[Math.max(0,index-1)].position,after=pool[Math.min(pool.length-1,index+1)].position;
   const tx=after.x-before.x,ty=after.y-before.y,tl=Math.hypot(tx,ty);
   const nx=tl>1e-12?-ty/tl:0,ny=tl>1e-12?tx/tl:1;
   seeds.push({x:here.x+nx*offset,y:here.y+ny*offset});
@@ -148,12 +161,15 @@ export function fieldLines(samples:readonly ChargeSample[],count:number,options:
  const reach=Math.max(...samples.map(s=>Math.hypot(s.position.x,s.position.y,s.position.z)),.5);
  const gaps=samples.slice(1,50).map((s,i)=>Math.hypot(s.position.x-samples[i].position.x,s.position.y-samples[i].position.y)).sort((a,b)=>a-b);
  const arrive=Math.max(ARRIVED,.55*(gaps[Math.floor(gaps.length/2)]??0));
- const seeded=chargeSeeds(samples,count,Math.max(arrive*1.6,reach*.05));
+ const span=options.seedLimit??reach;
+ const seeded=chargeSeeds(samples,count,Math.max(arrive*1.6,span*.05),options.seedLimit??Infinity);
  const starts=seeded.length?seeded:seedRing(samples,count);
  // About a drawn line width in world units. Both halves of one line are traced against the
  // grid as it stood BEFORE the line began, then added together: otherwise the second half
  // would stop against the first at the seed they share.
- const crowd=options.crowd??reach*.012;
+ // Scaled to the picture, not to how far the charge runs: on an unbounded lesson `reach` is
+ // hundreds of metres, and a crowding radius that size discards every line but the first.
+ const crowd=options.crowd??span*.012;
  const drawn=drawnPoints(Math.max(crowd,1e-6));
  const lines:Plane[][]=[];
  for(const seed of starts){

@@ -132,9 +132,16 @@ export function spaceSeeds(samples:readonly ChargeSample[],layout:Layout,count:n
  if(samples.length<2)return seeds;
  if(layout==='wire'){
   const wanted=Math.max(1,Math.round(count/around));
-  for(const i of chosen(samples,wanted)){
-   const here=samples[i].position;
-   const before=samples[Math.max(0,i-1)].position,after=samples[Math.min(samples.length-1,i+1)].position;
+  // Wires need the same restriction surfaces got, and for the same reason. The infinite and
+  // semi-infinite lines are cut at y = r·tan(...), so their end elements sit tens of metres out
+  // and carry most of the charge; seeding by |dq| put every seed past the far limit, every line
+  // ended on its first step, and both lessons produced NO LINES AT ALL in space -- not lines
+  // drawn off-screen, none traced.
+  const inFrame=samples.filter(s=>LEN(s.position)<=limit);
+  const wire=inFrame.length>1?inFrame:samples;
+  for(const i of chosen(wire,wanted)){
+   const here=wire[i].position;
+   const before=wire[Math.max(0,i-1)].position,after=wire[Math.min(wire.length-1,i+1)].position;
    const tangent=unit({x:after.x-before.x,y:after.y-before.y,z:after.z-before.z})??{x:0,y:1,z:0};
    // Two directions perpendicular to the wire. If the wire runs along z the first cross
    // product vanishes, so a different reference is used there.
@@ -198,7 +205,11 @@ export function spaceLines(samples:readonly ChargeSample[],layout:Layout,count:n
  * along its radius -- give the textbook cross-section of the field. */
 export function meridianLines(samples:readonly ChargeSample[],layout:Layout,count:number,options:TraceOptions={}):Vec[][]{
  const points=cloud(samples,layout),arrive=Math.max(ARRIVED,.55*typicalSpacing(points));
- const reach=Math.max(...samples.map(s=>LEN(s.position)),.5),offset=Math.max(arrive*1.6,reach*.06);
+ // The picture's extent where the caller knows it; the charge's own only as a fallback. The
+ // sheet's charge runs ninety metres, and an offset or a crowding radius scaled to that puts
+ // every seed and every line outside the frame.
+ const span=options.seedLimit??options.outerLimit??Math.max(...samples.map(s=>LEN(s.position)),.5);
+ const offset=Math.max(arrive*1.6,span*.06);
  const seeds:Vec[]=[];
  if(layout==='wire'){
   // Where the wire crosses the cut: the samples nearest y = 0 on each side of the axis.
@@ -212,14 +223,16 @@ export function meridianLines(samples:readonly ChargeSample[],layout:Layout,coun
   }
  }else{
   const wanted=Math.max(1,Math.round(count/4));
-  for(const i of chosen(samples,wanted)){
-   const r=Math.max(Math.abs(samples[i].coordinate),offset*.5);
+  const near=samples.filter(s=>Math.abs(s.coordinate)<=span);
+  const pool=near.length?near:samples.slice(0,Math.max(1,Math.ceil(samples.length/4)));
+  for(const i of chosen(pool,wanted)){
+   const r=Math.max(Math.abs(pool[i].coordinate),offset*.5);
    for(const side of [1,-1])for(const sign of [1,-1])seeds.push({x:side*r,y:0,z:sign*offset});
   }
  }
  // Both halves are traced against the grid as it stood BEFORE this line, then added
  // together: otherwise the second half stops against the first at the seed they share.
- const crowd=options.crowd??reach*.012;
+ const crowd=options.crowd??span*.012;
  const drawn=drawnPoints(Math.max(crowd,1e-6));
  const lines:Vec[][]=[];
  for(const seed of seeds){
