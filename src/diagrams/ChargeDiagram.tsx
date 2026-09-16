@@ -16,7 +16,8 @@ import type { Params, Problem } from '../problems/types';
 import { field, magnitude, pretty, potential, type Vec } from '../symbolic/physics';
 import { sampleDistribution, sumSamples, sumInterval, intervalWeights, sumPotential } from './sampling';
 import { intervalKey, partitionCount, seamFractions, seamKey, splitFractions, splitProgress } from './subdivision';
-import { DEFAULT_CAMERA, clampCamera, depthFromScreen, keyboardCamera, orbitCamera, projectCamera, type CameraView } from './camera';
+import { clampCamera, depthFromScreen, keyboardCamera, openingCamera, orbitCamera, projectCamera, type CameraView } from './camera';
+import { ViewCube } from './ViewCube';
 import { placeLabels, type Box } from './labels';
 import { FieldCanvas } from './FieldCanvas';
 import { FieldStage } from './three/FieldStage';
@@ -83,8 +84,9 @@ function ViewHelp({ x, y }: { x: number; y: number }) {
 export function ChargeDiagram({ problem, params: p, setParams, count, continuum, selected, onSelect, progress, components, pair, mode, boundRange = [0, 100], onBoundRangeChange, highlight = '', compact = false }: ChargeDiagramProps) {
   const cameraControl = useRef<HTMLButtonElement>(null);
   const svg = useRef<SVGSVGElement>(null), plane = useRef<SVGGElement>(null), dragging = useRef<string | null>(null), uid = useId().replace(/:/g, '');
-  const yawMv = useMotionValue(DEFAULT_CAMERA.yaw), pitchMv = useMotionValue(DEFAULT_CAMERA.pitch);
-  const [camera, setCamera] = useState<CameraView>(DEFAULT_CAMERA), orbitFrom = useRef<Point>({ x: 0, y: 0 });
+  const opening = openingCamera(problem.geometry);
+  const yawMv = useMotionValue(opening.yaw), pitchMv = useMotionValue(opening.pitch);
+  const [camera, setCamera] = useState<CameraView>(opening), orbitFrom = useRef<Point>({ x: 0, y: 0 });
   const glideId = useRef(0), syncId = useRef(0), spin = useRef({ yaw: 0, pitch: 0, at: 0 });
   const [gliding, setGliding] = useState(false);
   // oxlint-disable-next-line react/react-compiler -- deliberately impure: it is a stopwatch
@@ -278,7 +280,7 @@ export function ChargeDiagram({ problem, params: p, setParams, count, continuum,
     // plane's coordinates, and only the screen box puts every label in one space.
     const toFrame = (r: DOMRect): Box => ({ x: (r.left - frameRect.left) * sx, y: (r.top - frameRect.top) * sy, width: r.width * sx, height: r.height * sy });
     const labels = texts.map(t => ({ box: toFrame(t.getBoundingClientRect()), fixed: t.dataset.anchor === 'fixed' }));
-    const obstacles = [...root.querySelectorAll<SVGGraphicsElement>('.cd-point, .cd-point-halo, .cd-help-back')].map(el => toFrame(el.getBoundingClientRect()));
+    const obstacles = [...root.querySelectorAll<SVGGraphicsElement>('.cd-point, .cd-point-halo, .cd-help-back, .cd-cube')].map(el => toFrame(el.getBoundingClientRect()));
     const nudges = placeLabels(labels, { frame: { width: 720, height: 430 }, obstacles, pad: 2 });
     texts.forEach((t, i) => {
       const { dx, dy } = nudges[i];
@@ -403,8 +405,8 @@ export function ChargeDiagram({ problem, params: p, setParams, count, continuum,
     return () => el.removeEventListener('wheel', onWheel);
   }, []);
   /** One nudge of the view, shared by the on-screen pad and the arrow keys. */
-  const nudge = (key: string) => { stopGlide(); commitView(keyboardCamera({ yaw: yawMv.get(), pitch: pitchMv.get() }, key)); };
-  const resetView = () => { setZoom(1); glideTo({ ...DEFAULT_CAMERA }, .45); };
+  const nudge = (key: string) => { stopGlide(); commitView(keyboardCamera({ yaw: yawMv.get(), pitch: pitchMv.get() }, key, opening)); };
+  const resetView = () => { setZoom(1); glideTo(openingCamera(problem.geometry), .45); };
   /** The view keys, wherever they are pressed from. Shared by the figure and by the pad below
    * it, so a reader who has just pressed a pad button and then reaches for an arrow gets what
    * the button's own tooltip promised them rather than a scrolled page.
@@ -422,7 +424,7 @@ export function ChargeDiagram({ problem, params: p, setParams, count, continuum,
     if (!inSpace || !['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(ev.key)) return;
     ev.preventDefault(); nudge(ev.key);
   };
-  const onControl = (target: EventTarget | null) => target instanceof Element && !!target.closest('.cd-piece,.cd-observation,.cd-bound');
+  const onControl = (target: EventTarget | null) => target instanceof Element && !!target.closest('.cd-piece,.cd-observation,.cd-bound,.cd-cube');
   const commitView = (next: CameraView) => { yawMv.set(next.yaw); pitchMv.set(next.pitch); setCamera(next); };
   /* oxlint-disable react/react-compiler */
   // One React render per animation frame at most, however many pointer or wheel events
@@ -576,7 +578,7 @@ export function ChargeDiagram({ problem, params: p, setParams, count, continuum,
         onClick={() => {
           if (wants === inSpace) return;
           stopGlide();
-          if (wants) { yawMv.set(FLAT.yaw); pitchMv.set(FLAT.pitch); setCamera({ ...FLAT }); setSpatial(true); glideTo({ ...DEFAULT_CAMERA }, .8); }
+          if (wants) { yawMv.set(FLAT.yaw); pitchMv.set(FLAT.pitch); setCamera({ ...FLAT }); setSpatial(true); glideTo(openingCamera(problem.geometry), .8); }
           else glideTo(FLAT, .65, () => setSpatial(false));
         }}>{label}</button>)}
     </div>
@@ -591,7 +593,7 @@ export function ChargeDiagram({ problem, params: p, setParams, count, continuum,
         .map(([key, glyph, title]) => <button key={key} type="button" className="cd-pad-key" title={`${title} (${key.replace('Arrow', '')} arrow key)`} aria-label={title} onKeyDown={viewKeys} onClick={() => nudge(key)}>{glyph}</button>)}
       <button type="button" className="cd-pad-key" title="Zoom out (minus key, or scroll)" aria-label="Zoom out" onKeyDown={viewKeys} onClick={() => zoomBy(1 / 1.18)} disabled={zoom <= ZOOM_MIN + 1e-6}>&minus;</button>
       <button type="button" className="cd-pad-key" title="Zoom in (plus key, or scroll)" aria-label="Zoom in" onKeyDown={viewKeys} onClick={() => zoomBy(1.18)} disabled={zoom >= zoomCeiling - 1e-6}>+</button>
-      <button type="button" className="text-button cd-orbit-reset" onKeyDown={viewKeys} onClick={resetView} disabled={zoom === 1 && camera.yaw === DEFAULT_CAMERA.yaw && camera.pitch === DEFAULT_CAMERA.pitch}>Reset view</button>
+      <button type="button" className="text-button cd-orbit-reset" onKeyDown={viewKeys} onClick={resetView} disabled={zoom === 1 && camera.yaw === opening.yaw && camera.pitch === opening.pitch}>Reset view</button>
     </div>
     </div>
     <div className="cd-stage">
@@ -609,7 +611,6 @@ export function ChargeDiagram({ problem, params: p, setParams, count, continuum,
         <radialGradient id={`${uid}point`}><stop stopColor="var(--field)" stopOpacity=".2" /><stop offset="1" stopColor="var(--field)" stopOpacity="0" /></radialGradient>
       </defs>
       <rect x="20" y="48" width="680" height="336" rx="12" fill={`url(#${uid}grid)`} opacity=".55" />
-      <text x="30" y="29" className="cd-kicker">{perspective ? 'AXIAL VIEW · xy PLANE IN PERSPECTIVE' : ''}</text>
       <g className="cd-axes" clipPath={inSpace ? `url(#${uid}clip)` : undefined}>
         {/* Projected axes whenever the view can turn, so they rotate with what they measure;
             the flat pair is only right when the camera is locked. */}
@@ -695,6 +696,7 @@ export function ChargeDiagram({ problem, params: p, setParams, count, continuum,
         <Vector from={P} to={plus(P, contribution)} color="var(--contribution)" width={1.8} label={surface ? fieldSymbol+'z' : fieldSymbol} reduced={still}  ghost={inSpace} />
       </>}
       {!scalar && mode === 'sum' && chainPoints.length > 1 && <path className="cd-sum-chain" data-sum-chain={String(chainPoints.length)} d={pathThrough(chainPoints)} fill="none" />}
+      {inSpace && <ViewCube view={view} at={{ x: 58, y: 52 }} size={20} onPick={(next, label) => { stopGlide(); setZoom(1); glideTo(next, .5); setAnnouncement(label); }} />}
       {inSpace && <ViewHelp x={578} y={34} />}
       {!scalar && <Vector from={P} to={plus(P, net)} width={3.5} label={continuum>=.999&&full&&progress>=.999?'E':'Σ ΔE'} reduced={still} ghost={inSpace} />}
 {!scalar && magnitude(displayed) < 1e-8 && <text x={P.x-16} y={P.y-47} textAnchor="end" className="cd-zero">E = 0</text>}
