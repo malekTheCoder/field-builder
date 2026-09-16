@@ -16,7 +16,7 @@ function figure(id: ProblemId, highlight = '') {
   return {view};
 }
 function panel(id: ProblemId, collected: ReadonlySet<TermId>, highlight = '') {
-  return render(<EquationWorkbench problem={getProblem(id)} params={DEFAULT_PARAMS} count={8} continuum={0}
+  return render(<EquationWorkbench problem={getProblem(id)} params={DEFAULT_PARAMS} continuum={0}
     progress={1} mode="divide" onModeChange={vi.fn()} boundRange={[0, 100]} onBoundRangeChange={vi.fn()} collected={collected} highlight={highlight} />);
 }
 // KaTeX emits both MathML and HTML, so a rendered glyph appears twice in textContent.

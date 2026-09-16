@@ -7,7 +7,7 @@ import {DEFAULT_PARAMS} from '../src/problems/types';
 
 afterEach(cleanup);
 const view = (boundRange: [number, number]) => (
-  <EquationWorkbench problem={getProblem('bisector')} params={DEFAULT_PARAMS} count={8} continuum={1} progress={1}
+  <EquationWorkbench problem={getProblem('bisector')} params={DEFAULT_PARAMS} continuum={1} progress={1}
     mode="integrate" onModeChange={vi.fn()} boundRange={boundRange} onBoundRangeChange={vi.fn()} />
 );
 // The editable bound fields follow the diagram's bracket handles. That used to be an

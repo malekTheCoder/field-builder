@@ -9,7 +9,7 @@ import {assembledTex,figureOf,isComplete,substitutedTex,termOfFigure,termsFor,ty
 import type { Params, Problem } from '../problems/types';
 import './workbench.css';
 type Mode = 'divide' | 'project' | 'sum' | 'integrate';
-export type EquationWorkbenchProps = {problem:Problem;derivationProblem?:Problem;params:Params;count:number;continuum:number;progress:number;mode:Mode;onModeChange:(mode:Mode)=>void;onHighlight?:(name:string)=>void;boundRange:[number,number];onBoundRangeChange:(range:[number,number])=>void;collected?:ReadonlySet<TermId>;highlight?:string};
+export type EquationWorkbenchProps = {problem:Problem;derivationProblem?:Problem;params:Params;continuum:number;progress:number;mode:Mode;onModeChange:(mode:Mode)=>void;onHighlight?:(name:string)=>void;boundRange:[number,number];onBoundRangeChange:(range:[number,number])=>void;collected?:ReadonlySet<TermId>;highlight?:string};
 const raw=String.raw;
 const EMPTY:ReadonlySet<TermId>=new Set();
 const clamp=(n:number)=>Math.max(0,Math.min(1,n));
@@ -19,7 +19,7 @@ function boundExpression(p:Problem,percent:number){const t=clamp(percent/100),g=
 function boundPercent(p:Problem,value:string,params:Params){if(equivalent(value,p.bounds[0],p).ok)return 0;if(equivalent(value,p.bounds[1],p).ok)return 100;const x=safeParse(value).compile().evaluate({L:params.size,R:params.size/2,z:params.distance,r:params.distance,a:params.distance,pi:Math.PI,phi:params.phi,Infinity});if(typeof x!=='number'||!Number.isFinite(x))throw Error('Use a bound inside this distribution.');const g=p.geometry;if(g==='bisector'||(p.id==='infinite'&&p.variable==='y'))return 100*(x/params.size+.5);if(g==='axial'||g==='endpoint'||g==='ramp')return 100*x/params.size;if(g==='ring')return 100*x/(2*Math.PI);if(g==='arc')return 100*(x/params.phi+.5);if(g==='disk')return 200*x/params.size;if(p.id==='infinite')return 100*(x/Math.PI+.5);return 200*Math.atan(x/Math.abs(params.distance))/Math.PI;}
 const labels:Record<Mode,string>={divide:'One piece of charge',project:'One field contribution',sum:'Add the contributions',integrate:'The continuous field'};
 const vLabels:Record<Mode,string>={divide:'One piece of charge',project:'One scalar contribution',sum:'Add the scalars',integrate:'The continuous potential'};
-export function EquationWorkbench({problem:p,derivationProblem,params,count,continuum,progress,mode,onModeChange,onHighlight,boundRange,onBoundRangeChange,collected,highlight:litFigure=''}:EquationWorkbenchProps){
+export function EquationWorkbench({problem:p,derivationProblem,params,continuum,progress,mode,onModeChange,onHighlight,boundRange,onBoundRangeChange,collected,highlight:litFigure=''}:EquationWorkbenchProps){
  const uid=useId();const[focus,setFocus]=useState<string|null>(null);const terms=termsFor(p),taken=collected??EMPTY,built=isComplete(p,taken),lit=termOfFigure(p,litFigure);const[worked,setWorked]=useState(false);const[stepCount,setStepCount]=useState(1);const[boundsOpen,setBoundsOpen]=useState(false);const[bounds,setBounds]=useState<[string,string]>(p.bounds);const[feedback,setFeedback]=useState('');
  const[syncedRange,setSyncedRange]=useState(boundRange);
  if(syncedRange[0]!==boundRange[0]||syncedRange[1]!==boundRange[1]){setSyncedRange(boundRange);setBounds([boundExpression(p,boundRange[0]),boundExpression(p,boundRange[1])]);}
