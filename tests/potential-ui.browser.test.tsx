@@ -2,6 +2,7 @@ import {cleanup, render, waitFor} from '@testing-library/react';
 import {afterEach, describe, expect, it, vi} from 'vitest';
 import {EquationWorkbench} from '../src/components/EquationWorkbench';
 import Explorer from '../src/explorer/Explorer';
+import {ChargeDiagram} from '../src/diagrams/ChargeDiagram';
 import {getProblem} from '../src/problems/definitions';
 import {DEFAULT_PARAMS} from '../src/problems/types';
 import {stageOf} from '../src/problems/types';
@@ -26,15 +27,26 @@ describe('potential lessons in the live UI', () => {
   const p = getProblem('v-arc');
   expect(stageOf(p, 'gradient')).toBe(-1);expect(p.steps).toHaveLength(7);
  });
- it('the explorer library lists the potential lessons and draws a scalar gauge on the ring', async () => {
-  localStorage.setItem('field-builder:explorer:v1', JSON.stringify({id: 'v-ring', seen: true, dark: false, sidebarOpen: true, showNumbers: true, params: {}}));
-  const {findAllByText, queryByText, container} = render(<Explorer />);
+ // Held back is not hidden. A reader should still see that these lessons exist and are coming,
+ // which is the whole reason the unfinished ones are listed rather than deleted -- so this checks
+ // the names are on the page whether or not they can be opened yet.
+ it('the explorer library lists the potential lessons', async () => {
+  localStorage.setItem('field-builder:explorer:v1', JSON.stringify({id: 'ring', seen: true, dark: false, sidebarOpen: true, showNumbers: true, params: {}}));
+  const {findAllByText, queryByText} = render(<Explorer />);
   // Dismiss the tour if hydration still opens it; the saved `seen` flag should already skip it.
   const tour = queryByText("Let’s start") ?? queryByText("Let’s build a field") ?? queryByText('Skip');
   if (tour) tour.click();
   expect((await findAllByText('Ring · potential')).length).toBeGreaterThan(0);
   expect((await findAllByText('Disk · potential')).length).toBeGreaterThan(0);
   expect((await findAllByText('Arc · potential')).length).toBeGreaterThan(0);
+ });
+ // The figure itself, mounted directly, because a held-back lesson cannot be reached through the
+ // Explorer. The claim is the one that matters and does not depend on being published: a scalar
+ // lesson draws a gauge and no field arrow, since V has no direction to draw.
+ it('a potential lesson draws a scalar gauge and no field vector', async () => {
+  const {container} = render(<ChargeDiagram problem={getProblem('v-ring')} params={DEFAULT_PARAMS} setParams={vi.fn()}
+   count={5} continuum={0} selected={2} onSelect={vi.fn()} progress={1} components={false} pair={false}
+   mode="divide" boundRange={[0, 100]} onBoundRangeChange={vi.fn()} compact />);
   await waitFor(() => expect(container.querySelector('.cd-gauge')).toBeTruthy());
   expect(container.querySelector('.cd-vector')).toBeNull();
  });
