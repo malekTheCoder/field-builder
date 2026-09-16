@@ -286,17 +286,22 @@ export function FieldStage(props:FieldStageProps){
     body.add(new THREE.Line(unitCircle(),pickedMaterial));
    };
    const coarse=(samples:readonly ChargeSample[],limit:number)=>{const stride=Math.max(1,Math.ceil(samples.length/limit));return samples.filter((_,i)=>i%stride===0);};
-   const buildField=(p:FieldStageProps,tint:InstanceType<typeof THREE.Color>,pale:InstanceType<typeof THREE.Color>,dark:boolean)=>{
+   const buildField=(p:FieldStageProps,tint:InstanceType<typeof THREE.Color>,pale:InstanceType<typeof THREE.Color>,dark:boolean,frameWorld:number)=>{
     clearGroup(field);
     if(p.fieldView==='off'||!p.samples.length)return;
     const layout:Layout=p.kind==='wire'?'wire':'surface';
     // A surface's annuli are spread into rings of points before summing, so fewer of them.
     const few=coarse(p.samples,layout==='wire'?48:24);
     if(p.fieldView==='lines'){
-     // Lines may RUN well past the drawing, but must not BEGIN past it: the sheet's charge is
-     // mostly in its huge outer rings, so seeding as far as a line may travel put every line
-     // off the picture.
-     const lines=spaceLines(few,layout,16,{step:p.reach*.04,maxSteps:320,outerLimit:p.reach*3.2,seedLimit:p.reach*.9});
+     // Both limits come from the PICTURE, not from how far the charge happens to extend.
+     //
+     // A line was allowed to run to 3.2 reaches while the frame shows about one, so most of
+     // every line was drawn outside the view and what crossed the frame was its middle -- long
+     // sweeps entering one edge and leaving another, with no visible root on the charge. Ending
+     // them a little past the frame keeps the part that is about this charge. Seeds stay inside
+     // it for the separate reason that the sheet's charge is mostly in huge outer rings.
+     const far=Math.max(p.reach*.6,frameWorld*.62);
+     const lines=spaceLines(few,layout,16,{step:Math.max(p.reach,frameWorld)*.03,maxSteps:420,outerLimit:far,seedLimit:Math.min(p.reach*.9,frameWorld*.42)});
      const bg=new THREE.Color(dark?0x0f1a1c:0xffffff),near=tint.clone().lerp(pale,.3),vertex=new THREE.Vector3(),c=new THREE.Color();
      const tubes=lines.map(line=>{
       const curve=new THREE.CatmullRomCurve3(line.map(v=>new THREE.Vector3(v.x,v.y,v.z)),false,'centripetal');
@@ -385,8 +390,8 @@ export function FieldStage(props:FieldStageProps){
     }
     // The field is the expensive part -- tracing is quadratic in the sample count -- so it is
     // rebuilt only when what it depends on changes, never on a camera frame.
-    const nextField=`${p.fieldView}:${shape}:${p.reach.toFixed(2)}:${positive}:${dark}`;
-    if(fieldKey!==nextField){buildField(p,tint,pale,dark);fieldKey=nextField;}
+    const nextField=`${p.fieldView}:${shape}:${p.reach.toFixed(2)}:${frameWorld.toFixed(1)}:${positive}:${dark}`;
+    if(fieldKey!==nextField){buildField(p,tint,pale,dark,frameWorld);fieldKey=nextField;}
     // The marks: cheap to place every frame, so they always sit on the live geometry.
     const wr=wireRadius(p.reach);
     point.position.set(p.point.x,p.point.y,p.point.z);point.scale.setScalar(wr*1.7);
@@ -415,7 +420,7 @@ export function FieldStage(props:FieldStageProps){
     lineMaterial.emissive.copy(tint);lineMaterial.emissiveIntensity=dark?.4:.12;
     pointMaterial.color.copy(tint);pointMaterial.emissive.copy(tint);pointMaterial.emissiveIntensity=dark?.7:.3;
     haloMaterial.color.copy(tint);
-    elementMaterial.color.set(0xb8460f);elementMaterial.emissive.set(0x5a2208);elementMaterial.emissiveIntensity=dark?.9:.45;
+    elementMaterial.color.set(positive?0xc2703a:0x3a7fc2);elementMaterial.emissive.set(positive?0xc2703a:0x3a7fc2);elementMaterial.emissiveIntensity=dark?.34:.14;
     netMaterial.color.copy(tint);netMaterial.emissive.copy(tint);netMaterial.emissiveIntensity=dark?.6:.25;
     partMaterial.color.copy(tint.clone().lerp(new THREE.Color(0xffffff),.25));partMaterial.emissive.copy(tint);partMaterial.emissiveIntensity=dark?.35:.12;
     axisMaterial.color.set(dark?0x9fb3c1:0x4a6172);gridMaterial.color.set(dark?0x9fb3c1:0x4a6172);
