@@ -284,3 +284,14 @@
 .exp-slip-note p{margin:0;font-size:var(--type-body);line-height:1.6;color:var(--foreground);max-width:62ch}
 @media(max-width:700px){.exp-slip-note{grid-template-columns:1fr;gap:4px}}
 @media(prefers-reduced-motion:reduce){.exp-note>summary>span::before{transition:none}}
+
+/* The first-visit pointer at the walkthrough. Fixed, so it is unaffected by the page scrolling
+   under it, and pointer-events:none so it can never be the thing a reader clicks by accident. */
+.start-here{position:fixed;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:2px;pointer-events:none;opacity:0;transition:opacity .7s ease;z-index:60}
+.start-here.is-visible{opacity:1}
+.start-here-arrow{color:var(--exp-primary);display:block}
+.start-here-arrow path{fill:none;stroke-dasharray:120;stroke-dashoffset:120;transition:stroke-dashoffset 1.1s ease .15s}
+.start-here.is-visible .start-here-arrow path{stroke-dashoffset:0}
+.start-here-text{font-size:12.5px;letter-spacing:.05em;color:var(--exp-primary);white-space:nowrap;font-style:italic;font-family:var(--font-geist-mono),ui-monospace,monospace;opacity:0;transition:opacity .4s ease .85s;margin:0}
+.start-here.is-visible .start-here-text{opacity:.85}
+@media (prefers-reduced-motion:reduce){.start-here,.start-here-arrow path,.start-here-text{transition:none}.start-here-arrow path{stroke-dashoffset:0}}

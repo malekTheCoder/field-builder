@@ -19,11 +19,11 @@ function inside(dialog: Element, node: Element | null) {
 }
 
 describe('keyboard and screen-reader path', () => {
-  it('traps tab inside the tour and returns focus to Quick tour on Skip', async () => {
+  it('traps tab inside the tour and returns focus to Walkthrough on Skip', async () => {
     localStorage.setItem('field-builder:explorer:v1', JSON.stringify({id: 'bisector', seen: true, dark: false, sidebarOpen: true, params: {}}));
     const {findByRole, getByRole} = render(<Explorer />);
     expect(await findByRole('heading', {name: /A line of charge/})).toBeTruthy();
-    const tour = getByRole('button', {name: /Quick tour/});
+    const tour = getByRole('button', {name: /Walkthrough/});
     await userEvent.click(tour);
     const dialog = await findByRole('dialog');
     const skip = getByRole('button', {name: 'Skip intro'});
