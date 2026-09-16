@@ -1,7 +1,7 @@
 import {K} from '../distributions/constants';
 import type {ChargeSample} from '../distributions/types';
 import type {Vec} from '../symbolic/physics';
-import {logWeights} from './vectorfield';
+import {bodyDistance,logWeights} from './vectorfield';
 /** The field in space, for the 3D view.
  *
  * The flat view traces the field in the plane the planar lessons live in. In space there is
@@ -239,13 +239,15 @@ export type Arrow3={at:Vec;dir:Vec;magnitude:number;weight:number};
 export function spaceGrid(samples:readonly ChargeSample[],extent:number,spacing:number,exclude=.14,slice?:'xz',layout:Layout='wire'):Arrow3[]{
  if(!(spacing>0)||!(extent>0)||!samples.length)return [];
  const points=cloud(samples,layout);
+ // Clearance from the charge itself, not from the points it was cut into: at a coarse partition
+ // the lattice slips between the samples and draws an arrow lying on the body, at full weight,
+ // showing the field of whichever element it landed nearest. See bodyDistance.
+ const clear=bodyDistance(samples,layout==='surface'?'surface':'wire');
  const raw:{at:Vec;dir:Vec;magnitude:number}[]=[];
  const n=Math.floor(extent/spacing);
  for(let i=-n;i<n;i++)for(let j=slice?0:-n;j<(slice?1:n);j++)for(let k=-n;k<n;k++){
   const at={x:(i+.5)*spacing,y:slice?0:(j+.5)*spacing,z:(k+.5)*spacing};
-  let near=false;
-  for(const s of points)if(Math.hypot(at.x-s.position.x,at.y-s.position.y,at.z-s.position.z)<exclude){near=true;break;}
-  if(near)continue;
+  if(clear(at.x,at.y,at.z)<exclude)continue;
   const e=spaceField(points,at),magnitude=LEN(e);
   if(!Number.isFinite(magnitude)||magnitude<=0)continue;
   raw.push({at,dir:scale(e,1/magnitude),magnitude});
