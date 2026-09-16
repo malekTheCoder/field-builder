@@ -22,7 +22,7 @@ describe('keyboard and screen-reader path', () => {
   it('traps tab inside the tour and returns focus to Walkthrough on Skip', async () => {
     localStorage.setItem('field-builder:explorer:v1', JSON.stringify({id: 'bisector', seen: true, dark: false, sidebarOpen: true, params: {}}));
     const {findByRole, getByRole} = render(<Explorer />);
-    expect(await findByRole('heading', {name: /A line of charge/})).toBeTruthy();
+    expect(await findByRole('heading', {name: getProblem('bisector').title})).toBeTruthy();
     const tour = getByRole('button', {name: /Walkthrough/});
     await userEvent.click(tour);
     const dialog = await findByRole('dialog');
@@ -70,7 +70,7 @@ describe('keyboard and screen-reader path', () => {
   it('names every library glyph, including potential, and states fifteen lessons', async () => {
     localStorage.setItem('field-builder:explorer:v1', JSON.stringify({id: 'bisector', seen: true, dark: false, sidebarOpen: true, params: {}}));
     const {findByRole, getByRole} = render(<Explorer />);
-    expect(await findByRole('heading', {name: /A line of charge/})).toBeTruthy();
+    expect(await findByRole('heading', {name: getProblem('bisector').title})).toBeTruthy();
     await userEvent.click(getByRole('button', {name: 'Charge library'}));
     const dialog = await findByRole('dialog');
     expect(dialog.textContent).toMatch(/15 lessons, including electric potential/);
@@ -84,7 +84,7 @@ describe('keyboard and screen-reader path', () => {
   it('lets the charge sliders reverse sign through zero', async () => {
     localStorage.setItem('field-builder:explorer:v1', JSON.stringify({id: 'bisector', seen: true, dark: false, sidebarOpen: true, params: {}}));
     const explorer = render(<Explorer />);
-    expect(await explorer.findByRole('heading', {name: /A line of charge/})).toBeTruthy();
+    expect(await explorer.findByRole('heading', {name: getProblem('bisector').title})).toBeTruthy();
     const exploreNow:number[]=[];
     for(const slider of explorer.getAllByRole('slider')){slider.focus();await userEvent.keyboard('{Home}');exploreNow.push(Number(slider.getAttribute('aria-valuenow')));}
     expect(exploreNow).toContain(-5);

@@ -1,6 +1,7 @@
 .charge-diagram{width:100%;isolation:isolate;--cd-muted:var(--muted-foreground,#4a6274);--cd-ink:var(--foreground,#0e2333)}
 .cd-stage,.cd-stage *{-webkit-user-select:none;user-select:none}
 .cd-svg{display:block;width:100%;height:auto;overflow:visible;font-family:var(--font-mono,'SFMono-Regular',Consolas,monospace);-webkit-user-select:none;user-select:none}
+
 /* The figure is focusable in 3D because it is what the arrow keys turn. Keyboard focus shows a
    ring; a mouse click focuses it too but shows nothing, which is why :focus-visible is right --
    the clicker already knows where they are, the tabber does not. */
@@ -56,7 +57,12 @@
    Presentation attributes in the markup (stroke-width="1.5" etc.) lose
    to these rules, which is how the component stays untouched.
    ===================================================================== */
-.cd-svg{max-height:none;min-height:320px;aspect-ratio:720/430}
+/* A height budget, not only a width. The figure scales to the width of its column, and this
+   rule used to lift the cap entirely -- so on a wide, short window (1920 by 820, an ordinary
+   laptop) the drawing grew taller than the screen and the bottom of a tall figure sat below
+   the fold. You had to scroll to see the whole of an arc. Capped, the SVG keeps its box and
+   the viewBox fits inside it centred, so the whole drawing is on screen at any window shape. */
+.cd-svg{max-height:min(62vh,700px);min-height:320px;aspect-ratio:720/430}
 /* Symbols: serif italic, sized to be read across a room. */
 .cd-axes text,.cd-dimension text,.cd-svg .cd-point-label,.cd-svg .cd-vector-label,.cd-triangle text,.cd-svg .cd-origin,.cd-svg .cd-plus{font-family:var(--font-display),Georgia,serif;font-style:italic}
 .cd-axes text{font-size:22px;font-weight:600;fill:var(--cd-ink)}

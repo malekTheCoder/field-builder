@@ -299,3 +299,10 @@
 .exp-shape-button.is-soon,.exp-library-grid>button.is-soon{opacity:.45;cursor:default}
 .exp-shape-button.is-soon:hover,.exp-library-grid>button.is-soon:hover{background:transparent!important;border-color:var(--border)!important;color:inherit!important}
 .soon-tag{margin-left:7px;font-size:9px;letter-spacing:.09em;text-transform:uppercase;border:1px solid var(--border);border-radius:4px;padding:1px 4px;color:var(--muted-foreground);font-weight:400;white-space:nowrap}
+
+/* The divider above the lessons that are still being drawn. */
+.exp-soon-heading{display:flex;align-items:center;gap:9px;margin:26px 10px 14px;color:var(--sidebar-dim);font-size:10px;letter-spacing:.11em;text-transform:uppercase}
+.exp-soon-heading::after{content:"";flex:1;height:1px;background:var(--sidebar-border)}
+.exp-soon-heading-wide{margin:24px 2px 12px;color:var(--muted-foreground)}
+.exp-soon-heading-wide::after{background:var(--border)}
+.exp-soon-group .exp-shape-button{cursor:default}

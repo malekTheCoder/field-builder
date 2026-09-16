@@ -2,6 +2,7 @@ import {cleanup, render, waitFor} from '@testing-library/react';
 import {afterEach, describe, expect, it} from 'vitest';
 import Explorer from '../src/explorer/Explorer';
 import {DEFAULT_PARAMS} from '../src/problems/types';
+import {getProblem} from '../src/problems/definitions';
 
 afterEach(() => {
  cleanup();
@@ -26,7 +27,7 @@ describe('assignable URL state', () => {
   localStorage.setItem('field-builder:explorer:v1', JSON.stringify({id: 'bisector', seen: true, dark: false, sidebarOpen: true, params: {}}));
   window.history.replaceState(null, '', '/?p=not-a-lesson&mode=explode&distance=99');
   const {findByRole} = render(<Explorer />);
-  expect(await findByRole('heading', {name: /A line of charge/})).toBeTruthy();
+  expect(await findByRole('heading', {name: getProblem('bisector').title})).toBeTruthy();
   await waitFor(() => expect(location.search).toContain('distance=6'));
  });
 });

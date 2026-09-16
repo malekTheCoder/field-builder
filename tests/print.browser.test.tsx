@@ -2,6 +2,7 @@ import {cleanup, render, waitFor} from '@testing-library/react';
 import {afterEach, describe, expect, it, vi} from 'vitest';
 import {cdp, page, userEvent} from 'vitest/browser';
 import Explorer from '../src/explorer/Explorer';
+import {getProblem} from '../src/problems/definitions';
 
 afterEach(async () => {
   cleanup();
@@ -23,7 +24,7 @@ describe('print stylesheet and offline copy', () => {
   it('declares letter paper and hides chrome while keeping the figure', async () => {
     localStorage.setItem('field-builder:explorer:v1', JSON.stringify({id: 'bisector', seen: true, dark: false, sidebarOpen: true, params: {}}));
     const {findByRole, getByRole, container} = render(<Explorer />);
-    expect(await findByRole('heading', {name: /A line of charge/})).toBeTruthy();
+    expect(await findByRole('heading', {name: getProblem('bisector').title})).toBeTruthy();
     expect(cssText()).toMatch(/@page[^{]*\{[^}]*size:\s*letter/i);
     const printBtn = getByRole('button', {name: 'Print this lesson'});
     const sidebar = container.querySelector('.exp-sidebar') as HTMLElement | null;
@@ -42,7 +43,7 @@ describe('print stylesheet and offline copy', () => {
   it('downloads a self-contained HTML copy of the open lesson', async () => {
     localStorage.setItem('field-builder:explorer:v1', JSON.stringify({id: 'ring', seen: true, dark: false, sidebarOpen: true, params: {}}));
     const {findByRole, getByRole} = render(<Explorer />);
-    expect(await findByRole('heading', {name: /Around a ring of charge/})).toBeTruthy();
+    expect(await findByRole('heading', {name: getProblem('ring').title})).toBeTruthy();
     const create = vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:field-builder-copy');
     const revoke = vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {});
     const names: string[] = [];
@@ -54,7 +55,7 @@ describe('print stylesheet and offline copy', () => {
       const blob = create.mock.calls[0][0] as Blob;
       expect(blob.type).toContain('text/html');
       const html = await blob.text();
-      expect(html).toContain('Around a ring of charge');
+      expect(html).toContain(getProblem('ring').title);
       expect(html).toContain('size: letter');
       expect(revoke).toHaveBeenCalled();
     } finally {
