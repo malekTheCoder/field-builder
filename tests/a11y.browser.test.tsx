@@ -3,7 +3,6 @@ import {userEvent} from 'vitest/browser';
 import {useState} from 'react';
 import {afterEach, describe, expect, it} from 'vitest';
 import Explorer from '../src/explorer/Explorer';
-import FieldBuilder from '../src/wizard/FieldBuilder';
 import {ChargeDiagram} from '../src/diagrams/ChargeDiagram';
 import {Assessment} from '../src/components/Assessment';
 import {getProblem} from '../src/problems/definitions';
@@ -38,16 +37,6 @@ describe('keyboard and screen-reader path', () => {
     await waitFor(() => expect(document.activeElement).toBe(tour));
   });
 
-  it('returns wizard intro focus to How it works', async () => {
-    const {findByRole, getByRole} = render(<FieldBuilder initialProblem="bisector" />);
-    expect(await findByRole('heading', {name: /A line of charge/})).toBeTruthy();
-    const help = getByRole('button', {name: /How it works/});
-    await userEvent.click(help);
-    const intro = await findByRole('dialog');
-    expect(intro.textContent).toMatch(/all 15 lessons, including electric potential/);
-    await userEvent.keyboard('{Escape}');
-    await waitFor(() => expect(document.activeElement).toBe(help));
-  });
 
   it('announces the selected element and a distance change in SI units', async () => {
     function Harness() {
@@ -99,12 +88,6 @@ describe('keyboard and screen-reader path', () => {
     const exploreNow:number[]=[];
     for(const slider of explorer.getAllByRole('slider')){slider.focus();await userEvent.keyboard('{Home}');exploreNow.push(Number(slider.getAttribute('aria-valuenow')));}
     expect(exploreNow).toContain(-5);
-    cleanup();
-    const wizard = render(<FieldBuilder initialProblem="bisector" />);
-    expect(await wizard.findByRole('heading', {name: /A line of charge/})).toBeTruthy();
-    const wizardNow:number[]=[];
-    for(const slider of wizard.getAllByRole('slider')){slider.focus();await userEvent.keyboard('{Home}');wizardNow.push(Number(slider.getAttribute('aria-valuenow')));}
-    expect(wizardNow).toContain(-5);
   });
 
   it('exposes the limit comparison as a table of t, exact, and reference, not only an aria-label', () => {

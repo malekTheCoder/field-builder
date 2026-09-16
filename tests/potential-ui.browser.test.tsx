@@ -1,10 +1,9 @@
 import {cleanup, render, waitFor} from '@testing-library/react';
 import {afterEach, describe, expect, it, vi} from 'vitest';
 import {EquationWorkbench} from '../src/components/EquationWorkbench';
-import FieldBuilder from '../src/wizard/FieldBuilder';
 import Explorer from '../src/explorer/Explorer';
 import {getProblem} from '../src/problems/definitions';
-import {DEFAULT_PARAMS, STAGE_LABELS} from '../src/problems/types';
+import {DEFAULT_PARAMS} from '../src/problems/types';
 import {stageOf} from '../src/problems/types';
 
 afterEach(cleanup);
@@ -17,22 +16,15 @@ describe('potential lessons in the live UI', () => {
   expect(queryByText('Which directions survive?')).toBeNull();
   expect(queryByText('Signed projection')).toBeNull();
  });
- it('the ring potential wizard is eight steps including differentiate-back, with no symmetry', async () => {
+ // The shape of these two derivations, which the walk-through reads step by step. The page that
+ // used to render them as its own view is gone; the claims about the lessons themselves are not.
+ it('the ring potential runs eight steps, ending in differentiate-back, with no symmetry step',()=>{
   const p = getProblem('v-ring');
   expect(stageOf(p, 'symmetry')).toBe(-1);expect(stageOf(p, 'gradient')).toBe(7);expect(p.steps).toHaveLength(8);
-  const {findByRole, getByLabelText, queryByLabelText} = render(<FieldBuilder initialProblem="v-ring" />);
-  expect(await findByRole('heading', {name: p.title})).toBeTruthy();
-  expect(getByLabelText(`Step A: ${STAGE_LABELS.origin}`)).toBeTruthy();
-  expect(getByLabelText(`Step H: ${STAGE_LABELS.gradient}`)).toBeTruthy();
-  expect(queryByLabelText(`Step D: ${STAGE_LABELS.symmetry}`)).toBeNull();
  });
- it('the arc potential wizard has no gradient step', async () => {
+ it('the arc potential has no gradient step, because E is not along its axis',()=>{
   const p = getProblem('v-arc');
   expect(stageOf(p, 'gradient')).toBe(-1);expect(p.steps).toHaveLength(7);
-  const {findByRole, getByLabelText, queryByLabelText} = render(<FieldBuilder initialProblem="v-arc" />);
-  expect(await findByRole('heading', {name: p.title})).toBeTruthy();
-  expect(getByLabelText(`Step G: ${STAGE_LABELS.limits}`)).toBeTruthy();
-  expect(queryByLabelText(`Step H: ${STAGE_LABELS.gradient}`)).toBeNull();
  });
  it('the explorer library lists the potential lessons and draws a scalar gauge on the ring', async () => {
   localStorage.setItem('field-builder:explorer:v1', JSON.stringify({id: 'v-ring', seen: true, dark: false, sidebarOpen: true, showNumbers: true, params: {}}));
