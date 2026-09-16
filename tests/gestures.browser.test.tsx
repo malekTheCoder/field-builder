@@ -163,18 +163,18 @@ describe('the gestures the figure advertises', () => {
     // report. Cancelling a glide's frame without clearing the flag left it set for the rest of
     // the session: one arrow key pressed during Reset view, and the labels silently stopped
     // being placed. Easy to reach now that the arrow keys work from the pad as well.
-    const onNetScreen = vi.fn();
-    const {view, svg} = mount('ring', {}, {onNetScreen});
+    const {view, svg} = mount('ring');
+    const root = view.container.querySelector<HTMLElement>('.charge-diagram')!;
+    expect(root.dataset.moving, 'the figure should be at rest before anything moves').toBe('false');
     fireEvent.click(view.getByRole('button', {name: 'Turn left'}));
     const reset = view.getByRole('button', {name: 'Reset view'}) as HTMLButtonElement;
     fireEvent.click(reset);
     // Reset eases home over 450ms rather than cutting; if it had landed already there would be
     // no glide left to interrupt and this test would be proving nothing.
     expect(reset.disabled, 'no glide was in flight to interrupt').toBe(false);
+    expect(root.dataset.moving, 'a glide should read as moving while it runs').toBe('true');
     fireEvent.keyDown(svg, {key: 'ArrowLeft'});      // interrupt it
-    onNetScreen.mockClear();
-    fireEvent.keyDown(svg, {key: 'ArrowUp'});        // move the field, which must be reported
-    expect(onNetScreen, 'the figure stayed wedged in its moving state').toHaveBeenCalled();
+    expect(root.dataset.moving, 'the figure stayed wedged in its moving state').toBe('false');
   });
   it('says the same things to a screen reader, which cannot see the legend', () => {
     const {svg} = mount('ring');

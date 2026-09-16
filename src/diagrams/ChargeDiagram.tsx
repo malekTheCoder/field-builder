@@ -30,19 +30,11 @@ export type ChargeDiagramProps = {
   progress: number; components: boolean; pair: boolean;
   mode: 'divide' | 'project' | 'sum' | 'integrate';
   highlight?: string; boundRange?: [number, number]; onBoundRangeChange?: (r: [number, number]) => void;
-  /** Predict-first. While `predicting`, the field is withheld and the guess is draggable.
-   * Afterwards the guess stays on the figure beside the field so the two can be compared. */
-  predicting?: boolean; prediction?: Point | null; onPredict?: (offset: Point) => void;
-  /** The net arrow as drawn, so a guess can be compared against what is actually on screen. */
-  onNetScreen?: (offset: Point) => void;
   /** Start the control drawer closed: on a page that already carries its own controls, the
    * drawer is a second copy of them. */
   compact?: boolean;
 };
 const clamp = (n: number, a: number, b: number) => Math.max(a, Math.min(b, n));
-/** How long the predicted arrow is drawn, in viewBox units. One length for every guess:
- * the prediction is a direction, and a length that varied would read as a claim. */
-const GUESS_LENGTH = 64;
 const plus = (a: Point, b: Point): Point => ({ x: a.x + b.x, y: a.y + b.y });
 const scaleVec = (v: Vec, k: number): Vec => ({ x: v.x * k, y: v.y * k, z: v.z * k });
 const zero: Vec = { x: 0, y: 0, z: 0 };
@@ -88,7 +80,7 @@ function ViewHelp({ x, y }: { x: number; y: number }) {
     {row(2, <>{[cap(1, '\u2190'), cap(11, '\u2191'), cap(21, '\u2193'), cap(31, '\u2192')]}</>, 'arrow keys')}
   </g>;
 }
-export function ChargeDiagram({ problem, params: p, setParams, count, continuum, selected, onSelect, progress, components, pair, mode, boundRange = [0, 100], onBoundRangeChange, highlight = '', predicting, prediction, onPredict, onNetScreen, compact = false }: ChargeDiagramProps) {
+export function ChargeDiagram({ problem, params: p, setParams, count, continuum, selected, onSelect, progress, components, pair, mode, boundRange = [0, 100], onBoundRangeChange, highlight = '', compact = false }: ChargeDiagramProps) {
   const cameraControl = useRef<HTMLButtonElement>(null);
   const svg = useRef<SVGSVGElement>(null), plane = useRef<SVGGElement>(null), dragging = useRef<string | null>(null), uid = useId().replace(/:/g, '');
   const yawMv = useMotionValue(DEFAULT_CAMERA.yaw), pitchMv = useMotionValue(DEFAULT_CAMERA.pitch);
@@ -127,6 +119,10 @@ export function ChargeDiagram({ problem, params: p, setParams, count, continuum,
   // An orbit drag writes a SVG matrix from motion values; setState would rebuild the tree every frame.
   const [activeDrag,setActiveDrag] = useState(false);
   const still = reduced || activeDrag || gliding, moving = activeDrag || gliding;
+  // Reported on the root beside `data-renders`, because `moving` gates two things a reader
+  // would notice if they stuck: the label placer and the figure's own animation. A glide that
+  // was interrupted used to leave it set for the rest of the session, and nothing said so.
+  useLayoutEffect(() => { if (root.current) root.current.dataset.moving = String(moving); });
   const n = Math.max(3, Math.round(count)), R = p.size / 2, selectedIndex = clamp(Math.round(selected), 0, n - 1);
   const samples = useMemo(() => sampleDistribution(id, p, n), [id, p, n]);
   const sample = samples[selectedIndex], total = sumSamples(samples), weights = intervalWeights(n,boundRange,progress), partial = sumInterval(samples,boundRange,progress);
@@ -256,15 +252,6 @@ export function ChargeDiagram({ problem, params: p, setParams, count, continuum,
   // Key repeat delivers a burst faster than React re-renders, so reading the guess from
   // props would make every press in the burst compute from the same stale start and all
   // land on the same angle. The live value is mirrored here and advanced immediately.
-  const liveGuess = useRef<Point | null>(prediction ?? null);
-  useEffect(() => { liveGuess.current = prediction ?? null; }, [prediction]);
-  const netCallback = useRef(onNetScreen);
-  useEffect(() => { netCallback.current = onNetScreen; });
-  const netKey = `${net.x.toFixed(2)},${net.y.toFixed(2)}`;
-  // Not while the view is turning: the caller stores this in state, and a report per camera
-  // frame re-rendered the whole panel, KaTeX and all, on every frame of an orbit. It is
-  // reported once the motion settles, which is the only time a comparison is read anyway.
-  useEffect(() => { if (moving) return; const [x, y] = netKey.split(',').map(Number); netCallback.current?.({ x, y }); }, [netKey, moving]);
   // Keep the labels off each other.
   //
   // Every label sits at an offset chosen by hand for one arrangement of the geometry, and
@@ -365,14 +352,6 @@ export function ChargeDiagram({ problem, params: p, setParams, count, continuum,
   function move(ev: PointerEvent) {
     if (!dragging.current) return;
     const cursor = eventPoint(ev);
-    if (dragging.current === 'predict') {
-      // Direction only. The length is fixed because nobody can predict the magnitude of E
-      // at a point, so letting the arrow grow would collect an answer to a question that
-      // was never asked and then look like a wrong one.
-      const dx = cursor.x - P.x, dy = cursor.y - P.y, len = Math.hypot(dx, dy);
-      const next = len > 1 ? { x: dx / len * GUESS_LENGTH, y: dy / len * GUESS_LENGTH } : { x: GUESS_LENGTH, y: 0 };
-      liveGuess.current = next; onPredict?.(next); return;
-    }
     if (dragging.current === 'P') {
       // In space the axis P moves along is foreshortened by the camera, so a screen delta
       // is the wrong ruler. The cursor is dropped onto the projected axis instead: the
@@ -620,7 +599,7 @@ export function ChargeDiagram({ problem, params: p, setParams, count, continuum,
       plane={perspective ? 'xz' : 'xy'} layout={surface ? 'surface' : 'wire'} />}
     {inSpace && <FieldStage kind={id === 'disk' ? 'disk' : id === 'sheet' ? 'sheet' : 'wire'} closed={id === 'ring'} samples={samples} selected={selectedIndex}
       radius={R} distance={p.distance} yaw={view.yaw} pitch={view.pitch} fieldView={scalar ? 'off' : fieldView} reach={fieldReach}
-      bodyPath={bodyPath} point={pWorld} element={sceneElement} net={scalar || predicting ? null : scaleVec(displayed, gain / unit)} contribution={scalar || !showContribution ? null : scaleVec(sample.field, selectedGain * gain / unit)}
+      bodyPath={bodyPath} point={pWorld} element={sceneElement} net={scalar ? null : scaleVec(displayed, gain / unit)} contribution={scalar || !showContribution ? null : scaleVec(sample.field, selectedGain * gain / unit)}
       unit={unit} frame={{ width: 720, height: 430 }} origin={O} charge={p.charge} animating={moving}
       getView={() => ({ yaw: yawMv.get(), pitch: pitchMv.get() })} />}
     <svg ref={svg} className={`cd-svg${inSpace ? ' cd-orbitable' : ''}${scalar ? ' cd-scalar' : ''}`} viewBox="0 0 720 430" role="img" tabIndex={inSpace ? 0 : undefined} {...(inSpace ? orbit : {})} aria-label={`${problem.title}. Interactive charge distribution and ${scalar ? 'electric potential' : 'electric field'} visualization.${inSpace ? ' Drag or use the arrow keys to rotate the view, plus and minus to zoom, Home to reset it.' : ''}`}>
@@ -717,35 +696,8 @@ export function ChargeDiagram({ problem, params: p, setParams, count, continuum,
       </>}
       {!scalar && mode === 'sum' && chainPoints.length > 1 && <path className="cd-sum-chain" data-sum-chain={String(chainPoints.length)} d={pathThrough(chainPoints)} fill="none" />}
       {inSpace && <ViewHelp x={578} y={34} />}
-      {!scalar && !predicting && <Vector from={P} to={plus(P, net)} width={3.5} label={continuum>=.999&&full&&progress>=.999?'E':'Σ ΔE'} reduced={still} ghost={inSpace} />}
-      {!scalar && (predicting || prediction) && (() => {
-        // The guess is drawn in the same place and the same units as the field it will be
-        // compared against, so the comparison is the one the student can see rather than a
-        // number they have to trust.
-        const tip = plus(P, prediction ?? { x: GUESS_LENGTH, y: 0 });
-        return <g className={`cd-guess${predicting ? ' is-drawing' : ''}`}>
-          <Vector from={P} to={tip} color="var(--charge)" width={2.6} dashed label="your direction" reduced={still} />
-          {predicting && <g {...handle('predict')} className="cd-guess-grip" role="slider" tabIndex={0}
-            aria-label="Which way the field points at P. Drag, or turn it with the arrow keys."
-            aria-valuemin={0} aria-valuemax={360} aria-valuenow={Math.round((Math.atan2(-(tip.y - P.y), tip.x - P.x) * 180 / Math.PI + 360) % 360)}
-            onKeyDown={ev => {
-              // Built during render, but only ever read inside the event: a ref is exactly
-              // the right tool for a value that must survive a burst of key repeats.
-              // All four arrows turn it, none resize it: there is only one thing to set.
-              if (!['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(ev.key)) return;
-              ev.preventDefault();
-              /* oxlint-disable-next-line react/react-compiler */
-              const step = ev.shiftKey ? 1 : 6, here = liveGuess.current ?? { x: GUESS_LENGTH, y: 0 };
-              const ang = Math.atan2(here.y, here.x);
-              const turn = ang + (ev.key === 'ArrowRight' || ev.key === 'ArrowDown' ? 1 : -1) * step * Math.PI / 180;
-              const next = { x: Math.cos(turn) * GUESS_LENGTH, y: Math.sin(turn) * GUESS_LENGTH };
-              liveGuess.current = next; onPredict?.(next);
-            }}>
-            <circle cx={tip.x} cy={tip.y} r="15" />
-          </g>}
-        </g>;
-      })()}
-      {!scalar && magnitude(displayed) < 1e-8 && <text x={P.x-16} y={P.y-47} textAnchor="end" className="cd-zero">E = 0</text>}
+      {!scalar && <Vector from={P} to={plus(P, net)} width={3.5} label={continuum>=.999&&full&&progress>=.999?'E':'Σ ΔE'} reduced={still} ghost={inSpace} />}
+{!scalar && magnitude(displayed) < 1e-8 && <text x={P.x-16} y={P.y-47} textAnchor="end" className="cd-zero">E = 0</text>}
       {scalar && <g className="cd-gauge" aria-hidden="true">
         <line x1={P.x+26} y1={P.y-92} x2={P.x+26} y2={P.y+92} />
         <rect x={P.x+21} y={gaugeH < 0 ? P.y : P.y - gaugeH} width="10" height={Math.abs(gaugeH)} rx="2" />
