@@ -92,7 +92,14 @@ export function traceLine(samples:readonly ChargeSample[],start:Plane,options:Tr
   if(crowd>0&&drawn&&i>4&&drawn.within(here,crowd))break;
   let arrived=false;
   for(const s of samples)if(Math.hypot(here.x-s.position.x,here.y-s.position.y,s.position.z)<arrive){arrived=true;break;}
-  if(arrived)break;
+  if(arrived){
+   // That last step landed inside the arrival radius, on top of the charge, where the
+   // summed field leans hard toward whichever element is nearest. Keeping it drew the
+   // line a final chord that hooks: 41 degrees of turn on the bisector, against 0.15
+   // for every chord before it. The line stops one step short instead.
+   if(path.length>1)path.pop();
+   break;
+  }
  }
  return path;
 }
