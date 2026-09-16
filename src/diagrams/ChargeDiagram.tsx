@@ -610,8 +610,9 @@ export function ChargeDiagram({ problem, params: p, setParams, count, continuum,
     </div>}
     {/* The pad and the drawn help say the same thing two ways: one to click, one to read. */}
     <div className="cd-pad" role="group" aria-label="Move the view">
-      {inSpace && ([['ArrowLeft', '\u2190', 'Turn left'], ['ArrowUp', '\u2191', 'Tilt up'], ['ArrowDown', '\u2193', 'Tilt down'], ['ArrowRight', '\u2192', 'Turn right']] as const)
-        .map(([key, glyph, title]) => <button key={key} type="button" className="cd-pad-key" title={`${title} (${key.replace('Arrow', '')} arrow key)`} aria-label={title} onKeyDown={viewKeys} onClick={() => nudge(key)}>{glyph}</button>)}
+      {/* The four turn keys used to live here too. The view cube inside the figure now carries
+          them, with the same names, and two controls doing one job is one too many -- the pad
+          keeps zoom and the way home. */}
       <button type="button" className="cd-pad-key" title="Zoom out (minus key, or scroll)" aria-label="Zoom out" onKeyDown={viewKeys} onClick={() => zoomBy(1 / 1.18)} disabled={zoom <= ZOOM_MIN + 1e-6}>&minus;</button>
       <button type="button" className="cd-pad-key" title="Zoom in (plus key, or scroll)" aria-label="Zoom in" onKeyDown={viewKeys} onClick={() => zoomBy(1.18)} disabled={zoom >= zoomCeiling - 1e-6}>+</button>
       <button type="button" className="text-button cd-orbit-reset" onKeyDown={viewKeys} onClick={resetView} disabled={zoom === 1 && camera.yaw === opening.yaw && camera.pitch === opening.pitch}>Reset view</button>

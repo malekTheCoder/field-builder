@@ -95,7 +95,7 @@ describe('the gestures the figure advertises', () => {
     // said, not a scrolled page. `role="group"` carries no roving-focus convention -- that is
     // toolbars and tablists -- so nothing is taken from anyone driving this by screen reader.
     const {view, facing} = mount('ring');
-    const button = view.getByRole('button', {name: 'Turn left'}) as HTMLButtonElement;
+    const button = view.getByRole('button', {name: 'Zoom in'}) as HTMLButtonElement;
     button.focus();
     expect(document.activeElement).toBe(button);
     const before = facing();
@@ -120,7 +120,8 @@ describe('the gestures the figure advertises', () => {
     // Not reset between presses: Reset starts a glide rather than landing, so the next press
     // would be measured against a camera still on its way home.
     let before = facing();
-    for (const label of ['Turn left', 'Tilt up', 'Tilt down', 'Turn right', 'Zoom in', 'Zoom out']) {
+    // Turning lives on the view cube inside the figure now; the pad keeps zoom and the way home.
+    for (const label of ['Zoom in', 'Zoom out']) {
       const button = view.getByRole('button', {name: label}) as HTMLButtonElement;
       expect(button.disabled, `${label} was disabled`).toBe(false);
       fireEvent.click(button);
@@ -166,7 +167,11 @@ describe('the gestures the figure advertises', () => {
     const {view, svg} = mount('ring');
     const root = view.container.querySelector<HTMLElement>('.charge-diagram')!;
     expect(root.dataset.moving, 'the figure should be at rest before anything moves').toBe('false');
-    fireEvent.click(view.getByRole('button', {name: 'Turn left'}));
+    // Move the CAMERA, not the zoom: Reset glides the camera home, so it only has a glide to
+    // interrupt if the camera is away from the view this lesson opens at.
+    fireEvent.pointerDown(svg, {clientX: 60, clientY: 60, pointerId: 1});
+    fireEvent.pointerUp(svg, {pointerId: 1});
+    fireEvent.keyDown(svg, {key: 'ArrowRight'});
     const reset = view.getByRole('button', {name: 'Reset view'}) as HTMLButtonElement;
     fireEvent.click(reset);
     // Reset eases home over 450ms rather than cutting; if it had landed already there would be
