@@ -291,7 +291,7 @@ export function ChargeDiagram({ problem, params: p, setParams, count, continuum,
     // plane's coordinates, and only the screen box puts every label in one space.
     const toFrame = (r: DOMRect): Box => ({ x: (r.left - frameRect.left) * sx, y: (r.top - frameRect.top) * sy, width: r.width * sx, height: r.height * sy });
     const labels = texts.map(t => ({ box: toFrame(t.getBoundingClientRect()), fixed: t.dataset.anchor === 'fixed' }));
-    const obstacles = [...root.querySelectorAll<SVGGraphicsElement>('.cd-point, .cd-point-halo')].map(el => toFrame(el.getBoundingClientRect()));
+    const obstacles = [...root.querySelectorAll<SVGGraphicsElement>('.cd-point, .cd-point-halo, .cd-help-back')].map(el => toFrame(el.getBoundingClientRect()));
     const nudges = placeLabels(labels, { frame: { width: 720, height: 430 }, obstacles, pad: 2 });
     texts.forEach((t, i) => {
       const { dx, dy } = nudges[i];
@@ -614,7 +614,6 @@ export function ChargeDiagram({ problem, params: p, setParams, count, continuum,
       <button type="button" className="cd-pad-key" title="Zoom in (plus key, or scroll)" aria-label="Zoom in" onKeyDown={viewKeys} onClick={() => zoomBy(1.18)} disabled={zoom >= zoomCeiling - 1e-6}>+</button>
       <button type="button" className="text-button cd-orbit-reset" onKeyDown={viewKeys} onClick={resetView} disabled={zoom === 1 && camera.yaw === DEFAULT_CAMERA.yaw && camera.pitch === DEFAULT_CAMERA.pitch}>Reset view</button>
     </div>
-    <span className="cd-view-hint">{inSpace ? 'Drag to turn · scroll to zoom · drag P to move it' : 'Scroll to zoom · drag P to move it'}</span>
     </div>
     <div className="cd-stage">
     {!inSpace && !scalar && fieldView !== 'off' && <FieldCanvas samples={samples} project={project} frame={{ width: 720, height: 430 }} mode={fieldView} reach={Math.max(2.5, p.distance * 1.7, p.size)}
@@ -632,7 +631,6 @@ export function ChargeDiagram({ problem, params: p, setParams, count, continuum,
       </defs>
       <rect x="20" y="48" width="680" height="336" rx="12" fill={`url(#${uid}grid)`} opacity=".55" />
       <text x="30" y="29" className="cd-kicker">{perspective ? 'AXIAL VIEW · xy PLANE IN PERSPECTIVE' : ''}</text>
-      <g className="cd-scale"><line x1="585" y1="25" x2="635" y2="25" /><path d="M585 21V29 M635 21V29" /><text x="610" y="43" textAnchor="middle">{pretty(50 / unit)} m</text></g>
       <g className="cd-axes" clipPath={inSpace ? `url(#${uid}clip)` : undefined}>
         {/* Projected axes whenever the view can turn, so they rotate with what they measure;
             the flat pair is only right when the camera is locked. */}
@@ -753,7 +751,6 @@ export function ChargeDiagram({ problem, params: p, setParams, count, continuum,
         <rect x={P.x+21} y={gaugeH < 0 ? P.y : P.y - gaugeH} width="10" height={Math.abs(gaugeH)} rx="2" />
         {showContribution && <rect x={P.x+38} y={dvH < 0 ? P.y : P.y - dvH} width="6" height={Math.abs(dvH)} rx="1" className="cd-gauge-dv" />}
         <text x={P.x+42} y={P.y - Math.max(14, Math.abs(gaugeH) + 8)}>{continuum>=.999&&full&&progress>=.999?'V':'Σ ΔV'}</text>
-        <text x={P.x+42} y={P.y - Math.max(14, Math.abs(gaugeH) + 8) + 16} className="cd-gauge-readout">{pretty(vNow)} V</text>
       </g>}
       <g {...(id === 'arc' ? {} : handle('P'))} className={`cd-observation ${id === 'arc' ? 'is-fixed' : ''}`}>
         <circle data-orbit-p="true" cx={P.x} cy={P.y} r="28" fill={`url(#${uid}point)`} style={{ opacity: inSpace ? 0 : 1 }} /><circle data-orbit-p="true" cx={P.x} cy={P.y} r="16" className="cd-point-halo" style={{ opacity: inSpace ? 0 : 1 }} /><circle data-orbit-p="true" cx={P.x} cy={P.y} r="5" className="cd-point" style={{ opacity: inSpace ? 0 : 1 }} /><text data-orbit-p="true" x={P.x-10} y={P.y+31} className="cd-point-label">{id === 'arc' ? 'P = O' : 'P'}</text>
@@ -765,14 +762,14 @@ export function ChargeDiagram({ problem, params: p, setParams, count, continuum,
       </g>}
       <line x1="30" y1="387" x2="690" y2="387" className="cd-divider" />
       <text x="30" y="409" className="cd-footer">{sourceLabel}</text>
-      <text x="690" y="409" textAnchor="end" className="cd-footer">{scalar ? `${continuum>=.999?'dV':'ΔV'} · V: ${pretty(vNow)} V` : showContribution ? `${fieldSymbol} × ${pretty(selectedGain)} · E: ${pretty(scaleValue)} N/C per 100 px` : continuum>=.999 ? 'In the limit' : 'Cut into pieces'}</text>
+      <text x="690" y="409" textAnchor="end" className="cd-footer">{continuum>=.999 ? 'In the limit' : 'Cut into pieces'}</text>
     </svg>
     </div>
     <details className="cd-controls" open={!compact}><summary>Diagram controls and keyboard help</summary>{/* The drawn legend in the figure says how to turn and zoom it. This stays for the things a drawing cannot show -- what Tab reaches, what Home and End do -- and for a screen reader, which cannot see the legend at all. */}<p id={`${uid}help`}>Tab moves between controls. Arrow keys adjust the focused control; Home and End select its limits. You can also drag P and the integration bounds in the figure.{inSpace?' The figure itself takes focus: arrow keys turn it, plus and minus zoom, Home puts it back.':''}</p>
     <div className="cd-control-grid">
       {inSpace&&<button ref={cameraControl} type="button" className="cd-camera-control" aria-describedby={`${uid}camera-help`} onKeyDown={ev=>{if(['+','=','-','_'].includes(ev.key)){ev.preventDefault();zoomBy(ev.key==='-'||ev.key==='_'?1/1.18:1.18);}else if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Home'].includes(ev.key)){ev.preventDefault();if(ev.key==='Home')setZoom(1);nudge(ev.key);}}} onClick={resetView}>Rotate view with arrow keys<span id={`${uid}camera-help`}>Left/right rotate; up/down tilt; Home or Enter resets.</span></button>}
       <label>Which piece is drawn<input type="range" aria-label="Selected charge element" min={0} max={n-1} step={1} value={selectedIndex} onChange={ev=>onSelect(Number(ev.target.value))}/></label>
-      {id!=='arc'&&<label>Observation distance: {pretty(p.distance)} m<input type="range" aria-label="Observation distance in meters" aria-valuetext={`${pretty(p.distance)} meters`} min={.5} max={6} step={.1} value={p.distance} onChange={ev=>setParams({distance:Number(ev.target.value)})}/></label>}
+      {id!=='arc'&&<label>Observation distance<input type="range" aria-label="Observation distance in meters" aria-valuetext={`${pretty(p.distance)} meters`} min={.5} max={6} step={.1} value={p.distance} onChange={ev=>setParams({distance:Number(ev.target.value)})}/></label>}
       {mode==='integrate'&&onBoundRangeChange&&[0,1].map(i=><label key={i}>{i?'Upper':'Lower'} bound: {boundRange[i]}%<input type="range" aria-label={`${i?'Upper':'Lower'} integration bound`} aria-valuetext={`${boundRange[i]} percent of the source coordinate`} min={0} max={100} step={1} value={boundRange[i]} onChange={ev=>{const next:[number,number]=[...boundRange];next[i]=Number(ev.target.value);onBoundRangeChange(next);}}/></label>)}
     </div></details>
     <output className="cd-announcement" aria-live="polite" aria-atomic="true">{announcement}</output>
