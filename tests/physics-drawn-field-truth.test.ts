@@ -1,6 +1,6 @@
 import {describe,it,expect} from 'vitest';
 import {sampleDistribution,coarsen} from '../src/diagrams/sampling';
-import {fieldLines,type Plane} from '../src/diagrams/fieldlines';
+import {fieldLines,type Plane,localRadii} from '../src/diagrams/fieldlines';
 import {vectorGrid} from '../src/diagrams/vectorfield';
 import {cloud,meridianLines,spaceField,spaceGrid,spaceLines} from '../src/diagrams/field3d';
 import {REGISTRY} from '../src/distributions';
@@ -823,9 +823,10 @@ describe('lines arrive perpendicular to a charged surface',()=>{
    // in a big frame, which is what made this check fail on the disk.
    for(const [kept,step,tag] of [[coarse,Math.min(frameReach(p),canvasReach(coarse))*.05,'2D side view'],
     [few,Math.min(stageReach(p),chargeSpan(few))*.04,'3D']] as [ChargeSample[],number,string][]){
-    const points=cloud(kept,'surface').map(c=>v3(c.position));
-    const gaps=points.slice(1,60).map((c,i)=>len(sub(c,points[i]))).sort((a,b)=>a-b);
-    const arrive=Math.max(.05,.55*(gaps[Math.floor(gaps.length/2)]??0));
+    // Mirrors src/diagrams/field3d.ts: each element stops a line at its own spacing, with a
+    // floor of one step, and the seed offset is built from the smallest of those radii.
+    const cloudPoints=cloud(kept,'surface');
+    const arrive=Math.min(...localRadii(cloudPoints,Math.max(.05,step*.9)));
     const reach=Math.max(...kept.map(c=>len(v3(c.position))),.5);
     const offset=Math.max(arrive*1.6,reach*.06);
     w.see(step/offset,`${id} N=${n} ${tag}: launched ${offset.toFixed(3)} m out and stepping ${step.toFixed(3)} m`);

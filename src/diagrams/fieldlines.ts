@@ -54,6 +54,8 @@ export type TraceOptions={
   * summed field bends toward that particular element rather than the charge it stands for,
   * so stopping a spacing short keeps a line from wiggling at its root. */
  arrive?:number;
+ /** Per-element stopping radii, when the caller has already worked them out. */
+ radii?:readonly number[];
  maxSteps?:number;
  /** Stop once this far from the origin; the line has left the picture. */
  outerLimit?:number;
@@ -71,10 +73,32 @@ export type TraceOptions={
   * and the second carries no information the first did not. Culling redundancy, not density. */
  crowd?:number; drawn?:ReturnType<typeof drawnPoints>;
 };
+/** How close a line may come to each element: about half that element's own spacing, so a
+ * finely cut stretch of charge may be approached closely and a coarse one may not. */
+export function localRadii(samples:readonly ChargeSample[],floor=ARRIVED):number[]{
+ return samples.map((s,i)=>{
+  let nearest=Infinity;
+  for(const j of [i-1,i+1]){
+   const o=samples[j];
+   if(!o)continue;
+   nearest=Math.min(nearest,Math.hypot(s.position.x-o.position.x,s.position.y-o.position.y,s.position.z-o.position.z));
+  }
+  return Math.max(floor,.55*(Number.isFinite(nearest)?nearest:0));
+ });
+}
 /** One streamline, stepped by RK4 on the unit field direction so the arc length per step is
  * honest and the curve does not drift wide on tight bends the way Euler does. */
 export function traceLine(samples:readonly ChargeSample[],start:Plane,options:TraceOptions={}):Plane[]{
  const step=options.step??.06,maxSteps=options.maxSteps??900,outer=options.outerLimit??40,sign=options.sign??1,arrive=options.arrive??ARRIVED;
+ // Each element stops a line at ITS OWN spacing, not at one radius shared by all of them.
+ //
+ // A single radius is the median gap, and on a lesson cut at r·tan(...) the gaps run from
+ // centimetres in the middle to metres at the ends. The median made a stopping radius of 1.2 m
+ // and every line halted a metre clear of the wire, leaving a hole around the charge; taking the
+ // smallest gap instead would let lines run into the coarse far elements and wiggle there.
+ // Neither is a compromise worth making, because the right radius is local: close to a finely
+ // cut stretch a line may come close, and near a coarse one it may not.
+ const radii=options.radii??localRadii(samples,arrive);
  const {crowd=0,drawn}=options;
  const path:Plane[]=[{x:start.x,y:start.y}];
  let here={x:start.x,y:start.y};
@@ -91,7 +115,7 @@ export function traceLine(samples:readonly ChargeSample[],start:Plane,options:Tr
   // testing at the root would stop each one the moment it started.
   if(crowd>0&&drawn&&i>4&&drawn.within(here,crowd))break;
   let arrived=false;
-  for(const s of samples)if(Math.hypot(here.x-s.position.x,here.y-s.position.y,s.position.z)<arrive){arrived=true;break;}
+  for(let k=0;k<samples.length;k++){const s=samples[k];if(Math.hypot(here.x-s.position.x,here.y-s.position.y,s.position.z)<radii[k]){arrived=true;break;}}
   if(arrived){
    // That last step landed inside the arrival radius, on top of the charge, where the
    // summed field leans hard toward whichever element is nearest. Keeping it drew the
@@ -134,7 +158,21 @@ export function chargeSeeds(samples:readonly ChargeSample[],count:number,offset:
  for(let j=0;j<wanted;j++){
   const target=total*(j+.5)/wanted;
   while(carried<target&&index<weights.length-1){index+=1;carried+=weights[index];}
-  const here=pool[index].position;
+  // WHERE inside the chosen element, not just which element.
+  //
+  // Snapping each seed to a sample position caps the number of distinct seeds at the number of
+  // elements on the picture, and on the unbounded lessons that is very few: the infinite line
+  // cut into five puts only three inside the frame, so sixteen requested seeds collapsed to six
+  // and the field came out as a handful of stray fragments. An element stands for a stretch of
+  // charge, and a seed may stand anywhere along it -- so the accumulated charge is carried on
+  // into the element and the position interpolated across the span it represents. Every lesson
+  // gets the seeds it asked for, at any element count.
+  const upTo=carried-weights[index];
+  const frac=weights[index]>0?Math.min(1,Math.max(0,(target-upTo)/weights[index])):.5;
+  const half=(a:ChargeSample,b:ChargeSample)=>({x:(a.position.x+b.position.x)/2,y:(a.position.y+b.position.y)/2});
+  const lo=index>0?half(pool[index-1],pool[index]):pool[index].position;
+  const hi=index<pool.length-1?half(pool[index],pool[index+1]):pool[index].position;
+  const here={x:lo.x+(hi.x-lo.x)*frac,y:lo.y+(hi.y-lo.y)*frac};
   // Local tangent from the neighbours, so the launch is perpendicular to the distribution
   // whatever shape it runs in. A rod, an arc and a bent rod all work without special cases.
   const before=pool[Math.max(0,index-1)].position,after=pool[Math.min(pool.length-1,index+1)].position;
@@ -166,9 +204,13 @@ export function fieldLines(samples:readonly ChargeSample[],count:number,options:
  // distribution, into a negative one. An arrowhead can then simply follow the polyline
  // instead of needing to know the sign of the charge.
  const reach=Math.max(...samples.map(s=>Math.hypot(s.position.x,s.position.y,s.position.z)),.5);
- const gaps=samples.slice(1,50).map((s,i)=>Math.hypot(s.position.x-samples[i].position.x,s.position.y-samples[i].position.y)).sort((a,b)=>a-b);
- const arrive=Math.max(ARRIVED,.55*(gaps[Math.floor(gaps.length/2)]??0));
+ // The floor is a step, not a constant. A line that comes closer to the charge than one step
+ // cannot be resolved by steps that size: the field turns further across a single step than the
+ // step is long, and the drawn line both kinks and loses more potential than |E|·dl allows.
  const span=options.seedLimit??reach;
+ const stride=options.step??span*.05;
+ const radii=localRadii(samples,Math.max(ARRIVED,stride*.9));
+ const arrive=Math.min(...radii);
  const seeded=chargeSeeds(samples,count,Math.max(arrive*1.6,span*.05),options.seedLimit??Infinity);
  const starts=seeded.length?seeded:seedRing(samples,count);
  // About a drawn line width in world units. Both halves of one line are traced against the
@@ -180,8 +222,8 @@ export function fieldLines(samples:readonly ChargeSample[],count:number,options:
  const drawn=drawnPoints(Math.max(crowd,1e-6));
  const lines:Plane[][]=[];
  for(const seed of starts){
-  const along=traceLine(samples,seed,{...options,arrive,crowd,drawn,sign:1});
-  const against=traceLine(samples,seed,{...options,arrive,crowd,drawn,sign:-1});
+  const along=traceLine(samples,seed,{...options,arrive,radii,crowd,drawn,sign:1});
+  const against=traceLine(samples,seed,{...options,arrive,radii,crowd,drawn,sign:-1});
   const line=[...against.slice(1).reverse(),...along];
   if(line.length>3){lines.push(line);for(const q of line)drawn.add(q);}
  }

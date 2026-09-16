@@ -2,6 +2,7 @@ import {K} from '../distributions/constants';
 import type {ChargeSample} from '../distributions/types';
 import type {Vec} from '../symbolic/physics';
 import {bodyDistance,logWeights} from './vectorfield';
+import {localRadii} from './fieldlines';
 /** The field in space, for the 3D view.
  *
  * The flat view traces the field in the plane the planar lessons live in. In space there is
@@ -28,6 +29,27 @@ export function cloud(samples:readonly ChargeSample[],layout:Layout,perRing=16):
 /** How far apart the points are, so a line can stop before the discretisation shows.
  * Within about one spacing of a point charge the summed field bends toward that particular
  * point rather than the wire it stands for, and a line traced there wiggles at its root. */
+/** Stopping radii for the CLOUD, taken from the partition rather than from the cloud.
+ *
+ * `cloud` splits each annulus into sixteen points so the sum is a ring's and not a point's. That
+ * is a numerical device, not the cut: a disk is partitioned RADIALLY, and the gap that says how
+ * close a line may come is the gap between annuli. Reading the spacing off the cloud instead
+ * gives the azimuthal step, 2*pi*s/16, which at a radius of one metre is 0.39 -- three times the
+ * distance a line is launched from the face. Every seed then counted as already arrived, and the
+ * disk drew no lines at all in space.
+ *
+ * So the radii are computed per ELEMENT and handed to each of that element's cloud points. */
+export function cloudRadii(samples:readonly ChargeSample[],layout:Layout,floor:number,perRing=16):number[]{
+ const perElement=localRadii(samples,floor);
+ if(layout!=='surface')return perElement;
+ const out:number[]=[];
+ samples.forEach((s,i)=>{
+  const r=Math.abs(s.coordinate);
+  if(r<1e-9){out.push(perElement[i]);return;}
+  for(let k=0;k<perRing;k++)out.push(perElement[i]);
+ });
+ return out;
+}
 export function typicalSpacing(points:readonly ChargeSample[]):number{
  // Sampled ACROSS the whole charge, not from the first sixty points.
  //
@@ -88,6 +110,14 @@ export type TraceOptions={step?:number;maxSteps?:number;outerLimit?:number;sign?
  seedLimit?:number;
  /** How close to a point charge counts as having arrived. */
  arrive?:number;
+ /** Per-element stopping radii, when the caller has worked them out. */
+ radii?:readonly number[];
+ /** Distance from a point to the charge BODY, for layouts where the cloud's points are a
+  * numerical device rather than the cut. A disk's annulus is a continuous ring; measuring to
+  * the sixteen points it was sampled at lets a line thread between them and run closer to the
+  * surface than the drawing can support. See bodyDistance. */
+ clear?:(x:number,y:number,z:number)=>number;
+ clearance?:number;
  /** Jobard and Lefer's dtest rule, and only that rule — their even seeding would destroy
   * density meaning field strength. About one drawn line width: below it two lines are the
   * same stroke and the second says nothing the first did not. */
@@ -96,6 +126,9 @@ export type TraceOptions={step?:number;maxSteps?:number;outerLimit?:number;sign?
  * increment of arc length; stops on leaving the picture or arriving at the charge. */
 export function traceLine3(samples:readonly ChargeSample[],start:Vec,options:TraceOptions={}):Vec[]{
  const step=options.step??.06,maxSteps=options.maxSteps??600,outer=options.outerLimit??40,sign=options.sign??1,arrive=options.arrive??ARRIVED;
+ // Each element stops a line at its own spacing; see localRadii in fieldlines.ts.
+ const radii=options.radii??localRadii(samples,arrive);
+ const {clear,clearance=arrive}=options;
  const {crowd=0,drawn}=options;
  const path:Vec[]=[{...start}];
  let here:Vec={...start};
@@ -111,7 +144,8 @@ export function traceLine3(samples:readonly ChargeSample[],start:Vec,options:Tra
   // Not at the root: every line leaves the charge from nearly the same place.
   if(crowd>0&&drawn&&i>4&&drawn.within(here,crowd))break;
   let arrived=false;
-  for(const s of samples)if(Math.hypot(here.x-s.position.x,here.y-s.position.y,here.z-s.position.z)<arrive){arrived=true;break;}
+  if(clear){arrived=clear(here.x,here.y,here.z)<clearance;}
+  else for(let k=0;k<samples.length;k++){const s=samples[k];if(Math.hypot(here.x-s.position.x,here.y-s.position.y,here.z-s.position.z)<radii[k]){arrived=true;break;}}
   if(arrived){
    // That last step landed inside the arrival radius, on top of the charge, where the
    // summed field leans hard toward whichever element is nearest. Keeping it drew the
@@ -130,15 +164,34 @@ export type Layout='wire'|'surface';
 /** Which elements to start lines from: equal steps of accumulated |dq|, so every line stands
  * for the same flux and density means strength, exactly as in the flat view. */
 function chosen(samples:readonly ChargeSample[],wanted:number):number[]{
+ return along(samples,wanted).map(c=>c.index);
+}
+/** The same walk, but saying WHERE inside the chosen element as well as which one.
+ *
+ * An element stands for a stretch of charge and a seed may sit anywhere along it. Snapping every
+ * seed to a sample position caps the distinct seeds at the number of elements on the picture,
+ * which on the unbounded lessons is very few — the infinite line cut into five puts three inside
+ * the frame, so sixteen requested seeds became six and the field drew as stray fragments. */
+function along(samples:readonly ChargeSample[],wanted:number):{index:number;frac:number}[]{
  const weights=samples.map(s=>Math.abs(s.dq)),total=weights.reduce((a,b)=>a+b,0);
  if(!(total>0)||!samples.length)return [];
- const out:number[]=[];let index=0,carried=weights[0];
+ const out:{index:number;frac:number}[]=[];let index=0,carried=weights[0];
  for(let j=0;j<wanted;j++){
   const target=total*(j+.5)/wanted;
   while(carried<target&&index<weights.length-1){index+=1;carried+=weights[index];}
-  out.push(index);
+  const upTo=carried-weights[index];
+  out.push({index,frac:weights[index]>0?Math.min(1,Math.max(0,(target-upTo)/weights[index])):.5});
  }
  return out;
+}
+const midway=(a:Vec,b:Vec):Vec=>({x:(a.x+b.x)/2,y:(a.y+b.y)/2,z:(a.z+b.z)/2});
+const lerp=(a:Vec,b:Vec,t:number):Vec=>({x:a.x+(b.x-a.x)*t,y:a.y+(b.y-a.y)*t,z:a.z+(b.z-a.z)*t});
+/** The point a fraction of the way through element `index`'s own span. */
+function spanPoint(pool:readonly ChargeSample[],index:number,frac:number):Vec{
+ const here=pool[index].position;
+ const lo=index>0?midway(pool[index-1].position,here):here;
+ const hi=index<pool.length-1?midway(here,pool[index+1].position):here;
+ return lerp(lo,hi,frac);
 }
 /** Seeds around a wire: a few directions perpendicular to it at each chosen element, so the
  * lines leave the wire on every side rather than only in one plane. Around a surface: points
@@ -155,8 +208,8 @@ export function spaceSeeds(samples:readonly ChargeSample[],layout:Layout,count:n
   // drawn off-screen, none traced.
   const inFrame=samples.filter(s=>LEN(s.position)<=limit);
   const wire=inFrame.length>1?inFrame:samples;
-  for(const i of chosen(wire,wanted)){
-   const here=wire[i].position;
+  for(const {index:i,frac} of along(wire,wanted)){
+   const here=spanPoint(wire,i,frac);
    const before=wire[Math.max(0,i-1)].position,after=wire[Math.min(wire.length-1,i+1)].position;
    const tangent=unit({x:after.x-before.x,y:after.y-before.y,z:after.z-before.z})??{x:0,y:1,z:0};
    // Two directions perpendicular to the wire. If the wire runs along z the first cross
@@ -199,7 +252,11 @@ export function spaceSeeds(samples:readonly ChargeSample[],layout:Layout,count:n
 }
 /** Full streamlines through every seed, each ordered along the field whichever way it runs. */
 export function spaceLines(samples:readonly ChargeSample[],layout:Layout,count:number,options:TraceOptions={}):Vec[][]{
- const points=cloud(samples,layout),arrive=Math.max(ARRIVED,.55*typicalSpacing(points));
+ const points=cloud(samples,layout),floor=Math.max(ARRIVED,(options.step??.06)*.9);
+ // Surfaces stop on the annulus, wires on their elements; see TraceOptions.clear.
+ const elementRadii=localRadii(samples,floor),arrive=Math.min(...elementRadii);
+ const radii=cloudRadii(samples,layout,floor);
+ const clear=layout==='surface'?bodyDistance(samples,'surface'):undefined;
  const reach=Math.max(...samples.map(s=>LEN(s.position)),.5);
  const seeds=spaceSeeds(samples,layout,count,Math.max(arrive*1.6,reach*.06),4,options.seedLimit??options.outerLimit??Infinity);
  // Both halves are traced against the grid as it stood BEFORE this line, then added
@@ -208,8 +265,8 @@ export function spaceLines(samples:readonly ChargeSample[],layout:Layout,count:n
  const drawn=drawnPoints(Math.max(crowd,1e-6));
  const lines:Vec[][]=[];
  for(const seed of seeds){
-  const along=traceLine3(points,seed,{...options,arrive,crowd,drawn,sign:1});
-  const against=traceLine3(points,seed,{...options,arrive,crowd,drawn,sign:-1});
+  const along=traceLine3(points,seed,{...options,arrive,radii,clear,clearance:arrive,crowd,drawn,sign:1});
+  const against=traceLine3(points,seed,{...options,arrive,radii,clear,clearance:arrive,crowd,drawn,sign:-1});
   const line=[...against.slice(1).reverse(),...along];
   if(line.length>3){lines.push(line);for(const q of line)drawn.add(q);}
  }
@@ -220,7 +277,11 @@ export function spaceLines(samples:readonly ChargeSample[],layout:Layout,count:n
  * Seeds on the cut -- either side of where a wire crosses it, or above and below a surface
  * along its radius -- give the textbook cross-section of the field. */
 export function meridianLines(samples:readonly ChargeSample[],layout:Layout,count:number,options:TraceOptions={}):Vec[][]{
- const points=cloud(samples,layout),arrive=Math.max(ARRIVED,.55*typicalSpacing(points));
+ const points=cloud(samples,layout),floor=Math.max(ARRIVED,(options.step??.06)*.9);
+ // Surfaces stop on the annulus, wires on their elements; see TraceOptions.clear.
+ const elementRadii=localRadii(samples,floor),arrive=Math.min(...elementRadii);
+ const radii=cloudRadii(samples,layout,floor);
+ const clear=layout==='surface'?bodyDistance(samples,'surface'):undefined;
  // The picture's extent where the caller knows it; the charge's own only as a fallback. The
  // sheet's charge runs ninety metres, and an offset or a crowding radius scaled to that puts
  // every seed and every line outside the frame.
@@ -252,8 +313,8 @@ export function meridianLines(samples:readonly ChargeSample[],layout:Layout,coun
  const drawn=drawnPoints(Math.max(crowd,1e-6));
  const lines:Vec[][]=[];
  for(const seed of seeds){
-  const along=traceLine3(points,seed,{...options,arrive,crowd,drawn,sign:1});
-  const against=traceLine3(points,seed,{...options,arrive,crowd,drawn,sign:-1});
+  const along=traceLine3(points,seed,{...options,arrive,radii,clear,clearance:arrive,crowd,drawn,sign:1});
+  const against=traceLine3(points,seed,{...options,arrive,radii,clear,clearance:arrive,crowd,drawn,sign:-1});
   const line=[...against.slice(1).reverse(),...along];
   if(line.length>3){lines.push(line);for(const q of line)drawn.add(q);}
  }
