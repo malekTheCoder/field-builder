@@ -3,6 +3,7 @@ import {useEffect,useMemo,useRef} from 'react';
 import type {ChargeSample} from '../distributions/types';
 import type {Vec} from '../symbolic/physics';
 import {fieldLines,type Plane} from './fieldlines';
+import {coarsen} from './sampling';
 import {arrowLength,vectorGrid} from './vectorfield';
 import {meridianLines,spaceGrid,type Layout} from './field3d';
 /** The field itself, under the construction drawing.
@@ -48,8 +49,7 @@ export function FieldCanvas({samples,project,frame,lines=15,mode='lines',reach=6
   if(!samples.length)return [];
   // A hundred-element partition and a twenty-element one give the same field to well
   // within a line's width, and tracing is quadratic in the count.
-  const stride=Math.max(1,Math.ceil(samples.length/64));
-  const coarse=samples.filter((_,i)=>i%stride===0);
+  const coarse=coarsen(samples,64);
   // `reach` here is the PICTURE's half-width, the prop. It used to be shadowed by the charge's
   // own extent, and on the three unbounded lessons that is hundreds of metres -- so the step
   // was metres long, lines were allowed to run for kilometres, and every seed landed far
@@ -63,8 +63,7 @@ export function FieldCanvas({samples,project,frame,lines=15,mode='lines',reach=6
  },[chargeKey,lines,plane,layout,reach]);
  const arrows=useMemo(()=>{
   if(mode!=='vectors'||!samples.length)return [];
-  const stride=Math.max(1,Math.ceil(samples.length/64));
-  const coarse=samples.filter((_,i)=>i%stride===0);
+  const coarse=coarsen(samples,64);
   const spacing=reach/7;
   if(plane==='xz')return spaceGrid(coarse,reach,spacing,.12,'xz',layout).map(a=>({at:{x:a.at.x,y:a.at.z},dir:{x:a.dir.x,y:a.dir.z},magnitude:a.magnitude,weight:a.weight,spacing}));
   return vectorGrid(coarse,{x0:-reach,y0:-reach,x1:reach,y1:reach},spacing).map(a=>({...a,spacing}));

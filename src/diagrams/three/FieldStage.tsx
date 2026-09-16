@@ -5,6 +5,7 @@ import type {Vec} from '../../symbolic/physics';
 import {axisTickLabels,cameraBasis,cameraPosition,frameTarget,frustum,projectPoint,tickStep} from './orthoCamera';
 import {bodyReach,fadeOut,frameExtent,SHEET_FADE,surfaceOpacity,visibleRadii,wirePath,wireRadius,type BodyKind} from './bodies';
 import {spaceGrid,spaceLines,type Layout} from '../field3d';
+import {coarsen} from '../sampling';
 import {arrowLength} from '../vectorfield';
 /** The 3D half of the figure: the charge as a real body with depth, and the field around it
  * in space, under the SVG that carries every label and every control.
@@ -285,13 +286,12 @@ export function FieldStage(props:FieldStageProps){
     body.add(new THREE.Mesh(new THREE.CircleGeometry(1,128),bodyMaterial));
     body.add(new THREE.Line(unitCircle(),pickedMaterial));
    };
-   const coarse=(samples:readonly ChargeSample[],limit:number)=>{const stride=Math.max(1,Math.ceil(samples.length/limit));return samples.filter((_,i)=>i%stride===0);};
    const buildField=(p:FieldStageProps,tint:InstanceType<typeof THREE.Color>,pale:InstanceType<typeof THREE.Color>,dark:boolean)=>{
     clearGroup(field);
     if(p.fieldView==='off'||!p.samples.length)return;
     const layout:Layout=p.kind==='wire'?'wire':'surface';
     // A surface's annuli are spread into rings of points before summing, so fewer of them.
-    const few=coarse(p.samples,layout==='wire'?48:24);
+    const few=coarsen(p.samples,layout==='wire'?48:24);
     if(p.fieldView==='lines'){
      // Both limits come from the PICTURE, not from how far the charge happens to extend.
      //

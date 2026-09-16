@@ -1,5 +1,5 @@
 import {describe,it,expect} from 'vitest';
-import {sampleDistribution} from '../src/diagrams/sampling';
+import {sampleDistribution,coarsen} from '../src/diagrams/sampling';
 import {fieldLines,type Plane} from '../src/diagrams/fieldlines';
 import {vectorGrid} from '../src/diagrams/vectorfield';
 import {cloud,meridianLines,spaceField,spaceGrid,spaceLines} from '../src/diagrams/field3d';
@@ -222,8 +222,7 @@ const LESSON:Record<string,Lesson>={
 // ---- the shipped drawing configuration, copied from its two consumers -------
 /** src/diagrams/FieldCanvas.tsx: one sample in `stride` is drawn from, the trace is scaled by
  * how far the KEPT samples reach, and the lattice is scaled by the `reach` prop instead. */
-const canvasThin=(s:readonly ChargeSample[])=>{const stride=Math.max(1,Math.ceil(s.length/64));
- return {stride,coarse:s.filter((_,i)=>i%stride===0)};};
+const canvasThin=(s:readonly ChargeSample[])=>({stride:Math.max(1,Math.ceil(s.length/64)),coarse:coarsen(s,64)});
 const canvasReach=(c:readonly ChargeSample[])=>Math.max(...c.map(s=>Math.hypot(s.position.x,s.position.y,s.position.z)),1);
 // One rule for both views, and it is the PICTURE's half-width that sets it, never the charge's.
 // These mirror src/diagrams/FieldCanvas.tsx and src/diagrams/three/FieldStage.tsx exactly; when
@@ -233,8 +232,7 @@ const canvasTrace=(reach:number,span=reach)=>({step:Math.min(reach,span)*.05,max
 /** ChargeDiagram.tsx passes this as `reach`; it is the half-width of the drawn picture. */
 const frameReach=(p:Params)=>Math.max(2.5,p.distance*1.7,p.size);
 /** src/diagrams/three/FieldStage.tsx: 48 elements for a wire, 24 for a surface. */
-const stageThin=(s:readonly ChargeSample[],limit:number)=>{const stride=Math.max(1,Math.ceil(s.length/limit));
- return {stride,few:s.filter((_,i)=>i%stride===0)};};
+const stageThin=(s:readonly ChargeSample[],limit:number)=>({stride:Math.max(1,Math.ceil(s.length/limit)),few:coarsen(s,limit)});
 const stageReach=(p:Params)=>Math.round(Math.min(9,Math.max(3.5,p.size*1.5))*2)/2;
 const stageTrace=(reach:number)=>({step:reach*.04,maxSteps:420,outerLimit:reach*1.6,seedLimit:reach*.95});
 /** FieldCanvas leaves `lines` at its default of 15; every seeding rule in the two modules
