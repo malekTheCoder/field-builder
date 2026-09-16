@@ -143,6 +143,29 @@
 .cd-focus-bounds .cd-bound rect{fill:var(--field);stroke:var(--field)}
 .cd-focus-bounds .cd-bound text{fill:var(--field);font-weight:600}
 
+/* The same idea extended to the sliders. Stripping the numbers off this site left the
+   controls saying only "r", "L", "Q" -- true, and useless if you have not yet worked out
+   which mark on the figure each letter names. So pointing at a slider lights the thing that
+   slider moves, and you learn the pairing by looking rather than by dragging and hunting for
+   what changed. Every annotation carries a `data-dim` naming its control; a group's children
+   inherit the highlight, so tagging the group is enough. */
+.cd-dimension [data-dim],.cd-svg [data-dim]{transition:stroke .18s ease,fill .18s ease,stroke-width .18s ease,opacity .18s ease}
+.cd-focus-distance [data-dim="distance"] path,.cd-focus-distance [data-dim="distance"] line{stroke:var(--field);stroke-width:2.8;stroke-opacity:1}
+.cd-focus-distance [data-dim="distance"] text,.cd-focus-distance text[data-dim="distance"]{fill:var(--field);font-weight:700}
+.cd-focus-distance .cd-point-halo{stroke-opacity:1;stroke-width:3}
+.cd-focus-size [data-dim="size"] path,.cd-focus-size [data-dim="size"] line{stroke:var(--field);stroke-width:2.8;stroke-opacity:1}
+.cd-focus-size [data-dim="size"] text{fill:var(--field);font-weight:700}
+.cd-focus-angle [data-dim="angle"] path{stroke:var(--field);stroke-width:2.8;stroke-opacity:1}
+.cd-focus-angle [data-dim="angle"] text{fill:var(--field);font-weight:700}
+/* Charge is the one quantity with no bracket to light: what it changes is how much is
+   THERE, so the marks along the body answer for it, and the body itself thickens. */
+.cd-focus-charge .cd-plus text{fill:var(--charge);font-weight:700;font-size:15px}
+/* A round geometry has no marks along it to light, so the body answers for how much charge
+   there is -- and on a rod both do. */
+.cd-focus-charge [data-source-body]{stroke-width:7}
+.cd-focus-size [data-source-body]{stroke-width:7}
+@media (prefers-reduced-motion:reduce){.cd-dimension [data-dim],.cd-svg [data-dim]{transition:none}}
+
 /* The field layer sits under the construction and never takes a pointer: everything
    interactive lives in the SVG above it. */
 .cd-stage{position:relative}

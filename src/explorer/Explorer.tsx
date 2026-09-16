@@ -14,6 +14,7 @@ import {partitionCount} from '../diagrams/subdivision';
 import {cleanParams,parseAssignment,serializeAssignment,type ExploreMode} from '../state/assignment';
 import {ChargeDiagram} from '../diagrams/ChargeDiagram';
 import {termsFor} from '../workbench/assembly';
+import {buildStages,stageAt,stageStart,totalSeconds} from './buildRun';
 import {EquationWorkbench} from '../components/EquationWorkbench';
 import {Onboarding} from '../components/Onboarding';
 import {StartHere} from '../components/StartHere';
@@ -63,9 +64,14 @@ function splitSymbol(label:string):[string,string]{const parts=label.split(' ');
 // Deduplicated by message on purpose: a lesson often gives four distractors one diagnosis,
 // and printing that sentence four times reads as noise instead of as one idea.
 function confusions(p:Problem){return p.steps.flatMap((s,i)=>(s.fields??[]).map(f=>{const by=new Map<string,string[]>();for(const m of f.mistakes??[])by.set(m.message,[...(by.get(m.message)??[]),m.expression]);return {key:`${i}:${f.id}`,label:f.label,notes:[...by].map(([message,expressions])=>({message,expressions}))}})).filter(g=>g.notes.length>0)}
-function Range({label,value,min,max,step=1,onChange}:{label:string;value:number;min:number;max:number;step?:number;onChange:(n:number)=>void}){const [symbol,name]=splitSymbol(label);return <div className="exp-range"><div><span>{symbol&&<i className="exp-sym">{symbol}</i>}<span className="exp-name">{name}</span></span></div><Slider aria-label={label} value={[value]} min={min} max={max} step={step} onValueChange={v=>onChange(Array.isArray(v)?v[0]:v)}/></div>}
+// `describe` names the thing on the figure this slider moves. Pointing at the control -- hover,
+// or tab to it -- lights that thing up, and the pairing is learned by looking. It matters more
+// than it sounds: with the numbers stripped off, a slider labelled "r" says nothing at all to a
+// reader who has not yet worked out which mark on the drawing is r, and the only way left to
+// find out was to drag it and hunt for whatever moved.
+function Range({label,value,min,max,step=1,onChange,describe,onDescribe}:{label:string;value:number;min:number;max:number;step?:number;onChange:(n:number)=>void;describe?:string;onDescribe?:(k:string)=>void}){const [symbol,name]=splitSymbol(label);const point=(on:boolean)=>{if(describe)onDescribe?.(on?describe:'')};return <div className="exp-range" onPointerEnter={()=>point(true)} onPointerLeave={()=>point(false)} onFocusCapture={()=>point(true)} onBlurCapture={()=>point(false)}><div><span>{symbol&&<i className="exp-sym">{symbol}</i>}<span className="exp-name">{name}</span></span></div><Slider aria-label={label} value={[value]} min={min} max={max} step={step} onValueChange={v=>onChange(Array.isArray(v)?v[0]:v)}/></div>}
 export default function Explorer(){
- const [step,setStep]=useState(-1);const [id,setId]=useState<ProblemId>('bisector');const [path,setPath]=useState('angular');const [mode,setMode]=useState<Mode>('divide');const [paramsMap,setParamsMap]=useState<Partial<Record<ProblemId,Params>>>({});const [dark,setDark]=useState(false);const [ready,setReady]=useState(false);const [storageOK,setStorageOK]=useState(true);const [onboarding,setOnboarding]=useState(false);const [seen,setSeen]=useState(false);const [library,setLibrary]=useState(false);const [sidebarOpen,setSidebarOpen]=useState(true);const [showNumbers,setShowNumbers]=useState(false);const [components,setComponents]=useState(false);const [pair,setPair]=useState(false);const [progress,setProgress]=useState(1);const [playing,setPlaying]=useState(false);const [selected,setSelected]=useState(3);const [bounds,setBounds]=useState<[number,number]>([0,100]);const [limitsOpen,setLimitsOpen]=useState(false);const [slipsOpen,setSlipsOpen]=useState(false);const [limitIndex,setLimitIndex]=useState(0);const [highlight,setHighlight]=useState('');const [status,setStatus]=useState('');const run=useRef<ReturnType<typeof animate>|null>(null);const morph=useRef<ReturnType<typeof animate>|null>(null);const reduced=useReducedMotion();const tourButton=useRef<HTMLButtonElement>(null);
+ const [step,setStep]=useState(-1);const [id,setId]=useState<ProblemId>('bisector');const [path,setPath]=useState('angular');const [mode,setMode]=useState<Mode>('divide');const [paramsMap,setParamsMap]=useState<Partial<Record<ProblemId,Params>>>({});const [dark,setDark]=useState(false);const [ready,setReady]=useState(false);const [storageOK,setStorageOK]=useState(true);const [onboarding,setOnboarding]=useState(false);const [seen,setSeen]=useState(false);const [library,setLibrary]=useState(false);const [sidebarOpen,setSidebarOpen]=useState(true);const [showNumbers,setShowNumbers]=useState(false);const [components,setComponents]=useState(false);const [pair,setPair]=useState(false);const [progress,setProgress]=useState(1);const [playing,setPlaying]=useState(false);const [selected,setSelected]=useState(3);const [bounds,setBounds]=useState<[number,number]>([0,100]);const [limitsOpen,setLimitsOpen]=useState(false);const [slipsOpen,setSlipsOpen]=useState(false);const [limitIndex,setLimitIndex]=useState(0);const [highlight,setHighlight]=useState('');const [status,setStatus]=useState('');const [building,setBuilding]=useState(false);const [buildAt,setBuildAt]=useState(0);const [buildIndex,setBuildIndex]=useState(0);const run=useRef<ReturnType<typeof animate>|null>(null);const morph=useRef<ReturnType<typeof animate>|null>(null);const build=useRef<ReturnType<typeof animate>|null>(null);const buildC=useRef(-1);const buildStep=useRef(-1);const reduced=useReducedMotion();const tourButton=useRef<HTMLButtonElement>(null);
  const p=getProblem(id,'angular'),derivationProblem=getProblem(id,path),params=paramsMap[id]??DEFAULT_PARAMS;const continuum=params.continuum;const count=partitionCount(params.slices,continuum);const geom=p.geometry,scalar=p.quantity==='V';const isInfinite=['infinite','semi','sheet'].includes(geom);const isRound=['ring','disk','arc'].includes(geom);const lim=p.limits[Math.min(limitIndex,p.limits.length-1)];
  // Storage is an external system; initialize after hydration and surface write failures without aborting the lesson.
  // oxlint-disable-next-line react/react-compiler
@@ -89,6 +95,9 @@ export default function Explorer(){
  // Walking the derivation: each step lights one feature on the figure and adds its factor
  // to the integral, so the expression assembles as the explanation moves.
  const walkTerms=termsFor(p);
+ const stages=buildStages(p);
+ const buildNow=stages[Math.min(buildIndex,stages.length-1)];
+ const buildOpen=building||buildAt>0;
  const walking=step>=0;
  const walked=new Set(walkTerms.slice(0,step+1).map(t=>t.id));
  const walkHighlight=walking?walkTerms[Math.min(step,walkTerms.length-1)].figure:highlight;
@@ -99,8 +108,41 @@ export default function Explorer(){
  function beginWalk(){walkTo(0);}
  function endWalk(){setStep(-1);setHighlight('');}
  function updateParams(partial:Partial<Params>){setParamsMap(old=>({...old,[id]:{...(old[id]??DEFAULT_PARAMS),...partial}}));}
- function stop(){run.current?.stop();setPlaying(false)}
- function changeDistribution(next:string){stop();morph.current?.stop();setStep(-1);setId(next as ProblemId);setSelected(3);setProgress(1);setBounds([0,100]);setLibrary(false);setLimitIndex(0);setStatus('');setHighlight('');}
+ function stop(){run.current?.stop();setPlaying(false);build.current?.stop();build.current=null;setBuilding(false)}
+ function changeDistribution(next:string){stop();morph.current?.stop();setStep(-1);setId(next as ProblemId);setSelected(3);setProgress(1);setBounds([0,100]);setLibrary(false);setLimitIndex(0);setStatus('');setHighlight('');endBuild();}
+ // WATCH IT BUILD. The five stages are data (`buildRun.ts`); this is the projector. It drives
+ // exactly the state the manual controls drive -- mode, the mirror partner, how much of the sum
+ // is drawn, how fine the partition is -- so the run can never show a figure the reader cannot
+ // then reach by hand, which is the point: it is a demonstration of the controls, not a film
+ // playing next to them.
+ function applyBuild(elapsed:number){
+  const {index,stage,local}=stageAt(stages,elapsed);const t=Math.min(1,local);
+  setBuildAt(elapsed);setBuildIndex(index);
+  setMode(stage.mode);setComponents(stage.components);setPair(stage.pair);
+  setProgress(stage.sum[0]+(stage.sum[1]-stage.sum[0])*t);
+  // The partition is written into params, so it is written only when it actually moves --
+  // otherwise every frame of the four stages that hold it still would re-save the lesson.
+  const c=stage.continuum[0]+(stage.continuum[1]-stage.continuum[0])*t;
+  if(Math.abs(c-buildC.current)>.004||((c===0||c===1)&&buildC.current!==c)){buildC.current=c;updateParams({continuum:c})}
+  // Announced on entering a stage, not every frame: a live region repeating itself sixty times
+  // a second says nothing at all.
+  if(index!==buildStep.current){buildStep.current=index;setStatus(stage.caption)}
+ }
+ function runBuild(){
+  if(building){build.current?.stop();build.current=null;setBuilding(false);return}
+  run.current?.stop();setPlaying(false);morph.current?.stop();setStep(-1);setHighlight('');
+  const total=totalSeconds(stages);
+  if(reduced){buildC.current=-1;buildStep.current=-1;applyBuild(total);return}
+  setBuilding(true);
+  // Resume where it was paused; restart from the first cut once it has played out.
+  const from=buildAt>=total-.01?0:buildAt;
+  if(from===0)buildC.current=-1;
+  build.current=animate(from,total,{duration:total-from,ease:'linear',onUpdate:applyBuild,onComplete:()=>{build.current=null;setBuilding(false)}});
+ }
+ // Jumping to a stage is the same thing as playing to its first frame, which is why both go
+ // through applyBuild: there is one description of what each stage looks like.
+ function buildJump(i:number){build.current?.stop();build.current=null;setBuilding(false);buildStep.current=-1;applyBuild(stageStart(stages,i));}
+ function endBuild(){build.current?.stop();build.current=null;setBuilding(false);setBuildAt(0);setBuildIndex(0);buildC.current=-1;buildStep.current=-1;setPair(false);setComponents(false);setMode('divide');setProgress(1);}
  function chooseMode(next:Mode){setMode(next);if(next==='project'&&!scalar)setComponents(true);if(next==='integrate'){setProgress(1);stop()}}
  function playSum(){if(playing){stop();return}setMode('sum');if(reduced){setProgress(1);setStatus('All contributions are now included.');return}setPlaying(true);const start=progress>=.999?0:progress;setProgress(start);
  // 7s linear: each ΔE has to be apprehended tip-to-tail. Ease would bunch the last pieces.
@@ -120,8 +162,22 @@ export default function Explorer(){
     {soon.length>0&&<><div className="exp-soon-heading"><span>Coming soon</span></div><SidebarMenu className="exp-soon-group">{soon.map(item)}</SidebarMenu></>}</>;
   })()}<div className="exp-nav-bottom"><Orbit size={26}/><p>One law.<br/>Every geometry.</p><MathText tex={scalar?String.raw`dV=\frac{k\,dQ}{r_i}`:String.raw`d\mathbf E=\frac{k\,dQ}{r_i^2}\hat{\mathbf r}_i`}/><span>{storageOK?'Your settings stay on this device.':'Settings are kept for this visit.'}</span></div></SidebarContent></Sidebar>}
  <main className="exp-main"><div className="exp-breadcrumb"><Hint label={sidebarOpen?'Hide the lesson list':'Show the lesson list'}><button type="button" className="exp-library-toggle" aria-expanded={sidebarOpen} aria-label={sidebarOpen?'Hide the lesson list':'Show the lesson list'} onClick={()=>setSidebarOpen(v=>!v)}><PanelLeft size={16}/></button></Hint><nav className="exp-crumbs" aria-label="Breadcrumb"><button type="button" className="exp-crumb-link" onClick={()=>setLibrary(true)}>Charge library</button><ChevronRight size={13} aria-hidden="true"/><span className="exp-crumb-here" aria-current="page">{p.short}</span></nav></div><div className="exp-heading"><div><h1>{p.title}</h1><p>{p.subtitle}</p></div></div>
- <div className="exp-workspace"><div className="exp-visual-column"><section className={'exp-diagram-card mode-'+mode+' focus-'+highlight} aria-label="Interactive field visualization"><div className="exp-diagram-heading"><div><MathText tex={p.coordinate}/></div></div><ChargeDiagram compact problem={p} params={params} setParams={updateParams} count={count} continuum={continuum} selected={activeIndex} onSelect={i=>{stop();setSelected(i)}} progress={progress} components={components||walkFigure==='projection'} pair={pair||walkFigure==='projection'} mode={mode} boundRange={bounds} onBoundRangeChange={setBounds} highlight={walkHighlight}/><div className={"exp-walk"+(walking?" is-open":"")}>
-  {!walking&&<button type="button" className="secondary-button exp-walk-start" onClick={beginWalk}>Walk me through the integral</button>}
+ <div className="exp-workspace"><div className="exp-visual-column"><section className={'exp-diagram-card mode-'+mode+' focus-'+highlight} aria-label="Interactive field visualization"><div className="exp-diagram-heading"><div><MathText tex={p.coordinate}/></div></div><ChargeDiagram compact problem={p} params={params} setParams={updateParams} count={count} continuum={continuum} selected={activeIndex} onSelect={i=>{stop();setSelected(i)}} progress={progress} components={components||walkFigure==='projection'} pair={pair||walkFigure==='projection'} mode={mode} boundRange={bounds} onBoundRangeChange={setBounds} highlight={walkHighlight}/><div className={"exp-walk"+(walking||buildOpen?" is-open":"")}>
+  {!walking&&!buildOpen&&<>
+    <button type="button" className="secondary-button exp-walk-start" onClick={runBuild}>Watch it build</button>
+    <button type="button" className="text-button exp-walk-start" onClick={beginWalk}>Walk me through the integral</button>
+  </>}
+  {!walking&&buildOpen&&<>
+    <span className="exp-walk-count">{buildIndex+1} of {stages.length}</span>
+    <span className="exp-walk-text"><strong>{buildNow.name}.</strong> {buildNow.caption}</span>
+    <span className="exp-build-dots">
+      {stages.map((st,i)=><button key={st.key} type="button" className={'exp-build-dot'+(i===buildIndex?' is-here':'')+(i<buildIndex?' is-done':'')} aria-label={`Stage ${i+1}: ${st.name}`} aria-current={i===buildIndex?'step':undefined} title={st.name} onClick={()=>buildJump(i)}/>)}
+    </span>
+    <span className="exp-walk-actions">
+      <button type="button" className="text-button" onClick={runBuild}>{building?'Pause':'Play'}</button>
+      <button type="button" className="text-button" onClick={endBuild}>Close</button>
+    </span>
+  </>}
   {walking&&<>
     <span className="exp-walk-count">{step+1} of {walkTerms.length}</span>
     <span className="exp-walk-text"><strong>{walkTerms[Math.min(step,walkTerms.length-1)].label}.</strong> {walkTerms[Math.min(step,walkTerms.length-1)].why}</span>
@@ -137,7 +193,7 @@ export default function Explorer(){
   </>}
 </div>
 </section>
- <section className="exp-parameters"><div className="parameter-grid">{geom!=='arc'&&<Range label={['ring','disk','sheet'].includes(geom)?'Height z':geom==='axial'?'End distance a':'Distance r'} value={params.distance} min={.5} max={6} step={.05} onChange={distance=>updateParams({distance})}/>} {!isInfinite&&<Range label={isRound?'Radius R':'Length L'} value={isRound?params.size/2:params.size} min={isRound?.5:1} max={isRound?4:8} step={.05} onChange={v=>updateParams({size:isRound?v*2:v})}/>}<Range label={geom==='sheet'?'Surface density σ':geom==='ramp'?'Peak density λ₀':['infinite','semi'].includes(geom)?'Line density λ':'Total charge Q'} value={params.charge} min={-5} max={5} step={.1} onChange={charge=>updateParams({charge})}/>{geom==='arc'&&<Range label="Arc angle φ" value={params.phi/Math.PI} min={.1} max={2} step={.01} onChange={v=>updateParams({phi:v*Math.PI})}/>}<button onClick={()=>{stop();morph.current?.stop();updateParams({...DEFAULT_PARAMS});setProgress(1);setBounds([0,100]);setSelected(3)}} className="text-button exp-reset" aria-label="Reset geometry" title="Reset geometry"><RotateCcw size={13}/></button></div></section>
+ <section className="exp-parameters"><div className="parameter-grid">{geom!=='arc'&&<Range describe="distance" onDescribe={setHighlight} label={['ring','disk','sheet'].includes(geom)?'Height z':geom==='axial'?'End distance a':'Distance r'} value={params.distance} min={.5} max={6} step={.05} onChange={distance=>updateParams({distance})}/>} {!isInfinite&&<Range describe="size" onDescribe={setHighlight} label={isRound?'Radius R':'Length L'} value={isRound?params.size/2:params.size} min={isRound?.5:1} max={isRound?4:8} step={.05} onChange={v=>updateParams({size:isRound?v*2:v})}/>}<Range describe="charge" onDescribe={setHighlight} label={geom==='sheet'?'Surface density σ':geom==='ramp'?'Peak density λ₀':['infinite','semi'].includes(geom)?'Line density λ':'Total charge Q'} value={params.charge} min={-5} max={5} step={.1} onChange={charge=>updateParams({charge})}/>{geom==='arc'&&<Range describe="angle" onDescribe={setHighlight} label="Arc angle φ" value={params.phi/Math.PI} min={.1} max={2} step={.01} onChange={v=>updateParams({phi:v*Math.PI})}/>}<button onClick={()=>{stop();morph.current?.stop();updateParams({...DEFAULT_PARAMS});setProgress(1);setBounds([0,100]);setSelected(3)}} className="text-button exp-reset" aria-label="Reset geometry" title="Reset geometry"><RotateCcw size={13}/></button></div></section>
  {id==='infinite'&&<div className="exp-method"><span>Explore another route to the same result</span><Tabs value={path} onValueChange={v=>{setPath(String(v));setBounds([0,100]);}}><TabsList><TabsTrigger value="angular">Angular substitution</TabsTrigger><TabsTrigger value="limit">Finite-line limit</TabsTrigger></TabsList></Tabs></div>}
  </div><EquationWorkbench key={p.id+"/"+p.variable+"/"+(derivationProblem?.variable??"")} problem={p} derivationProblem={derivationProblem} params={params} continuum={continuum} progress={progress} mode={mode} onModeChange={chooseMode} onHighlight={setHighlight} boundRange={bounds} onBoundRangeChange={setBounds} collected={walked} highlight={walkHighlight}/></div>
  {/* The end of a derivation, not a peer of it. A limiting case is the check that the answer

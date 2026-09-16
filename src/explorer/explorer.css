@@ -219,6 +219,18 @@
 .exp-walk-actions{display:flex;align-items:center;gap:12px;margin-left:auto}
 .exp-walk-actions button[disabled]{opacity:.4;cursor:default}
 
+/* The build's own stage markers. Deliberately not numbered: the reader is watching an
+   argument, not working through a checklist, and a number invites counting instead of
+   looking. Each dot carries its stage's name, so hover and a screen reader both get the
+   word while the strip stays quiet. */
+.exp-build-dots{display:flex;align-items:center;gap:7px}
+.exp-build-dot{width:9px;height:9px;padding:0;border-radius:50%;border:1.5px solid var(--border);background:transparent;cursor:pointer;transition:background .18s ease,border-color .18s ease,transform .18s ease}
+.exp-build-dot:hover{border-color:var(--field);transform:scale(1.25)}
+.exp-build-dot.is-done{background:color-mix(in oklab,var(--field) 45%,transparent);border-color:transparent}
+.exp-build-dot.is-here{background:var(--field);border-color:var(--field);transform:scale(1.3)}
+.exp-build-dot:focus-visible{outline:2px solid var(--field);outline-offset:2px}
+@media (prefers-reduced-motion:reduce){.exp-build-dot{transition:none}}
+
 /* ---- 8. Three controls that were reading as one --------------------
    The row under the title held a sidebar toggle, a dialog opener and a
    breadcrumb, all icon+text in the same size and colour, so none of them
