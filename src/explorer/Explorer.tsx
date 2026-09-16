@@ -142,7 +142,10 @@ export default function Explorer(){
  // Jumping to a stage is the same thing as playing to its first frame, which is why both go
  // through applyBuild: there is one description of what each stage looks like.
  function buildJump(i:number){build.current?.stop();build.current=null;setBuilding(false);buildStep.current=-1;applyBuild(stageStart(stages,i));}
- function endBuild(){build.current?.stop();build.current=null;setBuilding(false);setBuildAt(0);setBuildIndex(0);buildC.current=-1;buildStep.current=-1;setPair(false);setComponents(false);setMode('divide');setProgress(1);}
+ // Closing puts the figure back where the run found it, the partition included: a reader who
+ // watched the pieces shrink away and then closed should not be left looking at a smooth rod
+ // with no way to tell why it stopped being cut up.
+ function endBuild(){build.current?.stop();build.current=null;setBuilding(false);setBuildAt(0);setBuildIndex(0);buildC.current=-1;buildStep.current=-1;setPair(false);setComponents(false);setMode('divide');setProgress(1);updateParams({continuum:0});}
  function chooseMode(next:Mode){setMode(next);if(next==='project'&&!scalar)setComponents(true);if(next==='integrate'){setProgress(1);stop()}}
  function playSum(){if(playing){stop();return}setMode('sum');if(reduced){setProgress(1);setStatus('All contributions are now included.');return}setPlaying(true);const start=progress>=.999?0:progress;setProgress(start);
  // 7s linear: each ΔE has to be apprehended tip-to-tail. Ease would bunch the last pieces.

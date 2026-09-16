@@ -40,9 +40,16 @@ describe('watch it build', () => {
   // The five markers are the run's shape, visible from the first frame: a reader can see how
   // long the argument is and step around it, rather than being held by an animation.
   expect(view.getAllByRole('button', {name: /^Stage \d: /}).length).toBe(5);
+  // Close puts the figure back, the partition included -- otherwise a reader who watched the
+  // pieces shrink away is left looking at a smooth rod with no way to tell why it stopped
+  // being cut up.
+  jump(view, 5, 'Shrink them');
+  fireEvent.click(view.getByRole('button', {name: 'Play'}));
+  await waitFor(() => expect(footer(view)).toContain('In the limit'), {timeout: 9000});
   fireEvent.click(view.getByRole('button', {name: 'Close'}));
   await waitFor(() => expect(view.queryByRole('button', {name: /^Stage \d: /})).toBeNull());
   expect(view.getByRole('button', {name: 'Watch it build'})).toBeTruthy();
+  await waitFor(() => expect(footer(view)).toContain('Cut into pieces'));
  });
  it('the cancellation stage puts a mirror partner on the figure, and the next stage takes it away', async () => {
   const view = await openLesson('bisector');
