@@ -295,3 +295,9 @@
 .start-here-text{font-size:12.5px;letter-spacing:.05em;color:var(--exp-primary);white-space:nowrap;font-style:italic;font-family:var(--font-geist-mono),ui-monospace,monospace;opacity:0;transition:opacity .4s ease .85s;margin:0}
 .start-here.is-visible .start-here-text{opacity:.85}
 @media (prefers-reduced-motion:reduce){.start-here,.start-here-arrow path,.start-here-text{transition:none}.start-here-arrow path{stroke-dashoffset:0}}
+
+/* Lessons that are listed but not yet ready. Shown, not hidden: a reader can see the whole plan
+   and knows the gap is on purpose. */
+.exp-shape-button.is-soon,.exp-library-grid>button.is-soon{opacity:.45;cursor:default}
+.exp-shape-button.is-soon:hover,.exp-library-grid>button.is-soon:hover{background:transparent!important;border-color:var(--border)!important;color:inherit!important}
+.soon-tag{margin-left:7px;font-size:9px;letter-spacing:.09em;text-transform:uppercase;border:1px solid var(--border);border-radius:4px;padding:1px 4px;color:var(--muted-foreground);font-weight:400;white-space:nowrap}
