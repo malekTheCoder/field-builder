@@ -295,8 +295,11 @@ describe('2D field lines: every chord runs along the field it is drawn from',()=
    const wSum=worstOf(),wBook=worstOf();
    for(const n of CHORD_NS){
     const p=params({charge:q}),{coarse}=canvasThin(sampleDistribution(id,p,n));
-    const reach=canvasReach(coarse),step=reach*.05;
-    const lines=fieldLines(coarse,LINES,canvasTrace(reach));
+    // The picture's half-width drives the trace; the charge's span is only a floor under the
+    // step. Passing the charge's span as both is what FieldCanvas used to do, and it is the
+    // bug this file exists to catch -- measuring it here would measure the bug as the rule.
+    const reach=frameReach(p),span=canvasReach(coarse),step=Math.min(reach,span)*.05;
+    const lines=fieldLines(coarse,LINES,canvasTrace(reach,span));
     if(!lines.length){empty++;notes.push(`N=${n}: nothing drawn`);continue;}
     const charges=asCharges(coarse);const nSum=worstOf(),nBook=worstOf();let sHere=0,bHere=0;
     for(const line of lines){
@@ -484,8 +487,11 @@ describe('side views: meridian chords tangent to the axisymmetric field',()=>{
    const notes:string[]=[];const w=worstOf();let against=0,tested=0,offPlane=0;
    for(const n of [24,64]){
     const p=params({charge:q}),R=p.size/2,{coarse}=canvasThin(sampleDistribution('ring',p,n));
-    const reach=canvasReach(coarse),step=reach*.05;
-    const lines=meridianLines(coarse,'wire',LINES,canvasTrace(reach));
+    // The picture's half-width drives the trace; the charge's span is only a floor under the
+    // step. Passing the charge's span as both is what FieldCanvas used to do, and it is the
+    // bug this file exists to catch -- measuring it here would measure the bug as the rule.
+    const reach=frameReach(p),span=canvasReach(coarse),step=Math.min(reach,span)*.05;
+    const lines=meridianLines(coarse,'wire',LINES,canvasTrace(reach,span));
     expect(lines.length,`ring N=${n}: no meridian lines drawn`).toBeGreaterThan(0);
     const here=worstOf();let hits=0;
     for(const line of lines){
@@ -512,8 +518,11 @@ describe('side views: meridian chords tangent to the axisymmetric field',()=>{
    const notes:string[]=[];const w=worstOf();let against=0,tested=0;
    for(const n of [24,64]){
     const p=params({charge:q}),R=p.size/2,{coarse}=canvasThin(sampleDistribution('arc',p,n));
-    const reach=canvasReach(coarse),step=reach*.05;
-    const lines=fieldLines(coarse,LINES,canvasTrace(reach));
+    // The picture's half-width drives the trace; the charge's span is only a floor under the
+    // step. Passing the charge's span as both is what FieldCanvas used to do, and it is the
+    // bug this file exists to catch -- measuring it here would measure the bug as the rule.
+    const reach=frameReach(p),span=canvasReach(coarse),step=Math.min(reach,span)*.05;
+    const lines=fieldLines(coarse,LINES,canvasTrace(reach,span));
     const here=worstOf();let hits=0;
     for(const line of lines){
      const v=verts(line);
@@ -542,8 +551,11 @@ describe('side views: meridian chords tangent to the axisymmetric field',()=>{
    const notes:string[]=[];const w=worstOf();let against=0,tested=0;
    for(const n of [24,64]){
     const p=params({charge:q}),R=p.size/2,{coarse}=canvasThin(sampleDistribution('disk',p,n));
-    const reach=canvasReach(coarse),step=reach*.05;
-    const lines=meridianLines(coarse,'surface',LINES,canvasTrace(reach));
+    // The picture's half-width drives the trace; the charge's span is only a floor under the
+    // step. Passing the charge's span as both is what FieldCanvas used to do, and it is the
+    // bug this file exists to catch -- measuring it here would measure the bug as the rule.
+    const reach=frameReach(p),span=canvasReach(coarse),step=Math.min(reach,span)*.05;
+    const lines=meridianLines(coarse,'surface',LINES,canvasTrace(reach,span));
     expect(lines.length,`disk N=${n}: no meridian lines drawn`).toBeGreaterThan(0);
     const points=cloud(coarse,'surface');
     const candidates:V3[][]=[];
