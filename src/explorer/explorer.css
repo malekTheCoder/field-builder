@@ -209,7 +209,6 @@
 
 /* Predict-first. Offered, never imposed: the control is one quiet line until it is used,
    and Skip is always present, because a prediction that blocks exploration is a test. */
-{display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px;padding:10px 2px 0;font-size:13px;color:var(--muted-foreground)}
 
 /* Walking the derivation. One line of explanation at a time, with the figure drawing the
    feature being talked about; the drawing itself stays clean when nobody is walking. */
@@ -256,7 +255,6 @@
 
 /* The reading of the arrow, then the reason it holds. The reason is the longer half and
    the one worth reading, so it is not dimmed into a footnote. */
-{color:var(--muted-foreground)}
 
 /* ---- 9. The end of a derivation -------------------------------------
    A limiting case is the check that an answer is physically right, and the
