@@ -258,10 +258,14 @@ export function spaceLines(samples:readonly ChargeSample[],layout:Layout,count:n
  const radii=cloudRadii(samples,layout,floor);
  const clear=layout==='surface'?bodyDistance(samples,'surface'):undefined;
  const reach=Math.max(...samples.map(s=>LEN(s.position)),.5);
- const seeds=spaceSeeds(samples,layout,count,Math.max(arrive*1.6,reach*.06),4,options.seedLimit??options.outerLimit??Infinity);
+ // The offset comes from the PICTURE, like everything else here. Scaling it by the charge's own
+ // extent launched the sheet's lines twenty-one metres above the plane -- its refined partition
+ // reaches 355 m -- so every line began outside the frame and was discarded on its first step.
+ const span=options.seedLimit??options.outerLimit??reach;
+ const seeds=spaceSeeds(samples,layout,count,Math.max(arrive*1.6,span*.06),4,options.seedLimit??options.outerLimit??Infinity);
  // Both halves are traced against the grid as it stood BEFORE this line, then added
  // together: otherwise the second half stops against the first at the seed they share.
- const crowd=options.crowd??reach*.012;
+ const crowd=options.crowd??span*.012;
  const drawn=drawnPoints(Math.max(crowd,1e-6));
  const lines:Vec[][]=[];
  for(const seed of seeds){

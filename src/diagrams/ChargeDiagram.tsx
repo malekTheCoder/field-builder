@@ -81,6 +81,9 @@ function ViewHelp({ x, y }: { x: number; y: number }) {
     {row(2, <>{[cap(1, '\u2190'), cap(11, '\u2191'), cap(21, '\u2193'), cap(31, '\u2192')]}</>, 'arrow keys')}
   </g>;
 }
+/** The geometries whose partition runs to infinity, so that refining it moves the far elements
+ * further out rather than filling the picture in. */
+const UNBOUNDED = new Set(['infinite', 'semi', 'sheet']);
 export function ChargeDiagram({ problem, params: p, setParams, count, continuum, selected, onSelect, progress, components, pair, mode, boundRange = [0, 100], onBoundRangeChange, highlight = '', compact = false }: ChargeDiagramProps) {
   const cameraControl = useRef<HTMLButtonElement>(null);
   const svg = useRef<SVGSVGElement>(null), plane = useRef<SVGGElement>(null), dragging = useRef<string | null>(null), uid = useId().replace(/:/g, '');
@@ -127,6 +130,24 @@ export function ChargeDiagram({ problem, params: p, setParams, count, continuum,
   useLayoutEffect(() => { if (root.current) root.current.dataset.moving = String(moving); });
   const n = Math.max(3, Math.round(count)), R = p.size / 2, selectedIndex = clamp(Math.round(selected), 0, n - 1);
   const samples = useMemo(() => sampleDistribution(id, p, n), [id, p, n]);
+  // What the FIELD is drawn from, which is not the same thing as what the reader is shown.
+  //
+  // The pieces on the figure are the partition being summed, and the reader chooses how many.
+  // The field lines are meant to be the field of the CHARGE -- the rod, the ring, the plane --
+  // and on the three unbounded lessons those two came apart badly. Their substitution puts five
+  // pieces at y = 0, ±2.18 and ±9.23 metres: a genuinely lumpy object, whose field near the
+  // middle is a lump's and not a line's. Every drawn line stopped 1.2 m clear of the wire,
+  // because 1.2 m really is as close as five lumps can be trusted, and an infinite line was
+  // drawn with a hole around it.
+  //
+  // That lumpiness is an artifact of a change of variable made for integrating, not a feature of
+  // the charge. So on those three the field is traced from a partition fine enough to BE the
+  // geometry, while the pieces, the marks and the integral all stay at the reader's own N.
+  //
+  // Only on those three. Everywhere else a bounded partition IS the charge at any N, and the
+  // field of what you are summing is the honest thing to draw -- refine a rod and the field
+  // barely moves; refine an infinite line and it stops being five lumps.
+  const fieldSamples = useMemo(() => UNBOUNDED.has(id) ? sampleDistribution(id, p, Math.max(n, 96)) : samples, [id, p, n, samples]);
   const sample = samples[selectedIndex], total = sumSamples(samples), weights = intervalWeights(n,boundRange,progress), partial = sumInterval(samples,boundRange,progress);
   const wholeWeights = intervalWeights(n,boundRange,1);
   const full = boundRange[0]===0 && boundRange[1]===100;
@@ -597,9 +618,9 @@ export function ChargeDiagram({ problem, params: p, setParams, count, continuum,
     </div>
     </div>
     <div className="cd-stage">
-    {!inSpace && !scalar && fieldView !== 'off' && <FieldCanvas samples={samples} project={project} frame={{ width: 720, height: 430 }} mode={fieldView} reach={Math.max(2.5, p.distance * 1.7, p.size)}
+    {!inSpace && !scalar && fieldView !== 'off' && <FieldCanvas samples={fieldSamples} project={project} frame={{ width: 720, height: 430 }} mode={fieldView} reach={Math.max(2.5, p.distance * 1.7, p.size)}
       plane={perspective ? 'xz' : 'xy'} layout={surface ? 'surface' : 'wire'} />}
-    {inSpace && <FieldStage kind={id === 'disk' ? 'disk' : id === 'sheet' ? 'sheet' : 'wire'} closed={id === 'ring'} samples={samples} selected={selectedIndex}
+    {inSpace && <FieldStage kind={id === 'disk' ? 'disk' : id === 'sheet' ? 'sheet' : 'wire'} closed={id === 'ring'} samples={fieldSamples} selected={selectedIndex}
       radius={R} distance={p.distance} yaw={view.yaw} pitch={view.pitch} fieldView={scalar ? 'off' : fieldView} reach={fieldReach}
       bodyPath={bodyPath} point={pWorld} element={sceneElement} net={scalar ? null : scaleVec(displayed, gain / unit)} contribution={scalar || !showContribution ? null : scaleVec(sample.field, selectedGain * gain / unit)}
       unit={unit} frame={{ width: 720, height: 430 }} origin={O} charge={p.charge} animating={moving}
