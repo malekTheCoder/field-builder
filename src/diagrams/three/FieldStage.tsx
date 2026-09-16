@@ -20,6 +20,8 @@ export type FieldStageProps={
  /** Which body to build. A wire runs through its samples; a disk or a sheet is a surface. */
  kind:BodyKind; closed:boolean; radius:number; distance:number;
  samples:readonly ChargeSample[]; selected:number;
+ /** How many elements the tracer may sum from; see FieldCanvas. */
+ detail?:number;
  /** The wire's own shape, sampled from the geometry rather than from the partition. A ring
   * is a ring however many pieces it has been cut into, and building the body from the
   * samples made a five-piece ring render as a fifteen-sided polygon. */
@@ -291,7 +293,7 @@ export function FieldStage(props:FieldStageProps){
     if(p.fieldView==='off'||!p.samples.length)return;
     const layout:Layout=p.kind==='wire'?'wire':'surface';
     // A surface's annuli are spread into rings of points before summing, so fewer of them.
-    const few=coarsen(p.samples,layout==='wire'?48:24);
+    const few=coarsen(p.samples,(p.detail??48)*(layout==='wire'?1:.5)|0);
     if(p.fieldView==='lines'){
      // Both limits come from the PICTURE, not from how far the charge happens to extend.
      //

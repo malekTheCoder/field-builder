@@ -147,7 +147,7 @@ export function ChargeDiagram({ problem, params: p, setParams, count, continuum,
   // Only on those three. Everywhere else a bounded partition IS the charge at any N, and the
   // field of what you are summing is the honest thing to draw -- refine a rod and the field
   // barely moves; refine an infinite line and it stops being five lumps.
-  const fieldSamples = useMemo(() => UNBOUNDED.has(id) ? sampleDistribution(id, p, Math.max(n, 96)) : samples, [id, p, n, samples]);
+  const fieldSamples = useMemo(() => UNBOUNDED.has(id) ? sampleDistribution(id, p, Math.max(n, 400)) : samples, [id, p, n, samples]);
   const sample = samples[selectedIndex], total = sumSamples(samples), weights = intervalWeights(n,boundRange,progress), partial = sumInterval(samples,boundRange,progress);
   const wholeWeights = intervalWeights(n,boundRange,1);
   const full = boundRange[0]===0 && boundRange[1]===100;
@@ -618,9 +618,9 @@ export function ChargeDiagram({ problem, params: p, setParams, count, continuum,
     </div>
     </div>
     <div className="cd-stage">
-    {!inSpace && !scalar && fieldView !== 'off' && <FieldCanvas samples={fieldSamples} project={project} frame={{ width: 720, height: 430 }} mode={fieldView} reach={Math.max(2.5, p.distance * 1.7, p.size)}
+    {!inSpace && !scalar && fieldView !== 'off' && <FieldCanvas samples={fieldSamples} detail={UNBOUNDED.has(id) ? 192 : 64} project={project} frame={{ width: 720, height: 430 }} mode={fieldView} reach={Math.max(2.5, p.distance * 1.7, p.size)}
       plane={perspective ? 'xz' : 'xy'} layout={surface ? 'surface' : 'wire'} />}
-    {inSpace && <FieldStage kind={id === 'disk' ? 'disk' : id === 'sheet' ? 'sheet' : 'wire'} closed={id === 'ring'} samples={fieldSamples} selected={selectedIndex}
+    {inSpace && <FieldStage kind={id === 'disk' ? 'disk' : id === 'sheet' ? 'sheet' : 'wire'} closed={id === 'ring'} samples={fieldSamples} detail={UNBOUNDED.has(id) ? 144 : 48} selected={selectedIndex}
       radius={R} distance={p.distance} yaw={view.yaw} pitch={view.pitch} fieldView={scalar ? 'off' : fieldView} reach={fieldReach}
       bodyPath={bodyPath} point={pWorld} element={sceneElement} net={scalar ? null : scaleVec(displayed, gain / unit)} contribution={scalar || !showContribution ? null : scaleVec(sample.field, selectedGain * gain / unit)}
       unit={unit} frame={{ width: 720, height: 430 }} origin={O} charge={p.charge} animating={moving}

@@ -25,6 +25,11 @@ export type FieldCanvasProps={
  mode?:'lines'|'vectors';
  /** World extent the arrows cover, and how far apart to place them. */
  reach?:number;
+ /** How many elements the tracer may sum from. The default suits a bounded charge; the three
+  * unbounded geometries need more, because their far elements are lumps and it is the MERGE
+  * target, not the truncation, that limits how radial their drawn field is. Measured on the
+  * infinite line at 6.7 m out: 64 elements is 1.54° off radial, 128 is 0.66°, 256 is 0.28°. */
+ detail?:number;
  /** Which plane the flat drawing is a cut through. The planar lessons live in z = 0; the
   * side view of a ring, a disk or a sheet is the cut y = 0 through the axis. */
  plane?:'xy'|'xz'; layout?:Layout;
@@ -32,7 +37,7 @@ export type FieldCanvasProps={
 };
 /** Tracing is far heavier than drawing, so it runs on the charge alone and is reused while
  * the camera, the highlight or the selected element change. */
-export function FieldCanvas({samples,project,frame,lines=15,mode='lines',reach=6,plane='xy',layout='wire',className=''}:FieldCanvasProps){
+export function FieldCanvas({samples,project,frame,lines=15,mode='lines',reach=6,detail=64,plane='xy',layout='wire',className=''}:FieldCanvasProps){
  const canvas=useRef<HTMLCanvasElement>(null),box=useRef<HTMLDivElement>(null);
  // Tracing depends on the charge alone -- positions and dq -- never on where P is. For
  // twelve of the fifteen geometries those are identical from frame to frame while P is
@@ -49,7 +54,7 @@ export function FieldCanvas({samples,project,frame,lines=15,mode='lines',reach=6
   if(!samples.length)return [];
   // A hundred-element partition and a twenty-element one give the same field to well
   // within a line's width, and tracing is quadratic in the count.
-  const coarse=coarsen(samples,64);
+  const coarse=coarsen(samples,detail);
   // `reach` here is the PICTURE's half-width, the prop. It used to be shadowed by the charge's
   // own extent, and on the three unbounded lessons that is hundreds of metres -- so the step
   // was metres long, lines were allowed to run for kilometres, and every seed landed far
@@ -60,14 +65,14 @@ export function FieldCanvas({samples,project,frame,lines=15,mode='lines',reach=6
   const opts={step,maxSteps:420,outerLimit:reach*1.6,seedLimit:reach*.95};
   if(plane==='xz')return meridianLines(coarse,layout,lines,opts).map(line=>line.map(v=>({x:v.x,y:v.z})));
   return fieldLines(coarse,lines,opts);
- },[chargeKey,lines,plane,layout,reach]);
+ },[chargeKey,lines,plane,layout,reach,detail]);
  const arrows=useMemo(()=>{
   if(mode!=='vectors'||!samples.length)return [];
-  const coarse=coarsen(samples,64);
+  const coarse=coarsen(samples,detail);
   const spacing=reach/7;
   if(plane==='xz')return spaceGrid(coarse,reach,spacing,.12,'xz',layout).map(a=>({at:{x:a.at.x,y:a.at.z},dir:{x:a.dir.x,y:a.dir.z},magnitude:a.magnitude,weight:a.weight,spacing}));
   return vectorGrid(coarse,{x0:-reach,y0:-reach,x1:reach,y1:reach},spacing).map(a=>({...a,spacing}));
- },[chargeKey,mode,reach,plane,layout]);
+ },[chargeKey,mode,reach,plane,layout,detail]);
  /* oxlint-enable react/react-compiler */
  /* oxlint-enable react-hooks/exhaustive-deps */
  useEffect(()=>{

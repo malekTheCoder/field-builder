@@ -13,7 +13,7 @@ import type {ProblemId} from './types';
  * figures still show it: an element of an infinite sheet is itself infinite, and drawing "one
  * ring of it" honestly means drawing something enormous and mostly off-screen. That wants a
  * different idea, not a smaller number. */
-export const COMING_SOON: ReadonlySet<ProblemId> = new Set<ProblemId>(['infinite', 'semi', 'sheet']);
+export const COMING_SOON: ReadonlySet<ProblemId> = new Set<ProblemId>(['sheet']);
 export const isReady = (id: ProblemId) => !COMING_SOON.has(id);
 /** Said once, in the one place a reader meets it. */
 export const SOON_NOTE = 'Being redrawn. The infinite geometries need a different picture of "one piece", and it is not ready yet.';
