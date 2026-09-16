@@ -29,8 +29,17 @@ export function cloud(samples:readonly ChargeSample[],layout:Layout,perRing=16):
  * Within about one spacing of a point charge the summed field bends toward that particular
  * point rather than the wire it stands for, and a line traced there wiggles at its root. */
 export function typicalSpacing(points:readonly ChargeSample[]):number{
+ // Sampled ACROSS the whole charge, not from the first sixty points.
+ //
+ // On a wire those are the same thing. On a surface they are not: `cloud` emits each annulus as
+ // a ring of points, innermost ring first, so the first sixty are the three or four smallest
+ // rings — radii of a few centimetres, and gaps to match. The median came out far below the
+ // spacing anywhere a line is actually drawn, `arrive` fell back to its floor, and lines were
+ // traced to within a few centimetres of a face whose points are a quarter of a metre apart.
+ // Within that, the drawn field is the field of sixteen point charges, not of a ring.
  const gaps:number[]=[];
- for(let i=1;i<Math.min(points.length,60);i++){const a=points[i-1].position,b=points[i].position;gaps.push(Math.hypot(a.x-b.x,a.y-b.y,a.z-b.z));}
+ const stride=Math.max(1,Math.floor(points.length/60));
+ for(let i=stride;i<points.length;i+=stride){const a=points[i-stride].position,b=points[i].position;gaps.push(Math.hypot(a.x-b.x,a.y-b.y,a.z-b.z));}
  if(!gaps.length)return ARRIVED;
  gaps.sort((x,y)=>x-y);
  return gaps[Math.floor(gaps.length/2)];
