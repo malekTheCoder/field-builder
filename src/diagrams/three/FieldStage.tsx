@@ -300,7 +300,12 @@ export function FieldStage(props:FieldStageProps){
      // sweeps entering one edge and leaving another, with no visible root on the charge. Ending
      // them a little past the frame keeps the part that is about this charge. Seeds stay inside
      // it for the separate reason that the sheet's charge is mostly in huge outer rings.
-     const lines=spaceLines(few,layout,16,{step:p.reach*.04,maxSteps:420,outerLimit:p.reach*1.6,seedLimit:p.reach*.95});
+     // The step is the smaller of the picture and the charge, as the flat view already did. A
+     // step set by the picture alone is far too coarse for a small charge inside a big frame:
+     // on the disk it was 0.24 m for a radius of 2, twice the distance a line is launched from
+     // the face, so the first chord of every line was taken before the line had cleared it.
+     const span=Math.max(...few.map(c=>Math.hypot(c.position.x,c.position.y,c.position.z)),.5);
+     const lines=spaceLines(few,layout,16,{step:Math.min(p.reach,span)*.04,maxSteps:420,outerLimit:p.reach*1.6,seedLimit:p.reach*.95});
      const bg=new THREE.Color(dark?0x0f1a1c:0xffffff),near=tint.clone().lerp(pale,.3),vertex=new THREE.Vector3(),c=new THREE.Color();
      const tubes=lines.map(line=>{
       const curve=new THREE.CatmullRomCurve3(line.map(v=>new THREE.Vector3(v.x,v.y,v.z)),false,'centripetal');

@@ -233,8 +233,9 @@ const canvasTrace=(reach:number,span=reach)=>({step:Math.min(reach,span)*.05,max
 const frameReach=(p:Params)=>Math.max(2.5,p.distance*1.7,p.size);
 /** src/diagrams/three/FieldStage.tsx: 48 elements for a wire, 24 for a surface. */
 const stageThin=(s:readonly ChargeSample[],limit:number)=>({stride:Math.max(1,Math.ceil(s.length/limit)),few:coarsen(s,limit)});
+const chargeSpan=(c:readonly ChargeSample[])=>Math.max(...c.map(s=>Math.hypot(s.position.x,s.position.y,s.position.z)),.5);
 const stageReach=(p:Params)=>Math.round(Math.min(9,Math.max(3.5,p.size*1.5))*2)/2;
-const stageTrace=(reach:number)=>({step:reach*.04,maxSteps:420,outerLimit:reach*1.6,seedLimit:reach*.95});
+const stageTrace=(reach:number,span=reach)=>({step:Math.min(reach,span)*.04,maxSteps:420,outerLimit:reach*1.6,seedLimit:reach*.95});
 /** FieldCanvas leaves `lines` at its default of 15; every seeding rule in the two modules
  * rounds count/2, count/4 or count/8, and 15 and 16 round to the same seed set, so the 16 the
  * brief names and the 15 that ships draw the identical picture. */
@@ -764,7 +765,7 @@ describe('lines arrive perpendicular to a charged surface',()=>{
     const {coarse}=canvasThin(sampleDistribution(id,p,n));
     const {few}=stageThin(sampleDistribution(id,p,n),24);
     const flatLines=meridianLines(coarse,'surface',LINES,canvasTrace(frameReach(p),canvasReach(coarse)));
-    const spatial=spaceLines(few,'surface',LINES,stageTrace(stageReach(p)));
+    const spatial=spaceLines(few,'surface',LINES,stageTrace(stageReach(p),chargeSpan(few)));
     for(const [lines,tag] of [[flatLines,'2D side view'],[spatial,'3D']] as [Vec[][],string][]){
      const strip:[V3,V3][]=[];
      for(const line of lines){
@@ -801,8 +802,11 @@ describe('lines arrive perpendicular to a charged surface',()=>{
   for(const id of ['disk','sheet'] as ProblemId[])for(const n of [24,64]){
    const p=params(),samples=sampleDistribution(id,p,n);
    const {coarse}=canvasThin(samples),{few}=stageThin(samples,24);
-   for(const [kept,step,tag] of [[coarse,canvasReach(coarse)*.05,'2D side view'],
-    [few,stageReach(p)*.04,'3D']] as [ChargeSample[],number,string][]){
+   // Both steps are the smaller of the picture and the charge, exactly as FieldCanvas and
+   // FieldStage compute them. Scaling by the picture alone is far too coarse for a small charge
+   // in a big frame, which is what made this check fail on the disk.
+   for(const [kept,step,tag] of [[coarse,Math.min(frameReach(p),canvasReach(coarse))*.05,'2D side view'],
+    [few,Math.min(stageReach(p),chargeSpan(few))*.04,'3D']] as [ChargeSample[],number,string][]){
     const points=cloud(kept,'surface').map(c=>v3(c.position));
     const gaps=points.slice(1,60).map((c,i)=>len(sub(c,points[i]))).sort((a,b)=>a-b);
     const arrive=Math.max(.05,.55*(gaps[Math.floor(gaps.length/2)]??0));
@@ -810,8 +814,8 @@ describe('lines arrive perpendicular to a charged surface',()=>{
     const offset=Math.max(arrive*1.6,reach*.06);
     w.see(step/offset,`${id} N=${n} ${tag}: launched ${offset.toFixed(3)} m out and stepping ${step.toFixed(3)} m`);
     if(id==='disk'){
-     const lines=tag==='3D'?spaceLines(kept,'surface',LINES,stageTrace(stageReach(p)))
-      :meridianLines(kept,'surface',LINES,canvasTrace(canvasReach(kept)));
+     const lines=tag==='3D'?spaceLines(kept,'surface',LINES,stageTrace(stageReach(p),chargeSpan(few)))
+      :meridianLines(kept,'surface',LINES,canvasTrace(frameReach(p),canvasReach(kept)));
      const roots=lines.map(l=>Math.min(...l.map(v=>Math.abs(v.z)))).sort((a,b)=>a-b);
      notes.push(`${id} N=${n} ${tag}: offset ${offset.toFixed(3)} m, step ${step.toFixed(3)} m, roots |z| from ${roots[0].toFixed(3)} to ${roots[roots.length-1].toFixed(3)} m, median ${roots[Math.floor(roots.length/2)].toFixed(3)} m`);
     }else notes.push(`${id} N=${n} ${tag}: offset ${offset.toFixed(3)} m, step ${step.toFixed(3)} m`);
@@ -846,7 +850,7 @@ describe('sheet: straight normal lines, vertical arrows, and one weight for all 
     const p=params({charge:q}),{coarse}=canvasThin(sampleDistribution('sheet',p,n));
     const {few}=stageThin(sampleDistribution('sheet',p,n),24);
     const flatLines=meridianLines(coarse,'surface',LINES,canvasTrace(frameReach(p),canvasReach(coarse)));
-    const spatial=spaceLines(few,'surface',LINES,stageTrace(stageReach(p)));
+    const spatial=spaceLines(few,'surface',LINES,stageTrace(stageReach(p),chargeSpan(few)));
     for(const [lines,half,tag] of [[flatLines,frameReach(p),'2D side view'],[spatial,stageReach(p),'3D']] as [Vec[][],number,string][]){
      const inFrame=lines.filter(l=>l.filter(v=>Math.hypot(v.x,v.y)<=half&&Math.abs(v.z)<=half).length>=3);
      if(inFrame.length<8)frames++;
@@ -1054,7 +1058,7 @@ describe('the potential falls along every drawn field line',()=>{
     if(id==='ring'){
      const {few,stride}=stageThin(samples,48);
      charges=charges.filter((_,i)=>i%stride===0);
-     lines=spaceLines(few,'wire',LINES,stageTrace(stageReach(p))).map(l=>l.map(v3));
+     lines=spaceLines(few,'wire',LINES,stageTrace(stageReach(p),chargeSpan(few))).map(l=>l.map(v3));
      skip=3;
     }else if(id==='disk'){
      const {coarse,stride}=canvasThin(samples);
