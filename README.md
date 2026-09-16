@@ -4,17 +4,19 @@ An interactive electric-field workbench for calculus-based introductory physics 
 
 **Live site:** [https://field.malekswilam.dev](https://field.malekswilam.dev) — public, no student accounts.
 
-Fifteen lessons are in the library today: **ten electric-field geometries** and **five potential** problems on layouts students already know. The tenth field lesson is a rod with ramp density λ(y) = λ₀y/L, where the usual symmetry argument fails twice.
+Fifteen lessons are in the library. **Seven are live** — the two rod positions, the rod past its end, the ramp rod, the ring, the disk and the arc. **Eight are marked *Coming soon***: the three unbounded geometries and the five potential lessons. They are listed rather than hidden, so a reader can see the whole plan and tell the gap is deliberate; `src/problems/readiness.ts` is the only switch, and why each one is held back is written there.
 
 ## In class
 
-Open the live site. The explorer is the default view. Optional graded practice is **Try the math** (loaded on demand). Progress and preferences stay in that browser’s local storage. There is no class roster, no cloud save, and no tracking. On a shared Chromebook cart, students move wizard work with **Export lesson progress** / **Import lesson progress** (see below).
+Open the live site. The explorer is the whole product: a figure, the integral being assembled beside it, and controls under both. Nothing is graded and nothing is scored — the site teaches, it does not test. Preferences stay in that browser’s local storage. There is no class roster, no cloud save, and no tracking.
+
+Two things to point students at first. **Watch it build** plays the derivation as one run: cut the charge into pieces, look at one, meet its mirror partner and watch the sideways halves cancel, add what survives head to tail, then shrink the pieces into the integral. **Walk me through the integral** steps the same figure term by term at the reader's own pace.
 
 ### Share a lesson
 
 The address bar is the assignment. Paste a link and every student opens the same geometry, process tab, and parameters.
 
-Example: [https://field.malekswilam.dev/?p=v-ring&mode=sum&r=2](https://field.malekswilam.dev/?p=v-ring&mode=sum&r=2)
+Example: [https://field.malekswilam.dev/?p=ring&mode=sum&r=2](https://field.malekswilam.dev/?p=ring&mode=sum&r=2)
 
 | query | meaning |
 | --- | --- |
@@ -29,40 +31,37 @@ Example: [https://field.malekswilam.dev/?p=v-ring&mode=sum&r=2](https://field.ma
 | `pair=1` | Show the symmetric partner (field lessons) |
 | `components=1` | Resolve field contributions into components |
 
-Unknown keys and unparsable numbers are ignored. Numbers are clamped to the live slider ranges. A link with `p=` skips the first-visit tour for that load. Copying from the address bar may show `distance=2` instead of `r=2`; both open the same lesson.
+Unknown keys and unparsable numbers are ignored, as is a `p` naming a lesson that is not ready — a link handed out earlier does not open a page we have since decided is not fit to read. Numbers are clamped to the live slider ranges. A link with `p=` skips the first-visit tour for that load. Copying from the address bar may show `distance=2` instead of `r=2`; both open the same lesson.
 
 ### Print or send an offline copy
 
-Printer and download icons sit in the **top-right header** of the explorer and of Try the math (the practice wizard).
+Printer and download icons sit in the **top-right header** of the explorer.
 
 - **Print this lesson** opens the browser print dialog. Chrome is hidden; the figure, title, and equations stay. Paper size is US letter.
 - **Save an offline copy of this lesson** downloads a self-contained HTML file (`field-builder-<lesson>.html`). Equations are TeX source so the file remains readable without a network. Students can Print → Save as PDF from there.
 
-That HTML file is a printable snapshot of the open lesson. It is **not** lesson progress and cannot be imported back into the app.
-
-### Carry wizard progress between computers
-
-Two folder icons sit in the same header, immediately after **Save an offline copy of this lesson**, on both the explorer and Try the math.
-
-- **Export lesson progress** downloads `field-builder-progress.json`.
-- **Import lesson progress** opens a file picker for that JSON.
-
-Import **merges by lesson key**. Lessons already saved on this device that are not in the file stay put. Matching keys are overwritten by the file. A malformed file, a printable HTML copy, or a JSON file of the wrong kind is rejected and does not wipe local work.
+That HTML file is a printable snapshot of the open lesson.
 
 ### Keyboard
 
-- **Quick tour:** Tab stays inside the dialog. Escape returns focus to Quick tour.
-- **Try the math:** Escape on How it works returns to that button. Arrow/Space select origin choices; Enter on **Check this step** grades. Math entry is in the tab order; if the math keyboard is unavailable, the plain-text field still submits on Enter.
+- **Walkthrough:** Tab stays inside the dialog. Escape returns focus to the Walkthrough button.
+- **Watch it build:** each stage marker is a button (`Stage 3: What cancels`), so the run can be stepped through from the keyboard. Landing on a stage lands on its first frame; **Play** carries on from there.
+- **Sliders:** focusing one lights the feature it moves in the figure, the same as pointing at it.
 - **Diagram:** open **Diagram controls and keyboard help**. Tab between native range inputs (selected element, observation distance, integration bounds). Arrow keys nudge the focused control; Home and End jump to its limits. Ring, disk, and sheet views also rotate with arrow keys; Home resets the camera.
 
 Touch works on the figure: drag point P and the integration-bound handles. Verified at phone (390×844) and tablet (768×1024) widths.
 
-### Charge sign, blanks, and the limit plot
+In 3D, a CAD-style **view cube** sits in the figure's corner: click a named face (TOP, FRONT, BACK, LEFT, RIGHT) to glide there, drag the cube to spin the scene, or use the four steppers around it to turn a notch at a time. Each lesson opens at the angle that suits its geometry — flat shapes from well above, axial ones nearer edge-on.
 
-- Charge, λ, and σ sliders (Q, Line density λ, Surface density σ, Peak density λ₀) run through zero to negative. A negative rod draws minus marks instead of plus.
-- Under each typed blank, **Preview** shows live math, or **Check the expression** if it does not parse. **Check this step** still grades. Typing does not spend hints — only **A little guidance** does.
-- The MathLive keyboard’s first tab is Course (`λ ε₀`): λ, σ, ε₀, θ, φ, π, square root, fraction, exponent.
-- The limit plot keeps its SVG and adds a screen-reader table with columns **t**, **exact**, and **reference**.
+### What the sliders do
+
+Each slider is named by its symbol, and **pointing at one lights the thing it moves** in the figure: `r` lights the gap out to P, `L` or `R` the bracket across the charge, `Q` the marks along the body, `φ` the arc's opening angle. Hovering and keyboard focus both do it.
+
+Charge, λ, and σ sliders (Q, Line density λ, Surface density σ, Peak density λ₀) run through zero to negative. A negative rod draws minus marks instead of plus.
+
+### The limit plot
+
+**Limiting cases** pushes the geometry to an extreme and plots the exact result against the reference formula. The SVG carries a screen-reader table with columns **t**, **exact**, and **reference**.
 
 ### Potential is a shorter path
 
@@ -72,20 +71,23 @@ Potential lessons (`v-ring`, `v-disk`, `v-arc`, `v-rod-bisector`, `v-rod-axial`)
 
 ## The fifteen lessons
 
+Ids marked *(coming soon)* are listed in the library but cannot be opened yet; a shared link
+pointing at one is ignored rather than followed.
+
 **Field**
 
 1. Finite line, perpendicular bisector (`bisector`)
 2. Finite line, axial point beyond the end (`axial`)
-3. Infinite line — angular substitution or finite-line limit (`infinite`)
+3. Infinite line — angular substitution or finite-line limit (`infinite`) *(coming soon)*
 4. Ring, central axis (`ring`)
 5. Disk, built from annular rings (`disk`)
-6. Semi-infinite line — both components survive (`semi`)
+6. Semi-infinite line — both components survive (`semi`) *(coming soon)*
 7. Arc, center of curvature (`arc`)
-8. Infinite nonconducting sheet (`sheet`)
+8. Infinite nonconducting sheet (`sheet`) *(coming soon)*
 9. Finite rod standing on its end, P level with that end (`endpoint`)
 10. The same rod with λ(y) = λ₀y/L — symmetry fails for position and for charge; the far field remembers the centre of charge at 2L/3 (`ramp`)
 
-**Potential** (same layouts; scalar integral)
+**Potential** (same layouts; scalar integral) — *all five coming soon*
 
 11. Ring axis (`v-ring`)
 12. Disk axis (`v-disk`)
@@ -93,7 +95,7 @@ Potential lessons (`v-ring`, `v-disk`, `v-arc`, `v-rod-bisector`, `v-rod-axial`)
 14. Rod on its perpendicular bisector (`v-rod-bisector`)
 15. Rod beyond its end (`v-rod-axial`)
 
-Numerical values are opt-in (**Try numerical values**). The geometry library can collapse to give the figure more room. **Test the limits** plots the exact result against each limiting case.
+The library can collapse to give the figure more room. Each lesson ends with **Limiting cases** and **Easy to confuse with** — the check that the answer describes something real, and the neighbouring expressions with what each would actually mean.
 
 ## Run locally
 
@@ -130,18 +132,21 @@ Source references are embedded in the problem definitions and shown with the wor
 
 ## Tests
 
-`npm test` currently runs **697 passing tests** across **24 files**. They cover:
+`npm test` currently runs **1554 passing tests** across **43 files**, plus 13 skipped — the checks belonging to lessons held back in `readiness.ts`, which come back on their own when a lesson is published. They cover:
 
 - every closed form against independent point-charge quadrature, including the five potentials and both charge polarities;
 - the limiting cases the app asserts — rod to point charge, rod to infinite line, disk to sheet, zero field at a ring's center with its axial maximum at z = R/√2, a closing arc cancelling to zero, distance-independence of the sheet, ramp far-field and first-moment;
 - the numerical sampler that drives the diagram: charge conservation, partial and reversed interval sums, infinite-domain tails, scalar potential sums;
 - the symbolic answer checker, including notation variants, deliberate sign and projection mistakes, and rejection of unsafe input;
-- saved-progress round-tripping, recovery from malformed local storage, and JSON export/import (merge by lesson key; a bad file or HTML copy leaves local work in place);
-- teacher assignment URLs, print stylesheet and offline HTML, keyboard tour trap, wizard grading, and touch drags at phone and tablet sizes.
+- **the physics, verified independently**: 193 checks built from Coulomb's law and each lesson's own setup sentence, with machinery deliberately unlike the first suite's (adaptive Simpson with Richardson extrapolation against fixed panels; a sinh sweep against doubled tails; a periodic trapezoid per annulus) so the two agree only where the physics is right. Worst error 6e-13 against a bar of 1e-10, and its teeth were checked by mutation — perturbing the ring's closed form by 2e-4 fails six tests by name and leaves the other 187 alone;
+- what the figure actually draws: field lines traced from the geometry, the selected piece on screen, labels that do not escape the frame, and the pieces of unbounded lessons that do;
+- the build sequence as choreography (five stages in the one order that makes the argument, the partition cut finer only at the end, and no scalar lesson claiming anything cancels) and as wiring (each stage checked by what appears in the drawing, not by what its caption says);
+- every slider of every live lesson lighting a feature that is actually drawn;
+- recovery from malformed local storage, teacher assignment URLs — including one pointing at a lesson that is not ready, which must be ignored — the print stylesheet, the offline HTML, the keyboard tour trap, and touch drags at phone and tablet sizes.
 
 ## What this is not
 
-Gauss’s law, Biot–Savart, circuits, and student-account sync are not in the product. Progress is not in the cloud; students move it with the JSON export. Visual theming may still shift from commit to commit.
+Gauss’s law, Biot–Savart, circuits, and student-account sync are not in the product. **Nothing here grades, scores or quizzes** — that was removed deliberately; the site's job is to make the derivation visible, not to test whether it landed. Numerals are currently stripped from the figures while the fundamentals are settled, so the lessons read symbolically. Visual theming may still shift from commit to commit.
 
 ## Project location and deployment
 
