@@ -2,41 +2,39 @@
 /* oxlint-disable jsx-a11y/prefer-tag-over-role -- inside an <svg> there is no <button> or
    <fieldset> to reach for; a role on a <polygon> is the only way to say what a face is. */
 import {projectCamera, type CameraView} from './camera';
-/** The little cube CAD tools put in a corner: it turns with the view, and you click a face to
- * look straight at it.
+/** The cube CAD tools put in a corner: it turns with the view, every face is named, a drag across
+ * it spins the scene, and the arrows around it step the view a notch at a time.
  *
- * Dragging is how you explore; this is how you get somewhere known. "Show me this edge-on" and
- * "show me it from above" are the two requests a reader of these figures actually has, and
- * neither is a thing you can reliably reach by dragging.
+ * Dragging the figure is how you explore; this is how you get somewhere known. "Show me this
+ * edge-on" and "show me it from above" are the two requests a reader of these figures has, and
+ * neither is reliably reachable by dragging.
  *
- * It is drawn with the same `projectCamera` as the figure, so it cannot disagree with what it
- * is reporting -- no second copy of the projection to drift.
+ * It is drawn with the figure's own `projectCamera`, so it cannot drift from what it reports.
  *
- * WHERE THE FACE ANGLES COME FROM, since guessing them would have been a bug that looks like a
- * design choice. The projection keeps two rows, r1 = (cos y, sin y, 0) and
+ * WHERE THE FACE ANGLES COME FROM, since guessing them would be a bug that looks like a design
+ * choice. The projection keeps two rows, r1 = (cos y, sin y, 0) and
  * r2 = (sin y sin p, −cos y sin p, −cos p); the direction it discards is r1 × r2, which is the
  * direction the camera looks along:
  *
  *     w = (−sin y cos p,  cos y cos p,  −sin p)
  *
- * To look straight at the face whose outward normal is n, the camera must sit on +n, i.e.
- * w = −n. Solving that for each face gives the table below exactly. The top face wants
- * p = π/2; the four sides want p = 0, which the camera clamp raises to its floor of 0.15, so a
- * side view is very slightly above edge-on rather than exactly on it. There is no bottom face:
- * the clamp does not allow the camera under the plane, which is deliberate -- every one of these
- * lessons has its charge in the z = 0 plane and reads upside-down from below. */
-type Face = {key: string; normal: [number, number, number]; view: CameraView; label: string};
+ * To look straight at the face whose outward normal is n the camera must sit on +n, i.e. w = −n.
+ * Solving that for each face gives the table below exactly. The four sides want p = 0, which the
+ * camera clamp raises to its floor of 0.15, so a side view sits a hair above edge-on. */
+type Face = {key: string; normal: [number, number, number]; view: CameraView; label: string; name: string};
 const HALF_PI = Math.PI / 2;
 export const CUBE_FACES: readonly Face[] = [
   // Not π/2. Looking exactly down the axis collapses all four side faces to zero-width slivers,
   // and the cube becomes a trap: nothing left to click but the face you are already on. 1.3 is
   // the camera clamp's own ceiling -- the highest a drag can reach anyway -- and it leaves the
-  // sides a few pixels wide. The 2D button is there for a true plan view.
-  {key: 'top', normal: [0, 0, 1], view: {yaw: -.5, pitch: 1.3}, label: 'Look down the axis'},
-  {key: 'front', normal: [0, -1, 0], view: {yaw: 0, pitch: .15}, label: 'Front, edge-on'},
-  {key: 'back', normal: [0, 1, 0], view: {yaw: Math.PI, pitch: .15}, label: 'Back, edge-on'},
-  {key: 'right', normal: [1, 0, 0], view: {yaw: HALF_PI, pitch: .15}, label: 'Right side, edge-on'},
-  {key: 'left', normal: [-1, 0, 0], view: {yaw: -HALF_PI, pitch: .15}, label: 'Left side, edge-on'},
+  // sides a few pixels wide. The 2D button is there for a true plan view. There is no bottom
+  // face: the clamp does not allow the camera under the plane, and every one of these lessons
+  // keeps its charge in z = 0 and reads upside-down from below.
+  {key: 'top', normal: [0, 0, 1], view: {yaw: -.5, pitch: 1.3}, label: 'TOP', name: 'Look down the axis'},
+  {key: 'front', normal: [0, -1, 0], view: {yaw: 0, pitch: .15}, label: 'FRONT', name: 'Front, edge-on'},
+  {key: 'back', normal: [0, 1, 0], view: {yaw: Math.PI, pitch: .15}, label: 'BACK', name: 'Back, edge-on'},
+  {key: 'right', normal: [1, 0, 0], view: {yaw: HALF_PI, pitch: .15}, label: 'RIGHT', name: 'Right side, edge-on'},
+  {key: 'left', normal: [-1, 0, 0], view: {yaw: -HALF_PI, pitch: .15}, label: 'LEFT', name: 'Left side, edge-on'},
 ];
 /** The four corners of a face of the unit cube, in order around it. */
 function corners(n: readonly [number, number, number]): [number, number, number][] {
@@ -53,32 +51,74 @@ export function cameraDirection({yaw, pitch}: CameraView): [number, number, numb
   const cy = Math.cos(yaw), sy = Math.sin(yaw), cp = Math.cos(pitch), sp = Math.sin(pitch);
   return [sy * cp, -cy * cp, sp];
 }
+const facing = (f: Face, d: readonly [number, number, number]) =>
+  f.normal[0] * d[0] + f.normal[1] * d[1] + f.normal[2] * d[2];
 export const facesInFront = (view: CameraView) => {
   const d = cameraDirection(view);
-  return CUBE_FACES.filter(f => f.normal[0] * d[0] + f.normal[1] * d[1] + f.normal[2] * d[2] > .06);
+  return CUBE_FACES.filter(f => facing(f, d) > .06);
 };
-export function ViewCube({view, at, size = 21, onPick}: {
-  view: CameraView; at: {x: number; y: number}; size?: number; onPick: (next: CameraView, label: string) => void;
-}) {
+export type ViewCubeProps = {
+  view: CameraView; at: {x: number; y: number}; size?: number;
+  onPick: (next: CameraView, label: string) => void;
+  /** A drag across the cube spins the scene, as it does in every CAD tool. */
+  onSpin?: (dx: number, dy: number) => void;
+  onSpinStart?: () => void;
+  /** The arrows around it, a notch at a time. */
+  onStep?: (key: 'ArrowLeft' | 'ArrowRight' | 'ArrowUp' | 'ArrowDown') => void;
+};
+export function ViewCube({view, at, size = 22, onPick, onSpin, onSpinStart, onStep}: ViewCubeProps) {
   const place = (p: readonly [number, number, number]) => {
     const s = projectCamera({x: p[0], y: p[1], z: p[2]}, view.yaw, view.pitch);
-    return `${(at.x + s.x * size).toFixed(2)},${(at.y + s.y * size).toFixed(2)}`;
+    return {x: at.x + s.x * size, y: at.y + s.y * size};
   };
-  // Back-to-front, so a face nearer the camera is drawn over one behind it.
+  const point = (p: readonly [number, number, number]) => {
+    const q = place(p); return `${q.x.toFixed(2)},${q.y.toFixed(2)}`;
+  };
   const d = cameraDirection(view);
-  const ordered = [...CUBE_FACES].sort((a, b) =>
-    (a.normal[0] * d[0] + a.normal[1] * d[1] + a.normal[2] * d[2]) - (b.normal[0] * d[0] + b.normal[1] * d[1] + b.normal[2] * d[2]));
+  // Back to front, so a nearer face paints over one behind it.
+  const ordered = [...CUBE_FACES].sort((a, b) => facing(a, d) - facing(b, d));
+  const ring = size * 2.1;
+  const steps = [
+    {key: 'ArrowLeft' as const, at: {x: -ring, y: 0}, path: 'M3.5 -4.5 L-3 0 L3.5 4.5', title: 'Turn left'},
+    {key: 'ArrowRight' as const, at: {x: ring, y: 0}, path: 'M-3.5 -4.5 L3 0 L-3.5 4.5', title: 'Turn right'},
+    {key: 'ArrowUp' as const, at: {x: 0, y: -ring}, path: 'M-4.5 3.5 L0 -3 L4.5 3.5', title: 'Tilt up'},
+    {key: 'ArrowDown' as const, at: {x: 0, y: ring}, path: 'M-4.5 -3.5 L0 3 L4.5 -3.5', title: 'Tilt down'},
+  ];
   return <g className="cd-cube" role="group" aria-label="Turn the figure to a named view">
+    {/* A drag anywhere over the cube spins the scene. It sits under the faces, so a click still
+        lands on whichever face was clicked. */}
+    {onSpin && <rect className="cd-cube-grab" x={at.x - size * 1.6} y={at.y - size * 1.6}
+      width={size * 3.2} height={size * 3.2}
+      onPointerDown={ev => { ev.stopPropagation(); try { (ev.target as Element).setPointerCapture(ev.pointerId); } catch { /* no live pointer: the drag still starts */ } onSpinStart?.(); }}
+      onPointerMove={ev => { if (ev.buttons) { ev.stopPropagation(); onSpin(ev.movementX, ev.movementY); } }} />}
     {ordered.map(f => {
-      const towards = f.normal[0] * d[0] + f.normal[1] * d[1] + f.normal[2] * d[2];
+      const towards = facing(f, d);
       if (towards <= .06) return null;      // facing away: not drawn, and not clickable
-      return <polygon key={f.key} className="cd-cube-face" data-face={f.key} tabIndex={0} role="button"
-        aria-label={f.label} points={corners(f.normal).map(place).join(' ')}
-        style={{opacity: .32 + .55 * towards}}
-        onClick={() => onPick(f.view, f.label)}
-        onKeyDown={ev => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); onPick(f.view, f.label); } }}>
-        <title>{f.label}</title>
-      </polygon>;
+      const centre = place([f.normal[0] * 1.03, f.normal[1] * 1.03, f.normal[2] * 1.03]);
+      return <g key={f.key} className="cd-cube-side" data-face={f.key}>
+        {/* Shaded by how squarely it faces the camera. Every face painted the same made the cube
+            read as one flat blob, because adjacent faces had no edge between them. */}
+        <polygon className="cd-cube-face" tabIndex={0} role="button" aria-label={f.name}
+          points={corners(f.normal).map(point).join(' ')}
+          style={{fillOpacity: (.26 + .55 * towards).toFixed(3)}}
+          onClick={ev => { ev.stopPropagation(); onPick(f.view, f.name); }}
+          onKeyDown={ev => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); onPick(f.view, f.name); } }}>
+          <title>{f.name}</title>
+        </polygon>
+        {/* Only on a face square enough on to read a word. A name squeezed onto a sliver is worse
+            than no name. */}
+        {towards > .55 && <text className="cd-cube-label" x={centre.x.toFixed(2)} y={centre.y.toFixed(2)}
+          textAnchor="middle" dominantBaseline="middle"
+          style={{fontSize: `${(size * .29).toFixed(1)}px`}}>{f.label}</text>}
+      </g>;
     })}
+    {onStep && steps.map(s => <g key={s.key} className="cd-cube-step" role="button" tabIndex={0} aria-label={s.title}
+      transform={`translate(${(at.x + s.at.x).toFixed(1)} ${(at.y + s.at.y).toFixed(1)})`}
+      onClick={ev => { ev.stopPropagation(); onStep(s.key); }}
+      onKeyDown={ev => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); onStep(s.key); } }}>
+      <title>{s.title}</title>
+      <circle r={(size * .38).toFixed(1)} />
+      <path d={s.path} />
+    </g>)}
   </g>;
 }
