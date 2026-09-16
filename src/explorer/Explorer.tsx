@@ -121,7 +121,7 @@ export default function Explorer(){
   {walking&&<>
     <span className="exp-walk-count">{step+1} of {walkTerms.length}</span>
     <span className="exp-walk-text"><strong>{walkTerms[Math.min(step,walkTerms.length-1)].label}.</strong> {walkTerms[Math.min(step,walkTerms.length-1)].why}</span>
-    {walkFigure==='element'&&<span className="exp-walk-extra"><Range label="Pieces N" value={params.slices} min={3} max={30} display={String(params.slices)} onChange={slices=>{morph.current?.stop();updateParams({slices,continuum:0})}}/><button type="button" className="text-button" onClick={continuumAnimation}>{continuum>.99?'Back to pieces':'Take the limit'}</button></span>}
+    {walkFigure==='element'&&<span className="exp-walk-extra"><Range label="Finer" value={params.slices} min={3} max={30} display="" onChange={slices=>{morph.current?.stop();updateParams({slices,continuum:0})}}/><button type="button" className="text-button" onClick={continuumAnimation}>{continuum>.99?'Back to pieces':'Take the limit'}</button></span>}
     {step===walkTerms.length-1&&<button type="button" className="text-button" onClick={playSum}>{playing?'Pause':'Watch the sum add up'}</button>}
     <span className="exp-walk-actions">
       <button type="button" className="text-button" onClick={()=>walkTo(step-1)} disabled={step===0}>Previous</button>

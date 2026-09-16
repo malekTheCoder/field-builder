@@ -60,8 +60,17 @@ describe('keyboard and screen-reader path', () => {
     const {container} = render(<Harness />);
     const live = container.querySelector<HTMLOutputElement>('.cd-announcement')!;
     expect(live.getAttribute('aria-live')).toBe('polite');
-    fireEvent.change(container.querySelector<HTMLInputElement>('input[aria-label="Selected charge element"]')!, {target: {value: '4'}});
-    await waitFor(() => expect(live.textContent).toMatch(/Charge element 5 of 8/i), {timeout: 2000});
+    const picker = container.querySelector<HTMLInputElement>('input[aria-label="Selected charge element"]')!;
+    fireEvent.change(picker, {target: {value: '4'}});
+    // The announcement carries the PHYSICS of the new selection. Which piece of how many is
+    // the slider's own business and a screen reader reads it off these attributes, so saying
+    // it again in the live region was telling the same reader the same number twice -- and the
+    // count is exactly the detail the figure was asked to stop putting in front of everyone.
+    expect(picker.min).toBe('0');
+    expect(picker.max).toBe('7');
+    expect(picker.value).toBe('4');
+    await waitFor(() => expect(live.textContent).toMatch(/Charge element selected/i), {timeout: 2000});
+    expect(live.textContent, 'the contribution is what changed').toMatch(/newtons per coulomb|volts/i);
     expect(live.textContent).toMatch(/newtons per coulomb/i);
     fireEvent.change(container.querySelector<HTMLInputElement>('input[aria-label="Observation distance in meters"]')!, {target: {value: '4'}});
     await waitFor(() => expect(live.textContent).toMatch(/Observation distance/i), {timeout: 2000});
