@@ -79,10 +79,48 @@ export function activeIntervalIndex(count: number, bounds: [number, number], pro
  * becomes one element carrying the group's whole charge, placed at its centre of charge -- which
  * is where a group of point charges actually acts from, so the far field is unchanged and the
  * near field is the honest field of a coarser cut. Total charge, full span and symmetry all
- * survive. */
+ * survive.
+ *
+ * Only where the cut is FINER than the budget, though. A centre of charge stands in for a group
+ * that is small beside its distance from whoever is looking, and the three unbounded partitions
+ * end in pieces that are not: y = r tan(theta) puts the sheet's last six annuli at 139, 170, 218,
+ * 306, 509 and 1528 m, and an equal count merged them into one ring at 1476 m, where the last piece
+ * carries 95% of their charge. From inside that ring the five it swallowed pull as 1/s^3, so their
+ * pull on the picture was simply lost: the drawn field of an infinite sheet leaned 1.35 degrees
+ * outward at 5 m and fell 3.8% between 1 m and 5 m up, with 72 merged annuli. The same 400 annuli
+ * unmerged show neither, to three decimals.
+ *
+ * So a gap wider than a whole group of an even cut would be -- the path length over `limit` -- is
+ * never merged across: the pieces either side of it are already coarser than the budget asks for,
+ * and they are kept as they are. The rest of the budget is shared along the runs between such gaps
+ * in proportion to their length. An evenly cut charge has no such gap, so a rod, a ring, an arc or
+ * a disk comes out exactly as before; the sheet's lean falls to 0.46 degrees and its 3.8% to 1.2%. */
 export function coarsen(samples: readonly ChargeSample[], limit: number): ChargeSample[] {
   if (limit < 1 || samples.length <= limit) return [...samples];
-  const groups = Math.min(limit, samples.length);
+  const gap = (i: number) => {
+    const a = samples[i - 1].position, b = samples[i].position;
+    return Math.hypot(a.x - b.x, a.y - b.y, a.z - b.z);
+  };
+  let path = 0;
+  for (let i = 1; i < samples.length; i++) path += gap(i);
+  const runs: [number, number][] = [];
+  for (let i = 1, from = 0; i <= samples.length; i++) if (i === samples.length || gap(i) > path / limit) { runs.push([from, i]); from = i; }
+  // Every run keeps at least one element, and there is budget for that: `limit` gaps each wider
+  // than path/limit would add up to more than the path, so there are at most `limit` runs. The
+  // rest of the budget goes by largest remainder.
+  const spare = limit - runs.length, room = samples.length - runs.length;
+  const share = runs.map(([from, to]) => room > 0 ? spare * (to - from - 1) / room : 0);
+  const extra = share.map(v => Math.floor(v));
+  let left = spare - extra.reduce((a, b) => a + b, 0);
+  for (const j of runs.map((_, j) => j).sort((a, b) => (share[b] - extra[b]) - (share[a] - extra[a]))) {
+    if (left <= 0) break;
+    if (extra[j] < runs[j][1] - runs[j][0] - 1) { extra[j] += 1; left -= 1; }
+  }
+  return runs.flatMap(([from, to], j) => merge(samples.slice(from, to), 1 + extra[j]));
+}
+/** Consecutive elements merged into `groups` equal runs, each at its centre of charge. */
+function merge(samples: readonly ChargeSample[], groups: number): ChargeSample[] {
+  if (samples.length <= groups) return [...samples];
   const out: ChargeSample[] = [];
   for (let g = 0; g < groups; g++) {
     const from = Math.floor(g * samples.length / groups), to = Math.floor((g + 1) * samples.length / groups);

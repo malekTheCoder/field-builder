@@ -2,7 +2,7 @@ import {describe,expect,it} from 'vitest';
 import {K} from '../src/distributions/constants';
 import type {ChargeSample} from '../src/distributions/types';
 import type {Vec} from '../src/symbolic/physics';
-import {cloud,meridianLines,spaceField,spaceGrid,spaceLines,spaceSeeds,traceLine3,typicalSpacing} from '../src/diagrams/field3d';
+import {annuliField,cloud,meridianLines,spaceField,spaceGrid,spaceLines,spaceSeeds,traceLine3,typicalSpacing} from '../src/diagrams/field3d';
 import {sampleDistribution} from '../src/diagrams/sampling';
 import {DEFAULT_PARAMS} from '../src/problems/types';
 import {logWeights} from '../src/diagrams/vectorfield';
@@ -165,6 +165,18 @@ describe('a surface is summed as a surface',()=>{
  });
  it('leaves a wire alone',()=>{
   expect(cloud(ring,'wire')).toHaveLength(ring.length);
+ });
+ it('sums each annulus as its whole ring, which a dense enough spread of points converges to',()=>{
+  // The drawing's closed form against Coulomb over 4096 points a ring: at these distances the
+  // spread's azimuthal ripple is below exp(-4096·0.3/2), so any disagreement is the formula's.
+  // Off the axis, both faces, inside and outside the rim, and on the axis where E_rho must vanish.
+  const samples=sampleDistribution('disk',DEFAULT_PARAMS,24),dense=cloud(samples,'surface',4096);
+  for(const at of [{x:.7,y:-.4,z:.3},{x:-1.6,y:1.1,z:-.5},{x:2.6,y:.2,z:.35},{x:0,y:0,z:1.2},{x:3,y:-4,z:6}]){
+   const got=annuliField(samples,at),want=spaceField(dense,at);
+   expect(len({x:got.x-want.x,y:got.y-want.y,z:got.z-want.z})/len(want),`at (${at.x}, ${at.y}, ${at.z})`).toBeLessThan(1e-9);
+  }
+  const axis=annuliField(samples,{x:0,y:0,z:.8});
+  expect(Math.hypot(axis.x,axis.y)).toBe(0);
  });
 });
 describe('the same rule in space',()=>{
