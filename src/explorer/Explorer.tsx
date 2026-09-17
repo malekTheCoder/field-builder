@@ -52,6 +52,11 @@ function ShapeGlyph({id,size=18}:{id:ProblemId;size?:number}){const label=PROBLE
 /** How long a parameter must hold still before it is written anywhere. Long enough that a
  * drag writes once at the end, short enough to survive a quick change and a reload. */
 const SETTLE=220;
+/** One beat of the stepped run, in milliseconds, for readers who have asked for reduced motion.
+ * Real time still matches the smooth run -- a beat of timeline per beat of clock -- so the same
+ * words stay on screen for the same length of time; there are simply forty-odd frames instead of
+ * five hundred, and none of them tweens. */
+const REDUCED_BEAT=450;
 const STORAGE='field-builder:explorer:v1';
 // Variable-first: every control is named by its symbol. The words are the
 // gloss, the number is the consequence — so the symbol is set large in the
@@ -71,11 +76,11 @@ function confusions(p:Problem){return p.steps.flatMap((s,i)=>(s.fields??[]).map(
 // find out was to drag it and hunt for whatever moved.
 function Range({label,value,min,max,step=1,onChange,describe,onDescribe}:{label:string;value:number;min:number;max:number;step?:number;onChange:(n:number)=>void;describe?:string;onDescribe?:(k:string)=>void}){const [symbol,name]=splitSymbol(label);const point=(on:boolean)=>{if(describe)onDescribe?.(on?describe:'')};return <div className="exp-range" onPointerEnter={()=>point(true)} onPointerLeave={()=>point(false)} onFocusCapture={()=>point(true)} onBlurCapture={()=>point(false)}><div><span>{symbol&&<i className="exp-sym">{symbol}</i>}<span className="exp-name">{name}</span></span></div><Slider aria-label={label} value={[value]} min={min} max={max} step={step} onValueChange={v=>onChange(Array.isArray(v)?v[0]:v)}/></div>}
 export default function Explorer(){
- const [step,setStep]=useState(-1);const [id,setId]=useState<ProblemId>('bisector');const [path,setPath]=useState('angular');const [mode,setMode]=useState<Mode>('divide');const [paramsMap,setParamsMap]=useState<Partial<Record<ProblemId,Params>>>({});const [dark,setDark]=useState(false);const [ready,setReady]=useState(false);const [storageOK,setStorageOK]=useState(true);const [onboarding,setOnboarding]=useState(false);const [seen,setSeen]=useState(false);const [library,setLibrary]=useState(false);const [sidebarOpen,setSidebarOpen]=useState(true);const [showNumbers,setShowNumbers]=useState(false);const [components,setComponents]=useState(false);const [pair,setPair]=useState(false);const [progress,setProgress]=useState(1);const [playing,setPlaying]=useState(false);const [selected,setSelected]=useState(3);const [bounds,setBounds]=useState<[number,number]>([0,100]);const [limitsOpen,setLimitsOpen]=useState(false);const [slipsOpen,setSlipsOpen]=useState(false);const [limitIndex,setLimitIndex]=useState(0);const [highlight,setHighlight]=useState('');const [status,setStatus]=useState('');const [building,setBuilding]=useState(false);const [buildAt,setBuildAt]=useState(0);const [buildIndex,setBuildIndex]=useState(0);const run=useRef<ReturnType<typeof animate>|null>(null);const morph=useRef<ReturnType<typeof animate>|null>(null);const build=useRef<ReturnType<typeof animate>|null>(null);const buildC=useRef(-1);const buildStep=useRef(-1);const reduced=useReducedMotion();const tourButton=useRef<HTMLButtonElement>(null);
+ const [step,setStep]=useState(-1);const [id,setId]=useState<ProblemId>('bisector');const [path,setPath]=useState('angular');const [mode,setMode]=useState<Mode>('divide');const [paramsMap,setParamsMap]=useState<Partial<Record<ProblemId,Params>>>({});const [dark,setDark]=useState(false);const [ready,setReady]=useState(false);const [storageOK,setStorageOK]=useState(true);const [onboarding,setOnboarding]=useState(false);const [seen,setSeen]=useState(false);const [library,setLibrary]=useState(false);const [sidebarOpen,setSidebarOpen]=useState(true);const [showNumbers,setShowNumbers]=useState(false);const [components,setComponents]=useState(false);const [pair,setPair]=useState(false);const [progress,setProgress]=useState(1);const [playing,setPlaying]=useState(false);const [selected,setSelected]=useState(3);const [bounds,setBounds]=useState<[number,number]>([0,100]);const [limitsOpen,setLimitsOpen]=useState(false);const [slipsOpen,setSlipsOpen]=useState(false);const [limitIndex,setLimitIndex]=useState(0);const [highlight,setHighlight]=useState('');const [status,setStatus]=useState('');const [building,setBuilding]=useState(false);const [buildAt,setBuildAt]=useState(0);const [buildIndex,setBuildIndex]=useState(0);const run=useRef<ReturnType<typeof animate>|null>(null);const morph=useRef<ReturnType<typeof animate>|null>(null);const build=useRef<{stop:()=>void}|null>(null);const buildC=useRef(-1);const buildStep=useRef(-1);const reduced=useReducedMotion();const tourButton=useRef<HTMLButtonElement>(null);
  const p=getProblem(id,'angular'),derivationProblem=getProblem(id,path),params=paramsMap[id]??DEFAULT_PARAMS;const continuum=params.continuum;const count=partitionCount(params.slices,continuum);const geom=p.geometry,scalar=p.quantity==='V';const isInfinite=['infinite','semi','sheet'].includes(geom);const isRound=['ring','disk','arc'].includes(geom);const lim=p.limits[Math.min(limitIndex,p.limits.length-1)];
  // Storage is an external system; initialize after hydration and surface write failures without aborting the lesson.
  // oxlint-disable-next-line react/react-compiler
- useEffect(()=>{try{const raw=localStorage.getItem(STORAGE);const parsed=raw?JSON.parse(raw):null;const saved=parsed&&typeof parsed==='object'&&!Array.isArray(parsed)?parsed:{};const pm:Partial<Record<ProblemId,Params>>={};for(const pr of PROBLEMS)if(saved.params?.[pr.id])pm[pr.id]=cleanParams(saved.params[pr.id]);const url=parseAssignment(typeof location==='undefined'?'':location.search);const assigned=!!(url.id||url.mode||url.params||url.pair||url.components);if(url.id&&isReady(url.id))setId(url.id);else if(PROBLEMS.some(p=>p.id===saved.id)&&isReady(saved.id))setId(saved.id);setDark(saved.dark===true);setShowNumbers(saved.showNumbers===true);setSidebarOpen(saved.sidebarOpen!==false);if(url.params){const target=url.id??(PROBLEMS.some(p=>p.id===saved.id)?saved.id as ProblemId:'bisector');pm[target]=cleanParams({...(pm[target]??DEFAULT_PARAMS),...url.params});}setParamsMap(pm);if(url.mode)setMode(url.mode);if(url.pair)setPair(true);if(url.components)setComponents(true);setSeen(!!saved.seen||assigned);setOnboarding(false);}catch{setStorageOK(false);setOnboarding(true)}setReady(true);return()=>{run.current?.stop();morph.current?.stop()}},[]);
+ useEffect(()=>{try{const raw=localStorage.getItem(STORAGE);const parsed=raw?JSON.parse(raw):null;const saved=parsed&&typeof parsed==='object'&&!Array.isArray(parsed)?parsed:{};const pm:Partial<Record<ProblemId,Params>>={};for(const pr of PROBLEMS)if(saved.params?.[pr.id])pm[pr.id]=cleanParams(saved.params[pr.id]);const url=parseAssignment(typeof location==='undefined'?'':location.search);const assigned=!!(url.id||url.mode||url.params||url.pair||url.components);if(url.id&&isReady(url.id))setId(url.id);else if(PROBLEMS.some(p=>p.id===saved.id)&&isReady(saved.id))setId(saved.id);setDark(saved.dark===true);setShowNumbers(saved.showNumbers===true);setSidebarOpen(saved.sidebarOpen!==false);if(url.params){const target=url.id??(PROBLEMS.some(p=>p.id===saved.id)?saved.id as ProblemId:'bisector');pm[target]=cleanParams({...(pm[target]??DEFAULT_PARAMS),...url.params});}setParamsMap(pm);if(url.mode)setMode(url.mode);if(url.pair)setPair(true);if(url.components)setComponents(true);setSeen(!!saved.seen||assigned);setOnboarding(false);}catch{setStorageOK(false);setOnboarding(true)}setReady(true);return()=>{run.current?.stop();morph.current?.stop();build.current?.stop();build.current=null}},[]);
  // oxlint-disable-next-line react/react-compiler -- Synchronize persisted preferences; quota/security errors update the save indicator.
  useEffect(()=>{document.documentElement.classList.toggle('dark',dark)},[dark]);
  // Persistence is debounced because a drag changes a parameter every frame. Writing the
@@ -132,12 +137,25 @@ export default function Explorer(){
   if(building){build.current?.stop();build.current=null;setBuilding(false);return}
   run.current?.stop();setPlaying(false);morph.current?.stop();setStep(-1);setHighlight('');
   const total=totalSeconds(stages);
-  if(reduced){buildC.current=-1;buildStep.current=-1;applyBuild(total);return}
   setBuilding(true);
   // Resume where it was paused; restart from the first cut once it has played out.
   const from=buildAt>=total-.01?0:buildAt;
   if(from===0)buildC.current=-1;
-  build.current=animate(from,total,{duration:total-from,ease:'linear',onUpdate:applyBuild,onComplete:()=>{build.current=null;setBuilding(false)}});
+  // REDUCED MOTION IS NOT "SKIP THE LESSON". It used to be: the run jumped straight to its last
+  // frame and stopped, and because it was then already at the end, Play restarted it at the end
+  // and landed on the same frame again -- so for anyone with the system setting on, "Watch it
+  // build" was permanently stuck on the answer and nothing would move it. The setting asks for no
+  // SMOOTH movement, not for no argument, so the run steps instead: the same stages in the same
+  // order over the same time, advanced in discrete beats with nothing tweening between them.
+  const done=()=>{build.current=null;setBuilding(false)};
+  if(reduced){
+   let at=from;
+   applyBuild(at);
+   const beat=window.setInterval(()=>{at=Math.min(total,at+REDUCED_BEAT/1000);applyBuild(at);if(at>=total){window.clearInterval(beat);done()}},REDUCED_BEAT);
+   build.current={stop:()=>window.clearInterval(beat)};
+   return;
+  }
+  build.current=animate(from,total,{duration:total-from,ease:'linear',onUpdate:applyBuild,onComplete:done});
  }
  // Jumping to a stage is the same thing as playing to its first frame, which is why both go
  // through applyBuild: there is one description of what each stage looks like.

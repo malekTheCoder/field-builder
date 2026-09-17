@@ -1,5 +1,5 @@
 import {cleanup, fireEvent, render, waitFor} from '@testing-library/react';
-import {afterEach, describe, expect, it} from 'vitest';
+import {afterEach, beforeEach, describe, expect, it} from 'vitest';
 import Explorer from '../src/explorer/Explorer';
 import {PROBLEMS, getProblem} from '../src/problems/definitions';
 import {isReady} from '../src/problems/readiness';
@@ -11,7 +11,13 @@ import {isReady} from '../src/problems/readiness';
  * something a reader can no longer reach by hand, and the demonstration stops demonstrating
  * the controls. Each stage is checked by what appears in the drawing, not by what the caption
  * says about it. */
-afterEach(cleanup);
+afterEach(() => {
+ cleanup();
+ // The Explorer writes the open lesson into the address bar, and a URL left behind by the last
+ // test BEATS the storage the next one writes -- `parseAssignment` wins over the saved id. Left
+ // unreset, every test after one that ran the build opened that test's lesson instead of its own.
+ window.history.replaceState(null, '', '/');
+});
 async function openLesson(id: string) {
  // The Explorer saves the lesson you were on, on a 220ms debounce. A test that writes its own
  // lesson into storage and mounts immediately can have the PREVIOUS test's pending save land on
@@ -22,8 +28,9 @@ async function openLesson(id: string) {
  const view = render(<Explorer />);
  await view.findByRole('button', {name: 'Watch it build'});
  // And say so plainly if it ever happens again, rather than asserting about a figure that is
- // not the one the test named.
- expect(view.container.querySelector('h1')?.textContent, 'opened the wrong lesson').toBe(getProblem(id as never).title);
+ // not the one the test named. Waited for, not asserted once: the lesson comes from an effect
+ // that reads storage after the first paint, so a single check here races it.
+ await waitFor(() => expect(view.container.querySelector('h1')?.textContent, 'opened the wrong lesson').toBe(getProblem(id as never).title));
  return view;
 }
 /** Jump to a stage by its marker, which is also how a reader moves around the run. */
@@ -94,6 +101,36 @@ describe('watch it build', () => {
   jump(view, 5, 'Shrink them');
   fireEvent.click(view.getByRole('button', {name: 'Play'}));
   await waitFor(() => expect(footer(view)).toContain('In the limit'), {timeout: 9000});
+ });
+});
+describe('with reduced motion asked for', () => {
+ // This was broken in the shipped build and no test saw it. Reduced motion made the run jump to
+ // its own last frame and stop -- and since it was then at the end, Play restarted it at the end
+ // and landed there again, so the whole feature was stuck on the answer with no way back. The
+ // setting asks for no SMOOTH movement, not for no lesson.
+ let real: typeof window.matchMedia;
+ beforeEach(() => {
+  real = window.matchMedia;
+  window.matchMedia = ((q: string) => q.includes('prefers-reduced-motion')
+   ? {matches: true, media: q, onchange: null, addEventListener() {}, removeEventListener() {}, dispatchEvent: () => false} as unknown as MediaQueryList
+   : real.call(window, q)) as typeof window.matchMedia;
+ });
+ afterEach(() => { window.matchMedia = real; });
+ it('still starts at the first cut instead of landing on the answer', async () => {
+  const view = await openLesson('bisector');
+  fireEvent.click(view.getByRole('button', {name: 'Watch it build'}));
+  await waitFor(() => expect(view.getByRole('button', {name: /^Stage 1: /})).toBeTruthy());
+  // The run opens on the pieces, not on the finished integral.
+  expect(footer(view)).toContain('Cut into pieces');
+  expect(view.container.querySelector('.exp-walk-text')?.textContent ?? '').toContain('Cut it up');
+ });
+ it('still advances through the stages, in steps', async () => {
+  const view = await openLesson('bisector');
+  fireEvent.click(view.getByRole('button', {name: 'Watch it build'}));
+  const stageNow = () => view.container.querySelector('.exp-walk-count')?.textContent ?? '';
+  await waitFor(() => expect(stageNow()).toBe('1 of 5'));
+  await waitFor(() => expect(stageNow()).toBe('2 of 5'), {timeout: 9000});
+  await waitFor(() => expect(stageNow()).toBe('3 of 5'), {timeout: 9000});
  });
 });
 describe('the potential has a picture of its own', () => {
