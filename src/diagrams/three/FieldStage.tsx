@@ -150,9 +150,8 @@ export function FieldStage(props:FieldStageProps){
     parts.forEach(([g])=>g.dispose());
     return merged??new THREE.BufferGeometry();
    };
-   /** Alpha per vertex, so one material covers a solid element on a disk and a dissolving one
-    * on a sheet. A sheet's rings run out past the picture; the outermost is enormous, and
-    * painted flat it floods the frame with the charge's colour. It fades with its surface. */
+   /** Alpha per vertex, so one material can carry a ramp: the sheet's own surface dissolves with
+    * distance, and every line and axis in the scene stops the same way. */
    const fadeGeometry=(g:Geometry,inner:number,outer:number,base=1)=>{
     const position=g.getAttribute('position') as Attribute|undefined;
     if(!position)return g;
@@ -383,9 +382,6 @@ export function FieldStage(props:FieldStageProps){
     if(frameKey!==String(extent)){buildFrame(extent);frameKey=String(extent);}
     const spread=bodyReach(p.kind,p.radius,frameWorld);
     body.scale.setScalar(p.kind==='wire'?1:spread);
-    // The sheet's fade is written into its mesh as fractions of the unit disk, so the world
-    // radii the same ramp has to hit come back out of the scale it is drawn at.
-    const fade=p.kind==='sheet'?{inner:spread*SHEET_FADE.inner,outer:spread*SHEET_FADE.outer}:null;
     // Rebuild the rings only when the partition actually changes; scaling is free, geometry
     // is not, and this runs on every camera frame during an orbit.
     const radii=p.kind==='disk'?visibleRadii(p.samples,p.selected):[];
@@ -406,9 +402,20 @@ export function FieldStage(props:FieldStageProps){
      element.visible=true;
      const thick=wr*1.5;
      const key='annulus' in p.element
-      ?`a:${p.element.annulus.inner.toFixed(4)}:${p.element.annulus.outer.toFixed(4)}:${thick.toFixed(4)}:${frameWorld.toFixed(2)}:${fade?`${fade.inner.toFixed(3)}-${fade.outer.toFixed(3)}`:'solid'}`
+      ?`a:${p.element.annulus.inner.toFixed(4)}:${p.element.annulus.outer.toFixed(4)}:${thick.toFixed(4)}:${frameWorld.toFixed(2)}`
       :`p:${thick.toFixed(4)}:${p.element.path.map(v=>`${v.x.toFixed(3)},${v.y.toFixed(3)},${v.z.toFixed(3)}`).join(';')}`;
-     if(elementKey!==key){buildElement(p.element,thick,fade,frameWorld);elementKey=key;}
+     // THE CHOSEN PIECE IS NEVER FADED BY DISTANCE, even on the sheet, where the plane around it
+     // is. It used to take the sheet's own ramp -- solid to a fifth of the way out, gone by four
+     // fifths -- and so the outermost ring, which runs from about 9 m to the truncation, was
+     // dissolved to nothing before it reached the edge of the picture. That ring is the single
+     // largest contributor to the field: cut at equal angles from P, a sheet's rings push HARDER
+     // the further out they are, and at five pieces the last one carries about 31% of E. Fog that
+     // hides the piece doing the most work is not a depth cue; it is concealment.
+     //
+     // The plane may fade, because the plane is ground. The piece being pointed at stays, and its
+     // width alone decides how strongly it is tinted, so a huge washer is a light wash rather than
+     // a slab.
+     if(elementKey!==key){buildElement(p.element,thick,null,frameWorld);elementKey=key;}
     }else element.visible=false;
     if(p.net)layArrow(netArrow,p.point,p.net,Math.hypot(p.net.x,p.net.y,p.net.z),wr*.75);else netArrow.group.visible=false;
     // One element's contribution is the field AT P due to that element, so it is laid from P.

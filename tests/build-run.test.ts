@@ -2,6 +2,8 @@ import {describe, expect, it} from 'vitest';
 import {buildStages, stageAt, stageStart, totalSeconds} from '../src/explorer/buildRun';
 import {PROBLEMS, getProblem} from '../src/problems/definitions';
 import {isReady} from '../src/problems/readiness';
+import {sampleDistribution} from '../src/diagrams/sampling';
+import {DEFAULT_PARAMS} from '../src/problems/types';
 /* The choreography, checked as choreography.
  *
  * "Watch it build" is one animation that has to make one argument, in order: cut it up, look at
@@ -84,5 +86,41 @@ describe('finding a moment in the run', () => {
   for (const t of [total, total + .5, total * 3]) {
    expect(stageAt(stages, t)).toMatchObject({index: stages.length - 1, local: 1});
   }
+ });
+});
+/* The run's captions make quantitative claims, and a caption is the one place a reader takes a
+ * number on trust. Each claim is checked here against the samplers the figure actually draws,
+ * so rewording a caption cannot quietly make it false, and a change to a partition cannot
+ * quietly falsify a caption. */
+describe('what the captions claim is what the samplers do', () => {
+ const n = 5, P = DEFAULT_PARAMS;
+ const size = (v: {x: number; y: number; z: number}) => Math.hypot(v.x, v.y, v.z);
+ for (const id of ['infinite', 'semi'] as const) {
+  it(`${id}: every piece, cut at an equal angle, pushes exactly as hard`, () => {
+   const pushes = sampleDistribution(id, P, n).map(s => size(s.field));
+   for (const push of pushes) expect(push / pushes[0]).toBeCloseTo(1, 9);
+   expect(buildStages(getProblem(id))[1].caption).toMatch(/exactly as hard/);
+  });
+ }
+ it('sheet: the rings push harder the further out they are', () => {
+  // The claim the line lessons' story gets backwards. Cut at equal angles from P, contributions
+  // go as sin(theta): 4.9, 14.2, 22.1, 27.9 and 30.9 percent at five pieces.
+  const pushes = sampleDistribution('sheet', P, n).map(s => size(s.field));
+  for (let i = 1; i < n; i++) expect(pushes[i], `ring ${i + 1} vs ring ${i}`).toBeGreaterThan(pushes[i - 1]);
+  const total = pushes.reduce((a, b) => a + b, 0);
+  expect(pushes[n - 1] / total).toBeGreaterThan(.3);
+  expect(buildStages(getProblem('sheet'))[1].caption).toMatch(/harder, not softer/);
+ });
+ it('sheet: lifting P leaves the field unchanged, which the subtitle promises', () => {
+  const at = (distance: number) => size(sampleDistribution('sheet', {...P, distance}, 4000).reduce(
+   (sum, s) => ({x: sum.x + s.field.x, y: sum.y + s.field.y, z: sum.z + s.field.z}), {x: 0, y: 0, z: 0}));
+  expect(at(6) / at(1.5)).toBeCloseTo(1, 3);
+  expect(getProblem('sheet').subtitle).toMatch(/never changes/);
+ });
+ it('semi: with nothing to push back, the field leans at forty-five degrees', () => {
+  const net = sampleDistribution('semi', P, 4000).reduce(
+   (sum, s) => ({x: sum.x + s.field.x, y: sum.y + s.field.y, z: sum.z + s.field.z}), {x: 0, y: 0, z: 0});
+  expect(Math.abs(net.x) / Math.abs(net.y)).toBeCloseTo(1, 2);
+  expect(buildStages(getProblem('semi'))[2].caption).toMatch(/leans/);
  });
 });

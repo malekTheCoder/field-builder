@@ -352,23 +352,38 @@ export function ChargeDiagram({ problem, params: p, setParams, count, continuum,
   // Directions come from `world`, the same function the sampler partitions by, so the fan cannot
   // drift from the pieces it names. Projection is linear, so a screen direction is the projected
   // world direction and no clipping in world space is needed.
-  const fanned = (id === 'infinite' || id === 'semi') && continuum < .995;
+  const fanned = (id === 'infinite' || id === 'semi' || id === 'sheet') && continuum < .995;
+  // The sheet is cut into RINGS, and a ring's seam is a circle round the axis, so its fan is a
+  // cross-section: the rays from P to where each seam crosses one diameter, on both sides. The
+  // diameter is the one lying across the screen -- (cos yaw, sin yaw, 0) is exactly the direction
+  // the camera maps to screen-horizontal -- so the cut always faces the reader and its angles are
+  // the least foreshortened the view allows. Seen this way the sheet's whole argument is on the
+  // page: each ring is one angle below P, and lifting P leaves the angles alone while the rings
+  // they take in grow, which is why the field does not depend on the height.
+  const across: Vec = { x: Math.cos(view.yaw), y: Math.sin(view.yaw), z: 0 };
   const fan = (() => {
     if (!fanned) return null;
     const rect = { x: 42, y: 54, width: 626, height: 317 };
-    const edges = Array.from({ length: n + 1 }, (_, i) => direction(vsub(project(world(i / n)), P)));
-    const wedges = [];
-    for (let i = 0; i < n; i++) {
-      const a = edges[i], b = edges[i + 1];
-      if (!a || !b) continue;
-      const poly = wedgePath(P, a, b, rect);
-      // A wedge with no area is one pointing away from the picture: nothing to draw, nothing to
-      // click. Drawing it anyway would pin a sliver to the nearest edge and call it a piece.
-      if (poly.length < 3 || area(poly) < 40) continue;
-      const middle = direction(vsub(project(samples[i].position), P));
-      wedges.push({ index: i, key: intervalKey(i, n), points: poly.map(q => `${q.x.toFixed(1)},${q.y.toFixed(1)}`).join(' '), middle });
+    const sides = id === 'sheet' ? [1, -1] : [0];
+    const wedges: { index: number; key: string; points: string; middle: Point | null }[] = [];
+    const rays: { key: string; end: Point }[] = [];
+    for (const side of sides) {
+      const suffix = side > 0 ? ':r' : side < 0 ? ':l' : '';
+      const seam = (t: number): Vec => side === 0 ? world(t) : scaleVec(across, side * Math.abs(world(t).x));
+      const edges = Array.from({ length: n + 1 }, (_, i) => direction(vsub(project(seam(i / n)), P)));
+      for (let i = 0; i < n; i++) {
+        const a = edges[i], b = edges[i + 1];
+        if (!a || !b) continue;
+        const poly = wedgePath(P, a, b, rect);
+        // A wedge with no area is one pointing away from the picture: nothing to draw, nothing to
+        // click. Drawing it anyway would pin a sliver to the nearest edge and call it a piece.
+        if (poly.length < 3 || area(poly) < 40) continue;
+        const centre = side === 0 ? samples[i].position : scaleVec(across, side * Math.abs(samples[i].position.x));
+        wedges.push({ index: i, key: intervalKey(i, n) + suffix, points: poly.map(q => `${q.x.toFixed(1)},${q.y.toFixed(1)}`).join(' '), middle: direction(vsub(project(centre), P)) });
+      }
+      edges.forEach((d, i) => { if (d) rays.push({ key: seamKey(i / n) + suffix, end: rayToEdge(P, d, rect) }); });
     }
-    return { wedges, rays: edges.map((d, i) => d && ({ key: seamKey(i / n), end: rayToEdge(P, d, rect) })).filter(Boolean) as { key: string; end: Point }[] };
+    return { wedges, rays };
   })();
   // WHERE THE ELEMENT IS NAMED. Normally on the charge itself. When the charge is off the page --
   // which for an unbounded lesson is not a failure but the truth about where that piece lies --
@@ -637,7 +652,7 @@ export function ChargeDiagram({ problem, params: p, setParams, count, continuum,
     : fanned ? Array.from({ length: markCount }, (_, k) => rodLow + (rodHigh - rodLow) * (k + .5) / markCount).filter(clearOfCuts)
     : Array.from({ length: Math.max(1, n) }, (_, i) => rodLow + pieceSpan * (i + .5)).filter((_, i) => i % markStride === 0);
   const sourceLabel = surface ? `${elementSymbol} ${continuum>=.999?'=':'≈'} σ · 2πs ${continuum>=.999?'ds':'Δs'}` : id === 'ring' || id === 'arc' ? `${elementSymbol} = λR ${continuum>=.999?'dθ':'Δθ'}` : ramp ? `${elementSymbol} = λ₀(y/L) ${continuum>=.999?'dy':'Δy'}` : `${elementSymbol} = λ ${continuum>=.999?'dℓ':'Δℓ'}`;
-  const sourceText = id === 'disk' ? 'One ring sweeps out the disk' : surface ? 'Whole annulus · transverse fields cancel' : id === 'infinite' ? 'A section of a line that never ends · one piece is one angle at P' : id === 'semi' ? 'A section of a line with one end · one piece is one angle at P' : id === 'arc' ? 'Observation point fixed at center' : 'One piece at a time · the integral adds them all';
+  const sourceText = id === 'disk' ? 'One ring sweeps out the disk' : id === 'sheet' ? 'A section of a sheet that never ends · one ring is one angle at P' : surface ? 'Whole annulus · transverse fields cancel' : id === 'infinite' ? 'A section of a line that never ends · one piece is one angle at P' : id === 'semi' ? 'A section of a line with one end · one piece is one angle at P' : id === 'arc' ? 'Observation point fixed at center' : 'One piece at a time · the integral adds them all';
   const gaugeH = scalar ? 88 * vNow / vScale : 0, dvH = scalar ? 36 * sample.potential / dVmax : 0;
   return <div ref={root} className={"charge-diagram cd-focus-"+highlight+(inSpace?" cd-in-space":"")+(perspective?" cd-surface-kind":" cd-wire-kind")}
     data-element-annulus={sceneElement.annulus ? `${sceneElement.annulus.inner},${sceneElement.annulus.outer}` : undefined}>

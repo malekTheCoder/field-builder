@@ -39,6 +39,14 @@ const CANCELS: Record<string, string> = {
   arc: 'Now the piece at the mirror angle. One pushes P up and the other pushes it down by the same amount, so those cancel — and what is left of both points along the axis.',
   infinite: 'Now the piece mirrored on the far side. It pushes P along the line by exactly as much, the other way, so those cancel — and what is left of both points straight out from the line.',
   disk: 'A disk is rings, and every ring has already cancelled its own sideways pull against itself. There is nothing sideways left to draw: each ring pushes P straight along the axis.',
+  // The sheet cancels within each ring exactly as the disk does. What is different, and is the
+  // thing a reader carrying the line lessons' story will get wrong, is the tail: cut at equal
+  // angles from P, the rings push HARDER the further out they are, not softer.
+  sheet: 'A sheet is rings too, and each ring has already cancelled its own sideways pull. Nothing is left over to cancel — but notice the far rings. Each is weaker for its size, yet so much bigger that it pushes harder than the last.',
+  // No partner at all: the line stops at the foot of the perpendicular, so the sideways push
+  // survives. Saying "every contribution points much the same way" was wrong here -- they fan
+  // through a right angle -- and it hid the one consequence worth seeing.
+  semi: 'Nothing cancels here. The line stops right below P, so there is no charge on the other side to push back — every sideways push survives along with its outward one, which is why this field leans instead of pointing straight out.',
 };
 /* A scalar lesson must never borrow its field twin's cancellation story, even though it shares
  * the twin's geometry. V is a number; "the sideways parts cancel" is meaningless about it, and
@@ -50,7 +58,15 @@ const NO_CANCEL = 'Nothing cancels here. Every piece lies the same side of P, so
 const PAIRS = new Set(['bisector', 'infinite', 'ring', 'arc']);
 export function buildStages(p: Problem): BuildStage[] {
   const geometry = p.geometry, pairs = p.quantity === 'E' && PAIRS.has(geometry);
-  const piece = p.quantity === 'V' ? 'Each piece adds its own number to the total.' : 'Each piece pushes on P in its own direction, and a piece further away pushes more weakly.';
+  // How hard a piece pushes is where the geometries genuinely differ, so it is not said once for
+  // all of them. "A piece further away pushes more weakly" is true of a unit of charge and false
+  // of the pieces these lessons actually draw on the unbounded geometries: cut at equal angles
+  // from P, every piece of an infinite line pushes EXACTLY as hard, and a sheet's rings push
+  // harder the further out they are.
+  const piece = p.quantity === 'V' ? 'Each piece adds its own number to the total.'
+    : geometry === 'infinite' || geometry === 'semi' ? 'Each piece is cut to cover the same angle at P. That makes every one push exactly as hard: the far pieces hold more charge, but they are further away, and the two cancel.'
+    : geometry === 'sheet' ? 'Each ring is cut to cover the same angle at P. The far rings are further away, but they are so much bigger that they push harder, not softer.'
+    : 'Each piece pushes on P in its own direction. How hard depends on how much charge it holds and how far away it is.';
   return [
     {key: 'pieces', name: 'Cut it up', seconds: 3, mode: 'divide', components: false, pair: false, sum: [1, 1], continuum: [0, 0],
       caption: 'Start by cutting the charge into pieces small enough that each one is just a point charge — and for a point charge the field is something we already know.'},

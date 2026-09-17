@@ -8,14 +8,18 @@ import type {ProblemId} from './types';
  * This is the only place to change it. Adding an id hides that lesson behind the label; removing
  * one publishes it. Nothing else in the app needs touching either way.
  *
- * THE INFINITE SHEET is what is left. Its drawing is now fixable the same way the two line
- * lessons were -- one piece is one angle at P -- but its STORY is not the lines'. On a line the
- * far pieces push just as hard and almost entirely sideways, so they cancel against their mirror
- * partners; that is the argument the whole lesson makes. On a sheet the annuli are already axial,
- * nothing cancels, and the contributions INCREASE outward: at five pieces the outermost, unbounded
- * annulus is the single largest contributor at about 31% of the field. Reusing the lines'
- * narration here would teach the opposite of the truth. It also means `SHEET_FADE` in
- * `three/bodies.ts` currently dissolves the biggest contributor to nothing, which has to go.
+ * THE INFINITE SHEET is what is left, and now only for one reason: its drawn FIELD. The lines stop
+ * in mid-air above the plane -- no drawn chord comes within 0.3 m of the face -- and they wander
+ * sideways a little past the bar, so six checks in `physics-drawn-field-truth.test.ts` fail.
+ *
+ * Everything else was fixed on 2026-09-17. One ring is one angle at P, drawn as a cross-section
+ * of cones, so every ring can be pointed at. The chosen ring is no longer faded by distance --
+ * it used to be, which dissolved the outermost ring, the single largest contributor at about
+ * 31% of the field. And the words were corrected: the lines' story is the opposite of the
+ * truth here. On a line the far pieces push just as hard and almost entirely sideways; on a
+ * sheet each ring cancels its own sideways pull, and cut at equal angles the rings push HARDER
+ * the further out they are. The subtitle used to say the rings "exactly trade off", which reads
+ * as "every ring contributes the same" and is false; what trades off exactly is the height.
  *
  * THE POTENTIAL LESSONS (the five v-*) are held back because they are telling a weaker story than
  * their field twins. V is a scalar: there is no direction to add, nothing cancels, and the figure
