@@ -795,6 +795,12 @@ describe('lines arrive perpendicular to a charged surface',()=>{
   expect(exactTilt('disk',p,[.05*R,0,.3]),'near the axis the exact field must be near-normal').toBeLessThan(2);
  });
  for(const id of shipping(['disk','sheet'] as ProblemId[]))for(const q of [2,-2])
+  // Sixty seconds, because this is heavy on purpose: up to thirty chords per view, each held to a
+  // numerically integrated exact disk field. It took 1.4 s locally while the lines stopped short of
+  // the face and the strip was thin. Once they reached it the strip filled, and it takes 2.4 s here
+  // and 15.7 s on the CI runner, over the default ten. The app's own field build got FASTER in the
+  // same change (disk 23.8 -> 7.9 ms, sheet 46 -> 11 ms); it is the checking that grew, because
+  // there is now more to check.
   it(`${id}: every chord within 0.3 m of the face is tangent to the exact field, charge ${q}`,()=>{
    // Three degrees: the chord of a curve of radius ρ_c misses the tangent by (h/ρ_c)²/6, and
    // at the step these lessons use, 0.05·reach ≈ 0.1 m, against the metre-scale curvature of
@@ -831,7 +837,7 @@ describe('lines arrive perpendicular to a charged surface',()=>{
    const log=notes.join(' · ');
    expect(tested,`${id} q=${q}: no drawn chord comes within 0.3 m of the face inside 0.6R. ${log}`).toBeGreaterThan(0);
    expect(w.value,`${id} q=${q}: a chord misses the exact field by ${(w.value+3).toFixed(1)}° more than the field's own tilt — ${w.where}; worst angle from the bare normal anywhere in the strip ${wn.value.toFixed(1)}° (${wn.where}). ${log}`).toBeLessThan(0);
-  });
+  },60000);
  it('no line is launched closer to the charge than one step of the tracer',()=>{
   // A streamline tracer stops when it comes within `arrive` of an element, and it makes that
   // test AFTER taking a step. So the seed offset has to be at least one step, or the very
