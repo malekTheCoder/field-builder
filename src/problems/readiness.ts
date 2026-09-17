@@ -8,23 +8,31 @@ import type {ProblemId} from './types';
  * This is the only place to change it. Adding an id hides that lesson behind the label; removing
  * one publishes it. Nothing else in the app needs touching either way.
  *
- * Two groups are held back, for two different reasons.
- *
- * THE UNBOUNDED GEOMETRIES (infinite, semi, sheet) all draw a correct field now -- that was
- * today's work, and the numbers agree with an independent integrator. What is not right is the
- * PICTURE of one piece: an element of something infinite is itself unbounded, so "one piece,
- * highlighted" means drawing something enormous and mostly off the frame. Two of the infinite
- * line's five pieces, and one of the semi-infinite line's, sit outside the picture entirely. The
- * whole lesson is built on being able to point at one piece, and here you cannot. That wants a
- * different idea -- a broken axis, a piece that stands for the tail -- not a smaller number.
+ * THE INFINITE SHEET is what is left. Its drawing is now fixable the same way the two line
+ * lessons were -- one piece is one angle at P -- but its STORY is not the lines'. On a line the
+ * far pieces push just as hard and almost entirely sideways, so they cancel against their mirror
+ * partners; that is the argument the whole lesson makes. On a sheet the annuli are already axial,
+ * nothing cancels, and the contributions INCREASE outward: at five pieces the outermost, unbounded
+ * annulus is the single largest contributor at about 31% of the field. Reusing the lines'
+ * narration here would teach the opposite of the truth. It also means `SHEET_FADE` in
+ * `three/bodies.ts` currently dissolves the biggest contributor to nothing, which has to go.
  *
  * THE POTENTIAL LESSONS (the five v-*) are held back because they are telling a weaker story than
  * their field twins. V is a scalar: there is no direction to add, nothing cancels, and the figure
  * that makes the field lessons work -- watch the sideways parts kill each other -- has nothing to
  * show. They currently borrow their twin's picture and draw a gauge beside it, which is a chart,
- * not an argument. They come back when they have a picture of their own. */
+ * not an argument. They come back when they have a picture of their own.
+ *
+ * THE TWO LINE LESSONS came back on 2026-09-17. They were held back because a reader could not
+ * point at one piece: the partition is equal steps in the theta of y = r tan theta, which is the
+ * right partition and the reason the improper integral is tractable, but it put the outer pieces
+ * hundreds of metres away and the figure drew them as bands 33 000 pixels long. A piece is now
+ * the WEDGE between two rays out of P, which is on screen however far out its charge lies -- the
+ * substitution drawn instead of asserted. `tests/framing.browser.test.tsx` holds the bar they had
+ * to clear, and every physics check that was skipped for them now runs.
+ */
 export const COMING_SOON: ReadonlySet<ProblemId> = new Set<ProblemId>([
-  'infinite', 'semi', 'sheet',
+  'sheet',
   'v-ring', 'v-disk', 'v-arc', 'v-rod-bisector', 'v-rod-axial',
 ]);
 export const isReady = (id: ProblemId) => !COMING_SOON.has(id);

@@ -19,6 +19,7 @@ import { intervalKey, partitionCount, seamFractions, seamKey, splitFractions, sp
 import { clampCamera, depthFromScreen, keyboardCamera, openingCamera, orbitCamera, projectCamera, type CameraView } from './camera';
 import { ViewCube } from './ViewCube';
 import { placeLabels, type Box } from './labels';
+import { area, rayToEdge, sub as vsub, unit as direction, wedgePath } from './fan';
 import { FieldCanvas } from './FieldCanvas';
 import { FieldStage } from './three/FieldStage';
 import './charge-diagram.css';
@@ -246,8 +247,8 @@ export function ChargeDiagram({ problem, params: p, setParams, count, continuum,
     return { x: R * Math.cos(theta), y: R * Math.sin(theta), z: 0 };
   };
   const selectedPoint = project(sample.position), visible = (v: Point) => v.x > 45 && v.x < 665 && v.y > 58 && v.y < 365;
-  const sourceVisible = visible(selectedPoint);
-  const source = { x: clamp(selectedPoint.x, 52, 657), y: clamp(selectedPoint.y, 62, 362) };
+  const selectedOnFrame = visible(selectedPoint);
+  const clampToFrame = (v: Point): Point => ({ x: clamp(v.x, 52, 657), y: clamp(v.y, 62, 362) });
   // A common numeric scale applies to net and component arrows. The selected
   // element has an explicitly stated magnification so tiny dE remains inspectable.
   const fieldNorm = Math.max(magnitude(total), ...samples.map(s => magnitude(s.field)), 1e-9);
@@ -333,6 +334,51 @@ export function ChargeDiagram({ problem, params: p, setParams, count, continuum,
     const lo = selectedIndex / n, hi = (selectedIndex + 1) / n;
     return { path: Array.from({ length: 13 }, (_, k) => world(lo + (hi - lo) * k / 12)) };
   })();
+  // THE ANGULAR FAN, for the geometries whose charge runs off the page.
+  //
+  // These lessons cut the distribution the way their own derivation does -- equal steps in the
+  // theta of y = r tan theta -- which is the right partition and the reason the improper integral
+  // is tractable: every piece then contributes an identical |dE|. It also puts the outer pieces
+  // hundreds of metres away. The figure used to draw them literally, as bands 33 000 pixels long
+  // inside a 626-pixel window, so the first move of the lesson -- point at one piece -- had no
+  // target. Windowing the drawing does not help; the piece's own centre of charge is outside the
+  // window too, so there is nothing there to label.
+  //
+  // What is always in the picture is the ANGLE the piece subtends at P. A piece is drawn as the
+  // wedge between two rays out of P, and the outermost rays lie down along the wire rather than
+  // diverging, because that is where the charge went. The reader sees the infinite line resolved
+  // into a finite fan -- which is the substitution, drawn instead of asserted.
+  //
+  // Directions come from `world`, the same function the sampler partitions by, so the fan cannot
+  // drift from the pieces it names. Projection is linear, so a screen direction is the projected
+  // world direction and no clipping in world space is needed.
+  const fanned = (id === 'infinite' || id === 'semi') && continuum < .995;
+  const fan = (() => {
+    if (!fanned) return null;
+    const rect = { x: 42, y: 54, width: 626, height: 317 };
+    const edges = Array.from({ length: n + 1 }, (_, i) => direction(vsub(project(world(i / n)), P)));
+    const wedges = [];
+    for (let i = 0; i < n; i++) {
+      const a = edges[i], b = edges[i + 1];
+      if (!a || !b) continue;
+      const poly = wedgePath(P, a, b, rect);
+      // A wedge with no area is one pointing away from the picture: nothing to draw, nothing to
+      // click. Drawing it anyway would pin a sliver to the nearest edge and call it a piece.
+      if (poly.length < 3 || area(poly) < 40) continue;
+      const middle = direction(vsub(project(samples[i].position), P));
+      wedges.push({ index: i, key: intervalKey(i, n), points: poly.map(q => `${q.x.toFixed(1)},${q.y.toFixed(1)}`).join(' '), middle });
+    }
+    return { wedges, rays: edges.map((d, i) => d && ({ key: seamKey(i / n), end: rayToEdge(P, d, rect) })).filter(Boolean) as { key: string; end: Point }[] };
+  })();
+  // WHERE THE ELEMENT IS NAMED. Normally on the charge itself. When the charge is off the page --
+  // which for an unbounded lesson is not a failure but the truth about where that piece lies --
+  // the name goes on its wedge instead, a little way out from P along the middle of the angle the
+  // piece subtends. The reader is pointed at something real and on screen, rather than told the
+  // piece is "outside view", which named nothing and was the reason these lessons were held back.
+  const selectedWedge = fan?.wedges.find(w => w.index === selectedIndex) ?? null;
+  const wedgeAnchor = selectedWedge?.middle ? clampToFrame({ x: P.x + selectedWedge.middle.x * 92, y: P.y + selectedWedge.middle.y * 92 }) : null;
+  const sourceVisible = selectedOnFrame || !!wedgeAnchor;
+  const source = selectedOnFrame || !wedgeAnchor ? clampToFrame(selectedPoint) : wedgeAnchor;
   const elementSymbol = continuum>=.999 ? 'dQ' : 'ΔQ';
   const fieldSymbol = continuum>=.999 ? 'dE' : 'ΔE';
   const partnerIndex = id === 'ring' ? (selectedIndex + Math.floor(n / 2)) % n : n - 1 - selectedIndex;
@@ -585,7 +631,7 @@ export function ChargeDiagram({ problem, params: p, setParams, count, continuum,
     : ramp ? Array.from({ length: markCount }, (_, k) => rodHigh - (rodHigh - rodLow) * Math.sqrt((k + .5) / markCount)).filter(clearOfCuts)
     : Array.from({ length: Math.max(1, n) }, (_, i) => rodLow + pieceSpan * (i + .5)).filter((_, i) => i % markStride === 0);
   const sourceLabel = surface ? `${elementSymbol} ${continuum>=.999?'=':'≈'} σ · 2πs ${continuum>=.999?'ds':'Δs'}` : id === 'ring' || id === 'arc' ? `${elementSymbol} = λR ${continuum>=.999?'dθ':'Δθ'}` : ramp ? `${elementSymbol} = λ₀(y/L) ${continuum>=.999?'dy':'Δy'}` : `${elementSymbol} = λ ${continuum>=.999?'dℓ':'Δℓ'}`;
-  const sourceText = id === 'disk' ? 'One ring sweeps out the disk' : surface ? 'Whole annulus · transverse fields cancel' : id === 'infinite' || id === 'semi' ? 'Unbounded source · visible window shown' : id === 'arc' ? 'Observation point fixed at center' : 'One piece at a time · the integral adds them all';
+  const sourceText = id === 'disk' ? 'One ring sweeps out the disk' : surface ? 'Whole annulus · transverse fields cancel' : id === 'infinite' ? 'A section of a line that never ends · one piece is one angle at P' : id === 'semi' ? 'A section of a line with one end · one piece is one angle at P' : id === 'arc' ? 'Observation point fixed at center' : 'One piece at a time · the integral adds them all';
   const gaugeH = scalar ? 88 * vNow / vScale : 0, dvH = scalar ? 36 * sample.potential / dVmax : 0;
   return <div ref={root} className={"charge-diagram cd-focus-"+highlight+(inSpace?" cd-in-space":"")+(perspective?" cd-surface-kind":" cd-wire-kind")}
     data-element-annulus={sceneElement.annulus ? `${sceneElement.annulus.inner},${sceneElement.annulus.outer}` : undefined}>
@@ -639,6 +685,14 @@ export function ChargeDiagram({ problem, params: p, setParams, count, continuum,
         {inSpace ? <><path d={`M${2 * O.x - axisX.x} ${2 * O.y - axisX.y}L${axisX.x} ${axisX.y} M${2 * O.x - axisY.x} ${2 * O.y - axisY.y}L${axisY.x} ${axisY.y} M${O.x} ${O.y + 27}V60`} /><text data-anchor="fixed" {...axisTip(axisX, 13, 5)}>x</text><text data-anchor="fixed" {...axisTip(axisY, 13, 5)}>y</text><text data-anchor="fixed" x={O.x + 10} y="67">z</text></> : <><path d={`M64 ${O.y}H656 M${O.x} 365V60`} /><text data-anchor="fixed" x="664" y={O.y + 5}>x</text><text data-anchor="fixed" x={O.x + 11} y="64">y</text></>}
       </g>
       <g clipPath={`url(#${uid}clip)`}>
+        {/* Painted first, under everything: it is the frame the rest of the figure sits in, not a
+            mark on top of it. Each wedge carries the same selection as the band it stands for, so
+            a piece whose charge is off the page is still something a reader can click. */}
+        {fan && <g className={'cd-fan' + (mode === 'divide' || mode === 'project' ? '' : ' is-quiet')}>
+          {fan.wedges.map(w => <polygon key={w.key} data-wedge-key={w.key} className={'cd-wedge' + (w.index === selectedIndex ? ' is-selected' : '')}
+            points={w.points} onPointerDown={ev => { ev.stopPropagation(); onSelect(w.index); }}><title>{`Piece ${w.index + 1} of ${n}`}</title></polygon>)}
+          {fan.rays.map(r => <line key={r.key} className="cd-ray" x1={P.x} y1={P.y} x2={r.end.x.toFixed(1)} y2={r.end.y.toFixed(1)} />)}
+        </g>}
         {perspective && <g ref={plane} className="cd-orbit-plane" transform={planeMatrix(view.yaw, view.pitch, O, unit)}>
           {id === 'sheet' && <motion.path layoutId="fb-source-surface" data-source-body="true" data-dim="charge" initial={false} animate={{ d: pathThrough(worldArc(7), true) }} transition={{ duration: still ? 0 : .45 }} className="cd-surface" style={{ opacity: inSpace ? 0 : 1 }} />}
           {id === 'disk' && <>
@@ -680,7 +734,13 @@ export function ChargeDiagram({ problem, params: p, setParams, count, continuum,
             shape = <motion.path initial={false} animate={{ d: pathThrough(circlePoints(R, a0, a1)) }} transition={{ duration: still ? 0 : .18 }} fill="none" strokeWidth={active ? 10 : 7} />;
           } else {
             const head = along(project(world(i / n))), tail = along(project(world((i + 1) / n)));
-            const lo = Math.min(head, tail), hi = Math.max(head, tail), extent = Math.max(1, hi - lo);
+            // Windowed to the drawn rod, not to where the charge actually reaches. An unbounded
+            // lesson's outer piece runs to hundreds of metres, which came out as a band 33 000
+            // pixels long inside a 626-pixel window -- not a piece of charge a reader can see but
+            // a wash of colour behind the whole figure that happens to be clipped. It is cut off
+            // at the rod's own ends, where the continuation marks already say it goes on.
+            const lo = Math.max(Math.min(head, tail), rodLow - 6), hi = Math.min(Math.max(head, tail), rodHigh + 6);
+            const extent = Math.max(1, hi - lo);
             if (hi < rodLow - 8 || lo > rodHigh + 8) return null;
             const shade = ramp && !active ? { fillOpacity: .08 + .92 * s.position.y / p.size } : undefined;
             shape = upright ? <rect x={pos.x - rodHalf} y={lo} width={rodHalf * 2} height={extent} {...shade} /> : <rect x={lo} y={pos.y - rodHalf} width={extent} height={rodHalf * 2} />;

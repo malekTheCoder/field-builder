@@ -166,6 +166,22 @@
 .cd-focus-size [data-source-body]{stroke-width:7}
 @media (prefers-reduced-motion:reduce){.cd-dimension [data-dim],.cd-svg [data-dim]{transition:none}}
 
+/* THE ANGULAR FAN of the unbounded lessons.
+   Quiet on purpose: it is the scaffolding the argument stands on, not a mark competing with
+   the charge or the arrows. The selected wedge is the one that speaks. */
+.cd-fan{transition:opacity .3s ease}
+.cd-fan.is-quiet{opacity:.45}
+.cd-ray{stroke:var(--charge);stroke-opacity:.16;stroke-width:1;fill:none;pointer-events:none}
+/* Only the chosen wedge is painted. Five filled wedges read as a wash of colour behind the
+   figure rather than as five pieces -- the drawing stops being a line of charge with a point
+   beside it and becomes a pinwheel. The others stay as invisible targets, so every piece is
+   still something a reader can click even when its charge is off the page. */
+.cd-wedge{fill:var(--charge);fill-opacity:0;stroke:none;cursor:pointer;transition:fill-opacity .18s ease}
+.cd-wedge:hover{fill-opacity:.05}
+.cd-wedge.is-selected{fill-opacity:.1}
+.cd-wedge.is-selected:hover{fill-opacity:.13}
+@media (prefers-reduced-motion:reduce){.cd-fan,.cd-wedge{transition:none}}
+
 /* The field layer sits under the construction and never takes a pointer: everything
    interactive lives in the SVG above it. */
 .cd-stage{position:relative}
