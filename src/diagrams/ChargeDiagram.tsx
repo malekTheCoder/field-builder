@@ -398,6 +398,9 @@ export function ChargeDiagram({ problem, params: p, setParams, count, continuum,
   const fieldSymbol = continuum>=.999 ? 'dE' : 'ΔE';
   const partnerIndex = id === 'ring' ? (selectedIndex + Math.floor(n / 2)) % n : n - 1 - selectedIndex;
   const supportsPair = !scalar && (id === 'bisector' || id === 'infinite' || id === 'ring' || id === 'arc');
+  // A potential lesson has a mirror partner wherever its field twin does, and showing it is the
+  // point: the piece that CANCELS the field's sideways push ADDS the same amount to V.
+  const scalarPartner = scalar && pair && (id === 'bisector' || id === 'ring' || id === 'arc');
   const [cancelT, setCancelT] = useState(0);
   const cancelRun = useRef<ReturnType<typeof animate> | null>(null);
   useEffect(() => {
@@ -653,7 +656,6 @@ export function ChargeDiagram({ problem, params: p, setParams, count, continuum,
     : Array.from({ length: Math.max(1, n) }, (_, i) => rodLow + pieceSpan * (i + .5)).filter((_, i) => i % markStride === 0);
   const sourceLabel = surface ? `${elementSymbol} ${continuum>=.999?'=':'≈'} σ · 2πs ${continuum>=.999?'ds':'Δs'}` : id === 'ring' || id === 'arc' ? `${elementSymbol} = λR ${continuum>=.999?'dθ':'Δθ'}` : ramp ? `${elementSymbol} = λ₀(y/L) ${continuum>=.999?'dy':'Δy'}` : `${elementSymbol} = λ ${continuum>=.999?'dℓ':'Δℓ'}`;
   const sourceText = id === 'disk' ? 'One ring sweeps out the disk' : id === 'sheet' ? 'A section of a sheet that never ends · one ring is one angle at P' : surface ? 'Whole annulus · transverse fields cancel' : id === 'infinite' ? 'A section of a line that never ends · one piece is one angle at P' : id === 'semi' ? 'A section of a line with one end · one piece is one angle at P' : id === 'arc' ? 'Observation point fixed at center' : 'One piece at a time · the integral adds them all';
-  const gaugeH = scalar ? 88 * vNow / vScale : 0, dvH = scalar ? 36 * sample.potential / dVmax : 0;
   return <div ref={root} className={"charge-diagram cd-focus-"+highlight+(inSpace?" cd-in-space":"")+(perspective?" cd-surface-kind":" cd-wire-kind")}
     data-element-annulus={sceneElement.annulus ? `${sceneElement.annulus.inner},${sceneElement.annulus.outer}` : undefined}>
     {/* Field under construction, sharing one box so the two coordinate spaces cannot
@@ -773,7 +775,7 @@ export function ChargeDiagram({ problem, params: p, setParams, count, continuum,
           {seamFractions(n).map(t => { const mark = seamStroke(t, 1); return mark ? <g key={seamKey(t)} data-seam={seamKey(t)} className="cd-seam">{mark}</g> : null; })}
           {split > .04 && split < .995 && splitFractions(n).map(t => { const mark = seamStroke(t, split); return mark ? <g key={seamKey(t)} data-seam={seamKey(t)} className="cd-seam is-growing" style={{ opacity: split }}>{mark}</g> : null; })}
         </g>}
-        {!surface && supportsPair && pair && showContribution && <><line x1={partnerPos.x} y1={partnerPos.y} x2={P.x} y2={P.y} className="cd-construction cd-pair" /><circle cx={partnerPos.x} cy={partnerPos.y} r="9" className="cd-partner" /></>}
+        {!surface && ((supportsPair && pair) || scalarPartner) && showContribution && <><line x1={partnerPos.x} y1={partnerPos.y} x2={P.x} y2={P.y} className="cd-construction cd-pair" /><circle cx={partnerPos.x} cy={partnerPos.y} r="9" className="cd-partner" /></>}
         {showContribution && <line x1={selectedPoint.x} y1={selectedPoint.y} x2={P.x} y2={P.y} className="cd-construction" />}
       </g>
       {id === 'infinite' && <g className="cd-infinity"><path d={`M${O.x-10} 73l20-9m-20 17 20-9M${O.x-10} 351l20-9m-20 17 20-9`} /><text x={O.x - 38} y="76">+∞</text><text x={O.x - 38} y="356">−∞</text></g>}
@@ -807,12 +809,44 @@ export function ChargeDiagram({ problem, params: p, setParams, count, continuum,
       {inSpace && <ViewHelp x={578} y={34} />}
       {!scalar && <Vector from={P} to={plus(P, net)} width={3.5} label={continuum>=.999&&full&&progress>=.999?'E':'Σ ΔE'} reduced={still} ghost={inSpace} />}
 {!scalar && magnitude(displayed) < 1e-8 && <text x={P.x-16} y={P.y-47} textAnchor="end" className="cd-zero">E = 0</text>}
-      {scalar && <g className="cd-gauge" aria-hidden="true">
-        <line x1={P.x+26} y1={P.y-92} x2={P.x+26} y2={P.y+92} />
-        <rect x={P.x+21} y={gaugeH < 0 ? P.y : P.y - gaugeH} width="10" height={Math.abs(gaugeH)} rx="2" />
-        {showContribution && <rect x={P.x+38} y={dvH < 0 ? P.y : P.y - dvH} width="6" height={Math.abs(dvH)} rx="1" className="cd-gauge-dv" />}
-        <text x={P.x+42} y={P.y - Math.max(14, Math.abs(gaugeH) + 8)}>{continuum>=.999&&full&&progress>=.999?'V':'Σ ΔV'}</text>
-      </g>}
+      {/* THE POTENTIAL'S OWN PICTURE: the pieces' contributions, stacked.
+          The field chains its pieces' arrows head to tail in the plane; the potential chains its
+          pieces' NUMBERS head to tail along a line. It is the same sum with one dimension taken
+          away, and that is the whole difference between the two lessons made visible: a chain
+          that can only run one way can never bend back and cancel.
+
+          It used to be one thermometer bar beside P, which showed a total with no visible
+          origin -- a chart, not an argument. Now every piece owns a segment of the column, in
+          order, so the reader sees V is literally the pieces piled up; the chosen segment is lit;
+          the sum fills the column the way the field's chain grows; and a mirror partner lights a
+          second segment of the same size, adding where the field lesson's partner cancels.
+          On the ring and the arc the segments come out all equal, because every piece is the
+          same distance away -- the reason those two potentials need no integral at all. */}
+      {scalar && (() => {
+        // Beside P, on whichever side the charge is not: the arc curls round the right of its
+        // centre, so its column goes on the left rather than up through the construction lines.
+        const w = 12, leftSide = id === 'arc', perVolt = 88 / vScale, x = leftSide ? P.x - 22 - w : P.x + 22, fine = n > 64;
+        const summing = mode === 'sum' || mode === 'integrate';
+        let at = 0;
+        const slots = samples.map((s, i) => { const h = s.potential * perVolt; const slot = { i, lo: at, hi: at + h }; at += h; return slot; });
+        let got = 0;
+        const filled = summing ? samples.map((s, i) => { const h = s.potential * perVolt * (weights[i] ?? 0); const slot = { i, lo: got, hi: got + h }; got += h; return slot; }).filter(sl => Math.abs(sl.hi - sl.lo) > .02) : [];
+        const box = (lo: number, hi: number) => ({ y: Math.min(P.y - lo, P.y - hi), height: Math.max(.6, Math.abs(hi - lo)) });
+        const lit = new Set<number>([selectedIndex, ...(scalarPartner ? [partnerIndex] : [])]);
+        const top = summing ? got : at, up = top >= 0;
+        return <g className="cd-gauge" aria-hidden="true" data-stack={String(n)}>
+          <line x1={x + w / 2} y1={P.y - 96} x2={x + w / 2} y2={P.y + 96} />
+          {fine
+            ? <rect className="cd-stack-slot" x={x} width={w} {...box(0, at)} />
+            : slots.map(sl => <rect key={sl.i} data-stack-slot={sl.i} className={'cd-stack-slot' + (lit.has(sl.i) ? ' is-lit' : '')} x={x} width={w} {...box(sl.lo, sl.hi)}
+                onPointerDown={ev => { ev.stopPropagation(); onSelect(sl.i); }} />)}
+          {summing && (fine
+            ? <rect className="cd-stack-fill" x={x} width={w} {...box(0, got)} />
+            : filled.map(sl => <rect key={sl.i} className={'cd-stack-fill' + (lit.has(sl.i) ? ' is-lit' : '')} x={x} width={w} {...box(sl.lo, sl.hi)} />))}
+          {!summing && showContribution && [...lit].map(i => slots[i] && <rect key={'lit' + i} data-stack-lit={i} className="cd-stack-fill is-lit" x={x} width={w} {...box(slots[i].lo, slots[i].hi)} />)}
+          <text x={leftSide ? x - 7 : x + w + 7} textAnchor={leftSide ? 'end' : 'start'} y={up ? P.y - Math.max(12, top) - 6 : P.y - Math.min(-12, top) + 16}>{continuum>=.999&&full&&progress>=.999?'V':'Σ ΔV'}</text>
+        </g>;
+      })()}
       <g {...(id === 'arc' ? {} : handle('P'))} className={`cd-observation ${id === 'arc' ? 'is-fixed' : ''}`}>
         <circle data-orbit-p="true" cx={P.x} cy={P.y} r="28" fill={`url(#${uid}point)`} style={{ opacity: inSpace ? 0 : 1 }} /><circle data-orbit-p="true" cx={P.x} cy={P.y} r="16" className="cd-point-halo" style={{ opacity: inSpace ? 0 : 1 }} /><circle data-orbit-p="true" cx={P.x} cy={P.y} r="5" className="cd-point" style={{ opacity: inSpace ? 0 : 1 }} /><text data-orbit-p="true" x={P.x-10} y={P.y+31} className="cd-point-label">{id === 'arc' ? 'P = O' : 'P'}</text>
       </g>

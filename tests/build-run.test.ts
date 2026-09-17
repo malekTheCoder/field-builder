@@ -42,15 +42,29 @@ describe('the build sequence tells the same story for every lesson', () => {
   // Mirrors `supportsPair` in ChargeDiagram. Asking for a partner the figure will not draw
   // would leave the cancellation stage sitting on an unchanged picture for four seconds --
   // which is worse than not claiming anything, because the caption claims something.
+  // The potential lessons with a partner at the same distance ask for one too: there the partner
+  // ADDS, which is the contrast with the field. `tests/build-ui.browser.test.tsx` checks the figure
+  // really lights it, so this list cannot promise a partner the drawing does not show.
   const asks = PROBLEMS.filter(p => buildStages(p)[2].pair).map(p => p.id).sort();
-  expect(asks).toEqual(['arc', 'bisector', 'infinite', 'ring']);
+  expect(asks).toEqual(['arc', 'bisector', 'infinite', 'ring', 'v-arc', 'v-ring', 'v-rod-bisector']);
  });
  it('a scalar lesson never claims anything cancels', () => {
   // V is a number. There is no direction to cancel, and saying otherwise would teach the one
   // confusion these lessons exist to prevent.
   for (const p of PROBLEMS.filter(p => p.quantity === 'V')) {
-   expect(buildStages(p)[2].pair, p.id).toBe(false);
-   expect(buildStages(p)[2].caption, p.id).toMatch(/nothing cancels|already cancelled/i);
+   const stage = buildStages(p)[2];
+   expect(stage.caption, p.id).toMatch(/nothing cancels|already cancelled/i);
+   // A partner may be shown, but only ever as something that adds.
+   if (stage.pair) expect(stage.caption, p.id).toMatch(/adds/);
+  }
+ });
+ it('a scalar lesson never talks about arrows', () => {
+  // A potential has no direction, so a caption about arrows bending or a chain of arrows is not
+  // a simplification of the truth, it is a different lesson. The run used to tell it anyway.
+  for (const p of PROBLEMS.filter(p => p.quantity === 'V')) for (const stage of buildStages(p)) {
+   // The phrases that ASSERT arrows are being added, not the word itself: "V is a number, not an
+   // arrow" is exactly right and a ban on the word would reject it.
+   expect(stage.caption, `${p.id} · ${stage.key}`).not.toMatch(/each arrow|chain of arrows|arrow starting|bends the way|what survives/i);
   }
  });
  it('every lesson a reader can actually open has a run under half a minute', () => {

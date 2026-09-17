@@ -96,6 +96,48 @@ describe('watch it build', () => {
   await waitFor(() => expect(footer(view)).toContain('In the limit'), {timeout: 9000});
  });
 });
+describe('the potential has a picture of its own', () => {
+ // A potential lesson used to put one thermometer bar beside P -- a total with no visible
+ // origin. It now stacks every piece's contribution into a column, so V is seen to be the pieces
+ // piled up. These check the column against the physics it claims to show.
+ const segments = (view: {container: HTMLElement}) =>
+  [...view.container.querySelectorAll<SVGRectElement>('[data-stack-slot]')].map(r => Number(r.getAttribute('height')));
+ it('the ring stacks equal segments, because every piece is the same distance away', async () => {
+  const view = await openLesson('v-ring');
+  const heights = segments(view);
+  expect(heights.length).toBe(5);
+  for (const h of heights) expect(h / heights[0]).toBeCloseTo(1, 6);
+ });
+ it('the rod does not, because its pieces are not, and by exactly the ratio of their distances', async () => {
+  // The middle of a rod on its bisector is nearer P than its ends, so its segments must differ --
+  // otherwise the equal ring segments above would prove nothing. Equal charge per piece means
+  // each segment goes as 1/distance, so the middle-to-end ratio is the end-to-middle distance
+  // ratio: at L = 4 and r = 3 with five pieces, sqrt(3^2 + 1.6^2) / 3.
+  const view = await openLesson('v-rod-bisector');
+  const heights = segments(view);
+  const middle = heights[2], end = heights[0];
+  expect(heights[4] / end).toBeCloseTo(1, 6);
+  expect(middle).toBe(Math.max(...heights));
+  expect(middle / end).toBeCloseTo(Math.hypot(3, 1.6) / 3, 4);
+ });
+ it('the mirror stage lights two segments of the same size: the partner adds', async () => {
+  const view = await openLesson('v-rod-bisector');
+  fireEvent.click(view.getByRole('button', {name: 'Watch it build'}));
+  jump(view, 3, 'What cancels');
+  await waitFor(() => expect(view.container.querySelectorAll('[data-stack-lit]').length).toBe(2));
+  const lit = [...view.container.querySelectorAll('[data-stack-lit]')].map(r => Number(r.getAttribute('height')));
+  expect(lit[0] / lit[1]).toBeCloseTo(1, 6);
+  // And the partner itself is marked on the charge, not just in the column.
+  expect(view.container.querySelector('.cd-partner')).toBeTruthy();
+ });
+ it('a potential with no partner at the same distance lights only its own segment', async () => {
+  const view = await openLesson('v-rod-axial');
+  fireEvent.click(view.getByRole('button', {name: 'Watch it build'}));
+  jump(view, 3, 'What cancels');
+  await waitFor(() => expect(view.container.querySelectorAll('[data-stack-lit]').length).toBe(1));
+  expect(view.container.querySelector('.cd-partner')).toBeNull();
+ });
+});
 describe('a slider says what it moves', () => {
  // Stripping the numbers off the site left the controls saying only "r", "L", "Q". True, and
  // unreadable until you know which mark on the figure each letter names -- and the only way

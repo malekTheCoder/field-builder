@@ -4,7 +4,7 @@ An interactive electric-field workbench for calculus-based introductory physics 
 
 **Live site:** [https://field.malekswilam.dev](https://field.malekswilam.dev) — public, no student accounts.
 
-Fifteen lessons are in the library. **Seven are live** — the two rod positions, the rod past its end, the ramp rod, the ring, the disk and the arc. **Eight are marked *Coming soon***: the three unbounded geometries and the five potential lessons. They are listed rather than hidden, so a reader can see the whole plan and tell the gap is deliberate; `src/problems/readiness.ts` is the only switch, and why each one is held back is written there.
+Fifteen lessons are in the library. **Fourteen are live**: ten field geometries and five potential lessons, less the infinite sheet, which is marked *Coming soon*. They are listed rather than hidden, so a reader can see the whole plan and tell the gap is deliberate; `src/problems/readiness.ts` is the only switch, and why each one is held back is written there.
 
 ## In class
 
@@ -74,20 +74,26 @@ Potential lessons (`v-ring`, `v-disk`, `v-arc`, `v-rod-bisector`, `v-rod-axial`)
 Ids marked *(coming soon)* are listed in the library but cannot be opened yet; a shared link
 pointing at one is ignored rather than followed.
 
+On the three unbounded geometries a piece is drawn as **one angle at P**: the partition is equal
+steps in θ, so an outer piece's charge lies hundreds of metres away, but the wedge it subtends at
+P is always on screen and can be clicked. On a potential lesson the pieces' contributions are
+**stacked into a column** beside P, the same head-to-tail sum as the field's chain of arrows with
+one dimension taken away.
+
 **Field**
 
 1. Finite line, perpendicular bisector (`bisector`)
 2. Finite line, axial point beyond the end (`axial`)
-3. Infinite line — angular substitution or finite-line limit (`infinite`) *(coming soon)*
+3. Infinite line — angular substitution or finite-line limit (`infinite`)
 4. Ring, central axis (`ring`)
 5. Disk, built from annular rings (`disk`)
-6. Semi-infinite line — both components survive (`semi`) *(coming soon)*
+6. Semi-infinite line — both components survive (`semi`)
 7. Arc, center of curvature (`arc`)
 8. Infinite nonconducting sheet (`sheet`) *(coming soon)*
 9. Finite rod standing on its end, P level with that end (`endpoint`)
 10. The same rod with λ(y) = λ₀y/L — symmetry fails for position and for charge; the far field remembers the centre of charge at 2L/3 (`ramp`)
 
-**Potential** (same layouts; scalar integral) — *all five coming soon*
+**Potential** (same layouts; scalar integral)
 
 11. Ring axis (`v-ring`)
 12. Disk axis (`v-disk`)
@@ -132,7 +138,7 @@ Source references are embedded in the problem definitions and shown with the wor
 
 ## Tests
 
-`npm test` currently runs **1554 passing tests** across **43 files**, plus 13 skipped — the checks belonging to lessons held back in `readiness.ts`, which come back on their own when a lesson is published. They cover:
+`npm test` currently runs **1598 passing tests** across **44 files**, plus 6 skipped — the checks belonging to the infinite sheet, held back in `readiness.ts`, which come back on their own when it is published. They cover:
 
 - every closed form against independent point-charge quadrature, including the five potentials and both charge polarities;
 - the limiting cases the app asserts — rod to point charge, rod to infinite line, disk to sheet, zero field at a ring's center with its axial maximum at z = R/√2, a closing arc cancelling to zero, distance-independence of the sheet, ramp far-field and first-moment;

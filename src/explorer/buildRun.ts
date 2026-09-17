@@ -53,31 +53,43 @@ const CANCELS: Record<string, string> = {
  * teaching it here would plant the exact confusion these lessons exist to clear up. */
 const NO_CANCEL_V = 'Nothing cancels here, and nothing can: V is a number, not an arrow, so there is no direction in which one piece could undo another. Every piece simply adds what it is worth, and a positive charge always adds something positive.';
 const NO_CANCEL = 'Nothing cancels here. Every piece lies the same side of P, so every contribution points much the same way and all of it survives. Cancellation is a gift of symmetry, and this geometry does not have it.';
-/** Does the figure draw a mirror partner for this geometry? Mirrors `supportsPair` in the
- * diagram: asking for a partner it will not draw would leave the stage showing nothing. */
+/** Does the figure draw a mirror partner for this geometry? Mirrors `supportsPair` and
+ * `scalarPartner` in the diagram: asking for a partner it will not draw would leave the stage
+ * showing nothing. A potential lesson gets one wherever it has a partner at the same distance,
+ * because there the contrast with the field is the lesson: the same piece cancels one and adds
+ * to the other. */
 const PAIRS = new Set(['bisector', 'infinite', 'ring', 'arc']);
+const SCALAR_PAIRS = new Set(['bisector', 'ring', 'arc']);
+const PARTNER_ADDS_V = 'Now its mirror partner. For the field these two would cancel each other sideways, but nothing cancels in a potential. The partner is the same distance from P, so it adds exactly the same amount, and both go on the pile.';
 export function buildStages(p: Problem): BuildStage[] {
-  const geometry = p.geometry, pairs = p.quantity === 'E' && PAIRS.has(geometry);
+  const geometry = p.geometry, scalar = p.quantity === 'V';
+  const pairs = scalar ? SCALAR_PAIRS.has(geometry) : PAIRS.has(geometry);
   // How hard a piece pushes is where the geometries genuinely differ, so it is not said once for
   // all of them. "A piece further away pushes more weakly" is true of a unit of charge and false
   // of the pieces these lessons actually draw on the unbounded geometries: cut at equal angles
   // from P, every piece of an infinite line pushes EXACTLY as hard, and a sheet's rings push
   // harder the further out they are.
-  const piece = p.quantity === 'V' ? 'Each piece adds its own number to the total.'
+  const piece = scalar ? 'Each piece adds its own number to the total, and that number depends only on how far away the piece is. Direction does not come into it at all, which is what makes a potential so much easier to add up than a field.'
     : geometry === 'infinite' || geometry === 'semi' ? 'Each piece is cut to cover the same angle at P. That makes every one push exactly as hard: the far pieces hold more charge, but they are further away, and the two cancel.'
     : geometry === 'sheet' ? 'Each ring is cut to cover the same angle at P. The far rings are further away, but they are so much bigger that they push harder, not softer.'
     : 'Each piece pushes on P in its own direction. How hard depends on how much charge it holds and how far away it is.';
   return [
     {key: 'pieces', name: 'Cut it up', seconds: 3, mode: 'divide', components: false, pair: false, sum: [1, 1], continuum: [0, 0],
-      caption: 'Start by cutting the charge into pieces small enough that each one is just a point charge — and for a point charge the field is something we already know.'},
+      caption: `Start by cutting the charge into pieces small enough that each one is just a point charge — and for a point charge the ${scalar ? 'potential' : 'field'} is something we already know.`},
     {key: 'one', name: 'One piece', seconds: 3, mode: 'project', components: true, pair: false, sum: [1, 1], continuum: [0, 0],
       caption: piece},
     {key: 'cancel', name: 'What cancels', seconds: pairs ? 4.5 : 3, mode: 'project', components: true, pair: pairs, sum: [1, 1], continuum: [0, 0],
-      caption: p.quantity === 'V' ? NO_CANCEL_V : CANCELS[geometry] ?? NO_CANCEL},
+      caption: scalar ? (pairs ? PARTNER_ADDS_V : NO_CANCEL_V) : CANCELS[geometry] ?? NO_CANCEL},
     {key: 'add', name: 'Add them up', seconds: 7, mode: 'sum', components: false, pair: false, sum: [0, 1], continuum: [0, 0],
-      caption: 'Now add what survives, piece by piece, each arrow starting where the last one ended. The chain bends the way the geometry does, and where it stops is the field at P.'},
+      // An arrow chain for a field and a column for a potential: the same sum, one dimension
+      // down. The field's caption talked about arrows bending, which a scalar has none of.
+      caption: scalar
+        ? 'Now stack every piece’s number on top of the last. The column can only grow one way — there is no direction for it to bend back in — and its height is the potential at P.'
+        : 'Now add what survives, piece by piece, each arrow starting where the last one ended. The chain bends the way the geometry does, and where it stops is the field at P.'},
     {key: 'limit', name: 'Shrink them', seconds: 4, mode: 'integrate', components: false, pair: false, sum: [1, 1], continuum: [0, 1],
-      caption: 'Finally, make the pieces smaller without end. The chain of arrows becomes a smooth curve, the sum becomes the integral, and the answer stops depending on how finely we chose to cut.'},
+      caption: scalar
+        ? 'Finally, make the pieces smaller without end. Each segment of the column gets too thin to see, the sum becomes the integral, and the height stops depending on how finely we chose to cut.'
+        : 'Finally, make the pieces smaller without end. The chain of arrows becomes a smooth curve, the sum becomes the integral, and the answer stops depending on how finely we chose to cut.'},
   ];
 }
 export const totalSeconds = (stages: readonly BuildStage[]) => stages.reduce((t, s) => t + s.seconds, 0);

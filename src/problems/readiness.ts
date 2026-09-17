@@ -21,11 +21,16 @@ import type {ProblemId} from './types';
  * the further out they are. The subtitle used to say the rings "exactly trade off", which reads
  * as "every ring contributes the same" and is false; what trades off exactly is the height.
  *
- * THE POTENTIAL LESSONS (the five v-*) are held back because they are telling a weaker story than
- * their field twins. V is a scalar: there is no direction to add, nothing cancels, and the figure
- * that makes the field lessons work -- watch the sideways parts kill each other -- has nothing to
- * show. They currently borrow their twin's picture and draw a gauge beside it, which is a chart,
- * not an argument. They come back when they have a picture of their own.
+ * THE FIVE POTENTIAL LESSONS came back on 2026-09-17. They were held back for telling a weaker
+ * story than their field twins: they borrowed the twin's figure and put one thermometer bar
+ * beside P, a total with no visible origin -- a chart, not an argument. They now have a picture
+ * of their own. The field chains its pieces' ARROWS head to tail in the plane; the potential
+ * chains its pieces' NUMBERS head to tail along a line, so the bar became a column of every
+ * piece's own contribution. That is the same sum with one dimension taken away, which is the
+ * whole difference between the two lessons made visible: a chain that can only run one way can
+ * never bend back and cancel. On the ring and the arc the segments come out equal, because
+ * every piece is the same distance away, and a mirror partner lights a second segment of the
+ * same size -- adding, where the field lesson's partner cancels.
  *
  * THE TWO LINE LESSONS came back on 2026-09-17. They were held back because a reader could not
  * point at one piece: the partition is equal steps in the theta of y = r tan theta, which is the
@@ -37,7 +42,6 @@ import type {ProblemId} from './types';
  */
 export const COMING_SOON: ReadonlySet<ProblemId> = new Set<ProblemId>([
   'sheet',
-  'v-ring', 'v-disk', 'v-arc', 'v-rod-bisector', 'v-rod-axial',
 ]);
 export const isReady = (id: ProblemId) => !COMING_SOON.has(id);
 /** Said once, in the one place a reader meets it, and kept short enough to sit under a name. */
