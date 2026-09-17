@@ -291,7 +291,8 @@ export function FieldStage(props:FieldStageProps){
     clearGroup(field);
     if(p.fieldView==='off'||!p.samples.length)return;
     const layout:Layout=p.kind==='wire'?'wire':'surface';
-    // A surface's annuli are spread into rings of points before summing, so fewer of them.
+    // A surface's annuli are each summed as a whole ring, about four point charges' arithmetic
+    // apiece, so fewer of them.
     const few=coarsen(p.samples,(p.detail??48)*(layout==='wire'?1:.5)|0);
     if(p.fieldView==='lines'){
      // Both limits come from the PICTURE, not from how far the charge happens to extend.
