@@ -137,8 +137,14 @@ export function FieldStage(props:FieldStageProps){
     // A band you can see across is drawn solid. A band wider than the picture is drawn as its
     // two edges with a tint between them, because painting it solid is a wash over everything
     // rather than a ring -- which is exactly what a sheet's outermost ring did to its lesson.
+    //
+    // The tint has to be light well before the band is the width of the picture. It used to fall
+    // as 1 - .86 across^2, so a ring spanning two thirds of the frame still painted at 65% -- and
+    // once the sheet's chosen ring stopped being faded by distance, the lesson OPENED on a salmon
+    // slab over most of the figure. Now any band a disk could produce (under 15% of the frame)
+    // stays solid, and anything wider is its edges plus a quiet tint by the time it reaches half.
     const across=Math.min(1,(ro-ri)/Math.max(1e-6,frameWorld*.5));
-    const faceAlpha=1-.86*across*across;
+    const faceAlpha=.14+.86*Math.max(0,1-Math.max(0,across-.15)/.35)**2;
     const parts:[Geometry,number][]=[
      [new THREE.RingGeometry(ri,ro,segments,1).translate(0,0,half),faceAlpha],
      [new THREE.RingGeometry(ri,ro,segments,1).rotateX(Math.PI).translate(0,0,-half),faceAlpha],

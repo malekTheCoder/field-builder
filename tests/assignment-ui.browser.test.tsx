@@ -2,7 +2,7 @@ import {cleanup, render, waitFor} from '@testing-library/react';
 import {afterEach, describe, expect, it} from 'vitest';
 import Explorer from '../src/explorer/Explorer';
 import {DEFAULT_PARAMS} from '../src/problems/types';
-import {isReady} from '../src/problems/readiness';
+import {COMING_SOON} from '../src/problems/readiness';
 import {getProblem} from '../src/problems/definitions';
 
 afterEach(() => {
@@ -25,14 +25,15 @@ describe('assignable URL state', () => {
  });
  // A link handed out before a lesson was held back must not open it anyway. The assignment is
  // ignored and the reader lands somewhere finished, rather than on the page we decided was not
- // ready to be read. Written against `readiness.ts`, so publishing v-ring retires this check
- // instead of leaving a stale assertion that the site hides a lesson it no longer hides.
- it.skipIf(isReady('v-ring'))('ignores an assignment pointing at a lesson that is not ready', async () => {
+ // ready to be read. It targets whichever lesson `readiness.ts` holds back TODAY -- it used to
+ // name v-ring, and when v-ring shipped the check quietly stopped running while every other
+ // lesson was still held. It skips only when nothing is held back at all.
+ const held = [...COMING_SOON][0];
+ it.skipIf(!held)('ignores an assignment pointing at a lesson that is not ready', async () => {
   localStorage.setItem('field-builder:explorer:v1', JSON.stringify({id: 'bisector', seen: true, dark: false, sidebarOpen: true, params: {}}));
-  window.history.replaceState(null, '', '/?p=v-ring&mode=sum');
-  const {findByRole, container} = render(<Explorer />);
+  window.history.replaceState(null, '', `/?p=${held}&mode=sum`);
+  const {findByRole} = render(<Explorer />);
   expect(await findByRole('heading', {name: getProblem('bisector').title})).toBeTruthy();
-  expect(container.querySelector('.cd-gauge')).toBeNull();
  });
  it('ignores a malformed problem id and still clamps numbers', async () => {
   localStorage.setItem('field-builder:explorer:v1', JSON.stringify({id: 'bisector', seen: true, dark: false, sidebarOpen: true, params: {}}));
