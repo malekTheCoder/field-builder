@@ -629,6 +629,12 @@ export function ChargeDiagram({ problem, params: p, setParams, count, continuum,
   const clearOfCuts = (v: number) => cuts.every(c => Math.abs(v - c) > 5);
   const chargeMarks = !rodLike ? []
     : ramp ? Array.from({ length: markCount }, (_, k) => rodHigh - (rodHigh - rodLow) * Math.sqrt((k + .5) / markCount)).filter(clearOfCuts)
+    // An unbounded line gets its marks from the WINDOW rather than from the partition, so they
+    // run evenly to both edges of the picture and keep running at the same spacing. The repetition
+    // is the claim: it says the line is the same everywhere, which is what "infinite" actually
+    // means here and is the one thing a truncated drawing has to get across. Tying them to the
+    // five pieces instead gave three marks bunched near the middle, which says nothing.
+    : fanned ? Array.from({ length: markCount }, (_, k) => rodLow + (rodHigh - rodLow) * (k + .5) / markCount).filter(clearOfCuts)
     : Array.from({ length: Math.max(1, n) }, (_, i) => rodLow + pieceSpan * (i + .5)).filter((_, i) => i % markStride === 0);
   const sourceLabel = surface ? `${elementSymbol} ${continuum>=.999?'=':'≈'} σ · 2πs ${continuum>=.999?'ds':'Δs'}` : id === 'ring' || id === 'arc' ? `${elementSymbol} = λR ${continuum>=.999?'dθ':'Δθ'}` : ramp ? `${elementSymbol} = λ₀(y/L) ${continuum>=.999?'dy':'Δy'}` : `${elementSymbol} = λ ${continuum>=.999?'dℓ':'Δℓ'}`;
   const sourceText = id === 'disk' ? 'One ring sweeps out the disk' : surface ? 'Whole annulus · transverse fields cancel' : id === 'infinite' ? 'A section of a line that never ends · one piece is one angle at P' : id === 'semi' ? 'A section of a line with one end · one piece is one angle at P' : id === 'arc' ? 'Observation point fixed at center' : 'One piece at a time · the integral adds them all';
