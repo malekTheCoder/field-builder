@@ -27,6 +27,9 @@ export type FieldStageProps={
   * samples made a five-piece ring render as a fifteen-sided polygon. */
  bodyPath?:readonly Vec[];
  yaw:number; pitch:number;
+ /** Push the field back so a construction drawn over it can be read: the lines and their
+  * arrows fade to a trace while "Watch it build" is taking the reader through one piece. */
+ quiet?:boolean;
  /** Pixels per world unit, and the viewBox the SVG above is drawn in. */
  unit:number; frame:{width:number;height:number};
  /** Where the SVG puts the world origin in viewBox units; the 3D body must agree. */
@@ -94,7 +97,7 @@ export function FieldStage(props:FieldStageProps){
    // Per-vertex colour lets each line fade into the background as it leaves the picture,
    // instead of stopping dead at the frame edge.
    const lineMaterial=new THREE.MeshStandardMaterial({roughness:.6,metalness:0,transparent:true,opacity:.78,vertexColors:true,depthWrite:false});
-   const arrowMaterial=new THREE.MeshStandardMaterial({roughness:.5,metalness:0,color:0xffffff});
+   const arrowMaterial=new THREE.MeshStandardMaterial({roughness:.5,metalness:0,color:0xffffff,transparent:true});
    const body=new THREE.Group(),slices=new THREE.Group(),field=new THREE.Group(),marks=new THREE.Group();
    scene.add(body,slices,field,marks);
    // P is a small solid with a soft halo; the element is a brighter, thicker length of the
@@ -438,6 +441,9 @@ export function FieldStage(props:FieldStageProps){
     sliceMaterial.color.set(positive?0xc2703a:0x3a7fc2);
     pickedMaterial.color.set(positive?0xf0975c:0x5cb8f0);
     lineMaterial.emissive.copy(tint);lineMaterial.emissiveIntensity=dark?.4:.12;
+    // During the build the field is background to the one piece being explained, and at full
+    // strength its lines drown the thin construction drawn over them.
+    lineMaterial.opacity=p.quiet?.16:.78;arrowMaterial.opacity=p.quiet?.2:1;
     pointMaterial.color.copy(tint);pointMaterial.emissive.copy(tint);pointMaterial.emissiveIntensity=dark?.7:.3;
     haloMaterial.color.copy(tint);
     elementMaterial.color.set(positive?0xc2703a:0x3a7fc2);elementMaterial.emissive.set(positive?0xc2703a:0x3a7fc2);elementMaterial.emissiveIntensity=dark?.34:.14;

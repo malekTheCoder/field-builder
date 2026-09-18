@@ -281,3 +281,46 @@
 .cd-cube-step circle{fill:var(--diagram,#fff);stroke:var(--ghost,#6d8492);stroke-width:1}
 .cd-cube-step path{fill:none;stroke:var(--field,#0b6b63);stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
 .cd-cube-step:focus-visible{outline:2px solid var(--field);outline-offset:2px}
+
+/* ---- WATCH IT BUILD, as something you can see -------------------------------------------
+   Each stage has to change the FIGURE, not just the caption under it: the caption sits below
+   the picture where the eye is not, and a run whose stages only swapped some thin dashed lines
+   near P read as "it does nothing, and then it jumps to the end". */
+
+/* The stage's name, inside the figure where the reader is looking. Re-keyed per stage so it
+   fades in afresh each time the run moves on. */
+.cd-svg .cd-stage-label{font-family:var(--font-display),Georgia,serif;font-size:17px;font-weight:600;fill:var(--field);paint-order:stroke;stroke:var(--diagram,#fff);stroke-width:5px;animation:cd-stage-in .5s ease-out both}
+@keyframes cd-stage-in{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
+
+/* The field is background to the argument while it runs. At full strength its lines drown the
+   construction being drawn over them. */
+.cd-field-canvas{transition:opacity .45s ease}
+.cd-building .cd-field-canvas{opacity:.14}
+
+/* 1 · CUT IT UP. The figure used to open this stage already cut, so nothing happened. Now the
+   cuts are made in order along the charge, and each piece flashes as it comes free. */
+.cd-stage-pieces .cd-seam{transform-box:fill-box;transform-origin:center;animation:cd-cut .42s cubic-bezier(.2,.8,.2,1) both;animation-delay:calc(var(--t,0) * 1.5s + .2s)}
+@keyframes cd-cut{from{opacity:0;transform:scale(0)}to{opacity:1;transform:none}}
+.cd-stage-pieces .cd-piece{animation:cd-free .7s ease-out both;animation-delay:calc(var(--t,0) * 1.5s + .3s)}
+@keyframes cd-free{0%{filter:none}35%{filter:drop-shadow(0 0 8px var(--charge,#b8460f)) brightness(1.15)}100%{filter:none}}
+
+/* 2 · ONE PIECE and 3 · WHAT CANCELS. Everything but the pieces being pointed at steps back,
+   and those glow, so the arrow at P is plainly theirs. */
+.cd-stage-one .cd-piece:not(.is-selected),.cd-stage-cancel .cd-piece:not(.is-selected):not(.is-partner){opacity:.16!important}
+.cd-stage-one .cd-piece.is-selected,.cd-stage-cancel .cd-piece.is-selected,.cd-stage-cancel .cd-piece.is-partner{filter:drop-shadow(0 0 7px var(--charge,#b8460f))}
+.cd-building .cd-vector line,.cd-building .cd-vector path{stroke-width:3px}
+.cd-building .cd-construction{stroke-opacity:.95}
+
+/* 4 · ADD THEM UP. The chain is the thing: heavier, with each piece's contribution marked
+   where it joins, while the pieces not yet added wait faintly on the charge. */
+.cd-stage-add .cd-sum-chain{stroke-width:3.6;opacity:1}
+.cd-sum-joint{fill:var(--diagram,#fff);stroke:var(--contribution,#2f9089);stroke-width:1.8}
+
+/* Potential lessons: until the stack is being built, only the lit piece's segment shows. */
+.cd-hide-total .cd-stack-slot:not(.is-lit){fill-opacity:.03}
+.cd-hide-total .cd-gauge text{opacity:0}
+
+@media (prefers-reduced-motion:reduce){
+ .cd-svg .cd-stage-label,.cd-stage-pieces .cd-seam,.cd-stage-pieces .cd-piece{animation:none}
+ .cd-field-canvas{transition:none}
+}

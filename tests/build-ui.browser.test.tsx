@@ -103,6 +103,72 @@ describe('watch it build', () => {
   await waitFor(() => expect(footer(view)).toContain('In the limit'), {timeout: 9000});
  });
 });
+describe('every stage changes the figure, not just the caption', () => {
+ // Reported as "it does nothing, and then after a bit it goes to the final stages". The run was
+ // advancing, but its stages barely touched the picture: stage one was identical to the resting
+ // view, two and three added a few thin lines near P under full-strength field lines, and the
+ // finished answer sat on screen from the first frame. Only the last stage's morph could be seen.
+ // These pin what each stage now does to the FIGURE, checked in the drawing itself.
+ const answerShown = (view: {container: HTMLElement}) =>
+  [...view.container.querySelectorAll('.cd-vector-label')].some(l => /Σ|^E$/.test(l.textContent ?? ''));
+ const stageLabel = (view: {container: HTMLElement}) => view.container.querySelector('.cd-stage-label')?.textContent ?? '';
+ it('names the stage inside the figure, where the reader is looking', async () => {
+  const view = await openLesson('bisector');
+  expect(stageLabel(view)).toBe('');
+  fireEvent.click(view.getByRole('button', {name: 'Watch it build'}));
+  await waitFor(() => expect(stageLabel(view)).toBe('1 of 5 · Cut it up'));
+  jump(view, 3, 'What cancels');
+  await waitFor(() => expect(stageLabel(view)).toBe('3 of 5 · What cancels'));
+  fireEvent.click(view.getByRole('button', {name: 'Close'}));
+  await waitFor(() => expect(stageLabel(view)).toBe(''));
+ });
+ it('keeps the answer off screen until the stage that builds it', async () => {
+  const view = await openLesson('bisector');
+  // At rest the net field is drawn, as it always has been.
+  expect(answerShown(view)).toBe(true);
+  fireEvent.click(view.getByRole('button', {name: 'Watch it build'}));
+  for (const [n, name] of [[1, 'Cut it up'], [2, 'One piece'], [3, 'What cancels']] as const) {
+   jump(view, n, name);
+   await waitFor(() => expect(answerShown(view), `stage ${n} shows the answer before it is built`).toBe(false));
+  }
+  jump(view, 4, 'Add them up');
+  fireEvent.click(view.getByRole('button', {name: 'Play'}));
+  await waitFor(() => expect(answerShown(view)).toBe(true), {timeout: 6000});
+ });
+ it('makes the cuts in the first stage, one after another along the charge', async () => {
+  const view = await openLesson('bisector');
+  fireEvent.click(view.getByRole('button', {name: 'Watch it build'}));
+  await waitFor(() => expect(view.container.querySelector('.cd-stage-pieces')).toBeTruthy());
+  const seams = [...view.container.querySelectorAll<SVGGElement>('.cd-seam')];
+  expect(seams.length).toBe(4);
+  for (const seam of seams) expect(getComputedStyle(seam).animationName).toBe('cd-cut');
+  // Staggered: each cut lands later than the one before it.
+  const delays = seams.map(seam => parseFloat(getComputedStyle(seam).animationDelay));
+  for (let i = 1; i < delays.length; i++) expect(delays[i]).toBeGreaterThan(delays[i - 1]);
+ });
+ it('marks the mirror partner on the charge in the cancelling stage', async () => {
+  const view = await openLesson('bisector');
+  fireEvent.click(view.getByRole('button', {name: 'Watch it build'}));
+  jump(view, 3, 'What cancels');
+  await waitFor(() => expect(view.container.querySelector('.cd-piece.is-partner')).toBeTruthy());
+  jump(view, 4, 'Add them up');
+  await waitFor(() => expect(view.container.querySelector('.cd-piece.is-partner')).toBeNull());
+ });
+ it('walks the highlight along the charge as each piece is added', async () => {
+  // Nothing used to say which piece was going in; the selection stayed where it was.
+  const view = await openLesson('bisector');
+  fireEvent.click(view.getByRole('button', {name: 'Watch it build'}));
+  jump(view, 4, 'Add them up');
+  fireEvent.click(view.getByRole('button', {name: 'Play'}));
+  const seen = new Set<string>();
+  await waitFor(() => {
+   const key = view.container.querySelector<SVGGElement>('.cd-piece.is-selected')?.dataset.pieceKey;
+   if (key) seen.add(key);
+   expect(seen.size).toBeGreaterThanOrEqual(3);
+  }, {timeout: 8000, interval: 50});
+  expect(view.container.querySelectorAll('.cd-sum-joint').length).toBeGreaterThan(0);
+ });
+});
 describe('with reduced motion asked for', () => {
  // This was broken in the shipped build and no test saw it. Reduced motion made the run jump to
  // its own last frame and stop -- and since it was then at the end, Play restarted it at the end

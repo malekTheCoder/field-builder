@@ -10,7 +10,7 @@
    accessible name, and that name now states the gestures, so what a screen reader is told
    matches what the keys do. */
 /* oxlint-disable jsx-a11y/no-noninteractive-tabindex */
-import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent, type PointerEvent } from 'react';
+import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent, type PointerEvent } from 'react';
 import { animate, frame, motion, useMotionValue, useReducedMotion } from 'motion/react';
 import type { Params, Problem } from '../problems/types';
 import { field, magnitude, pretty, potential, type Vec } from '../symbolic/physics';
@@ -35,6 +35,9 @@ export type ChargeDiagramProps = {
   /** Start the control drawer closed: on a page that already carries its own controls, the
    * drawer is a second copy of them. */
   compact?: boolean;
+  /** Where "Watch it build" is, when it is running or paused. The figure uses it to make each
+   * stage visibly different -- see the comment at `building` below. */
+  build?: { key: string; name: string; index: number; count: number };
 };
 const clamp = (n: number, a: number, b: number) => Math.max(a, Math.min(b, n));
 const plus = (a: Point, b: Point): Point => ({ x: a.x + b.x, y: a.y + b.y });
@@ -85,7 +88,7 @@ function ViewHelp({ x, y }: { x: number; y: number }) {
 /** The geometries whose partition runs to infinity, so that refining it moves the far elements
  * further out rather than filling the picture in. */
 const UNBOUNDED = new Set(['infinite', 'semi', 'sheet']);
-export function ChargeDiagram({ problem, params: p, setParams, count, continuum, selected, onSelect, progress, components, pair, mode, boundRange = [0, 100], onBoundRangeChange, highlight = '', compact = false }: ChargeDiagramProps) {
+export function ChargeDiagram({ problem, params: p, setParams, count, continuum, selected, onSelect, progress, components, pair, mode, boundRange = [0, 100], onBoundRangeChange, highlight = '', compact = false, build }: ChargeDiagramProps) {
   const cameraControl = useRef<HTMLButtonElement>(null);
   const svg = useRef<SVGSVGElement>(null), plane = useRef<SVGGElement>(null), dragging = useRef<string | null>(null), uid = useId().replace(/:/g, '');
   const opening = openingCamera(problem.geometry);
@@ -394,6 +397,16 @@ export function ChargeDiagram({ problem, params: p, setParams, count, continuum,
   const wedgeAnchor = selectedWedge?.middle ? clampToFrame({ x: P.x + selectedWedge.middle.x * 92, y: P.y + selectedWedge.middle.y * 92 }) : null;
   const sourceVisible = selectedOnFrame || !!wedgeAnchor;
   const source = selectedOnFrame || !wedgeAnchor ? clampToFrame(selectedPoint) : wedgeAnchor;
+  // WATCH IT BUILD, AS SOMETHING YOU CAN SEE. The run's stages used to change almost nothing in
+  // the picture: the first was identical to the resting view, the next two added a few thin
+  // dashed lines near P under full-strength field lines, and the finished ΣΔE arrow sat on screen
+  // from the first frame, so the stage that builds it had nothing to show. All that visibly
+  // happened was the last stage's morph -- "it does nothing, and then it goes to the final stage".
+  // So while it runs: the field steps back, the answer stays off screen until it is being built,
+  // the pieces that are not being talked about fade, and the first stage actually makes the cuts.
+  const building = build?.key ?? '';
+  const hideAnswer = building === 'pieces' || building === 'one' || building === 'cancel';
+  const cutAt = (t: number) => ({ '--t': t.toFixed(3) }) as CSSProperties;
   const elementSymbol = continuum>=.999 ? 'dQ' : 'ΔQ';
   const fieldSymbol = continuum>=.999 ? 'dE' : 'ΔE';
   const partnerIndex = id === 'ring' ? (selectedIndex + Math.floor(n / 2)) % n : n - 1 - selectedIndex;
@@ -401,6 +414,8 @@ export function ChargeDiagram({ problem, params: p, setParams, count, continuum,
   // A potential lesson has a mirror partner wherever its field twin does, and showing it is the
   // point: the piece that CANCELS the field's sideways push ADDS the same amount to V.
   const scalarPartner = scalar && pair && (id === 'bisector' || id === 'ring' || id === 'arc');
+  // The partner piece is marked on the charge whenever its arrow is being shown.
+  const partnerLit = (building === 'cancel' || pair) && (supportsPair || scalarPartner);
   const [cancelT, setCancelT] = useState(0);
   const cancelRun = useRef<ReturnType<typeof animate> | null>(null);
   useEffect(() => {
@@ -656,7 +671,7 @@ export function ChargeDiagram({ problem, params: p, setParams, count, continuum,
     : Array.from({ length: Math.max(1, n) }, (_, i) => rodLow + pieceSpan * (i + .5)).filter((_, i) => i % markStride === 0);
   const sourceLabel = surface ? `${elementSymbol} ${continuum>=.999?'=':'≈'} σ · 2πs ${continuum>=.999?'ds':'Δs'}` : id === 'ring' || id === 'arc' ? `${elementSymbol} = λR ${continuum>=.999?'dθ':'Δθ'}` : ramp ? `${elementSymbol} = λ₀(y/L) ${continuum>=.999?'dy':'Δy'}` : `${elementSymbol} = λ ${continuum>=.999?'dℓ':'Δℓ'}`;
   const sourceText = id === 'disk' ? 'One ring sweeps out the disk' : id === 'sheet' ? 'A section of a sheet that never ends · one ring is one angle at P' : surface ? 'Whole annulus · transverse fields cancel' : id === 'infinite' ? 'A section of a line that never ends · one piece is one angle at P' : id === 'semi' ? 'A section of a line with one end · one piece is one angle at P' : id === 'arc' ? 'Observation point fixed at center' : 'One piece at a time · the integral adds them all';
-  return <div ref={root} className={"charge-diagram cd-focus-"+highlight+(inSpace?" cd-in-space":"")+(perspective?" cd-surface-kind":" cd-wire-kind")}
+  return <div ref={root} className={"charge-diagram cd-focus-"+highlight+(inSpace?" cd-in-space":"")+(perspective?" cd-surface-kind":" cd-wire-kind")+(building?" cd-building cd-stage-"+building:"")+(hideAnswer?" cd-hide-total":"")}
     data-element-annulus={sceneElement.annulus ? `${sceneElement.annulus.inner},${sceneElement.annulus.outer}` : undefined}>
     {/* Field under construction, sharing one box so the two coordinate spaces cannot
         drift. Planar lessons only for now: the perspective geometries need their lines
@@ -690,9 +705,9 @@ export function ChargeDiagram({ problem, params: p, setParams, count, continuum,
     <div className="cd-stage">
     {!inSpace && !scalar && fieldView !== 'off' && <FieldCanvas samples={fieldSamples} detail={UNBOUNDED.has(id) ? 192 : 64} project={project} frame={{ width: 720, height: 430 }} mode={fieldView} reach={Math.max(2.5, p.distance * 1.7, p.size)}
       plane={perspective ? 'xz' : 'xy'} layout={surface ? 'surface' : 'wire'} />}
-    {inSpace && <FieldStage kind={id === 'disk' ? 'disk' : id === 'sheet' ? 'sheet' : 'wire'} closed={id === 'ring'} samples={fieldSamples} detail={UNBOUNDED.has(id) ? 144 : 48} selected={selectedIndex}
+    {inSpace && <FieldStage quiet={!!building} kind={id === 'disk' ? 'disk' : id === 'sheet' ? 'sheet' : 'wire'} closed={id === 'ring'} samples={fieldSamples} detail={UNBOUNDED.has(id) ? 144 : 48} selected={selectedIndex}
       radius={R} distance={p.distance} yaw={view.yaw} pitch={view.pitch} fieldView={scalar ? 'off' : fieldView} reach={fieldReach}
-      bodyPath={bodyPath} point={pWorld} element={sceneElement} net={scalar ? null : scaleVec(displayed, gain / unit)} contribution={scalar || !showContribution ? null : scaleVec(sample.field, selectedGain * gain / unit)}
+      bodyPath={bodyPath} point={pWorld} element={sceneElement} net={scalar || hideAnswer ? null : scaleVec(displayed, gain / unit)} contribution={scalar || !showContribution ? null : scaleVec(sample.field, selectedGain * gain / unit)}
       unit={unit} frame={{ width: 720, height: 430 }} origin={O} charge={p.charge} animating={moving}
       getView={() => ({ yaw: yawMv.get(), pitch: pitchMv.get() })} />}
     <svg ref={svg} className={`cd-svg${inSpace ? ' cd-orbitable' : ''}${scalar ? ' cd-scalar' : ''}`} viewBox="0 0 720 430" role="img" tabIndex={inSpace ? 0 : undefined} {...(inSpace ? orbit : {})} aria-label={`${problem.title}. Interactive charge distribution and ${scalar ? 'electric potential' : 'electric field'} visualization.${inSpace ? ' Drag or use the arrow keys to rotate the view, plus and minus to zoom, Home to reset it.' : ''}`}>
@@ -731,9 +746,9 @@ export function ChargeDiagram({ problem, params: p, setParams, count, continuum,
             {samples.map((_, i) => {
               const active = i === selectedIndex, accumulated = Math.abs(weights[i]) > 0 && (mode === 'sum' || mode === 'integrate');
               const inInterval = Math.abs(wholeWeights[i]) > 0;
-              const opacity = !inInterval ? .14 : active ? 1 : accumulated ? .94 : .48 + continuum * .3;
+              const opacity = !inInterval ? .14 : active ? 1 : accumulated ? .94 : building === 'add' ? .16 : .48 + continuum * .3;
               const a0 = 2 * Math.PI * i / n, a1 = 2 * Math.PI * (i + 1) / n, identity = intervalKey(i, n);
-              return <g key={identity} data-piece-key={identity} className={`cd-piece ${active ? 'is-selected' : ''}`} style={{ opacity }} onPointerDown={ev => { ev.stopPropagation(); onSelect(i); }}><motion.path initial={false} animate={{ d: pathThrough(worldArc(R, a0, a1)) }} transition={{ duration: still ? 0 : .18 }} fill="none" strokeWidth={active ? 10 : 7} /></g>;
+              return <g key={identity} data-piece-key={identity} className={`cd-piece ${active ? 'is-selected' : ''}${partnerLit && i === partnerIndex && !active ? ' is-partner' : ''}`} style={{ opacity, ...cutAt(i / n) }} onPointerDown={ev => { ev.stopPropagation(); onSelect(i); }}><motion.path initial={false} animate={{ d: pathThrough(worldArc(R, a0, a1)) }} transition={{ duration: still ? 0 : .18 }} fill="none" strokeWidth={active ? 10 : 7} /></g>;
             })}
             {continuum < .995 && <g className="cd-seams" aria-hidden="true" style={{ opacity: .7 * (1 - continuum) }}>
               {seamFractions(n).map(t => { const theta = 2 * Math.PI * t, h = 8 / unit, c = Math.cos(theta), s = Math.sin(theta); return <g key={seamKey(t)} data-seam={seamKey(t)} className="cd-seam"><line x1={(R - h) * c} y1={(R - h) * s} x2={(R + h) * c} y2={(R + h) * s} /></g>; })}
@@ -748,7 +763,7 @@ export function ChargeDiagram({ problem, params: p, setParams, count, continuum,
         {!perspective && samples.map((s, i) => {
           const pos = project(s.position), active = i === selectedIndex, accumulated = Math.abs(weights[i]) > 0 && (mode === 'sum' || mode === 'integrate');
           const inInterval = Math.abs(wholeWeights[i])>0;
-          const opacity = !inInterval ? .14 : active ? 1 : accumulated ? .94 : .48 + continuum * .3;
+          const opacity = !inInterval ? .14 : active ? 1 : accumulated ? .94 : building === 'add' ? .16 : .48 + continuum * .3;
           const heat = scalar && !active ? .28 + .72 * Math.abs(s.potential) / dVmax : 1;
           const identity = intervalKey(i, n);
           let shape;
@@ -768,11 +783,11 @@ export function ChargeDiagram({ problem, params: p, setParams, count, continuum,
             const shade = ramp && !active ? { fillOpacity: .08 + .92 * s.position.y / p.size } : undefined;
             shape = upright ? <rect x={pos.x - rodHalf} y={lo} width={rodHalf * 2} height={extent} {...shade} /> : <rect x={lo} y={pos.y - rodHalf} width={extent} height={rodHalf * 2} />;
           }
-          return <g key={identity} data-piece-key={identity} className={`cd-piece ${active ? 'is-selected' : ''}`} style={{ opacity: opacity * heat }} onPointerDown={ev => { ev.stopPropagation(); onSelect(i); }}>{shape}</g>;
+          return <g key={identity} data-piece-key={identity} className={`cd-piece ${active ? 'is-selected' : ''}${partnerLit && i === partnerIndex && !active ? ' is-partner' : ''}`} style={{ opacity: opacity * heat, ...cutAt(i / n) }} onPointerDown={ev => { ev.stopPropagation(); onSelect(i); }}>{shape}</g>;
         })}
         {rodLike && <g data-dim="charge" className="cd-plus" aria-hidden="true">{chargeMarks.map(v => <text key={v} x={upright ? O.x : v} y={(upright ? v : O.y) + 3.6} textAnchor="middle">{p.charge < 0 ? '−' : '+'}</text>)}</g>}
         {!perspective && continuum < .995 && <g className="cd-seams" aria-hidden="true" style={{ opacity: .7 * (1 - continuum) }}>
-          {seamFractions(n).map(t => { const mark = seamStroke(t, 1); return mark ? <g key={seamKey(t)} data-seam={seamKey(t)} className="cd-seam">{mark}</g> : null; })}
+          {seamFractions(n).map(t => { const mark = seamStroke(t, 1); return mark ? <g key={seamKey(t)} data-seam={seamKey(t)} className="cd-seam" style={cutAt(t)}>{mark}</g> : null; })}
           {split > .04 && split < .995 && splitFractions(n).map(t => { const mark = seamStroke(t, split); return mark ? <g key={seamKey(t)} data-seam={seamKey(t)} className="cd-seam is-growing" style={{ opacity: split }}>{mark}</g> : null; })}
         </g>}
         {!surface && ((supportsPair && pair) || scalarPartner) && showContribution && <><line x1={partnerPos.x} y1={partnerPos.y} x2={P.x} y2={P.y} className="cd-construction cd-pair" /><circle cx={partnerPos.x} cy={partnerPos.y} r="9" className="cd-partner" /></>}
@@ -801,13 +816,14 @@ export function ChargeDiagram({ problem, params: p, setParams, count, continuum,
         <Vector from={P} to={plus(P, contribution)} color="var(--contribution)" width={1.8} label={surface ? fieldSymbol+'z' : fieldSymbol} reduced={still}  ghost={inSpace} />
       </>}
       {!scalar && mode === 'sum' && chainPoints.length > 1 && <path className="cd-sum-chain" data-sum-chain={String(chainPoints.length)} d={pathThrough(chainPoints)} fill="none" />}
+      {building === 'add' && !scalar && chainPoints.length > 1 && chainPoints.length <= 65 && chainPoints.slice(1).map((c, k) => <circle key={k} className="cd-sum-joint" cx={c.x} cy={c.y} r="2.8" />)}
       {inSpace && <ViewCube view={view} at={{ x: 62, y: 62 }} size={22}
         onPick={(next, label) => { stopGlide(); setZoom(1); glideTo(next, .5); setAnnouncement(label); }}
         onSpinStart={() => { stopGlide(); setActiveDrag(true); }}
         onSpin={(dx, dy) => { const next = orbitCamera({ yaw: yawMv.get(), pitch: pitchMv.get() }, dx * 1.7, dy * 1.7); commitView(next); }}
         onStep={key => nudge(key)} />}
       {inSpace && <ViewHelp x={578} y={34} />}
-      {!scalar && <Vector from={P} to={plus(P, net)} width={3.5} label={continuum>=.999&&full&&progress>=.999?'E':'Σ ΔE'} reduced={still} ghost={inSpace} />}
+      {!scalar && !hideAnswer && <Vector from={P} to={plus(P, net)} width={3.5} label={continuum>=.999&&full&&progress>=.999?'E':'Σ ΔE'} reduced={still} ghost={inSpace} />}
 {!scalar && magnitude(displayed) < 1e-8 && <text x={P.x-16} y={P.y-47} textAnchor="end" className="cd-zero">E = 0</text>}
       {/* THE POTENTIAL'S OWN PICTURE: the pieces' contributions, stacked.
           The field chains its pieces' arrows head to tail in the plane; the potential chains its
@@ -857,6 +873,7 @@ export function ChargeDiagram({ problem, params: p, setParams, count, continuum,
       </g>}
       <line x1="30" y1="387" x2="690" y2="387" className="cd-divider" />
       <text x="30" y="409" className="cd-footer">{sourceLabel}</text>
+      {build && <text key={build.key} data-anchor="fixed" data-build-stage={build.key} className="cd-stage-label" x="360" y="34" textAnchor="middle">{`${build.index + 1} of ${build.count} · ${build.name}`}</text>}
       <text x="690" y="409" textAnchor="end" className="cd-footer">{continuum>=.999 ? 'In the limit' : 'Cut into pieces'}</text>
     </svg>
     </div>

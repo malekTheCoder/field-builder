@@ -76,7 +76,7 @@ function confusions(p:Problem){return p.steps.flatMap((s,i)=>(s.fields??[]).map(
 // find out was to drag it and hunt for whatever moved.
 function Range({label,value,min,max,step=1,onChange,describe,onDescribe}:{label:string;value:number;min:number;max:number;step?:number;onChange:(n:number)=>void;describe?:string;onDescribe?:(k:string)=>void}){const [symbol,name]=splitSymbol(label);const point=(on:boolean)=>{if(describe)onDescribe?.(on?describe:'')};return <div className="exp-range" onPointerEnter={()=>point(true)} onPointerLeave={()=>point(false)} onFocusCapture={()=>point(true)} onBlurCapture={()=>point(false)}><div><span>{symbol&&<i className="exp-sym">{symbol}</i>}<span className="exp-name">{name}</span></span></div><Slider aria-label={label} value={[value]} min={min} max={max} step={step} onValueChange={v=>onChange(Array.isArray(v)?v[0]:v)}/></div>}
 export default function Explorer(){
- const [step,setStep]=useState(-1);const [id,setId]=useState<ProblemId>('bisector');const [path,setPath]=useState('angular');const [mode,setMode]=useState<Mode>('divide');const [paramsMap,setParamsMap]=useState<Partial<Record<ProblemId,Params>>>({});const [dark,setDark]=useState(false);const [ready,setReady]=useState(false);const [storageOK,setStorageOK]=useState(true);const [onboarding,setOnboarding]=useState(false);const [seen,setSeen]=useState(false);const [library,setLibrary]=useState(false);const [sidebarOpen,setSidebarOpen]=useState(true);const [showNumbers,setShowNumbers]=useState(false);const [components,setComponents]=useState(false);const [pair,setPair]=useState(false);const [progress,setProgress]=useState(1);const [playing,setPlaying]=useState(false);const [selected,setSelected]=useState(3);const [bounds,setBounds]=useState<[number,number]>([0,100]);const [limitsOpen,setLimitsOpen]=useState(false);const [slipsOpen,setSlipsOpen]=useState(false);const [limitIndex,setLimitIndex]=useState(0);const [highlight,setHighlight]=useState('');const [status,setStatus]=useState('');const [building,setBuilding]=useState(false);const [buildAt,setBuildAt]=useState(0);const [buildIndex,setBuildIndex]=useState(0);const run=useRef<ReturnType<typeof animate>|null>(null);const morph=useRef<ReturnType<typeof animate>|null>(null);const build=useRef<{stop:()=>void}|null>(null);const buildC=useRef(-1);const buildStep=useRef(-1);const reduced=useReducedMotion();const tourButton=useRef<HTMLButtonElement>(null);
+ const [step,setStep]=useState(-1);const [id,setId]=useState<ProblemId>('bisector');const [path,setPath]=useState('angular');const [mode,setMode]=useState<Mode>('divide');const [paramsMap,setParamsMap]=useState<Partial<Record<ProblemId,Params>>>({});const [dark,setDark]=useState(false);const [ready,setReady]=useState(false);const [storageOK,setStorageOK]=useState(true);const [onboarding,setOnboarding]=useState(false);const [seen,setSeen]=useState(false);const [library,setLibrary]=useState(false);const [sidebarOpen,setSidebarOpen]=useState(true);const [showNumbers,setShowNumbers]=useState(false);const [components,setComponents]=useState(false);const [pair,setPair]=useState(false);const [progress,setProgress]=useState(1);const [playing,setPlaying]=useState(false);const [selected,setSelected]=useState(3);const [bounds,setBounds]=useState<[number,number]>([0,100]);const [limitsOpen,setLimitsOpen]=useState(false);const [slipsOpen,setSlipsOpen]=useState(false);const [limitIndex,setLimitIndex]=useState(0);const [highlight,setHighlight]=useState('');const [status,setStatus]=useState('');const [building,setBuilding]=useState(false);const [buildAt,setBuildAt]=useState(0);const [buildIndex,setBuildIndex]=useState(0);const [buildShown,setBuildShown]=useState(false);const run=useRef<ReturnType<typeof animate>|null>(null);const morph=useRef<ReturnType<typeof animate>|null>(null);const build=useRef<{stop:()=>void}|null>(null);const buildC=useRef(-1);const buildStep=useRef(-1);const reduced=useReducedMotion();const tourButton=useRef<HTMLButtonElement>(null);
  const p=getProblem(id,'angular'),derivationProblem=getProblem(id,path),params=paramsMap[id]??DEFAULT_PARAMS;const continuum=params.continuum;const count=partitionCount(params.slices,continuum);const geom=p.geometry,scalar=p.quantity==='V';const isInfinite=['infinite','semi','sheet'].includes(geom);const isRound=['ring','disk','arc'].includes(geom);const lim=p.limits[Math.min(limitIndex,p.limits.length-1)];
  // Storage is an external system; initialize after hydration and surface write failures without aborting the lesson.
  // oxlint-disable-next-line react/react-compiler
@@ -96,13 +96,20 @@ export default function Explorer(){
    if(`${location.search}`!==(q?`?${q}`:''))try{history.replaceState(null,'',next)}catch{/* rate-limited or blocked: the URL is a convenience, the lesson is not */}},SETTLE);
   return()=>clearTimeout(t)},[ready,id,mode,params,pair,components]);
 
- const activeIndex=playing?activeIntervalIndex(count,bounds,progress):Math.min(count-1,Math.max(0,selected));
+
  // Walking the derivation: each step lights one feature on the figure and adds its factor
  // to the integral, so the expression assembles as the explanation moves.
  const walkTerms=termsFor(p);
  const stages=buildStages(p);
  const buildNow=stages[Math.min(buildIndex,stages.length-1)];
- const buildOpen=building||buildAt>0;
+ // Open is its own state, not inferred from the clock. It used to be `building || buildAt > 0`,
+ // and the first stage starts at exactly zero -- so clicking the first stage's marker, or pausing
+ // on its opening frame, threw the reader out of the run and back to the two buttons.
+ const buildOpen=buildShown;
+ // The piece being added walks along the charge while the sum builds -- in the old "watch the sum"
+ // and now in the build's adding stage too, where nothing used to say which piece was going in.
+ const following=playing||(buildOpen&&buildNow.key==='add');
+ const activeIndex=following?activeIntervalIndex(count,bounds,progress):Math.min(count-1,Math.max(0,selected));
  const walking=step>=0;
  const walked=new Set(walkTerms.slice(0,step+1).map(t=>t.id));
  const walkHighlight=walking?walkTerms[Math.min(step,walkTerms.length-1)].figure:highlight;
@@ -137,7 +144,7 @@ export default function Explorer(){
   if(building){build.current?.stop();build.current=null;setBuilding(false);return}
   run.current?.stop();setPlaying(false);morph.current?.stop();setStep(-1);setHighlight('');
   const total=totalSeconds(stages);
-  setBuilding(true);
+  setBuilding(true);setBuildShown(true);
   // Resume where it was paused; restart from the first cut once it has played out.
   const from=buildAt>=total-.01?0:buildAt;
   if(from===0)buildC.current=-1;
@@ -159,11 +166,11 @@ export default function Explorer(){
  }
  // Jumping to a stage is the same thing as playing to its first frame, which is why both go
  // through applyBuild: there is one description of what each stage looks like.
- function buildJump(i:number){build.current?.stop();build.current=null;setBuilding(false);buildStep.current=-1;applyBuild(stageStart(stages,i));}
+ function buildJump(i:number){build.current?.stop();build.current=null;setBuilding(false);setBuildShown(true);buildStep.current=-1;applyBuild(stageStart(stages,i));}
  // Closing puts the figure back where the run found it, the partition included: a reader who
  // watched the pieces shrink away and then closed should not be left looking at a smooth rod
  // with no way to tell why it stopped being cut up.
- function endBuild(){build.current?.stop();build.current=null;setBuilding(false);setBuildAt(0);setBuildIndex(0);buildC.current=-1;buildStep.current=-1;setPair(false);setComponents(false);setMode('divide');setProgress(1);updateParams({continuum:0});}
+ function endBuild(){build.current?.stop();build.current=null;setBuilding(false);setBuildShown(false);setBuildAt(0);setBuildIndex(0);buildC.current=-1;buildStep.current=-1;setPair(false);setComponents(false);setMode('divide');setProgress(1);updateParams({continuum:0});}
  function chooseMode(next:Mode){setMode(next);if(next==='project'&&!scalar)setComponents(true);if(next==='integrate'){setProgress(1);stop()}}
  function playSum(){if(playing){stop();return}setMode('sum');if(reduced){setProgress(1);setStatus('All contributions are now included.');return}setPlaying(true);const start=progress>=.999?0:progress;setProgress(start);
  // 7s linear: each ΔE has to be apprehended tip-to-tail. Ease would bunch the last pieces.
@@ -183,7 +190,7 @@ export default function Explorer(){
     {soon.length>0&&<><div className="exp-soon-heading"><span>Coming soon</span></div><SidebarMenu className="exp-soon-group">{soon.map(item)}</SidebarMenu></>}</>;
   })()}<div className="exp-nav-bottom"><Orbit size={26}/><p>One law.<br/>Every geometry.</p><MathText tex={scalar?String.raw`dV=\frac{k\,dQ}{r_i}`:String.raw`d\mathbf E=\frac{k\,dQ}{r_i^2}\hat{\mathbf r}_i`}/><span>{storageOK?'Your settings stay on this device.':'Settings are kept for this visit.'}</span></div></SidebarContent></Sidebar>}
  <main className="exp-main"><div className="exp-breadcrumb"><Hint label={sidebarOpen?'Hide the lesson list':'Show the lesson list'}><button type="button" className="exp-library-toggle" aria-expanded={sidebarOpen} aria-label={sidebarOpen?'Hide the lesson list':'Show the lesson list'} onClick={()=>setSidebarOpen(v=>!v)}><PanelLeft size={16}/></button></Hint><nav className="exp-crumbs" aria-label="Breadcrumb"><button type="button" className="exp-crumb-link" onClick={()=>setLibrary(true)}>Charge library</button><ChevronRight size={13} aria-hidden="true"/><span className="exp-crumb-here" aria-current="page">{p.short}</span></nav></div><div className="exp-heading"><div><h1>{p.title}</h1><p>{p.subtitle}</p></div></div>
- <div className="exp-workspace"><div className="exp-visual-column"><section className={'exp-diagram-card mode-'+mode+' focus-'+highlight} aria-label="Interactive field visualization"><div className="exp-diagram-heading"><div><MathText tex={p.coordinate}/></div></div><ChargeDiagram compact problem={p} params={params} setParams={updateParams} count={count} continuum={continuum} selected={activeIndex} onSelect={i=>{stop();setSelected(i)}} progress={progress} components={components||walkFigure==='projection'} pair={pair||walkFigure==='projection'} mode={mode} boundRange={bounds} onBoundRangeChange={setBounds} highlight={walkHighlight}/><div className={"exp-walk"+(walking||buildOpen?" is-open":"")}>
+ <div className="exp-workspace"><div className="exp-visual-column"><section className={'exp-diagram-card mode-'+mode+' focus-'+highlight} aria-label="Interactive field visualization"><div className="exp-diagram-heading"><div><MathText tex={p.coordinate}/></div></div><ChargeDiagram compact problem={p} params={params} setParams={updateParams} count={count} continuum={continuum} selected={activeIndex} onSelect={i=>{stop();setSelected(i)}} progress={progress} components={components||walkFigure==='projection'} pair={pair||walkFigure==='projection'} mode={mode} boundRange={bounds} onBoundRangeChange={setBounds} highlight={walkHighlight} build={!walking&&buildOpen?{key:buildNow.key,name:buildNow.name,index:buildIndex,count:stages.length}:undefined}/><div className={"exp-walk"+(walking||buildOpen?" is-open":"")}>
   {!walking&&!buildOpen&&<>
     <button type="button" className="secondary-button exp-walk-start" onClick={runBuild}>Watch it build</button>
     <button type="button" className="text-button exp-walk-start" onClick={beginWalk}>Walk me through the integral</button>
