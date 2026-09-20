@@ -336,3 +336,51 @@
 .exp-tools-menu [data-slot=dropdown-menu-item] svg{color:var(--muted-foreground)}
 .exp-tools-menu [data-slot=dropdown-menu-item]:hover,
 .exp-tools-menu [data-slot=dropdown-menu-item][data-highlighted]{background:var(--muted)}
+
+/* =====================================================================
+   THE PAGE'S RHYTHM
+   The seams between the page's parts ran 10/12/14/16/18/20/22/24/26/30/
+   34/36/38/44px with nothing repeating, so nothing grouped and the rules
+   and borders had to do the work the whitespace should have been doing.
+   Four steps, used only at the seams -- the figure, the workbench and the
+   diagram's own internals keep the spacing they were tuned with.
+     --gap-tight   within one block
+     --gap-block   between blocks of one part
+     --gap-part    between the page's parts
+     --gap-section before a new section of the page
+   ===================================================================== */
+:root{--gap-tight:12px;--gap-block:20px;--gap-part:32px;--gap-section:48px}
+@media(max-width:1000px){:root{--gap-part:28px;--gap-section:40px}}
+@media(max-width:520px){:root{--gap-block:16px;--gap-part:24px;--gap-section:32px}}
+
+/* Three levels, read top to bottom: where you are, what this lesson is, the figure. */
+.exp-breadcrumb{margin-bottom:var(--gap-block)}
+.exp-heading{margin-bottom:var(--gap-part)}
+.exp-workspace{gap:var(--gap-part)}
+.exp-parameters{margin-top:var(--gap-part);padding-top:var(--gap-part)}
+.exp-endnotes{margin-top:var(--gap-section)}
+.exp-method{margin-top:var(--gap-part);padding-top:var(--gap-part)}
+@media(min-width:1500px){.exp-workspace{gap:44px}}
+
+/* THE RESET HAD NO ROW OF ITS OWN TO BE IN. It was the fourth cell of a three-column grid, so
+   it wrapped to a line by itself sixty pixels under the sliders: an unlabelled glyph with
+   nothing beside it, and the empty line it sat on was most of the gap between the lesson and
+   its endnotes. The row is a flex line now -- the sliders share it, the reset closes it. */
+.exp-parameters .parameter-grid{display:flex;flex-wrap:wrap;align-items:flex-end;gap:var(--gap-part) 38px}
+.exp-parameters .parameter-grid>.exp-range{flex:1 1 11rem;min-width:0}
+.exp-parameters .exp-reset{flex:none;align-self:flex-end;margin-bottom:2px;padding:7px;border-radius:8px;
+ color:var(--muted-foreground);transition:background .18s ease,color .18s ease}
+.exp-parameters .exp-reset:hover{background:var(--muted);color:var(--foreground)}
+@media(max-width:1250px){.exp-parameters .parameter-grid{gap:var(--gap-part) 24px}}
+@media(max-width:520px){
+ .exp-parameters .parameter-grid{gap:var(--gap-block) 18px}
+ .exp-parameters .parameter-grid>.exp-range{flex:1 1 8rem}
+}
+
+/* The two endnotes read as four lines while shut, because each stacked its name above a
+   sentence explaining it. Same words, one line each: the name, then what is behind it. */
+.exp-note>summary{flex-direction:row;flex-wrap:wrap;align-items:baseline;gap:4px 14px;
+ padding:var(--gap-tight) 2px}
+.exp-note>summary>small{flex:1 1 24rem;min-width:0}
+@media(max-width:700px){.exp-note>summary{flex-direction:column;gap:3px}.exp-note>summary>small{flex:none}}
+@media (prefers-reduced-motion:reduce){.exp-parameters .exp-reset{transition:none}}
