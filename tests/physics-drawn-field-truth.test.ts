@@ -2,7 +2,7 @@ import {describe,it,expect} from 'vitest';
 import {sampleDistribution,coarsen} from '../src/diagrams/sampling';
 import {fieldLines,type Plane,localRadii} from '../src/diagrams/fieldlines';
 import {vectorGrid} from '../src/diagrams/vectorfield';
-import {cloud,meridianLines,spaceField,spaceGrid,spaceLines} from '../src/diagrams/field3d';
+import {annuliField,meridianLines,spaceGrid,spaceLines} from '../src/diagrams/field3d';
 import {REGISTRY} from '../src/distributions';
 import type {ChargeSample} from '../src/distributions/types';
 import {DEFAULT_PARAMS,type Params,type ProblemId} from '../src/problems/types';
@@ -600,12 +600,11 @@ describe('side views: meridian chords tangent to the axisymmetric field',()=>{
     const reach=frameReach(p),span=canvasReach(coarse),step=Math.min(reach,span)*.05;
     const lines=meridianLines(coarse,'surface',LINES,canvasTrace(reach,span));
     expect(lines.length,`disk N=${n}: no meridian lines drawn`).toBeGreaterThan(0);
-    const points=cloud(coarse,'surface');
     const candidates:V3[][]=[];
     for(const line of lines){
      const v=line.map(v3);
      for(let i=1;i<v.length-1;i++)
-      if(Math.abs(v[i][2])>=.8&&nearestElement(points,v[i])>=4*step)candidates.push([v[i-1],v[i],v[i+1]]);
+      if(Math.abs(v[i][2])>=.8&&ringGap(coarse,v[i])>=4*step)candidates.push([v[i-1],v[i],v[i+1]]);
     }
     const here=worstOf();
     for(const [a,b,c] of pick(candidates,40)){
@@ -632,7 +631,7 @@ describe('side views: meridian chords tangent to the axisymmetric field',()=>{
   const notes:string[]=[];const w=worstOf();let bad=0;
   for(const n of [3,4,5,8,24]){
    const p=params(),R=p.size/2,{coarse}=canvasThin(fieldCut('ring',p,n),canvasBudget('ring'));
-   const points=cloud(coarse,'wire');
+   const points=coarse;
    const gaps=points.slice(1,60).map((s,i)=>len(sub(v3(s.position),v3(points[i].position)))).sort((a,b)=>a-b);
    const arrive=Math.max(.05,.55*(gaps[Math.floor(gaps.length/2)]??0));
    const reach=Math.max(...coarse.map(s=>len(v3(s.position))),.5);
@@ -673,65 +672,48 @@ describe('side views: meridian chords tangent to the axisymmetric field',()=>{
 // approximation, and 1e−12 is what floating point costs. A 1e−3 tolerance here would pass a
 // cloud whose points sat 0.05% off the annulus radius, or carried dq·(1−5e−4) — a perRing
 // off-by-one rounded away.
-describe('cloud(): the annulus is reproduced, exactly on the axis and to a degree off it',()=>{
+describe('annuliField: every annulus is summed as the ring it is',()=>{
+ // What the figure draws for a disk or a sheet. It used to sum sixteen dots a ring, and the checks
+ // here measured how good an approximation that was: exact on the axis, within half a degree
+ // above 0.8 m, and "no longer a surface" below it. The rings are summed exactly now, so the
+ // question changed from how close to whether, and the answer is held to 1e-9 all the way down to
+ // five centimetres off the face -- against this file's own dense quadrature of a ring, which
+ // shares no formula with the elliptic integrals under test.
  for(const id of shipping(['disk','sheet'] as ProblemId[])){
-  it(`${id}: on the axis the 16-point cloud is its annulus to 1e-12`,()=>{
-   for(const n of [5,24,64])for(const z of [.5,1,3,-2]){
-    const p=params(),samples=sampleDistribution(id,p,n),pts=cloud(samples,'surface');
+  it(`${id}: on the axis it is the theorem, with nothing sideways`,()=>{
+   for(const n of [5,24,64])for(const z of [.05,.5,1,3,-2]){
+    const p=params(),samples=sampleDistribution(id,p,n);
     const want=samples.reduce((s,a)=>s+ke*a.dq*z/(a.coordinate*a.coordinate+z*z)**1.5,0);
-    const got=spaceField(pts,{x:0,y:0,z});
-    expect(Math.abs(got.z-want)/Math.abs(want),`${id} N=${n} z=${z}: axial cloud field ${got.z} against the theorem's ${want}`).toBeLessThan(1e-12);
-    expect(Math.abs(got.x)/Math.abs(got.z),`${id} N=${n} z=${z}: the cloud has a transverse field on the axis, E_x/E_z = ${(got.x/got.z).toExponential(2)}`).toBeLessThan(1e-14);
-    expect(Math.abs(got.y)/Math.abs(got.z),`${id} N=${n} z=${z}: the cloud has a transverse field on the axis, E_y/E_z = ${(got.y/got.z).toExponential(2)}`).toBeLessThan(1e-14);
-   }
-  });
-  it(`${id}: the cloud carries the same charge on the same radii`,()=>{
-   for(const n of [5,24,64]){
-    const p=params(),samples=sampleDistribution(id,p,n),pts=cloud(samples,'surface');
-    const total=samples.reduce((s,a)=>s+a.dq,0),spread=pts.reduce((s,a)=>s+a.dq,0);
-    // Summing m terms in sequence costs at worst (m−1)·2⁻⁵³ of relative rounding, and the
-    // cloud has sixteen times as many terms as the sample list: the bound is that, computed,
-    // rather than a round number that would happen to hide a genuine sixteenth going missing.
-    expect(Math.abs(spread-total)/Math.abs(total),`${id} N=${n}: the cloud carries ${spread} C against the samples' ${total} C`).toBeLessThan(pts.length*2**-53);
-    let worstR=0;
-    for(const c of pts)worstR=Math.max(worstR,Math.abs(Math.hypot(c.position.x,c.position.y)-Math.abs(c.coordinate))/Math.max(Math.abs(c.coordinate),1e-12));
-    expect(worstR,`${id} N=${n}: a cloud point sits ${(worstR*100).toExponential(2)}% off its annulus radius`).toBeLessThan(1e-15);
-    expect(pts.length,`${id} N=${n}: ${pts.length} cloud points for ${samples.length} annuli`).toBe(samples.length*16);
+    const got=annuliField(samples,{x:0,y:0,z});
+    expect(Math.abs(got.z-want)/Math.abs(want),`${id} N=${n} z=${z}: axial field ${got.z} against the theorem's ${want}`).toBeLessThan(1e-12);
+    expect(Math.hypot(got.x,got.y),`${id} N=${n} z=${z}: a transverse field on the axis`).toBe(0);
    }
   });
  }
- it('disk: off the axis the cloud is its annuli to half a degree, at |z| ≥ 0.8 m',()=>{
-  // The azimuthal ripple of a 16-gon at height h over point spacing a is ~exp(−2πh/a); at
-  // the rim a = 2πR/16 = 0.79 m, so h = 0.8 m gives 1.6e−3 — 0.09° and 0.16% in magnitude.
+ it('disk: off the axis it is its annuli at every height, down to the face',()=>{
   const w=worstOf(),wm=worstOf();
-  for(const n of [5,24,64])for(const z of [.8,1.5,3,-2])for(const rho of [.4,1,1.9,3]){
-   const p=params(),samples=sampleDistribution('disk',p,n),pts=cloud(samples,'surface');
-   const got=v3(spaceField(pts,{x:rho,y:0,z}));
+  for(const n of [5,24,64])for(const z of [.05,.1,.2,.4,.8,1.5,3,-2])for(const rho of [.4,1,1.9,3]){
+   const p=params(),samples=sampleDistribution('disk',p,n);
+   const got=v3(annuliField(samples,{x:rho,y:0,z}));
    let er=0,ez=0;
    for(const a of samples){const [r,zz]=ringUnit(Math.abs(a.coordinate),rho,z);er+=a.dq*r;ez+=a.dq*zz;}
    const want:V3=[er,0,ez];
    w.see(angleDeg(got,want),`N=${n} at (ρ, z) = (${rho}, ${z})`);
    wm.see(Math.abs(len(got)/len(want)-1),`N=${n} at (ρ, z) = (${rho}, ${z})`);
   }
-  expect(w.value,`worst cloud-vs-annuli angle ${w.value.toFixed(3)}°, ${w.where}`).toBeLessThan(.5);
-  expect(wm.value,`worst cloud-vs-annuli magnitude error ${(wm.value*100).toFixed(3)}%, ${wm.where}`).toBeLessThan(.01);
+  expect(w.value,`worst drawn-vs-quadrature angle ${w.value.toExponential(2)}°, ${w.where}`).toBeLessThan(1e-6);
+  expect(wm.value,`worst drawn-vs-quadrature magnitude error ${wm.value.toExponential(2)}, ${wm.where}`).toBeLessThan(1e-9);
  });
- it('disk: below that height the cloud stops being a surface, which is why lines must not go there',()=>{
-  // Not a defect — a measurement, kept so nobody lowers a seed height or an arrive radius
-  // without seeing what the cloud looks like down there.
-  const p=params(),samples=sampleDistribution('disk',p,24),pts=cloud(samples,'surface');
-  const seen:string[]=[];
-  for(const z of [.8,.4,.2,.1]){
-   const w=worstOf();
-   for(const rho of [.4,1,1.9,2.4]){
-    const got=v3(spaceField(pts,{x:rho,y:0,z}));
-    let er=0,ez=0;
-    for(const a of samples){const [r,zz]=ringUnit(Math.abs(a.coordinate),rho,z);er+=a.dq*r;ez+=a.dq*zz;}
-    w.see(angleDeg(got,[er,0,ez]),`ρ = ${rho}`);
-   }
-   seen.push(`z = ${z} m: ${w.value.toFixed(1)}° (${w.where})`);
+ it('and it does not depend on which way round the ring you stand',()=>{
+  // Axisymmetry, which sixteen dots only had sixteen-fold: the same (ρ, z) at any azimuth gives
+  // the same radial and axial field, turned with the point.
+  const samples=sampleDistribution('disk',params(),24),base=annuliField(samples,{x:1.3,y:0,z:.4});
+  for(const a of [.1,1,2.5,4,6]){
+   const e=annuliField(samples,{x:1.3*Math.cos(a),y:1.3*Math.sin(a),z:.4});
+   expect(Math.hypot(e.x,e.y)/Math.hypot(base.x,base.y)-1,`radial size at azimuth ${a}`).toBeCloseTo(0,12);
+   expect(e.z/base.z-1,`axial part at azimuth ${a}`).toBeCloseTo(0,12);
+   expect(Math.atan2(e.y,e.x),`radial direction at azimuth ${a}`).toBeCloseTo(Math.atan2(Math.sin(a),Math.cos(a)),10);
   }
-  expect(seen.join(' · ')).toMatch(/z = 0\.8 m/);
  });
 });
 
@@ -743,7 +725,7 @@ describe('cloud(): the annulus is reproduced, exactly on the axis and to a degre
 // number to remember: it is computed below from the disk quadrature over the very strip the
 // drawn chords are taken from, and each chord is then allowed that plus 3° for its own chord
 // error. A reader who sees lines curling sideways into individual dots on the face of a disk
-// learns that a surface is a row of charges, which is the exact opposite of cloud()'s purpose.
+// learns that a surface is a row of charges, which is the opposite of what the figure is for.
 //
 // The chords are compared as LINES, not as arrows: `min(θ, 180 − θ)`. Whether a line runs
 // into the surface or out of it is the sign of the charge, and it is checked elsewhere —
@@ -855,12 +837,14 @@ describe('lines arrive perpendicular to a charged surface',()=>{
    // in a big frame, which is what made this check fail on the disk.
    for(const [kept,step,tag] of [[coarse,Math.min(frameReach(p),canvasReach(coarse))*.05,'2D side view'],
     [few,Math.min(stageReach(p),chargeSpan(few))*.04,'3D']] as [ChargeSample[],number,string][]){
-    // Mirrors src/diagrams/field3d.ts: each element stops a line at its own spacing, with a
-    // floor of one step, and the seed offset is built from the smallest of those radii.
-    const cloudPoints=cloud(kept,'surface');
-    const arrive=Math.min(...localRadii(cloudPoints,Math.max(.05,step*.9)));
-    const reach=Math.max(...kept.map(c=>len(v3(c.position))),.5);
-    const offset=Math.max(arrive*1.6,reach*.06);
+    // Mirrors `stopping` and `spaceLines` in src/diagrams/field3d.ts as they stand: the arrive
+    // radius is the smallest element spacing with a floor of nine tenths of a step, and the seed
+    // offset is the larger of 1.6 of that and six percent of the PICTURE -- the seed limit, not
+    // the charge's extent. This mirror used to spread the annuli into dots and scale by the
+    // charge, which is how the code read two rewrites ago.
+    const arrive=Math.min(...localRadii(kept,Math.max(.05,step*.9)));
+    const span=(tag==='3D'?stageReach(p):frameReach(p))*.95;
+    const offset=Math.max(arrive*1.6,span*.06);
     w.see(step/offset,`${id} N=${n} ${tag}: launched ${offset.toFixed(3)} m out and stepping ${step.toFixed(3)} m`);
     if(id==='disk'){
      const lines=tag==='3D'?spaceLines(kept,'surface',LINES,stageTrace(stageReach(p),chargeSpan(few)))
@@ -1092,6 +1076,9 @@ function setupCharges(id:ProblemId,p:Params):Charge[]{
  return out;
 }
 const RING_POINTS=192;
+/** How far a point is from the nearest ring of a surface's partition, in the meridian plane. The
+ * figure draws rings, so this is the distance to the drawn charge. */
+const ringGap=(annuli:readonly ChargeSample[],m:V3)=>Math.min(...annuli.map(r=>Math.hypot(Math.hypot(m[0],m[1])-Math.abs(r.coordinate),m[2])));
 const V_LESSONS=['bisector','axial','endpoint','ramp','arc','ring','disk'] as const;
 describe('the potential falls along every drawn field line',()=>{
  it('the charges rebuilt from the setup text are the charges the app partitions',()=>{
@@ -1171,7 +1158,7 @@ describe('the potential falls along every drawn field line',()=>{
       const m=mid(line[i],line[i+1]),chord=len(sub(line[i+1],line[i]));
       // Within a step of a ring the field turns too sharply for a straight chord to carry
       // ΔV = E·dl; the distance is to the ring itself now, since that is what is drawn.
-      if(id==='disk'&&Math.min(...samples.map(r=>Math.hypot(Math.hypot(m[0],m[1])-Math.abs(r.coordinate),m[2])))<.15)continue;
+      if(id==='disk'&&ringGap(samples,m)<.15)continue;
       const ratio=-(V[i+1]-V[i])/(len(pointsField(charges,m))*chord);
       if(!Number.isFinite(ratio))continue;
       ratios++;

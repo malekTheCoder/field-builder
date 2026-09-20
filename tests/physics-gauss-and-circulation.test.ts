@@ -186,16 +186,18 @@ function refPieces(id:ProblemId,p:Params,n:number):Piece[]{
   // Half-line along +x from the origin, same sweep over θ ∈ (0, π/2), Δθ = π/2n.
   case 'semi':return mid(n).map(t=>{const th=Math.PI*t/2;return {q:c*d*Math.PI/(2*n*Math.cos(th)**2),at:[d*Math.tan(th),0,0] as V3};});
   // Disk: whole annuli at equal steps of radius, dq = σ·2πs·Δs with Δs = R/n. The
-  // stored position is the representative point (s, 0, 0); cloud() spreads it.
+  // stored position is the representative point (s, 0, 0); the figure sums the whole ring.
   case 'disk':case 'v-disk':{const sigma=c/(Math.PI*R*R);return mid(n).map(t=>{const s=R*t;return {q:sigma*2*Math.PI*s*(R/n),at:[s,0,0] as V3};});}
   // Sheet: annuli at s = |z| tan θ, Δs = |z| sec²θ Δθ, Δθ = π/2n. `charge` is σ.
   case 'sheet':return mid(n).map(t=>{const th=Math.PI*t/2,a=Math.abs(d),s=a*Math.tan(th);return {q:c*2*Math.PI*s*(a*Math.PI/(2*n*Math.cos(th)**2)),at:[s,0,0] as V3};});
  }
  throw new Error(`no reference partition transcribed for ${which}`);
 }
-/** The documented 16-point spread of an annulus, written out here so the expected
- * potential never borrows cloud()'s own arithmetic. Order matches cloud(): sample by
- * sample, azimuth (k + ½)·2π/16 within each. */
+/** A 16-point spread of each annulus, for BOOKKEEPING only: which rings a surface holds, and how
+ * far a loop or a side stands from the charge, measured to the ring and not just to its one
+ * representative point. The field under test is never summed from it -- see drawnE. The app
+ * once had a spread of its own and this mirrored it; that one is gone, and this is plain
+ * geometry applied to pieces `assertPartition` has already checked. */
 const PER_RING=16;
 const refCloud=(pieces:readonly Piece[]):Piece[]=>pieces.flatMap(({q,at})=>{
  const r=len(at);
@@ -284,8 +286,8 @@ const ENCLOSING:Partial<Record<ProblemId,Enclosing>>={
  // not Q, and the one place a flux test can catch that being forgotten.
  ramp:{layout:'wire',Q:p=>p.charge*1e-9*p.size/2,surfaces:()=>[sphere([0,L/2,0],L,64,128,[0,1,0]),sphere([0,L/2,0],3*L,64,128,[0,1,0])]},
  arc:{layout:'wire',Q:p=>p.charge*1e-9,surfaces:()=>[sphere([0,0,0],2*RAD,64,128),sphere([0,0,0],6*RAD,64,128)]},
- // The disk is summed through cloud(): 16 points per annulus, each carrying dq/16.
- // If cloud gave each of them the whole annulus dq the flux would be 16 × Q/ε₀.
+ // The disk's annuli are summed as exact rings (annuliField). A ring formula carrying the wrong
+ // overall weight changes this flux by exactly that factor, at any surface size.
  disk:{layout:'surface',Q:p=>p.charge*1e-9,surfaces:()=>[sphere([0,0,0],2*RAD,64,128),sphere([0,0,0],6*RAD,64,128)]},
  // A coaxial cylinder instead of a sphere, so the ring's flux is measured by a rule
  // with no spherical symmetry to lean on. 257 azimuthal nodes: prime, so the n-fold
@@ -406,8 +408,8 @@ const TAN_CUT:Record<'infinite'|'semi'|'sheet',TanCut>={
  // A sphere of radius 3 at the wire's end holds the first four: (3π/16)Σsec²θ_i =
  // 2.98114 nC, Φ = 336.692 N m²/C per nC/m.
  semi:{layout:'wire',n:8,p:params({charge:1,distance:3}),surface:(k=1)=>sphere([0,0,0],3*k,256,64,[1,0,0]),count:4},
- // Rings at the same radii, spread by cloud(); a pillbox of radius 3 and half-height 1.5
- // holds the first four rings, all 16 points of each: 27.6622 nC, Φ = 3124.19 N m²/C per
+ // Rings at the same radii; a pillbox of radius 3 and half-height 1.5 holds the first four
+ // rings whole (4 × 16 in the bookkeeping spread): 27.6622 nC, Φ = 3124.19 N m²/C per
  // nC/m² — deliberately NOT the continuum's σπρ² = 28.2743 nC (3193.3). See below.
  sheet:{layout:'surface',n:8,p:params({charge:1,distance:3}),surface:(k=1)=>cylinder([0,0,0],3*k,1.5*k,64,64,257),count:4*PER_RING},
 };
@@ -768,7 +770,7 @@ describe('the integral theorems are not vacuous', () => {
   expect(Math.abs(ratio((dq,d)=>{const c=dq/len(d)**3;return [c*d[0],c*d[1],c*d[2]];})-1),'K → 1').toBeGreaterThan(.9);
   expect(Math.abs(ratio((dq,d)=>honest(dq*1e9,d))-1),'dq left in nC').toBeGreaterThan(1e8);
   expect(Math.abs(ratio((dq,d)=>honest(dq,[-d[0],-d[1],-d[2]]))-1),'(S − P) instead of (P − S)').toBeGreaterThan(1.9);
-  // cloud() handing each of its 16 points the WHOLE annulus dq: 16 × Q/ε₀.
+  // A spread that hands each of its 16 points the WHOLE annulus dq: 16 × Q/ε₀.
   const fat=refCloud(refPieces('disk',p,37)).map(c=>({q:c.q*PER_RING,at:c.at}));
   const s=sphere([0,0,0],2*RAD,64,128);
   near(flux(build(honest,fat),s).net,PER_RING*truth,1e-9,'a cloud that does not divide dq');

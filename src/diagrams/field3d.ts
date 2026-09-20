@@ -10,26 +10,6 @@ import {localRadii} from './fieldlines';
  * same discretised charge the rest of the app sums is summed in three dimensions here, and
  * lines and arrows are placed in the volume rather than on a slice of it. */
 const ARRIVED=.05;
-/** The charge as points the field can be summed from.
- *
- * A wire's samples already are points. A disk's or a sheet's are annuli: each sample is a
- * whole ring at one radius, and its position is only a representative point on it. Summing
- * Coulomb from that point would make a disk into a row of charges along one radius. Each
- * annulus is spread round its ring instead, so the field is the surface's.
- *
- * The drawing no longer sums these points: it sums each annulus as the ring it is, which the
- * sixteen points only approximate (see annuliField). The spread stays as the point-charge
- * picture of a surface that the Gauss and circulation checks integrate. */
-export function cloud(samples:readonly ChargeSample[],layout:Layout,perRing=16):ChargeSample[]{
- if(layout!=='surface')return [...samples];
- const out:ChargeSample[]=[];
- for(const s of samples){
-  const r=Math.abs(s.coordinate);
-  if(r<1e-9){out.push({...s,position:{x:0,y:0,z:0}});continue;}
-  for(let k=0;k<perRing;k++){const a=2*Math.PI*(k+.5)/perRing;out.push({...s,position:{x:r*Math.cos(a),y:r*Math.sin(a),z:0},dq:s.dq/perRing});}
- }
- return out;
-}
 /** Complete elliptic integrals K(m) and E(m), by the arithmetic-geometric mean: quadratic
  * convergence, so five or six square roots reach machine precision anywhere off the ring. */
 function elliptic(m:number):[number,number]{
@@ -40,8 +20,9 @@ function elliptic(m:number):[number,number]{
 }
 /** The field of a surface's annuli, each summed as the whole ring it is.
  *
- * `cloud` stands a ring in for sixteen points, and every ring's points sit on the same sixteen
- * azimuths, so the drawn surface is sixteen charged SPOKES with bare wedges between them. Above a
+ * The figure used to stand each ring in for sixteen points, and every ring's points sat on the
+ * same sixteen azimuths, so the drawn surface was sixteen charged SPOKES with bare wedges between
+ * them -- a spread that lived here as `cloud` until nothing drew it and was removed. Above a
  * wedge the field ripples as exp(-16 z/rho): the gap between spokes is 2 pi rho/16, which grows
  * with radius without limit. The disk never reaches far enough out for that to show. The sheet's
  * picture does: at rho = 3 m the summed field stood 23 degrees off the normal 0.3 m above the face
@@ -72,8 +53,8 @@ const fieldOf=(samples:readonly ChargeSample[],layout:Layout)=>layout==='surface
 export function typicalSpacing(points:readonly ChargeSample[]):number{
  // Sampled ACROSS the whole charge, not from the first sixty points.
  //
- // On a wire those are the same thing. On a surface they are not: `cloud` emits each annulus as
- // a ring of points, innermost ring first, so the first sixty are the three or four smallest
+ // On a wire those are the same thing. On anything listed innermost first they are not: given a
+ // surface spread into rings of points, the first sixty are the three or four smallest
  // rings — radii of a few centimetres, and gaps to match. The median came out far below the
  // spacing anywhere a line is actually drawn, `arrive` fell back to its floor, and lines were
  // traced to within a few centimetres of a face whose points are a quarter of a metre apart.
@@ -133,7 +114,7 @@ export type TraceOptions={step?:number;maxSteps?:number;outerLimit?:number;sign?
  radii?:readonly number[];
  /** Distance from a point to the charge BODY, for layouts whose elements are not points. A disk's
   * annulus is a continuous ring; measuring to the one point each sample stores, or to the sixteen
-  * `cloud` spreads it into, lets a line thread between them and run closer to the surface than the
+  * points it used to be spread into, lets a line thread between them and run closer to the surface than the
   * drawing can support. See bodyDistance. A line that comes within `clearance` of it is shortened
   * to end there. */
  clear?:(x:number,y:number,z:number)=>number;

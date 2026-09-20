@@ -2,7 +2,7 @@ import {describe,expect,it} from 'vitest';
 import {K} from '../src/distributions/constants';
 import type {ChargeSample} from '../src/distributions/types';
 import type {Vec} from '../src/symbolic/physics';
-import {annuliField,cloud,meridianLines,spaceField,spaceGrid,spaceLines,spaceSeeds,traceLine3,typicalSpacing} from '../src/diagrams/field3d';
+import {annuliField,meridianLines,spaceField,spaceGrid,spaceLines,spaceSeeds,traceLine3,typicalSpacing} from '../src/diagrams/field3d';
 import {sampleDistribution} from '../src/diagrams/sampling';
 import {DEFAULT_PARAMS} from '../src/problems/types';
 import {logWeights} from '../src/diagrams/vectorfield';
@@ -107,6 +107,13 @@ describe('shared log weights',()=>{
   expect(w[0]).toBeCloseTo(0,12);expect(w[1]).toBeCloseTo(.5,12);expect(w[2]).toBeCloseTo(1,12);
  });
 });
+/** A surface's annuli as points round their rings. A test-side helper only: the app sums each
+ * ring exactly and has no use for a spread, but it is how a test measures the distance from a
+ * point to the drawn charge, and -- taken dense enough -- a second opinion on the ring formula. */
+const spread=(samples:readonly ChargeSample[],layout:'wire'|'surface',perRing=16):ChargeSample[]=>layout!=='surface'?[...samples]
+ :samples.flatMap(s=>{const r=Math.abs(s.coordinate);
+  if(r<1e-9)return [{...s,position:{x:0,y:0,z:0}}];
+  return Array.from({length:perRing},(_,k)=>{const a=2*Math.PI*(k+.5)/perRing;return {...s,position:{x:r*Math.cos(a),y:r*Math.sin(a),z:0},dq:s.dq/perRing};});});
 describe('the cross-section a side view wants',()=>{
  it('keeps every line in the plane y = 0 for an axisymmetric charge',()=>{
   for(const [samples,layout] of [[ring,'wire'],[disk,'surface']] as const){
@@ -114,7 +121,7 @@ describe('the cross-section a side view wants',()=>{
    expect(lines.length).toBeGreaterThan(3);
    // Away from the charge the plane is exact. Within a spacing of a discrete point the field
    // leans toward that point, which is why lines stop short of it.
-   const points=cloud(samples,layout);
+   const points=spread(samples,layout);
    for(const line of lines)for(const q of line){
     const nearest=Math.min(...points.map(s=>Math.hypot(q.x-s.position.x,q.y-s.position.y,q.z-s.position.z)));
     if(nearest>.3)expect(Math.abs(q.y)).toBeLessThan(1e-9);
@@ -144,33 +151,26 @@ describe('the cross-section a side view wants',()=>{
  });
 });
 describe('a surface is summed as a surface',()=>{
- it('spreads each annulus round its ring, keeping the charge',()=>{
-  const points=cloud(disk,'surface',16);
-  expect(points.length).toBe(disk.length*16);
-  expect(points.reduce((a,s)=>a+s.dq,0)).toBeCloseTo(disk.reduce((a,s)=>a+s.dq,0),18);
-  for(const s of points.slice(0,16))expect(Math.hypot(s.position.x,s.position.y)).toBeCloseTo(Math.abs(disk[0].coordinate),12);
- });
- it("reproduces the app's own annulus field on the axis of a real disk",()=>{
+ it("reproduces the app's own annulus field on the axis of a real disk, exactly",()=>{
   const samples=sampleDistribution('disk',DEFAULT_PARAMS,40);
   const own=samples.reduce((a,s)=>a+s.field.z,0);
-  const spread=spaceField(cloud(samples,'surface',48),{x:0,y:0,z:DEFAULT_PARAMS.distance}).z;
-  expect(spread/own).toBeCloseTo(1,3);
-  // On the axis a point on a ring and the whole ring agree, so the difference only shows off
-  // it: an axisymmetric surface has no sideways field on the plane x = 0, while the annuli
-  // taken as points on one radius pull everything toward that radius.
-  const off={x:0,y:.4,z:DEFAULT_PARAMS.distance};
-  const surface=spaceField(cloud(samples,'surface',48),off),points=spaceField(samples,off);
-  expect(Math.abs(surface.x)).toBeLessThan(1e-9*Math.abs(surface.z));
-  expect(Math.abs(points.x)).toBeGreaterThan(.05*Math.abs(points.z));
+  expect(annuliField(samples,{x:0,y:0,z:DEFAULT_PARAMS.distance}).z/own).toBeCloseTo(1,12);
  });
- it('leaves a wire alone',()=>{
-  expect(cloud(ring,'wire')).toHaveLength(ring.length);
+ it('has no sideways field where symmetry forbids one, which the annuli taken as points do',()=>{
+  // On the axis a point on a ring and the whole ring agree, so the difference only shows off
+  // it: an axisymmetric surface has no x-component anywhere on the plane x = 0, while the annuli
+  // taken as single points on one radius pull everything toward that radius. This is the fault
+  // summing rings exists to avoid, so it is worth keeping the wrong answer in view.
+  const samples=sampleDistribution('disk',DEFAULT_PARAMS,40),off={x:0,y:.4,z:DEFAULT_PARAMS.distance};
+  const surface=annuliField(samples,off),points=spaceField(samples,off);
+  expect(surface.x).toBe(0);
+  expect(Math.abs(points.x)).toBeGreaterThan(.05*Math.abs(points.z));
  });
  it('sums each annulus as its whole ring, which a dense enough spread of points converges to',()=>{
   // The drawing's closed form against Coulomb over 4096 points a ring: at these distances the
   // spread's azimuthal ripple is below exp(-4096·0.3/2), so any disagreement is the formula's.
   // Off the axis, both faces, inside and outside the rim, and on the axis where E_rho must vanish.
-  const samples=sampleDistribution('disk',DEFAULT_PARAMS,24),dense=cloud(samples,'surface',4096);
+  const samples=sampleDistribution('disk',DEFAULT_PARAMS,24),dense=spread(samples,'surface',4096);
   for(const at of [{x:.7,y:-.4,z:.3},{x:-1.6,y:1.1,z:-.5},{x:2.6,y:.2,z:.35},{x:0,y:0,z:1.2},{x:3,y:-4,z:6}]){
    const got=annuliField(samples,at),want=spaceField(dense,at);
    expect(len({x:got.x-want.x,y:got.y-want.y,z:got.z-want.z})/len(want),`at (${at.x}, ${at.y}, ${at.z})`).toBeLessThan(1e-9);
