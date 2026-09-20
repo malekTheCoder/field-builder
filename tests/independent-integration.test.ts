@@ -186,6 +186,17 @@ describe('every field closed form against an independent adaptive integral',()=>
    const above=field(id,{...p,distance:2.1});
    expect(field(id,p).z).toBeCloseTo(-above.z,15);
   });
+ // The same mirror for the POTENTIALS, which no independent integral had ever been evaluated for
+ // below the plane -- the loop above reads `field` only. V is EVEN in z where E is odd, and on the
+ // disk that evenness is one `Math.abs(p.distance)` in the source: a line that is right until
+ // somebody tidies it, and whose loss would leave the potential negative under the plane while
+ // every check above still passed.
+ for(const id of ['v-ring','v-disk'] as const)for(const charge of [2.4,-1.7])
+  it(`${id} below the plane · charge ${charge}`,()=>{
+   const p=params({charge,distance:-2.1,size:3.8});
+   closeNum(potential(id,p),truthV(id,p),TOL,`V ${id} z<0`);
+   expect(potential(id,p),`${id} V is not even in z`).toBe(potential(id,{...p,distance:2.1}));
+  });
 });
 
 describe('every potential closed form against an independent adaptive integral',()=>{

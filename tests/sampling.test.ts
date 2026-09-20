@@ -4,9 +4,13 @@ import { field, magnitude } from '../src/symbolic/physics';
 import { DEFAULT_PARAMS, type ProblemId } from '../src/problems/types';
 const ids: ProblemId[] = ['bisector','axial','infinite','ring','disk','semi','arc','sheet','endpoint','ramp'];
 describe('physical charge sampling', () => {
-  for (const id of ids) it(`${id} converges to its analytic vector field`, () => {
-    for (const distance of [.5, 3, 6]) {
-      const p = { ...DEFAULT_PARAMS, distance };
+  // Both signs, and both ends of the distance slider. The sampler is what every figure sums, and
+  // it was only ever checked with a positive charge -- so a stray Math.abs or a dropped sign in
+  // the partition would have drawn a negative rod's field pointing the wrong way with nothing here
+  // to say so.
+  for (const id of ids) it(`${id} converges to its analytic vector field, either sign`, () => {
+    for (const distance of [.5, 3, 6]) for (const charge of [2, -5]) {
+      const p = { ...DEFAULT_PARAMS, distance, charge };
       const exact = field(id, p), actual = sumSamples(sampleDistribution(id, p, 2000));
       const error = magnitude({ x: exact.x-actual.x, y: exact.y-actual.y, z: exact.z-actual.z });
       expect(error / Math.max(magnitude(exact), 1e-10)).toBeLessThan(1e-5);
@@ -14,8 +18,10 @@ describe('physical charge sampling', () => {
   });
   it('conserves finite total charge and equal finite line pieces', () => {
     for (const id of ['bisector','axial','ring','disk','arc','endpoint'] as ProblemId[]) {
-      const samples = sampleDistribution(id, DEFAULT_PARAMS, 37);
-      expect(samples.reduce((s,v) => s+v.dq,0)).toBeCloseTo(DEFAULT_PARAMS.charge*1e-9, 18);
+      for (const charge of [DEFAULT_PARAMS.charge, -5]) {
+        const samples = sampleDistribution(id, {...DEFAULT_PARAMS, charge}, 37);
+        expect(samples.reduce((s,v) => s+v.dq,0), `${id} at charge ${charge}`).toBeCloseTo(charge*1e-9, 18);
+      }
     }
   });
   it('the ramp rod carries lambda0 L / 2 in total, with each piece weighted by its own height', () => {

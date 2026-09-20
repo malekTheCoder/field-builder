@@ -266,6 +266,27 @@ describe('Conditioning of the closed forms across sixteen decades',()=>{
    check('bisector E_x',e,field('bisector',p).x,ke*q/(r*Math.hypot(r,L/2)));
    check('bisector V',e,potential('v-rod-bisector',p),2*ke*lam*asinhRef(L/(2*r)));}
  });
+ // The two rods that stand on their foot, with P level with it. `endpoint` E_x divides and never
+ // subtracts, so it is the control; `ramp` E_x is the guarded one. Its textbook spelling
+ // (kλ₀/L)(1 − r/h) loses two digits per decade of r/L, because h → r and the bracket is the
+ // difference of two doubles that agree to the last bit, so the source computes the identical
+ // number as kλ₀L/(h(h+r)). Nothing else in the suite would notice if that came undone: the only
+ // other test of ramp E_x references the NAIVE spelling, so restoring the subtraction passes
+ // there, and no other file evaluates it past r/L ≈ 60. Here the reference is the binomial
+ // series, which is the one spelling that cannot cancel.
+ //
+ // Measured, by putting the subtraction back: this test fails from r/L = 1e3 (7e-11), 1.4e-9 by
+ // 1e4 and 2.3e-6 by 1e5 -- while the textbook anchors, the domain sweep and the independent
+ // adaptive-Simpson integral, 338 assertions between them, all still passed.
+ it('rods standing on their foot: the transverse field from a series, never a subtraction',()=>{
+  for(const e of EXPS){const r=L*10**e,p=P({distance:r,size:L,charge:1}),u=L/r;
+   // r/h from the series where it converges (|u²| ≤ ¼, i.e. r ≥ 2L) and directly where it does
+   // not. The series is only valid on a quarter and returns NaN beyond it, which is how the first
+   // draft of this line "failed" -- the reference, not the field.
+   const overH=u*u<=.25?1+invSqrt1pMinus1(u*u):1/Math.sqrt(1+u*u);
+   check('endpoint E_x',e,field('endpoint',p).x,ke*q/(r*r)*overH);
+   check('ramp E_x',e,field('ramp',p).x,ke*q/L*oneMinusCos(u));}
+ });
  // The far-field ratios, with the textbook multipole coefficients. E d²/kQ → 1 for every
  // finite distribution; the first correction is what says WHICH distribution it was.
  it('far-field ratios carry the textbook second-moment coefficients',()=>{
