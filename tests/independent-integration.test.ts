@@ -327,6 +327,54 @@ describe('the sanity checks each lesson displays are themselves true',()=>{
   closeNum(sampleLimit(getProblem('ring'),p,limitOf('ring','maximum'),10).target,peak,TOL,'ring peak reference');
   closeNum(peak,2*ke*q/(3*Math.sqrt(3)*R*R),TOL,'ring peak is 2kQ/(3√3R²)');
  });
+ // The rest of the displayed references, which until now were guarded only by a check that the
+ // app's own curve reaches the app's own reference, at five percent, at one parameter setting.
+ // These are sharp claims and they are priced here against the integral, or against a constant
+ // retyped from CODATA -- never against another of the app's spellings.
+ it('the centre of a ring: no field at all, and V = kQ/R',()=>{
+  const p=params({charge:2.4,size:3.8,distance:0}),R=p.size/2,q=p.charge*1e-9;
+  const pointCharge=ke*Math.abs(q)/(R*R);
+  expect(norm(truthE('ring',p))/pointCharge,'the integral finds a field at the centre').toBeLessThan(1e-12);
+  closeNum(truthV('v-ring',p),ke*q/R,TOL,'V at a ring centre is kQ/R');
+  closeNum(potential('v-ring',p),ke*q/R,TOL,'the app agrees');
+ });
+ it('an arc holds V = kQ/R at every opening angle, which is why its potential has no φ in it',()=>{
+  // The full and half references are the same number, and that IS the lesson: every piece of any
+  // arc is R from the centre, so the angle cannot enter. Worth pricing at several angles, not two.
+  const R=1.9,q=2.4e-9;
+  for(const phi of [.1*Math.PI,.7,Math.PI,4.2,1.9*Math.PI]){
+   const p=params({charge:2.4,size:2*R,phi});
+   closeNum(truthV('v-arc',p),ke*q/R,TOL,`V of an arc at φ=${phi.toFixed(2)} is kQ/R`);
+  }
+ });
+ it('the semi-infinite line falls as 1/r, so r|E| is one number',()=>{
+  const p=params({charge:2.4,size:3.8}),lam=p.charge*1e-9;
+  const scaled=[.5,1.3,3,6].map(distance=>norm(truthE('semi',{...p,distance}))*distance);
+  for(const s of scaled)closeNum(s,scaled[0],TOL,'r|E| along a semi-infinite line');
+  // And the size it settles at: √2 kλ/r, the 45° lean with both components kλ/r.
+  closeNum(scaled[0],Math.SQRT2*ke*lam,TOL,'r|E| is √2 kλ');
+ });
+ it('the sheet is σ/(2ε₀) with ε₀ typed from CODATA, at every height',()=>{
+  const p=params({charge:2.4,size:3.8}),sigma=p.charge*1e-9;
+  for(const distance of [.001,.5,3,6,1e6])
+   closeNum(truthE('sheet',{...p,distance})[2],sigma/(2*E0),TOL,`sheet at z=${distance}`);
+ });
+ it('a disk with σ held fixed becomes that sheet as it grows',()=>{
+  // The lesson's own claim, and the one a reader is most likely to doubt. σ fixed, R growing:
+  // the disk's field must climb to the sheet's and stay there.
+  const sigma=2.4e-9,z=3,sheet=sigma/(2*E0);
+  let previous=0;
+  for(const R of [4,40,400,4000]){
+   const p=params({charge:sigma*Math.PI*R*R/1e-9,size:2*R,distance:z});
+   const disk=truthE('disk',p)[2];
+   expect(disk,`a disk of R=${R} overshoots the sheet`).toBeLessThan(sheet);
+   expect(disk,`a disk of R=${R} is no closer than R=${R/10}`).toBeGreaterThan(previous);
+   previous=disk;
+   // The remainder is z/√(z²+R²), which is the part of the plane the disk is still missing.
+   closeNum(disk,sheet*(1-z/Math.hypot(z,R)),1e-6,`disk R=${R} against sheet × (1 − z/√(z²+R²))`);
+  }
+  expect(previous/sheet,'a disk four thousand times the height is not yet the sheet').toBeGreaterThan(.999);
+ });
  it('the half ring really is 2kQ/(πR²)',()=>{
   const p=params({charge:2,size:4,distance:3}),R=p.size/2,q=p.charge*1e-9;
   const half=norm(truthE('arc',{...p,phi:Math.PI}));
