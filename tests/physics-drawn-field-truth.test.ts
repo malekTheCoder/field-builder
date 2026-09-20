@@ -1074,20 +1074,46 @@ function setupCharges(id:ProblemId,p:Params):Charge[]{
   else if(id==='ring')out.push({dq:Q/n,at:[R*Math.cos(2*Math.PI*t),R*Math.sin(2*Math.PI*t),0]});
   else if(id==='arc')out.push({dq:Q/n,at:[R*Math.cos(p.phi*(t-.5)),R*Math.sin(p.phi*(t-.5)),0]});
   else if(id==='disk'){
-   // Annulus i runs from iR/n to (i+1)R/n and carries Q((i+1)² − i²)/n² of the total; spread
-   // it over sixteen points on the circle at its midpoint radius.
-   const s=R*t,dq=Q*((i+1)**2-i**2)/(16*n*n);
-   for(let k=0;k<16;k++){const a=2*Math.PI*(k+.5)/16;out.push({dq,at:[s*Math.cos(a),s*Math.sin(a),0]});}
+   // Annulus i runs from iR/n to (i+1)R/n and carries Q((i+1)² − i²)/n² of the total, spread
+   // round the circle at its midpoint radius. RING_POINTS of them, not sixteen: sixteen was
+   // chosen to mirror the cloud the figure USED to sum, and a ring of sixteen dots is sixteen
+   // point charges, 23° off normal a third of a metre above the face at 3 m out. The figure now
+   // sums exact rings, and this reference has to be a ring too, or it measures the drawing
+   // against a coarser thing than the drawing. The azimuthal trapezoid converges geometrically
+   // with distance from the ring, so how many points make "a ring" depends on how close the
+   // test looks. Measured against a ring of four times the points: 96 is a ring to 4e-3 at the
+   // 0.15 m closest approach below, 192 to 4e-6, 384 to 2e-12. The check it feeds has a band of
+   // ten percent, so 192 is the ring for every purpose here at half the cost of 384; the test
+   // after the partition audit holds it to those numbers.
+   const s=R*t,dq=Q*((i+1)**2-i**2)/(RING_POINTS*n*n);
+   for(let k=0;k<RING_POINTS;k++){const a=2*Math.PI*(k+.5)/RING_POINTS;out.push({dq,at:[s*Math.cos(a),s*Math.sin(a),0]});}
   }
  }
  return out;
 }
+const RING_POINTS=192;
 const V_LESSONS=['bisector','axial','endpoint','ramp','arc','ring','disk'] as const;
 describe('the potential falls along every drawn field line',()=>{
  it('the charges rebuilt from the setup text are the charges the app partitions',()=>{
   for(const id of V_LESSONS)for(const n of [24,64]){
-   const p=params({slices:n}),mine=setupCharges(id,p);
-   const app=id==='disk'?cloud(sampleDistribution(id,p,n),'surface'):sampleDistribution(id,p,n);
+   const p=params({slices:n}),mine=setupCharges(id,p),app=sampleDistribution(id,p,n);
+   if(id==='disk'){
+    // The disk is audited RING BY RING: each of the sampler's annuli must carry the charge the
+    // setup text gives it, at the radius the setup text puts it, with the reference's points
+    // summing to exactly that. This used to compare against cloud(), which spread each annulus
+    // into sixteen dots -- but cloud() is no longer what the figure sums, so a test pinned to
+    // it was guarding a path nobody draws.
+    expect(mine.length).toBe(app.length*RING_POINTS);
+    let worstQ=0,worstX=0;
+    app.forEach((ring,i)=>{
+     const pts=mine.slice(i*RING_POINTS,(i+1)*RING_POINTS);
+     worstQ=Math.max(worstQ,Math.abs(pts.reduce((a,c)=>a+c.dq,0)-ring.dq)/Math.abs(ring.dq));
+     for(const c of pts)worstX=Math.max(worstX,Math.abs(Math.hypot(c.at[0],c.at[1])-Math.abs(ring.coordinate)));
+    });
+    expect(worstQ,`disk N=${n}: an annulus's charge differs from the setup by ${worstQ.toExponential(2)} relative`).toBeLessThan(1e-12);
+    expect(worstX,`disk N=${n}: a ring sits ${worstX.toExponential(2)} m from the radius the setup puts it at`).toBeLessThan(1e-12);
+    continue;
+   }
    expect(mine.length,`${id} N=${n}: ${mine.length} elements against the app's ${app.length}`).toBe(app.length);
    let worstQ=0,worstX=0;
    for(let i=0;i<mine.length;i++){
@@ -1097,6 +1123,21 @@ describe('the potential falls along every drawn field line',()=>{
    expect(worstQ,`${id} N=${n}: a charge differs from the setup by ${worstQ.toExponential(2)} relative`).toBeLessThan(1e-12);
    expect(worstX,`${id} N=${n}: an element sits ${worstX.toExponential(2)} m from where the setup puts it`).toBeLessThan(1e-12);
   }
+ });
+ it('the reference ring is a ring to the measured tolerance at every distance the checks look',()=>{
+  // The claim the disk reference rests on, held to numbers rather than to "double precision":
+  // quadrupling the points must move the field by under 1e-5 at the 0.15 m closest approach the
+  // V-drop loop allows, and by nothing a double can see a step further out. Measured 3.85e-6 and
+  // 2.5e-12 when this was written; the bars sit a little above each.
+  const p=params({slices:24}),Q=p.charge*NANO;
+  const ringAt=(pts:number,s:number,dq:number,m:V3)=>pointsField(Array.from({length:pts},(_,k)=>{const a=2*Math.PI*(k+.5)/pts;return{dq:dq/pts,at:[s*Math.cos(a),s*Math.sin(a),0] as V3};}),m);
+  const worstAt=(gap:number)=>{let worst=0;
+   for(const s of [.5,1,1.9])for(const m of [[s+gap,0,0],[s,0,gap],[s+gap/Math.SQRT2,0,gap/Math.SQRT2]] as V3[]){
+    const a=ringAt(RING_POINTS,s,Q/24,m),b=ringAt(4*RING_POINTS,s,Q/24,m);
+    worst=Math.max(worst,len(sub(a,b))/len(b));}
+   return worst;};
+  expect(worstAt(.15),'at the closest chord the V-drop loop measures').toBeLessThan(1e-5);
+  expect(worstAt(.4),'a step further out').toBeLessThan(1e-11);
  });
  for(const id of V_LESSONS)for(const q of [2,-2])
   it(`${id}, charge ${q}: V decreases at every step of every drawn line`,()=>{
@@ -1128,10 +1169,9 @@ describe('the potential falls along every drawn field line',()=>{
       if(!(V[i+1]<V[i])){rises++;if(rises===1)riseAt=`N=${n} at (${line[i][0].toFixed(2)},${line[i][1].toFixed(2)},${line[i][2].toFixed(2)}): V went from ${V[i].toPrecision(8)} to ${V[i+1].toPrecision(8)} V`;}
       if(i<skip||i>line.length-2-skip)continue;
       const m=mid(line[i],line[i+1]),chord=len(sub(line[i+1],line[i]));
-      // Near a cloud point the drawn disk is dots, and no relation between ΔV and |E|·|dl|
-      // along a straight chord survives that; 0.4 m is where the map of the cloud above
-      // says it starts reading as a surface again.
-      if(id==='disk'&&nearestElement(cloud(samples,'surface'),m)<.4)continue;
+      // Within a step of a ring the field turns too sharply for a straight chord to carry
+      // ΔV = E·dl; the distance is to the ring itself now, since that is what is drawn.
+      if(id==='disk'&&Math.min(...samples.map(r=>Math.hypot(Math.hypot(m[0],m[1])-Math.abs(r.coordinate),m[2])))<.15)continue;
       const ratio=-(V[i+1]-V[i])/(len(pointsField(charges,m))*chord);
       if(!Number.isFinite(ratio))continue;
       ratios++;

@@ -1,6 +1,6 @@
 import {describe,it,expect} from 'vitest';
 import {sampleDistribution} from '../src/diagrams/sampling';
-import {cloud,spaceField,type Layout} from '../src/diagrams/field3d';
+import {spaceField,type Layout,annuliField} from '../src/diagrams/field3d';
 import {planeField} from '../src/diagrams/fieldlines';
 import {DEFAULT_PARAMS,type Params,type ProblemId} from '../src/problems/types';
 import type {ChargeSample} from '../src/distributions/types';
@@ -203,13 +203,30 @@ const refCloud=(pieces:readonly Piece[]):Piece[]=>pieces.flatMap(({q,at})=>{
  return Array.from({length:PER_RING},(_,k)=>{const a=2*Math.PI*(k+.5)/PER_RING;return {q:q/PER_RING,at:[r*Math.cos(a),r*Math.sin(a),0] as V3};});
 });
 const refPoints=(id:ProblemId,p:Params,n:number,layout:Layout)=>layout==='surface'?refCloud(refPieces(id,p,n)):refPieces(id,p,n);
-const appPoints=(id:ProblemId,p:Params,n:number,layout:Layout)=>cloud(sampleDistribution(id,p,n),layout);
+/** THE FIELD THE FIGURE DRAWS, which is what every law below has to hold for.
+ *
+ * A wire's pieces are point charges and the figure sums Coulomb over them. A surface's pieces are
+ * annuli, and the figure sums each as the exact ring it is, through complete elliptic integrals
+ * (annuliField). These checks used to integrate something else for a surface: the annuli spread
+ * into sixteen dots each and summed as points -- a construction the figure stopped drawing, kept
+ * alive in `src` only so that this file had something to measure. So Gauss, the circulation and
+ * E = −∇V were all being verified for a field nobody sees, while the elliptic-integral formula
+ * that IS drawn had five spot checks to its name. Flux, circulation and gradient are exactly the
+ * laws that catch a wrong coefficient off the axis, so they are pointed at the real thing now. */
+const drawnE=(id:ProblemId,p:Params,n:number,layout:Layout):((q:V3)=>V3)=>{
+ const samples=sampleDistribution(id,p,n);
+ if(layout!=='surface')return E3(samples);
+ return (q:V3):V3=>{const v=annuliField(samples,{x:q[0],y:q[1],z:q[2]});return [v.x,v.y,v.z];};
+};
 /** Precondition for every case that predicts enclosed charge or builds a potential:
  * the app's pieces ARE the pieces transcribed above. A drifted partition, a dq paired
  * with a neighbour's position, or a cloud ring at a scaled radius stops here. */
-function assertPartition(id:ProblemId,p:Params,n:number,layout:Layout):void{
- const app=appPoints(id,p,n,layout),ref=refPoints(id,p,n,layout);
- expect(app.length,`${id} n=${n} ${layout}: piece count`).toBe(ref.length);
+function assertPartition(id:ProblemId,p:Params,n:number,_layout:Layout):void{
+ // Piece against piece, annulus against annulus: the app's own samples against the partition
+ // transcribed above. The sixteen-dot spread is the reference's bookkeeping, not the app's, so
+ // it is no longer compared -- it is pure geometry applied to pieces already verified here.
+ const app=sampleDistribution(id,p,n),ref=refPieces(id,p,n);
+ expect(app.length,`${id} n=${n} ${_layout}: piece count`).toBe(ref.length);
  for(let i=0;i<ref.length;i++){
   const slip=Math.abs(app[i].dq-ref[i].q)/Math.abs(ref[i].q);
   expect(slip,`${id} n=${n} piece ${i} dq: got ${app[i].dq.toPrecision(12)}, want ${ref[i].q.toPrecision(12)}`).toBeLessThan(1e-12);
@@ -298,13 +315,13 @@ describe('Gauss: the flux of the sampled field through a surface enclosing every
    near(Q/E0,charge*(id==='ramp'?L/2:1)*PHI_PER_NC,1e-15,`${id}: Q/ε₀ bookkeeping`);
    for(const n of [5,37,200]){
     assertPartition(id,p,n,spec.layout);
-    const pts=appPoints(id,p,n,spec.layout),pieces=asPieces(pts);
-    // The premise of Gauss, and the whole of cloud()'s dq conservation: the pieces
-    // the figure sums carry the continuum's charge, in coulombs, not nanocoulombs.
+    const pieces=asPieces(sampleDistribution(id,p,n)),spread=refPoints(id,p,n,spec.layout);
+    // The premise of Gauss: the pieces the figure sums carry the continuum's charge, in
+    // coulombs, not nanocoulombs.
     near(totalRef(pieces),Q,1e-12,`${id} n=${n}: Σ dq over the drawn pieces`);
     for(const s of surfaces){
-     expect(margin(pieces,s),`${id} n=${n} ${s.label}: every piece strictly inside`).toBeGreaterThan(.9);
-     near(flux(E3(pts),s).net,Q/E0,1e-9,`${id} q=${charge}nC n=${n} ${s.label}`);
+     expect(margin(spread,s),`${id} n=${n} ${s.label}: every piece strictly inside`).toBeGreaterThan(.9);
+     near(flux(drawnE(id,p,n,spec.layout),s).net,Q/E0,1e-9,`${id} q=${charge}nC n=${n} ${s.label}`);
     }
    }
   }
@@ -364,8 +381,7 @@ describe('Gauss with the surface cutting the charge at a bin edge', () => {
    // The pieces inside carry the continuum's charge over the same region — the point
    // of cutting at a bin edge, and a statement about dq, not about any field.
    near(enclosedRef(ref,s),spec.enclosed(p),1e-12,`${id}: enclosed charge (${spec.why})`);
-   const pts=appPoints(id,p,spec.n,spec.layout);
-   near(flux(E3(pts),s).net,spec.enclosed(p)/E0,1e-9,`${id} q=${charge}nC: Φ through ${s.label}`);
+   near(flux(drawnE(id,p,spec.n,spec.layout),s).net,spec.enclosed(p)/E0,1e-9,`${id} q=${charge}nC: Φ through ${s.label}`);
   }
  },120000);
 });
@@ -419,7 +435,7 @@ describe('Gauss on the tan-partitioned samplers', () => {
     const ref=refPoints(id,p,spec.n,spec.layout),Qin=enclosedRef(ref,s);
     expect(Math.min(...ref.map(c=>Math.abs(s.depth(c.at)))),`${id} d=${p.distance}: clearance from ${s.label}`).toBeGreaterThan(.2*k);
     expect(ref.filter(c=>inside(s,c.at)).length,`${id} d=${p.distance}: pieces inside ${s.label}`).toBe(spec.count);
-    near(flux(E3(appPoints(id,p,spec.n,spec.layout)),s).net,Qin/E0,1e-9,`${id} ${charge>0?'+':'−'} d=${p.distance}: Φ through ${s.label}`);
+    near(flux(drawnE(id,p,spec.n,spec.layout),s).net,Qin/E0,1e-9,`${id} ${charge>0?'+':'−'} d=${p.distance}: Φ through ${s.label}`);
    }
   }
  },120000);
@@ -470,7 +486,7 @@ describe('zero net flux where no charge is enclosed', () => {
    const p={...spec.p,charge},ref=refPoints(id as ProblemId,p,spec.n,spec.layout);
    assertPartition(id as ProblemId,p,spec.n,spec.layout);
    expect(Math.max(...ref.map(c=>s.depth(c.at))),`${id}: every piece outside ${s.label}`).toBeLessThan(-.5);
-   const {net,gross}=flux(E3(appPoints(id as ProblemId,p,spec.n,spec.layout)),s);
+   const {net,gross}=flux(drawnE(id as ProblemId,p,spec.n,spec.layout),s);
    expect(gross,`${id}: the surface sits in a real field`).toBeGreaterThan(.1);
    expect(Math.abs(net)/gross,`${id} q=${charge}: Φ_net = ${net.toExponential(4)} against Φ_gross = ${gross.toPrecision(6)}`).toBeLessThan(1e-12);
   }
@@ -482,7 +498,7 @@ describe('zero net flux where no charge is enclosed', () => {
   // form of the DISCRETE arc, not of the continuum, and holds to rounding.
   const spec=EMPTY.arc,p=spec.p,n=spec.n,R=p.size/2,q=p.charge*1e-9,phi=p.phi;
   const want=ke*q*Math.sin(phi/2)/(n*R*R*Math.sin(phi/(2*n)));
-  const e=E3(appPoints('arc',p,n,'wire'))([0,0,0]);
+  const e=drawnE('arc',p,n,'wire')([0,0,0]);
   near(len(e),want,1e-12,`|E| at the arc's centre (${want.toPrecision(6)} N/C per nC)`);
   // …and it points back along −x, the way the arc's own closed form says.
   expect(e[0]).toBeLessThan(0);
@@ -556,14 +572,15 @@ describe('the circulation of the sampled field around closed loops vanishes', ()
   for(const charge of [1,-1]){
    const p={...loop.p,charge};
    assertPartition(loop.id,p,loop.n,loop.layout);
-   const pts=appPoints(loop.id,p,loop.n,loop.layout),ref=asPieces(pts);
-   // How many charges the loop encircles, and how analytic E·t̂ is along it.
+   const pts=sampleDistribution(loop.id,p,loop.n),ref=refPoints(loop.id,p,loop.n,loop.layout);
+   // How many charges the loop encircles, and how analytic E·t̂ is along it. Measured against the
+   // spread reference, so a ring's closest approach counts and not just its representative point.
    const inLoop=ref.filter(c=>len(sub(c.at,loop.C))<loop.rho).length;
    expect(inLoop,`${loop.id} n=${loop.n}: charges inside the loop`).toBe(loop.encircled);
    const strip=Math.min(...ref.map(c=>loopStrip(loop.C,loop.rho,loop.normal,c.at)));
    // > 0.2 ⇒ trapezoid truncation below e^(−0.2·512) ≈ 1e−45; rounding is all that is left.
    expect(strip,`${loop.id} n=${loop.n}: analyticity strip ${strip.toFixed(4)}`).toBeGreaterThan(.2);
-   const fields:[string,(q:V3)=>V3][]=loop.plane?[['planeField',E2(pts)],['spaceField',E3(pts)]]:[['spaceField',E3(pts)]];
+   const fields:[string,(q:V3)=>V3][]=loop.plane?[['planeField',E2(pts)],['spaceField',E3(pts)]]:[[loop.layout==='surface'?'annuliField':'spaceField',drawnE(loop.id,p,loop.n,loop.layout)]];
    for(const [name,E] of fields){
     const {net,gross}=circulation(E,loop.C,loop.rho,u,v);
     expect(gross,`${loop.id}: the loop sits in a real field`).toBeGreaterThan(1e-3);
@@ -632,17 +649,17 @@ describe('the rectangle between an on-axis closed form and the off-axis sampled 
   for(const charge of [1,-1]){
    const p={...r.p,charge};
    assertPartition(id,p,r.n,r.layout);
-   const pts=appPoints(id,p,r.n,r.layout),ref=asPieces(pts);
+   const ref=refPoints(id,p,r.n,r.layout);
    const sides:[V3,V3][]=[[b,c],[c,d],[d,a]];
    let clear=Infinity;
    for(const [u,v] of sides)for(const q of sideNodes(u,v))for(const e of ref)clear=Math.min(clear,len(sub(q,e.at)));
    expect(clear,`${id}: the off-axis sides stay clear of the charge (${clear.toFixed(4)} m)`).toBeGreaterThan(.9);
-   const E=E3(pts);
+   const E=drawnE(id,p,r.n,r.layout);
    const walked=sides.reduce((t,[u,v])=>t+lineIntegral(E,u,v),0);
    const want=r.V(p,b)-r.V(p,a);
    near(walked,want,r.tol,`${id} q=${charge}nC: ∮ closes (want ΔV = ${want.toPrecision(8)} V)`);
    // In the plane the flat view draws, planeField must agree with spaceField side for side.
-   if(r.plane)near(sides.reduce((t,[u,v])=>t+lineIntegral(E2(pts),u,v),0),walked,1e-13,`${id}: planeField vs spaceField along the same sides`);
+   if(r.plane)near(sides.reduce((t,[u,v])=>t+lineIntegral(E2(sampleDistribution(id,p,r.n)),u,v),0),walked,1e-13,`${id}: planeField vs spaceField along the same sides`);
   }
  },120000);
 });
@@ -670,6 +687,16 @@ function gradV(V:(p:V3)=>number,P:V3,h:number):V3{
  return g;
 }
 const Vof=(pieces:readonly Piece[])=>(P:V3)=>pieces.reduce((s,c)=>s+ke*c.q/len(sub(P,c.at)),0);
+/** The potential of whole rings, for the surfaces -- and deliberately NOT by the elliptic
+ * integrals the app's field uses. A uniformly charged ring has V = kq / AGM(α, β), where α and β
+ * are the nearest and the farthest distances from the point to the ring: Gauss's arithmetic-
+ * geometric mean, six lines, no K(m) or E(m) in sight. So E = −∇V below compares the app's
+ * elliptic-integral FIELD against a potential that shares no formula with it. */
+const agm=(a:number,b:number)=>{for(let i=0;i<40&&Math.abs(a-b)>1e-16*a;i++)[a,b]=[(a+b)/2,Math.sqrt(a*b)];return (a+b)/2;};
+const VofRings=(annuli:readonly Piece[])=>(P:V3)=>annuli.reduce((t,c)=>{
+ const s=len(c.at),rho=Math.hypot(P[0],P[1]),z=P[2];
+ return t+ke*c.q/agm(Math.hypot(s-rho,z),Math.hypot(s+rho,z));
+},0);
 type GradCase={id:ProblemId;layout:Layout;n:number;p:Params;plane:boolean;points:V3[]};
 const GRAD:GradCase[]=[
  // Above the plane, out near the rim, and BELOW the plane — where a lost or copied
@@ -692,10 +719,11 @@ describe('E = −∇V of the same pieces, at points off every symmetry axis', ()
   for(const charge of [1,-1]){
    const p={...g.p,charge};
    assertPartition(g.id,p,g.n,g.layout); // the potential below is built from MY partition
-   const ref=refPoints(g.id,p,g.n,g.layout),pts=appPoints(g.id,p,g.n,g.layout),V=Vof(ref);
+   const ref=refPoints(g.id,p,g.n,g.layout),pts=sampleDistribution(g.id,p,g.n);
+   const V=g.layout==='surface'?VofRings(refPieces(g.id,p,g.n)):Vof(ref),E=drawnE(g.id,p,g.n,g.layout);
    for(const P of g.points){
     const nearest=Math.min(...ref.map(c=>len(sub(P,c.at))));
-    const e=E3(pts)(P),grad=gradV(V,P,1e-3*nearest);
+    const e=E(P),grad=gradV(V,P,1e-3*nearest);
     expect(len(e),`${g.id} at (${at(P)}): a real field to compare against`).toBeGreaterThan(1e-3);
     const err=len([e[0]+grad[0],e[1]+grad[1],e[2]+grad[2]]);
     expect(err/len(e),`${g.id} q=${charge} at (${at(P)}): E = (${at(e)}), −∇V = (${at(grad.map(c=>-c))})`).toBeLessThan(1e-9);
