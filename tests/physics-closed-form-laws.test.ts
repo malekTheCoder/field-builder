@@ -318,16 +318,24 @@ describe('monotone falloff and point-charge bounds, on a grid that runs past the
  const falling=(values:number[],what:string)=>{
   for(let i=1;i<values.length;i++)expect(values[i],`${what}: step ${i} did not fall`).toBeLessThan(values[i-1]);
  };
- for(const size of [1,4,8])it(`|E| and V fall off monotonically along the ray · L or 2R = ${size} m`,()=>{
-  const at=(d:number)=>P({distance:d,size,charge:1});
+ // Both signs. The grid used to run at charge 1 alone, and a stray Math.abs on the way in or out
+ // of a closed form would have gone unnoticed: every geometry here is symmetric under q → −q, so
+ // the check is the same shape either way. It is not the same LINE either way, though -- with a
+ // negative charge the potential is negative and climbs toward zero as you retreat, so what falls
+ // is its magnitude. Writing `falling(V)` for both would have failed on correct physics.
+ for(const size of [1,4,8])for(const charge of [1,-3])it(`|E| and V fall off monotonically along the ray · L or 2R = ${size} m · q ${charge}`,()=>{
+  const at=(d:number)=>P({distance:d,size,charge});
   for(const id of ['bisector','axial','endpoint','infinite','semi','disk'] as const)
-   falling(GRID.map(d=>magnitude(field(id,at(d)))),`|E| ${id}`);
+   falling(GRID.map(d=>magnitude(field(id,at(d)))),`|E| ${id} q=${charge}`);
   // The transverse component is a difference of two nearly equal terms far away; it has to
   // fall too, and it is the half that a sign slip inside the difference form would break.
   for(const id of ['endpoint','ramp'] as const)
-   falling(GRID.map(d=>Math.abs(field(id,at(d)).y)),`|E_y| ${id}`);
+   falling(GRID.map(d=>Math.abs(field(id,at(d)).y)),`|E_y| ${id} q=${charge}`);
   for(const id of ['v-ring','v-disk','v-rod-bisector','v-rod-axial'] as const)
-   falling(GRID.map(d=>potential(id,at(d))),`V ${id}`);
+   falling(GRID.map(d=>Math.abs(potential(id,at(d)))),`|V| ${id} q=${charge}`);
+  // And the sign itself is carried, rather than lost to the magnitudes just taken.
+  for(const id of ['v-ring','v-disk','v-rod-bisector','v-rod-axial'] as const)
+   expect(Math.sign(potential(id,at(3))),`V ${id} does not take the charge's sign`).toBe(Math.sign(charge));
  });
  for(const size of [1,4,8])it(`the ring climbs to its peak at z = R/√2 and falls beyond · 2R = ${size} m`,()=>{
   // The one geometry that is not monotone: on the axis of a ring E_z starts at zero, peaks at
