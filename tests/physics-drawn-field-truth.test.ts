@@ -1160,3 +1160,55 @@ describe('what this file did not check',()=>{
   for(const id of held)expect(isReady(id as ProblemId),`${id} is shipping now, so its checks must run`).toBe(false);
  });
 });
+
+// ===========================================================================
+// 9. The figure still draws something, at the corners of the sliders.
+// ===========================================================================
+// Every other check in this file runs at DEFAULT_PARAMS: distance 3, size 4. Only the charge
+// and the piece count ever move. So a seed rule, a tracer reach or a stopping radius that is
+// right for a 4 m object seen from 3 m -- and draws nothing, or draws off the page, for an 8 m
+// object seen from half a metre -- ships without a word.
+//
+// That is not hypothetical. It is the exact shape of two faults this project has already had:
+// the infinite and semi-infinite lines drew ZERO field lines because a local `reach` shadowed
+// the prop and every seed landed hundreds of metres outside the frame, and the sheet's lines
+// stopped in mid-air above its face. Both were invisible to a suite that only ever drew one
+// geometry.
+//
+// This is deliberately not a tangency check -- those need an exact field at arbitrary points and
+// already run thoroughly at the default. It asserts the two things that actually broke: lines get
+// drawn, and they are drawn where the reader is looking.
+//
+// Its teeth, measured: feeding the tracer the charge's own extent instead of the picture's --
+// which IS the shadowing fault, written out -- fails twelve of these, reporting "16 of 16 lines
+// lie entirely outside the 8.0 m picture" for the infinite line, the semi-infinite line and the
+// sheet. Those are the three that shipped that way.
+const CORNERS: {at: string; over: Partial<Params>}[] = [
+  {at: 'close to a long object', over: {distance: .5, size: 8}},
+  {at: 'far from a small one', over: {distance: 6, size: 1}},
+];
+describe('the picture still has a field in it at the ends of every slider', () => {
+  for (const id of shipping(['bisector','axial','endpoint','ramp','ring','arc','disk','infinite','semi','sheet'] as ProblemId[]))
+    for (const corner of CORNERS) for (const q of [2, -2])
+      it(`${id}: ${corner.at}, charge ${q}`, () => {
+        const p = params({...corner.over, charge: q});
+        const surface = id === 'disk' || id === 'sheet';
+        const {coarse} = canvasThin(fieldCut(id, p, 24), canvasBudget(id));
+        const flat = (surface || id === 'ring'
+          ? meridianLines(coarse, 'surface', LINES, canvasTrace(frameReach(p), canvasReach(coarse)))
+          : fieldLines(coarse, LINES, canvasTrace(frameReach(p), canvasReach(coarse))).map(l => l.map(u => ({x: u.x, y: 0, z: u.y})))
+        ).map(l => l.map(v3));
+        const {few} = stageThin(fieldCut(id, p, 24), stageBudget(id, surface));
+        const spatial = spaceLines(few, surface ? 'surface' : 'wire', LINES, stageTrace(stageReach(p), chargeSpan(few))).map(l => l.map(v3));
+        for (const [lines, view, reach] of [[flat, '2D', frameReach(p)], [spatial, '3D', stageReach(p)]] as [V3[][], string, number][]) {
+          // Something is drawn, and it is a line rather than a dot.
+          expect(lines.length, `${id} ${view} ${corner.at}: not one field line was traced`).toBeGreaterThanOrEqual(LINES / 2);
+          const drawn = lines.filter(l => l.length >= 3);
+          expect(drawn.length, `${id} ${view}: ${lines.length - drawn.length} of ${lines.length} lines are too short to be a line`).toBe(lines.length);
+          // And it is drawn where the reader is looking. The frame is about `reach` across, so a
+          // line whose vertices all sit outside it is being drawn for nobody.
+          const seen = drawn.filter(l => l.some(u => Math.hypot(u[0], u[1], u[2]) <= reach * 1.05));
+          expect(seen.length, `${id} ${view} ${corner.at}: ${drawn.length - seen.length} of ${drawn.length} lines lie entirely outside the ${reach.toFixed(1)} m picture`).toBe(drawn.length);
+        }
+      });
+});
