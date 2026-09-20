@@ -286,8 +286,15 @@ describe('Gauss: the flux of the sampled field through a surface enclosing every
  // and five below the smallest factor a real bug could produce.
  for(const id of Object.keys(ENCLOSING) as ProblemId[]) it(`${id}: Φ = Q/ε₀, independent of surface size, sign and n`,()=>{
   const spec=ENCLOSING[id]!,surfaces=spec.surfaces();
-  for(const charge of [1,-1]){
-   const p=params({charge,distance:3,size:L,phi:2.3}),Q=spec.Q(p);
+  // Every entry here ran at one opening angle. The arc is the only geometry in this table whose
+  // charge LAYOUT depends on phi -- the others ignore it -- and its enclosing spheres are centred
+  // on the origin, so they hold for any angle at no cost. A sliver, the default, and the closed
+  // circle, whose pieces coincide at both ends of the sweep. Varying `size` instead would prove
+  // little: scaling the geometry and its surface together leaves the dimensionless problem
+  // identical, so the flux is unchanged by exact similarity rather than by the code being right.
+  const angles=(id==='arc'||id==='v-arc')?[.3*Math.PI,2.3,2*Math.PI]:[2.3];
+  for(const charge of [1,-1])for(const phi of angles){
+   const p=params({charge,distance:3,size:L,phi}),Q=spec.Q(p);
    near(Q/E0,charge*(id==='ramp'?L/2:1)*PHI_PER_NC,1e-15,`${id}: Q/ε₀ bookkeeping`);
    for(const n of [5,37,200]){
     assertPartition(id,p,n,spec.layout);
@@ -373,20 +380,20 @@ describe('Gauss with the surface cutting the charge at a bin edge', () => {
 // of a sec², a d instead of a d² in the sheet's Jacobian, or (i)/n instead of (i+½)/n
 // changes the answer by 10–70 % at n = 7–8 and is caught either at the partition
 // precondition or by the flux itself.
-type TanCut={layout:Layout;n:number;p:Params;surface():Surface;count:number};
+type TanCut={layout:Layout;n:number;p:Params;surface(k?:number):Surface;count:number};
 const TAN_CUT:Record<'infinite'|'semi'|'sheet',TanCut>={
  // Wire on the y-axis, θ_i = (i+½)π/7 − π/2 ⇒ y = 0, ±1.4447, ±3.7619, ±13.144, with
  // dq_i = λ d (π/7) sec²θ_i = 1.3464, 1.6586, 3.4635, 27.191 nC. A sphere of radius 4.3
  // on the wire holds five of the seven: 11.5907 nC, Φ = 1309.06 N m²/C per nC/m.
- infinite:{layout:'wire',n:7,p:params({charge:1,distance:3}),surface:()=>sphere([0,0,0],4.3,256,64,[0,1,0]),count:5},
+ infinite:{layout:'wire',n:7,p:params({charge:1,distance:3}),surface:(k=1)=>sphere([0,0,0],4.3*k,256,64,[0,1,0]),count:5},
  // Half-line along +x, θ_i = (2i+1)π/32 ⇒ x = 0.2955, 0.9100, 1.6035, 2.4620 | 3.656 …
  // A sphere of radius 3 at the wire's end holds the first four: (3π/16)Σsec²θ_i =
  // 2.98114 nC, Φ = 336.692 N m²/C per nC/m.
- semi:{layout:'wire',n:8,p:params({charge:1,distance:3}),surface:()=>sphere([0,0,0],3,256,64,[1,0,0]),count:4},
+ semi:{layout:'wire',n:8,p:params({charge:1,distance:3}),surface:(k=1)=>sphere([0,0,0],3*k,256,64,[1,0,0]),count:4},
  // Rings at the same radii, spread by cloud(); a pillbox of radius 3 and half-height 1.5
  // holds the first four rings, all 16 points of each: 27.6622 nC, Φ = 3124.19 N m²/C per
  // nC/m² — deliberately NOT the continuum's σπρ² = 28.2743 nC (3193.3). See below.
- sheet:{layout:'surface',n:8,p:params({charge:1,distance:3}),surface:()=>cylinder([0,0,0],3,1.5,64,64,257),count:4*PER_RING},
+ sheet:{layout:'surface',n:8,p:params({charge:1,distance:3}),surface:(k=1)=>cylinder([0,0,0],3*k,1.5*k,64,64,257),count:4*PER_RING},
 };
 describe('Gauss on the tan-partitioned samplers', () => {
  // Tolerance 1e−9 relative. Sphere ratios a/Rs and Rs/a are ≤ 0.875, so the multipole
@@ -395,14 +402,25 @@ describe('Gauss on the tan-partitioned samplers', () => {
  // GL64 error ~3e−20; the cloud's 16-fold harmonics are annihilated exactly by the 257
  // equispaced φ nodes, 257 being prime and never a divisor of 16k.
  for(const id of Object.keys(TAN_CUT) as (keyof typeof TAN_CUT)[]) it(`${id}: Φ = (Jacobian-weighted charge inside)/ε₀`,()=>{
-  const spec=TAN_CUT[id],s=spec.surface();
-  for(const charge of [1,-1]){
-   const p={...spec.p,charge};
-   assertPartition(id,p,spec.n,spec.layout);
-   const ref=refPoints(id,p,spec.n,spec.layout),Qin=enclosedRef(ref,s);
-   expect(Math.min(...ref.map(c=>Math.abs(s.depth(c.at)))),`${id}: clearance from ${s.label}`).toBeGreaterThan(.2);
-   expect(ref.filter(c=>inside(s,c.at)).length,`${id}: pieces inside ${s.label}`).toBe(spec.count);
-   near(flux(E3(appPoints(id,p,spec.n,spec.layout)),s).net,Qin/E0,1e-9,`${id} ${charge>0?'+':'−'}: Φ through ${s.label}`);
+  // Three distances, not one. These are the only lessons whose LAYOUT moves when the observation
+  // point does: the tan substitution puts the pieces at d·tan θ and gives them λ d (π/n) sec²θ, so
+  // both the positions and the charges are proportional to d. Scale the surface with it and the
+  // same pieces sit inside, carrying k times the charge, for k times the flux -- which a d where
+  // a d² belongs in the Jacobian, or the reverse, does not survive. At one distance the test
+  // could not tell those apart. Measured: putting a constant 3 where the distance belongs in the
+  // infinite line's Jacobian -- exactly right at the old single distance, wrong at every other --
+  // now fails here and passed before.
+  const spec=TAN_CUT[id];
+  for(const k of [1/6,1,2]){
+   const s=spec.surface(k);
+   for(const charge of [1,-1]){
+    const p={...spec.p,charge,distance:spec.p.distance*k};
+    assertPartition(id,p,spec.n,spec.layout);
+    const ref=refPoints(id,p,spec.n,spec.layout),Qin=enclosedRef(ref,s);
+    expect(Math.min(...ref.map(c=>Math.abs(s.depth(c.at)))),`${id} d=${p.distance}: clearance from ${s.label}`).toBeGreaterThan(.2*k);
+    expect(ref.filter(c=>inside(s,c.at)).length,`${id} d=${p.distance}: pieces inside ${s.label}`).toBe(spec.count);
+    near(flux(E3(appPoints(id,p,spec.n,spec.layout)),s).net,Qin/E0,1e-9,`${id} ${charge>0?'+':'−'} d=${p.distance}: Φ through ${s.label}`);
+   }
   }
  },120000);
  it('the sheet\'s discrete Gauss law is 2 % short of the continuum, and that is the midpoint error', () => {
