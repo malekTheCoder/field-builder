@@ -196,6 +196,13 @@
 .exp-shape-button[data-slot=sidebar-menu-button]{height:auto;min-height:44px;white-space:normal}
 .exp-shape-button[data-slot=sidebar-menu-button]>span:last-child{white-space:normal;overflow:visible;text-overflow:clip;line-height:1.25}
 .exp-shape-button .shape-icon{width:20px;height:20px}
+/* THE SHELL KEPT A COLUMN FOR A SIDEBAR THAT IS NOT THERE. Below 1050px the lesson list is
+   display:none, and section 5 above says so -- but it also re-declares the two-column grid
+   inside the 1250px query, which sits LATER in this sheet than the 1050px single-column rule
+   and therefore won at every width below 1050. On a 390px phone the shell laid out 174px of
+   nothing and gave the lesson the remaining 216px: the figure came out 118px wide and every
+   label in the workbench wrapped one word per line. Restated here, at the end, where it wins. */
+@media(max-width:1050px){.exp-shell[data-slot=sidebar-wrapper]{grid-template-columns:minmax(0,1fr)}}
 @media(max-width:520px){.exp-readout{padding:22px 0 0}}
 
 /* Optional measurements and a library that makes room for the figure. */
