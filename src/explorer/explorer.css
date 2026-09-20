@@ -325,3 +325,14 @@
 .exp-soon-heading-wide{margin:24px 2px 12px;color:var(--muted-foreground)}
 .exp-soon-heading-wide::after{background:var(--border)}
 .exp-soon-group .exp-shape-button{cursor:default}
+
+/* The lesson tools, behind one trigger. Print, save a copy and the repository are things a
+   reader does at most once and never mid-derivation; they were taking three of the five slots
+   above the lesson, at the same weight as Walkthrough and the theme switch. */
+.exp-tools-menu[data-slot=dropdown-menu-content]{min-width:15rem;padding:6px;border:1px solid var(--surface-rule);
+ border-radius:12px;background:var(--card);box-shadow:0 14px 40px color-mix(in oklab,var(--foreground) 16%,transparent)}
+.exp-tools-menu [data-slot=dropdown-menu-item]{gap:10px;padding:9px 10px;border-radius:8px;
+ font-size:var(--type-meta);color:var(--foreground);text-decoration:none;cursor:pointer}
+.exp-tools-menu [data-slot=dropdown-menu-item] svg{color:var(--muted-foreground)}
+.exp-tools-menu [data-slot=dropdown-menu-item]:hover,
+.exp-tools-menu [data-slot=dropdown-menu-item][data-highlighted]{background:var(--muted)}
