@@ -692,15 +692,6 @@ export function ChargeDiagram({ problem, params: p, setParams, count, continuum,
         className={`cd-view-mode${fieldView === value ? ' is-on' : ''}`} aria-pressed={fieldView === value}
         onClick={() => setFieldView(value)}>{label}</button>)}
     </div>}
-    {/* The pad and the drawn help say the same thing two ways: one to click, one to read. */}
-    <div className="cd-pad" role="group" aria-label="Move the view">
-      {/* The four turn keys used to live here too. The view cube inside the figure now carries
-          them, with the same names, and two controls doing one job is one too many -- the pad
-          keeps zoom and the way home. */}
-      <button type="button" className="cd-pad-key" title="Zoom out (minus key, or scroll)" aria-label="Zoom out" onKeyDown={viewKeys} onClick={() => zoomBy(1 / 1.18)} disabled={zoom <= ZOOM_MIN + 1e-6}>&minus;</button>
-      <button type="button" className="cd-pad-key" title="Zoom in (plus key, or scroll)" aria-label="Zoom in" onKeyDown={viewKeys} onClick={() => zoomBy(1.18)} disabled={zoom >= zoomCeiling - 1e-6}>+</button>
-      <button type="button" className="text-button cd-orbit-reset" onKeyDown={viewKeys} onClick={resetView} disabled={zoom === 1 && camera.yaw === opening.yaw && camera.pitch === opening.pitch}>Reset view</button>
-    </div>
     </div>
     <div className="cd-stage">
     {!inSpace && !scalar && fieldView !== 'off' && <FieldCanvas samples={fieldSamples} detail={UNBOUNDED.has(id) ? 192 : 64} project={project} frame={{ width: 720, height: 430 }} mode={fieldView} reach={Math.max(2.5, p.distance * 1.7, p.size)}
@@ -877,6 +868,23 @@ export function ChargeDiagram({ problem, params: p, setParams, count, continuum,
       <text x="690" y="409" textAnchor="end" className="cd-footer">{continuum>=.999 ? 'In the limit' : 'Cut into pieces'}</text>
     </svg>
     </div>
+    {/* WHAT THE FIGURE IS SHOWING, then the controls for looking at it -- one row where there
+        were three. The right half used to restate the partition's state, which the figure
+        already prints along its own bottom edge ("Cut into pieces" / "In the limit"), so it
+        said nothing and was empty outright whenever the reader was not summing. The view pad
+        took the slot: zoom and the way home are utilities, and they belong under the drawing
+        rather than in the strip above it, where they were three of eight buttons standing
+        between the reader and the charge. The bullet is gone with it -- orange means charge
+        on this page, and spending it on a decorative dot is spending the one bit of colour
+        coding the lesson runs on. */}
+    <div className="cd-caption"><span>{sourceText}</span><div className="cd-pad" role="group" aria-label="Move the view">
+      {/* The four turn keys used to live here too. The view cube inside the figure now carries
+          them, with the same names, and two controls doing one job is one too many -- the pad
+          keeps zoom and the way home. */}
+      <button type="button" className="cd-pad-key" title="Zoom out (minus key, or scroll)" aria-label="Zoom out" onKeyDown={viewKeys} onClick={() => zoomBy(1 / 1.18)} disabled={zoom <= ZOOM_MIN + 1e-6}>&minus;</button>
+      <button type="button" className="cd-pad-key" title="Zoom in (plus key, or scroll)" aria-label="Zoom in" onKeyDown={viewKeys} onClick={() => zoomBy(1.18)} disabled={zoom >= zoomCeiling - 1e-6}>+</button>
+      <button type="button" className="text-button cd-orbit-reset" onKeyDown={viewKeys} onClick={resetView} disabled={zoom === 1 && camera.yaw === opening.yaw && camera.pitch === opening.pitch}>Reset view</button>
+    </div></div>
     <details className="cd-controls" open={!compact}><summary>Diagram controls and keyboard help</summary>{/* The drawn legend in the figure says how to turn and zoom it. This stays for the things a drawing cannot show -- what Tab reaches, what Home and End do -- and for a screen reader, which cannot see the legend at all. */}<p id={`${uid}help`}>Tab moves between controls. Arrow keys adjust the focused control; Home and End select its limits. You can also drag P and the integration bounds in the figure.{inSpace?' The figure itself takes focus: arrow keys turn it, plus and minus zoom, Home puts it back.':''}</p>
     <div className="cd-control-grid">
       {inSpace&&<button ref={cameraControl} type="button" className="cd-camera-control" aria-describedby={`${uid}camera-help`} onKeyDown={ev=>{if(['+','=','-','_'].includes(ev.key)){ev.preventDefault();zoomBy(ev.key==='-'||ev.key==='_'?1/1.18:1.18);}else if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Home'].includes(ev.key)){ev.preventDefault();if(ev.key==='Home')setZoom(1);nudge(ev.key);}}} onClick={resetView}>Rotate view with arrow keys<span id={`${uid}camera-help`}>Left/right rotate; up/down tilt; Home or Enter resets.</span></button>}
@@ -886,6 +894,5 @@ export function ChargeDiagram({ problem, params: p, setParams, count, continuum,
     </div></details>
     <output className="cd-announcement" aria-live="polite" aria-atomic="true">{announcement}</output>
 
-    <div className="cd-caption"><span><i className="cd-dot" />{sourceText}</span><span>{!full?'Selected interval':mode === 'sum' || mode === 'integrate' ? `${Math.round(progress*100)}% accumulated` : continuum >= .999 ? 'Infinitesimal limit' : ''}</span></div>
   </div>;
 }

@@ -26,7 +26,9 @@ describe('print stylesheet and offline copy', () => {
     const {findByRole, getByRole, container} = render(<Explorer />);
     expect(await findByRole('heading', {name: getProblem('bisector').title})).toBeTruthy();
     expect(cssText()).toMatch(/@page[^{]*\{[^}]*size:\s*letter/i);
-    const printBtn = getByRole('button', {name: 'Print this lesson'});
+    // Print, save-a-copy and the repository now sit behind one trigger in the header, so the
+    // trigger is the chrome this asserts about -- same claim, new location.
+    const printBtn = getByRole('button', {name: 'Lesson tools'});
     const sidebar = container.querySelector('.exp-sidebar') as HTMLElement | null;
     const diagram = container.querySelector('.cd-svg') as SVGElement | null;
     await page.viewport(816, 1056);
@@ -49,7 +51,8 @@ describe('print stylesheet and offline copy', () => {
     const names: string[] = [];
     const click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(function (this: HTMLAnchorElement) { names.push(this.download); });
     try {
-      await userEvent.click(getByRole('button', {name: 'Save an offline copy of this lesson'}));
+      await userEvent.click(getByRole('button', {name: 'Lesson tools'}));
+      await userEvent.click(await findByRole('menuitem', {name: 'Save an offline copy of this lesson'}));
       await waitFor(() => expect(names[0]).toBe('field-builder-ring.html'));
       expect(create).toHaveBeenCalled();
       const blob = create.mock.calls[0][0] as Blob;

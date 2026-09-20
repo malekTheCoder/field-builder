@@ -53,7 +53,17 @@ describe('building the integral off the figure', () => {
     const view = panel('bisector', new Set());
     for (const b of view.container.querySelectorAll('.ew-slots button'))
       expect(b.textContent ?? '').not.toMatch(/take|add|reveal|show/i);
-    expect(view.container.querySelector('.ew-slot-empty')?.textContent).toMatch(/figure/i);
+    // The panel points at the figure ONCE, for the whole list, rather than repeating the same
+    // sentence in every unfilled row. The rows still have to be visibly unfilled, and the one
+    // hint has to be there for as long as any of them is.
+    expect(view.container.querySelector('.ew-slots-hint')?.textContent).toMatch(/figure/i);
+    expect(view.container.querySelectorAll('.ew-slot-empty').length)
+      .toBe(view.container.querySelectorAll('.ew-slot').length);
+    // ...and it goes away once there is nothing left to take.
+    cleanup();
+    const full = panel('bisector', new Set(requiredTerms(getProblem('bisector'))));
+    expect(full.container.querySelector('.ew-slots-hint')).toBeNull();
+    expect(full.container.querySelectorAll('.ew-slot-empty').length).toBe(0);
   });
 });
 
