@@ -26,13 +26,40 @@ import type {Params} from '../src/problems/types';
  * of this test managed to fail on every disk setting at once. The pairs below are chosen so each
  * family genuinely doubles its resolution.
  *
- * ITS TEETH, CHECKED BY MUTATION rather than assumed: scaling the rod-on-its-bisector field by
- * 1 + 1e-9 fails this file, as does scaling the disk's by 1 + 5e-6, and each takes its potential
- * twin down with it. Redo that before ever trusting a green run here. */
+ * ITS TEETH ARE CHECKED HERE, by the last test in the file, which bends each family's formula by
+ * a known amount and requires this same criterion to reject it. That used to be a comment saying
+ * the mutation had been run by hand; a comment guarantees nothing.
+ *
+ * One consequence of the criterion is worth stating, because it reads like a hole and is not one.
+ * A ring's sum is exact at every n, so when its formula is RIGHT the gap sits at rounding, below
+ * the floor, and the shrink test never runs. That is not the ring going unchecked: bend the ring's
+ * formula and the gap rises above the floor, and then it must shrink -- which an exact quadrature
+ * can never make it do. Measured: 1 + 1e-9 on the ring fails this file. */
 const near = (v: {x: number; y: number; z: number}) => Math.hypot(v.x, v.y, v.z);
 const gap = (a: {x: number; y: number; z: number}, b: {x: number; y: number; z: number}) =>
   Math.hypot(a.x - b.x, a.y - b.y, a.z - b.z);
 const BASE: Params = {distance: 3, size: 4, charge: 2, phi: Math.PI, element: .65, slices: 5, continuum: 0};
+type Field = (p: Params) => {x: number; y: number; z: number};
+/** The rule itself, in one place, so the mutation test at the end can apply it unchanged to a
+ * formula that is deliberately wrong. Returns the settings at which the formula is NOT what the
+ * quadrature is converging to. */
+function stalledSettings(id: ProblemId, field: Field): string[] {
+  const d = REGISTRY[id], [n1, n2] = refinement(id), points = domain(id);
+  const coarse = points.map(({p}) => d.quadrature(p, n1));
+  const typical = Math.max(...coarse.map(near), 1e-30);
+  const out: string[] = [];
+  points.forEach(({p, at}, i) => {
+    const fine = d.quadrature(p, n2), closed = field(p);
+    if (near(fine) < 1e-9 * typical) {
+      if (near(closed) > 1e-6 * typical) out.push(`${at}: quadrature says zero, the formula does not`);
+      return;
+    }
+    const wide = gap(closed, coarse[i]), tight = gap(closed, fine);
+    if (tight > FLOOR * near(fine) && tight > wide * .75)
+      out.push(`${at}: gap ${wide.toExponential(2)} at n=${n1} and ${tight.toExponential(2)} at n=${n2}, relative ${(tight / near(fine)).toExponential(2)}`);
+  });
+  return out;
+}
 /** The reachable domain: exactly what the sliders in `Explorer.tsx` allow, corners included. */
 const DISTANCE = [.5, .75, 1, 2, 3, 4.5, 6];
 const SIZE = [1, 2, 4, 6, 8];
@@ -55,32 +82,9 @@ const FLOOR = 1e-11;
 describe('every closed form is the limit of its own quadrature, everywhere the sliders reach', () => {
   for (const id of Object.keys(REGISTRY) as ProblemId[]) {
     const d = REGISTRY[id];
-    const [n1, n2] = refinement(id);
     it(`${id}: refining the sum closes the gap to the printed field`, () => {
-      const points = domain(id);
-      // The scale to call something zero by: the biggest field anywhere in this lesson's domain.
-      // A closed arc has exactly no field at its centre, and there the gap and the answer are both
-      // at the last bit of a double -- a ratio between them would be noise divided by noise.
-      const coarse = points.map(({p}) => d.quadrature(p, n1));
-      const typical = Math.max(...coarse.map(near), 1e-30);
-      const stalled: string[] = [];
-      points.forEach(({p, at}, i) => {
-        const fine = d.quadrature(p, n2), closed = d.field(p);
-        if (near(fine) < 1e-9 * typical) {
-          // Nothing to converge to: assert the formula agrees that there is no field here.
-          expect(near(closed), `${id} ${at}: quadrature says zero, the formula does not`).toBeLessThan(1e-6 * typical);
-          return;
-        }
-        const wide = gap(closed, coarse[i]), tight = gap(closed, fine);
-        // Four times the elements must close the gap by at least half, unless it has already
-        // reached the floor where doubles stop being able to tell the two apart.
-        // Four times the elements must close the gap by a quarter at least, unless it has already
-        // reached the floor. Surfaces converge as 1/n and so gain a clear factor; the wires are at
-        // the floor long before this and never reach the comparison.
-        if (tight > FLOOR * near(fine) && tight > wide * .75)
-          stalled.push(`${at}: gap ${wide.toExponential(2)} at n=${n1} and ${tight.toExponential(2)} at n=${n2}, relative ${(tight / near(fine)).toExponential(2)}`);
-      });
-      expect(stalled, `${id}: the gap to the quadrature stops shrinking at ${stalled.length} of ${points.length} settings, so the formula is not what the sum converges to`).toEqual([]);
+      const stalled = stalledSettings(id, p => d.field(p));
+      expect(stalled, `${id}: the gap to the quadrature stops shrinking at ${stalled.length} of ${domain(id).length} settings, so the formula is not what the sum converges to`).toEqual([]);
     }, 60000);
     if (d.potential) {
       it(`${id}: refining the sum closes the gap to the printed potential`, () => {
@@ -97,4 +101,41 @@ describe('every closed form is the limit of its own quadrature, everywhere the s
       }, 60000);
     }
   }
+});
+/** The smallest bend in each formula this file actually catches, measured by running the rule
+ * above against a deliberately wrong formula and halving until it slips through.
+ *
+ * They differ by a hundredfold and the reason is the REFERENCE, not the formula. A bend smaller
+ * than the quadrature's own residual hides inside it, so the resolving power is set by how well
+ * each geometry's sum converges: a ring is exact and resolves a part in a billion, while a sheet
+ * is summed as rings of points converging as 1/n and resolves five parts in a million. Writing
+ * one number for all fifteen would have been a comfortable lie -- and was my first draft, which
+ * claimed 1e-9 everywhere and was caught here by the axial and ramp rods refusing to fail. */
+const RESOLVES: Record<string, number> = {
+  bisector: 1e-9, ring: 1e-9, arc: 1e-9, endpoint: 1e-9, 'v-ring': 1e-9, 'v-arc': 1e-9, 'v-rod-bisector': 1e-9,
+  axial: 1e-8, ramp: 1e-8, 'v-rod-axial': 1e-8,
+  semi: 3e-8, infinite: 1e-7, disk: 1e-7, 'v-disk': 1e-7,
+  sheet: 5e-6,
+};
+describe('and the rule above has teeth, checked rather than asserted', () => {
+  // The same criterion, applied to formulas that are deliberately wrong by a known amount. If
+  // these were to pass, every green run in the file above would mean nothing -- which is the state
+  // a hand-run mutation note leaves you in as soon as nobody reruns it.
+  const bend = (id: ProblemId, by: number): Field => p => {
+    const v = REGISTRY[id].field(p);
+    return {x: v.x * (1 + by), y: v.y * (1 + by), z: v.z * (1 + by)};
+  };
+  for (const id of Object.keys(REGISTRY) as ProblemId[]) {
+    const by = RESOLVES[id];
+    it(`catches ${id} scaled by 1 + ${by}`, () => {
+      expect(RESOLVES[id], `${id} has no measured resolving power`).toBeGreaterThan(0);
+      const caught = stalledSettings(id, bend(id, by));
+      expect(caught.length, `${id} bent by ${by} slipped through every one of its settings`).toBeGreaterThan(0);
+    }, 60000);
+  }
+  it('and does not cry wolf: every unbent formula passes the same rule', () => {
+    // The other half of the claim. A criterion that rejected everything would also "have teeth".
+    for (const id of Object.keys(REGISTRY) as ProblemId[])
+      expect(stalledSettings(id, p => REGISTRY[id].field(p)), id).toEqual([]);
+  }, 120000);
 });

@@ -127,13 +127,26 @@ const POTENTIAL_IDS=['v-ring','v-disk','v-arc','v-rod-bisector','v-rod-axial'] a
 const truthE=(id:string,p:Params)=>GEOMETRY[GEOM_OF[id]].E(p);
 const truthV=(id:string,p:Params)=>GEOMETRY[GEOM_OF[id]].V!(p);
 const params=(extra:Partial<Params>={}):Params=>({...DEFAULT_PARAMS,...extra});
-// Four settings, not one: charge sign, distance, rod length and opening angle all move,
-// so a factor hiding inside a fixed L or a fixed φ has nowhere left to sit.
+// Six settings, not one: charge sign, distance, rod length and opening angle all move, so a
+// factor hiding inside a fixed L or a fixed φ has nowhere left to sit.
+//
+// The last two are the CORNERS OF WHAT THE SLIDERS REACH -- distance .5 with length 8, and
+// distance 6 with length 1, at both ends of the charge slider. The first four range over d/L of
+// .21 to 7.6 and never come near either corner, and this file is the only place a formula is
+// priced against an adaptive-Simpson integral written from Coulomb's law rather than against
+// another of the app's own spellings. A conditioning fault that only shows where the rod is long
+// and the point is close -- which is exactly the shape of the cancellation faults already fixed
+// in the axial, endpoint and ramp rods -- could sit in a corner no independent integral visited.
 const SETTINGS:Partial<Params>[]=[
  {charge:2.4,distance:.8,size:3.8,phi:2.3},
  {charge:-1.7,distance:3,size:1.1,phi:.4},
  {charge:.35,distance:7.5,size:9.2,phi:5.9},
  {charge:-4.2,distance:1.9,size:.25,phi:Math.PI},
+ {charge:5,distance:.5,size:8,phi:.1*Math.PI},
+ // 1.9π rather than the slider's 2π: a closed arc has exactly no field at its centre, and a
+ // RELATIVE comparison of 7e-15 against 7e-15 is noise over noise. That case has its own check
+ // further down, which normalises against a point charge and asserts the field is zero.
+ {charge:-5,distance:6,size:1,phi:1.9*Math.PI},
 ];
 const worst=new Map<string,number>();
 const record=(what:string,error:number)=>{if(Number.isFinite(error)&&error>(worst.get(what)??-1))worst.set(what,error);};
