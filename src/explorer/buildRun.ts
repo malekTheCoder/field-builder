@@ -35,14 +35,14 @@ export type BuildStage = {
  * different in each geometry. Written short: it is read while something is moving. */
 const CANCELS: Record<string, string> = {
   bisector: 'Now the piece mirrored below it. That one pushes P up by exactly as much as the first pushes it down, so those two cancel — and what is left of both points the same way, straight out from the rod.',
-  ring: 'Now the piece straight across the ring. It pulls P sideways by exactly as much, the other way, so the two sideways pulls cancel — and what is left of both points along the axis.',
+  ring: 'Now the piece straight across the ring. It pushes P sideways by exactly as much, the other way, so the two sideways pushes cancel — and what is left of both points along the axis.',
   arc: 'Now the piece at the mirror angle. One pushes P up and the other pushes it down by the same amount, so those cancel — and what is left of both points along the axis.',
   infinite: 'Now the piece mirrored on the far side. It pushes P along the line by exactly as much, the other way, so those cancel — and what is left of both points straight out from the line.',
-  disk: 'A disk is rings, and every ring has already cancelled its own sideways pull against itself. There is nothing sideways left to draw: each ring pushes P straight along the axis.',
+  disk: 'A disk is rings, and every ring has already cancelled its own sideways push against itself. There is nothing sideways left to draw: each ring pushes P straight along the axis.',
   // The sheet cancels within each ring exactly as the disk does. What is different, and is the
   // thing a reader carrying the line lessons' story will get wrong, is the tail: cut at equal
   // angles from P, the rings push HARDER the further out they are, not softer.
-  sheet: 'A sheet is rings too, and each ring has already cancelled its own sideways pull. Nothing is left over to cancel — but notice the far rings. Each is weaker for its size, yet so much bigger that it pushes harder than the last.',
+  sheet: 'A sheet is rings too, and each ring has already cancelled its own sideways push. Nothing is left over to cancel — but notice the far rings. Each is weaker for its size, yet so much bigger that it pushes harder than the last.',
   // No partner at all: the line stops at the foot of the perpendicular, so the sideways push
   // survives. Saying "every contribution points much the same way" was wrong here -- they fan
   // through a right angle -- and it hid the one consequence worth seeing.
@@ -52,7 +52,11 @@ const CANCELS: Record<string, string> = {
  * the twin's geometry. V is a number; "the sideways parts cancel" is meaningless about it, and
  * teaching it here would plant the exact confusion these lessons exist to clear up. */
 const NO_CANCEL_V = 'Nothing cancels here, and nothing can: V is a number, not an arrow, so there is no direction in which one piece could undo another. Every piece simply adds what it is worth, and a positive charge always adds something positive.';
-const NO_CANCEL = 'Nothing cancels here. Every piece lies the same side of P, so every contribution points much the same way and all of it survives. Cancellation is a gift of symmetry, and this geometry does not have it.';
+// Shared by the axial rod, the end-on rod and the ramp. Only the axial rod's contributions
+// really point the same way: level with the end of a rod they fan through arctan(L/r), and this
+// lesson's own L -> infinity limit lands them at 45 degrees. What all three share is the missing
+// partner, so that is what this says -- the same correction the `semi` note above already made.
+const NO_CANCEL = 'Nothing cancels here. Every piece lies on the same side of P, so no piece has a partner to undo it and every contribution survives in full. Cancellation is a gift of symmetry, and this geometry does not have it.';
 /** Does the figure draw a mirror partner for this geometry? Mirrors `supportsPair` and
  * `scalarPartner` in the diagram: asking for a partner it will not draw would leave the stage
  * showing nothing. A potential lesson gets one wherever it has a partner at the same distance,
