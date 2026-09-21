@@ -83,7 +83,21 @@
  .ew-equation{font-size:var(--type-body)}.ew-content{padding:18px}
 }
 
-.ob-visual,.ob-mini-control,.cd-control-grid{user-select:none;-webkit-user-select:none}.ob-dots button{min-width:24px;min-height:24px}.ob-dots button::after{display:none}
+.ob-visual,.ob-mini-control,.cd-control-grid{user-select:none;-webkit-user-select:none}
+/* THE PAGE DOTS WERE NOT DOTS. Giving the buttons a 24px minimum -- the right instinct, a dot
+   is a seven-pixel target -- made the DOT 24px, so the tour was footed by four grey squares
+   with one of them filled in. The button is the target and stays 26px; the mark inside it is
+   drawn at the size it should be read at, and still stretches to a bar on the page you are on. */
+.ob-dots{gap:3px}
+.ob-dots button{width:26px;height:26px;min-width:26px;min-height:26px;padding:0;border:0;background:none;
+ border-radius:8px;display:grid;place-items:center}
+.ob-dots button::after{display:none}
+.ob-dots button::before{content:'';display:block;width:7px;height:7px;border-radius:99px;background:var(--border);
+ transition:width .3s ease,background .3s ease}
+.ob-dots button.active{width:34px;min-width:34px;background:none}
+.ob-dots button.active::before{width:22px;background:var(--field)}
+.ob-dots button:hover::before{background:var(--border-strong)}
+@media(prefers-reduced-motion:reduce){.ob-dots button::before{transition:none}}
 /* Building the integral. The expression is the subject of this panel, so it carries
    the weight; the slot list underneath is apparatus and stays quiet. */
 
