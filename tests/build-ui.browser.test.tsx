@@ -193,10 +193,14 @@ describe('with reduced motion asked for', () => {
  it('still advances through the stages, in steps', async () => {
   const view = await openLesson('bisector');
   fireEvent.click(view.getByRole('button', {name: 'Watch it build'}));
-  const stageNow = () => view.container.querySelector('.exp-walk-count')?.textContent ?? '';
-  await waitFor(() => expect(stageNow()).toBe('1 of 5'));
-  await waitFor(() => expect(stageNow()).toBe('2 of 5'), {timeout: 9000});
-  await waitFor(() => expect(stageNow()).toBe('3 of 5'), {timeout: 9000});
+  // Where the run has got to is the marked stage in the strip: the words "2 of 5" were the only
+  // counting on the page and went with the rest of the numerals. The strip says the same thing --
+  // the same five stages, and which one is current -- so the claim is unchanged.
+  const stageNow = () => view.container.querySelector('.exp-build-dot[aria-current="step"]')?.getAttribute('aria-label') ?? '';
+  expect(view.container.querySelectorAll('.exp-build-dot').length).toBe(5);
+  await waitFor(() => expect(stageNow()).toMatch(/^Stage 1: /));
+  await waitFor(() => expect(stageNow()).toMatch(/^Stage 2: /), {timeout: 9000});
+  await waitFor(() => expect(stageNow()).toMatch(/^Stage 3: /), {timeout: 9000});
  });
 });
 describe('the potential has a picture of its own', () => {

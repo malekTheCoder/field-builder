@@ -258,9 +258,10 @@
 /* The crumbs are a location. Only the parent is clickable. */
 .exp-crumbs{display:flex;align-items:center;gap:9px;min-width:0}
 .exp-crumbs>svg{flex:none;color:color-mix(in oklab,var(--muted-foreground) 52%,transparent)}
-.exp-breadcrumb .exp-crumb-link{border:0;background:none;padding:0;color:var(--muted-foreground);font-size:var(--type-meta)}
-.exp-breadcrumb .exp-crumb-link:hover{color:var(--primary);text-decoration:underline;text-underline-offset:3px}
-.exp-crumb-here{color:var(--foreground);font-size:var(--type-meta);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.exp-breadcrumb .exp-crumb-link{border:0;background:none;padding:0;gap:5px;color:var(--muted-foreground);font-size:var(--type-meta)}
+.exp-breadcrumb .exp-crumb-link:hover{color:var(--primary)}
+.exp-breadcrumb .exp-crumb-link:hover>span,.exp-breadcrumb .exp-crumb-link:hover{text-decoration:underline;text-underline-offset:3px}
+.exp-breadcrumb .exp-crumb-link>svg{flex:none;text-decoration:none}
 /* Hover labels for the header's icon-only controls. */
 .hint-tip{font-size:var(--type-meta);line-height:1.4;letter-spacing:0}
 @media(max-width:520px){.exp-breadcrumb{gap:10px}.exp-views [data-slot=tabs-list]{gap:22px}}
@@ -319,11 +320,7 @@
 .exp-shape-button.is-soon:hover,.exp-library-grid>button.is-soon:hover{background:transparent!important;border-color:var(--border)!important;color:inherit!important}
 .soon-tag{margin-left:7px;font-size:9px;letter-spacing:.09em;text-transform:uppercase;border:1px solid var(--border);border-radius:4px;padding:1px 4px;color:var(--muted-foreground);font-weight:400;white-space:nowrap}
 
-/* The divider above the lessons that are still being drawn. */
-.exp-soon-heading{display:flex;align-items:center;gap:9px;margin:26px 10px 14px;color:var(--sidebar-dim);font-size:10px;letter-spacing:.11em;text-transform:uppercase}
-.exp-soon-heading::after{content:"";flex:1;height:1px;background:var(--sidebar-border)}
-.exp-soon-heading-wide{margin:24px 2px 12px;color:var(--muted-foreground)}
-.exp-soon-heading-wide::after{background:var(--border)}
+/* The lessons still being drawn are a family like the others, named the same way. */
 .exp-soon-group .exp-shape-button{cursor:default}
 
 /* The lesson tools, behind one trigger. Print, save a copy and the repository are things a
@@ -384,3 +381,34 @@
 .exp-note>summary>small{flex:1 1 24rem;min-width:0}
 @media(max-width:700px){.exp-note>summary{flex-direction:column;gap:3px}.exp-note>summary>small{flex:none}}
 @media (prefers-reduced-motion:reduce){.exp-parameters .exp-reset{transition:none}}
+
+/* =====================================================================
+   THE LIST OF FIFTEEN, GROUPED
+   Flat, it was fifteen names in one column and said nothing about the
+   subject: nothing showed that four of them are one rod seen from four
+   places, that three never end, or that the last five are the first
+   shapes again with the arrows replaced by numbers. Four families, each
+   saying its own name, and the eyebrow that used to head the whole column
+   ("Charge geometry") is gone -- with the groups named, it was a label on
+   a label. Within a family the rows sit close; between families the gap
+   does the separating, so nothing needs a rule.
+   ===================================================================== */
+.exp-sidebar[data-slot=sidebar]{padding-top:26px}
+.exp-family+.exp-family{margin-top:24px}
+.exp-family-name{margin:0 0 9px;padding:0 10px;font-family:inherit;font-size:var(--type-meta);
+ font-weight:500;line-height:1.3;letter-spacing:0;color:var(--sidebar-dim);text-transform:none}
+.exp-sidebar [data-slot=sidebar-menu]{gap:1px}
+.exp-shape-button[data-slot=sidebar-menu-button]{min-height:36px;padding:7px 10px;gap:10px}
+/* The rows are a set, so the active one is marked rather than boxed: a filled tile in a group of
+   fifteen reads as a button among labels. */
+.exp-shape-button[data-slot=sidebar-menu-button].active{border-color:transparent;
+ background:color-mix(in oklab,var(--sidebar-accent) 80%,transparent);font-weight:500}
+.exp-nav-bottom{padding-top:34px}
+.exp-nav-bottom p{font-size:var(--type-lead);margin:0 0 16px}
+.exp-nav-bottom>span{margin-top:26px}
+@media(max-width:1250px){.exp-family+.exp-family{margin-top:20px}.exp-family-name{padding:0 9px}}
+/* The same families in the picker a narrow screen has to use, so the two agree about the subject. */
+.exp-library-family+.exp-library-family{margin-top:24px}
+.exp-library-family .exp-family-name{padding:0 2px;margin-bottom:11px;color:var(--muted-foreground)}
+.exp-library-grid{margin-top:0}
+.exp-library-grid>button{padding:15px 16px;gap:7px 11px;align-items:center}

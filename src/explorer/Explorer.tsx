@@ -1,7 +1,7 @@
 'use client';
 import {useState,useEffect,useRef,type CSSProperties} from 'react';
 import {animate,useReducedMotion} from 'motion/react';
-import {ChevronRight,CircleHelp,Download,GitBranch,Printer,RotateCcw,Sun,Moon,PanelLeft,Orbit,MoreHorizontal} from 'lucide-react';
+import {ChevronLeft,CircleHelp,Download,GitBranch,Printer,RotateCcw,Sun,Moon,PanelLeft,MoreHorizontal} from 'lucide-react';
 import {DropdownMenu,DropdownMenuTrigger,DropdownMenuContent,DropdownMenuItem} from '@/components/ui/dropdown-menu';
 import {Sidebar,SidebarContent,SidebarProvider,SidebarMenu,SidebarMenuItem,SidebarMenuButton} from '@/components/ui/sidebar';
 import {Tabs,TabsList,TabsTrigger} from '@/components/ui/tabs';
@@ -50,6 +50,23 @@ const GLYPHS:Record<ProblemId,React.ReactNode>={
 // The inline SVG is a named figure, not an external bitmap.
 // oxlint-disable-next-line jsx-a11y/prefer-tag-over-role
 function ShapeGlyph({id,size=18}:{id:ProblemId;size?:number}){const label=PROBLEMS.find(p=>p.id===id)?.short??id;return <svg width={size} height={size} viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" role="img" aria-label={label}>{GLYPHS[id]}</svg>}
+// FIFTEEN NAMES IN ONE COLUMN SAID NOTHING ABOUT THE SUBJECT. Scanning it, a reader could not
+// see that four of them are the same rod looked at from four places, that three never end, or
+// that the last five are the first shapes over again with the arrows replaced by numbers --
+// which is the single most useful thing the list could have told them. The families are the
+// lesson, so the list is grouped by them and each group says its own name.
+const FAMILIES:{label:string;ids:ProblemId[]}[]=[
+ {label:'Straight rods',ids:['bisector','axial','endpoint','ramp']},
+ {label:'Rings, discs and arcs',ids:['ring','disk','arc']},
+ {label:'Charge with no end',ids:['infinite','semi','sheet']},
+ {label:'The same shapes, as potential',ids:['v-ring','v-disk','v-arc','v-rod-bisector','v-rod-axial']}];
+/** Group a set of lessons into the families above, keeping each family's stated order and
+ *  dropping families nothing landed in. Anything the table has not heard of still appears, in
+ *  a trailing group of its own: a new geometry must never go missing because this list is stale. */
+function families(list:Problem[]){const rest=new Set(list.map(p=>p.id));
+ const groups=FAMILIES.map(f=>({label:f.label,items:f.ids.flatMap(id=>{const p=list.find(x=>x.id===id);if(!p)return[];rest.delete(id);return[p]})})).filter(g=>g.items.length>0);
+ const extra=list.filter(p=>rest.has(p.id));
+ return extra.length>0?[...groups,{label:'More geometries',items:extra}]:groups}
 /** How long a parameter must hold still before it is written anywhere. Long enough that a
  * drag writes once at the end, short enough to survive a quick change and a reload. */
 const SETTLE=220;
@@ -187,22 +204,25 @@ export default function Explorer(){
      three of the five slots above the lesson. Every one keeps the name it had, so it is the
      same control in a quieter place. */}
  <div className="exp-header-right"><button ref={tourButton} type="button" className="text-button tour-button" aria-label="Walkthrough" onClick={()=>setOnboarding(true)}><CircleHelp size={16}/><span>Walkthrough</span></button><Hint label={dark?'Switch to light theme':'Switch to dark theme'}><button className="icon-button" onClick={()=>setDark(!dark)} aria-label={dark?'Switch to light theme':'Switch to dark theme'}>{dark?<Sun size={17}/>:<Moon size={17}/>}</button></Hint><DropdownMenu><Hint label="Lesson tools"><DropdownMenuTrigger className="icon-button no-print" aria-label="Lesson tools"><MoreHorizontal size={17}/></DropdownMenuTrigger></Hint><DropdownMenuContent className="exp-tools-menu" align="end" sideOffset={8}><DropdownMenuItem onClick={printLesson}><Printer size={15}/>Print this lesson</DropdownMenuItem><DropdownMenuItem onClick={saveCopy}><Download size={15}/>Save an offline copy of this lesson</DropdownMenuItem><DropdownMenuItem render={<a href="https://github.com/malekTheCoder/field-builder" target="_blank" rel="noreferrer" aria-label="View Field Builder on GitHub"/>}><GitBranch size={15}/>View Field Builder on GitHub</DropdownMenuItem></DropdownMenuContent></DropdownMenu></div></header>
- <SidebarProvider className={`exp-shell ${sidebarOpen?'library-expanded':'library-collapsed'}`} style={{'--sidebar-width':'196px'} as CSSProperties}>{sidebarOpen&&<Sidebar collapsible="none" className="exp-sidebar"><SidebarContent><div className="exp-sidebar-title"><span className="eyebrow">Charge geometry</span></div>{(()=>{
-   // Ready lessons first, then a divider and the ones still being drawn. Kept in the list rather
+ <SidebarProvider className={`exp-shell ${sidebarOpen?'library-expanded':'library-collapsed'}`} style={{'--sidebar-width':'196px'} as CSSProperties}>{sidebarOpen&&<Sidebar collapsible="none" className="exp-sidebar"><SidebarContent>{(()=>{
+   // Families first, then a divider and the ones still being drawn. Kept in the list rather
    // than hidden: a reader can see the whole plan and tell that the gap is deliberate.
    const item=(pr:typeof PROBLEMS[number])=>{const soon=!isReady(pr.id);return <SidebarMenuItem key={pr.id}><SidebarMenuButton className={'exp-shape-button '+(id===pr.id?'active':'')+(soon?' is-soon':'')} isActive={id===pr.id} disabled={soon} aria-disabled={soon} title={soon?SOON_NOTE:undefined} onClick={()=>{if(!soon)changeDistribution(pr.id)}}><span className="shape-icon"><ShapeGlyph id={pr.id}/></span><span>{pr.short}</span></SidebarMenuButton></SidebarMenuItem>};
-   const ready=PROBLEMS.filter(pr=>isReady(pr.id)),soon=PROBLEMS.filter(pr=>!isReady(pr.id));
-   return <><SidebarMenu>{ready.map(item)}</SidebarMenu>
-    {soon.length>0&&<><div className="exp-soon-heading"><span>Coming soon</span></div><SidebarMenu className="exp-soon-group">{soon.map(item)}</SidebarMenu></>}</>;
-  })()}<div className="exp-nav-bottom"><Orbit size={26}/><p>One law.<br/>Every geometry.</p><MathText tex={scalar?String.raw`dV=\frac{k\,dQ}{r_i}`:String.raw`d\mathbf E=\frac{k\,dQ}{r_i^2}\hat{\mathbf r}_i`}/><span>{storageOK?'Your settings stay on this device.':'Settings are kept for this visit.'}</span></div></SidebarContent></Sidebar>}
- <main className="exp-main"><div className="exp-breadcrumb"><Hint label={sidebarOpen?'Hide the lesson list':'Show the lesson list'}><button type="button" className="exp-library-toggle" aria-expanded={sidebarOpen} aria-label={sidebarOpen?'Hide the lesson list':'Show the lesson list'} onClick={()=>setSidebarOpen(v=>!v)}><PanelLeft size={16}/></button></Hint><nav className="exp-crumbs" aria-label="Breadcrumb"><button type="button" className="exp-crumb-link" onClick={()=>setLibrary(true)}>Charge library</button><ChevronRight size={13} aria-hidden="true"/><span className="exp-crumb-here" aria-current="page">{p.short}</span></nav></div><div className="exp-heading"><div><h1>{p.title}</h1><p>{p.subtitle}</p></div></div>
+   const group=(label:string,items:typeof PROBLEMS,soon=false)=><div className="exp-family" key={label}><h2 className="exp-family-name">{label}</h2><SidebarMenu aria-label={label} className={soon?'exp-soon-group':undefined}>{items.map(item)}</SidebarMenu></div>;
+   const soon=PROBLEMS.filter(pr=>!isReady(pr.id));
+   return <>{families(PROBLEMS.filter(pr=>isReady(pr.id))).map(g=>group(g.label,g.items))}{soon.length>0&&group('Coming soon',soon,true)}</>;
+  })()}<div className="exp-nav-bottom"><p>One law.<br/>Every geometry.</p><MathText tex={scalar?String.raw`dV=\frac{k\,dQ}{r_i}`:String.raw`d\mathbf E=\frac{k\,dQ}{r_i^2}\hat{\mathbf r}_i`}/><span>{storageOK?'Your settings stay on this device.':'Settings are kept for this visit.'}</span></div></SidebarContent></Sidebar>}
+ <main className="exp-main"><div className="exp-breadcrumb"><Hint label={sidebarOpen?'Hide the lesson list':'Show the lesson list'}><button type="button" className="exp-library-toggle" aria-expanded={sidebarOpen} aria-label={sidebarOpen?'Hide the lesson list':'Show the lesson list'} onClick={()=>setSidebarOpen(v=>!v)}><PanelLeft size={16}/></button></Hint>{/* THE SAME LESSON WAS NAMED THREE TIMES IN THREE INCHES: lit in the list, as the tail of a
+     breadcrumb, and then in full as the title. The crumb said it least well of the three, so
+     the trail is now just the way back out to the library -- which on a narrow screen, where
+     the list is not there at all, is the only way to another lesson. */}
+<nav className="exp-crumbs" aria-label="Breadcrumb"><button type="button" className="exp-crumb-link" onClick={()=>setLibrary(true)}><ChevronLeft size={13} aria-hidden="true"/>Charge library</button></nav></div><div className="exp-heading"><div><h1>{p.title}</h1><p>{p.subtitle}</p></div></div>
  <div className="exp-workspace"><div className="exp-visual-column"><section className={'exp-diagram-card mode-'+mode+' focus-'+highlight} aria-label="Interactive field visualization"><div className="exp-diagram-heading"><div><MathText tex={p.coordinate}/></div></div><ChargeDiagram compact problem={p} params={params} setParams={updateParams} count={count} continuum={continuum} selected={activeIndex} onSelect={i=>{stop();setSelected(i)}} progress={progress} components={components||walkFigure==='projection'} pair={pair||walkFigure==='projection'} mode={mode} boundRange={bounds} onBoundRangeChange={setBounds} highlight={walkHighlight} build={!walking&&buildOpen?{key:buildNow.key,name:buildNow.name,index:buildIndex,count:stages.length}:undefined}/><div className={"exp-walk"+(walking||buildOpen?" is-open":"")}>
   {!walking&&!buildOpen&&<>
     <button type="button" className="secondary-button exp-walk-start" onClick={runBuild}>Watch it build</button>
     <button type="button" className="text-button exp-walk-start" onClick={beginWalk}>Walk me through the integral</button>
   </>}
   {!walking&&buildOpen&&<>
-    <span className="exp-walk-count">{buildIndex+1} of {stages.length}</span>
     <span className="exp-walk-text"><strong>{buildNow.name}.</strong> {buildNow.caption}</span>
     <span className="exp-build-dots">
       {stages.map((st,i)=><button key={st.key} type="button" className={'exp-build-dot'+(i===buildIndex?' is-here':'')+(i<buildIndex?' is-done':'')} aria-label={`Stage ${i+1}: ${st.name}`} aria-current={i===buildIndex?'step':undefined} title={st.name} onClick={()=>buildJump(i)}/>)}
@@ -213,8 +233,14 @@ export default function Explorer(){
     </span>
   </>}
   {walking&&<>
-    <span className="exp-walk-count">{step+1} of {walkTerms.length}</span>
     <span className="exp-walk-text"><strong>{walkTerms[Math.min(step,walkTerms.length-1)].label}.</strong> {walkTerms[Math.min(step,walkTerms.length-1)].why}</span>
+    {/* THE TWO GUIDED MODES NOW SHOW POSITION THE SAME WAY. The build had a strip of markers and
+        the walk had the words "3 of 4" -- two answers to one question, and the only counting on
+        the page. One strip, in both, and each marker still carries its step's name for hover and
+        for a screen reader. */}
+    <span className="exp-build-dots">
+      {walkTerms.map((t,i)=><button key={t.id} type="button" className={'exp-build-dot'+(i===step?' is-here':'')+(i<step?' is-done':'')} aria-label={`Step ${i+1}: ${t.label}`} aria-current={i===step?'step':undefined} title={t.label} onClick={()=>walkTo(i)}/>)}
+    </span>
     {walkFigure==='element'&&<span className="exp-walk-extra"><Range label="Finer" value={params.slices} min={3} max={30} onChange={slices=>{morph.current?.stop();updateParams({slices,continuum:0})}}/><button type="button" className="text-button" onClick={continuumAnimation}>{continuum>.99?'Back to pieces':'Take the limit'}</button></span>}
     {step===walkTerms.length-1&&<button type="button" className="text-button" onClick={playSum}>{playing?'Pause':'Watch the sum add up'}</button>}
     <span className="exp-walk-actions">
@@ -257,8 +283,9 @@ export default function Explorer(){
  <output className="sr-only" aria-live="polite">{status}</output></main></SidebarProvider>
  {ready&&!seen&&!onboarding&&<StartHere target={tourButton} onSettled={()=>setSeen(true)}/>}<Onboarding returnFocus={tourButton} open={onboarding} onClose={closeTour} onExplore={closeTour}/><Dialog open={library} onOpenChange={setLibrary}><DialogContent className="exp-library-dialog"><DialogTitle>Choose your geometry</DialogTitle><DialogDescription>{PROBLEMS.length} lessons, including electric potential.</DialogDescription>{(()=>{
     const card=(pr:typeof PROBLEMS[number])=>{const soon=!isReady(pr.id);return <button key={pr.id} className={(pr.id===id?'selected':'')+(soon?' is-soon':'')} disabled={soon} aria-disabled={soon} onClick={()=>{if(!soon)changeDistribution(pr.id)}}><ShapeGlyph id={pr.id} size={26}/><strong>{pr.short}</strong><span>{soon?SOON_NOTE:pr.subtitle}</span></button>};
-    const ready=PROBLEMS.filter(pr=>isReady(pr.id)),soon=PROBLEMS.filter(pr=>!isReady(pr.id));
-    return <><div className="exp-library-grid">{ready.map(card)}</div>
-     {soon.length>0&&<><div className="exp-soon-heading exp-soon-heading-wide"><span>Coming soon</span></div><div className="exp-library-grid">{soon.map(card)}</div></>}</>;
+    // Grouped exactly as the lesson list is, so the two pickers tell one story about the subject.
+    const block=(label:string,items:typeof PROBLEMS)=><div className="exp-library-family" key={label}><h3 className="exp-family-name">{label}</h3><div className="exp-library-grid">{items.map(card)}</div></div>;
+    const soon=PROBLEMS.filter(pr=>!isReady(pr.id));
+    return <>{families(PROBLEMS.filter(pr=>isReady(pr.id))).map(g=>block(g.label,g.items))}{soon.length>0&&block('Coming soon',soon)}</>;
    })()}</DialogContent></Dialog></div>;
 }
