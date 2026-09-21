@@ -68,6 +68,9 @@
  text-align:left;font-size:var(--type-sub)}
 .ob-hint{font-size:var(--type-meta);margin-top:14px}
 .ob-footer{border-top:1px solid var(--surface-rule);padding-top:20px}
+/* The laws page closes its last row with a rule and the footer opens with one, so the tour
+   ended in two lines twenty pixels apart. The footer's is the one that means something. */
+.ob-copy .laws-list>.law:last-child{border-bottom:0}
 .ob-actions [data-slot=button]{font-size:var(--type-meta);height:38px;padding:0 15px}
 .ob-dots button.active{background:var(--field)}
 
