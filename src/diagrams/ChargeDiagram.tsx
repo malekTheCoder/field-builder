@@ -62,27 +62,33 @@ function Vector({ from, to, color = 'var(--field)', width = 2.5, dashed = false,
   </g>;
 }
 function ViewHelp({ x, y }: { x: number; y: number }) {
-  // Drawn into the figure rather than written beside it: a reader who has never orbited a
-  // 3D view does not know that dragging turns it, and a sentence in the chrome is read last
-  // if at all. A mouse with a turning arrow, a wheel with an up-down arrow, and four key
-  // caps say it without a sentence. One row per gesture, so nothing crowds anything.
-  const ROW = 16;
-  const cap = (kx: number, glyph: string) => <g key={glyph}>
-    <rect x={kx} y={-6.5} width="9" height="9" rx="2" />
-    <text x={kx + 4.5} y={.4} textAnchor="middle" dominantBaseline="middle">{glyph}</text>
-  </g>;
-  const row = (i: number, art: React.ReactNode, label: string) =>
-    <g transform={`translate(0 ${i * ROW})`}>
-      <g className="cd-help-art">{art}</g>
-      <text className="cd-help-text" x="48" y="1" dominantBaseline="middle">{label}</text>
-    </g>;
-  return <g className="cd-help" transform={`translate(${x} ${y})`} aria-hidden="true">
-    <rect className="cd-help-back" x="-8" y="-13" width="132" height="54" rx="8" />
-    {row(0, <><rect x="1" y="-9" width="12" height="17" rx="6" /><line x1="7" y1="-9" x2="7" y2="-3" />
-      <path d="M19 1a8 8 0 0 1 11-6" /><path d="M30-8.2l.5 3.2-3.2.5" /></>, 'drag to turn')}
-    {row(1, <><rect x="1" y="-9" width="12" height="17" rx="6" /><line x1="7" y1="-5" x2="7" y2="-1" strokeWidth="2.2" />
-      <path d="M24-8v14" /><path d="M21.5-5.5L24-8l2.5 2.5" /><path d="M21.5 3.5L24 6l2.5-2.5" /></>, 'scroll to zoom')}
-    {row(2, <>{[cap(1, '\u2190'), cap(11, '\u2191'), cap(21, '\u2193'), cap(31, '\u2192')]}</>, 'arrow keys')}
+  // Drawn into the figure rather than written beside it: a reader who has never orbited a 3D
+  // view does not know that dragging turns it, and a sentence in the chrome is read last if at
+  // all. It still has to stay out of the way of the thing it is about.
+  //
+  // It used to be a three-row panel on a filled, rounded slab: a drawn mouse with a turning
+  // arrow, a wheel with an up-down arrow, and four key caps. At the size the figure is actually
+  // read at those glyphs are eight pixels tall -- not a mouse and a wheel, just scribble -- and
+  // the slab behind them punched an opaque hole through the field lines in the top right
+  // corner. It read as a second card pasted onto the picture, which is the one thing a legend
+  // must not do.
+  //
+  // Same three promises, one quiet line of type, nothing painted behind it. Each promise is
+  // still its own `.cd-help-text`, in order, because the gesture tests read them off the
+  // rendered figure and check that every one of them is true -- that covenant is why the
+  // broken arrow keys were eventually caught, and it is unchanged.
+  // One <text> with a tspan per promise, anchored at its END: tspans are the one thing in SVG
+  // that does flow, so the line sets itself and hangs off `x` without anything measuring it.
+  // Placing each promise by a guessed width instead put "scroll to zoom" through the tail of
+  // "drag to turn".
+  return <g className="cd-help" aria-hidden="true">
+    <text x={x} y={y} textAnchor="end" dominantBaseline="middle">
+      <tspan className="cd-help-text">drag to turn</tspan>
+      {' \u00b7 '}
+      <tspan className="cd-help-text">scroll to zoom</tspan>
+      {' \u00b7 '}
+      <tspan className="cd-help-text">arrow keys</tspan>
+    </text>
   </g>;
 }
 /** The geometries whose partition runs to infinity, so that refining it moves the far elements
@@ -305,7 +311,10 @@ export function ChargeDiagram({ problem, params: p, setParams, count, continuum,
     // plane's coordinates, and only the screen box puts every label in one space.
     const toFrame = (r: DOMRect): Box => ({ x: (r.left - frameRect.left) * sx, y: (r.top - frameRect.top) * sy, width: r.width * sx, height: r.height * sy });
     const labels = texts.map(t => ({ box: toFrame(t.getBoundingClientRect()), fixed: t.dataset.anchor === 'fixed' }));
-    const obstacles = [...root.querySelectorAll<SVGGraphicsElement>('.cd-point, .cd-point-halo, .cd-help-back, .cd-cube')].map(el => toFrame(el.getBoundingClientRect()));
+    // `.cd-help` itself, not the slab that used to be drawn behind it: the legend no longer
+    // paints a background, and naming a class that no longer exists would quietly drop it from
+    // the obstacles and let a label land on top of it.
+    const obstacles = [...root.querySelectorAll<SVGGraphicsElement>('.cd-point, .cd-point-halo, .cd-help, .cd-cube')].map(el => toFrame(el.getBoundingClientRect()));
     const nudges = placeLabels(labels, { frame: { width: 720, height: 430 }, obstacles, pad: 2 });
     texts.forEach((t, i) => {
       const { dx, dy } = nudges[i];
@@ -676,23 +685,6 @@ export function ChargeDiagram({ problem, params: p, setParams, count, continuum,
     {/* Field under construction, sharing one box so the two coordinate spaces cannot
         drift. Planar lessons only for now: the perspective geometries need their lines
         traced in three dimensions and sorted against the surface, a different job. */}
-    <div className="cd-toolbar">
-    <div className="cd-view-modes" role="group" aria-label="How to view the figure">
-      {([['2D', false], ['3D', true]] as const).map(([label, wants]) => <button key={label} type="button" title={wants ? 'In space: drag, scroll or use the arrow keys to turn it' : 'Flat, looking straight down the axis'}
-        className={`cd-view-mode${inSpace === wants ? ' is-on' : ''}`} aria-pressed={inSpace === wants}
-        onClick={() => {
-          if (wants === inSpace) return;
-          stopGlide();
-          if (wants) { yawMv.set(FLAT.yaw); pitchMv.set(FLAT.pitch); setCamera({ ...FLAT }); setSpatial(true); glideTo(openingCamera(problem.geometry), .8); }
-          else glideTo(FLAT, .65, () => setSpatial(false));
-        }}>{label}</button>)}
-    </div>
-    {!scalar && <div className="cd-view-modes" role="group" aria-label="How to show the field around the charge">
-      {([['Field lines', 'lines', 'Crowded lines mean a stronger field'], ['Arrows', 'vectors', 'Each arrow is the field where it sits'], ['Off', 'off', 'Just the construction']] as const).map(([label, value, title]) => <button key={value} type="button" title={title}
-        className={`cd-view-mode${fieldView === value ? ' is-on' : ''}`} aria-pressed={fieldView === value}
-        onClick={() => setFieldView(value)}>{label}</button>)}
-    </div>}
-    </div>
     <div className="cd-stage">
     {!inSpace && !scalar && fieldView !== 'off' && <FieldCanvas samples={fieldSamples} detail={UNBOUNDED.has(id) ? 192 : 64} project={project} frame={{ width: 720, height: 430 }} mode={fieldView} reach={Math.max(2.5, p.distance * 1.7, p.size)}
       plane={perspective ? 'xz' : 'xy'} layout={surface ? 'surface' : 'wire'} />}
@@ -813,7 +805,9 @@ export function ChargeDiagram({ problem, params: p, setParams, count, continuum,
         onSpinStart={() => { stopGlide(); setActiveDrag(true); }}
         onSpin={(dx, dy) => { const next = orbitCamera({ yaw: yawMv.get(), pitch: pitchMv.get() }, dx * 1.7, dy * 1.7); commitView(next); }}
         onStep={key => nudge(key)} />}
-      {inSpace && <ViewHelp x={578} y={34} />}
+      {/* `x` is the line's RIGHT edge: it hangs off the figure's top right corner, clear of the
+          view cube in the opposite one and above everything the drawing puts in the middle. */}
+      {inSpace && <ViewHelp x={690} y={30} />}
       {!scalar && !hideAnswer && <Vector from={P} to={plus(P, net)} width={3.5} label={continuum>=.999&&full&&progress>=.999?'E':'Σ ΔE'} reduced={still} ghost={inSpace} />}
 {!scalar && magnitude(displayed) < 1e-8 && <text x={P.x-16} y={P.y-47} textAnchor="end" className="cd-zero">E = 0</text>}
       {/* THE POTENTIAL'S OWN PICTURE: the pieces' contributions, stacked.
@@ -868,30 +862,53 @@ export function ChargeDiagram({ problem, params: p, setParams, count, continuum,
       <text x="690" y="409" textAnchor="end" className="cd-footer">{continuum>=.999 ? 'In the limit' : 'Cut into pieces'}</text>
     </svg>
     </div>
-    {/* WHAT THE FIGURE IS SHOWING, then the controls for looking at it -- one row where there
-        were three. The right half used to restate the partition's state, which the figure
-        already prints along its own bottom edge ("Cut into pieces" / "In the limit"), so it
-        said nothing and was empty outright whenever the reader was not summing. The view pad
-        took the slot: zoom and the way home are utilities, and they belong under the drawing
-        rather than in the strip above it, where they were three of eight buttons standing
-        between the reader and the charge. The bullet is gone with it -- orange means charge
-        on this page, and spending it on a decorative dot is spending the one bit of colour
-        coding the lesson runs on. */}
-    <div className="cd-caption"><span>{sourceText}</span><div className="cd-pad" role="group" aria-label="Move the view">
+    {/* EVERYTHING BUT THE DRAWING NOW SITS UNDER IT, in two rows grouped by the question they
+        answer. The view strip used to run ABOVE the figure, so the first thing inside the
+        figure card was a row of buttons and the picture came second -- on a phone the reader
+        met 39px of chrome before meeting the charge. A figure's controls belong under the
+        figure, the way a caption does.
+
+        Row one is every "how do I look at it" control: the projection, what to draw around the
+        charge, and the zoom pad with the way home. Row two is the figure's own sentence, with
+        the keyboard footnote as its fine print. Three rows became two, and neither of them
+        stands between the reader and the charge any more. */}
+    <div className="cd-toolbar">
+    <div className="cd-view-modes" role="group" aria-label="How to view the figure">
+      {([['2D', false], ['3D', true]] as const).map(([label, wants]) => <button key={label} type="button" title={wants ? 'In space: drag, scroll or use the arrow keys to turn it' : 'Flat, looking straight down the axis'}
+        className={`cd-view-mode${inSpace === wants ? ' is-on' : ''}`} aria-pressed={inSpace === wants}
+        onClick={() => {
+          if (wants === inSpace) return;
+          stopGlide();
+          if (wants) { yawMv.set(FLAT.yaw); pitchMv.set(FLAT.pitch); setCamera({ ...FLAT }); setSpatial(true); glideTo(openingCamera(problem.geometry), .8); }
+          else glideTo(FLAT, .65, () => setSpatial(false));
+        }}>{label}</button>)}
+    </div>
+    {!scalar && <div className="cd-view-modes" role="group" aria-label="How to show the field around the charge">
+      {([['Field lines', 'lines', 'Crowded lines mean a stronger field'], ['Arrows', 'vectors', 'Each arrow is the field where it sits'], ['Off', 'off', 'Just the construction']] as const).map(([label, value, title]) => <button key={value} type="button" title={title}
+        className={`cd-view-mode${fieldView === value ? ' is-on' : ''}`} aria-pressed={fieldView === value}
+        onClick={() => setFieldView(value)}>{label}</button>)}
+    </div>}
+    <div className="cd-pad" role="group" aria-label="Move the view">
       {/* The four turn keys used to live here too. The view cube inside the figure now carries
           them, with the same names, and two controls doing one job is one too many -- the pad
           keeps zoom and the way home. */}
       <button type="button" className="cd-pad-key" title="Zoom out (minus key, or scroll)" aria-label="Zoom out" onKeyDown={viewKeys} onClick={() => zoomBy(1 / 1.18)} disabled={zoom <= ZOOM_MIN + 1e-6}>&minus;</button>
       <button type="button" className="cd-pad-key" title="Zoom in (plus key, or scroll)" aria-label="Zoom in" onKeyDown={viewKeys} onClick={() => zoomBy(1.18)} disabled={zoom >= zoomCeiling - 1e-6}>+</button>
       <button type="button" className="text-button cd-orbit-reset" onKeyDown={viewKeys} onClick={resetView} disabled={zoom === 1 && camera.yaw === opening.yaw && camera.pitch === opening.pitch}>Reset view</button>
-    </div></div>
-    <details className="cd-controls" open={!compact}><summary>Diagram controls and keyboard help</summary>{/* The drawn legend in the figure says how to turn and zoom it. This stays for the things a drawing cannot show -- what Tab reaches, what Home and End do -- and for a screen reader, which cannot see the legend at all. */}<p id={`${uid}help`}>Tab moves between controls. Arrow keys adjust the focused control; Home and End select its limits. You can also drag P and the integration bounds in the figure.{inSpace?' The figure itself takes focus: arrow keys turn it, plus and minus zoom, Home puts it back.':''}</p>
+    </div>
+    </div>
+    <div className="cd-caption"><span>{sourceText}</span>
+    <details className="cd-controls" open={!compact}><summary>Keyboard help</summary>{/* A footnote on the caption line, not a fourth section. It used to be called "Diagram controls", which promised a second control panel and delivered the sliders the page already carries -- so a reader who opened it found the distance slider twice and concluded one of them was a different thing. It is the keyboard and screen-reader path: name it that, and the duplicates read as what they are, the same controls reachable another way. The drawn legend says how to turn and zoom; this says what a drawing cannot -- what Tab reaches, what Home and End do -- and says it to a reader who cannot see the legend at all. */}<p id={`${uid}help`}>The sliders here are the same controls the figure and the page already carry — a way to reach them from the keyboard, not a second set. Tab moves between controls. Arrow keys adjust the focused control; Home and End select its limits. You can also drag P and the integration bounds in the figure.{inSpace?' The figure itself takes focus: arrow keys turn it, plus and minus zoom, Home puts it back.':''}</p>
     <div className="cd-control-grid">
       {inSpace&&<button ref={cameraControl} type="button" className="cd-camera-control" aria-describedby={`${uid}camera-help`} onKeyDown={ev=>{if(['+','=','-','_'].includes(ev.key)){ev.preventDefault();zoomBy(ev.key==='-'||ev.key==='_'?1/1.18:1.18);}else if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Home'].includes(ev.key)){ev.preventDefault();if(ev.key==='Home')setZoom(1);nudge(ev.key);}}} onClick={resetView}>Rotate view with arrow keys<span id={`${uid}camera-help`}>Left/right rotate; up/down tilt; Home or Enter resets.</span></button>}
       <label>Which piece is drawn<input type="range" aria-label="Selected charge element" min={0} max={n-1} step={1} value={selectedIndex} onChange={ev=>onSelect(Number(ev.target.value))}/></label>
       {id!=='arc'&&<label>Observation distance<input type="range" aria-label="Observation distance in meters" aria-valuetext={`${pretty(p.distance)} meters`} min={.5} max={6} step={.1} value={p.distance} onChange={ev=>setParams({distance:Number(ev.target.value)})}/></label>}
-      {mode==='integrate'&&onBoundRangeChange&&[0,1].map(i=><label key={i}>{i?'Upper':'Lower'} bound: {boundRange[i]}%<input type="range" aria-label={`${i?'Upper':'Lower'} integration bound`} aria-valuetext={`${boundRange[i]} percent of the source coordinate`} min={0} max={100} step={1} value={boundRange[i]} onChange={ev=>{const next:[number,number]=[...boundRange];next[i]=Number(ev.target.value);onBoundRangeChange(next);}}/></label>)}
-    </div></details>
+      {/* No percentage printed: this page reasons about the integral in symbols, and a reader who
+          is told "63%" starts reading the figure as an arithmetic result. The handles in the
+          figure carry a and b, and `aria-valuetext` still says the number to a screen reader,
+          which has no figure to read it off. */}
+      {mode==='integrate'&&onBoundRangeChange&&[0,1].map(i=><label key={i}>{i?'Upper':'Lower'} bound<input type="range" aria-label={`${i?'Upper':'Lower'} integration bound`} aria-valuetext={`${boundRange[i]} percent of the source coordinate`} min={0} max={100} step={1} value={boundRange[i]} onChange={ev=>{const next:[number,number]=[...boundRange];next[i]=Number(ev.target.value);onBoundRangeChange(next);}}/></label>)}
+    </div></details></div>
     <output className="cd-announcement" aria-live="polite" aria-atomic="true">{announcement}</output>
 
   </div>;
