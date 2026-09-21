@@ -302,7 +302,16 @@ export function FieldStage(props:FieldStageProps){
     const layout:Layout=p.kind==='wire'?'wire':'surface';
     // A surface's annuli are each summed as a whole ring, about four point charges' arithmetic
     // apiece, so fewer of them.
-    const few=coarsen(p.samples,(p.detail??48)*(layout==='wire'?1:.5)|0);
+    // No halving for surfaces any more. Each annulus used to be spread into sixteen point charges
+    // before it could be summed, so a surface cost sixteen times a wire per element and its budget
+    // was cut in half to pay for it. An annulus is one ring evaluation now, through elliptic
+    // integrals, and the halving was left behind: it was holding the SHEET's spatial field at 72
+    // elements against the flat view's 192. Measured on the sheet: 1.15% off the converged field
+    // and leaning 0.49 degrees from the vertical it is supposed to be, against 0.26% and 0.09
+    // degrees at the full budget -- for three milliseconds more on a trace that is rebuilt only
+    // when the charge changes, never on a camera frame. The disk is unaffected either way:
+    // its partition is the reader's own piece count, which coarsening never reaches.
+    const few=coarsen(p.samples,p.detail??48);
     if(p.fieldView==='lines'){
      // Both limits come from the PICTURE, not from how far the charge happens to extend.
      //

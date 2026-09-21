@@ -259,7 +259,7 @@ const fieldCut=(id:ProblemId,p:Params,n:number)=>sampleDistribution(id,p,UNBOUND
 const UNBOUNDED_BAR=3;
 const barFor=(id:ProblemId,bounded:number)=>UNBOUNDED.includes(id)?Math.max(bounded,UNBOUNDED_BAR):bounded;
 const canvasBudget=(id:ProblemId)=>UNBOUNDED.includes(id)?192:64;
-const stageBudget=(id:ProblemId,surface:boolean)=>((UNBOUNDED.includes(id)?144:48)*(surface?.5:1))|0;
+const stageBudget=(id:ProblemId,_surface:boolean)=>UNBOUNDED.includes(id)?144:48;
 const canvasThin=(s:readonly ChargeSample[],budget=64)=>({stride:Math.max(1,Math.ceil(s.length/budget)),coarse:coarsen(s,budget)});
 const canvasReach=(c:readonly ChargeSample[])=>Math.max(...c.map(s=>Math.hypot(s.position.x,s.position.y,s.position.z)),1);
 // One rule for both views, and it is the PICTURE's half-width that sets it, never the charge's.
