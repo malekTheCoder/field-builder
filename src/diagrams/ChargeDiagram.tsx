@@ -62,27 +62,34 @@ function Vector({ from, to, color = 'var(--field)', width = 2.5, dashed = false,
   </g>;
 }
 function ViewHelp({ x, y }: { x: number; y: number }) {
-  // Drawn into the figure rather than written beside it: a reader who has never orbited a
-  // 3D view does not know that dragging turns it, and a sentence in the chrome is read last
-  // if at all. A mouse with a turning arrow, a wheel with an up-down arrow, and four key
-  // caps say it without a sentence. One row per gesture, so nothing crowds anything.
-  const ROW = 16;
-  const cap = (kx: number, glyph: string) => <g key={glyph}>
-    <rect x={kx} y={-6.5} width="9" height="9" rx="2" />
-    <text x={kx + 4.5} y={.4} textAnchor="middle" dominantBaseline="middle">{glyph}</text>
-  </g>;
-  const row = (i: number, art: React.ReactNode, label: string) =>
-    <g transform={`translate(0 ${i * ROW})`}>
-      <g className="cd-help-art">{art}</g>
-      <text className="cd-help-text" x="48" y="1" dominantBaseline="middle">{label}</text>
-    </g>;
-  return <g className="cd-help" transform={`translate(${x} ${y})`} aria-hidden="true">
-    <rect className="cd-help-back" x="-8" y="-13" width="132" height="54" rx="8" />
-    {row(0, <><rect x="1" y="-9" width="12" height="17" rx="6" /><line x1="7" y1="-9" x2="7" y2="-3" />
-      <path d="M19 1a8 8 0 0 1 11-6" /><path d="M30-8.2l.5 3.2-3.2.5" /></>, 'drag to turn')}
-    {row(1, <><rect x="1" y="-9" width="12" height="17" rx="6" /><line x1="7" y1="-5" x2="7" y2="-1" strokeWidth="2.2" />
-      <path d="M24-8v14" /><path d="M21.5-5.5L24-8l2.5 2.5" /><path d="M21.5 3.5L24 6l2.5-2.5" /></>, 'scroll to zoom')}
-    {row(2, <>{[cap(1, '\u2190'), cap(11, '\u2191'), cap(21, '\u2193'), cap(31, '\u2192')]}</>, 'arrow keys')}
+  // Drawn into the figure rather than written beside it: a reader who has never orbited a 3D
+  // view does not know that dragging turns it, and a sentence in the chrome is read last if at
+  // all. It still has to stay out of the way of the thing it is about.
+  //
+  // It used to be a three-row panel on a filled, rounded slab: a drawn mouse with a turning
+  // arrow, a wheel with an up-down arrow, and four key caps. At the size the figure is actually
+  // read at those glyphs are eight pixels tall -- not a mouse and a wheel, just scribble -- and
+  // the slab behind them punched an opaque hole through the field lines in the top right
+  // corner. It read as a second card pasted onto the picture, which is the one thing a legend
+  // must not do.
+  //
+  // Same three promises, one quiet line of type, nothing painted behind it. Each promise is
+  // still its own `.cd-help-text`, in order, because the gesture tests read them off the
+  // rendered figure and check that every one of them is true -- that covenant is why the
+  // broken arrow keys were eventually caught, and it is unchanged.
+  //
+  // One <text> with a tspan per promise, anchored at its END: tspans are the one thing in SVG
+  // that does flow, so the line sets itself and hangs off `x` without anything measuring it.
+  // Placing each promise at a guessed width instead put "scroll to zoom" through the tail of
+  // "drag to turn".
+  return <g className="cd-help" aria-hidden="true">
+    <text x={x} y={y} textAnchor="end" dominantBaseline="middle">
+      <tspan className="cd-help-text">drag to turn</tspan>
+      {' \u00b7 '}
+      <tspan className="cd-help-text">scroll to zoom</tspan>
+      {' \u00b7 '}
+      <tspan className="cd-help-text">arrow keys</tspan>
+    </text>
   </g>;
 }
 /** The geometries whose partition runs to infinity, so that refining it moves the far elements
@@ -305,7 +312,10 @@ export function ChargeDiagram({ problem, params: p, setParams, count, continuum,
     // plane's coordinates, and only the screen box puts every label in one space.
     const toFrame = (r: DOMRect): Box => ({ x: (r.left - frameRect.left) * sx, y: (r.top - frameRect.top) * sy, width: r.width * sx, height: r.height * sy });
     const labels = texts.map(t => ({ box: toFrame(t.getBoundingClientRect()), fixed: t.dataset.anchor === 'fixed' }));
-    const obstacles = [...root.querySelectorAll<SVGGraphicsElement>('.cd-point, .cd-point-halo, .cd-help-back, .cd-cube')].map(el => toFrame(el.getBoundingClientRect()));
+    // `.cd-help` itself, not the slab that used to be drawn behind it: the legend no longer
+    // paints a background, and naming a class that no longer exists would quietly drop it from
+    // the obstacles and let a label land on top of it.
+    const obstacles = [...root.querySelectorAll<SVGGraphicsElement>('.cd-point, .cd-point-halo, .cd-help, .cd-cube')].map(el => toFrame(el.getBoundingClientRect()));
     const nudges = placeLabels(labels, { frame: { width: 720, height: 430 }, obstacles, pad: 2 });
     texts.forEach((t, i) => {
       const { dx, dy } = nudges[i];
@@ -813,7 +823,9 @@ export function ChargeDiagram({ problem, params: p, setParams, count, continuum,
         onSpinStart={() => { stopGlide(); setActiveDrag(true); }}
         onSpin={(dx, dy) => { const next = orbitCamera({ yaw: yawMv.get(), pitch: pitchMv.get() }, dx * 1.7, dy * 1.7); commitView(next); }}
         onStep={key => nudge(key)} />}
-      {inSpace && <ViewHelp x={578} y={34} />}
+      {/* `x` is the line's RIGHT edge: it hangs off the figure's top right corner, clear of the
+          view cube in the opposite one and above everything the drawing puts in the middle. */}
+      {inSpace && <ViewHelp x={690} y={30} />}
       {!scalar && !hideAnswer && <Vector from={P} to={plus(P, net)} width={3.5} label={continuum>=.999&&full&&progress>=.999?'E':'Σ ΔE'} reduced={still} ghost={inSpace} />}
 {!scalar && magnitude(displayed) < 1e-8 && <text x={P.x-16} y={P.y-47} textAnchor="end" className="cd-zero">E = 0</text>}
       {/* THE POTENTIAL'S OWN PICTURE: the pieces' contributions, stacked.
