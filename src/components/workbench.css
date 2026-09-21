@@ -128,3 +128,63 @@
 /* The label keeps its weight now that it is the row's only span. */
 .ew-equation-label>span:last-child{font-weight:500;font-size:var(--type-meta)}
 .ew-equation-label>span+span{font-weight:400}
+
+/* =====================================================================
+   THREE LEVELS, NOT NINE ROWS OF ONE
+   The panel was a stack of rows at one weight -- a caption equation, a
+   boxed integral, four slots, two disclosures, two loose definitions and
+   a references summary -- so nothing in it said which was the point. It
+   is the second most important thing on the page after the figure, and
+   what it is for is building ONE expression. So:
+
+     caption   what the figure is showing right now. Small, quiet, and
+               plainly a caption for the drawing beside it.
+     subject   the integral being assembled, and the factors it is made
+               of. The only object in the panel with a surface, the only
+               one set large, and the only heading in the foreground.
+     shelf     the algebra and the model's sources, gathered at the foot
+               behind one rule, in the muted colour, opened on demand.
+   ===================================================================== */
+/* ---- caption -------------------------------------------------------- */
+.ew-equation-label{font-size:var(--type-meta);color:var(--muted-foreground)}
+.ew-equation{margin:8px 0 0;padding:2px 0 18px;font-size:var(--type-body)}
+.ew-equation .katex{font-size:1.1em}
+
+/* ---- subject -------------------------------------------------------- */
+.ew-assembly{margin-top:20px;border-top:0;padding-top:0}
+/* The panel's one heading, and it reads like one. */
+.ew-section-title{font-size:var(--type-body);font-weight:500;color:var(--foreground);margin-bottom:12px}
+.ew-assembled{padding:20px 16px;border-radius:12px;background:var(--muted)}
+.ew-assembled .katex{font-size:1.18em}
+.ew-assembled.is-built{background:color-mix(in oklab,var(--field) 13%,var(--muted))}
+.ew-substituted{padding:12px 4px 0;opacity:.72}
+.ew-slots-hint{margin:14px 0 10px}
+.ew-slots{gap:2px;margin-top:0}
+.ew-slot-button{padding:9px 10px;gap:11px}
+.ew-slot-body small{font-size:var(--type-meta)}
+.ew-slot-button>svg{color:color-mix(in oklab,var(--muted-foreground) 62%,transparent);flex:none;transition:transform .2s ease}
+.ew-slot.is-open .ew-slot-button>svg{transform:rotate(180deg)}
+.ew-assembly-done{margin-top:12px;font-size:var(--type-meta);line-height:1.6}
+/* The interval belongs to the integral above it, not to the shelf below. */
+.ew-bounds{border-bottom:0;border-top:1px solid var(--surface-rule);margin-top:16px}
+.ew-result{margin-top:18px}
+
+/* ---- shelf ---------------------------------------------------------- */
+/* The two definitions are what the symbols above stand for, so they close the integral rather
+   than open the shelf: no rule of their own, and the shelf's rule falls under them. */
+.ew-footer{border-top:0;margin:20px 0 0;padding:0;column-gap:18px;opacity:.9}
+.ew-reference{margin-top:20px;border-top:1px solid var(--surface-rule)}
+.ew-reference .ew-disclosure{color:var(--muted-foreground);padding:14px 0}
+.ew-reference .ew-disclosure:hover{color:var(--foreground)}
+.ew-references{margin:0}
+.ew-references>summary{display:flex;align-items:center;justify-content:space-between;width:100%;gap:10px;
+ cursor:pointer;list-style:none;text-align:left}
+.ew-references>summary::-webkit-details-marker{display:none}
+.ew-references[open]>summary>svg{transform:rotate(180deg)}
+.ew-references>summary>svg{flex:none;transition:transform .2s ease}
+.ew-references-body{padding-bottom:16px}
+.ew-references-body p:first-child{margin-top:0}
+.ew-worked-step{gap:0}
+.ew-worked-step>div{width:100%}
+@media(prefers-reduced-motion:reduce){.ew-references>summary>svg,.ew-slot-button>svg{transition:none}}
+@media(max-width:520px){.ew-assembled{padding:16px 12px}}
