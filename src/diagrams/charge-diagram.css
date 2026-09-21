@@ -331,35 +331,56 @@
 }
 
 /* =====================================================================
-   THE FIGURE'S CHROME, REARRANGED
-   The strip above the drawing used to hold eight buttons in three groups:
-   how to project it, how to draw the field, and how to zoom it. Only the
-   first two are choices about the physics. Zoom and the way home are
-   utilities, so they moved down into the caption row, which had a spare
-   half because its right side only ever restated the partition state the
-   figure already prints along its own bottom edge.
+   THE FIGURE'S CHROME: TWO ROWS, BOTH UNDER THE DRAWING
+   The view strip used to run above the figure, so the first thing inside
+   the figure card was a row of buttons. Nothing belongs between a reader
+   and the picture; a figure's controls sit under it, like a caption.
 
-   Result under the drawing: one row (what this is · how to look at it),
-   then the keyboard disclosure as a footnote rather than a section.
+   Row one, carrying the rule that closes the drawing: every "how do I
+   look at it" control. Row two: the figure's own sentence, with the
+   keyboard footnote as its fine print on the same line.
+
+   And five identical boxes became two controls. 2D/3D answers one
+   question and Field lines/Arrows/Off answers another, but they were
+   drawn as five equal buttons six pixels apart inside a group and
+   eighteen between, a difference you have to measure to see. Segmented,
+   each group is visibly ONE control with a state, which is what it is.
    ===================================================================== */
-.cd-toolbar{gap:10px 20px;padding:10px 2px 2px}
-/* The caption is the figure's footer rule: it closes the drawing and carries the view pad. */
-.cd-caption{margin-top:12px;padding:12px 2px 0;border-top:1px solid var(--surface-rule,var(--border));
- font-size:var(--type-meta,13px);letter-spacing:0;color:var(--muted-foreground)}
+.cd-toolbar{margin-top:12px;padding:12px 2px 0;border-top:1px solid var(--surface-rule,var(--border));gap:8px 16px}
+.cd-view-modes{gap:0;border:1px solid var(--border);border-radius:8px;overflow:hidden}
+.cd-view-mode{border:0;border-left:1px solid var(--border);border-radius:0;padding:4px 11px;line-height:1.5}
+.cd-view-modes>.cd-view-mode:first-child{border-left:0}
+/* The chosen segment used to say so with its border colour, which a segmented control does not
+   have to spend; the fill has to carry it alone now, so it is deepened to where it reads as
+   pressed at a glance in both themes. Nothing about the text changes -- a weight change here
+   would re-measure the segment and shift the group every time the reader switched. */
+.cd-view-mode.is-on{background:color-mix(in oklab,var(--field) 19%,transparent);color:var(--foreground)}
+.cd-view-mode:hover:not(.is-on){background:var(--muted);color:var(--foreground)}
+/* Inside the shell, so the group's own overflow:hidden cannot clip the ring away. */
+.cd-view-mode:focus-visible{outline:2px solid var(--field);outline-offset:-2px}
 .cd-pad{gap:6px;margin-left:auto;flex:none}
 .cd-pad-key{width:28px;height:28px;border-radius:7px}
 .cd-pad .cd-orbit-reset{margin-left:8px;font-size:var(--type-meta,13px);color:var(--muted-foreground)}
 .cd-pad .cd-orbit-reset:hover:not(:disabled){color:var(--foreground)}
 .cd-pad .cd-orbit-reset:disabled{opacity:.35;cursor:default}
-/* A footnote, not a fourth section: the drawn legend already says how to turn and zoom, and
-   this is here for what a drawing cannot show and for readers who cannot see it at all. */
-.cd-controls{margin-top:10px;border-top:0;padding-top:0;font-size:var(--type-meta,13px)}
-.cd-controls>summary{font-size:var(--type-meta,13px);color:var(--muted-foreground);opacity:.8;min-height:24px}
+/* The caption is prose about the figure, so it is set as prose and carries no rule of its own. */
+.cd-caption{margin-top:9px;padding:0 2px;border-top:0;gap:6px 16px;
+ font-size:var(--type-meta,13px);letter-spacing:0;color:var(--muted-foreground)}
+/* A footnote on the caption's line, not a fourth section. Closed it is a few quiet words at
+   the end of the sentence; opened it takes a line of its own rather than stretching that one. */
+.cd-caption>.cd-controls{margin:0 0 0 auto;flex:0 0 auto;border-top:0;padding-top:0;font-size:var(--type-meta,13px)}
+.cd-caption>.cd-controls[open]{flex:1 1 100%;margin-left:0}
+.cd-controls>summary{font-size:var(--type-meta,13px);color:var(--muted-foreground);opacity:.75;min-height:24px}
 .cd-controls>summary:hover{opacity:1;color:var(--foreground)}
 .cd-controls[open]>summary{opacity:1;margin-bottom:4px}
 @media(max-width:600px){
- .cd-caption{margin-top:10px;padding:10px 0 0;gap:8px 12px;font-size:var(--type-meta,13px)}
+ .cd-toolbar{margin-top:10px;padding:10px 0 0;gap:8px 10px}
+ .cd-caption{margin-top:8px;padding:0;gap:6px 12px;font-size:var(--type-meta,13px)}
  .cd-caption>span{flex:1 1 100%}
- .cd-pad{margin-left:0}
- .cd-toolbar{gap:8px 12px}
+ .cd-caption>.cd-controls{margin-left:0}
 }
+/* Narrow enough that the pad is certain to have wrapped onto a line of its own: pushed right it
+   floats there with nothing beside it, so it joins the left-aligned stack instead. Above this
+   width it still fits beside the view modes, where hugging the right edge is the correct
+   alignment -- so the override is deliberately below the phone breakpoint, not at it. */
+@media(max-width:460px){.cd-pad{margin-left:0}}
