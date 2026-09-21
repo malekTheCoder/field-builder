@@ -858,7 +858,7 @@ export function ChargeDiagram({ problem, params: p, setParams, count, continuum,
       </g>}
       <line x1="30" y1="387" x2="690" y2="387" className="cd-divider" />
       <text x="30" y="409" className="cd-footer">{sourceLabel}</text>
-      {build && <text key={build.key} data-anchor="fixed" data-build-stage={build.key} className="cd-stage-label" x="360" y="34" textAnchor="middle">{`${build.index + 1} of ${build.count} · ${build.name}`}</text>}
+      {build && <text key={build.key} data-anchor="fixed" data-build-stage={build.key} className="cd-stage-label" x="360" y="34" textAnchor="middle">{build.name}</text>}
       <text x="690" y="409" textAnchor="end" className="cd-footer">{continuum>=.999 ? 'In the limit' : 'Cut into pieces'}</text>
     </svg>
     </div>

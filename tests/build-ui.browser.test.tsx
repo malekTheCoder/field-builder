@@ -112,13 +112,16 @@ describe('every stage changes the figure, not just the caption', () => {
  const answerShown = (view: {container: HTMLElement}) =>
   [...view.container.querySelectorAll('.cd-vector-label')].some(l => /Σ|^E$/.test(l.textContent ?? ''));
  const stageLabel = (view: {container: HTMLElement}) => view.container.querySelector('.cd-stage-label')?.textContent ?? '';
+ // The figure names the stage; the marker strip says which one of the five it is. The label used
+ // to carry "3 of 5" as well -- a numeral on a page that has none, saying what the markers beside
+ // it already showed.
  it('names the stage inside the figure, where the reader is looking', async () => {
   const view = await openLesson('bisector');
   expect(stageLabel(view)).toBe('');
   fireEvent.click(view.getByRole('button', {name: 'Watch it build'}));
-  await waitFor(() => expect(stageLabel(view)).toBe('1 of 5 · Cut it up'));
+  await waitFor(() => expect(stageLabel(view)).toBe('Cut it up'));
   jump(view, 3, 'What cancels');
-  await waitFor(() => expect(stageLabel(view)).toBe('3 of 5 · What cancels'));
+  await waitFor(() => expect(stageLabel(view)).toBe('What cancels'));
   fireEvent.click(view.getByRole('button', {name: 'Close'}));
   await waitFor(() => expect(stageLabel(view)).toBe(''));
  });
