@@ -704,6 +704,55 @@ describe('annuliField: every annulus is summed as the ring it is',()=>{
   expect(w.value,`worst drawn-vs-quadrature angle ${w.value.toExponential(2)}°, ${w.where}`).toBeLessThan(1e-6);
   expect(wm.value,`worst drawn-vs-quadrature magnitude error ${wm.value.toExponential(2)}, ${wm.where}`).toBeLessThan(1e-9);
  });
+ it('one annulus is the ring at every radius and every distance a reader can reach',()=>{
+  // The formula that became the drawn field of every surface, swept rather than spot-checked.
+  // Radii across what the sliders give (R = size/2 runs 0.5 to 4) and field points all round the
+  // ring's cross-section, from two radii away down to a hundredth of one -- far closer than any
+  // drawn line goes, since the tracer stops a clearance of at least 0.05 m off the body.
+  //
+  // Normalised by the size of the field a radius out from the SAME ring, never by the answer at
+  // the point itself. At the centre of a ring the field is exactly zero, and dividing by it turns
+  // one rounding error by another into "31% wrong" -- which is what my first probe reported, and
+  // it was the metric, not the formula.
+  let worst={v:0,at:''};
+  for(const s of [.5,1,2,4]){
+   const dq=2e-9,[sr,sz]=ringUnit(s,2*s,0),scale=Math.hypot(sr,sz)*dq;
+   for(const frac of [2,1,.5,.2,.1,.05,.02,.01])for(const turn of [0,.2,.4,.6,.8,1,1.2,1.4,1.6,1.8]){
+    const gap=frac*s,rho=s+gap*Math.cos(Math.PI*turn),z=gap*Math.sin(Math.PI*turn);
+    if(rho<0)continue;
+    const got=annuliField([{position:{x:s,y:0,z:0},dq,coordinate:s,field:{x:0,y:0,z:0},potential:0}],{x:rho,y:0,z});
+    const [er,ez]=ringUnit(s,rho,z),want=Math.hypot(er,ez)*dq;
+    if(want<1e-9*scale){
+     // The centre, where the ring's field vanishes. Comparing there would divide the reference's
+     // own last-bit rounding by the formula's, so the claim is the physical one instead.
+     expect(Math.hypot(got.x,got.z),`R=${s}: a field where the ring has none`).toBeLessThan(1e-9*scale);
+     continue;
+    }
+    const e=Math.hypot(got.x-er*dq,got.z-ez*dq)/want;
+    if(e>worst.v)worst={v:e,at:`R=${s} at (ρ, z) = (${rho.toFixed(3)}, ${z.toFixed(3)}), a gap of ${frac} radii`};
+   }
+  }
+  // Measured 2.8e-13 when this was written, at the closest gap swept. Its teeth, by mutation:
+  // scaling the axial E(m) term, the radial K(m) term or beta's z-part by 1 + 1e-7 each fails
+  // this, so the bar sits well below anything a wrong coefficient could survive.
+  expect(worst.v,`worst ${worst.v.toExponential(2)} — ${worst.at}`).toBeLessThan(1e-11);
+ });
+ it('at the centre of a ring there is no field, and the formula says so exactly',()=>{
+  // Not "small": the axial term carries a factor z, and the radial one is not reached at all when
+  // rho is zero, so both come out as the zero double rather than as cancellation.
+  const s=1.9,ring=[{position:{x:s,y:0,z:0},dq:2e-9,coordinate:s,field:{x:0,y:0,z:0},potential:0}];
+  expect(annuliField(ring,{x:0,y:0,z:0})).toEqual({x:0,y:0,z:0});
+ });
+ it('a ring the point is sitting on is dropped, and nothing drawn can get that close',()=>{
+  // annuliField skips a ring whose alpha² is under 1e-12 -- within a micrometre of the wire --
+  // because K(m) diverges there and the arithmetic would be meaningless, not merely inaccurate.
+  // Pinned so the guard is deliberate, together with the reason it is unreachable: a line stops
+  // at `clearance`, which is at least ARRIVED = 0.05 m, fifty thousand times further out.
+  const s=2,ring=[{position:{x:s,y:0,z:0},dq:2e-9,coordinate:s,field:{x:0,y:0,z:0},potential:0}];
+  expect(annuliField(ring,{x:s,y:0,z:0})).toEqual({x:0,y:0,z:0});
+  const justOutside=annuliField(ring,{x:s+.05,y:0,z:0});
+  expect(Math.hypot(justOutside.x,justOutside.z),'and just outside it is very much not zero').toBeGreaterThan(1);
+ });
  it('and it does not depend on which way round the ring you stand',()=>{
   // Axisymmetry, which sixteen dots only had sixteen-fold: the same (ρ, z) at any azimuth gives
   // the same radial and axial field, turned with the point.
