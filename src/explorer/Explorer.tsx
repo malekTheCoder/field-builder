@@ -75,6 +75,10 @@ const SETTLE=220;
  * words stay on screen for the same length of time; there are simply forty-odd frames instead of
  * five hundred, and none of them tweens. */
 const REDUCED_BEAT=450;
+/** The most one frame may move the run on, in milliseconds. Well above a real frame at any rate
+ * a screen refreshes, so it never slows a run someone is watching; small enough that a run
+ * interrupted for twenty seconds resumes a tenth of a second later rather than at the end. */
+const MAX_STEP=100;
 const STORAGE='field-builder:explorer:v1';
 // Variable-first: every control is named by its symbol. The words are the
 // gloss, the number is the consequence — so the symbol is set large in the
@@ -180,7 +184,27 @@ export default function Explorer(){
    build.current={stop:()=>window.clearInterval(beat)};
    return;
   }
-  build.current=animate(from,total,{duration:total-from,ease:'linear',onUpdate:applyBuild,onComplete:done});
+  // THE RUN ADVANCES BY FRAMES, NOT BY THE CLOCK. It used to be a 21-second tween, which asks the
+  // clock where it should be -- so if frames stopped for any reason (another tab, power saving, a
+  // browser that throttles a page it thinks nobody is looking at, a busy moment), the next frame
+  // computed that the whole run had elapsed and drew the last stage. The reader clicked "Watch it
+  // build", saw nothing move, and then found it finished and frozen on "Shrink them". Reproduced
+  // exactly that: click, then the figure already on stage five with every marker filled.
+  //
+  // Now each frame moves the run on by the time since the last frame, but never by more than
+  // MAX_STEP. At sixty frames a second that is the same pace as before; after a pause it is one
+  // small step, so the run picks up where it left off instead of skipping to the answer.
+  let at=from,last=-1,raf=0;
+  const frame=(now:number)=>{
+   if(last<0)last=now;
+   at=Math.min(total,at+Math.min(now-last,MAX_STEP)/1000);last=now;
+   applyBuild(at);
+   if(at>=total){build.current=null;done();return}
+   raf=requestAnimationFrame(frame);
+  };
+  applyBuild(at);
+  raf=requestAnimationFrame(frame);
+  build.current={stop:()=>cancelAnimationFrame(raf)};
  }
  // Jumping to a stage is the same thing as playing to its first frame, which is why both go
  // through applyBuild: there is one description of what each stage looks like.

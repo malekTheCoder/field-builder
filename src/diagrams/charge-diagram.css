@@ -310,6 +310,12 @@
    and those glow, so the arrow at P is plainly theirs. */
 .cd-stage-one .cd-piece:not(.is-selected),.cd-stage-cancel .cd-piece:not(.is-selected):not(.is-partner){opacity:.16!important}
 .cd-stage-one .cd-piece.is-selected,.cd-stage-cancel .cd-piece.is-selected,.cd-stage-cancel .cd-piece.is-partner{filter:drop-shadow(0 0 7px var(--charge,#b8460f))}
+/* The mirror partner is the other half of the argument, so it is drawn with the same weight as
+   the piece it answers: filled, fully opaque. It used to keep the resting half-transparency with
+   a glow round it -- seen at full size, the selected piece stood out solid and its partner could
+   barely be told from the pieces that had been faded away, which left "the piece mirrored below
+   it" pointing at nothing obvious. */
+.cd-piece.is-partner{fill:var(--charge,#b8460f);opacity:1!important}
 .cd-building .cd-vector line,.cd-building .cd-vector path{stroke-width:3px}
 .cd-building .cd-construction{stroke-opacity:.95}
 

@@ -1,4 +1,4 @@
-import {cleanup, fireEvent, render, waitFor} from '@testing-library/react';
+import {act, cleanup, fireEvent, render, waitFor} from '@testing-library/react';
 import {afterEach, beforeEach, describe, expect, it} from 'vitest';
 import Explorer from '../src/explorer/Explorer';
 import {PROBLEMS, getProblem} from '../src/problems/definitions';
@@ -101,6 +101,45 @@ describe('watch it build', () => {
   jump(view, 5, 'Shrink them');
   fireEvent.click(view.getByRole('button', {name: 'Play'}));
   await waitFor(() => expect(footer(view)).toContain('In the limit'), {timeout: 9000});
+ });
+});
+describe('a pause in the frames pauses the run, it does not skip it', () => {
+ // Reported three times as "does nothing, then after a bit it goes to the final stages". The run
+ // was a 21-second tween that asked the CLOCK where it should be, so any gap in frames -- another
+ // tab, power saving, a browser throttling a page it thinks nobody is watching -- made the next
+ // frame land on the last stage, frozen, every marker filled. These take the frames in hand, so
+ // the check does not depend on how fast or how visible the test browser happens to be.
+ let queue: FrameRequestCallback[] = [];
+ let realRaf: typeof window.requestAnimationFrame, realCancel: typeof window.cancelAnimationFrame;
+ beforeEach(() => {
+  queue = [];
+  realRaf = window.requestAnimationFrame; realCancel = window.cancelAnimationFrame;
+  window.requestAnimationFrame = cb => { queue.push(cb); return queue.length; };
+  window.cancelAnimationFrame = () => {};
+ });
+ afterEach(() => { window.requestAnimationFrame = realRaf; window.cancelAnimationFrame = realCancel; });
+ const frameAt = (t: number) => { const due = queue.splice(0); act(() => { for (const cb of due) cb(t); }); };
+ const stage = (view: {container: HTMLElement}) => view.container.querySelector('.cd-stage-label')?.textContent ?? '';
+ it('twenty seconds with nothing drawn resumes the run where it was, not on the last stage', async () => {
+  const view = await openLesson('bisector');
+  fireEvent.click(view.getByRole('button', {name: 'Watch it build'}));
+  frameAt(1000); frameAt(1016);
+  frameAt(21016);
+  expect(stage(view)).toBe('Cut it up');
+  expect(view.getByRole('button', {name: 'Pause'})).toBeTruthy();
+ });
+ it('and frames at a normal rate still carry it through every stage on time', async () => {
+  const view = await openLesson('bisector');
+  fireEvent.click(view.getByRole('button', {name: 'Watch it build'}));
+  const seen: string[] = [];
+  for (let t = 0; t <= 23000; t += 16) {
+   frameAt(t);
+   const s = stage(view);
+   if (s && s !== seen[seen.length - 1]) seen.push(s);
+  }
+  expect(seen).toEqual(['Cut it up', 'One piece', 'What cancels', 'Add them up', 'Shrink them']);
+  // And it ends playable: finished, not stuck mid-run.
+  expect(view.getByRole('button', {name: 'Play'})).toBeTruthy();
  });
 });
 describe('every stage changes the figure, not just the caption', () => {
