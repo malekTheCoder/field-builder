@@ -1,7 +1,9 @@
 /* Paper copy of the current lesson. Interactive chrome drops away; the figure, title, and equations stay. */
 @media print {
   @page { size: letter portrait; margin: 12mm; }
-  html, body { background: #fff !important; color: #0e2333 !important; }
+  /* The app shell paints the page's tinted ground over body, and print-color-adjust:exact below
+     would print that tint as a sheet of ink behind the whole lesson. */
+  html, body, .explorer-app { background: #fff !important; color: #0e2333 !important; }
   * { box-shadow: none !important; text-shadow: none !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   .no-print,
   .exp-header-right,
@@ -9,7 +11,6 @@
   .exp-library-toggle,
   .play-button,
   .cd-controls,
-  .cd-orbit-chrome,
   .cd-announcement,
   .exp-process,
   .exp-transport,
@@ -28,6 +29,27 @@
   [data-slot='dialog-overlay'],
   [data-slot='dialog-content'],
   .exp-breadcrumb button { display: none !important; }
+  /* Controls that only act on the screen. On paper they are buttons nobody can press: the
+     figure's view strip (2D/3D, field lines/arrows/off, zoom and reset), the drawn cube and
+     the drag-to-turn legend inside it, the walkthrough's buttons (a step it is on keeps its
+     sentence), every slider track (the parameter names stay as the figure's legend), the
+     geometry reset, and the builder's disclosure chevrons. */
+  .cd-toolbar,
+  .cd-cube,
+  .cd-help,
+  .exp-walk-start,
+  .exp-walk-actions,
+  .exp-walk-count,
+  .exp-walk-extra,
+  .exp-build-dots,
+  [data-slot='slider'],
+  .exp-reset,
+  .ew-panel .lucide-chevron-down { display: none !important; }
+  /* A shut disclosure prints as a heading over nothing. Opened before printing, it prints. */
+  details.exp-note:not([open]),
+  .exp-endnotes:not(:has(details.exp-note[open])),
+  details.ew-references:not([open]),
+  .ew-worked:not(:has([aria-expanded='true'])) { display: none !important; }
   .exp-shell[data-slot='sidebar-wrapper'],
   .workspace { display: block !important; grid-template-columns: 1fr !important; min-height: 0 !important; }
   .exp-workspace, .studio-grid { display: block !important; grid-template-columns: 1fr !important; }

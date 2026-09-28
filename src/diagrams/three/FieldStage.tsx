@@ -558,7 +558,7 @@ function useUncluttered(host:{current:HTMLDivElement|null},still:boolean){
      }
      return false;
     };
-    const taken=[...svg.querySelectorAll('text,.cd-help-back')]
+    const taken=[...svg.querySelectorAll('text')]
      .filter(el=>(el.textContent??'x').trim()!==''&&!faded(el))
      .map(el=>el.getBoundingClientRect()).filter(b=>b.width>0&&b.height>0);
     for(const n of numbers){

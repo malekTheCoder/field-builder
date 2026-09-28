@@ -31,6 +31,12 @@ describe('print stylesheet and offline copy', () => {
     const printBtn = getByRole('button', {name: 'Lesson tools'});
     const sidebar = container.querySelector('.exp-sidebar') as HTMLElement | null;
     const diagram = container.querySelector('.cd-svg') as SVGElement | null;
+    // Found by role and name on screen, where every one of them is live; the names are what a
+    // reader would call them. Queried before print hides them, when they have no name left.
+    const screenOnly = ['2D', '3D', 'Field lines', 'Arrows', 'Off', 'Zoom in', 'Zoom out', 'Reset view', 'Watch it build', 'Walk me through the integral', 'Reset geometry']
+      .map(name => [name, getByRole('button', {name})] as const);
+    const builderSlot = getByRole('button', {name: /Charge in one piece/});
+    const title = getByRole('heading', {name: getProblem('bisector').title});
     await page.viewport(816, 1056);
     await cdp().send('Emulation.setEmulatedMedia', {media: 'print'});
     expect(getComputedStyle(printBtn).display).toBe('none');
@@ -39,7 +45,32 @@ describe('print stylesheet and offline copy', () => {
     expect(getComputedStyle(diagram!).display).not.toBe('none');
     expect(diagram!.getBoundingClientRect().width).toBeGreaterThan(40);
     expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(document.documentElement.clientWidth + 24);
+    // Nothing that only acts on a screen prints: the figure's view strip, the walkthrough's
+    // buttons, slider tracks, the geometry reset, and endnotes nobody opened...
+    for (const [name, control] of screenOnly) expect(control.checkVisibility(), `${name} prints`).toBe(false);
+    const tracks = container.querySelectorAll<HTMLElement>('[data-slot=slider]');
+    expect(tracks.length).toBeGreaterThan(0);
+    for (const track of tracks) expect(track.checkVisibility()).toBe(false);
+    expect(container.querySelector<HTMLElement>('.exp-endnotes')!.checkVisibility()).toBe(false);
+    // ...while the title, the figure's equation and the integral being built all stay.
+    expect(title.checkVisibility()).toBe(true);
+    expect(container.querySelector<HTMLElement>('.exp-diagram-heading .katex')!.checkVisibility()).toBe(true);
+    expect(builderSlot.checkVisibility()).toBe(true);
     await cdp().send('Emulation.setEmulatedMedia', {media: ''});
+  });
+
+  it('prints in the light theme when the screen is dark, and returns to dark after', async () => {
+    localStorage.setItem('field-builder:explorer:v1', JSON.stringify({id: 'bisector', seen: true, dark: true, sidebarOpen: true, params: {}}));
+    const {findByRole, unmount} = render(<Explorer />);
+    expect(await findByRole('heading', {name: getProblem('bisector').title})).toBeTruthy();
+    const root = document.documentElement;
+    await waitFor(() => expect(root.classList.contains('dark')).toBe(true));
+    window.dispatchEvent(new Event('beforeprint'));
+    expect(root.classList.contains('dark')).toBe(false);
+    window.dispatchEvent(new Event('afterprint'));
+    expect(root.classList.contains('dark')).toBe(true);
+    unmount();
+    root.classList.remove('dark');
   });
 
   it('downloads a self-contained HTML copy of the open lesson', async () => {

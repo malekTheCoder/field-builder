@@ -114,7 +114,7 @@
  .cd-caption{padding:12px 2px 0;font-size:12px;gap:10px}
 }
 
-.cd-controls{margin-top:16px;border-top:1px solid var(--border);padding-top:12px;color:var(--muted-foreground);font-size:13px}.cd-controls summary{cursor:pointer;min-height:28px}.cd-controls p{color:var(--muted-foreground);font-size:12px;line-height:1.6;margin:4px 0 12px}.cd-control-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px 20px}.cd-control-grid label{display:grid;gap:4px;min-width:0}.cd-control-grid input{width:100%;min-width:0;height:28px;accent-color:var(--field)}.cd-camera-control{grid-column:1/-1;text-align:left;background:var(--card);color:var(--foreground);border:1px solid var(--border);border-radius:6px;padding:10px;font:inherit}.cd-camera-control span{display:block;color:var(--muted-foreground);font-size:12px;margin-top:4px}.cd-controls :focus-visible{outline:2px solid var(--field);outline-offset:3px}.cd-announcement{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0}@media(max-width:600px){.cd-control-grid{grid-template-columns:1fr}}
+.cd-announcement{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0}
 .cd-gauge line{stroke:var(--ghost,#6d8492);stroke-width:1.6;stroke-opacity:.5}
 /* The column of every piece's contribution. The empty slots are drawn faintly so the reader can
    see the whole pile before it is added up; a thin line of the diagram's own background between
@@ -261,9 +261,6 @@
  letter-spacing:.02em;paint-order:stroke;stroke:var(--diagram,#fff);stroke-width:4px;stroke-linejoin:round}
 @media (prefers-reduced-motion:reduce){.cd-help{transition:none}}
 
-/* The keyboard help is a fallback for what a drawing cannot show and for screen readers,
-   so it sits quietly under the figure rather than announcing itself. */
-.cd-controls summary{font-size:var(--type-meta);color:var(--muted-foreground)}
 
 /* The view cube. Quiet until pointed at: a way back to a known angle, not a control the figure
    is about. Each face carries its own fill-opacity inline, set by how squarely it faces the
@@ -373,9 +370,35 @@
    the end of the sentence; opened it takes a line of its own rather than stretching that one. */
 .cd-caption>.cd-controls{margin:0 0 0 auto;flex:0 0 auto;border-top:0;padding-top:0;font-size:var(--type-meta,13px)}
 .cd-caption>.cd-controls[open]{flex:1 1 100%;margin-left:0}
-.cd-controls>summary{font-size:var(--type-meta,13px);color:var(--muted-foreground);opacity:.75;min-height:24px}
+.cd-controls{color:var(--muted-foreground);font-size:var(--type-meta,13px)}
+.cd-controls>summary{cursor:pointer;font-size:var(--type-meta,13px);color:var(--muted-foreground);opacity:.75;min-height:24px}
 .cd-controls>summary:hover{opacity:1;color:var(--foreground)}
-.cd-controls[open]>summary{opacity:1;margin-bottom:4px}
+.cd-controls[open]>summary{opacity:1;margin-bottom:2px}
+.cd-controls :focus-visible{outline:2px solid var(--field);outline-offset:3px;border-radius:3px}
+/* OPENED, IT IS STILL A FOOTNOTE. It used to open into a second control panel: body-size
+   labels over full-width native sliders, thicker and brighter than the page's own, so the
+   copy was louder than the controls it points to. It is the keyboard and screen-reader path
+   to those controls, and it is set as fine print: a hairline down its left like a note in a
+   margin, one smaller size, and each control one tight row -- its name, then a short, thin,
+   ink-coloured slider. Nothing in it uses the field colour, which belongs to the figure and
+   the page's real sliders. */
+.cd-controls[open]>summary~*{margin-left:5px;padding-left:12px;border-left:1px solid var(--surface-rule,var(--border))}
+.cd-controls p{font-size:12px;line-height:1.5;color:var(--muted-foreground);margin:0;padding-bottom:6px;max-width:68ch}
+.cd-control-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(15rem,1fr));gap:0 24px;padding-bottom:2px}
+.cd-control-grid label{display:flex;align-items:center;gap:10px;min-width:0;min-height:26px;font-size:12px;line-height:1.3;color:var(--muted-foreground)}
+.cd-control-grid input{flex:0 1 9rem;min-width:5rem;margin:0 0 0 auto;height:18px;background:none;cursor:pointer;
+ -webkit-appearance:none;appearance:none}
+.cd-control-grid input::-webkit-slider-runnable-track{height:2px;border-radius:2px;background:var(--border)}
+.cd-control-grid input::-moz-range-track{height:2px;border-radius:2px;background:var(--border)}
+.cd-control-grid input::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:10px;height:10px;margin-top:-4px;border:0;border-radius:50%;background:var(--muted-foreground)}
+.cd-control-grid input::-moz-range-thumb{width:10px;height:10px;border:0;border-radius:50%;background:var(--muted-foreground)}
+.cd-control-grid input:hover::-webkit-slider-thumb{background:var(--foreground)}
+.cd-control-grid input:hover::-moz-range-thumb{background:var(--foreground)}
+/* The one control here with no slider on the page: say what it does in a line, not a card. */
+.cd-camera-control{grid-column:1/-1;justify-self:start;display:flex;flex-wrap:wrap;align-items:baseline;gap:0 8px;margin:0 0 4px;padding:3px 0;
+ border:0;background:none;color:var(--foreground);font:inherit;font-size:12px;text-align:left;cursor:pointer}
+.cd-camera-control:hover{color:var(--primary)}
+.cd-camera-control span{color:var(--muted-foreground)}
 @media(max-width:600px){
  .cd-toolbar{margin-top:10px;padding:10px 0 0;gap:8px 10px}
  .cd-caption{margin-top:8px;padding:0;gap:6px 12px;font-size:var(--type-meta,13px)}

@@ -122,8 +122,13 @@
  .exp-heading h1{margin-bottom:8px}
  .exp-breadcrumb{margin-bottom:18px}
  .exp-view-row{margin-bottom:20px}
- .exp-diagram-card{padding:10px 12px 14px;border-radius:14px;
+ .exp-diagram-card{--card-gutter:12px;padding:10px var(--card-gutter) 14px;border-radius:14px;
   box-shadow:0 1px 1px color-mix(in oklab,var(--foreground) 5%,transparent),0 8px 22px color-mix(in oklab,var(--foreground) 7%,transparent)}
+ /* On a phone the side padding was a tenth of the drawing's width. The drawing alone runs to the
+    card's edges -- the card's overflow:hidden is the frame -- while the heading, the toolbars,
+    the caption and the buttons keep their gutter. Field lines already run off the drawing's
+    sides, so the edge reads as the figure's frame, not as a crop. */
+ .exp-diagram-card .cd-stage{margin-inline:calc(-1 * var(--card-gutter))}
  .exp-diagram-heading{padding:4px 0 0}
  .exp-diagram-heading .math{font-size:var(--type-meta)}
  .exp-legend{gap:14px;padding:14px 0 0}
@@ -268,6 +273,12 @@
    screen and the confusions' sentences stranded beside an empty half. Capped at a measure a
    paragraph can be read in, which is what the rest of the lesson uses. */
 .exp-note-body{padding:0 2px 24px;max-width:760px}
+/* The limit plot draws its labels in its own units, so its width sets their size: at the
+   endnote's 760px they came out near sixteen pixels and the plot stood 320px tall for two
+   curves. Capped where its labels sit at the page's small size, and the rest of the check --
+   the limit, the key, the slider that moves the dot along the plot -- keeps the same column,
+   so the slider's ends still line up under the plot's. */
+.exp-note-body .assessment{max-width:560px}
 /* One confusion per row: what it would be instead, then what that would actually describe. */
 
 .exp-slips{display:flex;flex-direction:column;gap:20px;margin-top:16px}

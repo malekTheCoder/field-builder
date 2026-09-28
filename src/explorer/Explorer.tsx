@@ -105,6 +105,16 @@ export default function Explorer(){
  useEffect(()=>{try{const raw=localStorage.getItem(STORAGE);const parsed=raw?JSON.parse(raw):null;const saved=parsed&&typeof parsed==='object'&&!Array.isArray(parsed)?parsed:{};const pm:Partial<Record<ProblemId,Params>>={};for(const pr of PROBLEMS)if(saved.params?.[pr.id])pm[pr.id]=cleanParams(saved.params[pr.id]);const url=parseAssignment(typeof location==='undefined'?'':location.search);const assigned=!!(url.id||url.mode||url.params||url.pair||url.components);if(url.id&&isReady(url.id))setId(url.id);else if(PROBLEMS.some(p=>p.id===saved.id)&&isReady(saved.id))setId(saved.id);setDark(saved.dark===true);setShowNumbers(saved.showNumbers===true);setSidebarOpen(saved.sidebarOpen!==false);if(url.params){const target=url.id??(PROBLEMS.some(p=>p.id===saved.id)?saved.id as ProblemId:'bisector');pm[target]=cleanParams({...(pm[target]??DEFAULT_PARAMS),...url.params});}setParamsMap(pm);if(url.mode)setMode(url.mode);if(url.pair)setPair(true);if(url.components)setComponents(true);setSeen(!!saved.seen||assigned);setOnboarding(false);}catch{setStorageOK(false);setOnboarding(true)}setReady(true);return()=>{run.current?.stop();morph.current?.stop();build.current?.stop();build.current=null}},[]);
  // oxlint-disable-next-line react/react-compiler -- Synchronize persisted preferences; quota/security errors update the save indicator.
  useEffect(()=>{document.documentElement.classList.toggle('dark',dark)},[dark]);
+ // Paper is white whatever the screen is. The print sheet keeps backgrounds (print-color-adjust:
+ // exact), so the dark theme printed as pale text on slabs of ink -- the lesson goes to the
+ // printer in the light theme and comes back as it was.
+ useEffect(()=>{
+  if(!dark)return;
+  const toPaper=()=>document.documentElement.classList.remove('dark');
+  const back=()=>document.documentElement.classList.add('dark');
+  window.addEventListener('beforeprint',toPaper);window.addEventListener('afterprint',back);
+  return()=>{window.removeEventListener('beforeprint',toPaper);window.removeEventListener('afterprint',back);};
+ },[dark]);
  // Persistence is debounced because a drag changes a parameter every frame. Writing the
  // whole parameter map to localStorage per frame is a synchronous serialize-and-store on
  // the main thread, and writing the URL per frame trips the browser's own rate limit --
