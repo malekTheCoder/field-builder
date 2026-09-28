@@ -122,8 +122,13 @@
  .exp-heading h1{margin-bottom:8px}
  .exp-breadcrumb{margin-bottom:18px}
  .exp-view-row{margin-bottom:20px}
- .exp-diagram-card{padding:10px 12px 14px;border-radius:14px;
+ .exp-diagram-card{--card-gutter:12px;padding:10px var(--card-gutter) 14px;border-radius:14px;
   box-shadow:0 1px 1px color-mix(in oklab,var(--foreground) 5%,transparent),0 8px 22px color-mix(in oklab,var(--foreground) 7%,transparent)}
+ /* On a phone the side padding was a tenth of the drawing's width. The drawing alone runs to the
+    card's edges -- the card's overflow:hidden is the frame -- while the heading, the toolbars,
+    the caption and the buttons keep their gutter. Field lines already run off the drawing's
+    sides, so the edge reads as the figure's frame, not as a crop. */
+ .exp-diagram-card .cd-stage{margin-inline:calc(-1 * var(--card-gutter))}
  .exp-diagram-heading{padding:4px 0 0}
  .exp-diagram-heading .math{font-size:var(--type-meta)}
  .exp-legend{gap:14px;padding:14px 0 0}
