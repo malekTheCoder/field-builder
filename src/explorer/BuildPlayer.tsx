@@ -1,8 +1,29 @@
 'use client';
-import {useRef, type KeyboardEvent, type PointerEvent} from 'react';
+import {memo, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent, type PointerEvent} from 'react';
 import {ChevronLeft, ChevronRight, Pause, Play, RotateCcw, X} from 'lucide-react';
 import {MathText} from '../components/Math';
 import type {BuildStage} from './buildRun';
+/** Where the run is, in seconds -- kept as a little store rather than as state on the page.
+ *
+ * It changes on every frame the run plays, and nothing draws it but this transport: the figure and
+ * the board follow what the clock MEANS -- which stage, how much of the sum, how fine the cut --
+ * and those change far less often. Held as state on the Explorer, it re-rendered the whole page
+ * sixty times a second -- the lesson list, the sliders, the figure, the board -- to move one bar
+ * along. Held here, a frame that only moves the bar re-renders only the bar.
+ *
+ * Read through state set by a listener, not `useSyncExternalStore`: that renders a store's change
+ * on a lane of its own, so on a frame that moves the figure too, the bar and the figure would be
+ * two separate renders and two separate commits, and could reach the screen a frame apart. */
+export type RunClock = {get: () => number; set: (seconds: number) => void; subscribe: (listener: () => void) => () => void};
+export function runClock(): RunClock {
+  let at = 0;
+  const listeners = new Set<() => void>();
+  return {
+    get: () => at,
+    set: seconds => { if (seconds === at) return; at = seconds; for (const listener of listeners) listener(); },
+    subscribe: listener => { listeners.add(listener); return () => { listeners.delete(listener); }; },
+  };
+}
 /** THE RUN'S TRANSPORT: a play button, a progress bar cut into the run's stages, and one line
  * saying what is happening now.
  *
@@ -17,8 +38,8 @@ import type {BuildStage} from './buildRun';
  * move around: click a stage to go to its start, or drag along the bar to scrub through the run. */
 type Props = {
   stages: readonly BuildStage[];
-  /** Seconds into the run. */
-  at: number;
+  /** Seconds into the run, as the store above: read here and nowhere else on the page. */
+  clock: RunClock;
   index: number;
   playing: boolean;
   /** The current stage's lines of algebra, for the screens where the panel holding them is out of sight. */
@@ -30,11 +51,19 @@ type Props = {
   onStep: (index: number) => void;
   onClose: () => void;
 };
-export function BuildPlayer({stages, at, index, playing, math = [], onPlay, onSeek, onStep, onClose}: Props) {
-  const starts = stages.map((_, i) => stages.slice(0, i).reduce((t, s) => t + s.seconds, 0));
+const NO_MATH: string[] = [];
+/** Memoised so that the page re-rendering around it -- which it does whenever the figure moves --
+ * does not redraw it; the clock alone moves it on every frame. */
+export const BuildPlayer = memo(function BuildPlayer({stages, clock, index, playing, math = NO_MATH, onPlay, onSeek, onStep, onClose}: Props) {
+  const [at, setAt] = useState(clock.get);
+  // Subscribed before the browser can run another frame: layout effects run inside the commit.
+  useLayoutEffect(() => clock.subscribe(() => setAt(clock.get())), [clock]);
+  const starts = useMemo(() => stages.map((_, i) => stages.slice(0, i).reduce((t, s) => t + s.seconds, 0)), [stages]);
   const total = stages.reduce((t, s) => t + s.seconds, 0);
   const ended = !playing && at >= total - .01;
   const stage = stages[index];
+  // The algebra changes with the stage, not with the clock, so it is not rebuilt with every frame.
+  const mathBlock = useMemo(() => math.length > 0 && <div key={`m-${stage.key}`} className="bp-math">{math.map(tex => <MathText key={tex} tex={tex} block trusted />)}</div>, [math, stage.key]);
   const segments = useRef<(HTMLButtonElement | null)[]>([]);
   const press = useRef<{x: number; moved: boolean} | null>(null), dragged = useRef(false);
   /** The moment under a point on the bar: find the stage it is over, then how far along it. */
@@ -111,6 +140,6 @@ export function BuildPlayer({stages, at, index, playing, math = [], onPlay, onSe
         <button type="button" className="bp-icon" onClick={() => onStep(Math.min(stages.length - 1, index + 1))} disabled={index === stages.length - 1} aria-label="Next stage"><ChevronRight size={17} /></button>
       </span>
     </div>
-    {math.length > 0 && <div key={`m-${stage.key}`} className="bp-math">{math.map(tex => <MathText key={tex} tex={tex} block trusted />)}</div>}
+    {mathBlock}
   </div>;
-}
+});

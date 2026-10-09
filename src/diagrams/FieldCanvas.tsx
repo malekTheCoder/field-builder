@@ -35,6 +35,16 @@ export type FieldCanvasProps={
  plane?:'xy'|'xz'; layout?:Layout;
  className?:string;
 };
+/** The last few traces, by everything a trace depends on.
+ *
+ * The last stage of "Watch it build" hands the tracer the run's own cut of the charge, and leaving
+ * it -- closing the run, or stepping back a stage -- hands back the reader's. A memo remembers only
+ * the one it was last given, so every such step traced the reader's field again from scratch, on
+ * the very frame it changed, and every replay traced the run's again. Kept here, going back to a
+ * charge the page has already drawn costs a lookup. Small, because the charges a page moves
+ * between are few; the oldest goes first. */
+const TRACES=new Map<string,Plane[][]>();
+const TRACES_KEPT=6;
 /** Tracing is far heavier than drawing, so it runs on the charge alone and is reused while
  * the camera, the highlight or the selected element change. */
 export function FieldCanvas({samples,project,frame,lines=15,mode='lines',reach=6,detail=64,plane='xy',layout='wire',className=''}:FieldCanvasProps){
@@ -50,8 +60,11 @@ export function FieldCanvas({samples,project,frame,lines=15,mode='lines',reach=6
     depending on the array retraced every streamline for nothing. */
  /* oxlint-disable react-hooks/exhaustive-deps */
  /* oxlint-disable react/react-compiler */
+ const traceKey=`${chargeKey}|${lines}|${plane}|${layout}|${reach}|${detail}`;
  const traced=useMemo(()=>{
   if(!samples.length)return [];
+  const kept=TRACES.get(traceKey);
+  if(kept){TRACES.delete(traceKey);TRACES.set(traceKey,kept);return kept;}
   // A hundred-element partition and a twenty-element one give the same field to well
   // within a line's width, and tracing is quadratic in the count.
   const coarse=coarsen(samples,detail);
@@ -63,9 +76,11 @@ export function FieldCanvas({samples,project,frame,lines=15,mode='lines',reach=6
   const chargeSpan=Math.max(...coarse.map(s=>Math.hypot(s.position.x,s.position.y,s.position.z)),1);
   const step=Math.min(reach,chargeSpan)*.05;
   const opts={step,maxSteps:420,outerLimit:reach*1.6,seedLimit:reach*.95};
-  if(plane==='xz')return meridianLines(coarse,layout,lines,opts).map(line=>line.map(v=>({x:v.x,y:v.z})));
-  return fieldLines(coarse,lines,opts);
- },[chargeKey,lines,plane,layout,reach,detail]);
+  const fresh=plane==='xz'?meridianLines(coarse,layout,lines,opts).map(line=>line.map(v=>({x:v.x,y:v.z}))):fieldLines(coarse,lines,opts);
+  TRACES.set(traceKey,fresh);
+  for(const old of TRACES.keys()){if(TRACES.size<=TRACES_KEPT)break;TRACES.delete(old);}
+  return fresh;
+ },[traceKey]);
  const arrows=useMemo(()=>{
   if(mode!=='vectors'||!samples.length)return [];
   const coarse=coarsen(samples,detail);
@@ -88,10 +103,15 @@ export function FieldCanvas({samples,project,frame,lines=15,mode='lines',reach=6
    const w=host.clientWidth,h=host.clientHeight;
    if(w<2||h<2)return;
    const dpr=Math.min(window.devicePixelRatio||1,2);
-   el.width=Math.round(w*dpr);el.height=Math.round(h*dpr);
+   // Only when it has actually changed: assigning a canvas its own size still throws away its
+   // drawing buffer and allocates a new one, and the size is the same on every redraw but a resize.
+   // A kept buffer keeps its drawing state too, so the alpha is put back with the transform.
+   const W=Math.round(w*dpr),H=Math.round(h*dpr);
+   if(el.width!==W)el.width=W;
+   if(el.height!==H)el.height=H;
    const ctx=el.getContext('2d');
    if(!ctx)return;
-   ctx.setTransform(dpr*w/frame.width,0,0,dpr*h/frame.height,0,0);
+   ctx.setTransform(dpr*w/frame.width,0,0,dpr*h/frame.height,0,0);ctx.globalAlpha=1;
    ctx.clearRect(0,0,frame.width,frame.height);
    // The lines are scenery for the construction on top, so they are drawn thin and faint.
    // Reading a value off them is not the point; seeing the shape of the field is.

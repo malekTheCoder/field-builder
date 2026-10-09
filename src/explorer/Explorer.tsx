@@ -1,5 +1,5 @@
 'use client';
-import {useState,useEffect,useRef,type CSSProperties} from 'react';
+import {memo,useCallback,useInsertionEffect,useMemo,useState,useEffect,useRef,type CSSProperties} from 'react';
 import {useReducedMotion} from 'motion/react';
 import {ChevronLeft,CircleHelp,Download,GitBranch,Play,Printer,RotateCcw,Sun,Moon,PanelLeft,MoreHorizontal} from 'lucide-react';
 import {DropdownMenu,DropdownMenuTrigger,DropdownMenuContent,DropdownMenuItem} from '@/components/ui/dropdown-menu';
@@ -16,7 +16,7 @@ import {cleanParams,parseAssignment,serializeAssignment,type ExploreMode} from '
 import {ChargeDiagram} from '../diagrams/ChargeDiagram';
 import {boardLines,resultLines} from '../workbench/derivation';
 import {buildStages,motionAt,stageAt,stageStart,totalSeconds} from './buildRun';
-import {BuildPlayer} from './BuildPlayer';
+import {BuildPlayer,runClock} from './BuildPlayer';
 import {EquationWorkbench} from '../components/EquationWorkbench';
 import {Onboarding} from '../components/Onboarding';
 import {StartHere} from '../components/StartHere';
@@ -98,9 +98,22 @@ function confusions(p:Problem){return p.steps.flatMap((s,i)=>(s.fields??[]).map(
 // reader who has not yet worked out which mark on the drawing is r, and the only way left to
 // find out was to drag it and hunt for whatever moved.
 function Range({label,value,min,max,step=1,onChange,describe,onDescribe}:{label:string;value:number;min:number;max:number;step?:number;onChange:(n:number)=>void;describe?:string;onDescribe?:(k:string)=>void}){const [symbol,name]=splitSymbol(label);const point=(on:boolean)=>{if(describe)onDescribe?.(on?describe:'')};return <div className="exp-range" onPointerEnter={()=>point(true)} onPointerLeave={()=>point(false)} onFocusCapture={()=>point(true)} onBlurCapture={()=>point(false)}><div><span>{symbol&&<i className="exp-sym">{symbol}</i>}<span className="exp-name">{name}</span></span></div><Slider aria-label={label} value={[value]} min={min} max={max} step={step} onValueChange={v=>onChange(Array.isArray(v)?v[0]:v)}/></div>}
+// A FRAME OF "WATCH IT BUILD" USED TO RE-RENDER THE WHOLE PAGE. The run sets the same state the
+// manual controls set, so every frame re-rendered everything that state reaches -- and, because
+// every handler was written inline, everything else as well: a fresh function is a changed prop.
+// The lesson list, the sliders, the library, the figure and the board were all redrawn sixty times
+// a second to move one bar and, at most, one arrow. So the parts that a frame does not change are
+// memoised, and the handlers they are given keep one identity for the life of the page.
+/** A callback that keeps one identity but always runs the latest render's code. Refreshed before
+ * any effect can call it; never called while rendering. */
+function useSteady<A extends unknown[],R>(fn:(...args:A)=>R):(...args:A)=>R{const ref=useRef(fn);useInsertionEffect(()=>{ref.current=fn});return useCallback((...args:A)=>ref.current(...args),[])}
+/** The board re-renders when what it shows changes, not whenever the page does. */
+const Workbench=memo(EquationWorkbench);
 export default function Explorer(){
- const [id,setId]=useState<ProblemId>('bisector');const [path,setPath]=useState('angular');const [mode,setMode]=useState<Mode>('divide');const [paramsMap,setParamsMap]=useState<Partial<Record<ProblemId,Params>>>({});const [dark,setDark]=useState(false);const [ready,setReady]=useState(false);const [storageOK,setStorageOK]=useState(true);const [onboarding,setOnboarding]=useState(false);const [seen,setSeen]=useState(false);const [library,setLibrary]=useState(false);const [sidebarOpen,setSidebarOpen]=useState(true);const [showNumbers,setShowNumbers]=useState(false);const [components,setComponents]=useState(false);const [pair,setPair]=useState(false);const [progress,setProgress]=useState(1);const [selected,setSelected]=useState(3);const [bounds,setBounds]=useState<[number,number]>([0,100]);const [limitsOpen,setLimitsOpen]=useState(false);const [slipsOpen,setSlipsOpen]=useState(false);const [limitIndex,setLimitIndex]=useState(0);const [highlight,setHighlight]=useState('');const [status,setStatus]=useState('');const [building,setBuilding]=useState(false);const [buildAt,setBuildAt]=useState(0);const [buildIndex,setBuildIndex]=useState(0);const [buildShown,setBuildShown]=useState(false);const [runPiece,setRunPiece]=useState(.7);const build=useRef<{stop:()=>void}|null>(null);const clock=useRef({at:0,stopAt:0});const buildC=useRef(-1);const buildStep=useRef(-1);const reduced=useReducedMotion();const tourButton=useRef<HTMLButtonElement>(null);
- const p=getProblem(id,'angular'),derivationProblem=getProblem(id,path),params=paramsMap[id]??DEFAULT_PARAMS;const continuum=params.continuum;const count=partitionCount(params.slices,continuum);const geom=p.geometry,scalar=p.quantity==='V';const isInfinite=['infinite','semi','sheet'].includes(geom);const isRound=['ring','disk','arc'].includes(geom);const lim=p.limits[Math.min(limitIndex,p.limits.length-1)];
+ const [id,setId]=useState<ProblemId>('bisector');const [path,setPath]=useState('angular');const [mode,setMode]=useState<Mode>('divide');const [paramsMap,setParamsMap]=useState<Partial<Record<ProblemId,Params>>>({});const [dark,setDark]=useState(false);const [ready,setReady]=useState(false);const [storageOK,setStorageOK]=useState(true);const [onboarding,setOnboarding]=useState(false);const [seen,setSeen]=useState(false);const [library,setLibrary]=useState(false);const [sidebarOpen,setSidebarOpen]=useState(true);const [showNumbers,setShowNumbers]=useState(false);const [components,setComponents]=useState(false);const [pair,setPair]=useState(false);const [progress,setProgress]=useState(1);const [selected,setSelected]=useState(3);const [bounds,setBounds]=useState<[number,number]>([0,100]);const [limitsOpen,setLimitsOpen]=useState(false);const [slipsOpen,setSlipsOpen]=useState(false);const [limitIndex,setLimitIndex]=useState(0);const [highlight,setHighlight]=useState('');const [status,setStatus]=useState('');const [building,setBuilding]=useState(false);const [runAt]=useState(runClock);const [buildIndex,setBuildIndex]=useState(0);const [buildShown,setBuildShown]=useState(false);const [runPiece,setRunPiece]=useState(.7);const build=useRef<{stop:()=>void}|null>(null);const clock=useRef({at:0,stopAt:0});const buildC=useRef(-1);const buildStep=useRef(-1);const reduced=useReducedMotion();const tourButton=useRef<HTMLButtonElement>(null);
+ // Held per lesson: `getProblem` builds the infinite line afresh on every call, and a new problem
+ // object is a changed prop to everything memoised below.
+ const p=useMemo(()=>getProblem(id,'angular'),[id]),derivationProblem=useMemo(()=>getProblem(id,path),[id,path]),params=paramsMap[id]??DEFAULT_PARAMS;const continuum=params.continuum;const count=partitionCount(params.slices,continuum);const geom=p.geometry,scalar=p.quantity==='V';const isInfinite=['infinite','semi','sheet'].includes(geom);const isRound=['ring','disk','arc'].includes(geom);const lim=p.limits[Math.min(limitIndex,p.limits.length-1)];
  // Storage is an external system; initialize after hydration and surface write failures without aborting the lesson.
  // oxlint-disable-next-line react/react-compiler
  useEffect(()=>{try{const raw=localStorage.getItem(STORAGE);const parsed=raw?JSON.parse(raw):null;const saved=parsed&&typeof parsed==='object'&&!Array.isArray(parsed)?parsed:{};const pm:Partial<Record<ProblemId,Params>>={};for(const pr of PROBLEMS)if(saved.params?.[pr.id])pm[pr.id]=cleanParams(saved.params[pr.id]);const url=parseAssignment(typeof location==='undefined'?'':location.search);const assigned=!!(url.id||url.mode||url.params||url.pair||url.components);if(url.id&&isReady(url.id))setId(url.id);else if(PROBLEMS.some(p=>p.id===saved.id)&&isReady(saved.id))setId(saved.id);setDark(saved.dark===true);setShowNumbers(saved.showNumbers===true);setSidebarOpen(saved.sidebarOpen!==false);if(url.params){const target=url.id??(PROBLEMS.some(p=>p.id===saved.id)?saved.id as ProblemId:'bisector');pm[target]=cleanParams({...(pm[target]??DEFAULT_PARAMS),...url.params});}setParamsMap(pm);if(url.mode)setMode(url.mode);if(url.pair)setPair(true);if(url.components)setComponents(true);setSeen(!!saved.seen||assigned);setOnboarding(false);}catch{setStorageOK(false);setOnboarding(true)}setReady(true);return()=>{build.current?.stop();build.current=null}},[]);
@@ -130,7 +143,7 @@ export default function Explorer(){
   return()=>clearTimeout(t)},[ready,id,mode,params,pair,components]);
 
 
- const stages=buildStages(p);
+ const stages=useMemo(()=>buildStages(p),[p]);
  const buildNow=stages[Math.min(buildIndex,stages.length-1)];
  // Open is its own state, not inferred from the clock. It used to be `building || buildAt > 0`,
  // and the first stage starts at exactly zero -- so clicking the first stage's marker, or pausing
@@ -149,10 +162,13 @@ export default function Explorer(){
  const figureHighlight=highlight||(buildOpen?buildNow.term:'');
  // The line of the derivation the run has reached, for the player to carry where the panel is
  // out of sight -- and once the pieces have shrunk away, the integral done and its answer.
- const playerMath=(()=>{if(!buildOpen)return [];const line=boardLines(p)[buildIndex];if(!line)return [];
-  const settled=buildIndex===stages.length-1&&continuum>=.99;
-  return settled&&line.finish?[line.tex,line.finish,...resultLines(p).slice(0,1)]:[line.tex];})();
- function updateParams(partial:Partial<Params>){setParamsMap(old=>({...old,[id]:{...(old[id]??DEFAULT_PARAMS),...partial}}));}
+ const cutAway=continuum>=.99,settledRun=buildIndex===stages.length-1&&cutAway;
+ const playerMath=useMemo(()=>{if(!buildOpen)return [];const line=boardLines(p)[buildIndex];if(!line)return [];
+  return settledRun&&line.finish?[line.tex,line.finish,...resultLines(p).slice(0,1)]:[line.tex];},[buildOpen,p,buildIndex,settledRun]);
+ // What the figure and the board are told about the run, held still until it actually changes.
+ const figureBuild=useMemo(()=>buildOpen?{key:buildNow.key,name:buildNow.name,index:buildIndex,count:stages.length,paused:!building}:undefined,[buildOpen,buildNow,buildIndex,stages.length,building]);
+ const boardBuild=useMemo(()=>({open:buildOpen,index:buildIndex,playing:building,settled:cutAway}),[buildOpen,buildIndex,building,cutAway]);
+ const updateParams=useCallback((partial:Partial<Params>)=>{setParamsMap(old=>({...old,[id]:{...(old[id]??DEFAULT_PARAMS),...partial}}));},[id]);
  function stop(){build.current?.stop();build.current=null;setBuilding(false)}
  function changeDistribution(next:string){stop();setId(next as ProblemId);setSelected(3);setProgress(1);setBounds([0,100]);setLibrary(false);setLimitIndex(0);setStatus('');setHighlight('');endBuild();}
  // WATCH IT BUILD. The five stages are data (`buildRun.ts`); this is the projector. It drives
@@ -162,7 +178,10 @@ export default function Explorer(){
  // playing next to them.
  function applyBuild(elapsed:number){
   const {index,stage,local}=stageAt(stages,elapsed);const t=motionAt(stage,local);
-  setBuildAt(elapsed);setBuildIndex(index);
+  // The clock moves only the transport. Everything below is set every frame but changes the page
+  // only when its value does -- React drops a state update that leaves the value as it was -- so a
+  // frame that holds the figure still renders the bar and nothing else.
+  runAt.set(elapsed);setBuildIndex(index);
   setMode(stage.mode);setComponents(stage.components);setPair(stage.pair);
   setProgress(stage.sum[0]+(stage.sum[1]-stage.sum[0])*t);
   // The partition is written into params, so it is written only when it actually moves --
@@ -223,8 +242,8 @@ export default function Explorer(){
  /** Play, pause, or play again from the top once it has played out. */
  function runBuild(){
   if(building){stop();return}
-  const total=totalSeconds(stages);
-  playBuild(buildAt>=total-.01?0:buildAt,total);
+  const total=totalSeconds(stages),at=runAt.get();
+  playBuild(at>=total-.01?0:at,total);
  }
  /** Go to a moment and hold still there: a click on a stage, or a drag along the bar. */
  function seekBuild(at:number){stop();openRun();setHighlight('');applyBuild(Math.max(0,Math.min(totalSeconds(stages),at)))}
@@ -235,9 +254,33 @@ export default function Explorer(){
  // Closing puts the figure back where the run found it, the partition included: a reader who
  // watched the pieces shrink away and then closed should not be left looking at a smooth rod
  // with no way to tell why it stopped being cut up.
- function endBuild(){build.current?.stop();build.current=null;setBuilding(false);setBuildShown(false);setBuildAt(0);setBuildIndex(0);buildC.current=-1;buildStep.current=-1;setPair(false);setComponents(false);setMode('divide');setProgress(1);updateParams({continuum:0});}
+ function endBuild(){build.current?.stop();build.current=null;setBuilding(false);setBuildShown(false);runAt.set(0);setBuildIndex(0);buildC.current=-1;buildStep.current=-1;setPair(false);setComponents(false);setMode('divide');setProgress(1);updateParams({continuum:0});}
  function chooseMode(next:Mode){setMode(next);if(next==='project'&&!scalar)setComponents(true);if(next==='integrate'){setProgress(1);stop()}}
  function closeTour(){setOnboarding(false);setSeen(true)}
+ // Steady versions of the handlers the memoised parts are given.
+ const choose=useSteady(changeDistribution),select=useSteady((i:number)=>{stop();setSelected(i)}),pickMode=useSteady(chooseMode),step=useSteady(stepBuild);
+ const play=useSteady(runBuild),seek=useSteady((at:number)=>seekBuild(at)),close=useSteady(endBuild);
+ const recut=useSteady((slices:number)=>{if(buildOpen)endBuild();updateParams({slices,continuum:0})}),resetGeometry=useSteady(()=>{stop();updateParams({...DEFAULT_PARAMS});setProgress(1);setBounds([0,100]);setSelected(3)});
+ // The lesson list, the library and the sliders: none of them moves while the run plays, and the
+ // list and the library are fifteen lessons, each with its drawn glyph, every one rebuilt per render.
+ const lessonList=useMemo(()=>{
+   // Families first, then a divider and the ones still being drawn. Kept in the list rather
+   // than hidden: a reader can see the whole plan and tell that the gap is deliberate.
+   const item=(pr:typeof PROBLEMS[number])=>{const soon=!isReady(pr.id);return <SidebarMenuItem key={pr.id}><SidebarMenuButton className={'exp-shape-button '+(id===pr.id?'active':'')+(soon?' is-soon':'')} isActive={id===pr.id} disabled={soon} aria-disabled={soon} title={soon?SOON_NOTE:undefined} onClick={()=>{if(!soon)choose(pr.id)}}><span className="shape-icon"><ShapeGlyph id={pr.id}/></span><span>{pr.short}</span></SidebarMenuButton></SidebarMenuItem>};
+   const group=(label:string,items:typeof PROBLEMS,soon=false)=><div className="exp-family" key={label}><h2 className="exp-family-name">{label}</h2><SidebarMenu aria-label={label} className={soon?'exp-soon-group':undefined}>{items.map(item)}</SidebarMenu></div>;
+   const soon=PROBLEMS.filter(pr=>!isReady(pr.id));
+   return <>{families(PROBLEMS.filter(pr=>isReady(pr.id))).map(g=>group(g.label,g.items))}{soon.length>0&&group('Coming soon',soon,true)}</>;
+  },[id,choose]);
+ const libraryCards=useMemo(()=>{
+    const card=(pr:typeof PROBLEMS[number])=>{const soon=!isReady(pr.id);return <button key={pr.id} className={(pr.id===id?'selected':'')+(soon?' is-soon':'')} disabled={soon} aria-disabled={soon} onClick={()=>{if(!soon)choose(pr.id)}}><ShapeGlyph id={pr.id} size={26}/><strong>{pr.short}</strong><span>{soon?SOON_NOTE:pr.subtitle}</span></button>};
+    // Grouped exactly as the lesson list is, so the two pickers tell one story about the subject.
+    const block=(label:string,items:typeof PROBLEMS)=><div className="exp-library-family" key={label}><h3 className="exp-family-name">{label}</h3><div className="exp-library-grid">{items.map(card)}</div></div>;
+    const soon=PROBLEMS.filter(pr=>!isReady(pr.id));
+    return <>{families(PROBLEMS.filter(pr=>isReady(pr.id))).map(g=>block(g.label,g.items))}{soon.length>0&&block('Coming soon',soon)}</>;
+   },[id,choose]);
+ const {distance,size,charge,phi,slices}=params;
+ const parameterGrid=useMemo(()=><div className="parameter-grid">{geom!=='arc'&&<Range describe="distance" onDescribe={setHighlight} label={['ring','disk','sheet'].includes(geom)?'Height z':geom==='axial'?'End distance a':'Distance r'} value={distance} min={.5} max={6} step={.05} onChange={distance=>updateParams({distance})}/>} {!isInfinite&&<Range describe="size" onDescribe={setHighlight} label={isRound?'Radius R':'Length L'} value={isRound?size/2:size} min={isRound?.5:1} max={isRound?4:8} step={.05} onChange={v=>updateParams({size:isRound?v*2:v})}/>}<Range describe="charge" onDescribe={setHighlight} label={geom==='sheet'?'Surface density σ':geom==='ramp'?'Peak density λ₀':['infinite','semi'].includes(geom)?'Line density λ':'Total charge Q'} value={charge} min={-5} max={5} step={.1} onChange={charge=>updateParams({charge})}/>{geom==='arc'&&<Range describe="angle" onDescribe={setHighlight} label="Arc angle φ" value={phi/Math.PI} min={.1} max={2} step={.01} onChange={v=>updateParams({phi:v*Math.PI})}/>}{/* How finely the charge is cut. It used to live inside one step of the walkthrough, so the
+     one control that shows the sum closing in on the integral was three clicks deep. */}<Range describe="pieces" onDescribe={setHighlight} label="Pieces N" value={slices} min={3} max={30} onChange={recut}/><button onClick={resetGeometry} className="text-button exp-reset" aria-label="Reset geometry" title="Reset geometry"><RotateCcw size={13}/></button></div>,[geom,isInfinite,isRound,distance,size,charge,phi,slices,updateParams,recut,resetGeometry]);
  function saveCopy(){downloadArtifact(`field-builder-${id}.html`,artifactHtml({title:p.title,subtitle:p.subtitle,setup:p.setup,integralTex:p.integralTex,resultTex:p.resultTex,params,svg:document.querySelector('.explorer-app .cd-svg')?.outerHTML??''}))}
  return <div className={`explorer-app ${showNumbers?'with-numbers':'symbolic-view'}`}><header className="exp-header"><div className="exp-brand"><span className="exp-logo">∫</span><span>field<span className="brand-light">builder</span></span></div>{/* FIVE ACTIONS BECAME TWO AND A MENU. Walkthrough is how a reader starts, and the theme
      switch is read as often as the page is; print, save a copy and the repository are things
@@ -245,20 +288,13 @@ export default function Explorer(){
      three of the five slots above the lesson. Every one keeps the name it had, so it is the
      same control in a quieter place. */}
  <div className="exp-header-right"><button ref={tourButton} type="button" className="text-button tour-button" aria-label="Walkthrough" onClick={()=>setOnboarding(true)}><CircleHelp size={16}/><span>Walkthrough</span></button><Hint label={dark?'Switch to light theme':'Switch to dark theme'}><button className="icon-button" onClick={()=>setDark(!dark)} aria-label={dark?'Switch to light theme':'Switch to dark theme'}>{dark?<Sun size={17}/>:<Moon size={17}/>}</button></Hint><DropdownMenu><Hint label="Lesson tools"><DropdownMenuTrigger className="icon-button no-print" aria-label="Lesson tools"><MoreHorizontal size={17}/></DropdownMenuTrigger></Hint><DropdownMenuContent className="exp-tools-menu" align="end" sideOffset={8}><DropdownMenuItem onClick={printLesson}><Printer size={15}/>Print this lesson</DropdownMenuItem><DropdownMenuItem onClick={saveCopy}><Download size={15}/>Save an offline copy of this lesson</DropdownMenuItem><DropdownMenuItem render={<a href="https://github.com/malekTheCoder/field-builder" target="_blank" rel="noreferrer" aria-label="View Field Builder on GitHub"/>}><GitBranch size={15}/>View Field Builder on GitHub</DropdownMenuItem></DropdownMenuContent></DropdownMenu></div></header>
- <SidebarProvider className={`exp-shell ${sidebarOpen?'library-expanded':'library-collapsed'}`} style={{'--sidebar-width':'196px'} as CSSProperties}>{sidebarOpen&&<Sidebar collapsible="none" className="exp-sidebar"><SidebarContent>{(()=>{
-   // Families first, then a divider and the ones still being drawn. Kept in the list rather
-   // than hidden: a reader can see the whole plan and tell that the gap is deliberate.
-   const item=(pr:typeof PROBLEMS[number])=>{const soon=!isReady(pr.id);return <SidebarMenuItem key={pr.id}><SidebarMenuButton className={'exp-shape-button '+(id===pr.id?'active':'')+(soon?' is-soon':'')} isActive={id===pr.id} disabled={soon} aria-disabled={soon} title={soon?SOON_NOTE:undefined} onClick={()=>{if(!soon)changeDistribution(pr.id)}}><span className="shape-icon"><ShapeGlyph id={pr.id}/></span><span>{pr.short}</span></SidebarMenuButton></SidebarMenuItem>};
-   const group=(label:string,items:typeof PROBLEMS,soon=false)=><div className="exp-family" key={label}><h2 className="exp-family-name">{label}</h2><SidebarMenu aria-label={label} className={soon?'exp-soon-group':undefined}>{items.map(item)}</SidebarMenu></div>;
-   const soon=PROBLEMS.filter(pr=>!isReady(pr.id));
-   return <>{families(PROBLEMS.filter(pr=>isReady(pr.id))).map(g=>group(g.label,g.items))}{soon.length>0&&group('Coming soon',soon,true)}</>;
-  })()}<div className="exp-nav-bottom"><p>One law.<br/>Every geometry.</p><MathText tex={scalar?String.raw`dV=\frac{k\,dQ}{r_i}`:String.raw`d\mathbf E=\frac{k\,dQ}{r_i^2}\hat{\mathbf r}_i`}/><span>{storageOK?'Your settings stay on this device.':'Settings are kept for this visit.'}</span></div></SidebarContent></Sidebar>}
+ <SidebarProvider className={`exp-shell ${sidebarOpen?'library-expanded':'library-collapsed'}`} style={{'--sidebar-width':'196px'} as CSSProperties}>{sidebarOpen&&<Sidebar collapsible="none" className="exp-sidebar"><SidebarContent>{lessonList}<div className="exp-nav-bottom"><p>One law.<br/>Every geometry.</p><MathText tex={scalar?String.raw`dV=\frac{k\,dQ}{r_i}`:String.raw`d\mathbf E=\frac{k\,dQ}{r_i^2}\hat{\mathbf r}_i`}/><span>{storageOK?'Your settings stay on this device.':'Settings are kept for this visit.'}</span></div></SidebarContent></Sidebar>}
  <main className="exp-main"><div className="exp-breadcrumb"><Hint label={sidebarOpen?'Hide the lesson list':'Show the lesson list'}><button type="button" className="exp-library-toggle" aria-expanded={sidebarOpen} aria-label={sidebarOpen?'Hide the lesson list':'Show the lesson list'} onClick={()=>setSidebarOpen(v=>!v)}><PanelLeft size={16}/></button></Hint>{/* THE SAME LESSON WAS NAMED THREE TIMES IN THREE INCHES: lit in the list, as the tail of a
      breadcrumb, and then in full as the title. The crumb said it least well of the three, so
      the trail is now just the way back out to the library -- which on a narrow screen, where
      the list is not there at all, is the only way to another lesson. */}
 <nav className="exp-crumbs" aria-label="Breadcrumb"><button type="button" className="exp-crumb-link" onClick={()=>setLibrary(true)}><ChevronLeft size={13} aria-hidden="true"/>Charge library</button></nav></div><div className="exp-heading"><div><h1>{p.title}</h1><p>{p.subtitle}</p></div></div>
- <div className="exp-workspace"><div className="exp-visual-column"><section className={'exp-diagram-card mode-'+mode+' focus-'+highlight} aria-label="Interactive field visualization"><div className="exp-diagram-heading"><div><MathText tex={p.coordinate}/></div></div><ChargeDiagram compact problem={p} params={params} setParams={updateParams} count={count} continuum={continuum} selected={activeIndex} onSelect={i=>{stop();setSelected(i)}} progress={progress} components={components} pair={pair} mode={mode} boundRange={bounds} onBoundRangeChange={setBounds} highlight={figureHighlight} build={buildOpen?{key:buildNow.key,name:buildNow.name,index:buildIndex,count:stages.length,paused:!building}:undefined}/><div className={"exp-walk"+(buildOpen?" is-open":"")}>
+ <div className="exp-workspace"><div className="exp-visual-column"><section className={'exp-diagram-card mode-'+mode+' focus-'+highlight} aria-label="Interactive field visualization"><div className="exp-diagram-heading"><div><MathText tex={p.coordinate}/></div></div><ChargeDiagram compact problem={p} params={params} setParams={updateParams} count={count} continuum={continuum} selected={activeIndex} onSelect={select} progress={progress} components={components} pair={pair} mode={mode} boundRange={bounds} onBoundRangeChange={setBounds} highlight={figureHighlight} build={figureBuild}/><div className={"exp-walk"+(buildOpen?" is-open":"")}>
   {/* ONE WAY IN. There used to be two buttons here -- "Watch it build" and "Walk me through the
       integral" -- which told the same argument twice, in different words, in different steps,
       and neither one touched the equation beside the figure. The run is now the walkthrough as
@@ -268,15 +304,14 @@ export default function Explorer(){
     <button type="button" className="exp-watch-button" onClick={runBuild}><Play size={14} fill="currentColor" strokeWidth={0}/>Watch it build</button>
     <span className="exp-watch-note">Five steps, about half a minute. Pause or step through at any point.</span>
   </div>}
-  {buildOpen&&<BuildPlayer stages={stages} at={buildAt} index={buildIndex} playing={building} math={playerMath}
-    onPlay={runBuild} onSeek={at=>seekBuild(at)} onStep={stepBuild} onClose={endBuild}/>}
+  {buildOpen&&<BuildPlayer stages={stages} clock={runAt} index={buildIndex} playing={building} math={playerMath}
+    onPlay={play} onSeek={seek} onStep={step} onClose={close}/>}
 </div>
 </section>
- <section className="exp-parameters"><div className="parameter-grid">{geom!=='arc'&&<Range describe="distance" onDescribe={setHighlight} label={['ring','disk','sheet'].includes(geom)?'Height z':geom==='axial'?'End distance a':'Distance r'} value={params.distance} min={.5} max={6} step={.05} onChange={distance=>updateParams({distance})}/>} {!isInfinite&&<Range describe="size" onDescribe={setHighlight} label={isRound?'Radius R':'Length L'} value={isRound?params.size/2:params.size} min={isRound?.5:1} max={isRound?4:8} step={.05} onChange={v=>updateParams({size:isRound?v*2:v})}/>}<Range describe="charge" onDescribe={setHighlight} label={geom==='sheet'?'Surface density σ':geom==='ramp'?'Peak density λ₀':['infinite','semi'].includes(geom)?'Line density λ':'Total charge Q'} value={params.charge} min={-5} max={5} step={.1} onChange={charge=>updateParams({charge})}/>{geom==='arc'&&<Range describe="angle" onDescribe={setHighlight} label="Arc angle φ" value={params.phi/Math.PI} min={.1} max={2} step={.01} onChange={v=>updateParams({phi:v*Math.PI})}/>}{/* How finely the charge is cut. It used to live inside one step of the walkthrough, so the
-     one control that shows the sum closing in on the integral was three clicks deep. */}<Range describe="pieces" onDescribe={setHighlight} label="Pieces N" value={params.slices} min={3} max={30} onChange={slices=>{if(buildOpen)endBuild();updateParams({slices,continuum:0})}}/><button onClick={()=>{stop();updateParams({...DEFAULT_PARAMS});setProgress(1);setBounds([0,100]);setSelected(3)}} className="text-button exp-reset" aria-label="Reset geometry" title="Reset geometry"><RotateCcw size={13}/></button></div></section>
+ <section className="exp-parameters">{parameterGrid}</section>
  {id==='infinite'&&<div className="exp-method"><span>Explore another route to the same result</span><Tabs value={path} onValueChange={v=>{setPath(String(v));setBounds([0,100]);}}><TabsList><TabsTrigger value="angular">Angular substitution</TabsTrigger><TabsTrigger value="limit">Finite-line limit</TabsTrigger></TabsList></Tabs></div>}
- </div><EquationWorkbench key={p.id+"/"+p.variable+"/"+(derivationProblem?.variable??"")} problem={p} derivationProblem={derivationProblem} params={params} continuum={continuum} progress={progress} mode={mode} onModeChange={chooseMode} onHighlight={setHighlight} boundRange={bounds} onBoundRangeChange={setBounds} highlight={figureHighlight}
-  build={{open:buildOpen,index:buildIndex,playing:building,settled:continuum>=.99}} onStep={stepBuild}/></div>
+ </div><Workbench key={p.id+"/"+p.variable+"/"+(derivationProblem?.variable??"")} problem={p} derivationProblem={derivationProblem} params={params} continuum={continuum} progress={progress} mode={mode} onModeChange={pickMode} onHighlight={setHighlight} boundRange={bounds} onBoundRangeChange={setBounds} highlight={figureHighlight}
+  build={boardBuild} onStep={step}/></div>
  {/* The end of a derivation, not a peer of it. A limiting case is the check that the answer
      is physically right, and the confusions are a reference — both belong after the integral
      is built, and both stay shut until asked for so the page does not get busier.
@@ -302,11 +337,5 @@ export default function Explorer(){
   </details>
  </section>
  <output className="sr-only" aria-live="polite">{status}</output></main></SidebarProvider>
- {ready&&!seen&&!onboarding&&<StartHere target={tourButton} onSettled={()=>setSeen(true)}/>}<Onboarding returnFocus={tourButton} open={onboarding} onClose={closeTour} onExplore={closeTour}/><Dialog open={library} onOpenChange={setLibrary}><DialogContent className="exp-library-dialog"><DialogTitle>Choose your geometry</DialogTitle><DialogDescription>{PROBLEMS.length} lessons, including electric potential.</DialogDescription>{(()=>{
-    const card=(pr:typeof PROBLEMS[number])=>{const soon=!isReady(pr.id);return <button key={pr.id} className={(pr.id===id?'selected':'')+(soon?' is-soon':'')} disabled={soon} aria-disabled={soon} onClick={()=>{if(!soon)changeDistribution(pr.id)}}><ShapeGlyph id={pr.id} size={26}/><strong>{pr.short}</strong><span>{soon?SOON_NOTE:pr.subtitle}</span></button>};
-    // Grouped exactly as the lesson list is, so the two pickers tell one story about the subject.
-    const block=(label:string,items:typeof PROBLEMS)=><div className="exp-library-family" key={label}><h3 className="exp-family-name">{label}</h3><div className="exp-library-grid">{items.map(card)}</div></div>;
-    const soon=PROBLEMS.filter(pr=>!isReady(pr.id));
-    return <>{families(PROBLEMS.filter(pr=>isReady(pr.id))).map(g=>block(g.label,g.items))}{soon.length>0&&block('Coming soon',soon)}</>;
-   })()}</DialogContent></Dialog></div>;
+ {ready&&!seen&&!onboarding&&<StartHere target={tourButton} onSettled={()=>setSeen(true)}/>}<Onboarding returnFocus={tourButton} open={onboarding} onClose={closeTour} onExplore={closeTour}/><Dialog open={library} onOpenChange={setLibrary}><DialogContent className="exp-library-dialog"><DialogTitle>Choose your geometry</DialogTitle><DialogDescription>{PROBLEMS.length} lessons, including electric potential.</DialogDescription>{libraryCards}</DialogContent></Dialog></div>;
 }

@@ -10,7 +10,7 @@
    accessible name, and that name now states the gestures, so what a screen reader is told
    matches what the keys do. */
 /* oxlint-disable jsx-a11y/no-noninteractive-tabindex */
-import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent, type PointerEvent } from 'react';
+import { memo, useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent, type PointerEvent } from 'react';
 import { animate, frame, motion, useMotionValue, useReducedMotion } from 'motion/react';
 import type { Params, Problem } from '../problems/types';
 import { field, magnitude, pretty, potential, type Vec } from '../symbolic/physics';
@@ -94,7 +94,12 @@ function ViewHelp({ x, y }: { x: number; y: number }) {
 /** The geometries whose partition runs to infinity, so that refining it moves the far elements
  * further out rather than filling the picture in. */
 const UNBOUNDED = new Set(['infinite', 'semi', 'sheet']);
-export function ChargeDiagram({ problem, params: p, setParams, count, continuum, selected, onSelect, progress, components, pair, mode, boundRange = [0, 100], onBoundRangeChange, highlight = '', compact = false, build }: ChargeDiagramProps) {
+/** Memoised, because while "Watch it build" plays the page around the figure re-renders on every
+ * frame and most of those frames change nothing the figure draws: three of the five stages hold
+ * every prop still, and the other two hold it still once their motion has finished. Each render
+ * here also lays the labels out again, which measures every label on the page; skipping the render
+ * skips that too. The props are compared one by one, so anything that does change still redraws. */
+export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, setParams, count, continuum, selected, onSelect, progress, components, pair, mode, boundRange = [0, 100], onBoundRangeChange, highlight = '', compact = false, build }: ChargeDiagramProps) {
   const cameraControl = useRef<HTMLButtonElement>(null);
   const svg = useRef<SVGSVGElement>(null), plane = useRef<SVGGElement>(null), dragging = useRef<string | null>(null), uid = useId().replace(/:/g, '');
   const opening = openingCamera(problem.geometry);
@@ -139,7 +144,14 @@ export function ChargeDiagram({ problem, params: p, setParams, count, continuum,
   // was interrupted used to leave it set for the rest of the session, and nothing said so.
   useLayoutEffect(() => { if (root.current) root.current.dataset.moving = String(moving); });
   const n = Math.max(3, Math.round(count)), R = p.size / 2, selectedIndex = clamp(Math.round(selected), 0, n - 1);
-  const samples = useMemo(() => sampleDistribution(id, p, n), [id, p, n]);
+  // The charge's own shape, without the two fields that say how it is cut. The samplers read the
+  // distance, the size, the charge and the angle, and never `slices` or `continuum`: those reach
+  // them only as `n`, which is passed beside this. Keyed on the whole params object instead, the
+  // run's last stage -- which writes a new `continuum` every frame -- re-cut the charge on every
+  // frame into exactly the pieces it already had, and handed the field a new array each time.
+  const { distance: pDistance, size: pSize, charge: pCharge, phi: pPhi, element: pElement } = p;
+  const shape = useMemo<Params>(() => ({ distance: pDistance, size: pSize, charge: pCharge, phi: pPhi, element: pElement, slices: 0, continuum: 0 }), [pDistance, pSize, pCharge, pPhi, pElement]);
+  const samples = useMemo(() => sampleDistribution(id, shape, n), [id, shape, n]);
   // What the FIELD is drawn from, which is not the same thing as what the reader is shown.
   //
   // The pieces on the figure are the partition being summed, and the reader chooses how many.
@@ -157,7 +169,20 @@ export function ChargeDiagram({ problem, params: p, setParams, count, continuum,
   // Only on those three. Everywhere else a bounded partition IS the charge at any N, and the
   // field of what you are summing is the honest thing to draw -- refine a rod and the field
   // barely moves; refine an infinite line and it stops being five lumps.
-  const fieldSamples = useMemo(() => UNBOUNDED.has(id) ? sampleDistribution(id, p, Math.max(n, 400)) : samples, [id, p, n, samples]);
+  const fieldSamples = useMemo(() => UNBOUNDED.has(id) ? sampleDistribution(id, shape, Math.max(n, 400)) : samples, [id, shape, n, samples]);
+  // WHILE THE RUN SHRINKS THE PIECES, the flat field is traced from the charge as that stage will
+  // leave it -- cut as finely as it ends up cut -- rather than as it happens to be cut at this
+  // moment. The stage doubles the pieces five or six times as it plays, and every doubling handed
+  // the tracer a new charge, so every streamline was traced again mid-animation: a hitch at each
+  // doubling, in the one stage whose whole point is that the answer stops depending on the cut.
+  // The field of the charge does not depend on how it is cut -- which is what the lines are drawn
+  // for, as above -- so it is traced once, as the stage begins, behind a construction that has
+  // already faded the field back to scenery, and it is the field the stage's last frame arrives at.
+  // The four stages before it cut nothing, and draw exactly what they always drew.
+  // The flat canvas only. In space the disk draws its slices from the samples it is handed, and
+  // those must stay the reader's own pieces.
+  const runCut = build?.key === 'limit' && !UNBOUNDED.has(id) ? partitionCount(p.slices, 1) : 0;
+  const canvasSamples = useMemo(() => runCut ? sampleDistribution(id, shape, runCut) : fieldSamples, [id, shape, runCut, fieldSamples]);
   const sample = samples[selectedIndex], total = sumSamples(samples), weights = intervalWeights(n,boundRange,progress), partial = sumInterval(samples,boundRange,progress);
   const wholeWeights = intervalWeights(n,boundRange,1);
   const full = boundRange[0]===0 && boundRange[1]===100;
@@ -239,7 +264,14 @@ export function ChargeDiagram({ problem, params: p, setParams, count, continuum,
   // Pixels per metre, times whatever the reader has zoomed to. The projection, the canvas and
   // the 3D frustum all read this, so one multiply zooms every layer and none can disagree.
   const unit = baseUnit * zoom;
-  const project = (v: Vec): Point => { const s = projectCamera(v, view.yaw, view.pitch); return { x: O.x + unit * s.x, y: O.y + unit * s.y }; };
+  // Kept as one function for as long as the view holds still. The field canvas redraws whenever it
+  // is handed a new projection, and a fresh closure every render meant a full redraw of every
+  // streamline on every frame of the run -- reallocating the canvas to do it -- for a picture that
+  // had not moved.
+  // The compiler lint cannot prove that five numbers will not be mutated later; they are numbers.
+  const { x: Ox, y: Oy } = O, { yaw: viewYaw, pitch: viewPitch } = view;
+  // oxlint-disable-next-line react/react-compiler
+  const project = useCallback((v: Vec): Point => { const s = projectCamera(v, viewYaw, viewPitch); return { x: Ox + unit * s.x, y: Oy + unit * s.y }; }, [Ox, Oy, unit, viewYaw, viewPitch]);
   // Screen point a distance `length` out along a world direction, for the axes and the R/s bracket.
   const ray = (v: Vec, length: number): Point => { const s = projectCamera(v, view.yaw, view.pitch); return { x: O.x + length * s.x, y: O.y + length * s.y }; };
   const axisX = ray({ x: 1, y: 0, z: 0 }, 185), axisY = ray({ x: 0, y: 1, z: 0 }, 122);
@@ -744,7 +776,7 @@ export function ChargeDiagram({ problem, params: p, setParams, count, continuum,
         drift. Planar lessons only for now: the perspective geometries need their lines
         traced in three dimensions and sorted against the surface, a different job. */}
     <div className="cd-stage">
-    {!inSpace && !scalar && fieldView !== 'off' && <FieldCanvas samples={fieldSamples} detail={UNBOUNDED.has(id) ? 192 : 64} project={project} frame={{ width: 720, height: 430 }} mode={fieldView} reach={Math.max(2.5, p.distance * 1.7, p.size)}
+    {!inSpace && !scalar && fieldView !== 'off' && <FieldCanvas samples={canvasSamples} detail={UNBOUNDED.has(id) ? 192 : 64} project={project} frame={{ width: 720, height: 430 }} mode={fieldView} reach={Math.max(2.5, p.distance * 1.7, p.size)}
       plane={perspective ? 'xz' : 'xy'} layout={surface ? 'surface' : 'wire'} />}
     {inSpace && <FieldStage quiet={!!building} kind={id === 'disk' ? 'disk' : id === 'sheet' ? 'sheet' : 'wire'} closed={id === 'ring'} samples={fieldSamples} detail={UNBOUNDED.has(id) ? 144 : 48} selected={selectedIndex}
       radius={R} distance={p.distance} yaw={view.yaw} pitch={view.pitch} fieldView={scalar ? 'off' : fieldView} reach={fieldReach}
@@ -998,4 +1030,4 @@ export function ChargeDiagram({ problem, params: p, setParams, count, continuum,
     <output className="cd-announcement" aria-live="polite" aria-atomic="true">{announcement}</output>
 
   </div>;
-}
+});
