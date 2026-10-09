@@ -140,7 +140,9 @@ describe('the run in space', () => {
   const points = [...(flat.getAttribute('d') ?? '').matchAll(/[ML](-?[\d.]+),(-?[\d.]+)/g)].map(m => ({x: Number(m[1]), y: Number(m[2])}));
   const first = points[0], last = points[points.length - 1];
   const origin = view.container.querySelector<SVGTextElement>('.cd-origin')!;
-  const O = {x: Number(origin.getAttribute('x')) + 17, y: Number(origin.getAttribute('y')) - 20};
+  // The origin's label says where O is, rather than leaving it to be worked back from an offset.
+  const [ox, oy] = (origin.dataset.at ?? '').split(' ').map(Number);
+  const O = {x: ox, y: oy};
   const axes = [...(view.container.querySelector('.cd-axes path')?.getAttribute('d') ?? '').matchAll(/-?[\d.]+/g)].map(m => Number(m[0]));
   const px = {x: (axes[2] - O.x) / 185, y: (axes[3] - O.y) / 185}, py = {x: (axes[6] - O.x) / 122, y: (axes[7] - O.y) / 122};
   const cp = Math.sqrt(1 - (px.y ** 2 + py.y ** 2));

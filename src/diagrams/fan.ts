@@ -67,13 +67,25 @@ function clipHalf(poly: Point[], inside: (p: Point) => boolean, cross: (a: Point
   }
   return out;
 }
-/** The wedge between two rays out of `from`, clipped to `rect`.
+/** The charge's own line, through a point and along a direction, in screen space. */
+export type Line = {point: Point; dir: Point};
+/** Which side of `line` a point is on: positive one side, negative the other, zero on it. */
+export const side = (line: Line, p: Point) => line.dir.x * (p.y - line.point.y) - line.dir.y * (p.x - line.point.x);
+/** The wedge between two rays out of `from`, clipped to `rect` -- and, given the charge's `line`,
+ * to `from`'s side of it.
  *
  * Built as a triangle reaching well past the frame and then clipped, rather than by walking the
  * frame's corners by hand: a wedge can span two corners, or none, or open backwards, and every
  * hand-rolled version of that has a case it gets wrong. Returns [] when the wedge misses the rect
- * entirely, so a caller can simply not draw it. */
-export function wedgePath(from: Point, a: Point, b: Point, rect: Rect): Point[] {
+ * entirely, so a caller can simply not draw it.
+ *
+ * WHY THE LINE. A piece is the angle it subtends at P, and that angle ENDS at the charge: past the
+ * line there is no piece, only the far side of the page. Clipped to the frame alone, the chosen
+ * wedge ran on through the line -- a pink trapezoid beyond the infinite line, a band below the
+ * semi-infinite one down to the frame's foot -- and was read as charge. Clipped to P's side, a wedge
+ * is the triangle P, a, b with its far side on the line, and only the outermost pieces, whose rays
+ * lie nearly along the line, still reach the frame's edge -- along the line, where their charge is. */
+export function wedgePath(from: Point, a: Point, b: Point, rect: Rect, line?: Line): Point[] {
   const reach = (Math.hypot(rect.width, rect.height) + Math.hypot(from.x - rect.x, from.y - rect.y)) * 4;
   let poly: Point[] = [from, {x: from.x + a.x * reach, y: from.y + a.y * reach}, {x: from.x + b.x * reach, y: from.y + b.y * reach}];
   const [x0, y0, x1, y1] = [rect.x, rect.y, rect.x + rect.width, rect.y + rect.height];
@@ -83,7 +95,25 @@ export function wedgePath(from: Point, a: Point, b: Point, rect: Rect): Point[] 
   poly = clipHalf(poly, p => p.x <= x1, (p, q) => lerpX(p, q, x1));
   poly = clipHalf(poly, p => p.y >= y0, (p, q) => lerpY(p, q, y0));
   poly = clipHalf(poly, p => p.y <= y1, (p, q) => lerpY(p, q, y1));
+  if (line && Math.hypot(line.dir.x, line.dir.y) > EPS) {
+    const mine = Math.sign(side(line, from));
+    if (mine !== 0) {
+      const cross = (p: Point, q: Point): Point => { const sp = side(line, p), sq = side(line, q), t = sp / (sp - sq || EPS); return {x: p.x + (q.x - p.x) * t, y: p.y + (q.y - p.y) * t}; };
+      poly = clipHalf(poly, p => side(line, p) * mine >= -1e-6, cross);
+    }
+  }
   return poly;
+}
+/** Where a ray from `from` stops: at the charge's `line` if it reaches it inside `rect`, or else at
+ * the edge of `rect`. A ray of the fan is one edge of a piece's angle, and it ends at the charge. */
+export function rayToLine(from: Point, dir: Point, rect: Rect, line?: Line): Point {
+  const edge = rayToEdge(from, dir, rect);
+  if (!line) return edge;
+  const denom = dir.x * line.dir.y - dir.y * line.dir.x;
+  if (Math.abs(denom) < EPS) return edge;
+  const t = ((line.point.x - from.x) * line.dir.y - (line.point.y - from.y) * line.dir.x) / denom;
+  if (!(t > 0) || t >= Math.hypot(edge.x - from.x, edge.y - from.y)) return edge;
+  return {x: from.x + dir.x * t, y: from.y + dir.y * t};
 }
 /** Area of a polygon, for asking whether a wedge is big enough to be worth drawing or clicking. */
 export function area(poly: readonly Point[]): number {

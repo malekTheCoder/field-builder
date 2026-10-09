@@ -7,12 +7,14 @@
    the clicker already knows where they are, the tabber does not. */
 .cd-svg:focus{outline:none}
 .cd-svg.cd-orbitable:focus-visible{outline:2px solid var(--field);outline-offset:2px;border-radius:6px}
-.cd-svg text{font-size:13px;fill:var(--cd-muted);font-weight:550;letter-spacing:0}
+/* The default for any text in the figure, at no specificity at all: every rule that names a kind of
+   label must beat it. As `.cd-svg text` it outranked `.cd-axes text` and its kin, and set the
+   figure's symbols in 13px grey sans whatever their own rules said. */
+.cd-svg :where(text){font-size:13px;fill:var(--cd-muted);font-weight:550;letter-spacing:0}
 .cd-svg .cd-kicker{font-size:9px;letter-spacing:1.8px;fill:var(--cd-muted)}
 .cd-scale line,.cd-scale path{stroke:var(--ghost,#6d8492);stroke-width:1.25}
 .cd-scale text{font-size:9px}
 .cd-axes path{stroke:var(--ghost,#6d8492);stroke-width:1.5;fill:none;opacity:.85}
-.cd-axes text{font-style:italic;font-size:15px;fill:var(--cd-ink)}
 .cd-charge-base{stroke:var(--charge,#b8460f);stroke-width:11;stroke-opacity:.22;fill:none;stroke-linecap:round}
 .cd-sum-chain{stroke:var(--contribution,#2f9089);stroke-width:2.3;stroke-linejoin:round;stroke-linecap:round;fill:none;opacity:.9}
 .cd-source-rod{fill:var(--charge-fill,#fdefe6);stroke:var(--charge,#b8460f);stroke-width:1.5}
@@ -23,30 +25,34 @@
 .cd-piece{stroke:var(--charge,#b8460f);stroke-width:1.5;fill:var(--charge-fill,#fdefe6);cursor:pointer;transition:opacity .3s ease,filter .3s ease;outline:none}
 .cd-piece:hover,.cd-piece:focus-visible{opacity:1!important;stroke-width:2.5;filter:drop-shadow(0 0 5px var(--charge,#b8460f))}
 .cd-piece.is-selected{fill:var(--charge,#b8460f);filter:drop-shadow(0 0 6px color-mix(in srgb,var(--charge,#b8460f) 35%,transparent))}
-.cd-svg .cd-plus{fill:var(--charge,#b8460f);stroke:none;font-size:11px;font-weight:700}.cd-svg .is-selected .cd-plus{fill:var(--diagram,#ffffff)}
+/* The charge marks are the charge's own colour, set on the marks themselves: a fill on their group
+   is inherited, and anything that names the text directly beats inheritance. A mark that sits on a
+   piece filled with the charge colour turns to the ground colour, or it would vanish into it. */
+.cd-svg .cd-plus text{fill:var(--charge,#b8460f);stroke:none;font-family:var(--font-geist-sans),system-ui,sans-serif;font-style:normal;font-size:13px;font-weight:700}
+.cd-svg .cd-plus text.is-on-fill{fill:var(--diagram,#ffffff)}
 .cd-construction{stroke:var(--charge,#b8460f);stroke-opacity:.7;stroke-width:1.4;stroke-dasharray:5 5;fill:none}
 .cd-construction.cd-pair{stroke:var(--contribution,#2f9089);stroke-opacity:.7}
 .cd-partner{fill:none;stroke:var(--contribution,#2f9089);stroke-width:1.8;stroke-dasharray:4 3}
 .cd-infinity path,.cd-continuation{fill:none;stroke:var(--charge,#b8460f);stroke-width:2.2}
-.cd-infinity text{fill:var(--charge,#b8460f);font-size:12px}
+.cd-svg .cd-infinity text{fill:var(--charge,#b8460f)}
 .cd-dimension path,.cd-dimension line{stroke:var(--ghost,#6d8492);stroke-width:1.3;fill:none}
-.cd-dimension text{font-size:14px;font-style:italic;fill:var(--cd-ink)}
-.cd-svg .cd-small{font-size:11px}.cd-svg .cd-origin{font-size:11px;fill:var(--cd-muted)}
+.cd-dimension text{fill:var(--cd-ink)}
+.cd-svg .cd-small{font-size:11px}
 .cd-vector{pointer-events:none;stroke-linecap:round;stroke-linejoin:round}
-.cd-svg .cd-vector-label{fill:currentColor;font-size:13px;font-weight:700;paint-order:stroke;stroke:var(--diagram,#ffffff);stroke-width:5px;stroke-linejoin:round}
+.cd-svg .cd-vector-label{fill:currentColor;paint-order:stroke;stroke:var(--diagram,#ffffff);stroke-width:5px;stroke-linejoin:round}
 .cd-svg .cd-zero{fill:var(--field,#0b6b63);font-size:12px}
 .cd-observation{touch-action:none;cursor:grab;outline:none}.cd-observation:active{cursor:grabbing}.cd-observation.is-fixed{cursor:default}
 .cd-point-halo{fill:var(--diagram,#ffffff);fill-opacity:.7;stroke:var(--field,#0b6b63);stroke-opacity:.7;stroke-width:1.5;transition:r .3s ease,stroke-opacity .3s ease,stroke-width .3s ease}
 .cd-observation:hover .cd-point-halo,.cd-observation:focus-visible .cd-point-halo{r:20px;stroke-opacity:1;stroke-width:3}.cd-observation:focus-visible .cd-point-halo{stroke:var(--primary,#0b6b63);stroke-dasharray:none}
 .cd-point{fill:var(--field,#0b6b63);stroke:var(--diagram,#ffffff);stroke-width:2.5}
-.cd-svg .cd-point-label{fill:var(--cd-ink);font-size:15px;font-weight:700;paint-order:stroke;stroke:var(--diagram,#ffffff);stroke-width:5px}
-.cd-source-tag{pointer-events:none}.cd-source-tag line{stroke:var(--charge,#b8460f);stroke-width:1.3;opacity:.85}.cd-source-tag text{fill:var(--charge,#b8460f);font-size:11px;paint-order:stroke;stroke:var(--diagram,#ffffff);stroke-width:4px;stroke-linejoin:round}
-.cd-bound{cursor:grab;touch-action:none;outline:none}.cd-bound rect{fill:var(--diagram,#ffffff);stroke:var(--field,#0b6b63);stroke-width:2.5}.cd-bound text{fill:var(--field,#0b6b63);font-size:13px;font-weight:700;paint-order:stroke;stroke:var(--diagram,#ffffff);stroke-width:4px}.cd-bound:hover rect,.cd-bound:focus-visible rect{stroke-width:3;filter:drop-shadow(0 0 5px var(--field,#0b6b63))}.cd-bound:active{cursor:grabbing}
+.cd-svg .cd-point-label{fill:var(--cd-ink);paint-order:stroke;stroke:var(--diagram,#ffffff);stroke-width:5px}
+.cd-source-tag{pointer-events:none}.cd-source-tag line{stroke:var(--charge,#b8460f);stroke-width:1.3;opacity:.85}.cd-source-tag text{fill:var(--charge,#b8460f);paint-order:stroke;stroke:var(--diagram,#ffffff);stroke-width:4px;stroke-linejoin:round}
+.cd-bound{cursor:grab;touch-action:none;outline:none}.cd-bound rect{fill:var(--diagram,#ffffff);stroke:var(--field,#0b6b63);stroke-width:2.5}.cd-bound text{fill:var(--field,#0b6b63);paint-order:stroke;stroke:var(--diagram,#ffffff);stroke-width:4px}.cd-bound:hover rect,.cd-bound:focus-visible rect{stroke-width:3;filter:drop-shadow(0 0 5px var(--field,#0b6b63))}.cd-bound:active{cursor:grabbing}
 .cd-divider{stroke:var(--ghost,#6d8492);stroke-width:1;opacity:.55}.cd-svg .cd-footer{font-size:10px}
 .cd-caption{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px 16px;padding:11px 24px 17px;color:var(--cd-muted);font-size:11px;line-height:1.5;letter-spacing:.02em}.cd-caption>span{flex:1 1 14rem;min-width:0}
-@media(max-width:600px){.cd-caption{padding:6px 13px 12px;font-size:9px;gap:7px}.cd-svg .cd-footer{font-size:11px}}
+@media(max-width:600px){.cd-caption{padding:6px 13px 12px;font-size:9px;gap:7px}}
 @media(prefers-reduced-motion:reduce){.cd-piece,.cd-point-halo{transition:none!important}}
-.cd-svg{max-height:430px}.cd-triangle path,.cd-triangle line{fill:none;stroke:var(--ghost);stroke-width:1.4;stroke-dasharray:4 3}.cd-triangle text{fill:var(--foreground);font-family:Georgia,serif;font-style:italic;font-size:15px}.cd-triangle .cd-triangle-note{font-family:var(--font-geist-sans),sans-serif;font-size:9px;font-style:normal;fill:var(--muted-foreground)}
+.cd-triangle path,.cd-triangle line{fill:none;stroke:var(--ghost);stroke-width:1.4;stroke-dasharray:4 3}.cd-triangle text{fill:var(--foreground)}.cd-triangle .cd-triangle-note{font-family:var(--font-geist-sans),sans-serif;font-size:9px;font-style:normal;fill:var(--muted-foreground)}
 
 /* =====================================================================
    SECOND VISUAL PASS — the figure is the reason the app exists.
@@ -57,33 +63,44 @@
    Presentation attributes in the markup (stroke-width="1.5" etc.) lose
    to these rules, which is how the component stays untouched.
    ===================================================================== */
-/* A height budget, not only a width. The figure scales to the width of its column, and this
-   rule used to lift the cap entirely -- so on a wide, short window (1920 by 820, an ordinary
-   laptop) the drawing grew taller than the screen and the bottom of a tall figure sat below
-   the fold. You had to scroll to see the whole of an arc. Capped, the SVG keeps its box and
-   the viewBox fits inside it centred, so the whole drawing is on screen at any window shape. */
-/* `aspect-ratio` alone already gives the box exactly the height the drawing needs, so every
-   `min-height` under it was dead space: the SVG is width-bound at every size the app is read
-   at, so a taller box only letterboxes the picture inside itself. On a 390px phone that was
-   31px of nothing above and below a 199px drawing -- a sixth of the figure's height spent on
-   blank. `max-height` stays: it is the guard that keeps a tall figure on screen in a wide,
-   short window, and it crops nothing, it only centres the drawing in a shorter box. */
-.cd-svg{max-height:min(62vh,700px);aspect-ratio:720/430}
+/* A height budget, not only a width: on a wide, short window (1920 by 820, an ordinary laptop)
+   a figure fitted only to its column grows taller than the screen and the bottom of an arc sits
+   below the fold. The budget is min(62vh, 700px) of height, and it crops nothing. */
+/* ONE BOX FOR EVERY LAYER. The height budget used to be set on the SVG alone, so a wide, short
+   window clamped the SVG's height while its width stayed 100%: the box came out wider than 720:430
+   and the viewBox centred the drawing inside it. Every layer under the SVG -- the field canvas, the
+   3D scene, its tick labels, and the label placer -- fills the WHOLE box, so on a 1920 by 820
+   window the field lines were stretched a third wider than the drawing they belong to and stopped
+   short of the rod. The stage itself is the 720:430 box now, capped by the same budget and centred,
+   so nothing inside it is ever letterboxed and every layer agrees with every other.
+   Centred by the column's own layout rather than by auto margins, because a card may bleed the
+   stage into its gutter with negative margins, and those must keep working when the cap is off. */
+.charge-diagram{display:flex;flex-direction:column}
+.charge-diagram>.cd-stage{align-self:center;flex:none;box-sizing:border-box;
+ width:min(100% + 2 * var(--card-gutter,0px),calc(min(62vh,700px) * 720 / 430));aspect-ratio:720/430}
+.cd-stage>.cd-svg{width:100%;height:100%;max-height:none;aspect-ratio:auto}
+@media print{.charge-diagram>.cd-stage{width:100%}}
 /* Symbols: serif italic, sized to be read across a room. */
-.cd-axes text,.cd-dimension text,.cd-svg .cd-point-label,.cd-svg .cd-vector-label,.cd-triangle text,.cd-svg .cd-origin,.cd-svg .cd-plus{font-family:var(--font-display),Georgia,serif;font-style:italic}
-.cd-axes text{font-size:22px;font-weight:600;fill:var(--cd-ink)}
-.cd-dimension text{font-size:20px;font-weight:600;fill:var(--cd-ink)}
-.cd-svg .cd-point-label{font-size:23px;font-weight:600;stroke-width:6px}
-.cd-svg .cd-vector-label{font-size:19px;font-weight:600;stroke-width:6px}
-.cd-triangle text{font-size:19px}
-.cd-svg .cd-origin{font-size:15px;font-style:normal;font-family:var(--font-mono),monospace}
-.cd-svg .cd-plus{font-size:13px;font-style:normal;font-weight:700}
+/* ONE TYPE SCALE FOR THE SYMBOLS. Every letter that stands for a quantity -- the axes, the lengths,
+   the angle, the bounds, the arrows' names, the origin -- is the display serif in italic at one size,
+   and P one step larger. They used to come out in three faces from 13 to 23px for one kind of mark,
+   with the origin in a mono face that read as the digit zero.
+   `--cd-k` is set from the figure's rendered width: below the 720px the drawing is laid out at, the
+   labels are counter-scaled so they stay readable on a phone while the drawing shrinks. */
+.charge-diagram{--cd-sym:17.5px;--cd-sym-p:20.5px}
+.cd-axes text,.cd-dimension text,.cd-triangle text,.cd-svg .cd-origin,.cd-svg .cd-end,.cd-svg .cd-vector-label,.cd-svg .cd-point-label,
+.cd-svg .cd-source-tag text,.cd-svg .cd-bound text,.cd-svg .cd-gauge text,.cd-svg .cd-zero{
+ font-family:var(--font-display),Georgia,serif;font-style:italic;font-weight:600;font-size:calc(var(--cd-sym) * var(--cd-k,1))}
+.cd-svg .cd-point-label{font-size:calc(var(--cd-sym-p) * var(--cd-k,1));stroke-width:6px}
+.cd-svg .cd-vector-label{stroke-width:6px}
+.cd-axes text{fill:var(--cd-ink)}
+.cd-svg .cd-origin{fill:var(--cd-ink)}
+.cd-svg .cd-end{fill:var(--cd-ink)}
 /* Prose annotation stays sans and stays quiet — it is not the figure. */
-.cd-svg text{font-family:var(--font-geist-sans),system-ui,sans-serif;font-size:13px;font-weight:500}
+.cd-svg :where(text){font-family:var(--font-geist-sans),system-ui,sans-serif;font-size:13px;font-weight:500}
 .cd-svg .cd-kicker{font-size:11px;letter-spacing:.14em;font-weight:600}
 .cd-svg .cd-small{font-size:12px}
-.cd-svg .cd-footer{font-size:12px}
-.cd-svg .cd-zero{font-size:14px;font-weight:600}
+.cd-svg .cd-footer{font-size:calc(12px * var(--cd-k,1))}
 .cd-triangle .cd-triangle-note{font-size:11px}
 .cd-scale text{font-size:11px}
 /* Rules: confident, not hairline. */
@@ -96,26 +113,24 @@
 .cd-construction{stroke-width:2.1;stroke-dasharray:7 6;stroke-opacity:.8}
 .cd-partner{stroke-width:2.4;stroke-dasharray:6 4}
 .cd-infinity path,.cd-continuation{stroke-width:3.2}
-.cd-infinity text{font-size:15px;font-weight:600}
+.cd-svg .cd-infinity text{font-weight:600}
 .cd-triangle path,.cd-triangle line{stroke-width:1.9;stroke-dasharray:6 5}
 .cd-point{stroke-width:3.4}
 .cd-point-halo{stroke-width:2.2}
 .cd-source-tag line{stroke-width:1.8}
-.cd-source-tag text{font-size:13px;font-weight:600;stroke-width:5px}
+.cd-source-tag text{stroke-width:5px}
 .cd-bound rect{stroke-width:3.2}
-.cd-bound text{font-size:15px;font-weight:700;stroke-width:5px}
+.cd-bound text{stroke-width:5px}
 .cd-divider{stroke-width:1.2;opacity:.4}
 /* The caption belongs to the figure: same left edge, quiet, one size. */
 .cd-caption{padding:14px 2px 0;font-size:13px;letter-spacing:0}
 @media(max-width:600px){
- .cd-axes text{font-size:19px}.cd-dimension text{font-size:17px}
- .cd-svg .cd-point-label{font-size:19px}.cd-svg .cd-vector-label{font-size:16px}
- .cd-svg text{font-size:12px}.cd-svg .cd-kicker{font-size:10px}
+ .cd-svg :where(text){font-size:12px}.cd-svg .cd-kicker{font-size:10px}
  .cd-caption{padding:12px 2px 0;font-size:12px;gap:10px}
 }
 
 .cd-announcement{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0}
-.cd-gauge line{stroke:var(--ghost,#6d8492);stroke-width:1.6;stroke-opacity:.5}
+.cd-gauge .cd-gauge-base{stroke:var(--cd-ink);stroke-width:1.8;stroke-opacity:.55;stroke-linecap:round}
 /* The column of every piece's contribution. The empty slots are drawn faintly so the reader can
    see the whole pile before it is added up; a thin line of the diagram's own background between
    slots keeps each piece a separate segment instead of one bar. Slots stay filled, not hollow,
@@ -126,7 +141,7 @@
 .cd-stack-fill{fill:var(--field,#0b6b63);fill-opacity:.85;stroke:var(--diagram,#ffffff);stroke-width:1;pointer-events:none}
 .cd-stack-fill.is-lit{fill:var(--charge,#b8460f);fill-opacity:.9}
 @media (prefers-reduced-motion:reduce){.cd-stack-slot{transition:none}}
-.cd-svg .cd-gauge text{fill:var(--field,#0b6b63);font-family:var(--font-display),Georgia,serif;font-style:italic;font-size:16px;font-weight:600;paint-order:stroke;stroke:var(--diagram,#ffffff);stroke-width:5px}
+.cd-svg .cd-gauge text{fill:var(--field,#0b6b63);paint-order:stroke;stroke:var(--diagram,#ffffff);stroke-width:5px}
 .cd-svg .cd-gauge-readout{font-style:normal;font-family:var(--font-mono),monospace;font-size:12px}
 
 /* A factor of the integral is lifted off the feature that measures it, so the target
@@ -155,6 +170,7 @@
 .cd-focus-projection .cd-triangle path,.cd-focus-projection .cd-triangle line{stroke:var(--term-projection);stroke-width:2.1;stroke-dasharray:none}
 .cd-focus-projection .cd-triangle .cd-angle{fill:var(--term-projection);font-weight:700}
 .cd-svg .cd-triangle .cd-angle-arc{fill:none;stroke:var(--ghost);stroke-width:1.4;stroke-dasharray:none}
+.cd-svg .cd-triangle .cd-angle-leader{stroke:var(--ghost);stroke-width:1.1;stroke-dasharray:none}
 .cd-focus-projection .cd-triangle .cd-angle-arc{stroke:var(--term-projection);stroke-width:2}
 .cd-focus-bounds .cd-bound rect{fill:var(--term-bounds);stroke:var(--term-bounds)}
 .cd-focus-bounds .cd-bound text{fill:var(--term-bounds);font-weight:600}
@@ -260,7 +276,8 @@
    survives and the parts that cancel, and the chain -- so the flat copies stay in the tree, where
    they take the clicks and carry the labels, but are not painted over the scene a second time. */
 .cd-in-space.cd-building .cd-piece path,.cd-in-space.cd-building .cd-piece rect,.cd-in-space.cd-building .cd-seams,
-.cd-in-space.cd-building .cd-disk-sweep,.cd-in-space.cd-building .cd-grow-pair .cd-vector,.cd-in-space.cd-building .cd-grow-parts .cd-vector,
+.cd-in-space.cd-building .cd-disk-sweep,.cd-in-space.cd-building .cd-grow-pair .cd-vector line,.cd-in-space.cd-building .cd-grow-pair .cd-vector path,
+.cd-in-space.cd-building .cd-grow-parts .cd-vector line,.cd-in-space.cd-building .cd-grow-parts .cd-vector path,
 .cd-in-space.cd-building .cd-sum-chain,.cd-in-space.cd-building .cd-sum-joint{opacity:0!important}
 /* The sheet's side-view continuation marks are drawn at fixed places on the screen for the flat
    view's edge-on plane. In space the plane runs off in every direction and dissolves as it goes, so
@@ -284,7 +301,7 @@
    instead, which lets a line pass under it without either one becoming unreadable. */
 .cd-help{opacity:.45;transition:opacity .25s ease;pointer-events:none}
 .charge-diagram:hover .cd-help,.cd-svg:focus-within .cd-help{opacity:.95}
-.cd-svg .cd-help text{fill:var(--muted-foreground);font-size:11px;font-weight:500;
+.cd-svg .cd-help text{fill:var(--muted-foreground);font-size:calc(11px * var(--cd-k,1));font-weight:500;
  letter-spacing:.02em;paint-order:stroke;stroke:var(--diagram,#fff);stroke-width:4px;stroke-linejoin:round}
 @media (prefers-reduced-motion:reduce){.cd-help{transition:none}}
 
@@ -299,7 +316,7 @@
 .cd-cube-face{fill:var(--field,#0b6b63);stroke:var(--diagram,#fff);stroke-width:1.2;stroke-linejoin:round;transition:filter .18s ease;cursor:pointer}
 .cd-cube-side:hover .cd-cube-face{filter:brightness(1.28)}
 .cd-cube-face:focus-visible{outline:2px solid var(--field);outline-offset:2px}
-.cd-cube-label{fill:var(--on-accent,#fff);font-weight:600;letter-spacing:.06em;pointer-events:none;font-family:var(--font-geist-sans),system-ui,sans-serif}
+.cd-svg .cd-cube-label{fill:var(--on-accent,#fff);font-weight:650;letter-spacing:.06em;pointer-events:none;font-family:var(--font-geist-sans),system-ui,sans-serif}
 /* The four steppers around it, as CAD tools put them. */
 .cd-cube-step{cursor:pointer;opacity:.34;transition:opacity .18s ease}
 .cd-cube:hover .cd-cube-step{opacity:.72}
@@ -315,7 +332,7 @@
 
 /* The stage's name, inside the figure where the reader is looking. Re-keyed per stage so it
    fades in afresh each time the run moves on. */
-.cd-svg .cd-stage-label{font-family:var(--font-display),Georgia,serif;font-size:17px;font-weight:600;fill:var(--field);paint-order:stroke;stroke:var(--diagram,#fff);stroke-width:5px;animation:cd-stage-in .5s ease-out both}
+.cd-svg .cd-stage-label{font-family:var(--font-display),Georgia,serif;font-size:calc(17px * var(--cd-k,1));font-weight:600;fill:var(--field);paint-order:stroke;stroke:var(--diagram,#fff);stroke-width:5px;animation:cd-stage-in .5s ease-out both}
 @keyframes cd-stage-in{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
 
 /* The field is background to the argument while it runs. At full strength its lines drown the
@@ -354,7 +371,8 @@
 .cd-sum-joint{fill:var(--diagram,#fff);stroke:var(--contribution,#2f9089);stroke-width:1.8}
 
 /* Potential lessons: until the stack is being built, only the lit piece's segment shows. */
-.cd-hide-total .cd-stack-slot:not(.is-lit){fill-opacity:.03}
+/* Faint, not gone: the lit piece is seen to be one block of a pile, not a block floating on nothing. */
+.cd-hide-total .cd-stack-slot:not(.is-lit){fill-opacity:.08}
 .cd-hide-total .cd-gauge text{opacity:0}
 
 /* ARRIVING, NOT APPEARING. While the run plays, an arrow grows out of P instead of popping in at
@@ -458,3 +476,16 @@
    width it still fits beside the view modes, where hugging the right edge is the correct
    alignment -- so the override is deliberately below the phone breakpoint, not at it. */
 @media(max-width:460px){.cd-pad{margin-left:0}}
+
+/* P DURING THE RUN. The arrows at P are the subject then, and the resting halo -- sixteen pixels
+   of filled white with a glow round it -- swallowed the angle marks and the first stretch of every
+   arrow leaving P. While the run plays it is a hairline ring just round the dot. */
+.cd-building .cd-point-halo{fill:none;stroke-width:1.2;stroke-opacity:.8}
+/* A limit lying off the page: an arrowhead on the frame's edge, pointing on toward it. */
+.cd-bound.is-edge path{fill:var(--field,#0b6b63);stroke:var(--diagram,#ffffff);stroke-width:1.5;stroke-linejoin:round}
+.cd-focus-bounds .cd-bound.is-edge path{fill:var(--term-bounds)}
+/* Dark mode: a label laid over the charge's orange keeps a ring of the ground colour round it. */
+.dark .cd-svg .cd-dimension text,.dark .cd-svg .cd-end,.dark .cd-svg .cd-axes text,.dark .cd-svg .cd-origin,.dark .cd-triangle text{paint-order:stroke;stroke:var(--diagram);stroke-width:4px;stroke-linejoin:round}
+/* The ramp's rod is an outline, crisp like every other rod's: its density is shown by its pieces' fill
+   alone. It used to be a 17px translucent band, a blur round the very thing being read. */
+.cd-source-rod.is-ramp{fill:none}

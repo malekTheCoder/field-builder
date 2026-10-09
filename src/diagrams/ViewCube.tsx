@@ -94,23 +94,33 @@ export function ViewCube({view, at, size = 22, onPick, onSpin, onSpinStart, onSt
     {ordered.map(f => {
       const towards = facing(f, d);
       if (towards <= .06) return null;      // facing away: not drawn, and not clickable
-      const centre = place([f.normal[0] * 1.03, f.normal[1] * 1.03, f.normal[2] * 1.03]);
       return <g key={f.key} className="cd-cube-side" data-face={f.key}>
         {/* Shaded by how squarely it faces the camera. Every face painted the same made the cube
-            read as one flat blob, because adjacent faces had no edge between them. */}
+            read as one flat blob, because adjacent faces had no edge between them. Opaque: shaded by
+            mixing toward the ground colour rather than by letting the field lines through, which made
+            the faces' names unreadable over a busy figure. */}
         <polygon className="cd-cube-face" tabIndex={0} role="button" aria-label={f.name}
           points={corners(f.normal).map(point).join(' ')}
-          style={{fillOpacity: (.26 + .55 * towards).toFixed(3)}}
+          style={{fill: `color-mix(in oklab, var(--field, #0b6b63) ${(38 + 52 * towards).toFixed(0)}%, var(--diagram, #ffffff))`, fillOpacity: 1}}
           onClick={ev => { ev.stopPropagation(); onPick(f.view, f.name); }}
           onKeyDown={ev => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); onPick(f.view, f.name); } }}>
           <title>{f.name}</title>
         </polygon>
-        {/* Only on a face square enough on to read a word. A name squeezed onto a sliver is worse
-            than no name. */}
-        {towards > .55 && <text className="cd-cube-label" x={centre.x.toFixed(2)} y={centre.y.toFixed(2)}
-          textAnchor="middle" dominantBaseline="middle"
-          style={{fontSize: `${(size * .29).toFixed(1)}px`}}>{f.label}</text>}
       </g>;
+    })}
+    {/* The names go on after every face is painted, so a nearer face cannot paint over the end of a
+        name. Only on a face square enough on to read a word -- a name squeezed onto a sliver is worse
+        than no name -- set large enough to read (it was six pixels), scaled with the figure's other
+        labels on a phone, and never wider than its face. */}
+    {ordered.map(f => {
+      const towards = facing(f, d);
+      if (towards <= .55) return null;
+      const centre = place([f.normal[0] * 1.03, f.normal[1] * 1.03, f.normal[2] * 1.03]);
+      const xs = corners(f.normal).map(c => place(c).x), across = Math.max(...xs) - Math.min(...xs);
+      const fit = .86 * across / (.7 * f.label.length);
+      return <text key={f.key} className="cd-cube-label" x={centre.x.toFixed(2)} y={centre.y.toFixed(2)}
+        textAnchor="middle" dominantBaseline="middle"
+        style={{fontSize: `min(${fit.toFixed(1)}px, calc(${Math.max(9, size * .42).toFixed(1)}px * var(--cd-k, 1)))`}}>{f.label}</text>;
     })}
     {onStep && steps.map(s => <g key={s.key} className="cd-cube-step" role="button" tabIndex={0} aria-label={s.title}
       transform={`translate(${(at.x + s.at.x).toFixed(1)} ${(at.y + s.at.y).toFixed(1)})`}
