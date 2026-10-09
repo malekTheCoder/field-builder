@@ -7,6 +7,7 @@ import {bodyReach,fadeOut,frameExtent,SHEET_FADE,surfaceOpacity,visibleRadii,wir
 import {spaceGrid,spaceLines,type Layout} from '../field3d';
 import {coarsen} from '../sampling';
 import {arrowLength} from '../vectorfield';
+import {cutPiece,type RunScene} from './runScene';
 /** The 3D half of the figure: the charge as a real body with depth, and the field around it
  * in space, under the SVG that carries every label and every control.
  *
@@ -49,7 +50,13 @@ export type FieldStageProps={
   * and pitch from props would leave the body behind the drawing. While `animating`, the
   * stage reads the live view every frame instead. */
  animating?:boolean; getView?:()=>{yaw:number;pitch:number};
+ /** "Watch it build", while it is open: what the scene draws of each stage. See `runScene`. */
+ run?:RunScene|null;
 };
+/** The cuts are made in order along the charge, at the same pace as the flat figure's
+ * `.cd-stage-pieces .cd-seam` animation, so a reader who flips between 2D and 3D sees one run. */
+const CUT={spread:1.5,delay:.2,each:.42};
+const CUT_MS=(CUT.spread+CUT.delay+CUT.each)*1000+60;
 type Live={dispose:()=>void;update:(p:FieldStageProps)=>void};
 const sampleKey=(p:FieldStageProps)=>{
  if(p.bodyPath?.length){
@@ -201,6 +208,148 @@ export function FieldStage(props:FieldStageProps){
     const headLen=Math.min(length*.45,thick*4.2),shaftLen=Math.max(length-headLen,1e-4);
     a.shaft.quaternion.copy(tmpQ);a.shaft.scale.set(thick,shaftLen,thick);a.shaft.position.set(from.x+u.x*shaftLen/2,from.y+u.y*shaftLen/2,from.z+u.z*shaftLen/2);
     a.head.quaternion.copy(tmpQ);a.head.scale.set(thick*2.6,headLen,thick*2.6);a.head.position.set(from.x+u.x*(shaftLen+headLen/2),from.y+u.y*(shaftLen+headLen/2),from.z+u.z*(shaftLen+headLen/2));
+   };
+   // ---- WATCH IT BUILD, AS BODIES ------------------------------------------------------------
+   // Every stage of the run used to be the flat figure's, painted over the scene: the cuts, the
+   // mirror partner, the pieces already added, the parts of the arrow and the chain. On a rod turned
+   // into space most of that was not painted at all, because the flat pieces are laid out for the
+   // flat view. These are the same things as objects in the scene, so they turn with it, sit behind
+   // and in front of what they really are behind and in front of, and read in any view.
+   /** Tubes along polylines, one colour each, closed at both ends and merged into one geometry.
+    *
+    * By hand rather than through TubeGeometry: in the limit there are a hundred and sixty pieces,
+    * cut in two while the next doubling grows, rebuilt as the gaps close -- and a Catmull-Rom curve
+    * and its Frenet frames for every one of them, every few frames, is the slow part of the scene.
+    * A polyline with frames carried along it is all a short piece needs. The ends are capped,
+    * because a cut tube is hollow, and a hollow piece seen end-on reads as a pipe. */
+   const tubes=(list:readonly {points:readonly Vec[];rgba:readonly number[]}[],radius:number,radial=10)=>{
+    const pos:number[]=[],nor:number[]=[],col:number[]=[],idx:number[]=[];
+    const t=new THREE.Vector3(),n=new THREE.Vector3(),b=new THREE.Vector3(),aside=new THREE.Vector3();
+    const ring=(c:Vec,normal:{x:number;y:number;z:number}|null,rgba:readonly number[])=>{
+     for(let j=0;j<radial;j++){
+      const angle=2*Math.PI*j/radial,cs=Math.cos(angle),sn=Math.sin(angle);
+      const dx=n.x*cs+b.x*sn,dy=n.y*cs+b.y*sn,dz=n.z*cs+b.z*sn;
+      pos.push(c.x+dx*radius,c.y+dy*radius,c.z+dz*radius);
+      if(normal)nor.push(normal.x,normal.y,normal.z);else nor.push(dx,dy,dz);
+      col.push(rgba[0],rgba[1],rgba[2],rgba[3]);
+     }
+    };
+    const frame=(pts:readonly Vec[],i:number,first:boolean)=>{
+     const a=pts[Math.max(0,i-1)],c=pts[Math.min(pts.length-1,i+1)];
+     t.set(c.x-a.x,c.y-a.y,c.z-a.z).normalize();
+     // Carried along rather than recomputed, so the tube does not twist: the last normal, with
+     // the new tangent's share taken out.
+     if(!first)n.addScaledVector(t,-n.dot(t));
+     if(first||n.lengthSq()<1e-12)n.crossVectors(t,Math.abs(t.x)<.9?aside.set(1,0,0):aside.set(0,1,0));
+     n.normalize();b.crossVectors(t,n);
+    };
+    for(const {points,rgba} of list){
+     // A step of no length has no direction to frame, and trimming can leave one at a cut.
+     const pts=points.filter((p,i)=>i===0||Math.hypot(p.x-points[i-1].x,p.y-points[i-1].y,p.z-points[i-1].z)>1e-7);
+     if(pts.length<2)continue;
+     const m=pts.length;
+     let previous=-1;
+     for(let i=0;i<m;i++){
+      frame(pts,i,i===0);
+      const here=pos.length/3;
+      ring(pts[i],null,rgba);
+      // Wound so the outside faces out: the lit side is the side the camera sees.
+      if(previous>=0)for(let j=0;j<radial;j++){
+       const a=previous+j,a2=previous+(j+1)%radial,c=here+j,d=here+(j+1)%radial;
+       idx.push(a,a2,c,a2,d,c);
+      }
+      previous=here;
+      // A cap at each end, on the same frame as the ring it closes so the two meet edge to edge.
+      if(i===0||i===m-1){
+       const sign=i===0?-1:1,centre=pos.length/3,normal={x:t.x*sign,y:t.y*sign,z:t.z*sign};
+       pos.push(pts[i].x,pts[i].y,pts[i].z);nor.push(normal.x,normal.y,normal.z);col.push(rgba[0],rgba[1],rgba[2],rgba[3]);
+       ring(pts[i],normal,rgba);
+       for(let j=0;j<radial;j++){
+        const v=centre+1+j,w=centre+1+(j+1)%radial;
+        if(sign<0)idx.push(centre,w,v);else idx.push(centre,v,w);
+       }
+      }
+     }
+    }
+    const g=new THREE.BufferGeometry();
+    g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));
+    g.setAttribute('normal',new THREE.Float32BufferAttribute(nor,3));
+    g.setAttribute('color',new THREE.Float32BufferAttribute(col,4));
+    g.setIndex(idx);
+    return g;
+   };
+   // The pieces of a cut wire. Solid ones are opaque; the ones that have stepped back are drawn
+   // see-through and do not write depth, so a field line or the partner behind one is not cut out.
+   const pieceMaterial=new THREE.MeshStandardMaterial({roughness:.42,metalness:.06,vertexColors:true});
+   const ghostMaterial=new THREE.MeshStandardMaterial({roughness:.42,metalness:.06,vertexColors:true,transparent:true,depthWrite:false});
+   const pieceSolid=new THREE.Mesh(new THREE.BufferGeometry(),pieceMaterial),pieceGhost=new THREE.Mesh(new THREE.BufferGeometry(),ghostMaterial);
+   // The part of a surface already summed: a disc out to where the sum has reached, over the body.
+   const fillMaterial=new THREE.MeshStandardMaterial({roughness:.5,metalness:0,side:THREE.DoubleSide,transparent:true,vertexColors:true,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-1,polygonOffsetUnits:-2});
+   const fill=new THREE.Mesh(new THREE.BufferGeometry(),fillMaterial);
+   // A surface's cuts, as the circles it is cut along.
+   const cutMaterial=new THREE.LineBasicMaterial({transparent:true}),growMaterial=new THREE.LineBasicMaterial({transparent:true});
+   const cuts=new THREE.Group();
+   const runBodies=new THREE.Group();runBodies.add(pieceSolid,fill,cuts,pieceGhost);scene.add(runBodies);
+   // The mirror partner: the same material and weight as the chosen piece it answers.
+   const partnerBody=new THREE.Mesh(new THREE.BufferGeometry(),elementMaterial);
+   // The parts of one piece's arrow. The part that survives is solid, like the arrow it came from;
+   // the parts that go, and the partner's arrow, are dashed, as they are in the flat figure. The
+   // two parts that cancel have their own material, because they fade as they shrink.
+   const dashMaterial=new THREE.MeshStandardMaterial({roughness:.45,metalness:.05});
+   const fadeMaterial=new THREE.MeshStandardMaterial({roughness:.45,metalness:.05,transparent:true,depthWrite:false});
+   const DASHES=64,dashGeometry=new THREE.CylinderGeometry(1,1,1,8,1),headGeometry=new THREE.ConeGeometry(1,1,14);
+   const dashed=(material:InstanceType<typeof THREE.MeshStandardMaterial>)=>{
+    const dashes=new THREE.InstancedMesh(dashGeometry,material,DASHES),head=new THREE.Mesh(headGeometry,material),group=new THREE.Group();
+    // Instances move every frame of the cancellation; a bounding sphere cached from the first
+    // frame would cull them wherever they had moved to.
+    dashes.frustumCulled=false;dashes.count=0;group.add(dashes,head);group.visible=false;
+    return {group,dashes,head};
+   };
+   const keepArrow=arrow(partMaterial),dropArrow=dashed(dashMaterial),pairDropArrow=dashed(fadeMaterial),partnerArrow=dashed(dashMaterial),partnerDropArrow=dashed(fadeMaterial);
+   const dashM=new THREE.Matrix4(),dashP=new THREE.Vector3(),dashS=new THREE.Vector3();
+   /** A dashed arrow: dashes along the shaft and a solid head, so it is plainly an arrow and
+    * plainly not one of the solid ones. */
+   const layDashed=(a:ReturnType<typeof dashed>,from:Vec,dir:Vec|null,thick:number)=>{
+    const length=dir?Math.hypot(dir.x,dir.y,dir.z):0;
+    if(!dir||!(length>1e-4)){a.group.visible=false;return;}
+    a.group.visible=true;
+    const u=tmpV.set(dir.x/length,dir.y/length,dir.z/length);tmpQ.setFromUnitVectors(Y,u);
+    const headLen=Math.min(length*.45,thick*4.6),shaftLen=Math.max(length-headLen,0);
+    const dash=thick*4.2,period=dash+thick*3.4,count=Math.min(DASHES,Math.max(shaftLen>1e-4?1:0,Math.round((shaftLen+thick*3.4)/period)));
+    for(let k=0;k<count;k++){
+     const s0=shaftLen*k/count,s1=Math.min(shaftLen,s0+Math.min(dash,shaftLen/count)),mid=(s0+s1)/2;
+     dashP.set(from.x+u.x*mid,from.y+u.y*mid,from.z+u.z*mid);dashS.set(thick,Math.max(1e-4,s1-s0),thick);
+     dashM.compose(dashP,tmpQ,dashS);a.dashes.setMatrixAt(k,dashM);
+    }
+    a.dashes.count=count;a.dashes.instanceMatrix.needsUpdate=true;
+    a.head.quaternion.copy(tmpQ);a.head.scale.set(thick*2.4,headLen,thick*2.4);
+    a.head.position.set(from.x+u.x*(shaftLen+headLen/2),from.y+u.y*(shaftLen+headLen/2),from.z+u.z*(shaftLen+headLen/2));
+   };
+   // The chain: every piece's arrow laid tip to tail, as links, with a bead where each one joins.
+   const LINKS=256,chainMaterial=new THREE.MeshStandardMaterial({roughness:.45,metalness:.05}),jointMaterial=new THREE.MeshStandardMaterial({roughness:.35,metalness:0});
+   const chainLinks=new THREE.InstancedMesh(dashGeometry,chainMaterial,LINKS),chainJoints=new THREE.InstancedMesh(new THREE.SphereGeometry(1,14,10),jointMaterial,LINKS);
+   chainLinks.frustumCulled=false;chainJoints.frustumCulled=false;chainLinks.count=0;chainJoints.count=0;
+   marks.add(partnerBody,keepArrow.group,dropArrow.group,pairDropArrow.group,partnerArrow.group,partnerDropArrow.group,chainLinks,chainJoints);
+   const linkA=new THREE.Vector3(),linkQ=new THREE.Quaternion(),one=new THREE.Vector3(1,1,1);
+   const layChain=(from:Vec,chain:readonly Vec[]|null,thick:number)=>{
+    const links=chain?Math.min(LINKS,chain.length-1):0;
+    let drawn=0;
+    for(let k=0;k<links;k++){
+     const a=chain![k],b=chain![k+1],dx=b.x-a.x,dy=b.y-a.y,dz=b.z-a.z,l=Math.hypot(dx,dy,dz);
+     if(l<1e-6)continue;
+     linkQ.setFromUnitVectors(Y,linkA.set(dx/l,dy/l,dz/l));
+     dashP.set(from.x+a.x+dx/2,from.y+a.y+dy/2,from.z+a.z+dz/2);dashS.set(thick,l,thick);
+     dashM.compose(dashP,linkQ,dashS);chainLinks.setMatrixAt(drawn++,dashM);
+    }
+    chainLinks.count=drawn;chainLinks.instanceMatrix.needsUpdate=true;
+    // Beads only while they can be told apart, as in the flat figure, which stops marking the joins
+    // past sixty-five pieces: past that they are a bead necklace, not a chain of arrows.
+    const beads=chain&&chain.length<=65?chain.length-1:0;
+    for(let k=0;k<beads;k++){
+     const c=chain![k+1];dashP.set(from.x+c.x,from.y+c.y,from.z+c.z);
+     dashM.compose(dashP,linkQ.identity(),dashS.copy(one).multiplyScalar(thick*2.2));chainJoints.setMatrixAt(k,dashM);
+    }
+    chainJoints.count=beads;chainJoints.instanceMatrix.needsUpdate=true;
    };
    // A unit arrow along +y, from 0 to 1: shaft then head, merged so one instanced draw covers
    // the whole lattice.
@@ -369,6 +518,126 @@ export function FieldStage(props:FieldStageProps){
     if(mesh.instanceColor)mesh.instanceColor.needsUpdate=true;
     field.add(mesh);
    };
+   // When the first stage began, so its cuts can be made one after another rather than all at once.
+   // Restarted whenever the run comes back to that stage, as the flat figure's animation is.
+   let cutStart=-Infinity,runStage='',piecesKey='',partnerKey='',cutsKey='',fillKey='';
+   const reducedMotion=()=>{try{return window.matchMedia('(prefers-reduced-motion: reduce)').matches;}catch{return false;}};
+   /** How far the cut a fraction `t` along the charge has opened, 0 to 1. Reduced motion makes
+    * every cut at once, as the flat figure does: the cuts are the argument, the stagger is not. */
+   const cutShown=(t:number,now:number)=>{
+    if(runStage!=='pieces')return 1;
+    const k=Math.max(0,Math.min(1,((now-cutStart)/1000-(t*CUT.spread+CUT.delay))/CUT.each));
+    return 1-(1-k)**3;
+   };
+   const cutting=()=>runStage==='pieces'&&performance.now()-cutStart<CUT_MS;
+   const quantise=(v:number,steps=40)=>Math.round(v*steps)/steps;
+   const toneColour=(tone:string,positive:boolean)=>new THREE.Color(tone==='added'?(positive?0xd9834b:0x4b9bd9):(positive?0xf0975c:0x5cb8f0));
+   const applyRun=(p:FieldStageProps,wr:number,positive:boolean,dark:boolean,spread:number,thick:number)=>{
+    const run=p.run??null,now=performance.now();
+    const stage=run?.stage??'';
+    if(stage!==runStage){if(stage==='pieces')cutStart=reducedMotion()?-Infinity:now;runStage=stage;}
+    const wire=!!run&&run.kind==='wire',n=run?.pieces.length??0;
+    // The width of a cut: a few wire radii, so a gap is unmistakably a gap at the default size and
+    // still a gap on a rod cut thirty ways.
+    //
+    // Snapped to a forty-eighth of that. In the limit the gaps close continuously while the pieces
+    // double and their mid-cuts grow, and every change of width is a rebuild of up to a hundred and
+    // sixty pieces; snapped, the closing is still smooth to the eye and costs a few dozen rebuilds.
+    const full=wr*3.2,step=full/48,snap=(v:number)=>Math.round(v/step)*step;
+    const gapWidth=full*(run?.open??0),midWidth=snap(full*(run?.open??0)*(run?.split??0));
+    const gap=(t:number)=>snap(gapWidth*cutShown(t,now));
+    const ends=(i:number)=>({
+     head:run!.closed||i>0?gap(i/n):0,
+     // The ring's last cut is its first: the cut at a full turn is the cut at zero.
+     tail:run!.closed||i<n-1?gap(run!.closed&&i===n-1?0:(i+1)/n):0,
+    });
+    const pieceOf=(i:number)=>{const piece=run!.pieces[i];return piece&&'path' in piece?piece.path:null;};
+    const cutOf=(i:number,path:readonly Vec[])=>{const e=ends(i);return cutPiece(path,e.head,e.tail,midWidth);};
+    const opened=wire&&run!.open>.004;
+    // A cut wire is drawn as its pieces, not as one body with marks on it.
+    body.visible=!opened;
+    const signature=(v:Vec|undefined)=>v?`${v.x.toFixed(3)},${v.y.toFixed(3)},${v.z.toFixed(3)}`:'-';
+    const nextPieces=opened?`${n}:${run!.tones.join('')}:${Array.from({length:n},(_,i)=>{const e=ends(i);return `${(e.head/step).toFixed(0)},${(e.tail/step).toFixed(0)}`;}).join(';')}:${(midWidth/step).toFixed(0)}:${signature(pieceOf(0)?.[0])}:${signature(pieceOf(n-1)?.at(-1))}:${wr.toFixed(4)}:${positive}`:'';
+    if(nextPieces!==piecesKey){
+     piecesKey=nextPieces;
+     const solid:{points:Vec[];rgba:number[]}[]=[],ghost:{points:Vec[];rgba:number[]}[]=[];
+     if(opened)run!.tones.forEach((tone,i)=>{
+      const path=pieceOf(i);
+      if(!path)return;
+      const c=toneColour(tone,positive),rgba=[c.r,c.g,c.b,tone==='dim'?.26:1];
+      for(const points of cutOf(i,path))(tone==='dim'?ghost:solid).push({points,rgba});
+     });
+     pieceSolid.geometry.dispose();pieceGhost.geometry.dispose();
+     pieceSolid.geometry=tubes(solid,wr,12);pieceGhost.geometry=tubes(ghost,wr*.97,12);
+    }
+    pieceSolid.visible=opened;pieceGhost.visible=opened;
+    // The chosen piece, cut exactly as the others are: drawn whole it bridged its own two gaps and
+    // looked longer than the pieces round it.
+    const selectedPath=opened&&p.element&&'path' in p.element?pieceOf(run!.selected):null;
+    if(selectedPath){
+     const key=`r:${nextPieces}:${run!.selected}:${thick.toFixed(4)}`;
+     if(elementKey!==key){
+      element.geometry.dispose();
+      element.geometry=tubes(cutOf(run!.selected,selectedPath).map(points=>({points,rgba:[1,1,1,1]})),thick,14);
+      elementKey=key;
+     }
+    }
+    // The partner: a whole piece, cut like the rest -- or, on a ring cut an odd number of ways, the
+    // arc straight across, which is not a piece and so has no cuts of its own to respect.
+    const partner=run?.partner??null;
+    const nextPartner=partner?`${partner.across}:${partner.index}:${signature(partner.path[0])}:${signature(partner.path.at(-1))}:${opened?nextPieces:'whole'}:${thick.toFixed(4)}`:'';
+    if(nextPartner!==partnerKey){
+     partnerKey=nextPartner;
+     partnerBody.geometry.dispose();
+     const paths=!partner?[]:partner.index!==null&&opened?cutOf(partner.index,partner.path):[partner.path];
+     partnerBody.geometry=tubes(paths.map(points=>({points,rgba:[1,1,1,1]})),thick,14);
+    }
+    partnerBody.visible=!!partner;
+    // A surface's cuts replace the resting rings while the run is open: they are the partition being
+    // summed, at its edges, rather than one circle through the middle of every ring.
+    slices.visible=!run||wire;
+    const seams=run&&!wire?run.seams:[];
+    const nextCuts=seams.map(s=>`${s.radius.toFixed(4)}:${s.grow<1?'g':'c'}`).join(';');
+    if(nextCuts!==cutsKey){
+     cutsKey=nextCuts;clearGroup(cuts);
+     for(const s of seams){
+      const loop=new THREE.Line(unitCircle(96),s.grow<1?growMaterial:cutMaterial);
+      loop.scale.setScalar(Math.max(.01,s.radius));loop.position.z=wr*.06;loop.userData.at=s.at;cuts.add(loop);
+     }
+    }
+    // Each circle is drawn round as its cut is made, a knife going once round the surface.
+    for(const loop of cuts.children)(loop as InstanceType<typeof THREE.Line>).geometry.setDrawRange(0,Math.ceil(97*cutShown(Number(loop.userData.at)||0,now)));
+    const lineColour=positive?0xc2703a:0x3a7fc2;
+    cutMaterial.color.set(lineColour);cutMaterial.opacity=.8*(run?.open??0);
+    growMaterial.color.set(lineColour);growMaterial.opacity=.8*(run?.open??0)*(run?.split??0);
+    // How far the sum has reached across a surface. A sheet's sum reaches past the picture, so its
+    // shading dissolves exactly as the sheet under it does rather than ending at a hard rim.
+    const filled=run&&!wire?run.filled:null;
+    const reach=p.kind==='sheet'?spread:Math.max(.01,p.radius);
+    const nextFill=filled!==null?`${p.kind}:${quantise(Math.min(filled,reach)/reach,400)}:${spread.toFixed(3)}:${positive}`:'';
+    if(nextFill!==fillKey){
+     fillKey=nextFill;fill.geometry.dispose();
+     const r=Math.max(.001,Math.min(filled??0,reach));
+     fill.geometry=filled===null?new THREE.BufferGeometry()
+      :p.kind==='sheet'?fadeGeometry(new THREE.RingGeometry(0,r,128,24),SHEET_FADE.inner*spread,SHEET_FADE.outer*spread,.42)
+      :fadeGeometry(new THREE.RingGeometry(0,r,128,4),0,0,.5);
+    }
+    fill.visible=filled!==null;fill.position.z=wr*.03;
+    fillMaterial.color.copy(toneColour('added',positive));
+    for(const m of [pieceMaterial,ghostMaterial]){m.emissive.set(positive?0x3a1c08:0x08243a);m.emissiveIntensity=dark?.85:.35;}
+    // The arrows at P, all at the figure's own scale.
+    const arrows=run?.arrows??null,P=p.point,plus=(a:Vec,b:Vec):Vec=>({x:a.x+b.x,y:a.y+b.y,z:a.z+b.z});
+    if(arrows?.keep)layArrow(keepArrow,P,arrows.keep,Math.hypot(arrows.keep.x,arrows.keep.y,arrows.keep.z),wr*.62);else keepArrow.group.visible=false;
+    const pairing=!!arrows?.partner;
+    layDashed(dropArrow,plus(P,arrows?.dropFrom??P),pairing?null:arrows?.drop??null,wr*.3);
+    layDashed(pairDropArrow,plus(P,arrows?.dropFrom??P),pairing?arrows!.drop:null,wr*.3);
+    layDashed(partnerArrow,P,arrows?.partner??null,wr*.4);
+    layDashed(partnerDropArrow,plus(P,arrows?.partnerKeep??P),arrows?.partnerDrop??null,wr*.3);
+    // The pair that cancels fades as it shrinks, never quite to nothing until it is gone.
+    fadeMaterial.opacity=Math.max(.12,1-(arrows?.cancelled??0));
+    layChain(P,run?.chain??null,wr*.6);
+    return !!selectedPath;
+   };
    const apply=(p:FieldStageProps)=>{
     // clientWidth for the same reason the 2D layer uses it: a bounding rect carries page
     // zoom, and sizing a drawing buffer from it makes the buffer grow with the zoom.
@@ -417,9 +686,11 @@ export function FieldStage(props:FieldStageProps){
     const wr=wireRadius(p.reach);
     point.position.set(p.point.x,p.point.y,p.point.z);point.scale.setScalar(wr*1.7);
     halo.position.copy(point.position);halo.scale.setScalar(wr*4.2);
-    if(p.element){
+    const thick=wr*1.5;
+    // The run goes first: while it has the wire cut up, it builds the chosen piece itself.
+    if(applyRun(p,wr,positive,dark,spread,thick))element.visible=true;
+    else if(p.element){
      element.visible=true;
-     const thick=wr*1.5;
      const key='annulus' in p.element
       ?`a:${p.element.annulus.inner.toFixed(4)}:${p.element.annulus.outer.toFixed(4)}:${thick.toFixed(4)}:${frameWorld.toFixed(2)}`
       :`p:${thick.toFixed(4)}:${p.element.path.map(v=>`${v.x.toFixed(3)},${v.y.toFixed(3)},${v.z.toFixed(3)}`).join(';')}`;
@@ -458,6 +729,10 @@ export function FieldStage(props:FieldStageProps){
     elementMaterial.color.set(positive?0xc2703a:0x3a7fc2);elementMaterial.emissive.set(positive?0xc2703a:0x3a7fc2);elementMaterial.emissiveIntensity=dark?.34:.14;
     netMaterial.color.copy(tint);netMaterial.emissive.copy(tint);netMaterial.emissiveIntensity=dark?.6:.25;
     partMaterial.color.copy(tint.clone().lerp(new THREE.Color(0xffffff),.25));partMaterial.emissive.copy(tint);partMaterial.emissiveIntensity=dark?.35:.12;
+    // The parts, the partner's arrow and the chain are all one piece's arrow or a sum of them, so
+    // they wear its colour; the beads where the chain joins are pale, like the flat figure's.
+    for(const m of [dashMaterial,fadeMaterial,chainMaterial]){m.color.copy(partMaterial.color);m.emissive.copy(tint);m.emissiveIntensity=dark?.35:.12;}
+    jointMaterial.color.copy(partMaterial.color).lerp(new THREE.Color(dark?0x172936:0xffffff),.7);jointMaterial.emissive.copy(tint);jointMaterial.emissiveIntensity=dark?.25:.06;
     axisMaterial.color.set(dark?0x9fb3c1:0x4a6172);gridMaterial.color.set(dark?0x9fb3c1:0x4a6172);
     renderer.render(scene,camera);
    };
@@ -485,13 +760,21 @@ export function FieldStage(props:FieldStageProps){
     frameId=requestAnimationFrame(follow);
    };
    const wake=()=>{if(!disposed&&!frameId&&latest.current.animating){idle=0;frameId=requestAnimationFrame(follow);}};
+   // The cuts of the first stage are made over two seconds in which nothing else need change, so
+   // they carry a loop of their own, and it stops as soon as the last cut is open.
+   let cutFrame=0;
+   const cutLoop=()=>{cutFrame=0;if(disposed)return;apply(latest.current);if(cutting())cutFrame=requestAnimationFrame(cutLoop);};
+   const wakeCuts=()=>{if(!disposed&&!cutFrame&&cutting())cutFrame=requestAnimationFrame(cutLoop);};
+   wakeCuts();
    live.current={
-    update:p=>{if(disposed)return;apply(p);wake();},
+    update:p=>{if(disposed)return;apply(p);wake();wakeCuts();},
     dispose:()=>{
-     disposed=true;cancelAnimationFrame(frameId);observer.disconnect();
-     clearGroup(body);clearGroup(slices);clearGroup(field);arrowGeometry.dispose();
-     for(const mesh of [point,halo,element,netArrow.shaft,netArrow.head,partArrow.shaft,partArrow.head])mesh.geometry.dispose();
-     for(const m of [bodyMaterial,sheetMaterial,sliceMaterial,pickedMaterial,lineMaterial,arrowMaterial,axisMaterial,gridMaterial,pointMaterial,haloMaterial,elementMaterial,netMaterial,partMaterial])m.dispose();
+     disposed=true;cancelAnimationFrame(frameId);cancelAnimationFrame(cutFrame);observer.disconnect();
+     clearGroup(body);clearGroup(slices);clearGroup(field);clearGroup(cuts);arrowGeometry.dispose();
+     for(const mesh of [point,halo,element,netArrow.shaft,netArrow.head,partArrow.shaft,partArrow.head,keepArrow.shaft,keepArrow.head,pieceSolid,pieceGhost,fill,partnerBody,chainJoints])mesh.geometry.dispose();
+     dashGeometry.dispose();headGeometry.dispose();
+     for(const m of [bodyMaterial,sheetMaterial,sliceMaterial,pickedMaterial,lineMaterial,arrowMaterial,axisMaterial,gridMaterial,pointMaterial,haloMaterial,elementMaterial,netMaterial,partMaterial,
+      pieceMaterial,ghostMaterial,fillMaterial,cutMaterial,growMaterial,dashMaterial,fadeMaterial,chainMaterial,jointMaterial])m.dispose();
      axes.geometry.dispose();grid.geometry.dispose();
      renderer.dispose();
      if(renderer.domElement.parentNode===mount)mount.removeChild(renderer.domElement);
@@ -516,13 +799,35 @@ export function FieldStage(props:FieldStageProps){
   // the z axis on a ring, a disk or a sheet, so a tick number lands on one of them whenever
   // the observation distance or the arrow's length happens to reach a round number.
   avoid:[{x:at.x,y:at.y+14,r:34},...(tip?[{x:tip.x,y:tip.y-10,r:30}]:[])]});
- return <div className="cd-field-stage" aria-hidden="true">
+ return <div className="cd-field-stage" aria-hidden="true" {...runData(props.run)}>
   <div ref={host} className="cd-stage-gl"/>
   <div ref={ticksHost} className="cd-stage-ticks">
    {ticks.map(t=><span key={t.key} className="cd-stage-tick"
     style={{left:`${100*t.x/props.frame.width}%`,top:`${100*t.y/props.frame.height}%`}}>{t.text}</span>)}
   </div>
  </div>;
+}
+/** What the scene has been asked to draw of the run, written on the stage itself.
+ *
+ * Read by the tests, and only by them: a browser on a build machine is not promised a WebGL
+ * context, so they cannot count meshes, but they can read the plan the meshes are built from --
+ * which is the thing that went wrong before, when the plan simply had no partner and no pieces
+ * already added in it. Words and counts, nothing a reader sees. */
+function runData(run:RunScene|null|undefined):Record<string,string>{
+ if(!run)return {};
+ const count=(tone:string)=>String(run.tones.filter(t=>t===tone).length);
+ const a=run.arrows,arrows=a?[a.keep&&'keep',a.drop&&'drop',a.partner&&'partner',a.partnerDrop&&'partner-drop'].filter(Boolean).join(' '):'';
+ const end=run.chain?.[run.chain.length-1];
+ return {
+  'data-run-stage':run.stage,'data-run-cut':run.open>.004?'open':'closed',
+  'data-run-pieces':String(run.pieces.length),'data-run-tones':run.tones.map(t=>t[0]).join(''),
+  'data-run-lit':count('lit'),'data-run-added':count('added'),'data-run-dim':count('dim'),
+  ...(run.partner?{'data-run-partner':run.partner.across?'across':'piece'}:{}),
+  ...(run.seams.length?{'data-run-seams':String(run.seams.length)}:{}),
+  ...(run.filled!==null?{'data-run-filled':'true'}:{}),
+  ...(arrows?{'data-run-arrows':arrows}:{}),
+  ...(run.chain&&end?{'data-run-chain':String(run.chain.length),'data-run-chain-end':`${end.x} ${end.y} ${end.z}`}:{}),
+ };
 }
 /** Drop any number that has landed on something the figure already drew.
  *

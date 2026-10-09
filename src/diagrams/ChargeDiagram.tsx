@@ -22,6 +22,7 @@ import { placeLabels, type Box } from './labels';
 import { area, rayToEdge, sub as vsub, unit as direction, wedgePath } from './fan';
 import { FieldCanvas } from './FieldCanvas';
 import { FieldStage } from './three/FieldStage';
+import { runScene } from './three/runScene';
 import './charge-diagram.css';
 import './camera.css';
 
@@ -750,7 +751,13 @@ export function ChargeDiagram({ problem, params: p, setParams, count, continuum,
       radius={R} distance={p.distance} yaw={view.yaw} pitch={view.pitch} fieldView={scalar ? 'off' : fieldView} reach={fieldReach}
       bodyPath={bodyPath} point={pWorld} element={sceneElement} net={scalar || hideAnswer ? null : scaleVec(displayed, gain / unit)} contribution={scalar || !showContribution || mode === 'sum' || building === 'limit' ? null : scaleVec(sample.field, selectedGain * gain / unit)}
       unit={unit} frame={{ width: 720, height: 430 }} origin={O} charge={p.charge} animating={moving}
-      getView={() => ({ yaw: yawMv.get(), pitch: pitchMv.get() })} />}
+      getView={() => ({ yaw: yawMv.get(), pitch: pitchMv.get() })}
+      // The run, for the scene to draw as bodies: the same partition, partner, sum and arrows the
+      // flat marks below are drawn from, at the same scale, so the two can never tell it differently.
+      run={build ? runScene({ stage: building, kind: id === 'disk' ? 'disk' : id === 'sheet' ? 'sheet' : 'wire', closed: id === 'ring', n, selected: selectedIndex, at: world,
+        partner: partnerLit ? (mirrorArc ? 'across' : partnerIndex) : null, weights, summing: mode === 'sum' || mode === 'integrate', continuum, split,
+        arrows: !scalar && showContribution && mode !== 'sum' && building !== 'limit' ? { scale: selectedGain * gain / unit, field: sample.field, keep, drop, partner: pair && supportsPair ? partnerField : null, partnerKeep, partnerDrop, components, cancelled: cancelT } : null,
+        chain: !scalar && mode === 'sum' ? { scale: gain / unit, fields: samples.map(s => s.field), weights } : null }) : null} />}
     <svg ref={svg} className={`cd-svg${inSpace ? ' cd-orbitable' : ''}${scalar ? ' cd-scalar' : ''}`} viewBox="0 0 720 430" role="img" tabIndex={inSpace ? 0 : undefined} {...(inSpace ? orbit : {})} aria-label={`${problem.title}. Interactive charge distribution and ${scalar ? 'electric potential' : 'electric field'} visualization.${inSpace ? ' Drag or use the arrow keys to rotate the view, plus and minus to zoom, Home to reset it.' : ''}`}>
       <defs>
         <pattern id={`${uid}grid`} width="28" height="28" patternUnits="userSpaceOnUse"><circle cx="1" cy="1" r=".7" fill="var(--grid)" /></pattern>

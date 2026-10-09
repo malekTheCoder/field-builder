@@ -248,8 +248,24 @@
 /* In space the scene draws the wire, its pieces, P and the arrows as bodies; the flat marks
    stay in the tree for focus, clicks and labels, but are not painted twice. */
 /* !important because the accumulation animates the pieces' opacity inline. */
-.cd-in-space.cd-wire-kind .cd-piece path,.cd-in-space.cd-wire-kind .cd-piece rect,.cd-in-space.cd-wire-kind .cd-plus{opacity:0!important}
+.cd-in-space.cd-wire-kind .cd-piece path,.cd-in-space.cd-wire-kind .cd-piece rect,.cd-in-space.cd-wire-kind .cd-plus,
+.cd-in-space.cd-wire-kind .cd-charge-base{opacity:0!important}
 .cd-in-space .cd-axes path{opacity:0}
+/* A rod's flat cuts are laid out for the flat view: each is a tick across a vertical or horizontal
+   rod at a fixed screen column, so turned into space they hung in a line a long way from the tilted
+   rod they were meant to cut. The scene makes the cuts in space; these are not painted there. */
+.cd-in-space.cd-wire-kind .cd-seams{opacity:0!important}
+/* WATCH IT BUILD IN SPACE. While the run is open the scene draws every stage as bodies -- the cuts
+   as gaps, the pieces, the mirror partner, the pieces already added, the part of the arrow that
+   survives and the parts that cancel, and the chain -- so the flat copies stay in the tree, where
+   they take the clicks and carry the labels, but are not painted over the scene a second time. */
+.cd-in-space.cd-building .cd-piece path,.cd-in-space.cd-building .cd-piece rect,.cd-in-space.cd-building .cd-seams,
+.cd-in-space.cd-building .cd-disk-sweep,.cd-in-space.cd-building .cd-grow-pair .cd-vector,.cd-in-space.cd-building .cd-grow-parts .cd-vector,
+.cd-in-space.cd-building .cd-sum-chain,.cd-in-space.cd-building .cd-sum-joint{opacity:0!important}
+/* The sheet's side-view continuation marks are drawn at fixed places on the screen for the flat
+   view's edge-on plane. In space the plane runs off in every direction and dissolves as it goes, so
+   two dashes floating at the frame's edges mark nothing. */
+.cd-in-space .cd-continuation{opacity:0}
 
 /* The view pad. Every gesture the figure answers to has a button here, because a control
    that only exists as a key you have to already know about is not a control. */
