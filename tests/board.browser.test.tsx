@@ -8,6 +8,20 @@ import {DEFAULT_PARAMS, type ProblemId} from '../src/problems/types';
 import {buildStages} from '../src/explorer/buildRun';
 
 afterEach(cleanup);
+// Counted, not changed: each time the board renders one of its lines, and each time the panel works
+// its lines out. Both pass straight through to the real thing.
+const counts = vi.hoisted(() => ({tex: 0, lines: 0}));
+vi.mock('../src/components/Math', async importOriginal => {
+  const real = await importOriginal<typeof import('../src/components/Math')>();
+  return {...real, MathText: (props: Parameters<typeof real.MathText>[0]) => {
+    if (props.className?.includes('db-tex')) counts.tex++;
+    return real.MathText(props);
+  }};
+});
+vi.mock('../src/workbench/derivation', async importOriginal => {
+  const real = await importOriginal<typeof import('../src/workbench/derivation')>();
+  return {...real, boardLines: (...args: Parameters<typeof real.boardLines>) => { counts.lines++; return real.boardLines(...args); }};
+});
 /* THE PANEL IS THE DERIVATION.
  *
  * It replaced a row of blanks under "Every factor is already drawn. Click it in the figure." --
@@ -114,5 +128,34 @@ describe('the panel and the figure answer each other', () => {
     const charge = at('element');
     expect(charge.container.querySelector('.cd-source-tag')).not.toBeNull();
     expect(charge.container.querySelector('.cd-construction')).toBeNull();
+  });
+});
+
+describe('the run plays at the frame rate, and the panel does not', () => {
+  /* The run re-renders the page every frame it plays, because the figure has to move: the partition,
+   * the sum's progress, the parameters. The panel is handed all of it, and a new `build` object and
+   * new callbacks with every frame -- but what is ON the panel changes only when the run enters a
+   * stage, pauses or settles. So a frame that changes none of that must not work the derivation
+   * out again, or render a single line of it. The infinite line is the lesson to check: the page
+   * builds a new object for it on every render, so a memo keyed on the object would miss each time. */
+  const at = (frame: number, extra: {index?: number; onStep?: (i: number) => void} = {}) =>
+    <EquationWorkbench problem={getProblem('infinite')} params={{...DEFAULT_PARAMS, continuum: frame / 100}} continuum={frame / 100} progress={frame / 60}
+      mode="sum" onModeChange={() => {}} onHighlight={() => {}} boundRange={[0, 100]} onBoundRangeChange={() => {}}
+      build={{open: true, index: extra.index ?? 3, playing: true, settled: false}} onStep={extra.onStep ?? (() => {})} />;
+  it('sixty frames inside one stage rebuild nothing on it', () => {
+    const view = render(at(0));
+    const tex = counts.tex, lines = counts.lines;
+    expect(tex, 'the board rendered no lines on its first render').toBeGreaterThan(0);
+    for (let frame = 1; frame <= 60; frame++) view.rerender(at(frame));
+    expect(counts.lines - lines, 'derivations worked out again').toBe(0);
+    expect(counts.tex - tex, 'lines of the board rendered again').toBe(0);
+    // A frame that does move the run on still moves the board on...
+    view.rerender(at(61, {index: 4}));
+    expect(steps(view).find(s => s.className.includes('is-here'))?.dataset.step).toBe('limit');
+    // ...and a line chosen after the page has handed down new callbacks plays through the newest.
+    const onStep = vi.fn();
+    view.rerender(at(62, {index: 4, onStep}));
+    fireEvent.click(view.getByRole('button', {name: 'Cut it up: play this step on the figure'}));
+    expect(onStep).toHaveBeenCalledWith(0);
   });
 });
