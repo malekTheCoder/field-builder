@@ -1,5 +1,5 @@
 'use client';
-import {useRef, type PointerEvent} from 'react';
+import {useRef, type KeyboardEvent, type PointerEvent} from 'react';
 import {ChevronLeft, ChevronRight, Pause, Play, RotateCcw, X} from 'lucide-react';
 import {MathText} from '../components/Math';
 import type {BuildStage} from './buildRun';
@@ -71,10 +71,18 @@ export function BuildPlayer({stages, at, index, playing, math = [], onPlay, onSe
     },
     onPointerCancel: () => { press.current = null; },
   };
+  // The arrow keys step between stages from anywhere in the transport, as they do in a media
+  // player's chapter list. The figure keeps its own arrow keys: these only act while the focus is
+  // here, on one of the run's own buttons.
+  const keys = (ev: KeyboardEvent<HTMLDivElement>) => {
+    if (ev.key !== 'ArrowLeft' && ev.key !== 'ArrowRight') return;
+    ev.preventDefault();
+    onStep(ev.key === 'ArrowRight' ? Math.min(stages.length - 1, index + 1) : at - starts[index] > .6 || index === 0 ? index : index - 1);
+  };
   // A group of controls with a name, which is exactly what the role says; the tags the linter
   // offers instead (a fieldset, an address) would each claim to be something this is not.
-  // oxlint-disable-next-line jsx-a11y/prefer-tag-over-role
-  return <div className="bp" role="group" aria-label="Watch it build">
+  // oxlint-disable-next-line jsx-a11y/prefer-tag-over-role, jsx-a11y/no-noninteractive-element-interactions
+  return <div className="bp" role="group" aria-label="Watch it build" onKeyDown={keys}>
     <div className="bp-bar">
       <button type="button" className="bp-play" onClick={onPlay} aria-label={playing ? 'Pause' : ended ? 'Play again' : 'Play'}>
         {playing ? <Pause size={15} fill="currentColor" strokeWidth={0} /> : ended ? <RotateCcw size={15} strokeWidth={2.4} /> : <Play size={15} fill="currentColor" strokeWidth={0} />}
@@ -85,7 +93,7 @@ export function BuildPlayer({stages, at, index, playing, math = [], onPlay, onSe
           const here = i === index;
           return <button key={s.key} ref={el => { segments.current[i] = el; }} type="button"
             className={'bp-seg' + (here ? ' is-here' : '') + (fill >= 1 ? ' is-done' : '')}
-            style={{flexGrow: s.seconds}} aria-label={`Stage ${i + 1}: ${s.name}`} aria-current={here ? 'step' : undefined}
+            style={{flexGrow: s.seconds}} aria-label={`Stage ${i + 1}: ${s.name}`} aria-current={here ? 'step' : undefined} title={`${s.name}. ${s.line}`}
             onClick={() => { if (!dragged.current) onSeek(starts[i], false); dragged.current = false; }}>
             <span className="bp-seg-bar" aria-hidden="true"><span className="bp-seg-fill" style={{transform: `scaleX(${fill})`}} /></span>
             {here && <span className="bp-knob" aria-hidden="true" style={{left: `${fill * 100}%`}} />}

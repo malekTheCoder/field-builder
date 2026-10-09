@@ -214,6 +214,26 @@ describe('the transport says how long the run is and where it has got to', () =>
   // And the line of the derivation it put in now explains itself, at the reader's own pace.
   expect(view.container.querySelector('.db-step.is-here .db-note')?.textContent).toBe(buildStages(getProblem('bisector'))[1].caption);
  }, 60000);
+ it('the arrow keys step between stages from inside the transport, and only from there', async () => {
+  const view = await openLesson('bisector');
+  fireEvent.click(view.getByRole('button', {name: 'Watch it build'}));
+  const play = view.getByRole('button', {name: 'Pause'});
+  fireEvent.keyDown(play, {key: 'ArrowRight'});
+  expect(stage(view)).toBe('One piece');
+  fireEvent.keyDown(play, {key: 'ArrowRight'});
+  expect(stage(view)).toBe('What cancels');
+  // Back, as a media player's "previous" does: at the very start of a stage it goes to the one
+  // before; once a stage is under way it goes back to that stage's start.
+  fireEvent.keyDown(play, {key: 'ArrowLeft'});
+  expect(stage(view)).toBe('One piece');
+  for (let t = 0; t <= 1500; t += 50) frameAt(t);
+  fireEvent.keyDown(play, {key: 'ArrowLeft'});
+  expect(stage(view)).toBe('One piece');
+  expect(fills(view)[1]).toBe(0);
+  // Outside the transport the arrows belong to whatever has the focus there.
+  fireEvent.keyDown(document.body, {key: 'ArrowRight'});
+  expect(stage(view)).toBe('One piece');
+ });
  it('choosing a line of the derivation plays that stage on the figure', async () => {
   const view = await openLesson('bisector');
   fireEvent.click(view.getByRole('button', {name: 'Add them up: play this step on the figure'}));
