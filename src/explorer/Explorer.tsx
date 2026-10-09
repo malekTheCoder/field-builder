@@ -207,8 +207,15 @@ export default function Explorer(){
  /** The piece the run talks about: off the middle, so it always has a mirror piece that is not
   * itself -- with an odd count the middle piece is its own mirror, and the cancelling stage would
   * have nothing to show -- and three quarters of the way along, where its sideways part is large
-  * enough to see cancel. Chosen as the run opens; the reader's own choice comes back on close. */
- function openRun(){if(buildShown)return;const i=count-1-Math.floor((count-1)/4);setRunPiece((i+.5)/count);setBuildShown(true)}
+  * enough to see cancel. Chosen as the run opens; the reader's own choice comes back on close.
+  *
+  * A ring has no "along": every piece has a partner straight across, and what decides whether the
+  * cancelling can be seen is which way that diameter lies on the screen. Three quarters of the way
+  * round is the near side, so the two sideways parts pointed straight along the line of sight and
+  * shrank to a few pixels in both views. The ring's piece is the one lying across the screen in the
+  * view the ring opens in -- yaw -0.5, about 331 degrees round -- so its sideways parts are drawn at
+  * full length, either side of the axis, and are seen to cancel. */
+ function openRun(){if(buildShown)return;const i=geom==='ring'?Math.floor(count*(1-.5/(2*Math.PI)))%count:count-1-Math.floor((count-1)/4);setRunPiece((i+.5)/count);setBuildShown(true)}
  function playBuild(from:number,until:number){
   build.current?.stop();build.current=null;setHighlight('');openRun();
   setBuilding(true);
