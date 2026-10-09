@@ -100,3 +100,41 @@ describe('mathematical input',()=>{
   for(const wrong of f.options.filter(o=>o!==f.expected))expect(eq(wrong,f.expected,p.id),`${wrong} vs ${f.expected}`).toBe(false);
  });
 });
+// preview() is display only: the confusions list and the dragged bounds' labels. mathjs's own toTex
+// sets a name it does not know letter by letter (dθ as d·t·h·e·t·a, rᵢ as r·i, ε₀ as e·p·s·0), sets
+// L, s and ds upright as if they were litres and seconds, and dots every product.
+describe('preview sets the model’s symbols as the lessons write them',()=>{
+ it('writes dθ, rᵢ, ε₀ and λ₀ as symbols, not as strings of letters',()=>{
+  const theta=preview('lambda*dtheta');expect(theta).toContain('\\theta');expect(theta).not.toContain('dtheta');
+  expect(preview('k*dQ/ri')).toContain('r_i');
+  expect(preview('sigma/(eps0)')).toContain('\\varepsilon_0');
+  expect(preview('lambda0*y/L*dy')).toContain('\\lambda_0');
+ });
+ it('sets a function of one angle without brackets, and its power on the function',()=>{
+  expect(preview('dE*sin(alpha)')).toBe('dE\\,\\sin \\alpha');
+  expect(preview('k*lambda*cos(theta)^3/r^2')).toContain('\\cos^{3} \\theta');
+  expect(preview('sin(phi/2)')).toContain('\\left(');
+ });
+ it('sets L, s and ds in italic and multiplies by juxtaposition',()=>{
+  for(const x of ['L*dx','2*pi*s*ds','-dV/dz']){expect(preview(x),x).not.toContain('\\mathrm');expect(preview(x),x).not.toContain('\\cdot');}
+ });
+ it('keeps the \\cdot the bound labels read as a fraction of a length, and the one before a numeral',()=>{
+  expect(preview('(1/2)*L')).toContain('\\frac{1}{2}\\cdot');
+  expect(preview('-(1/4)*L')).toContain('\\frac{1}{4}\\cdot');
+  expect(preview('L*2')).toContain('\\cdot');
+  expect(preview('-L/2')).toBe('\\frac{-L}{2}');
+  expect(preview('sqrt(')).toContain('Keep typing');
+ });
+ // Everything the confusions panel shows reads back as the expression it stands for. mathjs braces
+ // every base it raises to a power, {r_i}^{2}, which the grader's normalize() was never asked to
+ // read; those groups are made parentheses first, innermost out. A function of one symbol is set
+ // as a textbook sets it, \cos^{3}\theta, and is given its brackets back: (\cos(\theta))^{3}.
+ const unbrace=(tex:string)=>{tex=tex.replace(/\\(sin|cos|tan|sec)(?:\^\{([^{}]*)\})?\s*(\\(?!left)[a-zA-Z]+|[a-zA-Z](?:_[a-z0-9])?)/g,(_,f:string,power:string|undefined,arg:string)=>power?`(\\${f}(${arg}))^{${power}}`:`\\${f}(${arg})`);for(let i=0;i<20;i++){const next=tex.replace(/\^\{([^{}]*)\}/g,'^($1)').replace(/\\frac\{([^{}]*)\}\{([^{}]*)\}/g,'(($1)/($2))').replace(/\{([^{}]*)\}\^/g,'($1)^').replace(/([^a-zA-Z}^])\{([^{}]*)\}/g,'$1($2)');if(next===tex)break;tex=next;}return tex;};
+ for(const p of PROBLEMS)it(`${p.id}: every listed confusion displays as itself`,()=>{
+  for(const f of p.steps.flatMap(s=>s.fields??[]))for(const m of f.mistakes??[]){
+   const tex=preview(m.expression);
+   expect(tex,m.expression).not.toMatch(/dtheta|eps0|lambda0|\bri\b|\\mathrm/);
+   expect(equivalent(unbrace(tex),m.expression,p).ok,`${m.expression} shown as ${tex}`).toBe(true);
+  }
+ });
+});
