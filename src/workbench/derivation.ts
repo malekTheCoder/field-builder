@@ -156,7 +156,11 @@ export function boardLines(p: Problem, bounds?: [string, string]): BoardLine[] {
     {key: 'one', tex: scalar ? String.raw`\Delta V=${one}` : oneField, where: distance},
     cancel,
     {key: 'add', tex: String.raw`${lhs}\approx\sum_i ${term}`, where: range},
-    {key: 'limit', tex: String.raw`${lhs}=${integral}${substituted}`, finish: t.simplify ? simplified : undefined},
+    // What shrinking does to the algebra, said in symbols: the sum over pieces becomes the integral
+    // and each piece's charge becomes the charge element -- the one step the figure cannot show.
+    {key: 'limit', tex: String.raw`${lhs}=${integral}${substituted}`,
+      where: String.raw`\textstyle\sum_i\to\int,\quad ${fx('element', String.raw`\Delta Q_i\to dQ=${t.dq}`)}`,
+      finish: t.simplify ? simplified : undefined},
   ];
 }
 /** Results too long for one line of the panel, set over two -- broken where the expression

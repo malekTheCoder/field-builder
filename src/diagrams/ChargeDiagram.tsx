@@ -733,7 +733,10 @@ export function ChargeDiagram({ problem, params: p, setParams, count, continuum,
     // five pieces instead gave three marks bunched near the middle, which says nothing.
     : fanned ? Array.from({ length: markCount }, (_, k) => rodLow + (rodHigh - rodLow) * (k + .5) / markCount).filter(clearOfCuts)
     : Array.from({ length: Math.max(1, n) }, (_, i) => rodLow + pieceSpan * (i + .5)).filter((_, i) => i % markStride === 0);
-  const sourceLabel = surface ? `${elementSymbol} ${continuum>=.999?'=':'≈'} σ · 2πs ${continuum>=.999?'ds':'Δs'}` : id === 'ring' || id === 'arc' ? `${elementSymbol} = λR ${continuum>=.999?'dθ':'Δθ'}` : ramp ? `${elementSymbol} = λ₀(y/L) ${continuum>=.999?'dy':'Δy'}` : `${elementSymbol} = λ ${continuum>=.999?'dℓ':'Δℓ'}`;
+  // Written as the derivation beside it writes it, in the lesson's own coordinate: a reader who
+  // sees ΔQ = λΔy in the panel should not find ΔQ = λΔℓ under the figure and wonder what ℓ is.
+  const coordinate = id === 'axial' || id === 'semi' ? 'x' : 'y', d = continuum >= .999 ? 'd' : 'Δ';
+  const sourceLabel = surface ? `${elementSymbol} = σ · 2πs ${d}s` : id === 'ring' || id === 'arc' ? `${elementSymbol} = λR ${d}θ` : ramp ? `${elementSymbol} = λ₀(y/L) ${d}y` : `${elementSymbol} = λ ${d}${coordinate}`;
   const sourceText = id === 'disk' ? 'One ring sweeps out the disk' : id === 'sheet' ? 'A section of a sheet that never ends · one ring is one angle at P' : surface ? 'Whole annulus · transverse fields cancel' : id === 'infinite' ? 'A section of a line that never ends · one piece is one angle at P' : id === 'semi' ? 'A section of a line with one end · one piece is one angle at P' : id === 'arc' ? 'Observation point fixed at center' : 'One piece at a time · the integral adds them all';
   return <div ref={root} className={"charge-diagram cd-focus-"+highlight+(inSpace?" cd-in-space":"")+(perspective?" cd-surface-kind":" cd-wire-kind")+(building?" cd-building cd-stage-"+building:"")+(build?.paused?" cd-paused":"")+(hideAnswer?" cd-hide-total":"")}
     data-element-annulus={sceneElement.annulus ? `${sceneElement.annulus.inner},${sceneElement.annulus.outer}` : undefined}>
@@ -928,11 +931,16 @@ export function ChargeDiagram({ problem, params: p, setParams, count, continuum,
         {perspective ? <><path d="M538 135V73L619 135Z"/><path d="M538 127h8v8"/><path className="cd-angle-arc" d="M538 90A17 17 0 0 0 551.5 83.3"/><text x="526" y="110">z</text><text x="575" y="151">{surface?'s':'R'}</text><text x="584" y="94">rᵢ</text><text className="cd-angle" x="549" y="106" textAnchor="middle">α</text><text x="538" y="170" className="cd-triangle-note">Right triangle · schematic</text></>
           : id==='arc' ? <><line x1={P.x} y1={P.y} x2={selectedPoint.x} y2={selectedPoint.y}/>{angleMark(P, {x: P.x + 40, y: P.y}, selectedPoint, 'θ')}</>
           : id==='axial' ? <text x={(P.x+source.x)/2} y={P.y-39}>rᵢ = L + a − x</text>
-          // The right angle is at the foot, level with P; the angle the board's cosine is taken of is
-          // at P, between the leg through P and the line to the piece -- marked there with an arc.
-          // On the semi-infinite line P sits ABOVE the line, so its legs swap: the leg through P is
-          // the piece's x, and the leg up from the piece is P's own height r, already marked.
-          : <><path d={`M${source.x} ${source.y}L${source.x} ${P.y}L${P.x} ${P.y}`} /><text x={(source.x+P.x)/2+7} y={(source.y+P.y)/2-10}>rᵢ</text>{id==='semi' ? <text x={(source.x+P.x)/2} y={P.y-9} textAnchor="middle">x</text> : <text x={source.x-24} y={(source.y+P.y)/2}>y</text>}{angleMark(P, {x: source.x, y: P.y}, source, 'θ')}</>}
+          // The right angle is at O, the foot of the perpendicular from P to the charge; the angle
+          // the board takes the cosine or sine of is at P, between that perpendicular and the line
+          // to the piece -- marked there with an arc and named as the board names it: θ where it is
+          // the infinite line's own variable, α everywhere else, as each lesson's text calls it.
+          // A rod stands upright beside P, so O is level with P below the piece; the semi-infinite
+          // line lies flat under P, so O is straight below P, level with the piece.
+          : (() => { const foot = id === 'semi' ? { x: P.x, y: source.y } : { x: source.x, y: P.y };
+            return <><path d={`M${source.x} ${source.y}L${foot.x} ${foot.y}L${P.x} ${P.y}`} /><text x={(source.x+P.x)/2+7} y={(source.y+P.y)/2-10}>rᵢ</text>
+              {id === 'semi' ? <text x={(source.x+foot.x)/2} y={foot.y+22} textAnchor="middle">x</text> : <text x={source.x-24} y={(source.y+P.y)/2}>y</text>}
+              {angleMark(P, foot, source, id === 'infinite' ? 'θ' : 'α')}</>; })()}
       </g>}
       <line x1="30" y1="387" x2="690" y2="387" className="cd-divider" />
       <text x="30" y="409" className="cd-footer">{sourceLabel}</text>
