@@ -4,6 +4,7 @@ import Explorer from '../src/explorer/Explorer';
 import {PROBLEMS, getProblem} from '../src/problems/definitions';
 import {buildStages} from '../src/explorer/buildRun';
 import {isReady} from '../src/problems/readiness';
+import {DEFAULT_PARAMS} from '../src/problems/types';
 /* The run, in the page it actually plays in.
  *
  * The unit tests read the script; these check that playing it moves the figure. That is the
@@ -312,6 +313,14 @@ describe('with reduced motion asked for', () => {
   expect(footer(view)).toContain('Cut into pieces');
   expect(view.container.querySelector('.bp-line')?.textContent ?? '').toContain('Cut it up');
  });
+ it('still shows the two sideways parts before they cancel, instead of skipping straight past them', async () => {
+  const view = await openLesson('bisector');
+  fireEvent.click(view.getByRole('button', {name: 'Watch it build'}));
+  jump(view, 3, 'What cancels');
+  await waitFor(() => expect(view.container.querySelector('[data-cancel-transverse]')).toBeTruthy());
+  expect(Number(view.container.querySelector('[data-cancel-transverse]')?.getAttribute('opacity'))).toBeGreaterThan(.9);
+  await waitFor(() => expect(Number(view.container.querySelector('[data-cancel-transverse]')?.getAttribute('opacity'))).toBeLessThan(.2), {timeout: 4000});
+ });
  it('still advances through the stages, in steps', async () => {
   const view = await openLesson('bisector');
   fireEvent.click(view.getByRole('button', {name: 'Watch it build'}));
@@ -323,6 +332,78 @@ describe('with reduced motion asked for', () => {
   await waitFor(() => expect(stageNow()).toMatch(/^Stage 1: /));
   await waitFor(() => expect(stageNow()).toMatch(/^Stage 2: /), {timeout: 9000});
   await waitFor(() => expect(stageNow()).toMatch(/^Stage 3: /), {timeout: 9000});
+ });
+});
+describe('the figure tells the truth at every stage', () => {
+ // Each of these was found by an adversarial physics review of the run, and each one drew
+ // something a student could copy down wrong.
+ async function openWith(id: string, params: Record<string, number>) {
+  await new Promise(r => setTimeout(r, 280));
+  localStorage.setItem('field-builder:explorer:v1', JSON.stringify({id, seen: true, dark: false, sidebarOpen: true, params: {[id]: {...DEFAULT_PARAMS, ...params}}}));
+  const view = render(<Explorer />);
+  await view.findByRole('button', {name: 'Watch it build'});
+  await waitFor(() => expect(view.container.querySelector('h1')?.textContent).toBe(getProblem(id as never).title));
+  return view;
+ }
+ it('a ring cut into an odd number of pieces has no piece straight across, so its mirror is drawn, not borrowed', async () => {
+  // Lighting piece i + floor(n/2) lit one 144 degrees away, whose sideways push does not cancel.
+  const view = await openLesson('ring');
+  fireEvent.click(view.getByRole('button', {name: 'Watch it build'}));
+  jump(view, 3, 'What cancels');
+  await waitFor(() => expect(view.container.querySelector('[data-mirror-arc]')).toBeTruthy());
+  expect(view.container.querySelectorAll('.cd-piece.is-partner:not(.cd-mirror-arc)').length).toBe(0);
+ });
+ it('the run talks about a piece that has a mirror other than itself, even when the middle piece would not', async () => {
+  // With seven pieces the reader's default choice is the middle one, which is its own mirror.
+  const view = await openWith('bisector', {slices: 7});
+  fireEvent.click(view.getByRole('button', {name: 'Watch it build'}));
+  jump(view, 3, 'What cancels');
+  await waitFor(() => expect(view.container.querySelector('.cd-piece.is-partner')).toBeTruthy());
+  const chosen = view.container.querySelector<SVGGElement>('.cd-piece.is-selected')?.dataset.pieceKey;
+  const mirror = view.container.querySelector<SVGGElement>('.cd-piece.is-partner')?.dataset.pieceKey;
+  expect(chosen).toBeTruthy();
+  expect(mirror).not.toBe(chosen);
+ });
+ it('while the pieces shrink, the arrow does not jump in length: the run holds one scale', async () => {
+  // Rounded to a power of two from the sum of the pieces, the scale flipped as the limit doubled
+  // them -- the infinite line's arrow went from 131 to 258 pixels for a one-percent change.
+  const view = await openWith('infinite', {distance: 1.05, charge: 3.7});
+  fireEvent.click(view.getByRole('button', {name: 'Watch it build'}));
+  const track = view.container.querySelector<HTMLElement>('.bp-track')!;
+  const last = [...view.container.querySelectorAll<HTMLElement>('.bp-seg')][4];
+  const lengths: number[] = [];
+  for (const f of [.02, .15, .3, .45, .6, .75, .98]) {
+   const r = last.getBoundingClientRect(), x = r.left + f * r.width;
+   fireEvent.pointerDown(track, {clientX: x - 20, button: 0, pointerId: 3});
+   fireEvent.pointerMove(track, {clientX: x, pointerId: 3});
+   fireEvent.pointerUp(track, {clientX: x, pointerId: 3});
+   await new Promise(r => setTimeout(r, 60));
+   const net = [...view.container.querySelectorAll<SVGGElement>('.cd-vector')].find(v => /Σ|^E$/.test(v.querySelector('.cd-vector-label')?.textContent ?? ''));
+   const line = net?.querySelector('line');
+   expect(line, `no net arrow at ${f}`).toBeTruthy();
+   lengths.push(Math.hypot(Number(line!.getAttribute('x2')) - Number(line!.getAttribute('x1')), Number(line!.getAttribute('y2')) - Number(line!.getAttribute('y1'))));
+  }
+  expect(Math.max(...lengths) / Math.min(...lengths), lengths.map(l => l.toFixed(0)).join(' ')).toBeLessThan(1.15);
+ });
+ it('a disk shades only what has been summed: the chosen piece is a thin ring, not the disk inside it', async () => {
+  const view = await openLesson('disk');
+  fireEvent.click(view.getByRole('button', {name: 'Watch it build'}));
+  jump(view, 2, 'One piece');
+  await waitFor(() => expect(view.container.querySelector('.cd-stage-one')).toBeTruthy());
+  expect(view.container.querySelector('[data-disk-sweep]')).toBeNull();
+  jump(view, 4, 'Add them up');
+  await waitFor(() => expect(view.container.querySelector('[data-disk-sweep]')).toBeTruthy());
+ });
+ it('with a mirror piece, the sideways part is drawn once -- where it is seen to cancel', async () => {
+  const view = await openLesson('bisector');
+  fireEvent.click(view.getByRole('button', {name: 'Watch it build'}));
+  jump(view, 3, 'What cancels');
+  await waitFor(() => expect(view.container.querySelector('[data-cancel-transverse]')).toBeTruthy());
+  // The surviving part is there, solid; no second, dashed copy of the sideways part outlives it.
+  expect(view.container.querySelectorAll('.cd-grow-parts .cd-vector:not(.is-dashed)').length).toBe(1);
+  expect(view.container.querySelectorAll('.cd-grow-parts .cd-vector.is-dashed').length).toBe(0);
+  // And it does cancel.
+  await waitFor(() => expect(Number(view.container.querySelector('[data-cancel-transverse]')?.getAttribute('opacity'))).toBeLessThan(.2), {timeout: 4000});
  });
 });
 describe('the potential has a picture of its own', () => {

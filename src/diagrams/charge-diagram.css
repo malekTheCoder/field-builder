@@ -154,6 +154,8 @@
 .cd-focus-distance .cd-triangle text:not(.cd-angle){fill:var(--term-distance);font-weight:600}
 .cd-focus-projection .cd-triangle path,.cd-focus-projection .cd-triangle line{stroke:var(--term-projection);stroke-width:2.1;stroke-dasharray:none}
 .cd-focus-projection .cd-triangle .cd-angle{fill:var(--term-projection);font-weight:700}
+.cd-svg .cd-triangle .cd-angle-arc{fill:none;stroke:var(--ghost);stroke-width:1.4;stroke-dasharray:none}
+.cd-focus-projection .cd-triangle .cd-angle-arc{stroke:var(--term-projection);stroke-width:2}
 .cd-focus-bounds .cd-bound rect{fill:var(--term-bounds);stroke:var(--term-bounds)}
 .cd-focus-bounds .cd-bound text{fill:var(--term-bounds);font-weight:600}
 .cd-svg .cd-end{transition:fill .25s ease}
@@ -322,7 +324,9 @@
    barely be told from the pieces that had been faded away, which left "the piece mirrored below
    it" pointing at nothing obvious. */
 .cd-piece.is-partner{fill:var(--charge,#b8460f);opacity:1!important}
-.cd-building .cd-vector line,.cd-building .cd-vector path{stroke-width:3px}
+/* The solid arrows -- a piece's own, and the part of it that survives -- carry the stage; the
+   dashed parts that come and go stay thin, so what is kept and what is dropped can be told apart. */
+.cd-building .cd-vector:not(.is-dashed) line,.cd-building .cd-vector:not(.is-dashed) path{stroke-width:3px}
 .cd-building .cd-construction{stroke-opacity:.95}
 
 /* 4 · ADD THEM UP. The chain is the thing: heavier, with each piece's contribution marked

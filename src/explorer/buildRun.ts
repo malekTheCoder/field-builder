@@ -45,37 +45,46 @@ export type BuildStage = {
   pace: 'linear' | 'ease';
 };
 /** What happens to the sideways parts, which is the whole point of the third stage and is
- * different in each geometry. Written short: it is read while something is moving. */
+ * different in each geometry.
+ *
+ * Every one of these is true for a charge of EITHER sign -- the slider runs negative, and then
+ * every arrow points the other way -- so they say "acts on", "the part along the rod", "the part
+ * perpendicular to it", never "pushes up" or "straight out". And none of them says which side the
+ * chosen piece is on: the run picks it, and a reader may have picked it before that. */
 const CANCELS: Record<string, string> = {
-  bisector: 'Now the piece mirrored below it. That one pushes P up by exactly as much as the first pushes it down, so those two cancel — and what is left of both points the same way, straight out from the rod.',
-  ring: 'Now the piece straight across the ring. It pushes P sideways by exactly as much, the other way, so the two sideways pushes cancel — and what is left of both points along the axis.',
-  arc: 'Now the piece at the mirror angle. One pushes P up and the other pushes it down by the same amount, so those cancel — and what is left of both points along the axis.',
-  infinite: 'Now the piece mirrored on the far side. It pushes P along the line by exactly as much, the other way, so those cancel — and what is left of both points straight out from the line.',
-  disk: 'A disk is rings, and every ring has already cancelled its own sideways push against itself. There is nothing sideways left to draw: each ring pushes P straight along the axis.',
+  bisector: 'Now its mirror piece, the same distance from P on the other side of the axis. Its part along the rod is equal and opposite to the first piece’s, so those two cancel — and what is left of both points the same way, perpendicular to the rod.',
+  ring: 'Now the bit of ring straight across from it. Its part across the axis is equal and opposite, so the two cancel — and what is left of both points along the axis.',
+  arc: 'Now the piece at the mirror angle. Its part across the axis is equal and opposite, so those two cancel — and what is left of both points along the axis.',
+  infinite: 'Now the mirror piece on the other side of the perpendicular from P. Its part along the line is equal and opposite, so those cancel — and what is left of both points perpendicular to the line.',
+  disk: 'A disk is rings, and every bit of a ring has a bit straight across from it, so each ring has already cancelled its own sideways parts. Nothing sideways is left: each ring acts on P straight along the axis.',
   // The sheet cancels within each ring exactly as the disk does. What is different, and is the
   // thing a reader carrying the line lessons' story will get wrong, is the tail: cut at equal
-  // angles from P, the rings push HARDER the further out they are, not softer.
-  sheet: 'A sheet is rings too, and each ring has already cancelled its own sideways push. Nothing is left over to cancel — but notice the far rings. Each is weaker for its size, yet so much bigger that it pushes harder than the last.',
-  // No partner at all: the line stops at the foot of the perpendicular, so the sideways push
+  // angles from P, the rings act HARDER the further out they are, not more weakly.
+  sheet: 'A sheet is rings too, and each ring has already cancelled its own sideways parts. Nothing is left over to cancel — but notice the far rings. Each is weaker for its size, yet so much bigger that it acts on P harder than the last.',
+  // No partner at all: the line stops at the foot of the perpendicular, so the part along it
   // survives. Saying "every contribution points much the same way" was wrong here -- they fan
   // through a right angle -- and it hid the one consequence worth seeing.
-  semi: 'Nothing cancels here. The line stops right below P, so there is no charge on the other side to push back — every sideways push survives along with its outward one, which is why this field leans instead of pointing straight out.',
+  semi: 'Nothing cancels here. The line stops right below P, so there is no charge on the other side to undo the part along the line — every piece keeps both of its parts, which is why this field leans instead of pointing perpendicular to the line.',
 };
 /** The cancellation in one sentence each, for reading while the arrows move. */
 const CANCEL_LINES: Record<string, string> = {
-  bisector: 'Its mirror piece pushes just as hard. The sideways parts cancel; only the outward parts survive.',
-  ring: 'The piece across the ring cancels the sideways push. Only the part along the axis survives.',
-  arc: 'The mirror piece cancels the push across the axis. Only the part along the axis survives.',
-  infinite: 'The mirror piece cancels the push along the line. Only the part straight out survives.',
-  disk: 'Each ring has already cancelled its own sideways push. Only the part along the axis is left.',
-  sheet: 'Each ring has already cancelled its own sideways push. Only the part along the axis is left.',
+  bisector: 'Its mirror piece acts just as hard. The parts along the rod cancel; the perpendicular parts survive.',
+  ring: 'The bit straight across the ring cancels the part across the axis. Only the part along it survives.',
+  arc: 'The mirror piece cancels the part across the axis. Only the part along the axis survives.',
+  infinite: 'The mirror piece cancels the part along the line. Only the part perpendicular to it survives.',
+  disk: 'Each ring has already cancelled its own sideways parts. Only the part along the axis is left.',
+  sheet: 'Each ring has already cancelled its own sideways parts. Only the part along the axis is left.',
   semi: 'Nothing cancels: no charge lies on the other side, so both parts survive and the field leans.',
-  axial: 'Every piece is on the axis, so every push already points along it. Nothing to cancel.',
+  axial: 'Every piece is on the axis, so every contribution already points along it. Nothing to cancel.',
 };
 /* A scalar lesson must never borrow its field twin's cancellation story, even though it shares
  * the twin's geometry. V is a number; "the sideways parts cancel" is meaningless about it, and
- * teaching it here would plant the exact confusion these lessons exist to clear up. */
-const NO_CANCEL_V = 'Nothing cancels here, and nothing can: V is a number, not an arrow, so there is no direction in which one piece could undo another. Every piece simply adds what it is worth, and a positive charge always adds something positive.';
+ * teaching it here would plant the exact confusion these lessons exist to clear up.
+ *
+ * Nor may it say that numbers cannot cancel: they can, if they have opposite signs -- a dipole's
+ * potential is zero all along its bisector while its field is not. What makes nothing cancel HERE
+ * is that every lesson's charge has one sign, so every piece adds with that sign. */
+const NO_CANCEL_V = 'Nothing cancels here. V is a number, not an arrow, so there is no direction in which one piece could undo another — and all of this charge has the same sign, so every piece adds to V with that sign. V is simply the sum of what each piece is worth.';
 // Shared by the axial rod, the end-on rod and the ramp. Only the axial rod's contributions
 // really point the same way: level with the end of a rod they fan through arctan(L/r), and this
 // lesson's own L -> infinity limit lands them at 45 degrees. What all three share is the missing
@@ -88,45 +97,62 @@ const NO_CANCEL = 'Nothing cancels here. Every piece lies on the same side of P,
  * to the other. */
 const PAIRS = new Set(['bisector', 'infinite', 'ring', 'arc']);
 const SCALAR_PAIRS = new Set(['bisector', 'ring', 'arc']);
-const PARTNER_ADDS_V = 'Now its mirror partner. For the field these two would cancel each other sideways, but nothing cancels in a potential. The partner is the same distance from P, so it adds exactly the same amount, and both go on the pile.';
+const PARTNER_ADDS_V = 'Now its mirror piece. For the field these two would cancel each other sideways, but nothing cancels in this potential: it has no direction, and all the charge has one sign. The mirror piece is the same distance from P, so it adds exactly the same amount, and both go on the pile.';
 export function buildStages(p: Problem): BuildStage[] {
   const geometry = p.geometry, scalar = p.quantity === 'V';
   const pairs = scalar ? SCALAR_PAIRS.has(geometry) : PAIRS.has(geometry);
-  // How hard a piece pushes is where the geometries genuinely differ, so it is not said once for
-  // all of them. "A piece further away pushes more weakly" is true of a unit of charge and false
-  // of the pieces these lessons actually draw on the unbounded geometries: cut at equal angles
-  // from P, every piece of an infinite line pushes EXACTLY as hard, and a sheet's rings push
-  // harder the further out they are.
+  // How hard a piece acts on P is where the geometries genuinely differ, so it is not said once
+  // for all of them. "Further away is weaker" is true of a fixed amount of charge and false of the
+  // pieces several lessons draw: cut at equal angles from P, every piece of an infinite line acts
+  // EXACTLY as hard; a sheet's rings and a disk's rings act harder further out, because they hold
+  // more charge; and the ramp's far pieces hold more charge too.
   // THE LINES READ WHILE IT MOVES. One sentence each, short enough to finish before the stage
   // does. The long captions are still there, beside the algebra, for reading at rest.
   const unbounded = geometry === 'infinite' || geometry === 'semi';
   const surface = geometry === 'disk' || geometry === 'sheet';
+  const ringed = surface ? (geometry === 'disk' ? 'disk' : 'sheet') : '';
   const lines = {
-    pieces: surface ? `Cut the ${geometry === 'disk' ? 'disk' : 'sheet'} into thin rings. Every bit of one ring is the same distance from P.`
+    pieces: surface ? `Cut the ${ringed} into thin rings. Every bit of one ring is the same distance from P.`
       : unbounded ? 'Cut the line into pieces that each take up the same angle at P.'
       : 'Cut the charge into small pieces, each small enough to treat as a point charge.',
-    one: scalar ? 'One piece adds a number to the potential at P: more the closer it is.'
-      : unbounded ? 'Every equal-angle piece pushes on P exactly as hard: the far ones hold more charge.'
-      : geometry === 'sheet' ? 'The far rings are farther away, but so much bigger that they push harder.'
-      : 'One piece pushes on P along the line joining them, more weakly the farther it is.',
-    cancel: scalar ? (pairs ? 'Its mirror piece is just as far away, so it adds exactly as much. A number cannot cancel.' : 'A potential is a number, not an arrow. There is nothing to cancel.')
-      : CANCEL_LINES[geometry] ?? 'Nothing cancels: every piece is on the same side of P, so both parts of every push survive.',
+    one: scalar ? (surface ? 'One thin ring adds its charge over its distance: every bit of it is equally far from P.'
+        : 'One piece adds its charge over its distance to the potential at P: a number, no direction.')
+      : unbounded ? 'Every equal-angle piece acts on P exactly as hard: the far ones hold more charge.'
+      : geometry === 'sheet' ? 'The far rings are farther away, but so much bigger that they act on P harder.'
+      : geometry === 'disk' ? 'One thin ring: every bit of it is the same distance from P, at the same angle to the axis.'
+      : 'One piece acts on P along the line joining them: more charge, harder; farther away, weaker.',
+    cancel: scalar ? (pairs ? 'Its mirror piece is just as far away, so it adds exactly as much. Nothing here cancels.' : 'A potential has no direction, and this charge has one sign. Nothing cancels.')
+      : CANCEL_LINES[geometry] ?? 'Nothing cancels: every piece is on the same side of P, so both parts of each survive.',
     add: scalar ? 'Stack every piece’s contribution. The column’s height is the potential at P.'
-      : 'Add every surviving push, tip to tail. Where the chain ends is the field at P.',
+      : 'Add every piece’s arrow, tip to tail. Where the chain ends is the field at P.',
     limit: `Shrink the pieces without end. The sum becomes an integral, and the ${scalar ? 'potential' : 'field'} stops depending on the cut.`,
   };
-  const piece = scalar ? 'Each piece adds its own number to the total, and that number depends only on how far away the piece is. Direction does not come into it at all, which is what makes a potential so much easier to add up than a field.'
-    : geometry === 'infinite' || geometry === 'semi' ? 'Each piece is cut to cover the same angle at P. That makes every one push exactly as hard: the far pieces hold more charge, but they are further away, and the two cancel.'
-    : geometry === 'sheet' ? 'Each ring is cut to cover the same angle at P. The far rings are further away, but they are so much bigger that they push harder, not softer.'
-    : 'Each piece pushes on P in its own direction. How hard depends on how much charge it holds and how far away it is.';
+  const piece = scalar ? 'Each piece adds its own number to the total: k times its charge over its distance. Direction does not come into it at all, which is what makes a potential so much easier to add up than a field.'
+    : unbounded ? 'Each piece is cut to cover the same angle at P. That makes every one act on P exactly as hard: the far pieces hold more charge, but they are further away, and the two exactly offset.'
+    : geometry === 'sheet' ? 'Each ring is cut to cover the same angle at P. The far rings are further away, but they are so much bigger that they act on P harder, not softer.'
+    : geometry === 'disk' ? 'One thin ring at a time. Every bit of it is the same distance from P and makes the same angle with the axis — which is what lets the whole ring be added up at once in the next step.'
+    : 'Each piece acts on P along the line joining them. How hard depends on how much charge it holds and how far away it is.';
+  // A ring is not a point charge, and saying so is the honest start for a disk or a sheet: what
+  // makes a ring easy is not that it is small, but that all of it is the same distance away.
+  const cut = surface
+    ? `Start by cutting the ${ringed} into thin rings. A ring is not a point charge, but every bit of it is the same distance from P — and that is all the next steps need.`
+    : unbounded
+      ? `Start by cutting the line into pieces that each take up the same small angle at P. Made small enough, each one is just a point charge — and for a point charge the field is something we already know.`
+      : `Start by cutting the charge into pieces small enough that each one is just a point charge — and for a point charge the ${scalar ? 'potential' : 'field'} is something we already know.`;
+  // The chain is the arrows themselves, not their surviving parts: it is the sideways parts
+  // undoing each other along the way that makes it bend back, where the geometry is symmetric.
+  const adds = geometry === 'axial' || surface
+    ? 'Now add every piece’s arrow, tip to tail. They all point along the axis, so the chain runs straight, and where it stops is the field at P.'
+    : pairs
+      ? 'Now add every piece’s arrow, tip to tail. The sideways parts undo each other along the way, so the chain bends back to the axis, and where it stops is the field at P.'
+      : 'Now add every piece’s arrow, tip to tail. Nothing undoes the sideways parts here, so the chain leans, and where it stops is the field at P.';
   return [
     // Long enough for the cuts to travel the length of the charge and for the line to be read.
     {key: 'pieces', name: 'Cut it up', seconds: 5, mode: 'divide', components: false, pair: false, sum: [1, 1], continuum: [0, 0],
-      moves: 1, pace: 'linear', term: 'element', line: lines.pieces,
-      caption: `Start by cutting the charge into pieces small enough that each one is just a point charge — and for a point charge the ${scalar ? 'potential' : 'field'} is something we already know.`},
+      moves: 1, pace: 'linear', term: 'element', line: lines.pieces, caption: cut},
     // One arrow and the distance it depends on. Not yet split into parts: that is the next idea,
     // and showing the parts here put two ideas on screen at once.
-    {key: 'one', name: 'One piece', seconds: 5.5, mode: 'project', components: false, pair: false, sum: [1, 1], continuum: [0, 0],
+    {key: 'one', name: 'One piece', seconds: 6, mode: 'project', components: false, pair: false, sum: [1, 1], continuum: [0, 0],
       moves: 1, pace: 'linear', term: 'distance', line: lines.one,
       caption: piece},
     {key: 'cancel', name: 'What cancels', seconds: pairs ? 6.5 : 5.5, mode: 'project', components: !scalar, pair: pairs, sum: [1, 1], continuum: [0, 0],
@@ -140,13 +166,13 @@ export function buildStages(p: Problem): BuildStage[] {
       // down. The field's caption talked about arrows bending, which a scalar has none of.
       caption: scalar
         ? 'Now stack every piece’s number on top of the last. The column can only grow one way — there is no direction for it to bend back in — and its height is the potential at P.'
-        : 'Now add what survives, piece by piece, each arrow starting where the last one ended. The chain bends the way the geometry does, and where it stops is the field at P.'},
+        : adds},
     // Eased: one picture turning into another. It finishes early and holds on the integral.
     {key: 'limit', name: 'Shrink them', seconds: 6.5, mode: 'integrate', components: false, pair: false, sum: [1, 1], continuum: [0, 1],
       moves: .7, pace: 'ease', term: 'bounds', line: lines.limit,
       caption: scalar
         ? 'Finally, make the pieces smaller without end. Each segment of the column gets too thin to see, the sum becomes the integral, and the height stops depending on how finely we chose to cut.'
-        : 'Finally, make the pieces smaller without end. The chain of arrows becomes a smooth curve, the sum becomes the integral, and the answer stops depending on how finely we chose to cut.'},
+        : 'Finally, make the pieces smaller without end. Each piece’s arrow shrinks to nothing while there are ever more of them, the sum becomes the integral, and the answer stops depending on how finely we chose to cut.'},
   ];
 }
 /** How far a stage's motion has got, `local` of the way through the stage: the moving share

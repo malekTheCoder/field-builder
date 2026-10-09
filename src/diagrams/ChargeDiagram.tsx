@@ -55,7 +55,7 @@ function planeMatrix(yaw: number, pitch: number, origin: Point, unit: number): s
 function Vector({ from, to, color = 'var(--field)', width = 2.5, dashed = false, label, reduced = false, ghost = false }: { from: Point; to: Point; color?: string; width?: number; dashed?: boolean; label?: string; reduced?: boolean; ghost?: boolean }) {
   const length = Math.hypot(to.x - from.x, to.y - from.y), angle = Math.atan2(to.y - from.y, to.x - from.x);
   const head = Math.min(7, length * .32), a = { x: to.x - head * Math.cos(angle - .45), y: to.y - head * Math.sin(angle - .45) }, b = { x: to.x - head * Math.cos(angle + .45), y: to.y - head * Math.sin(angle + .45) };
-  return <g className="cd-vector" style={{ color }} opacity={length < .2 ? 0 : 1}>
+  return <g className={'cd-vector' + (dashed ? ' is-dashed' : '')} style={{ color }} opacity={length < .2 ? 0 : 1}>
     <motion.line initial={false} animate={{ x1: from.x, y1: from.y, x2: to.x, y2: to.y }} transition={{ duration: reduced ? 0 : .13, ease: 'easeOut' }} stroke="currentColor" strokeWidth={width} strokeDasharray={dashed ? '4 4' : undefined} style={{ opacity: ghost ? 0 : 1 }} />
     <motion.path initial={false} animate={{ d: `M${a.x},${a.y}L${to.x},${to.y}L${b.x},${b.y}` }} transition={{ duration: reduced ? 0 : .13 }} fill="none" stroke="currentColor" strokeWidth={width} style={{ opacity: ghost ? 0 : 1 }} />
     {label && length > 10 && <text x={to.x + (to.x < from.x ? -9 : 9)} y={to.y - 9} textAnchor={to.x < from.x ? 'end' : 'start'} className="cd-vector-label" fill="currentColor">{label}</text>}
@@ -260,7 +260,15 @@ export function ChargeDiagram({ problem, params: p, setParams, count, continuum,
   const clampToFrame = (v: Point): Point => ({ x: clamp(v.x, 52, 657), y: clamp(v.y, 62, 362) });
   // A common numeric scale applies to net and component arrows. The selected
   // element has an explicitly stated magnification so tiny dE remains inspectable.
-  const fieldNorm = Math.max(magnitude(total), ...samples.map(s => magnitude(s.field)), 1e-9);
+  const pieceNorm = Math.max(...samples.map(s => magnitude(s.field)), 1e-30);
+  // While the run plays, the scale is set by the field itself, which does not depend on how the
+  // charge is cut. Taken from the sum of the pieces instead, it was re-rounded to a power of two
+  // every time the limit doubled the pieces, and the arrow could halve or double in a frame while
+  // the field it drew moved by a percent. (A field that is zero by symmetry has no scale of its
+  // own; then the pieces set it, as they do at rest.)
+  const exactField = !scalar && build ? field(id, p) : zero;
+  const fieldNorm = build && !scalar && magnitude(exactField) > 1e-6 * pieceNorm ? magnitude(exactField)
+    : Math.max(magnitude(total), pieceNorm, 1e-9);
   const scaleValue = 2 ** Math.ceil(Math.log2(fieldNorm));
   // WHILE THE RUN PLAYS, THE ARROWS ARE THE SUBJECT, so they are drawn as large as the frame
   // allows. At the resting scale the finished field is a hundred pixels at most and the chain of
@@ -268,19 +276,30 @@ export function ChargeDiagram({ problem, params: p, setParams, count, continuum,
   // chain had nothing to look at. The run scales every field arrow by one factor, chosen so the
   // finished field reaches toward the frame's edge in its own direction, so the chain, the net
   // arrow and the field it converges to stay in proportion with each other throughout.
+  //
+  // Measured in the view the figure OPENS in, not the one it is turned to: a scale read off the
+  // live screen grew and shrank the arrows' real lengths as the reader orbited, so turning the
+  // figure in 3D appeared to change the field.
   const runScale = (() => {
     if (!build || scalar) return 1;
-    const base = 100 / scaleValue, s = projectCamera(magnitude(total) >= magnitude(field(id, p)) ? total : field(id, p), view.yaw, view.pitch);
+    const ref = inSpace ? opening : FLAT;
+    const base = 100 / scaleValue, s = projectCamera(magnitude(total) >= magnitude(exactField) ? total : exactField, ref.yaw, ref.pitch);
     const length = base * Math.hypot(s.x, s.y);
     if (length < 1) return 1;
-    const edge = rayToEdge(P, { x: s.x * base / length, y: s.y * base / length }, { x: 42, y: 54, width: 626, height: 317 });
-    return clamp((Math.hypot(edge.x - P.x, edge.y - P.y) - 46) / length, 1, 2.6);
+    const at = projectCamera(pWorld, ref.yaw, ref.pitch), from = { x: O.x + unit * at.x, y: O.y + unit * at.y };
+    const edge = rayToEdge(from, { x: s.x * base / length, y: s.y * base / length }, { x: 42, y: 54, width: 626, height: 317 });
+    return clamp((Math.hypot(edge.x - from.x, edge.y - from.y) - 46) / length, 1, 2.6);
   })();
   const gain = 100 / scaleValue * runScale;
   const fieldScreen = (v: Vec, multiplier = 1): Point => { const k = gain * multiplier; const s = projectCamera(v, view.yaw, view.pitch); return { x: k * s.x, y: k * s.y }; };
-  // One piece's arrow is magnified to a readable length, and a little longer while the run is
-  // pointing at it: it is the arrow the first three stages are about.
-  const selectedGain = Math.max(1, Math.min(1000, (build ? 82 : 55) / Math.max(.001, Math.hypot(fieldScreen(sample.field).x, fieldScreen(sample.field).y))));
+  // One piece's arrow is magnified to a readable length. At rest every piece is drawn at the same
+  // length, so whichever one is clicked can be read. While the run plays, the magnification is
+  // one for the whole lesson instead -- set by its strongest piece, in world units so turning the
+  // view does not change it -- because the stage that says a nearer or bigger piece acts harder
+  // has to be able to show it: drawn all the same length, every piece looked equally strong.
+  const selectedGain = build && !scalar
+    ? Math.max(1, Math.min(1000, 82 / Math.max(1e-9, gain * pieceNorm)))
+    : Math.max(1, Math.min(1000, 55 / Math.max(.001, Math.hypot(fieldScreen(sample.field).x, fieldScreen(sample.field).y))));
   const contribution = fieldScreen(sample.field, selectedGain);
   const projectedComponent = fieldScreen(perspective ? { x: 0, y: 0, z: sample.field.z } : { x: sample.field.x, y: 0, z: 0 }, selectedGain);
   const net = fieldScreen(displayed);
@@ -438,6 +457,11 @@ export function ChargeDiagram({ problem, params: p, setParams, count, continuum,
   const elementSymbol = continuum>=.999 ? 'dQ' : 'ΔQ';
   const fieldSymbol = continuum>=.999 ? 'dE' : 'ΔE';
   const partnerIndex = id === 'ring' ? (selectedIndex + Math.floor(n / 2)) % n : n - 1 - selectedIndex;
+  // Cut into an odd number of pieces, a ring has no piece straight across from any other: the point
+  // opposite a piece's middle falls on a cut. Lighting piece i + floor(n/2) lit one 144 degrees
+  // away whose sideways push does not cancel at all. So the mirror is drawn as what it is -- an arc
+  // of the same length, centred straight across -- and no whole piece is lit in its place.
+  const mirrorArc = id === 'ring' && n % 2 === 1;
   const supportsPair = !scalar && (id === 'bisector' || id === 'infinite' || id === 'ring' || id === 'arc');
   // A potential lesson has a mirror partner wherever its field twin does, and showing it is the
   // point: the piece that CANCELS the field's sideways push ADDS the same amount to V.
@@ -452,9 +476,12 @@ export function ChargeDiagram({ problem, params: p, setParams, count, continuum,
       const t = requestAnimationFrame(() => setCancelT(0));
       return () => cancelAnimationFrame(t);
     }
+    // Reduced motion does not skip the cancelling: both sideways parts are shown, still, for a
+    // beat, and then they are gone -- otherwise the pair that cancels was never seen at all.
     if (reduced) {
-      const t = requestAnimationFrame(() => setCancelT(1));
-      return () => cancelAnimationFrame(t);
+      const show = requestAnimationFrame(() => setCancelT(0));
+      const t = window.setTimeout(() => setCancelT(1), 1400);
+      return () => { cancelAnimationFrame(show); window.clearTimeout(t); };
     }
     // 1.15s: long enough to see the two transverse arrows shrink onto the surviving axis.
     const ctrl = animate(0, 1, { duration: 1.15, ease: [.22, .7, .2, 1], onUpdate: setCancelT });
@@ -636,6 +663,15 @@ export function ChargeDiagram({ problem, params: p, setParams, count, continuum,
     onKeyDown: (ev: KeyboardEvent<SVGSVGElement>) => viewKeys(ev),
   };
   /* oxlint-enable react/react-compiler */
+  /** An angle at a vertex: a short arc between its two sides, and its name on the line halving it,
+   * so the label sits inside the angle it names whichever way that angle happens to open. */
+  const angleMark = (at: Point, alongA: Point, alongB: Point, name: string) => {
+    const a = direction(vsub(alongA, at)), b = direction(vsub(alongB, at));
+    if (!a || !b) return null;
+    const mid = direction({ x: a.x + b.x, y: a.y + b.y }) ?? a, R = 19, sweep = a.x * b.y - a.y * b.x > 0 ? 1 : 0;
+    return <><path className="cd-angle-arc" d={`M${(at.x + a.x * R).toFixed(1)} ${(at.y + a.y * R).toFixed(1)}A${R} ${R} 0 0 ${sweep} ${(at.x + b.x * R).toFixed(1)} ${(at.y + b.y * R).toFixed(1)}`} />
+      <text className="cd-angle" x={at.x + mid.x * 33} y={at.y + mid.y * 33 + 5} textAnchor="middle">{name}</text></>;
+  };
   const circlePoints = (radius: number, start = 0, end = Math.PI * 2) => Array.from({ length: 97 }, (_, i) => project({ x: radius * Math.cos(start + (end - start) * i / 96), y: radius * Math.sin(start + (end - start) * i / 96), z: 0 }));
   const radiusTip = ray({ x: 1, y: 0, z: 0 }, Math.min(surface ? sample.position.x : R, 7) * unit);
   // A rod or ring is one object. Doubling N inserts mid-cuts on pieces that already
@@ -709,7 +745,7 @@ export function ChargeDiagram({ problem, params: p, setParams, count, continuum,
       plane={perspective ? 'xz' : 'xy'} layout={surface ? 'surface' : 'wire'} />}
     {inSpace && <FieldStage quiet={!!building} kind={id === 'disk' ? 'disk' : id === 'sheet' ? 'sheet' : 'wire'} closed={id === 'ring'} samples={fieldSamples} detail={UNBOUNDED.has(id) ? 144 : 48} selected={selectedIndex}
       radius={R} distance={p.distance} yaw={view.yaw} pitch={view.pitch} fieldView={scalar ? 'off' : fieldView} reach={fieldReach}
-      bodyPath={bodyPath} point={pWorld} element={sceneElement} net={scalar || hideAnswer ? null : scaleVec(displayed, gain / unit)} contribution={scalar || !showContribution ? null : scaleVec(sample.field, selectedGain * gain / unit)}
+      bodyPath={bodyPath} point={pWorld} element={sceneElement} net={scalar || hideAnswer ? null : scaleVec(displayed, gain / unit)} contribution={scalar || !showContribution || mode === 'sum' || building === 'limit' ? null : scaleVec(sample.field, selectedGain * gain / unit)}
       unit={unit} frame={{ width: 720, height: 430 }} origin={O} charge={p.charge} animating={moving}
       getView={() => ({ yaw: yawMv.get(), pitch: pitchMv.get() })} />}
     <svg ref={svg} className={`cd-svg${inSpace ? ' cd-orbitable' : ''}${scalar ? ' cd-scalar' : ''}`} viewBox="0 0 720 430" role="img" tabIndex={inSpace ? 0 : undefined} {...(inSpace ? orbit : {})} aria-label={`${problem.title}. Interactive charge distribution and ${scalar ? 'electric potential' : 'electric field'} visualization.${inSpace ? ' Drag or use the arrow keys to rotate the view, plus and minus to zoom, Home to reset it.' : ''}`}>
@@ -737,7 +773,10 @@ export function ChargeDiagram({ problem, params: p, setParams, count, continuum,
           {id === 'sheet' && <motion.path layoutId="fb-source-surface" data-source-body="true" data-dim="charge" initial={false} animate={{ d: pathThrough(worldArc(7), true) }} transition={{ duration: still ? 0 : .45 }} className="cd-surface" style={{ opacity: inSpace ? 0 : 1 }} />}
           {id === 'disk' && <>
             <motion.path layoutId="fb-source-surface" data-source-body="true" data-dim="charge" initial={false} animate={{ d: pathThrough(worldArc(R), true) }} transition={{ duration: still ? 0 : .45 }} className="cd-surface" style={{ opacity: inSpace ? 0 : 1 }} />
-            <motion.path className="cd-disk-sweep" data-disk-sweep="true" initial={false} animate={{ d: pathThrough(worldArc(Math.max(.001, fillR)), true) }} transition={{ duration: still ? 0 : .2 }} />
+            {/* The shaded disk is the part already SUMMED, so it is drawn only while summing. Before
+                that it shaded the whole inner disk behind the chosen ring -- area πs², the very
+                mistake this lesson's own hint warns against -- when the piece is the thin ring. */}
+            {(mode === 'sum' || mode === 'integrate') && <motion.path className="cd-disk-sweep" data-disk-sweep="true" initial={false} animate={{ d: pathThrough(worldArc(Math.max(.001, fillR)), true) }} transition={{ duration: still ? 0 : .2 }} />}
             <g className="cd-piece is-selected" data-piece-key={intervalKey(selectedIndex, n)} style={{ pointerEvents: 'none' }}><motion.path initial={false} animate={{ d: pathThrough(worldArc(Math.max(.001, fillR))) }} transition={{ duration: still ? 0 : .2 }} fill="none" strokeWidth="4" /></g>
           </>}
           {id === 'ring' && <>
@@ -750,8 +789,10 @@ export function ChargeDiagram({ problem, params: p, setParams, count, continuum,
               const inInterval = Math.abs(wholeWeights[i]) > 0;
               const opacity = !inInterval ? .14 : active ? 1 : accumulated ? .94 : building === 'add' ? .16 : .48 + continuum * .3;
               const a0 = 2 * Math.PI * i / n, a1 = 2 * Math.PI * (i + 1) / n, identity = intervalKey(i, n);
-              return <g key={identity} data-piece-key={identity} className={`cd-piece ${active ? 'is-selected' : ''}${partnerLit && i === partnerIndex && !active ? ' is-partner' : ''}${accumulated && !active ? ' is-added' : ''}`} style={{ opacity, ...cutAt(i / n) }} onPointerDown={ev => { ev.stopPropagation(); onSelect(i); }}><motion.path initial={false} animate={{ d: pathThrough(worldArc(R, a0, a1)) }} transition={{ duration: still ? 0 : .18 }} fill="none" strokeWidth={active ? 10 : 7} /></g>;
+              return <g key={identity} data-piece-key={identity} className={`cd-piece ${active ? 'is-selected' : ''}${partnerLit && i === partnerIndex && !active && !mirrorArc ? ' is-partner' : ''}${accumulated && !active ? ' is-added' : ''}`} style={{ opacity, ...cutAt(i / n) }} onPointerDown={ev => { ev.stopPropagation(); onSelect(i); }}><motion.path initial={false} animate={{ d: pathThrough(worldArc(R, a0, a1)) }} transition={{ duration: still ? 0 : .18 }} fill="none" strokeWidth={active ? 10 : 7} /></g>;
             })}
+            {mirrorArc && partnerLit && (() => { const a0 = 2 * Math.PI * selectedIndex / n + Math.PI, a1 = 2 * Math.PI * (selectedIndex + 1) / n + Math.PI;
+              return <g className="cd-piece is-partner cd-mirror-arc" data-mirror-arc="true" style={{ pointerEvents: 'none' }}><path d={pathThrough(worldArc(R, a0, a1))} fill="none" strokeWidth={7} /></g>; })()}
             {continuum < .995 && <g className="cd-seams" aria-hidden="true" style={{ opacity: .7 * (1 - continuum) }}>
               {seamFractions(n).map(t => { const theta = 2 * Math.PI * t, h = 8 / unit, c = Math.cos(theta), s = Math.sin(theta); return <g key={seamKey(t)} data-seam={seamKey(t)} className="cd-seam"><line x1={(R - h) * c} y1={(R - h) * s} x2={(R + h) * c} y2={(R + h) * s} /></g>; })}
               {split > .04 && split < .995 && splitFractions(n).map(t => { const theta = 2 * Math.PI * t, h = 8 * split / unit, c = Math.cos(theta), s = Math.sin(theta); return <g key={seamKey(t)} data-seam={seamKey(t)} className="cd-seam is-growing" style={{ opacity: split }}><line x1={(R - h) * c} y1={(R - h) * s} x2={(R + h) * c} y2={(R + h) * s} /></g>; })}
@@ -818,7 +859,10 @@ export function ChargeDiagram({ problem, params: p, setParams, count, continuum,
             <Vector from={plus(P, partnerKeepScreen)} to={plus(P, plus(partnerKeepScreen, livePartnerDrop))} color="var(--contribution)" width={1.4} dashed reduced={still} />
           </g>
         </g>}
-        {components && <g className="cd-grow cd-grow-parts" style={{ transformOrigin: `${P.x}px ${P.y}px` }}><Vector from={P} to={plus(P, projectedComponent)} color="var(--contribution)" width={1.3} dashed reduced={still} /><Vector from={plus(P, projectedComponent)} to={plus(P, contribution)} color="var(--contribution)" width={1.3} dashed reduced={still} /></g>}
+        {/* The part that survives, drawn solid, and the part that goes, dashed. With a mirror piece
+            the sideways part is drawn once, in the pair above, where it is seen to shrink away --
+            a second, full-length copy of it here used to outlive the cancellation it was showing. */}
+        {components && <g className="cd-grow cd-grow-parts" style={{ transformOrigin: `${P.x}px ${P.y}px` }}><Vector from={P} to={plus(P, projectedComponent)} color="var(--contribution)" width={2.2} reduced={still} />{!(pair && supportsPair) && <Vector from={plus(P, projectedComponent)} to={plus(P, contribution)} color="var(--contribution)" width={1.3} dashed reduced={still} />}</g>}
         <g className="cd-grow" style={{ transformOrigin: `${P.x}px ${P.y}px` }}><Vector from={P} to={plus(P, contribution)} color="var(--contribution)" width={1.8} label={surface ? fieldSymbol+'z' : fieldSymbol} reduced={still}  ghost={inSpace} /></g>
       </>}
       {!scalar && mode === 'sum' && chainPoints.length > 1 && <path className="cd-sum-chain" data-sum-chain={String(chainPoints.length)} d={pathThrough(chainPoints)} fill="none" />}
@@ -832,7 +876,7 @@ export function ChargeDiagram({ problem, params: p, setParams, count, continuum,
           view cube in the opposite one and above everything the drawing puts in the middle. */}
       {inSpace && <ViewHelp x={690} y={30} />}
       {!scalar && !hideAnswer && <Vector from={P} to={plus(P, net)} width={3.5} label={continuum>=.999&&full&&progress>=.999?'E':'Σ ΔE'} reduced={still} ghost={inSpace} />}
-{!scalar && magnitude(displayed) < 1e-8 && <text x={P.x-16} y={P.y-47} textAnchor="end" className="cd-zero">E = 0</text>}
+{!scalar && !hideAnswer && magnitude(displayed) < 1e-8 && <text x={P.x-16} y={P.y-47} textAnchor="end" className="cd-zero">E = 0</text>}
       {/* THE POTENTIAL'S OWN PICTURE: the pieces' contributions, stacked.
           The field chains its pieces' arrows head to tail in the plane; the potential chains its
           pieces' NUMBERS head to tail along a line. It is the same sum with one dimension taken
@@ -856,7 +900,7 @@ export function ChargeDiagram({ problem, params: p, setParams, count, continuum,
         let got = 0;
         const filled = summing ? samples.map((s, i) => { const h = s.potential * perVolt * (weights[i] ?? 0); const slot = { i, lo: got, hi: got + h }; got += h; return slot; }).filter(sl => Math.abs(sl.hi - sl.lo) > .02) : [];
         const box = (lo: number, hi: number) => ({ y: Math.min(P.y - lo, P.y - hi), height: Math.max(.6, Math.abs(hi - lo)) });
-        const lit = new Set<number>([selectedIndex, ...(scalarPartner ? [partnerIndex] : [])]);
+        const lit = new Set<number>([selectedIndex, ...(scalarPartner && !mirrorArc ? [partnerIndex] : [])]);
         const top = summing ? got : at, up = top >= 0;
         return <g className="cd-gauge" aria-hidden="true" data-stack={String(n)}>
           <line x1={x + w / 2} y1={P.y - 96} x2={x + w / 2} y2={P.y + 96} />
@@ -876,8 +920,19 @@ export function ChargeDiagram({ problem, params: p, setParams, count, continuum,
       </g>
       {(showContribution || building === 'pieces' || highlight === 'element') && <g className="cd-source-tag"><line x1={source.x} y1={source.y} x2={source.x+(source.x>560?-22:22)} y2={source.y+(source.y<95?22:-20)} /><text x={source.x+(source.x>560?-27:27)} y={source.y+(source.y<95?27:-21)} textAnchor={source.x>560?'end':'start'}>{sourceVisible ? (surface ? 'ring '+elementSymbol : elementSymbol) : elementSymbol+' outside view'}</text></g>}
       {mode === 'integrate' && onBoundRangeChange && [0, 1].map(i => { const raw = project(world(boundRange[i]/100)); const point = { x: clamp(raw.x, 57, 650), y: clamp(raw.y, 66, 358) + ((id === 'ring' || (id === 'arc' && p.phi > 6.2)) ? (i ? 13 : -13) : 0) }; return <g key={i} {...handle(String(i))} className="cd-bound"><circle cx={point.x} cy={point.y} r="17" fill="transparent" /><rect x={point.x-8} y={point.y-8} width="16" height="16" rx="4" /><text x={point.x+(i ? 18 : -18)} y={point.y+5} textAnchor={i ? 'start' : 'end'}>{i ? 'b' : 'a'}</text></g>; })}
-      {showContribution && !scalar && building !== 'add' && building !== 'limit' && <g className="cd-triangle">
-        {perspective ? <><path d="M538 135V73L619 135Z"/><path d="M538 127h8v8"/><text x="526" y="110">z</text><text x="575" y="151">{surface?'s':'R'}</text><text x="584" y="94">rᵢ</text><text className="cd-angle" x="548" y="93">α</text><text x="538" y="170" className="cd-triangle-note">Right triangle · schematic</text></> : id==='arc' ? <><line x1={P.x} y1={P.y} x2={selectedPoint.x} y2={selectedPoint.y}/><text x={P.x+30} y={P.y-12}>θ</text></> : id==='axial' ? <text x={(P.x+source.x)/2} y={P.y-39}>rᵢ = L + a − x</text> : <><path d={`M${source.x} ${source.y}L${source.x} ${P.y}L${P.x} ${P.y}`} /><text x={(source.x+P.x)/2+7} y={(source.y+P.y)/2-10}>rᵢ</text><text x={source.x-24} y={(source.y+P.y)/2}>{id==='semi'?'x':'y'}</text><text className="cd-angle" x={P.x-31} y={P.y-8}>θ</text></>}
+      {/* Drawn in screen space, so it is only true in the flat view -- in 3D its corner and its
+          angle are wherever the screen puts them, not where the geometry does -- and only for a
+          piece that is itself on the page: an off-page piece's triangle drawn to its wedge would
+          label legs that are not its y or x at all. */}
+      {showContribution && !scalar && building !== 'add' && building !== 'limit' && (perspective || (!inSpace && selectedOnFrame)) && <g className="cd-triangle">
+        {perspective ? <><path d="M538 135V73L619 135Z"/><path d="M538 127h8v8"/><path className="cd-angle-arc" d="M538 90A17 17 0 0 0 551.5 83.3"/><text x="526" y="110">z</text><text x="575" y="151">{surface?'s':'R'}</text><text x="584" y="94">rᵢ</text><text className="cd-angle" x="549" y="106" textAnchor="middle">α</text><text x="538" y="170" className="cd-triangle-note">Right triangle · schematic</text></>
+          : id==='arc' ? <><line x1={P.x} y1={P.y} x2={selectedPoint.x} y2={selectedPoint.y}/>{angleMark(P, {x: P.x + 40, y: P.y}, selectedPoint, 'θ')}</>
+          : id==='axial' ? <text x={(P.x+source.x)/2} y={P.y-39}>rᵢ = L + a − x</text>
+          // The right angle is at the foot, level with P; the angle the board's cosine is taken of is
+          // at P, between the leg through P and the line to the piece -- marked there with an arc.
+          // On the semi-infinite line P sits ABOVE the line, so its legs swap: the leg through P is
+          // the piece's x, and the leg up from the piece is P's own height r, already marked.
+          : <><path d={`M${source.x} ${source.y}L${source.x} ${P.y}L${P.x} ${P.y}`} /><text x={(source.x+P.x)/2+7} y={(source.y+P.y)/2-10}>rᵢ</text>{id==='semi' ? <text x={(source.x+P.x)/2} y={P.y-9} textAnchor="middle">x</text> : <text x={source.x-24} y={(source.y+P.y)/2}>y</text>}{angleMark(P, {x: source.x, y: P.y}, source, 'θ')}</>}
       </g>}
       <line x1="30" y1="387" x2="690" y2="387" className="cd-divider" />
       <text x="30" y="409" className="cd-footer">{sourceLabel}</text>

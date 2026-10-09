@@ -99,7 +99,7 @@ function confusions(p:Problem){return p.steps.flatMap((s,i)=>(s.fields??[]).map(
 // find out was to drag it and hunt for whatever moved.
 function Range({label,value,min,max,step=1,onChange,describe,onDescribe}:{label:string;value:number;min:number;max:number;step?:number;onChange:(n:number)=>void;describe?:string;onDescribe?:(k:string)=>void}){const [symbol,name]=splitSymbol(label);const point=(on:boolean)=>{if(describe)onDescribe?.(on?describe:'')};return <div className="exp-range" onPointerEnter={()=>point(true)} onPointerLeave={()=>point(false)} onFocusCapture={()=>point(true)} onBlurCapture={()=>point(false)}><div><span>{symbol&&<i className="exp-sym">{symbol}</i>}<span className="exp-name">{name}</span></span></div><Slider aria-label={label} value={[value]} min={min} max={max} step={step} onValueChange={v=>onChange(Array.isArray(v)?v[0]:v)}/></div>}
 export default function Explorer(){
- const [id,setId]=useState<ProblemId>('bisector');const [path,setPath]=useState('angular');const [mode,setMode]=useState<Mode>('divide');const [paramsMap,setParamsMap]=useState<Partial<Record<ProblemId,Params>>>({});const [dark,setDark]=useState(false);const [ready,setReady]=useState(false);const [storageOK,setStorageOK]=useState(true);const [onboarding,setOnboarding]=useState(false);const [seen,setSeen]=useState(false);const [library,setLibrary]=useState(false);const [sidebarOpen,setSidebarOpen]=useState(true);const [showNumbers,setShowNumbers]=useState(false);const [components,setComponents]=useState(false);const [pair,setPair]=useState(false);const [progress,setProgress]=useState(1);const [selected,setSelected]=useState(3);const [bounds,setBounds]=useState<[number,number]>([0,100]);const [limitsOpen,setLimitsOpen]=useState(false);const [slipsOpen,setSlipsOpen]=useState(false);const [limitIndex,setLimitIndex]=useState(0);const [highlight,setHighlight]=useState('');const [status,setStatus]=useState('');const [building,setBuilding]=useState(false);const [buildAt,setBuildAt]=useState(0);const [buildIndex,setBuildIndex]=useState(0);const [buildShown,setBuildShown]=useState(false);const build=useRef<{stop:()=>void}|null>(null);const clock=useRef({at:0,stopAt:0});const buildC=useRef(-1);const buildStep=useRef(-1);const reduced=useReducedMotion();const tourButton=useRef<HTMLButtonElement>(null);
+ const [id,setId]=useState<ProblemId>('bisector');const [path,setPath]=useState('angular');const [mode,setMode]=useState<Mode>('divide');const [paramsMap,setParamsMap]=useState<Partial<Record<ProblemId,Params>>>({});const [dark,setDark]=useState(false);const [ready,setReady]=useState(false);const [storageOK,setStorageOK]=useState(true);const [onboarding,setOnboarding]=useState(false);const [seen,setSeen]=useState(false);const [library,setLibrary]=useState(false);const [sidebarOpen,setSidebarOpen]=useState(true);const [showNumbers,setShowNumbers]=useState(false);const [components,setComponents]=useState(false);const [pair,setPair]=useState(false);const [progress,setProgress]=useState(1);const [selected,setSelected]=useState(3);const [bounds,setBounds]=useState<[number,number]>([0,100]);const [limitsOpen,setLimitsOpen]=useState(false);const [slipsOpen,setSlipsOpen]=useState(false);const [limitIndex,setLimitIndex]=useState(0);const [highlight,setHighlight]=useState('');const [status,setStatus]=useState('');const [building,setBuilding]=useState(false);const [buildAt,setBuildAt]=useState(0);const [buildIndex,setBuildIndex]=useState(0);const [buildShown,setBuildShown]=useState(false);const [runPiece,setRunPiece]=useState(.7);const build=useRef<{stop:()=>void}|null>(null);const clock=useRef({at:0,stopAt:0});const buildC=useRef(-1);const buildStep=useRef(-1);const reduced=useReducedMotion();const tourButton=useRef<HTMLButtonElement>(null);
  const p=getProblem(id,'angular'),derivationProblem=getProblem(id,path),params=paramsMap[id]??DEFAULT_PARAMS;const continuum=params.continuum;const count=partitionCount(params.slices,continuum);const geom=p.geometry,scalar=p.quantity==='V';const isInfinite=['infinite','semi','sheet'].includes(geom);const isRound=['ring','disk','arc'].includes(geom);const lim=p.limits[Math.min(limitIndex,p.limits.length-1)];
  // Storage is an external system; initialize after hydration and surface write failures without aborting the lesson.
  // oxlint-disable-next-line react/react-compiler
@@ -139,7 +139,10 @@ export default function Explorer(){
  // The piece being added walks along the charge while the sum builds, so it is always plain
  // which piece is going in.
  const following=buildOpen&&buildNow.key==='add';
- const activeIndex=following?activeIntervalIndex(count,bounds,progress):Math.min(count-1,Math.max(0,selected));
+ // The run shows its own piece, held at one place along the charge rather than at one index: the
+ // limit multiplies the pieces, and a fixed index slid from most of the way along the rod to its
+ // very end as they shrank.
+ const activeIndex=following?activeIntervalIndex(count,bounds,progress):buildOpen?Math.min(count-1,Math.floor(runPiece*count)):Math.min(count-1,Math.max(0,selected));
  // While the run is open, the figure lights the factor the current stage puts into the integral
  // -- the distance as the first arrow is drawn, the angle as the parts cancel -- unless the
  // reader is pointing at something else, which always wins.
@@ -182,9 +185,14 @@ export default function Explorer(){
   * MAX_STEP: at sixty frames a second that is the same pace, and after a pause it is one small
   * step, so the run picks up where it left off instead of skipping to the answer. Where it has got
   * to lives in a ref rather than in the closure, so scrubbing can move it while it plays. */
+ /** The piece the run talks about: off the middle, so it always has a mirror piece that is not
+  * itself -- with an odd count the middle piece is its own mirror, and the cancelling stage would
+  * have nothing to show -- and three quarters of the way along, where its sideways part is large
+  * enough to see cancel. Chosen as the run opens; the reader's own choice comes back on close. */
+ function openRun(){if(buildShown)return;const i=count-1-Math.floor((count-1)/4);setRunPiece((i+.5)/count);setBuildShown(true)}
  function playBuild(from:number,until:number){
-  build.current?.stop();build.current=null;setHighlight('');
-  setBuilding(true);setBuildShown(true);
+  build.current?.stop();build.current=null;setHighlight('');openRun();
+  setBuilding(true);
   if(from===0)buildC.current=-1;
   clock.current={at:from,stopAt:until};
   const done=()=>{build.current=null;setBuilding(false)};
@@ -219,7 +227,7 @@ export default function Explorer(){
   playBuild(buildAt>=total-.01?0:buildAt,total);
  }
  /** Go to a moment and hold still there: a click on a stage, or a drag along the bar. */
- function seekBuild(at:number){stop();setBuildShown(true);setHighlight('');applyBuild(Math.max(0,Math.min(totalSeconds(stages),at)))}
+ function seekBuild(at:number){stop();openRun();setHighlight('');applyBuild(Math.max(0,Math.min(totalSeconds(stages),at)))}
  /** Play one stage from its start and stop at its end -- from the derivation's lines and the
   * previous/next buttons, which is how a reader takes the argument one step at a time. Stopping a
   * hair before the end keeps the stage's own finished frame on screen, not the next one's first. */
