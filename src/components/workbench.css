@@ -173,9 +173,12 @@
  text-wrap:pretty;animation:ew-enter .35s ease-out}
 /* The longest line is the last, every factor written out. Where the panel is narrow the board's
    type comes down a step at a time rather than letting a line scroll inside its box. Set on the
-   steps, not the board: a container cannot answer a query about itself. */
+   steps, not the board: a container cannot answer a query about itself.
+   The second step starts at 280px: the ramp's last line is about 241px of math at 14.5px, which
+   left the 272px board beside the figure at 1060px no room at all -- and on Linux, where glyph
+   advances are rounded to whole pixels, it came out 246px in a 240px box and scrolled. */
 @container (max-width:290px){.db-step{--db-math:14.5px;--db-gloss:13.5px}}
-@container (max-width:262px){.db-step{--db-math:14px;--db-gloss:13px}}
+@container (max-width:280px){.db-step{--db-math:14px;--db-gloss:13px}}
 @container (max-width:236px){.db-step{--db-math:13px;--db-gloss:12.5px}}
 
 /* Each factor in the colour of the feature it is read off, so the eye can go from a symbol to the
