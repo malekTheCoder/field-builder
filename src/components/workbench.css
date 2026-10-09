@@ -155,6 +155,7 @@
 @container (max-width:262px){.db-tex,.db-then>.math{font-size:14px}.db-where{font-size:12.5px}}
 .db-where{display:block;font-size:13px;color:var(--muted-foreground);padding:0 0 9px}
 .db-where .katex{font-size:1em}
+.db-where+.db-also{margin-top:-4px}
 .db-tex+.db-then,.db-where+.db-then{margin-top:-4px}
 .db-then{display:grid;grid-template-rows:0fr;opacity:0;transition:grid-template-rows .6s cubic-bezier(.2,.8,.2,1),opacity .5s ease}
 .db-then.is-shown{grid-template-rows:1fr;opacity:1}

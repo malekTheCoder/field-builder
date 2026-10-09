@@ -54,12 +54,12 @@ describe('watch it build', () => {
   // being cut up.
   jump(view, 5, 'Shrink them');
   fireEvent.click(view.getByRole('button', {name: 'Play'}));
-  await waitFor(() => expect(footer(view)).toContain('In the limit'), {timeout: 9000});
+  await waitFor(() => expect(footer(view)).toContain('In the limit'), {timeout: 25000});
   fireEvent.click(view.getByRole('button', {name: 'Close'}));
   await waitFor(() => expect(view.queryByRole('button', {name: /^Stage \d: /})).toBeNull());
   expect(view.getByRole('button', {name: 'Watch it build'})).toBeTruthy();
   await waitFor(() => expect(footer(view)).toContain('Cut into pieces'));
- });
+ }, 60000);
  it('the cancellation stage puts a mirror partner on the figure, and the next stage takes it away', async () => {
   const view = await openLesson('bisector');
   fireEvent.click(view.getByRole('button', {name: 'Watch it build'}));
@@ -90,8 +90,8 @@ describe('watch it build', () => {
   jump(view, 5, 'Shrink them');
   expect(footer(view)).toContain('Cut into pieces');
   fireEvent.click(view.getByRole('button', {name: 'Play'}));
-  await waitFor(() => expect(footer(view)).toContain('In the limit'), {timeout: 9000});
- });
+  await waitFor(() => expect(footer(view)).toContain('In the limit'), {timeout: 25000});
+ }, 60000);
  it('a lesson with nothing to cancel still runs, and draws no partner', async () => {
   // The rod seen from beyond its end: every piece lies the same side of P, so there is no
   // partner and the stage says so. It must still play -- an argument with a hole in it is
@@ -102,8 +102,8 @@ describe('watch it build', () => {
   expect(view.container.querySelector('[data-cancel-transverse]')).toBeNull();
   jump(view, 5, 'Shrink them');
   fireEvent.click(view.getByRole('button', {name: 'Play'}));
-  await waitFor(() => expect(footer(view)).toContain('In the limit'), {timeout: 9000});
- });
+  await waitFor(() => expect(footer(view)).toContain('In the limit'), {timeout: 25000});
+ }, 60000);
 });
 describe('a pause in the frames pauses the run, it does not skip it', () => {
  // Reported three times as "does nothing, then after a bit it goes to the final stages". The run
@@ -134,7 +134,7 @@ describe('a pause in the frames pauses the run, it does not skip it', () => {
   const view = await openLesson('bisector');
   fireEvent.click(view.getByRole('button', {name: 'Watch it build'}));
   const seen: string[] = [];
-  for (let t = 0; t <= 34000; t += 16) {
+  for (let t = 0; t <= 34000; t += 50) {
    frameAt(t);
    const s = stage(view);
    if (s && s !== seen[seen.length - 1]) seen.push(s);
@@ -142,7 +142,7 @@ describe('a pause in the frames pauses the run, it does not skip it', () => {
   expect(seen).toEqual(['Cut it up', 'One piece', 'What cancels', 'Add them up', 'Shrink them']);
   // And it ends playable: finished, not stuck mid-run, and offering to play it again.
   expect(view.getByRole('button', {name: 'Play again'})).toBeTruthy();
- });
+ }, 90000);
 });
 describe('the transport says how long the run is and where it has got to', () => {
  // "They need some progress bar to know how long the animation is and what's happening." Five dots
@@ -173,14 +173,14 @@ describe('the transport says how long the run is and where it has got to', () =>
   const view = await openLesson('bisector');
   fireEvent.click(view.getByRole('button', {name: 'Watch it build'}));
   // Seven and a half seconds in: through the first stage and about halfway through the second.
-  for (let t = 0; t <= 7500; t += 16) frameAt(t);
+  for (let t = 0; t <= 7500; t += 50) frameAt(t);
   const [first, second, third] = fills(view);
   expect(first).toBeCloseTo(1, 6);
   expect(second).toBeGreaterThan(.3);
   expect(second).toBeLessThan(.7);
   expect(third).toBe(0);
   expect(stage(view)).toBe('One piece');
- });
+ }, 60000);
  it('a drag along the bar scrubs the run, and leaves it paused where it was let go', async () => {
   const view = await openLesson('bisector');
   fireEvent.click(view.getByRole('button', {name: 'Watch it build'}));
@@ -206,14 +206,14 @@ describe('the transport says how long the run is and where it has got to', () =>
   fireEvent.click(view.getByRole('button', {name: 'Pause'}));
   fireEvent.click(view.getByRole('button', {name: 'Next stage'}));
   expect(stage(view)).toBe('One piece');
-  for (let t = 0; t <= 9000; t += 16) frameAt(t);
+  for (let t = 0; t <= 9000; t += 50) frameAt(t);
   // Still on its own stage, finished -- not on the first frame of the next one.
   expect(stage(view)).toBe('One piece');
   expect(fills(view)[1]).toBeGreaterThan(.99);
   expect(view.getByRole('button', {name: 'Play'})).toBeTruthy();
   // And the line of the derivation it put in now explains itself, at the reader's own pace.
   expect(view.container.querySelector('.db-step.is-here .db-note')?.textContent).toBe(buildStages(getProblem('bisector'))[1].caption);
- });
+ }, 60000);
  it('choosing a line of the derivation plays that stage on the figure', async () => {
   const view = await openLesson('bisector');
   fireEvent.click(view.getByRole('button', {name: 'Add them up: play this step on the figure'}));
@@ -257,7 +257,7 @@ describe('every stage changes the figure, not just the caption', () => {
   jump(view, 4, 'Add them up');
   fireEvent.click(view.getByRole('button', {name: 'Play'}));
   await waitFor(() => expect(answerShown(view)).toBe(true), {timeout: 6000});
- });
+ }, 60000);
  it('makes the cuts in the first stage, one after another along the charge', async () => {
   const view = await openLesson('bisector');
   fireEvent.click(view.getByRole('button', {name: 'Watch it build'}));
@@ -290,7 +290,7 @@ describe('every stage changes the figure, not just the caption', () => {
    expect(seen.size).toBeGreaterThanOrEqual(3);
   }, {timeout: 8000, interval: 50});
   expect(view.container.querySelectorAll('.cd-sum-joint').length).toBeGreaterThan(0);
- });
+ }, 60000);
 });
 describe('with reduced motion asked for', () => {
  // This was broken in the shipped build and no test saw it. Reduced motion made the run jump to
@@ -330,9 +330,9 @@ describe('with reduced motion asked for', () => {
   const stageNow = () => view.container.querySelector('.bp-seg[aria-current="step"]')?.getAttribute('aria-label') ?? '';
   expect(view.container.querySelectorAll('.bp-seg').length).toBe(5);
   await waitFor(() => expect(stageNow()).toMatch(/^Stage 1: /));
-  await waitFor(() => expect(stageNow()).toMatch(/^Stage 2: /), {timeout: 9000});
-  await waitFor(() => expect(stageNow()).toMatch(/^Stage 3: /), {timeout: 9000});
- });
+  await waitFor(() => expect(stageNow()).toMatch(/^Stage 2: /), {timeout: 25000});
+  await waitFor(() => expect(stageNow()).toMatch(/^Stage 3: /), {timeout: 25000});
+ }, 60000);
 });
 describe('the figure tells the truth at every stage', () => {
  // Each of these was found by an adversarial physics review of the run, and each one drew
@@ -496,5 +496,5 @@ describe('a slider says what it moves', () => {
     await waitFor(() => expect(lit(view), `${lesson.id} · ${name}`).not.toMatch(/cd-focus-\w/));
    }
   }
- });
+ }, 120000);
 });

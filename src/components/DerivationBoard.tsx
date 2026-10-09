@@ -53,6 +53,7 @@ export function DerivationBoard({lines, names, notes, state, lit = '', onStep, o
             <span className="db-body" id={`${uid}-${line.key}`}>
               <MathText className="db-tex" tex={line.tex} block trusted />
               {line.where && <MathText className="db-where" tex={line.where} trusted />}
+              {line.also && <MathText className="db-where db-also" tex={line.also} trusted />}
               {line.finish && <span className={'db-then' + (finished ? ' is-shown' : '')}><MathText tex={line.finish} block trusted /></span>}
               {stage === 'here' && !playing && <span className="db-note">{notes[i]}</span>}
             </span>
