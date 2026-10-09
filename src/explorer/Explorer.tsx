@@ -23,7 +23,7 @@ import {StartHere} from '../components/StartHere';
 import {isReady,SOON_NOTE} from '../problems/readiness';
 import {MathText} from '../components/Math';
 import {Assessment} from '../components/Assessment';
-import {artifactHtml,downloadArtifact,printLesson} from '../state/artifact';
+import {artifactHtml,downloadArtifact,figureCopy,printLesson} from '../state/artifact';
 import {Hint} from '../components/Hint';
 import './explorer.css';
 import '../print.css';
@@ -97,7 +97,20 @@ function confusions(p:Problem){return p.steps.flatMap((s,i)=>(s.fields??[]).map(
 // than it sounds: with the numbers stripped off, a slider labelled "r" says nothing at all to a
 // reader who has not yet worked out which mark on the drawing is r, and the only way left to
 // find out was to drag it and hunt for whatever moved.
-function Range({label,value,min,max,step=1,onChange,describe,onDescribe}:{label:string;value:number;min:number;max:number;step?:number;onChange:(n:number)=>void;describe?:string;onDescribe?:(k:string)=>void}){const [symbol,name]=splitSymbol(label);const point=(on:boolean)=>{if(describe)onDescribe?.(on?describe:'')};return <div className="exp-range" onPointerEnter={()=>point(true)} onPointerLeave={()=>point(false)} onFocusCapture={()=>point(true)} onBlurCapture={()=>point(false)}><div><span>{symbol&&<i className="exp-sym">{symbol}</i>}<span className="exp-name">{name}</span></span></div><Slider aria-label={label} value={[value]} min={min} max={max} step={step} onValueChange={v=>onChange(Array.isArray(v)?v[0]:v)}/></div>}
+// `reason` is how the value moved -- a drag, a press on the track, a key -- for the one slider that
+// has to care.
+function Range({label,value,min,max,step=1,onChange,describe,onDescribe}:{label:string;value:number;min:number;max:number;step?:number;onChange:(n:number,reason?:string)=>void;describe?:string;onDescribe?:(k:string)=>void}){const [symbol,name]=splitSymbol(label);const point=(on:boolean)=>{if(describe)onDescribe?.(on?describe:'')};return <div className="exp-range" onPointerEnter={()=>point(true)} onPointerLeave={()=>point(false)} onFocusCapture={()=>point(true)} onBlurCapture={()=>point(false)}><div><span>{symbol&&<i className="exp-sym">{symbol}</i>}<span className="exp-name">{name}</span></span></div><Slider aria-label={label} value={[value]} min={min} max={max} step={step} onValueChange={(v,details)=>onChange(Array.isArray(v)?v[0]:v,details?.reason)}/></div>}
+/** NO CHARGE IS NOT A LESSON. The charge slider runs through zero, and at zero every sentence the
+ * run says -- this charge all has one sign, its mirror piece acts just as hard -- is about nothing,
+ * over a figure with no field in it. So the slider steps over zero rather than stopping on it:
+ * a key press carries on to the other side, the way it was going; a drag that comes to rest on
+ * zero stays on the side it came from, so a pointer held there does not flicker between the two. */
+function snapCharge(next:number,current:number,reason?:string){
+ if(!(Math.abs(next)<.05))return next;
+ const pointer=reason==='drag'||reason==='track-press';
+ const side=!pointer&&next!==current?Math.sign(next-current):Math.sign(current)||1;
+ return side*.1;
+}
 // A FRAME OF "WATCH IT BUILD" USED TO RE-RENDER THE WHOLE PAGE. The run sets the same state the
 // manual controls set, so every frame re-rendered everything that state reaches -- and, because
 // every handler was written inline, everything else as well: a fresh function is a changed prop.
@@ -110,7 +123,7 @@ function useSteady<A extends unknown[],R>(fn:(...args:A)=>R):(...args:A)=>R{cons
 /** The board re-renders when what it shows changes, not whenever the page does. */
 const Workbench=memo(EquationWorkbench);
 export default function Explorer(){
- const [id,setId]=useState<ProblemId>('bisector');const [path,setPath]=useState('angular');const [mode,setMode]=useState<Mode>('divide');const [paramsMap,setParamsMap]=useState<Partial<Record<ProblemId,Params>>>({});const [dark,setDark]=useState(false);const [ready,setReady]=useState(false);const [storageOK,setStorageOK]=useState(true);const [onboarding,setOnboarding]=useState(false);const [seen,setSeen]=useState(false);const [library,setLibrary]=useState(false);const [sidebarOpen,setSidebarOpen]=useState(true);const [showNumbers,setShowNumbers]=useState(false);const [components,setComponents]=useState(false);const [pair,setPair]=useState(false);const [progress,setProgress]=useState(1);const [selected,setSelected]=useState(3);const [bounds,setBounds]=useState<[number,number]>([0,100]);const [limitsOpen,setLimitsOpen]=useState(false);const [slipsOpen,setSlipsOpen]=useState(false);const [limitIndex,setLimitIndex]=useState(0);const [highlight,setHighlight]=useState('');const [status,setStatus]=useState('');const [building,setBuilding]=useState(false);const [runAt]=useState(runClock);const [buildIndex,setBuildIndex]=useState(0);const [buildShown,setBuildShown]=useState(false);const [runPiece,setRunPiece]=useState(.7);const build=useRef<{stop:()=>void}|null>(null);const clock=useRef({at:0,stopAt:0});const buildC=useRef(-1);const buildStep=useRef(-1);const reduced=useReducedMotion();const tourButton=useRef<HTMLButtonElement>(null);
+ const [id,setId]=useState<ProblemId>('bisector');const [path,setPath]=useState('angular');const [mode,setMode]=useState<Mode>('divide');const [paramsMap,setParamsMap]=useState<Partial<Record<ProblemId,Params>>>({});const [dark,setDark]=useState(false);const [ready,setReady]=useState(false);const [storageOK,setStorageOK]=useState(true);const [onboarding,setOnboarding]=useState(false);const [seen,setSeen]=useState(false);const [library,setLibrary]=useState(false);const [sidebarOpen,setSidebarOpen]=useState(true);const [showNumbers,setShowNumbers]=useState(false);const [components,setComponents]=useState(false);const [pair,setPair]=useState(false);const [progress,setProgress]=useState(1);const [selected,setSelected]=useState(3);const [bounds,setBounds]=useState<[number,number]>([0,100]);const [limitsOpen,setLimitsOpen]=useState(false);const [slipsOpen,setSlipsOpen]=useState(false);const [limitIndex,setLimitIndex]=useState(0);const [highlight,setHighlight]=useState('');const [status,setStatus]=useState('');const [building,setBuilding]=useState(false);const [runAt]=useState(runClock);const [buildIndex,setBuildIndex]=useState(0);const [buildShown,setBuildShown]=useState(false);const [runPiece,setRunPiece]=useState(.7);const build=useRef<{stop:()=>void}|null>(null);const clock=useRef({at:0,stopAt:0});const buildC=useRef(-1);const buildStep=useRef(-1);const reduced=useReducedMotion();const tourButton=useRef<HTMLButtonElement>(null),watchButton=useRef<HTMLButtonElement>(null),walk=useRef<HTMLDivElement>(null),reveal=useRef(false);
  // Held per lesson: `getProblem` builds the infinite line afresh on every call, and a new problem
  // object is a changed prop to everything memoised below.
  const p=useMemo(()=>getProblem(id,'angular'),[id]),derivationProblem=useMemo(()=>getProblem(id,path),[id,path]),params=paramsMap[id]??DEFAULT_PARAMS;const continuum=params.continuum;const count=partitionCount(params.slices,continuum);const geom=p.geometry,scalar=p.quantity==='V';const isInfinite=['infinite','semi','sheet'].includes(geom);const isRound=['ring','disk','arc'].includes(geom);const lim=p.limits[Math.min(limitIndex,p.limits.length-1)];
@@ -164,7 +177,9 @@ export default function Explorer(){
  // out of sight -- and once the pieces have shrunk away, the integral done and its answer.
  const cutAway=continuum>=.99,settledRun=buildIndex===stages.length-1&&cutAway;
  const playerMath=useMemo(()=>{if(!buildOpen)return [];const line=boardLines(p)[buildIndex];if(!line)return [];
-  return settledRun&&line.finish?[line.tex,line.finish,...resultLines(p).slice(0,1)]:[line.tex];},[buildOpen,p,buildIndex,settledRun]);
+  // Every line of the result, not the first: on the lessons whose answer has two components, the
+  // figure's arrow labelled E leans, and an answer of E_x alone said it pointed along x.
+  return settledRun&&line.finish?[line.tex,line.finish,...resultLines(p)]:[line.tex];},[buildOpen,p,buildIndex,settledRun]);
  // What the figure and the board are told about the run, held still until it actually changes.
  const figureBuild=useMemo(()=>buildOpen?{key:buildNow.key,name:buildNow.name,index:buildIndex,count:stages.length,paused:!building}:undefined,[buildOpen,buildNow,buildIndex,stages.length,building]);
  const boardBuild=useMemo(()=>({open:buildOpen,index:buildIndex,playing:building,settled:cutAway}),[buildOpen,buildIndex,building,cutAway]);
@@ -209,13 +224,21 @@ export default function Explorer(){
   * have nothing to show -- and three quarters of the way along, where its sideways part is large
   * enough to see cancel. Chosen as the run opens; the reader's own choice comes back on close.
   *
+  * On a rod seen from its bisector, three quarters of the way along was not far enough. At five
+  * pieces it is the piece at y = 0.8 m, which P sees fifteen degrees off the perpendicular: its
+  * sideways part is a quarter of its arrow, and "What cancels" cancelled almost nothing anyone could
+  * see. The end piece is seen at twenty-eight degrees and its sideways part is nearly half the arrow,
+  * so the bisector -- and its potential, drawn on the same rod -- talks about the last piece, whose
+  * mirror is the first. The infinite line keeps the old rule: its outermost piece is an angle that
+  * runs off the picture. The arc keeps it too.
+  *
   * A ring has no "along": every piece has a partner straight across, and what decides whether the
   * cancelling can be seen is which way that diameter lies on the screen. Three quarters of the way
   * round is the near side, so the two sideways parts pointed straight along the line of sight and
   * shrank to a few pixels in both views. The ring's piece is the one lying across the screen in the
   * view the ring opens in -- yaw -0.5, about 331 degrees round -- so its sideways parts are drawn at
   * full length, either side of the axis, and are seen to cancel. */
- function openRun(){if(buildShown)return;const i=geom==='ring'?Math.floor(count*(1-.5/(2*Math.PI)))%count:count-1-Math.floor((count-1)/4);setRunPiece((i+.5)/count);setBuildShown(true)}
+ function openRun(){if(buildShown)return;const i=geom==='ring'?Math.floor(count*(1-.5/(2*Math.PI)))%count:geom==='bisector'?count-1:count-1-Math.floor((count-1)/4);setRunPiece((i+.5)/count);setBuildShown(true)}
  function playBuild(from:number,until:number){
   build.current?.stop();build.current=null;setHighlight('');openRun();
   setBuilding(true);
@@ -252,6 +275,11 @@ export default function Explorer(){
   const total=totalSeconds(stages),at=runAt.get();
   playBuild(at>=total-.01?0:at,total);
  }
+ /** The button above the figure. It opens the run, then makes sure the transport it opened is
+  * where the reader can reach it: focus moves to its play button, which is the control that was
+  * just pressed, now in its new place -- and if the transport has opened below the bottom of the
+  * window, the page moves up just far enough to show it, never so far that the figure's top goes. */
+ function watch(){reveal.current=true;runBuild()}
  /** Go to a moment and hold still there: a click on a stage, or a drag along the bar. */
  function seekBuild(at:number){stop();openRun();setHighlight('');applyBuild(Math.max(0,Math.min(totalSeconds(stages),at)))}
  /** Play one stage from its start and stop at its end -- from the derivation's lines and the
@@ -264,6 +292,16 @@ export default function Explorer(){
  function endBuild(){build.current?.stop();build.current=null;setBuilding(false);setBuildShown(false);runAt.set(0);setBuildIndex(0);buildC.current=-1;buildStep.current=-1;setPair(false);setComponents(false);setMode('divide');setProgress(1);updateParams({continuum:0});}
  function chooseMode(next:Mode){setMode(next);if(next==='project'&&!scalar)setComponents(true);if(next==='integrate'){setProgress(1);stop()}}
  function closeTour(){setOnboarding(false);setSeen(true)}
+ useEffect(()=>{
+  if(!buildOpen||!reveal.current)return;
+  reveal.current=false;
+  const player=walk.current;
+  if(!player)return;
+  player.querySelector<HTMLButtonElement>('.bp-play')?.focus({preventScroll:true});
+  const box=player.getBoundingClientRect(),top=player.closest('.exp-diagram-card')?.getBoundingClientRect().top??0;
+  const over=box.bottom+16-window.innerHeight;
+  if(over>0)window.scrollBy({top:Math.min(over,Math.max(0,top-12)),behavior:reduced?'auto':'smooth'});
+ },[buildOpen,reduced]);
  // Steady versions of the handlers the memoised parts are given.
  const choose=useSteady(changeDistribution),select=useSteady((i:number)=>{stop();setSelected(i)}),pickMode=useSteady(chooseMode),step=useSteady(stepBuild);
  const play=useSteady(runBuild),seek=useSteady((at:number)=>seekBuild(at)),close=useSteady(endBuild);
@@ -286,9 +324,18 @@ export default function Explorer(){
     return <>{families(PROBLEMS.filter(pr=>isReady(pr.id))).map(g=>block(g.label,g.items))}{soon.length>0&&block('Coming soon',soon)}</>;
    },[id,choose]);
  const {distance,size,charge,phi,slices}=params;
- const parameterGrid=useMemo(()=><div className="parameter-grid">{geom!=='arc'&&<Range describe="distance" onDescribe={setHighlight} label={['ring','disk','sheet'].includes(geom)?'Height z':geom==='axial'?'End distance a':'Distance r'} value={distance} min={.5} max={6} step={.05} onChange={distance=>updateParams({distance})}/>} {!isInfinite&&<Range describe="size" onDescribe={setHighlight} label={isRound?'Radius R':'Length L'} value={isRound?size/2:size} min={isRound?.5:1} max={isRound?4:8} step={.05} onChange={v=>updateParams({size:isRound?v*2:v})}/>}<Range describe="charge" onDescribe={setHighlight} label={geom==='sheet'?'Surface density σ':geom==='ramp'?'Peak density λ₀':['infinite','semi'].includes(geom)?'Line density λ':'Total charge Q'} value={charge} min={-5} max={5} step={.1} onChange={charge=>updateParams({charge})}/>{geom==='arc'&&<Range describe="angle" onDescribe={setHighlight} label="Arc angle φ" value={phi/Math.PI} min={.1} max={2} step={.01} onChange={v=>updateParams({phi:v*Math.PI})}/>}{/* How finely the charge is cut. It used to live inside one step of the walkthrough, so the
+ const parameterGrid=useMemo(()=><div className="parameter-grid">{geom!=='arc'&&<Range describe="distance" onDescribe={setHighlight} label={['ring','disk','sheet'].includes(geom)?'Height z':geom==='axial'?'End distance a':'Distance r'} value={distance} min={.5} max={6} step={.05} onChange={distance=>updateParams({distance})}/>} {!isInfinite&&<Range describe="size" onDescribe={setHighlight} label={isRound?'Radius R':'Length L'} value={isRound?size/2:size} min={isRound?.5:1} max={isRound?4:8} step={.05} onChange={v=>updateParams({size:isRound?v*2:v})}/>}<Range describe="charge" onDescribe={setHighlight} label={geom==='sheet'?'Surface density σ':geom==='ramp'?'Peak density λ₀':['infinite','semi'].includes(geom)?'Line density λ':'Total charge Q'} value={charge} min={-5} max={5} step={.1} onChange={(next,reason)=>updateParams({charge:snapCharge(next,charge,reason)})}/>{geom==='arc'&&<Range describe="angle" onDescribe={setHighlight} label="Arc angle φ" value={phi/Math.PI} min={.1} max={2} step={.01} onChange={v=>updateParams({phi:v*Math.PI})}/>}{/* How finely the charge is cut. It used to live inside one step of the walkthrough, so the
      one control that shows the sum closing in on the integral was three clicks deep. */}<Range describe="pieces" onDescribe={setHighlight} label="Pieces N" value={slices} min={3} max={30} onChange={recut}/><button onClick={resetGeometry} className="text-button exp-reset" aria-label="Reset geometry" title="Reset geometry"><RotateCcw size={13}/></button></div>,[geom,isInfinite,isRound,distance,size,charge,phi,slices,updateParams,recut,resetGeometry]);
- function saveCopy(){downloadArtifact(`field-builder-${id}.html`,artifactHtml({title:p.title,subtitle:p.subtitle,setup:p.setup,integralTex:p.integralTex,resultTex:p.resultTex,params,svg:document.querySelector('.explorer-app .cd-svg')?.outerHTML??''}))}
+ /** The offline copy, made in the light theme whatever the screen is in -- it is for paper, as the
+  * print sheet is -- and put back the moment the figure has been read. */
+ function saveCopy(){
+  const root=document.documentElement,wasDark=root.classList.contains('dark');
+  let figure='';
+  if(wasDark)root.classList.remove('dark');
+  try{const stage=document.querySelector('.explorer-app .cd-stage');figure=stage?figureCopy(stage):''}
+  finally{if(wasDark)root.classList.add('dark')}
+  downloadArtifact(`field-builder-${id}.html`,artifactHtml({title:p.title,subtitle:p.subtitle,setup:p.setup,coordinate:p.coordinate,integralTex:p.integralTex,results:resultLines(p),svg:figure}));
+ }
  return <div className={`explorer-app ${showNumbers?'with-numbers':'symbolic-view'}`}><header className="exp-header"><div className="exp-brand"><span className="exp-logo">∫</span><span>field<span className="brand-light">builder</span></span></div>{/* FIVE ACTIONS BECAME TWO AND A MENU. Walkthrough is how a reader starts, and the theme
      switch is read as often as the page is; print, save a copy and the repository are things
      a reader does at most once and never in the middle of a derivation, so they stop taking
@@ -301,19 +348,23 @@ export default function Explorer(){
      the trail is now just the way back out to the library -- which on a narrow screen, where
      the list is not there at all, is the only way to another lesson. */}
 <nav className="exp-crumbs" aria-label="Breadcrumb"><button type="button" className="exp-crumb-link" onClick={()=>setLibrary(true)}><ChevronLeft size={13} aria-hidden="true"/>Charge library</button></nav></div><div className="exp-heading"><div><h1>{p.title}</h1><p>{p.subtitle}</p></div></div>
- <div className="exp-workspace"><div className="exp-visual-column"><section className={'exp-diagram-card mode-'+mode+' focus-'+highlight} aria-label="Interactive field visualization"><div className="exp-diagram-heading"><div><MathText tex={p.coordinate}/></div></div><ChargeDiagram compact problem={p} params={params} setParams={updateParams} count={count} continuum={continuum} selected={activeIndex} onSelect={select} progress={progress} components={components} pair={pair} mode={mode} boundRange={bounds} onBoundRangeChange={setBounds} highlight={figureHighlight} build={figureBuild}/><div className={"exp-walk"+(buildOpen?" is-open":"")}>
-  {/* ONE WAY IN. There used to be two buttons here -- "Watch it build" and "Walk me through the
+ <div className="exp-workspace"><div className="exp-visual-column"><section className={'exp-diagram-card mode-'+mode+' focus-'+highlight} aria-label="Interactive field visualization"><div className="exp-diagram-heading"><div><MathText tex={p.coordinate}/></div>
+  {/* THE LESSON'S ONE BUTTON, AT THE TOP OF ITS FIGURE. It sat under the figure and its toolbar,
+      past the bottom of a laptop's window -- its top at 919 pixels on a 1440 by 900 screen -- so
+      a first-time reader never saw the feature the lesson is built around. Here it is on the first
+      screen at any size, opposite the point it is about; the transport it opens still plays under
+      the figure, beside the controls it drives. */}
+  {!buildOpen&&<div className="exp-watch">
+   <span className="exp-watch-note">Five steps, about half a minute</span>
+   <button ref={watchButton} type="button" className="exp-watch-button" onClick={watch} title="Five steps, about half a minute. Pause or step through at any point."><Play size={13} fill="currentColor" strokeWidth={0}/>Watch it build</button>
+  </div>}
+ </div><ChargeDiagram compact problem={p} params={params} setParams={updateParams} count={count} continuum={continuum} selected={activeIndex} onSelect={select} progress={progress} components={components} pair={pair} mode={mode} boundRange={bounds} onBoundRangeChange={setBounds} highlight={figureHighlight} build={figureBuild}/>{/* ONE WAY IN. There used to be two buttons here -- "Watch it build" and "Walk me through the
       integral" -- which told the same argument twice, in different words, in different steps,
       and neither one touched the equation beside the figure. The run is now the walkthrough as
       well: it plays, pauses, scrubs and steps one stage at a time, and the derivation in the
       panel arrives with it. */}
-  {!buildOpen&&<div className="exp-watch">
-    <button type="button" className="exp-watch-button" onClick={runBuild}><Play size={14} fill="currentColor" strokeWidth={0}/>Watch it build</button>
-    <span className="exp-watch-note">Five steps, about half a minute. Pause or step through at any point.</span>
-  </div>}
-  {buildOpen&&<BuildPlayer stages={stages} clock={runAt} index={buildIndex} playing={building} math={playerMath}
-    onPlay={play} onSeek={seek} onStep={step} onClose={close}/>}
-</div>
+  {buildOpen&&<div ref={walk} className="exp-walk is-open"><BuildPlayer stages={stages} clock={runAt} index={buildIndex} playing={building} math={playerMath}
+    onPlay={play} onSeek={seek} onStep={step} onClose={close}/></div>}
 </section>
  <section className="exp-parameters">{parameterGrid}</section>
  {id==='infinite'&&<div className="exp-method"><span>Explore another route to the same result</span><Tabs value={path} onValueChange={v=>{setPath(String(v));setBounds([0,100]);}}><TabsList><TabsTrigger value="angular">Angular substitution</TabsTrigger><TabsTrigger value="limit">Finite-line limit</TabsTrigger></TabsList></Tabs></div>}
@@ -344,5 +395,5 @@ export default function Explorer(){
   </details>
  </section>
  <output className="sr-only" aria-live="polite">{status}</output></main></SidebarProvider>
- {ready&&!seen&&!onboarding&&<StartHere target={tourButton} onSettled={()=>setSeen(true)}/>}<Onboarding returnFocus={tourButton} open={onboarding} onClose={closeTour} onExplore={closeTour}/><Dialog open={library} onOpenChange={setLibrary}><DialogContent className="exp-library-dialog"><DialogTitle>Choose your geometry</DialogTitle><DialogDescription>{PROBLEMS.length} lessons, including electric potential.</DialogDescription>{libraryCards}</DialogContent></Dialog></div>;
+ {/* The first-visit cue points at what the lesson is built around, not at the tour of it. */}{ready&&!seen&&!onboarding&&<StartHere target={watchButton} onSettled={()=>setSeen(true)}/>}<Onboarding returnFocus={tourButton} open={onboarding} onClose={closeTour} onExplore={closeTour}/><Dialog open={library} onOpenChange={setLibrary}><DialogContent className="exp-library-dialog"><DialogTitle>Choose your geometry</DialogTitle><DialogDescription>Every lesson, including electric potential.</DialogDescription>{libraryCards}</DialogContent></Dialog></div>;
 }

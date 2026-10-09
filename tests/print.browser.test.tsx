@@ -52,6 +52,9 @@ describe('print stylesheet and offline copy', () => {
     expect(tracks.length).toBeGreaterThan(0);
     for (const track of tracks) expect(track.checkVisibility()).toBe(false);
     expect(container.querySelector<HTMLElement>('.exp-endnotes')!.checkVisibility()).toBe(false);
+    // ...nor the geometry sliders' names: with no values beside them, "z Height · R Radius · Q Total
+    // charge · N Pieces" printed as a list of names against nothing.
+    expect(container.querySelector<HTMLElement>('.exp-parameters')!.checkVisibility()).toBe(false);
     // ...while the title, the figure's equation and the integral being built all stay.
     expect(title.checkVisibility()).toBe(true);
     expect(container.querySelector<HTMLElement>('.exp-diagram-heading .katex')!.checkVisibility()).toBe(true);
@@ -91,6 +94,18 @@ describe('print stylesheet and offline copy', () => {
       const html = await blob.text();
       expect(html).toContain(getProblem('ring').title);
       expect(html).toContain('size: letter');
+      // A copy fit to hand out: the mathematics set as mathematics, not TeX in a box...
+      expect(html).toContain('<math');
+      expect(html).not.toContain('<pre>');
+      // ...and the figure as it is drawn. The SVG alone had no styles: no axes, P a black blob.
+      const doc = new DOMParser().parseFromString(html, 'text/html');
+      const axis = doc.querySelector<SVGPathElement>('svg.cd-svg .cd-axes path');
+      expect(axis, 'the copy has no axes').toBeTruthy();
+      const stroke = /(?:^|;)\s*stroke\s*:\s*([^;]+)/.exec(axis!.getAttribute('style') ?? '')?.[1]?.trim();
+      expect(stroke, 'the axis has no stroke of its own').toBeTruthy();
+      expect(stroke).not.toBe('none');
+      // Nothing that only acts on a screen comes along: the view cube, the gesture legend.
+      expect(doc.querySelector('.cd-cube, .cd-help')).toBeNull();
       expect(revoke).toHaveBeenCalled();
     } finally {
       click.mockRestore();

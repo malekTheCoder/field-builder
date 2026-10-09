@@ -2,11 +2,12 @@
 import {useEffect,useRef} from 'react';
 import type {ChargeSample} from '../../distributions/types';
 import type {Vec} from '../../symbolic/physics';
-import {axisTickLabels,cameraBasis,cameraPosition,frameTarget,frustum,projectPoint,tickStep} from './orthoCamera';
+import {cameraBasis,cameraPosition,frameTarget,frustum,tickStep} from './orthoCamera';
 import {bodyReach,fadeOut,frameExtent,SHEET_FADE,surfaceOpacity,visibleRadii,wirePath,wireRadius,type BodyKind} from './bodies';
 import {spaceGrid,spaceLines,type Layout} from '../field3d';
 import {coarsen} from '../sampling';
-import {arrowLength} from '../vectorfield';
+import {arrowLength,PLOT} from '../vectorfield';
+import {SNAPSHOT_EVENT,type SnapshotDetail} from '../snapshot';
 import {cutPiece,type RunScene} from './runScene';
 /** The 3D half of the figure: the charge as a real body with depth, and the field around it
  * in space, under the SVG that carries every label and every control.
@@ -67,16 +68,30 @@ const sampleKey=(p:FieldStageProps)=>{
  const at=(v?:{x:number;y:number;z:number})=>v?`${v.x.toFixed(3)},${v.y.toFixed(3)},${v.z.toFixed(3)}`:'-';
  return `${p.kind}:${p.closed}:${p.samples.length}:${at(a)}:${at(b)}:${p.radius.toFixed(3)}`;
 };
+/** What the field is traced from: the pieces themselves. The body of a wire is drawn from its own
+ * path, which a new cut does not change, so the body's key cannot stand in for this one -- a ring
+ * re-cut from five pieces to ten went on showing the field of the five. */
+const chargeKey=(p:FieldStageProps)=>{
+ const a=p.samples[0]?.position,b=p.samples[p.samples.length-1]?.position;
+ const at=(v?:{x:number;y:number;z:number})=>v?`${v.x.toFixed(3)},${v.y.toFixed(3)},${v.z.toFixed(3)}`:'-';
+ return `${p.samples.length}:${at(a)}:${at(b)}`;
+};
+/** The window the SVG clips its own drawing to, as a clip on this layer: the WebGL scene is a
+ * rectangle the size of the whole figure, and without it the sheet's plane, the ground grid and
+ * the field lines painted over the rule and the caption under the picture and out to the card's
+ * edges. In percentages of the 720 by 430 frame, which is the box this layer fills. */
+const pct=(v:number,of:number)=>`${(100*v/of).toFixed(3)}%`;
+export const STAGE_CLIP=`inset(${pct(PLOT.y,430)} ${pct(720-PLOT.x-PLOT.width,720)} ${pct(430-PLOT.y-PLOT.height,430)} ${pct(PLOT.x,720)} round ${pct(PLOT.radius,720)} / ${pct(PLOT.radius,430)})`;
 export function FieldStage(props:FieldStageProps){
- const host=useRef<HTMLDivElement>(null),live=useRef<Live|null>(null),latest=useRef(props),ticksHost=useRef<HTMLDivElement>(null);
- useUncluttered(ticksHost,!props.animating);
+ const host=useRef<HTMLDivElement>(null),live=useRef<Live|null>(null),latest=useRef(props);
  useEffect(()=>{latest.current=props;live.current?.update(props);});
  useEffect(()=>{
   const mount=host.current;
   if(!mount)return;
   let cancelled=false;
   void (async()=>{
-   const [THREE,{mergeGeometries}]=await Promise.all([import('three'),import('three/examples/jsm/utils/BufferGeometryUtils.js')]);
+   const [THREE,{mergeGeometries},{LineSegments2},{LineSegmentsGeometry},{LineMaterial}]=await Promise.all([import('three'),import('three/examples/jsm/utils/BufferGeometryUtils.js'),
+    import('three/examples/jsm/lines/LineSegments2.js'),import('three/examples/jsm/lines/LineSegmentsGeometry.js'),import('three/examples/jsm/lines/LineMaterial.js')]);
    if(cancelled||!host.current)return;
    const renderer=new THREE.WebGLRenderer({antialias:true,alpha:true,powerPreference:'high-performance'});
    renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));
@@ -99,11 +114,15 @@ export function FieldStage(props:FieldStageProps){
    const sheetMaterial=new THREE.MeshStandardMaterial({roughness:.42,metalness:.06,side:THREE.DoubleSide,transparent:true,vertexColors:true,alphaTest:.012});
    const sliceMaterial=new THREE.LineBasicMaterial({transparent:true,opacity:.5});
    const pickedMaterial=new THREE.LineBasicMaterial({transparent:true,opacity:1});
-   // The field: tubes for lines, one instanced mesh for arrows. Both lit, so they sit in the
-   // same space as the body rather than floating over it like an overlay.
-   // Per-vertex colour lets each line fade into the background as it leaves the picture,
-   // instead of stopping dead at the frame edge.
-   const lineMaterial=new THREE.MeshStandardMaterial({roughness:.6,metalness:0,transparent:true,opacity:.78,vertexColors:true,depthWrite:false});
+   // The field: hairlines for lines, one instanced mesh for arrows.
+   //
+   // THE LINES ARE THE FLAT FIGURE'S LINES. They were lit tubes, three quarters opaque and tinted
+   // darker the nearer they came, and in space they read as heavy grey cables that outweighed the
+   // ring they came from and the arrows the lesson is about -- while the same field drawn flat is a
+   // hairline in the figure's own field colour at under half strength. They are drawn the same way
+   // here: the same colour, the same alpha, the same width in pixels, at any zoom.
+   // Per-vertex colour still lets each line fade into the paper as it leaves the picture.
+   const lineMaterial=new LineMaterial({color:0xffffff,linewidth:1.1,vertexColors:true,transparent:true,depthWrite:false,worldUnits:false});
    const arrowMaterial=new THREE.MeshStandardMaterial({roughness:.5,metalness:0,color:0xffffff,transparent:true});
    const body=new THREE.Group(),slices=new THREE.Group(),field=new THREE.Group(),marks=new THREE.Group();
    scene.add(body,slices,field,marks);
@@ -386,8 +405,8 @@ export function FieldStage(props:FieldStageProps){
       colours.push(1,1,1,fadeOut(Math.hypot(x,y,z),inner,extent));
      }
     };
-    // Every fifth tick is the one that carries a number, so it is cut longer. The rest are the
-    // metre marks between them.
+    // Every fifth tick is a major one, cut longer, so the axes read as rulers without a number on
+    // them. The rest are the metre marks between them.
     const step=tickStep(extent),minor=step>=5?step/5:1;
     const count=Math.floor(extent/minor+1e-9);
     for(const [x,y,z] of [[1,0,0],[0,1,0],[0,0,1]] as const){
@@ -419,10 +438,31 @@ export function FieldStage(props:FieldStageProps){
      .setAttribute('position',new THREE.Float32BufferAttribute(g,3))
      .setAttribute('color',new THREE.Float32BufferAttribute(gc,4));
    };
-   let bodyKey='',fieldKey='',sliceKey='',disposed=false;
+   let bodyKey='',fieldKey='',sliceKey='',tracedFrom='',disposed=false;
    const cssColor=(name:string,fallback:number)=>{
     try{const v=getComputedStyle(mount).getPropertyValue(name).trim();if(/^#|^rgb|^hsl/.test(v))return new THREE.Color(v);}catch{/* unreadable: fall through to the fallback */}
     return new THREE.Color(fallback);
+   };
+   /** The flat figure's line colour, which is a mix (the field colour at under half strength) that
+    * three cannot parse. A one-pixel canvas can: it is the same parser the flat lines are drawn
+    * with, so the two layers are the same ink by construction. Kept until the token changes. */
+   let inkSource='',inkColour=new THREE.Color(),inkAlpha=.42;
+   const lineInk=(tint:InstanceType<typeof THREE.Color>)=>{
+    let raw='';
+    try{raw=getComputedStyle(mount).getPropertyValue('--field-line').trim();}catch{/* unreadable: the fallback below */}
+    const source=`${raw}|${tint.getHexString()}`;
+    if(source===inkSource)return;
+    inkSource=source;inkColour=tint.clone();inkAlpha=.42;
+    try{
+     const pixel=document.createElement('canvas');pixel.width=pixel.height=1;
+     const ctx=pixel.getContext('2d',{willReadFrequently:true});
+     if(!ctx||!raw)return;
+     ctx.fillStyle='rgba(1, 2, 3, 0.5)';ctx.fillStyle=raw;
+     if(ctx.fillStyle==='rgba(1, 2, 3, 0.5)')return;
+     ctx.fillRect(0,0,1,1);
+     const [r,g,b,a]=ctx.getImageData(0,0,1,1).data;
+     if(a>0){inkColour=new THREE.Color().setRGB(r/255,g/255,b/255,THREE.SRGBColorSpace);inkAlpha=a/255;}
+    }catch{/* no 2D canvas: the field colour at the flat figure's strength */}
    };
    const buildBody=(p:FieldStageProps)=>{
     clearGroup(body);
@@ -445,8 +485,12 @@ export function FieldStage(props:FieldStageProps){
     body.add(new THREE.Mesh(new THREE.CircleGeometry(1,128),bodyMaterial));
     body.add(new THREE.Line(unitCircle(),pickedMaterial));
    };
-   const buildField=(p:FieldStageProps,tint:InstanceType<typeof THREE.Color>,pale:InstanceType<typeof THREE.Color>,dark:boolean)=>{
+   let builds=0;
+   const buildField=(p:FieldStageProps,tint:InstanceType<typeof THREE.Color>,pale:InstanceType<typeof THREE.Color>,ink:InstanceType<typeof THREE.Color>,paper:InstanceType<typeof THREE.Color>)=>{
     clearGroup(field);
+    // Counted where the tests can read it: a retrace is the costly thing, and how often one happens
+    // does not depend on how fast the machine is.
+    builds++;mount.parentElement?.setAttribute('data-field-builds',String(builds));
     if(p.fieldView==='off'||!p.samples.length)return;
     const layout:Layout=p.kind==='wire'?'wire':'surface';
     // A surface's annuli are each summed as a whole ring, about four point charges' arithmetic
@@ -475,28 +519,27 @@ export function FieldStage(props:FieldStageProps){
      // the face, so the first chord of every line was taken before the line had cleared it.
      const span=Math.max(...few.map(c=>Math.hypot(c.position.x,c.position.y,c.position.z)),.5);
      const lines=spaceLines(few,layout,16,{step:Math.min(p.reach,span)*.04,maxSteps:420,outerLimit:p.reach*1.6,seedLimit:p.reach*.95});
-     const bg=new THREE.Color(dark?0x0f1a1c:0xffffff),near=tint.clone().lerp(pale,.3),vertex=new THREE.Vector3(),c=new THREE.Color();
-     const tubes=lines.map(line=>{
-      const curve=new THREE.CatmullRomCurve3(line.map(v=>new THREE.Vector3(v.x,v.y,v.z)),false,'centripetal');
-      const tube=new THREE.TubeGeometry(curve,Math.min(180,line.length),.003+p.reach*.0028,5,false);
-      // Fade with distance from the charge: strong near it, gone by the edge of the reach.
-      const position=tube.getAttribute('position'),colours=new Float32Array(position.count*3);
-      for(let i=0;i<position.count;i++){
-       vertex.fromBufferAttribute(position,i);
+     const vertex=new THREE.Vector3(),c=new THREE.Color(),positions:number[]=[],colours:number[]=[];
+     for(const line of lines)for(let i=0;i+1<line.length;i++){
+      const a=line[i],b=line[i+1];
+      positions.push(a.x,a.y,a.z,b.x,b.y,b.z);
+      for(const v of [a,b]){
+       vertex.set(v.x,v.y,v.z);
+       // Fade with distance from the charge: strong near it, gone by the edge of the reach.
        // Fading with distance says the field is weakening, which is true of every charge here
        // except the one whose entire lesson is that it does not: an infinite sheet's field is
        // the same however far away you stand. Fading its lines out would teach the opposite of
        // what the page says, so the sheet's keep their colour and the drawing's edge ends them.
        const far=p.kind==='sheet'?0:Math.min(1,Math.max(0,(vertex.length()-p.reach*.45)/(p.reach*1.1)));
-       c.copy(near).lerp(bg,far*far);
-       colours[i*3]=c.r;colours[i*3+1]=c.g;colours[i*3+2]=c.b;
+       c.copy(ink).lerp(paper,far*far);
+       colours.push(c.r,c.g,c.b);
       }
-      tube.setAttribute('color',new THREE.BufferAttribute(colours,3));
-      return tube;
-     });
-     if(!tubes.length)return;
-     const merged=mergeGeometries(tubes);tubes.forEach(t=>t.dispose());
-     if(merged)field.add(new THREE.Mesh(merged,lineMaterial));
+     }
+     if(!positions.length)return;
+     const hairlines=new LineSegments2(new LineSegmentsGeometry().setPositions(positions).setColors(colours),lineMaterial);
+     // Every segment is an instance of one quad, which three cannot bound from the quad alone.
+     hairlines.frustumCulled=false;
+     field.add(hairlines);
      return;
     }
     const spacing=p.reach/3;
@@ -662,9 +705,14 @@ export function FieldStage(props:FieldStageProps){
     // correct when the toggle flips without this component re-rendering.
     const dark=document.documentElement.classList.contains('dark');
     const tint=cssColor('--field',dark?0x5fd3c4:0x0b6b63),pale=tint.clone().lerp(new THREE.Color(dark?0x0f1a1c:0xffffff),.62);
+    const paper=cssColor('--diagram',dark?0x172936:0xffffff);
+    lineInk(tint);
     const positive=p.charge>=0;
     const shape=sampleKey(p);
-    if(bodyKey!==shape){buildBody(p);bodyKey=shape;}
+    // A disk and a sheet are drawn at unit size and scaled, so how finely they are cut says
+    // nothing about their body; it was rebuilt at every doubling of the limit regardless.
+    const bodyShape=p.kind==='wire'?shape:`${p.kind}:${p.closed}`;
+    if(bodyKey!==bodyShape){buildBody(p);bodyKey=bodyShape;}
     const frameWorld=Math.max(f.right-f.left,f.top-f.bottom);
     const extent=frameExtent(p.reach,frameWorld);
     if(frameKey!==String(extent)){buildFrame(extent);frameKey=String(extent);}
@@ -680,8 +728,18 @@ export function FieldStage(props:FieldStageProps){
     }
     // The field is the expensive part -- tracing is quadratic in the sample count -- so it is
     // rebuilt only when what it depends on changes, never on a camera frame.
-    const nextField=`${p.fieldView}:${shape}:${p.reach.toFixed(2)}:${positive}:${dark}`;
-    if(fieldKey!==nextField){buildField(p,tint,pale,dark);fieldKey=nextField;}
+    //
+    // WHILE THE PIECES SHRINK it is not retraced at all. The last stage of the run doubles the cut
+    // five or six times, and every doubling is a new charge to trace: on the disk, a frame of up to
+    // twenty milliseconds at each one, in the stage whose whole point is that the answer stops
+    // depending on the cut. The field of the charge does not depend on how it is cut, so the stage
+    // keeps the field it began with and traces once more, from the finest cut, on the frame it ends
+    // on -- the field the flat figure's last frame arrives at too.
+    const charge=chargeKey(p);
+    const shrinking=!!p.run&&p.run.stage==='limit'&&p.run.open>0&&tracedFrom!=='';
+    const from=shrinking?tracedFrom:charge;
+    const nextField=`${p.fieldView}:${p.kind}:${from}:${p.reach.toFixed(2)}:${positive}:${dark}:${inkSource}:${paper.getHexString()}`;
+    if(fieldKey!==nextField){buildField(p,tint,pale,inkColour,paper);fieldKey=nextField;tracedFrom=from;}
     // The marks: cheap to place every frame, so they always sit on the live geometry.
     const wr=wireRadius(p.reach);
     point.position.set(p.point.x,p.point.y,p.point.z);point.scale.setScalar(wr*1.7);
@@ -720,10 +778,12 @@ export function FieldStage(props:FieldStageProps){
     sheetMaterial.opacity=surfaceOpacity('sheet');
     sliceMaterial.color.set(positive?0xc2703a:0x3a7fc2);
     pickedMaterial.color.set(positive?0xf0975c:0x5cb8f0);
-    lineMaterial.emissive.copy(tint);lineMaterial.emissiveIntensity=dark?.4:.12;
+    // As wide as the flat figure's lines, which are 1.1 of its 720 units across: the same hairline
+    // at any size the figure is drawn, and at any zoom, since the width is in pixels.
+    lineMaterial.resolution.set(w,h);lineMaterial.linewidth=1.1*w/p.frame.width;
     // During the build the field is background to the one piece being explained, and at full
     // strength its lines drown the thin construction drawn over them.
-    lineMaterial.opacity=p.quiet?.16:.78;arrowMaterial.opacity=p.quiet?.2:1;
+    lineMaterial.opacity=inkAlpha*(p.quiet?.35:1);arrowMaterial.opacity=p.quiet?.2:1;
     pointMaterial.color.copy(tint);pointMaterial.emissive.copy(tint);pointMaterial.emissiveIntensity=dark?.7:.3;
     haloMaterial.color.copy(tint);
     elementMaterial.color.set(positive?0xc2703a:0x3a7fc2);elementMaterial.emissive.set(positive?0xc2703a:0x3a7fc2);elementMaterial.emissiveIntensity=dark?.34:.14;
@@ -739,6 +799,16 @@ export function FieldStage(props:FieldStageProps){
    const observer=new ResizeObserver(()=>{if(!disposed)apply(latest.current);});
    observer.observe(mount);
    apply(latest.current);
+   // The offline copy: drawn now, in whatever theme the page has just been put in, and read in the
+   // same task -- a WebGL buffer is not kept once it has gone to the screen -- then drawn again.
+   const root=mount.parentElement;
+   const snapshot=(ev:Event)=>{
+    if(disposed)return;
+    apply(latest.current);
+    try{(ev as CustomEvent<SnapshotDetail>).detail.url=renderer.domElement.toDataURL('image/png');}catch{/* a lost context: the copy goes without the scene */}
+    requestAnimationFrame(()=>{if(!disposed)apply(latest.current);});
+   };
+   root?.addEventListener(SNAPSHOT_EVENT,snapshot);
    // A frame loop only while the view is actually moving; idle lessons cost nothing.
    let frameId=0,idle=0,lastView='';
    // The loop also parks itself when the view stops changing, whatever the flag says.
@@ -769,7 +839,7 @@ export function FieldStage(props:FieldStageProps){
    live.current={
     update:p=>{if(disposed)return;apply(p);wake();wakeCuts();},
     dispose:()=>{
-     disposed=true;cancelAnimationFrame(frameId);cancelAnimationFrame(cutFrame);observer.disconnect();
+     disposed=true;cancelAnimationFrame(frameId);cancelAnimationFrame(cutFrame);observer.disconnect();root?.removeEventListener(SNAPSHOT_EVENT,snapshot);
      clearGroup(body);clearGroup(slices);clearGroup(field);clearGroup(cuts);arrowGeometry.dispose();
      for(const mesh of [point,halo,element,netArrow.shaft,netArrow.head,partArrow.shaft,partArrow.head,keepArrow.shaft,keepArrow.head,pieceSolid,pieceGhost,fill,partnerBody,chainJoints])mesh.geometry.dispose();
      dashGeometry.dispose();headGeometry.dispose();
@@ -783,28 +853,12 @@ export function FieldStage(props:FieldStageProps){
   })();
   return ()=>{cancelled=true;live.current?.dispose();live.current=null;};
  },[]);
- // The numbers on the axis ticks. They are laid out from the same projection the WebGL camera
- // is built from, so each one lands exactly on the tick it names at any camera angle -- and
- // they are written in the page rather than into the scene, because text drawn in WebGL is a
- // bitmap that blurs when the figure is scaled, ignores the theme, and turns edge-on with the
- // axis it belongs to. They are HTML rather than a second SVG on purpose: the figure's own
- // `<svg>` is what the rest of the app reaches for by tag name, and it must stay the first one.
- const frameWorld=Math.max(props.frame.width,props.frame.height)/Math.max(1e-6,props.unit);
- const at=projectPoint(props.point,props.origin,props.unit,props.yaw,props.pitch);
- const net=props.net,tip=net&&projectPoint({x:props.point.x+net.x,y:props.point.y+net.y,z:props.point.z+net.z},
-  props.origin,props.unit,props.yaw,props.pitch);
- const ticks=axisTickLabels({extent:frameExtent(props.reach,frameWorld),origin:props.origin,frame:props.frame,
-  unit:props.unit,yaw:props.yaw,pitch:props.pitch,
-  // P with the letter under it, and the head of the net arrow with its Σ over it. Both ride
-  // the z axis on a ring, a disk or a sheet, so a tick number lands on one of them whenever
-  // the observation distance or the arrow's length happens to reach a round number.
-  avoid:[{x:at.x,y:at.y+14,r:34},...(tip?[{x:tip.x,y:tip.y-10,r:30}]:[])]});
- return <div className="cd-field-stage" aria-hidden="true" {...runData(props.run)}>
+ // NO NUMBERS ON THE AXES. The ticks carried metre values, the only numerals left on the page, and
+ // they landed on the net arrow, the chain and the potential column. The marks stay in the scene,
+ // so the axes still read as rulers; the values can come back on the owner's word -- the layout
+ // that placed them is `axisTickLabels`, still in orthoCamera and still tested.
+ return <div className="cd-field-stage" aria-hidden="true" style={{clipPath:STAGE_CLIP}} {...runData(props.run)}>
   <div ref={host} className="cd-stage-gl"/>
-  <div ref={ticksHost} className="cd-stage-ticks">
-   {ticks.map(t=><span key={t.key} className="cd-stage-tick"
-    style={{left:`${100*t.x/props.frame.width}%`,top:`${100*t.y/props.frame.height}%`}}>{t.text}</span>)}
-  </div>
  </div>;
 }
 /** What the scene has been asked to draw of the run, written on the stage itself.
@@ -828,64 +882,4 @@ function runData(run:RunScene|null|undefined):Record<string,string>{
   ...(arrows?{'data-run-arrows':arrows}:{}),
   ...(run.chain&&end?{'data-run-chain':String(run.chain.length),'data-run-chain-end':`${end.x} ${end.y} ${end.z}`}:{}),
  };
-}
-/** Drop any number that has landed on something the figure already drew.
- *
- * The rules that place the numbers keep them off each other, off the origin and off P, and
- * that is the whole of what this layer can know on its own. The rest of the figure's writing
- * -- the axis letters, the dimension brackets, the drawn gesture legend -- belongs to the SVG
- * above, which lays its labels out against each other and nudges whichever ones collide. Where
- * those land is not predictable from here, so what is left over is measured instead: anything
- * still overlapping is simply not drawn. A number fewer costs the reader nothing; a number
- * written across an L costs them the L.
- *
- * A passive effect, because every layout effect in the figure has run by the time one does --
- * including that nudging pass, whose result is what has to be measured. */
-function useUncluttered(host:{current:HTMLDivElement|null},still:boolean){
- const later=useRef<ReturnType<typeof setTimeout>|null>(null);
- useEffect(()=>{
-  const cull=()=>{
-   const root=host.current;
-   if(!root)return;
-   const numbers=[...root.children] as HTMLElement[];
-   const svg=root.closest('.cd-stage')?.querySelector('svg');
-   const hidden=new Set<HTMLElement>();
-   if(svg){
-    // A label the figure has faded out -- a dimension bracket in space, say -- still has a box,
-    // and counting it as an obstacle would cull numbers around writing nobody can see. Opacity
-    // is usually set on the group rather than the text, so a few levels up are checked too.
-    const faded=(el:Element)=>{
-     let node:Element|null=el;
-     for(let depth=0;depth<4&&node;depth++){
-      const style=getComputedStyle(node);
-      if(style.visibility==='hidden'||!(Number(style.opacity)>.05))return true;
-      node=node.parentElement;
-     }
-     return false;
-    };
-    const taken=[...svg.querySelectorAll('text')]
-     .filter(el=>(el.textContent??'x').trim()!==''&&!faded(el))
-     .map(el=>el.getBoundingClientRect()).filter(b=>b.width>0&&b.height>0);
-    for(const n of numbers){
-     const b=n.getBoundingClientRect();
-     // Six pixels of air, not zero: two labels that merely miss each other still read as one
-     // smudge, and the figure's own placer moves its labels a pixel or two after this runs.
-     if(taken.some(t=>Math.min(b.right,t.right)-Math.max(b.left,t.left)>-6&&Math.min(b.bottom,t.bottom)-Math.max(b.top,t.top)>-6))hidden.add(n);
-    }
-   }
-   for(const n of numbers){
-    const want=hidden.has(n)?'hidden':'';
-    if(n.style.visibility!==want)n.style.visibility=want;
-   }
-  };
-  // Measured as soon as the view is still. Mid-gesture nobody is reading the numbers and the
-  // pass costs a style and a layout flush -- about six milliseconds of it -- so while the
-  // figure reports itself moving the pass is pushed to the trailing edge of the motion. That
-  // is also what keeps the numbers honest if that report ever sticks on: a stuck flag then
-  // delays the pass by a seventh of a second rather than cancelling it for good.
-  if(still){cull();return;}
-  if(later.current)clearTimeout(later.current);
-  later.current=setTimeout(cull,140);
-  return ()=>{if(later.current)clearTimeout(later.current);};
- });
 }

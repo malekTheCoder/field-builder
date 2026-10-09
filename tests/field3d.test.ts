@@ -233,3 +233,23 @@ describe('the sheet, whose partition defeats flux seeding',()=>{
   expect(ends.some(d=>d<0),'no line ran down off the sheet').toBe(true);
  });
 });
+describe('a side view\'s lattice over the window it is drawn in',()=>{
+ it('reaches the edges of the given area, on the plane y = 0, and keeps the half-step lattice',()=>{
+  const ring=sampleDistribution('ring',DEFAULT_PARAMS,24);
+  const area={x0:-7.5,y0:-2.5,x1:7.5,y1:2.5};
+  const arrows=spaceGrid(ring,3,1,.12,'xz','wire',area);
+  expect(arrows.length).toBeGreaterThan(0);
+  for(const a of arrows){
+   expect(a.at.y).toBe(0);
+   expect(Math.abs(a.at.x-Math.round(a.at.x-.5)-.5)).toBeLessThan(1e-9);
+  }
+  // Wider than the field's reach of three: the old square stopped at x = 2.5.
+  expect(Math.max(...arrows.map(a=>a.at.x))).toBeCloseTo(7.5,9);
+  expect(Math.min(...arrows.map(a=>a.at.z))).toBeCloseTo(-2.5,9);
+ });
+ it('is the same lattice as before when no area is given',()=>{
+  const ring=sampleDistribution('ring',DEFAULT_PARAMS,24);
+  const arrows=spaceGrid(ring,3,1,.12,'xz','wire');
+  expect(Math.max(...arrows.map(a=>a.at.x))).toBeCloseTo(2.5,9);
+ });
+});

@@ -32,8 +32,10 @@
   /* Controls that only act on the screen. On paper they are buttons nobody can press: the
      figure's view strip (2D/3D, field lines/arrows/off, zoom and reset), the drawn cube and
      the drag-to-turn legend inside it, the run's start button and its transport (a stage it is
-     on keeps its sentence), every slider track (the parameter names stay as the figure's
-     legend), the geometry reset, and the builder's disclosure chevrons. */
+     on keeps its sentence), the geometry sliders, and the builder's disclosure chevrons.
+     The sliders go whole, names and all: with the page printing no values, a row reading
+     "z Height · R Radius · Q Total charge · N Pieces" was a list of names with nothing against
+     them, and every one of those symbols is already on the figure. */
   .cd-toolbar,
   .cd-cube,
   .cd-help,
@@ -43,6 +45,7 @@
   .bp-math,
   [data-slot='slider'],
   .exp-reset,
+  .exp-parameters,
   .ew-panel .lucide-chevron-down { display: none !important; }
   /* The derivation prints whole, wherever the run had got to: paper has no "still to come". */
   .db-reveal, .db-then { grid-template-rows: 1fr !important; opacity: 1 !important; }
@@ -60,7 +63,6 @@
   .exp-header, .app-top { border: 0 !important; height: auto !important; padding: 0 0 8px !important; }
   .exp-diagram-card, .charge-diagram, .ew-panel, .stage-card, .panel { break-inside: avoid; border: 0 !important; }
   .cd-svg { max-height: none !important; width: 100% !important; }
-  .exp-parameters output, .symbolic-view .exp-parameters output { display: inline !important; }
 }
 
 /* Worked steps in the derivation reader: the expression, named, with the confusions worth

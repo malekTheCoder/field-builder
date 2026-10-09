@@ -4,8 +4,9 @@ import type {ChargeSample} from '../distributions/types';
 import type {Vec} from '../symbolic/physics';
 import {fieldLines,type Plane} from './fieldlines';
 import {coarsen} from './sampling';
-import {arrowLength,vectorGrid} from './vectorfield';
+import {arrowLength,latticeArea,PLOT,vectorGrid,visibleArea} from './vectorfield';
 import {meridianLines,spaceGrid,type Layout} from './field3d';
+import {SNAPSHOT_EVENT,type SnapshotDetail} from './snapshot';
 /** The field itself, under the construction drawing.
  *
  * SVG is the right medium for the things that must stay crisp and reachable — labels,
@@ -81,13 +82,22 @@ export function FieldCanvas({samples,project,frame,lines=15,mode='lines',reach=6
   for(const old of TRACES.keys()){if(TRACES.size<=TRACES_KEPT)break;TRACES.delete(old);}
   return fresh;
  },[traceKey]);
+ // The arrows cover the part of the plane the window shows, not a square of the field's reach: the
+ // two only agree when the picture happens to be square in metres, and on the infinite line it is
+ // nearly three times as wide as it is tall, so the lattice stopped a third of the way across.
+ // Keyed by the rectangle, rounded, so a projection that is rebuilt without moving costs nothing.
+ const area=useMemo(()=>visibleArea(project,plane),[project,plane]);
+ const areaKey=area?[area.x0,area.y0,area.x1,area.y1].map(v=>v.toFixed(2)).join(','):'';
  const arrows=useMemo(()=>{
   if(mode!=='vectors'||!samples.length)return [];
   const coarse=coarsen(samples,detail);
-  const spacing=reach/7;
-  if(plane==='xz')return spaceGrid(coarse,reach,spacing,.12,'xz',layout).map(a=>({at:{x:a.at.x,y:a.at.z},dir:{x:a.dir.x,y:a.dir.z},magnitude:a.magnitude,weight:a.weight,spacing}));
-  return vectorGrid(coarse,{x0:-reach,y0:-reach,x1:reach,y1:reach},spacing).map(a=>({...a,spacing}));
- },[chargeKey,mode,reach,plane,layout,detail]);
+  const square={x0:-reach,y0:-reach,x1:reach,y1:reach};
+  // On the side view the lattice sits half a step off the axis and off the charge's plane, as it
+  // always has: on either, a symmetric field is zero or points along the line an arrow would hide.
+  const lattice=latticeArea(area??square,reach/7,plane==='xz'?.5:0),spacing=lattice.spacing;
+  if(plane==='xz')return spaceGrid(coarse,reach,spacing,.12,'xz',layout,lattice.area).map(a=>({at:{x:a.at.x,y:a.at.z},dir:{x:a.dir.x,y:a.dir.z},magnitude:a.magnitude,weight:a.weight,spacing}));
+  return vectorGrid(coarse,lattice.area,spacing).map(a=>({...a,spacing}));
+ },[chargeKey,mode,reach,plane,layout,detail,areaKey]);
  /* oxlint-enable react/react-compiler */
  /* oxlint-enable react-hooks/exhaustive-deps */
  useEffect(()=>{
@@ -113,6 +123,11 @@ export function FieldCanvas({samples,project,frame,lines=15,mode='lines',reach=6
    if(!ctx)return;
    ctx.setTransform(dpr*w/frame.width,0,0,dpr*h/frame.height,0,0);ctx.globalAlpha=1;
    ctx.clearRect(0,0,frame.width,frame.height);
+   // Inside the window the SVG draws in, and nowhere else. The lines are traced past the edge of
+   // the picture on purpose, so they leave it rather than stopping short -- and uncut, they went on
+   // through the rule and the caption under the figure and out to the edges of the card.
+   ctx.save();
+   ctx.beginPath();ctx.roundRect(PLOT.x,PLOT.y,PLOT.width,PLOT.height,PLOT.radius);ctx.clip();
    // The lines are scenery for the construction on top, so they are drawn thin and faint.
    // Reading a value off them is not the point; seeing the shape of the field is.
    ctx.lineWidth=1.1;ctx.lineCap='round';ctx.lineJoin='round';
@@ -137,6 +152,7 @@ export function FieldCanvas({samples,project,frame,lines=15,mode='lines',reach=6
      ctx.stroke();
     }
     ctx.globalAlpha=1;
+    ctx.restore();
     return;
    }
    for(const line of traced){
@@ -149,11 +165,19 @@ export function FieldCanvas({samples,project,frame,lines=15,mode='lines',reach=6
     }
     ctx.stroke();
    }
+   ctx.restore();
   };
   frameId=requestAnimationFrame(draw);
   const observer=new ResizeObserver(()=>{cancelAnimationFrame(frameId);frameId=requestAnimationFrame(draw);});
   observer.observe(host);
-  return ()=>{cancelAnimationFrame(frameId);observer.disconnect();};
+  // The offline copy: drawn now, in whatever theme the page has just been put in, then put back.
+  const snapshot=(ev:Event)=>{
+   cancelAnimationFrame(frameId);draw();
+   try{(ev as CustomEvent<SnapshotDetail>).detail.url=el.toDataURL('image/png');}catch{/* a tainted or lost canvas: the copy goes without its field */}
+   frameId=requestAnimationFrame(draw);
+  };
+  host.addEventListener(SNAPSHOT_EVENT,snapshot);
+  return ()=>{cancelAnimationFrame(frameId);observer.disconnect();host.removeEventListener(SNAPSHOT_EVENT,snapshot);};
  },[traced,arrows,mode,plane,project,frame.width,frame.height]);
  return <div ref={box} className={`cd-field-canvas ${className}`} aria-hidden="true"><canvas ref={canvas}/></div>;
 }

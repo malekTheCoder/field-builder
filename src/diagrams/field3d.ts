@@ -362,8 +362,11 @@ export type Arrow3={at:Vec;dir:Vec;magnitude:number;weight:number};
  * Points on the charge are dropped rather than drawn wrong. The lattice is offset by half a
  * step so no arrow ever sits exactly on an axis or in the plane of the charge, which is where
  * a symmetric field is either zero or points straight along the line the arrow would hide.
- * With `slice`, only the plane y = 0 is filled: the cross-section a side view wants. */
-export function spaceGrid(samples:readonly ChargeSample[],extent:number,spacing:number,exclude=.14,slice?:'xz',layout:Layout='wire'):Arrow3[]{
+ * With `slice`, only the plane y = 0 is filled: the cross-section a side view wants. A slice may
+ * also be given the `area` of that plane the picture shows -- x across, z as the area's second
+ * coordinate, its edges already on the half-step lattice (see `latticeArea`) -- so the arrows
+ * reach the edges of the window rather than stopping at the field's reach. */
+export function spaceGrid(samples:readonly ChargeSample[],extent:number,spacing:number,exclude=.14,slice?:'xz',layout:Layout='wire',area?:{x0:number;y0:number;x1:number;y1:number}):Arrow3[]{
  if(!(spacing>0)||!(extent>0)||!samples.length)return [];
  const field=fieldOf(samples,layout);
  // Clearance from the charge itself, not from the points it was cut into: at a coarse partition
@@ -372,8 +375,11 @@ export function spaceGrid(samples:readonly ChargeSample[],extent:number,spacing:
  const clear=bodyDistance(samples,layout==='surface'?'surface':'wire');
  const raw:{at:Vec;dir:Vec;magnitude:number}[]=[];
  const n=Math.floor(extent/spacing);
- for(let i=-n;i<n;i++)for(let j=slice?0:-n;j<(slice?1:n);j++)for(let k=-n;k<n;k++){
-  const at={x:(i+.5)*spacing,y:slice?0:(j+.5)*spacing,z:(k+.5)*spacing};
+ const span=(lo:number,hi:number)=>Array.from({length:Math.max(0,Math.round((hi-lo)/spacing)+1)},(_,i)=>lo+i*spacing);
+ const half=Array.from({length:2*n},(_,i)=>(i-n+.5)*spacing);
+ const xs=slice&&area?span(area.x0,area.x1):half,ys=slice?[0]:half,zs=slice&&area?span(area.y0,area.y1):half;
+ for(const x of xs)for(const y of ys)for(const z of zs){
+  const at={x,y,z};
   if(clear(at.x,at.y,at.z)<exclude)continue;
   const e=field(at),magnitude=LEN(e);
   if(!Number.isFinite(magnitude)||magnitude<=0)continue;

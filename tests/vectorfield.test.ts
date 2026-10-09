@@ -1,7 +1,7 @@
 import {describe,expect,it} from 'vitest';
 import {K} from '../src/distributions/constants';
 import type {ChargeSample} from '../src/distributions/types';
-import {arrowLength,vectorGrid,type GridArea} from '../src/diagrams/vectorfield';
+import {arrowLength,latticeArea,PLOT,vectorGrid,visibleArea,type GridArea} from '../src/diagrams/vectorfield';
 const charge=(x:number,y:number,dq:number):ChargeSample=>({position:{x,y,z:0},dq,field:{x:0,y:0,z:0},potential:0,coordinate:0});
 const point=[charge(0,0,2e-9)];
 const rod=Array.from({length:40},(_,i)=>charge(0,-2+4*(i+.5)/40,2e-9/40));
@@ -77,5 +77,48 @@ describe('how long to draw one',()=>{
  });
  it('scales with the grid spacing',()=>{
   expect(arrowLength(.5,2)).toBeCloseTo(2*arrowLength(.5,1),12);
+ });
+});
+describe('the window a flat picture shows',()=>{
+ // The figure's own projection in the flat view: world x to the right, world y up, `unit` pixels
+ // a metre, the origin wherever the lesson puts it.
+ const flat=(ox:number,oy:number,unit:number)=>(v:{x:number;y:number;z:number})=>({x:ox+unit*v.x,y:oy-unit*v.y});
+ it('carries the window\'s corners back into the plane, so a wide picture is a wide rectangle',()=>{
+  const area=visibleArea(flat(250,200,40))!;
+  expect(area.x0).toBeCloseTo((PLOT.x-250)/40,9);
+  expect(area.x1).toBeCloseTo((PLOT.x+PLOT.width-250)/40,9);
+  expect(area.y1).toBeCloseTo((200-PLOT.y)/40,9);
+  expect(area.y0).toBeCloseTo((200-PLOT.y-PLOT.height)/40,9);
+  // Nearly twice as wide as it is tall: the square of the field's reach never covered it.
+  expect((area.x1-area.x0)/(area.y1-area.y0)).toBeCloseTo(PLOT.width/PLOT.height,9);
+ });
+ it('reads the side view as x across and z up',()=>{
+  const side=(v:{x:number;y:number;z:number})=>({x:360+30*v.x,y:215-30*v.z});
+  const area=visibleArea(side,'xz')!;
+  expect(area.x0).toBeCloseTo((PLOT.x-360)/30,9);
+  expect(area.y1).toBeCloseTo((215-PLOT.y)/30,9);
+ });
+ it('has no area when the plane is seen edge-on',()=>{
+  expect(visibleArea(v=>({x:100+40*v.x,y:200}))).toBeNull();
+ });
+ it('puts the lattice on whole steps, so a zoom adds arrows at the edges instead of sliding them',()=>{
+  const a=latticeArea({x0:-3.3,y0:-1.1,x1:7.9,y1:2.4},.5),b=latticeArea({x0:-3.7,y0:-1.4,x1:8.4,y1:2.6},.5);
+  for(const {area,spacing} of [a,b])for(const v of [area.x0,area.y0,area.x1,area.y1])expect(Math.abs(v/spacing-Math.round(v/spacing))).toBeLessThan(1e-9);
+  expect(a.area).toEqual({x0:-3,y0:-1,x1:7.5,y1:2});
+  // Offset by half a step, the side view's lattice stays off the axis and the charge's plane.
+  const half=latticeArea({x0:-2,y0:-2,x1:2,y1:2},1,.5).area;
+  expect(half).toEqual({x0:-1.5,y0:-1.5,x1:1.5,y1:1.5});
+ });
+ it('opens the spacing rather than drawing thousands of arrows in a huge window',()=>{
+  const {area,spacing}=latticeArea({x0:-100,y0:-60,x1:100,y1:60},.5);
+  const count=(Math.round((area.x1-area.x0)/spacing)+1)*(Math.round((area.y1-area.y0)/spacing)+1);
+  expect(count).toBeLessThanOrEqual(600);
+  expect(spacing).toBeGreaterThan(.5);
+ });
+ it('fills the window it is given, edge to edge',()=>{
+  const {area,spacing}=latticeArea({x0:-6,y0:-2,x1:9,y1:2},.75);
+  const arrows=vectorGrid(rod,area,spacing);
+  expect(Math.max(...arrows.map(a=>a.at.x))).toBeGreaterThan(8);
+  expect(Math.min(...arrows.map(a=>a.at.x))).toBeLessThan(-5);
  });
 });

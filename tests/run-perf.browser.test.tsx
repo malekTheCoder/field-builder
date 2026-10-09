@@ -78,7 +78,7 @@ describe('a frame of the run is cheap enough to be smooth', () => {
    // The 3D scene loads three.js on its own schedule; time it once it is there, or the frames
    // measured would be the cheaper ones of a page that has not drawn its scene yet.
    // Waited for, not required: a runner with no WebGL at all still has every other cost to time.
-   if (['ring', 'disk'].includes(id)) await waitFor(() => expect(view.container.querySelector('.cd-stage-gl canvas')).toBeTruthy(), {timeout: 8000}).catch(() => console.log(`[run-perf] ${id}: no WebGL scene here; timing the page without it`));
+   const scene = ['ring', 'disk'].includes(id) && await waitFor(() => expect(view.container.querySelector('.cd-stage-gl canvas')).toBeTruthy(), {timeout: 8000}).then(() => true, () => { console.log(`[run-perf] ${id}: no WebGL scene here; timing the page without it`); return false; });
    fireEvent.click(view.getByRole('button', {name: 'Watch it build'}));
    const figure = view.container.querySelector<HTMLElement>('.charge-diagram')!;
    const renders = () => Number(figure.dataset.renders);
@@ -89,21 +89,24 @@ describe('a frame of the run is cheap enough to be smooth', () => {
    const watch = new MutationObserver(tally);
    watch.observe(view.container, {subtree: true, childList: true});
    const end = totalSeconds(buildStages(getProblem(id))) * 1000;
-   const costs = new Map<string, number[]>(), figureRenders = new Map<string, number>(), fieldDraws = new Map<string, number>();
+   const costs = new Map<string, number[]>(), figureRenders = new Map<string, number>(), fieldDraws = new Map<string, number>(), sceneTraces = new Map<string, number>();
+   // How many times the 3D scene has traced its field, as it writes on its own layer.
+   const traces = () => Number(view.container.querySelector<HTMLElement>('.cd-field-stage')?.dataset.fieldBuilds ?? 0);
    for (let t = 0; t <= end + 200; t += 50) {
-    const r0 = renders(), d0 = draws(), t0 = performance.now();
+    const r0 = renders(), d0 = draws(), g0 = traces(), t0 = performance.now();
     frameAt(t);
     const dt = performance.now() - t0;
     const s = stage(view);
     costs.set(s, [...(costs.get(s) ?? []), dt]);
     figureRenders.set(s, (figureRenders.get(s) ?? 0) + renders() - r0);
     fieldDraws.set(s, (fieldDraws.get(s) ?? 0) + draws() - d0);
+    sceneTraces.set(s, (sceneTraces.get(s) ?? 0) + traces() - g0);
    }
    // The frames ran back to back without yielding, so the records are still queued: take them.
    tally(watch.takeRecords());
    watch.disconnect();
    const all = [...costs.values()].flat();
-   const report = [...costs].map(([s, xs]) => `${s.padEnd(13)} mean ${mean(xs).toFixed(2).padStart(6)} ms  p95 ${percentile(xs, .95).toFixed(2).padStart(6)} ms  max ${Math.max(...xs).toFixed(2).padStart(6)} ms  (${xs.length} frames, figure rendered ${figureRenders.get(s)}, field drawn ${fieldDraws.get(s)})`);
+   const report = [...costs].map(([s, xs]) => `${s.padEnd(13)} mean ${mean(xs).toFixed(2).padStart(6)} ms  p95 ${percentile(xs, .95).toFixed(2).padStart(6)} ms  max ${Math.max(...xs).toFixed(2).padStart(6)} ms  (${xs.length} frames, figure rendered ${figureRenders.get(s)}, field drawn ${fieldDraws.get(s)}${scene ? `, scene traced ${sceneTraces.get(s)}` : ''})`);
    console.log(`[run-perf] ${id}\n  ${report.join('\n  ')}\n  ${'whole run'.padEnd(13)} mean ${mean(all).toFixed(2).padStart(6)} ms  p95 ${percentile(all, .95).toFixed(2).padStart(6)} ms  equations rewritten ${rewrites}`);
    // It did play through, so the frames timed are the run's and not a stalled page's.
    expect([...costs.keys()]).toEqual(expect.arrayContaining(['Cut it up', 'One piece', 'What cancels', 'Add them up', 'Shrink them']));
@@ -116,6 +119,13 @@ describe('a frame of the run is cheap enough to be smooth', () => {
    // And while the pieces shrink, the field is not redrawn for every new cut: it is traced once,
    // from the cut the stage ends on, however many times the pieces double on the way.
    expect(fieldDraws.get('Shrink them') ?? 0, `${id}: field redraws while the pieces shrink`).toBeLessThanOrEqual(2);
+   // The same in space: the disk used to trace its field lines again at every doubling of the cut,
+   // with frames of up to twenty milliseconds. Now it keeps the field it began the stage with and
+   // traces once, from the finest cut, on the frame the stage ends on.
+   if (scene) {
+    expect(traces(), `${id}: the scene never traced its field`).toBeGreaterThan(0);
+    expect(sceneTraces.get('Shrink them') ?? 0, `${id}: 3D field traces while the pieces shrink`).toBeLessThanOrEqual(1);
+   }
   }, 240000);
  }
 });

@@ -1,4 +1,5 @@
 import type {ChargeSample} from '../distributions/types';
+import type {Vec} from '../symbolic/physics';
 import {planeField,type Plane} from './fieldlines';
 /** A grid of field arrows, the other way of showing a field fills space.
  *
@@ -7,6 +8,42 @@ import {planeField,type Plane} from './fieldlines';
  * only defined along the curves. */
 export type Arrow={at:Plane;dir:Plane;magnitude:number;weight:number};
 export type GridArea={x0:number;y0:number;x1:number;y1:number};
+/** The window every layer of the figure is drawn inside, in the SVG's viewBox units -- the same
+ * rounded rectangle the SVG clips its own drawing to. The field layers under it are cut to it
+ * too, or their lines run on over the caption and the rule under the picture and out to the
+ * edges of the card. */
+export const PLOT={x:42,y:54,width:626,height:317,radius:10} as const;
+/** The rectangle of the charge's plane that the picture actually shows, in world metres:
+ * the window's four corners carried back through the figure's own projection.
+ *
+ * The lattice of arrows used to be laid over a square of the field's reach, whatever the camera
+ * showed -- so wherever the picture was wider than that square, the arrows simply stopped, a
+ * third of the way across the infinite line's figure, and left the rest of it bare. `plane` says
+ * which plane the flat drawing is a cut through: z = 0 for the planar lessons, y = 0 for the side
+ * view of a ring, a disk or a sheet, where the second coordinate returned is z. Null when the
+ * plane is seen edge-on and has no area on screen. */
+export function visibleArea(project:(v:Vec)=>{x:number;y:number},plane:'xy'|'xz'='xy',rect:{x:number;y:number;width:number;height:number}=PLOT):GridArea|null{
+ const lift=(a:number,b:number):Vec=>plane==='xz'?{x:a,y:0,z:b}:{x:a,y:b,z:0};
+ const o=project(lift(0,0)),u=project(lift(1,0)),v=project(lift(0,1));
+ const ax=u.x-o.x,ay=u.y-o.y,bx=v.x-o.x,by=v.y-o.y,det=ax*by-bx*ay;
+ if(!Number.isFinite(det)||Math.abs(det)<1e-9)return null;
+ const corners=[[rect.x,rect.y],[rect.x+rect.width,rect.y],[rect.x,rect.y+rect.height],[rect.x+rect.width,rect.y+rect.height]];
+ const world=corners.map(([sx,sy])=>{const dx=sx-o.x,dy=sy-o.y;return [(dx*by-bx*dy)/det,(ax*dy-ay*dx)/det];});
+ const as=world.map(w=>w[0]),bs=world.map(w=>w[1]);
+ return {x0:Math.min(...as),y0:Math.min(...bs),x1:Math.max(...as),y1:Math.max(...bs)};
+}
+/** A lattice over an area, its points on whole multiples of the spacing (or, with `offset` ½,
+ * halfway between them) so that the arrows stand still while the window around them moves --
+ * a zoom adds arrows at the edges rather than sliding the ones already there. A window much
+ * larger than the field's reach would ask for thousands of arrows, so past `most` the spacing
+ * opens up instead. */
+export function latticeArea(area:GridArea,spacing:number,offset=0,most=600):{area:GridArea;spacing:number}{
+ let s=spacing;
+ const first=(v:number)=>(Math.ceil(v/s-offset-1e-9)+offset)*s,last=(v:number)=>(Math.floor(v/s-offset+1e-9)+offset)*s;
+ const count=()=>(Math.round((last(area.x1)-first(area.x0))/s)+1)*(Math.round((last(area.y1)-first(area.y0))/s)+1);
+ for(let guard=0;guard<40&&count()>most;guard++)s*=1.25;
+ return {area:{x0:first(area.x0),y0:first(area.y0),x1:last(area.x1),y1:last(area.y1)},spacing:s};
+}
 /** Where an arrow would sit on top of the charge, its value is dominated by which element
  * happens to be nearest rather than by physics, so it is dropped instead of drawn wrong. */
 const TOO_CLOSE=.12;
