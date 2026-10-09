@@ -33,9 +33,9 @@ describe('print stylesheet and offline copy', () => {
     const diagram = container.querySelector('.cd-svg') as SVGElement | null;
     // Found by role and name on screen, where every one of them is live; the names are what a
     // reader would call them. Queried before print hides them, when they have no name left.
-    const screenOnly = ['2D', '3D', 'Field lines', 'Arrows', 'Off', 'Zoom in', 'Zoom out', 'Reset view', 'Watch it build', 'Walk me through the integral', 'Reset geometry']
+    const screenOnly = ['2D', '3D', 'Field lines', 'Arrows', 'Off', 'Zoom in', 'Zoom out', 'Reset view', 'Watch it build', 'Reset geometry']
       .map(name => [name, getByRole('button', {name})] as const);
-    const builderSlot = getByRole('button', {name: /Charge in one piece/});
+    const builderSlot = getByRole('button', {name: /^Cut it up: play this step/});
     const title = getByRole('heading', {name: getProblem('bisector').title});
     await page.viewport(816, 1056);
     await cdp().send('Emulation.setEmulatedMedia', {media: 'print'});

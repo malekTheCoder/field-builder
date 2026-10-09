@@ -145,13 +145,22 @@
    forward and the rest steps back. The four names are spelled out rather than matched
    with a wildcard, because with nothing selected the root class is a bare `cd-focus-`
    and a wildcard would dim the drawing permanently. */
-.cd-focus-element .cd-piece.is-selected{filter:drop-shadow(0 0 9px var(--charge))}
-.cd-focus-element .cd-source-tag text{fill:var(--charge);font-weight:600}
-.cd-focus-distance .cd-construction{stroke:var(--field);stroke-width:2.8;stroke-opacity:1;stroke-dasharray:none}
-.cd-focus-projection .cd-triangle path,.cd-focus-projection .cd-triangle line{stroke:var(--field);stroke-width:2.1;stroke-dasharray:none}
-.cd-focus-projection .cd-triangle text{fill:var(--field);font-weight:600}
-.cd-focus-bounds .cd-bound rect{fill:var(--field);stroke:var(--field)}
-.cd-focus-bounds .cd-bound text{fill:var(--field);font-weight:600}
+/* Each factor of the integral has a colour, shared by the factor in the panel and the feature in
+   the figure it is read off: the piece's charge, the distance to P, the angle that picks the
+   surviving part, and the limits. Pointing at either lights both. */
+.cd-focus-element .cd-piece.is-selected{filter:drop-shadow(0 0 9px var(--term-element))}
+.cd-focus-element .cd-source-tag text{fill:var(--term-element);font-weight:600}
+.cd-focus-distance .cd-construction:not(.cd-pair){stroke:var(--term-distance);stroke-width:2.8;stroke-opacity:1;stroke-dasharray:none}
+.cd-focus-distance .cd-triangle text:not(.cd-angle){fill:var(--term-distance);font-weight:600}
+.cd-focus-projection .cd-triangle path,.cd-focus-projection .cd-triangle line{stroke:var(--term-projection);stroke-width:2.1;stroke-dasharray:none}
+.cd-focus-projection .cd-triangle .cd-angle{fill:var(--term-projection);font-weight:700}
+.cd-focus-bounds .cd-bound rect{fill:var(--term-bounds);stroke:var(--term-bounds)}
+.cd-focus-bounds .cd-bound text{fill:var(--term-bounds);font-weight:600}
+.cd-svg .cd-end{transition:fill .25s ease}
+.cd-focus-bounds .cd-svg .cd-end,.cd-focus-bounds .cd-end{fill:var(--term-bounds);font-weight:700}
+/* How finely it is cut: the cuts themselves come forward, and the figure's own note of it. */
+.cd-focus-pieces .cd-seam line{stroke:var(--term-element);stroke-opacity:1;stroke-width:2.6}
+.cd-focus-pieces text[data-dim="pieces"]{fill:var(--term-element);font-weight:700}
 
 /* The same idea extended to the sliders. Stripping the numbers off this site left the
    controls saying only "r", "L", "Q" -- true, and useless if you have not yet worked out
@@ -325,7 +334,23 @@
 .cd-hide-total .cd-stack-slot:not(.is-lit){fill-opacity:.03}
 .cd-hide-total .cd-gauge text{opacity:0}
 
+/* ARRIVING, NOT APPEARING. While the run plays, an arrow grows out of P instead of popping in at
+   full length, the construction lines fade up under it, and the angle that picks out the surviving
+   part arrives last -- one thing at a time, in the order the argument uses them. */
+.cd-building .cd-grow{animation:cd-grow .65s cubic-bezier(.2,.8,.2,1) both}
+.cd-building .cd-grow-pair{animation-delay:.12s}
+.cd-building .cd-grow-parts{animation-delay:.3s}
+@keyframes cd-grow{from{opacity:0;transform:scale(.12)}to{opacity:1;transform:none}}
+.cd-building .cd-construction,.cd-building .cd-source-tag{animation:cd-fade .5s ease-out both}
+.cd-building .cd-triangle{animation:cd-fade .6s ease-out .45s both}
+.cd-building .cd-bound{animation:cd-fade .7s ease-out .2s both}
+@keyframes cd-fade{from{opacity:0}to{opacity:1}}
+/* The pieces step back and forward smoothly between stages rather than jumping. */
+.cd-building .cd-piece{transition:opacity .45s ease,filter .45s ease}
+
 @media (prefers-reduced-motion:reduce){
+ .cd-building .cd-grow,.cd-building .cd-construction,.cd-building .cd-source-tag,.cd-building .cd-triangle,.cd-building .cd-bound{animation:none}
+ .cd-building .cd-piece{transition:none}
  .cd-svg .cd-stage-label,.cd-stage-pieces .cd-seam,.cd-stage-pieces .cd-piece{animation:none}
  .cd-field-canvas{transition:none}
 }

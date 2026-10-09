@@ -37,7 +37,7 @@ export type ChargeDiagramProps = {
   compact?: boolean;
   /** Where "Watch it build" is, when it is running or paused. The figure uses it to make each
    * stage visibly different -- see the comment at `building` below. */
-  build?: { key: string; name: string; index: number; count: number };
+  build?: { key: string; name: string; index: number; count: number; paused?: boolean };
 };
 const clamp = (n: number, a: number, b: number) => Math.max(a, Math.min(b, n));
 const plus = (a: Point, b: Point): Point => ({ x: a.x + b.x, y: a.y + b.y });
@@ -325,7 +325,10 @@ export function ChargeDiagram({ problem, params: p, setParams, count, continuum,
   // from the samples: those are the partition, and a ring cut into five pieces is still a
   // ring, not a pentagon.
   const bodyPath = surface ? undefined : Array.from({ length: 129 }, (_, k) => world(k / 128));
-  const showContribution = mode !== 'divide' || !!highlight;
+  // Pointing at one piece's CHARGE lights the piece and names it; it does not need the arrow and
+  // the construction lines, which belong to the distance and the direction. The run's first stage
+  // lights the charge while it cuts, and drawing the arrow there would show the second stage early.
+  const showContribution = mode !== 'divide' || (!!highlight && highlight !== 'element' && highlight !== 'pieces');
   // The selected element, as the shape it actually is.
   //
   // It used to be handed over as a point, a direction and a length, which the scene drew as
@@ -680,7 +683,7 @@ export function ChargeDiagram({ problem, params: p, setParams, count, continuum,
     : Array.from({ length: Math.max(1, n) }, (_, i) => rodLow + pieceSpan * (i + .5)).filter((_, i) => i % markStride === 0);
   const sourceLabel = surface ? `${elementSymbol} ${continuum>=.999?'=':'≈'} σ · 2πs ${continuum>=.999?'ds':'Δs'}` : id === 'ring' || id === 'arc' ? `${elementSymbol} = λR ${continuum>=.999?'dθ':'Δθ'}` : ramp ? `${elementSymbol} = λ₀(y/L) ${continuum>=.999?'dy':'Δy'}` : `${elementSymbol} = λ ${continuum>=.999?'dℓ':'Δℓ'}`;
   const sourceText = id === 'disk' ? 'One ring sweeps out the disk' : id === 'sheet' ? 'A section of a sheet that never ends · one ring is one angle at P' : surface ? 'Whole annulus · transverse fields cancel' : id === 'infinite' ? 'A section of a line that never ends · one piece is one angle at P' : id === 'semi' ? 'A section of a line with one end · one piece is one angle at P' : id === 'arc' ? 'Observation point fixed at center' : 'One piece at a time · the integral adds them all';
-  return <div ref={root} className={"charge-diagram cd-focus-"+highlight+(inSpace?" cd-in-space":"")+(perspective?" cd-surface-kind":" cd-wire-kind")+(building?" cd-building cd-stage-"+building:"")+(hideAnswer?" cd-hide-total":"")}
+  return <div ref={root} className={"charge-diagram cd-focus-"+highlight+(inSpace?" cd-in-space":"")+(perspective?" cd-surface-kind":" cd-wire-kind")+(building?" cd-building cd-stage-"+building:"")+(build?.paused?" cd-paused":"")+(hideAnswer?" cd-hide-total":"")}
     data-element-annulus={sceneElement.annulus ? `${sceneElement.annulus.inner},${sceneElement.annulus.outer}` : undefined}>
     {/* Field under construction, sharing one box so the two coordinate spaces cannot
         drift. Planar lessons only for now: the perspective geometries need their lines
@@ -774,29 +777,33 @@ export function ChargeDiagram({ problem, params: p, setParams, count, continuum,
           {split > .04 && split < .995 && splitFractions(n).map(t => { const mark = seamStroke(t, split); return mark ? <g key={seamKey(t)} data-seam={seamKey(t)} className="cd-seam is-growing" style={{ opacity: split }}>{mark}</g> : null; })}
         </g>}
         {!surface && ((supportsPair && pair) || scalarPartner) && showContribution && <><line x1={partnerPos.x} y1={partnerPos.y} x2={P.x} y2={P.y} className="cd-construction cd-pair" /><circle cx={partnerPos.x} cy={partnerPos.y} r="9" className="cd-partner" /></>}
-        {showContribution && <line x1={selectedPoint.x} y1={selectedPoint.y} x2={P.x} y2={P.y} className="cd-construction" />}
+        {showContribution && building !== 'limit' && <line x1={selectedPoint.x} y1={selectedPoint.y} x2={P.x} y2={P.y} className="cd-construction" />}
       </g>
-      {id === 'infinite' && <g className="cd-infinity"><path d={`M${O.x-10} 73l20-9m-20 17 20-9M${O.x-10} 351l20-9m-20 17 20-9`} /><text x={O.x - 38} y="76">+∞</text><text x={O.x - 38} y="356">−∞</text></g>}
-      {id === 'semi' && <g className="cd-infinity"><path d={`M628 ${O.y-10}l-9 20m17-20-9 20`} /><text x="641" y={O.y - 17}>∞</text></g>}
-      {id === 'sheet' && <text x="544" y="354" className="cd-small">s → ∞</text>}
-      {id === 'bisector' && <g data-dim="size" className={`cd-dimension${inSpace && !perspective ? ' is-hidden' : ''}`}><path d={`M${O.x-39} ${O.y-R*unit}h-7m3.5 0V${O.y+R*unit}m-3.5 0h7`} /><text x={O.x-57} y={O.y+4}>L</text><text x={O.x+17} y={O.y-R*unit-8}>+L/2</text><text x={O.x+17} y={O.y+R*unit+20}>−L/2</text></g>}
-      {footed && <g data-dim="size" className={`cd-dimension${inSpace && !perspective ? ' is-hidden' : ''}`}><path d={`M${O.x-39} ${O.y-p.size*unit}h-7m3.5 0V${O.y}m-3.5 0h7`} /><text x={O.x-57} y={O.y-p.size*unit/2+4}>L</text><text x={O.x+17} y={O.y-p.size*unit-8}>{ramp ? 'y = L · λ = λ₀' : 'y = L'}</text><text x={O.x+19} y={O.y-9}>{ramp ? 'y = 0 · λ = 0' : 'y = 0'}</text></g>}
+      {id === 'infinite' && <g className="cd-infinity"><path d={`M${O.x-10} 73l20-9m-20 17 20-9M${O.x-10} 351l20-9m-20 17 20-9`} /><text className="cd-end" x={O.x - 38} y="76">+∞</text><text className="cd-end" x={O.x - 38} y="356">−∞</text></g>}
+      {id === 'semi' && <g className="cd-infinity"><path d={`M628 ${O.y-10}l-9 20m17-20-9 20`} /><text className="cd-end" x="641" y={O.y - 17}>∞</text></g>}
+      {id === 'sheet' && <text x="544" y="354" className="cd-small cd-end">s → ∞</text>}
+      {id === 'bisector' && <g data-dim="size" className={`cd-dimension${inSpace && !perspective ? ' is-hidden' : ''}`}><path d={`M${O.x-39} ${O.y-R*unit}h-7m3.5 0V${O.y+R*unit}m-3.5 0h7`} /><text x={O.x-57} y={O.y+4}>L</text><text className="cd-end" x={O.x+17} y={O.y-R*unit-8}>+L/2</text><text className="cd-end" x={O.x+17} y={O.y+R*unit+20}>−L/2</text></g>}
+      {footed && <g data-dim="size" className={`cd-dimension${inSpace && !perspective ? ' is-hidden' : ''}`}><path d={`M${O.x-39} ${O.y-p.size*unit}h-7m3.5 0V${O.y}m-3.5 0h7`} /><text x={O.x-57} y={O.y-p.size*unit/2+4}>L</text><text className="cd-end" x={O.x+17} y={O.y-p.size*unit-8}>{ramp ? 'y = L · λ = λ₀' : 'y = L'}</text><text className="cd-end" x={O.x+19} y={O.y-9}>{ramp ? 'y = 0 · λ = 0' : 'y = 0'}</text></g>}
       {id === 'axial' && <g data-dim="size" className={`cd-dimension${inSpace && !perspective ? ' is-hidden' : ''}`}><path d={`M${O.x} ${O.y+31}H${O.x+p.size*unit}`} /><text x={O.x+p.size*unit/2} y={O.y+50}>L</text><text x={O.x+p.size*unit+3} y={O.y-19}>L</text><text data-dim="distance" x={(O.x+p.size*unit+P.x)/2} y={O.y+31}>a</text></g>}
       {perspective && <g data-dim="size" className={`cd-dimension${inSpace && !perspective ? ' is-hidden' : ''}`}><path d={`M${O.x} ${O.y}L${radiusTip.x} ${radiusTip.y}`} /><text x={O.x+(radiusTip.x-O.x)*.6} y={O.y+(radiusTip.y-O.y)*.6+19}>{surface ? 's' : 'R'}</text><text data-dim="distance" x={O.x-20} y={(O.y+P.y)/2}>z</text></g>}
       {id === 'arc' && <g className={`cd-dimension${inSpace && !perspective ? ' is-hidden' : ''}`}><g data-dim="angle"><path d={pathThrough(circlePoints(R*.32, -p.phi/2, p.phi/2))} /><text x={O.x+R*unit*.32+9} y={O.y-9}>φ</text></g><g data-dim="size"><line x1={O.x} y1={O.y} x2={O.x+R*unit} y2={O.y} /><text x={O.x+R*unit*.6} y={O.y+23}>R</text></g></g>}
       {(id === 'bisector' || id === 'infinite' || footed) && <g data-dim="distance" className={`cd-dimension${inSpace && !perspective ? ' is-hidden' : ''}`}><path d={`M${O.x+13} ${O.y+33}H${P.x-10}`} /><text x={(O.x+P.x)/2} y={O.y+52}>r</text></g>}
       {id === 'semi' && <text data-dim="distance" x={O.x+19} y={(P.y+O.y)/2} className="cd-small">r</text>}
       {id !== 'arc' && <text data-anchor="fixed" x={O.x-17} y={O.y+20} className="cd-origin">O</text>}
-      {showContribution && !scalar && mode !== 'sum' && <>
-        {pair && supportsPair && <>
+      {/* One piece's arrow, its parts and its mirror partner. They grow out of P as they arrive
+          rather than appearing at full length, so it is plain where each one starts. Left out
+          while the run shrinks the pieces away: the stage is about the whole sum by then, and one
+          piece's arrow beside it is the previous stage's picture. */}
+      {showContribution && !scalar && mode !== 'sum' && building !== 'limit' && <>
+        {pair && supportsPair && <g className="cd-grow cd-grow-pair" style={{ transformOrigin: `${P.x}px ${P.y}px` }}>
           <Vector from={P} to={plus(P, fieldScreen(partnerField, selectedGain))} color="var(--contribution)" dashed reduced={still} />
           <g data-cancel-transverse="true" opacity={Math.max(.12, 1 - cancelT)}>
             <Vector from={plus(P, keepScreen)} to={plus(P, plus(keepScreen, liveDrop))} color="var(--contribution)" width={1.4} dashed reduced={still} />
             <Vector from={plus(P, partnerKeepScreen)} to={plus(P, plus(partnerKeepScreen, livePartnerDrop))} color="var(--contribution)" width={1.4} dashed reduced={still} />
           </g>
-        </>}
-        {components && <><Vector from={P} to={plus(P, projectedComponent)} color="var(--contribution)" width={1.3} dashed reduced={still} /><Vector from={plus(P, projectedComponent)} to={plus(P, contribution)} color="var(--contribution)" width={1.3} dashed reduced={still} /></>}
-        <Vector from={P} to={plus(P, contribution)} color="var(--contribution)" width={1.8} label={surface ? fieldSymbol+'z' : fieldSymbol} reduced={still}  ghost={inSpace} />
+        </g>}
+        {components && <g className="cd-grow cd-grow-parts" style={{ transformOrigin: `${P.x}px ${P.y}px` }}><Vector from={P} to={plus(P, projectedComponent)} color="var(--contribution)" width={1.3} dashed reduced={still} /><Vector from={plus(P, projectedComponent)} to={plus(P, contribution)} color="var(--contribution)" width={1.3} dashed reduced={still} /></g>}
+        <g className="cd-grow" style={{ transformOrigin: `${P.x}px ${P.y}px` }}><Vector from={P} to={plus(P, contribution)} color="var(--contribution)" width={1.8} label={surface ? fieldSymbol+'z' : fieldSymbol} reduced={still}  ghost={inSpace} /></g>
       </>}
       {!scalar && mode === 'sum' && chainPoints.length > 1 && <path className="cd-sum-chain" data-sum-chain={String(chainPoints.length)} d={pathThrough(chainPoints)} fill="none" />}
       {building === 'add' && !scalar && chainPoints.length > 1 && chainPoints.length <= 65 && chainPoints.slice(1).map((c, k) => <circle key={k} className="cd-sum-joint" cx={c.x} cy={c.y} r="2.8" />)}
@@ -851,15 +858,15 @@ export function ChargeDiagram({ problem, params: p, setParams, count, continuum,
       <g {...(id === 'arc' ? {} : handle('P'))} className={`cd-observation ${id === 'arc' ? 'is-fixed' : ''}`}>
         <circle data-orbit-p="true" cx={P.x} cy={P.y} r="28" fill={`url(#${uid}point)`} style={{ opacity: inSpace ? 0 : 1 }} /><circle data-orbit-p="true" cx={P.x} cy={P.y} r="16" className="cd-point-halo" style={{ opacity: inSpace ? 0 : 1 }} /><circle data-orbit-p="true" cx={P.x} cy={P.y} r="5" className="cd-point" style={{ opacity: inSpace ? 0 : 1 }} /><text data-orbit-p="true" x={P.x-10} y={P.y+31} className="cd-point-label">{id === 'arc' ? 'P = O' : 'P'}</text>
       </g>
-      {showContribution && <g className="cd-source-tag"><line x1={source.x} y1={source.y} x2={source.x+(source.x>560?-22:22)} y2={source.y+(source.y<95?22:-20)} /><text x={source.x+(source.x>560?-27:27)} y={source.y+(source.y<95?27:-21)} textAnchor={source.x>560?'end':'start'}>{sourceVisible ? (surface ? 'ring '+elementSymbol : elementSymbol) : elementSymbol+' outside view'}</text></g>}
+      {(showContribution || building === 'pieces' || highlight === 'element') && <g className="cd-source-tag"><line x1={source.x} y1={source.y} x2={source.x+(source.x>560?-22:22)} y2={source.y+(source.y<95?22:-20)} /><text x={source.x+(source.x>560?-27:27)} y={source.y+(source.y<95?27:-21)} textAnchor={source.x>560?'end':'start'}>{sourceVisible ? (surface ? 'ring '+elementSymbol : elementSymbol) : elementSymbol+' outside view'}</text></g>}
       {mode === 'integrate' && onBoundRangeChange && [0, 1].map(i => { const raw = project(world(boundRange[i]/100)); const point = { x: clamp(raw.x, 57, 650), y: clamp(raw.y, 66, 358) + ((id === 'ring' || (id === 'arc' && p.phi > 6.2)) ? (i ? 13 : -13) : 0) }; return <g key={i} {...handle(String(i))} className="cd-bound"><circle cx={point.x} cy={point.y} r="17" fill="transparent" /><rect x={point.x-8} y={point.y-8} width="16" height="16" rx="4" /><text x={point.x+(i ? 18 : -18)} y={point.y+5} textAnchor={i ? 'start' : 'end'}>{i ? 'b' : 'a'}</text></g>; })}
-      {showContribution && !scalar && <g className="cd-triangle">
-        {perspective ? <><path d="M538 135V73L619 135Z"/><path d="M538 127h8v8"/><text x="526" y="110">z</text><text x="575" y="151">{surface?'s':'R'}</text><text x="584" y="94">rᵢ</text><text x="548" y="93">α</text><text x="538" y="170" className="cd-triangle-note">Right triangle · schematic</text></> : id==='arc' ? <><line x1={P.x} y1={P.y} x2={selectedPoint.x} y2={selectedPoint.y}/><text x={P.x+30} y={P.y-12}>θ</text></> : id==='axial' ? <text x={(P.x+source.x)/2} y={P.y-39}>rᵢ = L + a − x</text> : <><path d={`M${source.x} ${source.y}L${source.x} ${P.y}L${P.x} ${P.y}`} /><text x={(source.x+P.x)/2+7} y={(source.y+P.y)/2-10}>rᵢ</text><text x={source.x-24} y={(source.y+P.y)/2}>{id==='semi'?'x':'y'}</text><text x={P.x-31} y={P.y-8}>α</text></>}
+      {showContribution && !scalar && building !== 'add' && building !== 'limit' && <g className="cd-triangle">
+        {perspective ? <><path d="M538 135V73L619 135Z"/><path d="M538 127h8v8"/><text x="526" y="110">z</text><text x="575" y="151">{surface?'s':'R'}</text><text x="584" y="94">rᵢ</text><text className="cd-angle" x="548" y="93">α</text><text x="538" y="170" className="cd-triangle-note">Right triangle · schematic</text></> : id==='arc' ? <><line x1={P.x} y1={P.y} x2={selectedPoint.x} y2={selectedPoint.y}/><text x={P.x+30} y={P.y-12}>θ</text></> : id==='axial' ? <text x={(P.x+source.x)/2} y={P.y-39}>rᵢ = L + a − x</text> : <><path d={`M${source.x} ${source.y}L${source.x} ${P.y}L${P.x} ${P.y}`} /><text x={(source.x+P.x)/2+7} y={(source.y+P.y)/2-10}>rᵢ</text><text x={source.x-24} y={(source.y+P.y)/2}>{id==='semi'?'x':'y'}</text><text className="cd-angle" x={P.x-31} y={P.y-8}>θ</text></>}
       </g>}
       <line x1="30" y1="387" x2="690" y2="387" className="cd-divider" />
       <text x="30" y="409" className="cd-footer">{sourceLabel}</text>
       {build && <text key={build.key} data-anchor="fixed" data-build-stage={build.key} className="cd-stage-label" x="360" y="34" textAnchor="middle">{build.name}</text>}
-      <text x="690" y="409" textAnchor="end" className="cd-footer">{continuum>=.999 ? 'In the limit' : 'Cut into pieces'}</text>
+      <text x="690" y="409" textAnchor="end" className="cd-footer" data-dim="pieces">{continuum>=.999 ? 'In the limit' : 'Cut into pieces'}</text>
     </svg>
     </div>
     {/* EVERYTHING BUT THE DRAWING NOW SITS UNDER IT, in two rows grouped by the question they

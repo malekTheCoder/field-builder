@@ -31,20 +31,23 @@
   .exp-breadcrumb button { display: none !important; }
   /* Controls that only act on the screen. On paper they are buttons nobody can press: the
      figure's view strip (2D/3D, field lines/arrows/off, zoom and reset), the drawn cube and
-     the drag-to-turn legend inside it, the walkthrough's buttons (a step it is on keeps its
-     sentence), every slider track (the parameter names stay as the figure's legend), the
-     geometry reset, and the builder's disclosure chevrons. */
+     the drag-to-turn legend inside it, the run's start button and its transport (a stage it is
+     on keeps its sentence), every slider track (the parameter names stay as the figure's
+     legend), the geometry reset, and the builder's disclosure chevrons. */
   .cd-toolbar,
   .cd-cube,
   .cd-help,
-  .exp-walk-start,
-  .exp-walk-actions,
-  .exp-walk-count,
-  .exp-walk-extra,
-  .exp-build-dots,
+  .exp-watch,
+  .bp-bar,
+  .bp-steps,
+  .bp-math,
   [data-slot='slider'],
   .exp-reset,
   .ew-panel .lucide-chevron-down { display: none !important; }
+  /* The derivation prints whole, wherever the run had got to: paper has no "still to come". */
+  .db-reveal, .db-then { grid-template-rows: 1fr !important; opacity: 1 !important; }
+  .db-step .db-title { color: #0e2333 !important; }
+  .ew-result { display: block !important; animation: none !important; }
   /* A shut disclosure prints as a heading over nothing. Opened before printing, it prints. */
   details.exp-note:not([open]),
   .exp-endnotes:not(:has(details.exp-note[open])),

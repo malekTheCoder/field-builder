@@ -28,8 +28,21 @@ export type BuildStage = {
   sum: [number, number];
   /** How far the partition has gone toward the continuum, across the stage. */
   continuum: [number, number];
-  /** One line, in the reader's language, about what the figure is doing now. */
+  /** The whole explanation, in the reader's language: read at the reader's own pace, beside the
+   * line of algebra this stage adds, and announced to a screen reader as the stage begins. */
   caption: string;
+  /** The same thing in one short sentence, for reading WHILE the figure moves. The long caption
+   * used to be the only text, two or three sentences on a stage that lasted three seconds -- so
+   * the run moved on before anyone could finish reading what it was showing. */
+  line: string;
+  /** The factor of the integral this stage puts in, which the figure lights while it plays. */
+  term: 'element' | 'distance' | 'projection' | 'bounds' | '';
+  /** The share of the stage spent moving; the rest holds the finished frame, so the reader sees
+   * what the motion arrived at before the next stage starts. 1 means it moves all the way. */
+  moves: number;
+  /** How the motion is paced: 'linear' where every piece must be seen in turn (the sum), 'ease'
+   * where one thing turns into another (the limit). */
+  pace: 'linear' | 'ease';
 };
 /** What happens to the sideways parts, which is the whole point of the third stage and is
  * different in each geometry. Written short: it is read while something is moving. */
@@ -47,6 +60,17 @@ const CANCELS: Record<string, string> = {
   // survives. Saying "every contribution points much the same way" was wrong here -- they fan
   // through a right angle -- and it hid the one consequence worth seeing.
   semi: 'Nothing cancels here. The line stops right below P, so there is no charge on the other side to push back — every sideways push survives along with its outward one, which is why this field leans instead of pointing straight out.',
+};
+/** The cancellation in one sentence each, for reading while the arrows move. */
+const CANCEL_LINES: Record<string, string> = {
+  bisector: 'Its mirror piece pushes just as hard. The sideways parts cancel; only the outward parts survive.',
+  ring: 'The piece across the ring cancels the sideways push. Only the part along the axis survives.',
+  arc: 'The mirror piece cancels the push across the axis. Only the part along the axis survives.',
+  infinite: 'The mirror piece cancels the push along the line. Only the part straight out survives.',
+  disk: 'Each ring has already cancelled its own sideways push. Only the part along the axis is left.',
+  sheet: 'Each ring has already cancelled its own sideways push. Only the part along the axis is left.',
+  semi: 'Nothing cancels: no charge lies on the other side, so both parts survive and the field leans.',
+  axial: 'Every piece is on the axis, so every push already points along it. Nothing to cancel.',
 };
 /* A scalar lesson must never borrow its field twin's cancellation story, even though it shares
  * the twin's geometry. V is a number; "the sideways parts cancel" is meaningless about it, and
@@ -73,28 +97,63 @@ export function buildStages(p: Problem): BuildStage[] {
   // of the pieces these lessons actually draw on the unbounded geometries: cut at equal angles
   // from P, every piece of an infinite line pushes EXACTLY as hard, and a sheet's rings push
   // harder the further out they are.
+  // THE LINES READ WHILE IT MOVES. One sentence each, short enough to finish before the stage
+  // does. The long captions are still there, beside the algebra, for reading at rest.
+  const unbounded = geometry === 'infinite' || geometry === 'semi';
+  const surface = geometry === 'disk' || geometry === 'sheet';
+  const lines = {
+    pieces: surface ? `Cut the ${geometry === 'disk' ? 'disk' : 'sheet'} into thin rings. Every bit of one ring is the same distance from P.`
+      : unbounded ? 'Cut the line into pieces that each take up the same angle at P.'
+      : 'Cut the charge into small pieces, each small enough to treat as a point charge.',
+    one: scalar ? 'One piece adds a number to the potential at P: more the closer it is.'
+      : unbounded ? 'Every equal-angle piece pushes on P exactly as hard: the far ones hold more charge.'
+      : geometry === 'sheet' ? 'The far rings are farther away, but so much bigger that they push harder.'
+      : 'One piece pushes on P along the line joining them, more weakly the farther it is.',
+    cancel: scalar ? (pairs ? 'Its mirror piece is just as far away, so it adds exactly as much. A number cannot cancel.' : 'A potential is a number, not an arrow. There is nothing to cancel.')
+      : CANCEL_LINES[geometry] ?? 'Nothing cancels: every piece is on the same side of P, so both parts of every push survive.',
+    add: scalar ? 'Stack every piece’s contribution. The column’s height is the potential at P.'
+      : 'Add every surviving push, tip to tail. Where the chain ends is the field at P.',
+    limit: `Shrink the pieces without end. The sum becomes an integral, and the ${scalar ? 'potential' : 'field'} stops depending on the cut.`,
+  };
   const piece = scalar ? 'Each piece adds its own number to the total, and that number depends only on how far away the piece is. Direction does not come into it at all, which is what makes a potential so much easier to add up than a field.'
     : geometry === 'infinite' || geometry === 'semi' ? 'Each piece is cut to cover the same angle at P. That makes every one push exactly as hard: the far pieces hold more charge, but they are further away, and the two cancel.'
     : geometry === 'sheet' ? 'Each ring is cut to cover the same angle at P. The far rings are further away, but they are so much bigger that they push harder, not softer.'
     : 'Each piece pushes on P in its own direction. How hard depends on how much charge it holds and how far away it is.';
   return [
-    {key: 'pieces', name: 'Cut it up', seconds: 3, mode: 'divide', components: false, pair: false, sum: [1, 1], continuum: [0, 0],
+    // Long enough for the cuts to travel the length of the charge and for the line to be read.
+    {key: 'pieces', name: 'Cut it up', seconds: 5, mode: 'divide', components: false, pair: false, sum: [1, 1], continuum: [0, 0],
+      moves: 1, pace: 'linear', term: 'element', line: lines.pieces,
       caption: `Start by cutting the charge into pieces small enough that each one is just a point charge — and for a point charge the ${scalar ? 'potential' : 'field'} is something we already know.`},
-    {key: 'one', name: 'One piece', seconds: 3, mode: 'project', components: true, pair: false, sum: [1, 1], continuum: [0, 0],
+    // One arrow and the distance it depends on. Not yet split into parts: that is the next idea,
+    // and showing the parts here put two ideas on screen at once.
+    {key: 'one', name: 'One piece', seconds: 5.5, mode: 'project', components: false, pair: false, sum: [1, 1], continuum: [0, 0],
+      moves: 1, pace: 'linear', term: 'distance', line: lines.one,
       caption: piece},
-    {key: 'cancel', name: 'What cancels', seconds: pairs ? 4.5 : 3, mode: 'project', components: true, pair: pairs, sum: [1, 1], continuum: [0, 0],
+    {key: 'cancel', name: 'What cancels', seconds: pairs ? 6.5 : 5.5, mode: 'project', components: !scalar, pair: pairs, sum: [1, 1], continuum: [0, 0],
+      moves: 1, pace: 'linear', term: scalar ? '' : 'projection', line: lines.cancel,
       caption: scalar ? (pairs ? PARTNER_ADDS_V : NO_CANCEL_V) : CANCELS[geometry] ?? NO_CANCEL},
-    {key: 'add', name: 'Add them up', seconds: 7, mode: 'sum', components: false, pair: false, sum: [0, 1], continuum: [0, 0],
+    // The chain grows at an even pace -- easing would bunch the last pieces together -- and then
+    // holds, finished, so the arrow it arrives at is seen before the pieces start to shrink.
+    {key: 'add', name: 'Add them up', seconds: 8, mode: 'sum', components: false, pair: false, sum: [0, 1], continuum: [0, 0],
+      moves: .8, pace: 'linear', term: 'bounds', line: lines.add,
       // An arrow chain for a field and a column for a potential: the same sum, one dimension
       // down. The field's caption talked about arrows bending, which a scalar has none of.
       caption: scalar
         ? 'Now stack every piece’s number on top of the last. The column can only grow one way — there is no direction for it to bend back in — and its height is the potential at P.'
         : 'Now add what survives, piece by piece, each arrow starting where the last one ended. The chain bends the way the geometry does, and where it stops is the field at P.'},
-    {key: 'limit', name: 'Shrink them', seconds: 4, mode: 'integrate', components: false, pair: false, sum: [1, 1], continuum: [0, 1],
+    // Eased: one picture turning into another. It finishes early and holds on the integral.
+    {key: 'limit', name: 'Shrink them', seconds: 6.5, mode: 'integrate', components: false, pair: false, sum: [1, 1], continuum: [0, 1],
+      moves: .7, pace: 'ease', term: 'bounds', line: lines.limit,
       caption: scalar
         ? 'Finally, make the pieces smaller without end. Each segment of the column gets too thin to see, the sum becomes the integral, and the height stops depending on how finely we chose to cut.'
         : 'Finally, make the pieces smaller without end. The chain of arrows becomes a smooth curve, the sum becomes the integral, and the answer stops depending on how finely we chose to cut.'},
   ];
+}
+/** How far a stage's motion has got, `local` of the way through the stage: the moving share
+ * stretched to fill, then held, and eased where the stage says so. */
+export function motionAt(stage: BuildStage, local: number): number {
+  const t = Math.max(0, Math.min(1, local / stage.moves));
+  return stage.pace === 'ease' ? (t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2) : t;
 }
 export const totalSeconds = (stages: readonly BuildStage[]) => stages.reduce((t, s) => t + s.seconds, 0);
 /** Which stage the run is in at `elapsed` seconds, and how far through that stage.

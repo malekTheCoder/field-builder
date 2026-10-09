@@ -2,6 +2,7 @@ import {act, cleanup, fireEvent, render, waitFor} from '@testing-library/react';
 import {afterEach, beforeEach, describe, expect, it} from 'vitest';
 import Explorer from '../src/explorer/Explorer';
 import {PROBLEMS, getProblem} from '../src/problems/definitions';
+import {buildStages} from '../src/explorer/buildRun';
 import {isReady} from '../src/problems/readiness';
 /* The run, in the page it actually plays in.
  *
@@ -132,14 +133,93 @@ describe('a pause in the frames pauses the run, it does not skip it', () => {
   const view = await openLesson('bisector');
   fireEvent.click(view.getByRole('button', {name: 'Watch it build'}));
   const seen: string[] = [];
-  for (let t = 0; t <= 23000; t += 16) {
+  for (let t = 0; t <= 34000; t += 16) {
    frameAt(t);
    const s = stage(view);
    if (s && s !== seen[seen.length - 1]) seen.push(s);
   }
   expect(seen).toEqual(['Cut it up', 'One piece', 'What cancels', 'Add them up', 'Shrink them']);
-  // And it ends playable: finished, not stuck mid-run.
+  // And it ends playable: finished, not stuck mid-run, and offering to play it again.
+  expect(view.getByRole('button', {name: 'Play again'})).toBeTruthy();
+ });
+});
+describe('the transport says how long the run is and where it has got to', () => {
+ // "They need some progress bar to know how long the animation is and what's happening." Five dots
+ // said which stage, not how long any of them was or how much of it was left.
+ let queue: FrameRequestCallback[] = [];
+ let realRaf: typeof window.requestAnimationFrame, realCancel: typeof window.cancelAnimationFrame;
+ beforeEach(() => {
+  queue = [];
+  realRaf = window.requestAnimationFrame; realCancel = window.cancelAnimationFrame;
+  window.requestAnimationFrame = cb => { queue.push(cb); return queue.length; };
+  window.cancelAnimationFrame = () => {};
+ });
+ afterEach(() => { window.requestAnimationFrame = realRaf; window.cancelAnimationFrame = realCancel; });
+ const frameAt = (t: number) => { const due = queue.splice(0); act(() => { for (const cb of due) cb(t); }); };
+ const fills = (view: {container: HTMLElement}) =>
+  [...view.container.querySelectorAll<HTMLElement>('.bp-seg-fill')].map(f => new DOMMatrix(getComputedStyle(f).transform).a);
+ const stage = (view: {container: HTMLElement}) => view.container.querySelector('.cd-stage-label')?.textContent ?? '';
+ it('draws the run to scale: each stage gets the share of the bar it gets of the time', async () => {
+  const view = await openLesson('bisector');
+  fireEvent.click(view.getByRole('button', {name: 'Watch it build'}));
+  const stages = buildStages(getProblem('bisector'));
+  const segs = [...view.container.querySelectorAll<HTMLElement>('.bp-seg')];
+  const total = segs.reduce((t, el) => t + el.getBoundingClientRect().width, 0);
+  const seconds = stages.reduce((t, s) => t + s.seconds, 0);
+  segs.forEach((el, i) => expect(el.getBoundingClientRect().width / total, stages[i].name).toBeCloseTo(stages[i].seconds / seconds, 1));
+ });
+ it('fills as it plays: finished stages full, the current one part-way, the rest empty', async () => {
+  const view = await openLesson('bisector');
+  fireEvent.click(view.getByRole('button', {name: 'Watch it build'}));
+  // Seven and a half seconds in: through the first stage and about halfway through the second.
+  for (let t = 0; t <= 7500; t += 16) frameAt(t);
+  const [first, second, third] = fills(view);
+  expect(first).toBeCloseTo(1, 6);
+  expect(second).toBeGreaterThan(.3);
+  expect(second).toBeLessThan(.7);
+  expect(third).toBe(0);
+  expect(stage(view)).toBe('One piece');
+ });
+ it('a drag along the bar scrubs the run, and leaves it paused where it was let go', async () => {
+  const view = await openLesson('bisector');
+  fireEvent.click(view.getByRole('button', {name: 'Watch it build'}));
+  const track = view.container.querySelector<HTMLElement>('.bp-track')!;
+  const segs = [...view.container.querySelectorAll<HTMLElement>('.bp-seg')];
+  const across = (i: number, f: number) => { const r = segs[i].getBoundingClientRect(); return r.left + f * r.width; };
+  fireEvent.pointerDown(track, {clientX: across(0, .2), button: 0, pointerId: 1});
+  fireEvent.pointerMove(track, {clientX: across(2, .5), pointerId: 1});
+  await waitFor(() => expect(stage(view)).toBe('What cancels'));
+  fireEvent.pointerMove(track, {clientX: across(3, .5), pointerId: 1});
+  await waitFor(() => expect(stage(view)).toBe('Add them up'));
+  fireEvent.pointerUp(track, {clientX: across(3, .5), pointerId: 1});
   expect(view.getByRole('button', {name: 'Play'})).toBeTruthy();
+  // Halfway through the adding stage, half the chain is drawn: the scrub drives the figure itself.
+  const fill = fills(view)[3];
+  expect(fill).toBeGreaterThan(.4);
+  expect(fill).toBeLessThan(.6);
+  expect(view.container.querySelector('[data-sum-chain]')).toBeTruthy();
+ });
+ it('the next-stage button plays exactly one stage, then holds its finished frame', async () => {
+  const view = await openLesson('bisector');
+  fireEvent.click(view.getByRole('button', {name: 'Watch it build'}));
+  fireEvent.click(view.getByRole('button', {name: 'Pause'}));
+  fireEvent.click(view.getByRole('button', {name: 'Next stage'}));
+  expect(stage(view)).toBe('One piece');
+  for (let t = 0; t <= 9000; t += 16) frameAt(t);
+  // Still on its own stage, finished -- not on the first frame of the next one.
+  expect(stage(view)).toBe('One piece');
+  expect(fills(view)[1]).toBeGreaterThan(.99);
+  expect(view.getByRole('button', {name: 'Play'})).toBeTruthy();
+  // And the line of the derivation it put in now explains itself, at the reader's own pace.
+  expect(view.container.querySelector('.db-step.is-here .db-note')?.textContent).toBe(buildStages(getProblem('bisector'))[1].caption);
+ });
+ it('choosing a line of the derivation plays that stage on the figure', async () => {
+  const view = await openLesson('bisector');
+  fireEvent.click(view.getByRole('button', {name: 'Add them up: play this step on the figure'}));
+  expect(stage(view)).toBe('Add them up');
+  expect(view.getByRole('button', {name: 'Pause'})).toBeTruthy();
+  const classes = [...view.container.querySelectorAll('.db-step')].map(s => s.className.match(/is-(\w+)/)?.[1]);
+  expect(classes).toEqual(['done', 'done', 'done', 'here', 'next']);
  });
 });
 describe('every stage changes the figure, not just the caption', () => {
@@ -230,7 +310,7 @@ describe('with reduced motion asked for', () => {
   await waitFor(() => expect(view.getByRole('button', {name: /^Stage 1: /})).toBeTruthy());
   // The run opens on the pieces, not on the finished integral.
   expect(footer(view)).toContain('Cut into pieces');
-  expect(view.container.querySelector('.exp-walk-text')?.textContent ?? '').toContain('Cut it up');
+  expect(view.container.querySelector('.bp-line')?.textContent ?? '').toContain('Cut it up');
  });
  it('still advances through the stages, in steps', async () => {
   const view = await openLesson('bisector');
@@ -238,8 +318,8 @@ describe('with reduced motion asked for', () => {
   // Where the run has got to is the marked stage in the strip: the words "2 of 5" were the only
   // counting on the page and went with the rest of the numerals. The strip says the same thing --
   // the same five stages, and which one is current -- so the claim is unchanged.
-  const stageNow = () => view.container.querySelector('.exp-build-dot[aria-current="step"]')?.getAttribute('aria-label') ?? '';
-  expect(view.container.querySelectorAll('.exp-build-dot').length).toBe(5);
+  const stageNow = () => view.container.querySelector('.bp-seg[aria-current="step"]')?.getAttribute('aria-label') ?? '';
+  expect(view.container.querySelectorAll('.bp-seg').length).toBe(5);
   await waitFor(() => expect(stageNow()).toMatch(/^Stage 1: /));
   await waitFor(() => expect(stageNow()).toMatch(/^Stage 2: /), {timeout: 9000});
   await waitFor(() => expect(stageNow()).toMatch(/^Stage 3: /), {timeout: 9000});

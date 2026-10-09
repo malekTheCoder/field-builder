@@ -1,5 +1,5 @@
 import {describe, expect, it} from 'vitest';
-import {buildStages, stageAt, stageStart, totalSeconds} from '../src/explorer/buildRun';
+import {buildStages, motionAt, stageAt, stageStart, totalSeconds} from '../src/explorer/buildRun';
 import {PROBLEMS, getProblem} from '../src/problems/definitions';
 import {isReady} from '../src/problems/readiness';
 import {sampleDistribution} from '../src/diagrams/sampling';
@@ -67,11 +67,43 @@ describe('the build sequence tells the same story for every lesson', () => {
    expect(stage.caption, `${p.id} · ${stage.key}`).not.toMatch(/each arrow|chain of arrows|arrow starting|bends the way|what survives/i);
   }
  });
- it('every lesson a reader can actually open has a run under half a minute', () => {
+ it('every lesson a reader can actually open runs for about half a minute, as the button says', () => {
   for (const p of PROBLEMS.filter(p => isReady(p.id))) {
    const total = totalSeconds(buildStages(p));
-   expect(total, p.id).toBeGreaterThan(12);
-   expect(total, p.id).toBeLessThan(30);
+   expect(total, p.id).toBeGreaterThan(20);
+   expect(total, p.id).toBeLessThan(36);
+  }
+ });
+ it('the line shown while a stage plays can be read before the stage is over', () => {
+  // The run used to carry only its long captions, two or three sentences on a three-second stage,
+  // so it had always moved on before anyone finished reading. Each stage now has one short line
+  // for reading while it moves, held to subtitle pace: 17 characters a second is the ceiling the
+  // subtitling guides give for adult viewers, and these readers are watching a figure as well.
+  for (const p of PROBLEMS) for (const s of buildStages(p)) {
+   expect(s.line.length, `${p.id} · ${s.key}`).toBeGreaterThan(30);
+   expect(s.line.length / s.seconds, `${p.id} · ${s.key}: "${s.line}"`).toBeLessThanOrEqual(17);
+   // One sentence, or two very short ones -- never the paragraph it replaced.
+   expect(s.line.length, `${p.id} · ${s.key}`).toBeLessThan(s.caption.length);
+  }
+ });
+ it('every stage lights the factor it puts into the integral, and a potential lights no angle', () => {
+  for (const p of PROBLEMS) {
+   const terms = buildStages(p).map(s => s.term);
+   expect(terms.slice(0, 2), p.id).toEqual(['element', 'distance']);
+   expect(terms[2], p.id).toBe(p.quantity === 'V' ? '' : 'projection');
+   expect(terms[3], p.id).toBe('bounds');
+  }
+ });
+ it('motion fills its share of a stage and then holds the finished frame', () => {
+  for (const s of buildStages(getProblem('bisector'))) {
+   expect(s.moves, s.key).toBeGreaterThan(0);
+   expect(s.moves, s.key).toBeLessThanOrEqual(1);
+   expect(motionAt(s, 0), s.key).toBe(0);
+   expect(motionAt(s, s.moves), s.key).toBeCloseTo(1, 12);
+   expect(motionAt(s, 1), s.key).toBe(1);
+   // Never backwards: a run that is moving forwards must not undo what it has drawn.
+   let last = 0;
+   for (let t = 0; t <= 1; t += .01) { const m = motionAt(s, t); expect(m, `${s.key} at ${t}`).toBeGreaterThanOrEqual(last - 1e-12); last = m; }
   }
  });
 });

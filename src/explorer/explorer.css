@@ -28,9 +28,6 @@
    ===================================================================== */
 /* ---- 1. Type -------------------------------------------------------- */
 
-
-
-
 .exp-heading h1,.exp-note-heading{font-family:var(--serif);font-weight:400;letter-spacing:-.017em}
 .exp-heading h1{font-size:var(--type-display);line-height:1.06;letter-spacing:-.026em;margin-bottom:10px}
 .exp-heading p{font-size:var(--type-lead);line-height:1.5;max-width:52ch;color:var(--muted-foreground)}
@@ -41,13 +38,11 @@
 /* No uppercase-letterspaced kickers: a nav label is a nav label. */
 /* ---- 2. Variables lead, numbers follow ------------------------------ */
 
-
 .exp-range>div:first-child{align-items:baseline;gap:10px;margin-bottom:14px;font-weight:400}
 .exp-sym{font-family:var(--serif);font-style:italic;font-size:var(--type-sub);line-height:1;color:var(--foreground);font-weight:600;letter-spacing:0}
 .exp-range .exp-name{font-size:var(--type-meta);color:var(--muted-foreground);margin-left:8px;letter-spacing:0;font-weight:400}
 .exp-range output{font-family:var(--font-geist-mono),ui-monospace,monospace;font-variant-numeric:tabular-nums;color:var(--muted-foreground);font-weight:400}
 /* ---- 3. Surfaces ---------------------------------------------------- */
-
 
 .exp-shell[data-slot=sidebar-wrapper]{grid-template-columns:190px minmax(0,1fr)}
 .exp-sidebar[data-slot=sidebar]{width:190px;background:var(--sidebar);border-right:1px solid var(--surface-rule)}
@@ -77,7 +72,6 @@
 .exp-shape-button[data-slot=sidebar-menu-button]{height:44px;border-radius:8px}
 /* ---- 4. Wide screens: give the figure everything that is going ------ */
 
-
 @media(min-width:1500px){
  .exp-main{padding:44px 56px 52px;max-width:1720px}
  .exp-workspace{grid-template-columns:minmax(0,1fr) 348px;gap:44px}
@@ -85,7 +79,6 @@
  .exp-metrics strong{font-size:30px}
 }
 /* ---- 5. Tablet ------------------------------------------------------ */
-
 
 @media(max-width:1250px){
  .exp-shell[data-slot=sidebar-wrapper]{grid-template-columns:174px minmax(0,1fr)}
@@ -114,7 +107,6 @@
  .ew-panel{margin-top:0}
 }
 /* ---- 6. Phone ------------------------------------------------------- */
-
 
 @media(max-width:520px){
  .exp-main{padding:20px 16px 30px}
@@ -172,37 +164,88 @@
 @media(max-width:1050px){.exp-shell[data-slot=sidebar-wrapper]{grid-template-columns:minmax(0,1fr)}}
 /* Optional measurements and a library that makes room for the figure. */
 
-
 .exp-shell.library-collapsed[data-slot=sidebar-wrapper]{grid-template-columns:minmax(0,1fr)}
 .symbolic-view .exp-parameters output,.symbolic-view .cd-scale{display:none}
 @media(max-width:1000px){.exp-library-toggle{display:none!important}}
 /* Predict-first. Offered, never imposed: the control is one quiet line until it is used,
    and Skip is always present, because a prediction that blocks exploration is a test. */
-/* Walking the derivation. One line of explanation at a time, with the figure drawing the
-   feature being talked about; the drawing itself stays clean when nobody is walking. */
+/* ---- WATCH IT BUILD ---------------------------------------------------
+   One way into the argument under the figure: a single button at rest, and
+   while it runs a transport -- play, a bar cut into the run's stages, close
+   -- over one line saying what the figure is doing. The bar is the run drawn
+   to scale, so how long it is and how far through it you are can be seen
+   without a clock. ------------------------------------------------------- */
+.exp-walk{display:block;padding:14px 2px 2px}
+.exp-watch{display:flex;flex-wrap:wrap;align-items:center;gap:10px 16px}
+.exp-watch-button{display:inline-flex;align-items:center;gap:9px;height:38px;padding:0 17px 0 14px;border:0;border-radius:999px;
+ background:var(--field);color:var(--on-accent);font:inherit;font-size:14px;font-weight:600;letter-spacing:.005em;cursor:pointer;
+ box-shadow:0 1px 2px color-mix(in oklab,var(--field) 35%,transparent),0 8px 20px -6px color-mix(in oklab,var(--field) 45%,transparent);
+ transition:transform .16s ease,box-shadow .2s ease,background-color .2s ease}
+.exp-watch-button:hover{transform:translateY(-1px);background:color-mix(in oklab,var(--field) 88%,var(--foreground))}
+.exp-watch-button:active{transform:translateY(0)}
+.exp-watch-button:focus-visible,.bp-play:focus-visible,.bp-icon:focus-visible{outline:3px solid color-mix(in oklab,var(--field) 55%,transparent);outline-offset:2px}
+.exp-watch-note{font-size:var(--type-meta);line-height:1.45;color:var(--muted-foreground)}
 
+.bp{display:grid;gap:10px;animation:bp-in .35s ease-out both}
+@keyframes bp-in{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+.bp-bar{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:start;gap:14px}
+.bp-play{display:grid;place-items:center;width:38px;height:38px;border:0;border-radius:50%;background:var(--field);color:var(--on-accent);cursor:pointer;
+ box-shadow:0 1px 2px color-mix(in oklab,var(--field) 35%,transparent),0 6px 16px -6px color-mix(in oklab,var(--field) 50%,transparent);
+ transition:transform .16s ease,background-color .2s ease}
+.bp-play:hover{transform:scale(1.05);background:color-mix(in oklab,var(--field) 88%,var(--foreground))}
+.bp-play svg{margin-left:1px}
+/* The stages share the bar by time, so a long stage is a long segment. A whole segment, name and
+   all, is one target: a click goes to the start of that stage; a drag along the bar scrubs. */
+.bp-track{display:flex;gap:4px;min-width:0;padding-top:4px;touch-action:none;-webkit-user-select:none;user-select:none}
+.bp-seg{position:relative;flex-basis:0;min-width:0;display:flex;flex-direction:column;gap:8px;margin:0;padding:10px 0 6px;
+ border:0;background:none;color:inherit;font:inherit;text-align:left;cursor:pointer}
+.bp-seg-bar{position:relative;display:block;height:5px;border-radius:3px;overflow:hidden;
+ background:color-mix(in oklab,var(--border) 90%,transparent);transition:background-color .2s ease}
+.bp-seg:hover .bp-seg-bar{background:color-mix(in oklab,var(--border-strong) 45%,var(--border))}
+.bp-seg-fill{position:absolute;inset:0;transform-origin:left center;background:var(--field);border-radius:inherit;will-change:transform}
+.bp-knob{position:absolute;top:12.5px;width:13px;height:13px;margin:-6.5px 0 0 -6.5px;border-radius:50%;background:var(--card);
+ border:2.5px solid var(--field);box-shadow:0 1px 3px color-mix(in oklab,var(--foreground) 22%,transparent);pointer-events:none}
+.bp-seg-name{display:block;font-size:12px;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+ color:var(--muted-foreground);transition:color .25s ease}
+.bp-seg.is-done .bp-seg-name{color:color-mix(in oklab,var(--foreground) 62%,var(--muted-foreground))}
+.bp-seg.is-here .bp-seg-name{color:var(--field);font-weight:650}
+.bp-seg:hover .bp-seg-name{color:var(--foreground)}
+.bp-seg:focus-visible{outline:none}
+.bp-seg:focus-visible .bp-seg-bar{box-shadow:0 0 0 3px color-mix(in oklab,var(--field) 45%,transparent)}
+.bp-icon{display:grid;place-items:center;width:32px;height:32px;flex:none;border:0;border-radius:9px;background:none;color:var(--muted-foreground);cursor:pointer;
+ transition:background-color .18s ease,color .18s ease}
+.bp-icon:hover{background:var(--muted);color:var(--foreground)}
+.bp-icon:disabled{opacity:.35;cursor:default;background:none;color:var(--muted-foreground)}
+.bp-bar>.bp-icon{margin-top:3px}
+/* What the figure is doing now, in a sentence short enough to finish before it moves on. Held
+   to two lines' height so the card does not jump as the sentences change length. */
+.bp-now{display:flex;align-items:flex-start;gap:12px;padding-left:52px}
+.bp-line{flex:1;min-width:0;min-height:calc(2 * 1.55em);margin:0;font-size:14.5px;line-height:1.55;color:var(--foreground);
+ animation:bp-line .5s cubic-bezier(.2,.8,.2,1) both}
+.bp-line strong{color:var(--field);font-weight:650}
+@keyframes bp-line{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.bp-steps{display:flex;gap:2px;flex:none;margin-top:-4px}
+/* Where the panel sits beside the figure the algebra is there already; below that, the panel is
+   a scroll away, so the line the run has reached comes along under the figure. */
+.bp-math{display:none}
+@media(max-width:1000px){
+ .bp-math{display:block;margin:0 0 0 52px;padding:4px 0 2px;font-size:15px;animation:bp-line .5s ease-out both}
+ .bp-math .katex-display{margin:.2em 0;text-align:left}
+ .bp-math .fx-element{color:var(--term-element)}.bp-math .fx-distance{color:var(--term-distance)}
+ .bp-math .fx-projection{color:var(--term-projection)}.bp-math .fx-bounds{color:var(--term-bounds)}
+ .bp-math .math{max-width:100%;overflow-x:auto;overflow-y:hidden}
+}
+@media(max-width:600px){
+ .bp-seg-name{display:none}
+ .bp-seg{padding-bottom:4px}
+ .bp-now,.bp-math{padding-left:0;margin-left:0}
+ .bp-line{font-size:14px}
+}
+@media(prefers-reduced-motion:reduce){
+ .bp,.bp-line,.bp-math{animation:none}
+ .exp-watch-button,.bp-play,.bp-seg-bar,.bp-seg-name,.bp-icon{transition:none}
+}
 
-
-
-.exp-walk{display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px;padding:10px 2px 0;font-size:13px}
-.exp-walk-count{font-variant-numeric:tabular-nums;font-size:11.5px;letter-spacing:.04em;color:var(--muted-foreground)}
-.exp-walk-text{flex:1;min-width:18rem;line-height:1.45;color:var(--foreground)}
-.exp-walk-text strong{font-weight:600}
-.exp-walk-actions{display:flex;align-items:center;gap:12px;margin-left:auto}
-.exp-walk-actions button[disabled]{opacity:.4;cursor:default}
-/* The build's own stage markers. Deliberately not numbered: the reader is watching an
-   argument, not working through a checklist, and a number invites counting instead of
-   looking. Each dot carries its stage's name, so hover and a screen reader both get the
-   word while the strip stays quiet. */
-
-
-.exp-build-dots{display:flex;align-items:center;gap:7px}
-.exp-build-dot{width:9px;height:9px;padding:0;border-radius:50%;border:1.5px solid var(--border);background:transparent;cursor:pointer;transition:background .18s ease,border-color .18s ease,transform .18s ease}
-.exp-build-dot:hover{border-color:var(--field);transform:scale(1.25)}
-.exp-build-dot.is-done{background:color-mix(in oklab,var(--field) 45%,transparent);border-color:transparent}
-.exp-build-dot.is-here{background:var(--field);border-color:var(--field);transform:scale(1.3)}
-.exp-build-dot:focus-visible{outline:2px solid var(--field);outline-offset:2px}
-@media (prefers-reduced-motion:reduce){.exp-build-dot{transition:none}}
 /* ---- 8. Three controls that were reading as one --------------------
    The row under the title held a sidebar toggle, a dialog opener and a
    breadcrumb, all icon+text in the same size and colour, so none of them
@@ -212,7 +255,6 @@
      the location    the current lesson in the foreground colour, not a button
    And the two view tabs are one control in two states: same type, same
    metrics, one rule under the active label. -------------------------- */
-
 
 .exp-breadcrumb{gap:13px}
 /* The lesson list toggle is window furniture, not a crumb. Prefixed with .exp-breadcrumb
@@ -238,11 +280,9 @@
 /* The page is the figure and the integral builder. The geometry sliders sit under the figure
    in one quiet row, with a reset at its end; the walk carries the controls a step needs. */
 
-
 .exp-parameters .parameter-grid{align-items:end}
 .exp-parameters .exp-reset{align-self:end;padding:6px;color:var(--muted-foreground)}
-.exp-walk-extra{display:flex;align-items:center;gap:14px;flex:1;min-width:16rem}
-.exp-walk-extra .exp-range{flex:1;min-width:10rem}
+
 /* The reading of the arrow, then the reason it holds. The reason is the longer half and
    the one worth reading, so it is not dimmed into a footnote. */
 /* ---- 9. The end of a derivation -------------------------------------
@@ -250,9 +290,6 @@
    confusions are a reference. Both belong after the integral is built, and
    both stay shut until asked for: the page is the figure and the builder,
    and these must not make it busier. Shut, they are two lines of text. */
-
-
-
 
 .exp-endnotes{margin-top:38px;border-top:1px solid var(--border);display:flex;flex-direction:column}
 .exp-note{border-bottom:1px solid var(--border)}
@@ -291,7 +328,6 @@
 /* The first-visit pointer at the walkthrough. Fixed, so it is unaffected by the page scrolling
    under it, and pointer-events:none so it can never be the thing a reader clicks by accident. */
 
-
 .start-here{position:fixed;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:2px;pointer-events:none;opacity:0;transition:opacity .7s ease;z-index:60}
 .start-here.is-visible{opacity:1}
 .start-here-arrow{color:var(--exp-primary);display:block}
@@ -303,17 +339,14 @@
 /* Lessons that are listed but not yet ready. Shown, not hidden: a reader can see the whole plan
    and knows the gap is on purpose. */
 
-
 .exp-shape-button.is-soon,.exp-library-grid>button.is-soon{opacity:.45;cursor:default}
 .exp-shape-button.is-soon:hover,.exp-library-grid>button.is-soon:hover{background:transparent!important;border-color:var(--border)!important;color:inherit!important}
 /* The lessons still being drawn are a family like the others, named the same way. */
-
 
 .exp-soon-group .exp-shape-button{cursor:default}
 /* The lesson tools, behind one trigger. Print, save a copy and the repository are things a
    reader does at most once and never mid-derivation; they were taking three of the five slots
    above the lesson, at the same weight as Walkthrough and the theme switch. */
-
 
 .exp-tools-menu[data-slot=dropdown-menu-content]{min-width:15rem;padding:6px;border:1px solid var(--surface-rule);
  border-radius:12px;background:var(--card);box-shadow:0 14px 40px color-mix(in oklab,var(--foreground) 16%,transparent)}
@@ -334,12 +367,10 @@
      --gap-section before a new section of the page
    ===================================================================== */
 
-
 :root{--gap-tight:12px;--gap-block:20px;--gap-part:32px;--gap-section:48px}
 @media(max-width:1000px){:root{--gap-part:28px;--gap-section:40px}}
 @media(max-width:520px){:root{--gap-block:16px;--gap-part:24px;--gap-section:32px}}
 /* Three levels, read top to bottom: where you are, what this lesson is, the figure. */
-
 
 .exp-breadcrumb{margin-bottom:var(--gap-block)}
 .exp-heading{margin-bottom:var(--gap-part)}
@@ -353,7 +384,6 @@
    nothing beside it, and the empty line it sat on was most of the gap between the lesson and
    its endnotes. The row is a flex line now -- the sliders share it, the reset closes it. */
 
-
 .exp-parameters .parameter-grid{display:flex;flex-wrap:wrap;align-items:flex-end;gap:var(--gap-part) 38px}
 .exp-parameters .parameter-grid>.exp-range{flex:1 1 11rem;min-width:0}
 .exp-parameters .exp-reset{flex:none;align-self:flex-end;margin-bottom:2px;padding:7px;border-radius:8px;
@@ -366,7 +396,6 @@
 }
 /* The two endnotes read as four lines while shut, because each stacked its name above a
    sentence explaining it. Same words, one line each: the name, then what is behind it. */
-
 
 .exp-note>summary{flex-direction:row;flex-wrap:wrap;align-items:baseline;gap:4px 14px;
  padding:var(--gap-tight) 2px}
@@ -384,7 +413,6 @@
    a label. Within a family the rows sit close; between families the gap
    does the separating, so nothing needs a rule.
    ===================================================================== */
-
 
 .exp-sidebar[data-slot=sidebar]{padding-top:26px}
 .exp-family+.exp-family{margin-top:24px}
@@ -418,3 +446,12 @@
  .exp-library-grid>button{padding:12px 14px}
  .exp-library-family+.exp-library-family{margin-top:20px}
 }
+
+/* THE PANEL HOLDS THE DERIVATION NOW, so it is as wide as the derivation's longest line. At the
+   old width the last line of the board -- the integral with every factor substituted -- did not
+   fit beside the figure on a small laptop, and scrolled sideways inside its own box. */
+.exp-workspace{grid-template-columns:minmax(0,1fr) 340px}
+@media(max-width:1250px){.exp-workspace{grid-template-columns:minmax(0,1fr) 322px}}
+@media(min-width:1700px){.exp-workspace{grid-template-columns:minmax(0,1fr) 372px}}
+@media(max-width:1000px){.exp-workspace{grid-template-columns:minmax(0,1fr)}}
+
