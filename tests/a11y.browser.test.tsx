@@ -67,13 +67,15 @@ describe('keyboard and screen-reader path', () => {
     expect(live.textContent).toMatch(/Net field magnitude/i);
   });
 
-  it('names every library glyph, including potential, and states fifteen lessons', async () => {
+  it('names every library glyph, including potential, and says so in words', async () => {
     localStorage.setItem('field-builder:explorer:v1', JSON.stringify({id: 'bisector', seen: true, dark: false, sidebarOpen: true, params: {}}));
     const {findByRole, getByRole} = render(<Explorer />);
     expect(await findByRole('heading', {name: getProblem('bisector').title})).toBeTruthy();
     await userEvent.click(getByRole('button', {name: 'Charge library'}));
     const dialog = await findByRole('dialog');
-    expect(dialog.textContent).toMatch(/15 lessons, including electric potential/);
+    // In words: the page prints no numerals, and the count was the one the library printed.
+    expect(dialog.querySelector('[data-slot=dialog-description]')?.textContent).toBe('Every lesson, including electric potential.');
+    expect(dialog.querySelector('[data-slot=dialog-description]')?.textContent).not.toMatch(/\d/);
     expect(dialog.querySelector('svg[aria-label="Ring · potential"]')).toBeTruthy();
     expect(dialog.querySelector('svg[aria-label="Disk · potential"]')).toBeTruthy();
     expect(dialog.querySelector('svg[aria-label="Arc · potential"]')).toBeTruthy();

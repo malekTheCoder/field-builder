@@ -95,6 +95,10 @@ export type TickLabelOptions={
 };
 /** Numbers for the axis ticks, in the SVG's coordinates, so the scene can be measured.
  *
+ * NOT DRAWN AT PRESENT. The page prints no numerals -- symbols only, on the owner's word -- and the
+ * scene keeps its tick marks without values. This stays, and stays tested, so the values can come
+ * back on the owner's word without being worked out again.
+ *
  * Metre ticks alone say the scale is regular; they do not say whether the rod is one metre
  * long or eight. The numbers are placed off the line rather than on it, culled to the picture,
  * and thinned so that two of them never land on each other -- including at the origin, where
