@@ -14,7 +14,7 @@ import {activeIntervalIndex} from '../diagrams/sampling';
 import {partitionCount} from '../diagrams/subdivision';
 import {cleanParams,parseAssignment,serializeAssignment,type ExploreMode} from '../state/assignment';
 import {ChargeDiagram} from '../diagrams/ChargeDiagram';
-import {boardLines} from '../workbench/derivation';
+import {boardLines,resultLines} from '../workbench/derivation';
 import {buildStages,motionAt,stageAt,stageStart,totalSeconds} from './buildRun';
 import {BuildPlayer} from './BuildPlayer';
 import {EquationWorkbench} from '../components/EquationWorkbench';
@@ -144,6 +144,11 @@ export default function Explorer(){
  // -- the distance as the first arrow is drawn, the angle as the parts cancel -- unless the
  // reader is pointing at something else, which always wins.
  const figureHighlight=highlight||(buildOpen?buildNow.term:'');
+ // The line of the derivation the run has reached, for the player to carry where the panel is
+ // out of sight -- and once the pieces have shrunk away, the integral done and its answer.
+ const playerMath=(()=>{if(!buildOpen)return [];const line=boardLines(p)[buildIndex];if(!line)return [];
+  const settled=buildIndex===stages.length-1&&continuum>=.99;
+  return settled&&line.finish?[line.tex,line.finish,...resultLines(p).slice(0,1)]:[line.tex];})();
  function updateParams(partial:Partial<Params>){setParamsMap(old=>({...old,[id]:{...(old[id]??DEFAULT_PARAMS),...partial}}));}
  function stop(){build.current?.stop();build.current=null;setBuilding(false)}
  function changeDistribution(next:string){stop();setId(next as ProblemId);setSelected(3);setProgress(1);setBounds([0,100]);setLibrary(false);setLimitIndex(0);setStatus('');setHighlight('');endBuild();}
@@ -255,7 +260,7 @@ export default function Explorer(){
     <button type="button" className="exp-watch-button" onClick={runBuild}><Play size={14} fill="currentColor" strokeWidth={0}/>Watch it build</button>
     <span className="exp-watch-note">Five steps, about half a minute. Pause or step through at any point.</span>
   </div>}
-  {buildOpen&&<BuildPlayer stages={stages} at={buildAt} index={buildIndex} playing={building} tex={boardLines(p)[buildIndex]?.tex}
+  {buildOpen&&<BuildPlayer stages={stages} at={buildAt} index={buildIndex} playing={building} math={playerMath}
     onPlay={runBuild} onSeek={at=>seekBuild(at)} onStep={stepBuild} onClose={endBuild}/>}
 </div>
 </section>

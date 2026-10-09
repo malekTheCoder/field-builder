@@ -328,6 +328,9 @@
 /* 4 · ADD THEM UP. The chain is the thing: heavier, with each piece's contribution marked
    where it joins, while the pieces not yet added wait faintly on the charge. */
 .cd-stage-add .cd-sum-chain{stroke-width:3.6;opacity:1}
+/* The charge fills in behind the piece being added, the way the chain grows in front of P: what is
+   already in the sum is plainly coloured, what is still to come waits pale. */
+.cd-stage-add .cd-piece.is-added{fill:color-mix(in oklab,var(--charge,#b8460f) 42%,var(--charge-fill,#fdefe6))}
 .cd-sum-joint{fill:var(--diagram,#fff);stroke:var(--contribution,#2f9089);stroke-width:1.8}
 
 /* Potential lessons: until the stack is being built, only the lit piece's segment shows. */

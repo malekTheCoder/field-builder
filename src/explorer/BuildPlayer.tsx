@@ -21,8 +21,8 @@ type Props = {
   at: number;
   index: number;
   playing: boolean;
-  /** The current stage's line of algebra, for the screens where the panel holding it is out of sight. */
-  tex?: string;
+  /** The current stage's lines of algebra, for the screens where the panel holding them is out of sight. */
+  math?: string[];
   onPlay: () => void;
   /** Go to a moment, holding still there. `scrubbing` is true while a drag is still under way. */
   onSeek: (seconds: number, scrubbing: boolean) => void;
@@ -30,7 +30,7 @@ type Props = {
   onStep: (index: number) => void;
   onClose: () => void;
 };
-export function BuildPlayer({stages, at, index, playing, tex, onPlay, onSeek, onStep, onClose}: Props) {
+export function BuildPlayer({stages, at, index, playing, math = [], onPlay, onSeek, onStep, onClose}: Props) {
   const starts = stages.map((_, i) => stages.slice(0, i).reduce((t, s) => t + s.seconds, 0));
   const total = stages.reduce((t, s) => t + s.seconds, 0);
   const ended = !playing && at >= total - .01;
@@ -103,6 +103,6 @@ export function BuildPlayer({stages, at, index, playing, tex, onPlay, onSeek, on
         <button type="button" className="bp-icon" onClick={() => onStep(Math.min(stages.length - 1, index + 1))} disabled={index === stages.length - 1} aria-label="Next stage"><ChevronRight size={17} /></button>
       </span>
     </div>
-    {tex && <div key={`m-${stage.key}`} className="bp-math"><MathText tex={tex} block trusted /></div>}
+    {math.length > 0 && <div key={`m-${stage.key}`} className="bp-math">{math.map(tex => <MathText key={tex} tex={tex} block trusted />)}</div>}
   </div>;
 }

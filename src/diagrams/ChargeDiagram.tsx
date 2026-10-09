@@ -262,9 +262,25 @@ export function ChargeDiagram({ problem, params: p, setParams, count, continuum,
   // element has an explicitly stated magnification so tiny dE remains inspectable.
   const fieldNorm = Math.max(magnitude(total), ...samples.map(s => magnitude(s.field)), 1e-9);
   const scaleValue = 2 ** Math.ceil(Math.log2(fieldNorm));
-  const gain = 100 / scaleValue;
+  // WHILE THE RUN PLAYS, THE ARROWS ARE THE SUBJECT, so they are drawn as large as the frame
+  // allows. At the resting scale the finished field is a hundred pixels at most and the chain of
+  // contributions that builds it is a squiggle beside P -- the one stage whose whole point is that
+  // chain had nothing to look at. The run scales every field arrow by one factor, chosen so the
+  // finished field reaches toward the frame's edge in its own direction, so the chain, the net
+  // arrow and the field it converges to stay in proportion with each other throughout.
+  const runScale = (() => {
+    if (!build || scalar) return 1;
+    const base = 100 / scaleValue, s = projectCamera(magnitude(total) >= magnitude(field(id, p)) ? total : field(id, p), view.yaw, view.pitch);
+    const length = base * Math.hypot(s.x, s.y);
+    if (length < 1) return 1;
+    const edge = rayToEdge(P, { x: s.x * base / length, y: s.y * base / length }, { x: 42, y: 54, width: 626, height: 317 });
+    return clamp((Math.hypot(edge.x - P.x, edge.y - P.y) - 46) / length, 1, 2.6);
+  })();
+  const gain = 100 / scaleValue * runScale;
   const fieldScreen = (v: Vec, multiplier = 1): Point => { const k = gain * multiplier; const s = projectCamera(v, view.yaw, view.pitch); return { x: k * s.x, y: k * s.y }; };
-  const selectedGain = Math.max(1, Math.min(1000, 55 / Math.max(.001, Math.hypot(fieldScreen(sample.field).x, fieldScreen(sample.field).y))));
+  // One piece's arrow is magnified to a readable length, and a little longer while the run is
+  // pointing at it: it is the arrow the first three stages are about.
+  const selectedGain = Math.max(1, Math.min(1000, (build ? 82 : 55) / Math.max(.001, Math.hypot(fieldScreen(sample.field).x, fieldScreen(sample.field).y))));
   const contribution = fieldScreen(sample.field, selectedGain);
   const projectedComponent = fieldScreen(perspective ? { x: 0, y: 0, z: sample.field.z } : { x: sample.field.x, y: 0, z: 0 }, selectedGain);
   const net = fieldScreen(displayed);
@@ -734,7 +750,7 @@ export function ChargeDiagram({ problem, params: p, setParams, count, continuum,
               const inInterval = Math.abs(wholeWeights[i]) > 0;
               const opacity = !inInterval ? .14 : active ? 1 : accumulated ? .94 : building === 'add' ? .16 : .48 + continuum * .3;
               const a0 = 2 * Math.PI * i / n, a1 = 2 * Math.PI * (i + 1) / n, identity = intervalKey(i, n);
-              return <g key={identity} data-piece-key={identity} className={`cd-piece ${active ? 'is-selected' : ''}${partnerLit && i === partnerIndex && !active ? ' is-partner' : ''}`} style={{ opacity, ...cutAt(i / n) }} onPointerDown={ev => { ev.stopPropagation(); onSelect(i); }}><motion.path initial={false} animate={{ d: pathThrough(worldArc(R, a0, a1)) }} transition={{ duration: still ? 0 : .18 }} fill="none" strokeWidth={active ? 10 : 7} /></g>;
+              return <g key={identity} data-piece-key={identity} className={`cd-piece ${active ? 'is-selected' : ''}${partnerLit && i === partnerIndex && !active ? ' is-partner' : ''}${accumulated && !active ? ' is-added' : ''}`} style={{ opacity, ...cutAt(i / n) }} onPointerDown={ev => { ev.stopPropagation(); onSelect(i); }}><motion.path initial={false} animate={{ d: pathThrough(worldArc(R, a0, a1)) }} transition={{ duration: still ? 0 : .18 }} fill="none" strokeWidth={active ? 10 : 7} /></g>;
             })}
             {continuum < .995 && <g className="cd-seams" aria-hidden="true" style={{ opacity: .7 * (1 - continuum) }}>
               {seamFractions(n).map(t => { const theta = 2 * Math.PI * t, h = 8 / unit, c = Math.cos(theta), s = Math.sin(theta); return <g key={seamKey(t)} data-seam={seamKey(t)} className="cd-seam"><line x1={(R - h) * c} y1={(R - h) * s} x2={(R + h) * c} y2={(R + h) * s} /></g>; })}
@@ -769,7 +785,7 @@ export function ChargeDiagram({ problem, params: p, setParams, count, continuum,
             const shade = ramp && !active ? { fillOpacity: .08 + .92 * s.position.y / p.size } : undefined;
             shape = upright ? <rect x={pos.x - rodHalf} y={lo} width={rodHalf * 2} height={extent} {...shade} /> : <rect x={lo} y={pos.y - rodHalf} width={extent} height={rodHalf * 2} />;
           }
-          return <g key={identity} data-piece-key={identity} className={`cd-piece ${active ? 'is-selected' : ''}${partnerLit && i === partnerIndex && !active ? ' is-partner' : ''}`} style={{ opacity: opacity * heat, ...cutAt(i / n) }} onPointerDown={ev => { ev.stopPropagation(); onSelect(i); }}>{shape}</g>;
+          return <g key={identity} data-piece-key={identity} className={`cd-piece ${active ? 'is-selected' : ''}${partnerLit && i === partnerIndex && !active ? ' is-partner' : ''}${accumulated && !active ? ' is-added' : ''}`} style={{ opacity: opacity * heat, ...cutAt(i / n) }} onPointerDown={ev => { ev.stopPropagation(); onSelect(i); }}>{shape}</g>;
         })}
         {rodLike && <g data-dim="charge" className="cd-plus" aria-hidden="true">{chargeMarks.map(v => <text key={v} x={upright ? O.x : v} y={(upright ? v : O.y) + 3.6} textAnchor="middle">{p.charge < 0 ? '−' : '+'}</text>)}</g>}
         {!perspective && continuum < .995 && <g className="cd-seams" aria-hidden="true" style={{ opacity: .7 * (1 - continuum) }}>

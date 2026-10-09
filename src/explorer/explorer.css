@@ -210,6 +210,15 @@
 .bp-seg.is-done .bp-seg-name{color:color-mix(in oklab,var(--foreground) 62%,var(--muted-foreground))}
 .bp-seg.is-here .bp-seg-name{color:var(--field);font-weight:650}
 .bp-seg:hover .bp-seg-name{color:var(--foreground)}
+/* Where the bar is too short for every name, only the stage being played is named, and its name
+   may run on under the segments after it -- which say nothing while it plays. The last stage's
+   name hangs off the bar's right end instead, so it never runs out from under the bar. */
+.bp-track{container-type:inline-size}
+@container (max-width:470px){
+ .bp-seg:not(.is-here) .bp-seg-name{visibility:hidden}
+ .bp-seg.is-here .bp-seg-name{overflow:visible;text-overflow:clip}
+ .bp-seg.is-here:last-child .bp-seg-name{display:flex;justify-content:flex-end}
+}
 .bp-seg:focus-visible{outline:none}
 .bp-seg:focus-visible .bp-seg-bar{box-shadow:0 0 0 3px color-mix(in oklab,var(--field) 45%,transparent)}
 .bp-icon{display:grid;place-items:center;width:32px;height:32px;flex:none;border:0;border-radius:9px;background:none;color:var(--muted-foreground);cursor:pointer;
@@ -231,6 +240,7 @@
 @media(max-width:1000px){
  .bp-math{display:block;margin:0 0 0 52px;padding:4px 0 2px;font-size:15px;animation:bp-line .5s ease-out both}
  .bp-math .katex-display{margin:.2em 0;text-align:left}
+ .bp-math .katex-display>.katex{text-align:left}
  .bp-math .fx-element{color:var(--term-element)}.bp-math .fx-distance{color:var(--term-distance)}
  .bp-math .fx-projection{color:var(--term-projection)}.bp-math .fx-bounds{color:var(--term-bounds)}
  .bp-math .math{max-width:100%;overflow-x:auto;overflow-y:hidden}
