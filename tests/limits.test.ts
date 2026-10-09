@@ -1,7 +1,7 @@
 import {describe,it,expect} from 'vitest';
 import {PROBLEMS,getProblem} from '../src/problems/definitions';
 import {DEFAULT_PARAMS,type Params} from '../src/problems/types';
-import {K,EPS0,field,magnitude,sampleLimit} from '../src/symbolic/physics';
+import {K,EPS0,field,magnitude,sampleLimit,limitPlot} from '../src/symbolic/physics';
 // The explorer's sliders are the only source of params, so mirror a realistic state:
 // a 2 nC total charge on a 4 m object, observed 3 m away.
 const p:Params={...DEFAULT_PARAMS,charge:2,size:4,distance:3};
@@ -21,9 +21,10 @@ describe('every limiting case compares like with like',()=>{
    const s=sweep(problem,limit),last=s[s.length-1],first=s[0];
    if(limit.mode==='maximum'){ // the reference is the peak, not an endpoint
     expect(Math.max(...s.map(x=>x.actual))/last.target).toBeCloseTo(1,3);return;}
-   if(limit.mode==='half'){expect(last.actual).toBeCloseTo(last.target,12);return;}
    if(last.target===0){expect(last.actual).toBeLessThan(first.actual*1e-3+1e-12);return;}
    const err=(x:{actual:number;target:number})=>Math.abs(x.actual/x.target-1);
+   // A constancy demonstration has nothing to approach: it is on the line from the first sample.
+   if(limitPlot(problem,limit).kind==='constant'){for(const x of s)expect(err(x)).toBeLessThan(1e-5);return;}
    expect(err(last)).toBeLessThan(.05);
    expect(err(last)).toBeLessThanOrEqual(err(first));
   });
@@ -50,11 +51,11 @@ describe('the limit panel uses the student’s own parameters', ()=>{
  });
 });
 describe('the reference curve matches the formula printed above it',()=>{
- it('the axial rod is compared with kQ/a², exactly as its formula states',()=>{
+ it('the axial rod is compared with kQ/(a + L/2)², from its centre, exactly as its formula states',()=>{
   const problem=PROBLEMS.find(x=>x.id==='axial')!,limit=problem.limits[0];
-  expect(limit.formula).toContain('kQ/a^2');
+  expect(limit.formula).toContain('\\frac{kQ}{(a+L/2)^2}');
   for(const t of [1,4.5,30]){const s=sampleLimit(problem,p,limit,t);
-   expect(s.target).toBeCloseTo(K*p.charge*1e-9/(t*p.size)**2,14);}
+   expect(s.target).toBeCloseTo(K*p.charge*1e-9/(t*p.size+p.size/2)**2,14);}
  });
  it('the ring peak reference is the analytic maximum 2kQ/(3√3 R²)',()=>{
   const problem=PROBLEMS.find(x=>x.id==='ring')!,limit=problem.limits.find(l=>l.mode==='maximum')!,R=p.size/2;
@@ -64,8 +65,67 @@ describe('the reference curve matches the formula printed above it',()=>{
   const problem=PROBLEMS.find(x=>x.id==='arc')!,limit=problem.limits.find(l=>l.mode==='half')!;
   expect(sampleLimit(problem,p,limit,1).target).toBeCloseTo(magnitude(field('arc',{...p,phi:Math.PI})),14);
  });
- it('the semi-infinite scale reference is √2 k|lambda|/r at the plotted distance',()=>{
+ it('the semi-infinite line keeps its two components equal, and its size falls as the 1/r its formula prints',()=>{
   const problem=PROBLEMS.find(x=>x.id==='semi')!,limit=problem.limits[0];
-  for(const t of [1,12,30])expect(sampleLimit(problem,p,limit,t).target).toBeCloseTo(Math.SQRT2*K*p.charge*1e-9/t,14);
+  for(const t of [1,12,30]){const s=sampleLimit(problem,p,limit,t);
+   expect(s.actual/s.target,`t=${t}`).toBeCloseTo(1,9);
+   // A point-charge sum, not the closed form: within its own quadrature error of √2k|λ|/r.
+   expect(Math.hypot(s.actual,s.target)/(Math.SQRT2*K*p.charge*1e-9/t)).toBeCloseTo(1,4);}
+ });
+});
+// A curve that is the reference formula plotted against itself sits on the reference at every t and
+// proves nothing: the semi-infinite line's |E| against √2kλ/r, the sheet's σ/2ε₀ against σ/2ε₀, the
+// half ring's closed form against 2kQ/(πR²), the arc's kQ/R against kQ/R. A case whose point IS
+// that nothing changes says so (kind 'constant') and is computed as a point-charge sum instead.
+describe('no limit is a formula plotted against itself',()=>{
+ const CONSTANT=['semi/scale','sheet/scale','v-arc/full','v-arc/half'];
+ for(const problem of PROBLEMS)for(const limit of problem.limits)it(`${problem.id}/${limit.id}`,()=>{
+  const kind=limitPlot(problem,limit).kind,s=sweep(problem,limit);
+  if(kind==='constant'){expect(CONSTANT,`${problem.id}/${limit.id} calls itself a constancy demonstration`).toContain(`${problem.id}/${limit.id}`);return;}
+  // Somewhere on the sweep the exact value is visibly not the reference.
+  const apart=Math.max(...s.map(x=>x.target>0?Math.abs(x.actual/x.target-1):x.actual>0?1:0));
+  expect(apart,`${problem.id}/${limit.id} never leaves its reference`).toBeGreaterThan(1e-3);
+ });
+ it('the constancy demonstrations are point-charge sums, so they are flat only to quadrature accuracy',()=>{
+  const sheet=getProblem('sheet'),semi=getProblem('semi'),arc=getProblem('v-arc');
+  const ratio=(pr:typeof sheet,mode:string,t:number)=>{const x=sampleLimit(pr,p,pr.limits.find(l=>l.mode===mode)!,t);return x.actual/x.target;};
+  // Midpoint sums: close to one, and not one to the last bit.
+  expect(ratio(sheet,'scale',12)).toBeCloseTo(1,5);expect(ratio(sheet,'scale',12)).not.toBe(1);
+  expect(ratio(semi,'scale',12)).toBeCloseTo(1,9);
+  expect(ratio(arc,'full',12)).toBeCloseTo(1,9);expect(ratio(arc,'half',30)).toBeCloseTo(1,9);
+ });
+ it('the half ring is built from point charges that settle onto 2kλ/R',()=>{
+  const arc=getProblem('arc'),half=arc.limits.find(l=>l.mode==='half')!;
+  const err=(t:number)=>{const x=sampleLimit(arc,p,half,t);return x.actual/x.target-1;};
+  // One piece at the arc's middle gives kQ/R², π/2 times 2kQ/(πR²); thirty are within a part in a thousand.
+  expect(err(1)).toBeCloseTo(Math.PI/2-1,10);
+  expect(Math.abs(err(30))).toBeLessThan(1e-3);
+  expect(Math.abs(err(10))).toBeLessThan(Math.abs(err(3)));
+ });
+});
+describe('the thumbnail’s arrow is the lesson’s own field, sign included',()=>{
+ for(const problem of PROBLEMS.filter(x=>x.quantity==='E'))for(const limit of problem.limits)it(`${problem.id}/${limit.id}: reversing the charge reverses the arrow`,()=>{
+  for(const t of [1,7.3,30]){
+   const up=sampleLimit(problem,p,limit,t).vector,down=sampleLimit(problem,{...p,charge:-p.charge},limit,t).vector;
+   expect(up,`${problem.id}/${limit.id} has an arrow to draw`).toBeDefined();
+   for(const axis of ['x','y','z'] as const)expect(down![axis]).toBeCloseTo(-up![axis],20);
+  }
+ });
+ it('a rod level with P’s end tilts towards 45° as it grows, and flattens as P moves far away',()=>{
+  const endpoint=getProblem('endpoint'),angle=(mode:string,t:number,charge=p.charge)=>{
+   const v=sampleLimit(endpoint,{...p,charge},endpoint.limits.find(l=>l.mode===mode)!,t).vector!;return Math.atan2(v.y,v.x)*180/Math.PI;};
+  // At L = 30r the tilt is within a degree and a half of 45° below the axis, and closing in.
+  expect(Math.abs(angle('infinite',30)+45)).toBeLessThan(1.5);
+  expect(Math.abs(angle('infinite',30)+45)).toBeLessThan(Math.abs(angle('infinite',1)+45));
+  expect(Math.abs(angle('far',30))).toBeLessThan(2);
+  // Negative charge: the same line, pointing back at the rod.
+  expect(Math.abs(angle('infinite',30,-p.charge)-135)).toBeLessThan(1.5);
+ });
+});
+describe('the limit plots speak in symbols, not numerals',()=>{
+ for(const problem of PROBLEMS)for(const limit of problem.limits)it(`${problem.id}/${limit.id}`,()=>{
+  const plot=limitPlot(problem,limit);
+  const shown=[plot.y,plot.axis,plot.from,plot.to,plot.line,plot.solid??'',plot.caption??'',...(plot.marks??[]).map(m=>m.label)];
+  for(const text of shown)expect(text,`${problem.id}/${limit.id}`).not.toMatch(/[0-9]/);
  });
 });

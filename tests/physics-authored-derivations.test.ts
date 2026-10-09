@@ -42,7 +42,17 @@ const FIELD_IDS=['bisector','axial','infinite','ring','disk','semi','arc','sheet
 const ALL_IDS=[...FIELD_IDS,'v-ring','v-disk','v-arc','v-rod-bisector','v-rod-axial'] as const;
 /** The finite path of the infinite-line lesson is a sixteenth Problem that never reaches PROBLEMS. */
 const FINITE=getProblem('infinite','finite');
-const VARIANTS:{key:string;p:Problem}[]=[...ALL_IDS.map(id=>({key:id,p:getProblem(id)})),{key:'infinite·finite',p:FINITE}];
+/** A worked line too wide for the panel is set as an aligned chain. Read here as the one line it was
+ * before it was broken: a row that opens on & continues the chain above it (its indent dropped), and
+ * a row with a left side of its own is a new clause, as `,\quad` separates clauses on one line. */
+function unalign(tex:string):string{
+ const m=/^\\begin\{aligned\}([\s\S]*)\\end\{aligned\}$/.exec(tex.trim());
+ if(!m)return tex;
+ return m[1].split('\\\\').map(row=>row.trim()).reduce((out,row,i)=>
+  i===0?row.replace(/&/g,''):row.startsWith('&')?out+row.replace(/^&\s*(?:\\q?quad\s*)*/,'').replace(/&/g,''):`${out},\\quad ${row.replace(/&/g,'')}`,'');
+}
+const flat=(p:Problem):Problem=>({...p,steps:p.steps.map(s=>s.worked?{...s,worked:s.worked.map(w=>({...w,tex:unalign(w.tex)}))}:s)});
+const VARIANTS:{key:string;p:Problem}[]=[...ALL_IDS.map(id=>({key:id,p:flat(getProblem(id))})),{key:'infinite·finite',p:flat(FINITE)}];
 /** stderr, not console.log: vitest swallows console output written from a hook.
  * Run with AUTHORED_REPORT=1 to see how much of the corpus each pass actually reached. */
 const ledger:[string,unknown][]=[];
@@ -789,15 +799,17 @@ describe('“far” limits are approached at the predicted order and coefficient
    expect(close(shown,target,1e-9),`${id}: the plotted reference is ${target}, the printed tail is ${shown}`).toBe(true);
   }
  });
- it('the collinear lessons are still percent-level short at the end of their own sweep',()=>{
-  // Documented, not lamented. An asymmetric geometry's leading correction is O(L/d), so at the
-  // last point of the ASSESS sweep the axial rod sits 3.2 % and its potential 1.6 % below the
-  // point charge, while every symmetric lesson is inside 0.2 %.
+ it('the collinear lessons are measured from the rod’s centre, and close at second order like the rest',()=>{
+  // Measured from the near end a, the rod on its own axis has an O(L/a) correction: at the last
+  // point of the sweep it sat 3.2 % (field) and 1.6 % (potential) below the point charge, a curve
+  // that visibly never arrived. Measured from the centre, a + L/2, E = kQ/(d² − L²/4) and
+  // V = (kQ/L)·ln((d + L/2)/(d − L/2)): both corrections are O(L²/d²), like every symmetric lesson.
   const shortfall=(id:string)=>{const p=getProblem(id),l=p.limits.find(q=>q.mode==='far')!;
    const {actual,target}=sampleLimit(p,AT,l,30);return 1-actual/target;};
-  expect(shortfall('axial')).toBeCloseTo(1/31,4);
-  expect(shortfall('v-rod-axial')).toBeCloseTo(.0163,3);
-  for(const id of ['bisector','ring','disk','endpoint','ramp','v-ring','v-disk','v-rod-bisector'])
+  const a=30*AT.size,d=a+AT.size/2;
+  expect(shortfall('axial')).toBeCloseTo(1-d*d/(a*(a+AT.size)),12);
+  expect(shortfall('v-rod-axial')).toBeCloseTo(1-d/AT.size*Math.log((a+AT.size)/a),12);
+  for(const id of ['axial','v-rod-axial','bisector','ring','disk','endpoint','ramp','v-ring','v-disk','v-rod-bisector'])
    expect(Math.abs(shortfall(id)),`${id}`).toBeLessThan(2e-3);
  });
 });
@@ -912,8 +924,10 @@ describe('density-fixed limits approach their reference at the predicted order a
  it('every density-fixed tail evaluates to the reference its own sweep plots',()=>{
   const cases:[string,string,'tail'|'reference'][]=[
    ['bisector','infinite','tail'],['infinite','infinite','tail'],['disk','infinite','tail'],
+   // The semi-infinite line's scale case plots its two components against each other, not √2kλ/r:
+   // limits.test.ts holds it to |Eₓ| = |Eᵧ| and to the 1/r its formula prints.
    ['sheet','infinite','tail'],['sheet','scale','reference'],['endpoint','infinite','tail'],
-   ['semi','scale','reference'],['v-disk','infinite','tail'],['v-rod-bisector','infinite','tail'],
+   ['v-disk','infinite','tail'],['v-rod-bisector','infinite','tail'],
    ['v-rod-axial','near','tail']];
   const at:Params={...DEFAULT_PARAMS,charge:2,size:4,distance:1.5,phi:2.3};
   for(const [id,mode,source] of cases){

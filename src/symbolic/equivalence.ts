@@ -87,5 +87,28 @@ export function equivalent(input:string,expected:string,p:Problem):Check{
   return{ok:true,method:a.toString()===b.toString()?'symbolic':'numeric'};
  }catch(e){return{ok:false,error:e instanceof Error?e.message:'Use a mathematical expression.'};}
 }
-export function preview(input:string):string {try{return safeParse(input).toTex({parenthesis:'auto',implicit:'hide'});}catch{return String.raw`\text{Keep typing…}`;}}
+// How the model's symbols are set in display. Left to itself mathjs prints a name it does not know
+// letter by letter -- dθ as d·t·h·e·t·a, rᵢ as r·i, ε₀ as e·p·s·0 -- and sets L, s, ds and dV upright,
+// because it reads them as units (litres, seconds, deciseconds, decivolts). The lessons write them as
+// a textbook does: italic, with Greek letters and subscripts. φ is the lessons' φ, \varphi.
+const TEX_NAMES:Record<string,string>={theta:'\\theta',alpha:'\\alpha',phi:'\\varphi',lambda:'\\lambda',lambda0:'\\lambda_0',sigma:'\\sigma',eps0:'\\varepsilon_0',pi:'\\pi',ri:'r_i',dtheta:'d\\theta',dl:'d\\ell',Infinity:'\\infty'};
+// No padding space: the bound labels' tidy() reads "\frac{-L}{2}" as -L/2 only with nothing between
+// the brace and the name. The one command a name can directly follow is \cdot, spaced below.
+const nameTex=(node:SymbolNode)=>TEX_NAMES[node.name]??node.name;
+// sin θ, as a textbook sets it, not sin (θ): a trigonometric function of one symbol drops its
+// brackets, and its power moves onto the function, cos³θ, where {cos θ}³ would read as cos(θ³).
+const TRIG=new Set(['sin','cos','tan','sec']);
+const trigOfSymbol=(node:MathNode):[string,SymbolNode]|null=>{if(node.type!=='FunctionNode')return null;const f=node as FunctionNode,name=(f.fn as SymbolNode).name;return TRIG.has(name)&&f.args.length===1&&f.args[0].type==='SymbolNode'?[name,f.args[0] as SymbolNode]:null;};
+const symbolTex=(node:MathNode,options?:object):string|undefined=>{
+ if(node.type==='SymbolNode')return nameTex(node as SymbolNode);
+ const trig=trigOfSymbol(node);
+ if(trig)return `\\${trig[0]} ${nameTex(trig[1])}`;
+ if(node.type==='OperatorNode'&&(node as OperatorNode).op==='^'){const [base,power]=(node as OperatorNode).args,inner=trigOfSymbol(base);if(inner)return `\\${inner[0]}^{${power.toTex(options)}} ${nameTex(inner[1])}`;}
+ return undefined;
+};
+/** Display-only TeX for an expression: the confusions list, and the dragged bounds' labels. Products
+ * are set by juxtaposition with a thin space, as the lessons write them, except in two places: before
+ * a numeral, where juxtaposition would read as one number, and after a numeric fraction, where the
+ * bound labels' tidy() reads "\frac{1}{2}\cdot L" as L/2 and needs the \cdot to find it. */
+export function preview(input:string):string {try{return safeParse(input).toTex({parenthesis:'auto',implicit:'hide',handler:symbolTex}).replace(/\\cdot/g,'\\cdot ').replace(/(\\frac\{-?\d+\}\{\d+\})?\\cdot (?!\s*\d)/g,(m:string,fraction?:string)=>fraction?m:'\\,');}catch{return String.raw`\text{Keep typing…}`;}}
 export function feedback(input:string,field:import('../problems/types').Answer,p:Problem):{text:string;highlight:string}{for(const m of field.mistakes??[]){if(equivalent(input,m.expression,p).ok)return{text:m.message,highlight:m.highlight??'element'};}return{text:field.hint,highlight:field.id.includes('component')?'components':field.id==='distance'?'distance':'element'};}
