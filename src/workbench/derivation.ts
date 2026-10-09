@@ -20,7 +20,11 @@ export type BoardLine = {
   tex: string;
   /** What the new symbol in it stands for, set smaller beside it. */
   where?: string;
-  /** The last line's second half: the same integral with the algebra done. */
+  /** A remark in words rather than symbols -- why nothing cancels, say. Set as prose, not TeX:
+   * KaTeX never breaks a \text{} run, so a sentence there ran off the side of a narrow panel. */
+  say?: string;
+  /** The last line's second half: the same integral with the algebra done, its "=" set under
+   * the first line's so the two read as one chain. */
   finish?: string;
   /** A second component that survives alongside the one being built, said once where it arises. */
   also?: string;
@@ -60,7 +64,9 @@ const COS_AXIS = (s: string) => ({dir: String.raw`\cos\alpha`, dirOf: String.raw
 const PARTS: Record<ProblemId, Parts> = {
   bisector: {...ROD_Y, ...COS_ROD, simplify: true, check: {dq: 'lambda', r: 'sqrt(y^2+r^2)', dir: 'r/sqrt(y^2+r^2)'}},
   endpoint: {...ROD_Y, ...COS_ROD, also: ALONG_ROD, simplify: true, check: {dq: 'lambda', r: 'sqrt(y^2+r^2)', dir: 'r/sqrt(y^2+r^2)'}},
-  ramp: {...ROD_Y, dq: String.raw`\lambda_0\frac{y}{L}\,dy`, piece: String.raw`\lambda_0\frac{y}{L}\,\Delta y`, ...COS_ROD, also: ALONG_ROD, simplify: true,
+  // The charge element is written with a slash: in the last line it sits in a numerator, and a
+  // fraction there is set at script size -- a y over an L too small to read.
+  ramp: {...ROD_Y, dq: String.raw`\lambda_0\,(y/L)\,dy`, piece: String.raw`\lambda_0\frac{y}{L}\,\Delta y`, ...COS_ROD, also: ALONG_ROD, simplify: true,
     check: {dq: 'lambda0*y/L', r: 'sqrt(y^2+r^2)', dir: 'r/sqrt(y^2+r^2)'}},
   // Seen from beyond its end, every piece already pushes straight along the axis: there is no
   // factor to pick a component out with, and writing "cos 0" would invent one.
@@ -125,7 +131,9 @@ export function boardLines(p: Problem, bounds?: [string, string]): BoardLine[] {
   const substituted = scalar
     ? String.raw`\frac{k\,${element}}{${fx('distance', t.r)}}`
     : String.raw`${sign}\frac{k\,${element}}{${fx('distance', t.r2)}}${t.dirOf ? String.raw`\,${fx('projection', t.dirOf)}` : ''}`;
-  const simplified = String.raw`=\int_{${lo}}^{${hi}}${p.kernelTex}\,d${p.variableTex}`;
+  // The "=" hangs under the first line's: a phantom of the left side takes exactly its width, so
+  // the two halves line up the way a chain of equalities is set in a book.
+  const simplified = String.raw`\phantom{${lhs}}=\int_{${lo}}^{${hi}}${p.kernelTex}\,d${p.variableTex}`;
   // The glosses are set in display style: in text style a fraction like Q/L shrinks to a size
   // nobody can read at the panel's type size, and these are what the new symbols mean.
   const gloss = (tex?: string) => tex && String.raw`\displaystyle ${tex}`;
@@ -138,12 +146,12 @@ export function boardLines(p: Problem, bounds?: [string, string]): BoardLine[] {
   const paired = ['bisector', 'ring', 'arc'].includes(p.geometry);
   const cancel: BoardLine = scalar
     ? {key: 'cancel', tex: String.raw`\Delta V=\frac{k\,${dQ}}{${ri}}`,
-      where: paired ? String.raw`\text{its mirror piece adds the same; nothing cancels}` : String.raw`\text{no direction, one sign of charge: nothing cancels}`}
+      say: paired ? 'Its mirror piece adds the same; nothing cancels.' : 'No direction, and one sign of charge: nothing cancels.'}
     : t.dir
       ? {key: 'cancel', tex: String.raw`\Delta ${lhs}=${one}`,
         where: gloss(fx('projection', t.dirOf !== t.dir ? String.raw`${t.dir}=${t.dirOf}` : t.dirIs ?? '')),
         also: t.also && gloss(String.raw`${t.also}\text{ survives too}`)}
-      : {key: 'cancel', tex: String.raw`\Delta ${lhs}=${one}`, where: String.raw`\text{already along the axis}`};
+      : {key: 'cancel', tex: String.raw`\Delta ${lhs}=${one}`, say: 'Already along the axis.'};
   // A ring's field is not one point charge's: each bit of it pushes along its own line to P, and
   // only around the whole ring do the sideways parts cancel. So the surface lessons write the ring
   // as the sum of its bits, and the next line is where that sum loses its sideways part.
@@ -169,10 +177,13 @@ export function boardLines(p: Problem, bounds?: [string, string]): BoardLine[] {
 // The lessons' own E_y lines end in "< 0", true only for a positive charge; the panel says the sign
 // follows the charge, and the charge slider runs negative, so the board's results do not claim it.
 const SET_OVER_TWO_LINES: Partial<Record<ProblemId, string[]>> = {
+  // A \left…\right pair cannot span a line break, so the ramp's brackets are sized by hand -- as
+  // tall as the fractions they hold, not the shorter \Big that left the closing one shrunken.
   ramp: [String.raw`E_x=\frac{k\lambda_0}{L}\left(1-\frac{r}{\sqrt{L^2+r^2}}\right)`,
-    String.raw`\begin{aligned}E_y=-\frac{k\lambda_0}{L}\Big[&\ln\frac{L+\sqrt{L^2+r^2}}{r}\\&-\frac{L}{\sqrt{L^2+r^2}}\Big]\end{aligned}`],
+    String.raw`\begin{aligned}E_y=-\frac{k\lambda_0}{L}\bigg[&\ln\frac{L+\sqrt{L^2+r^2}}{r}\\&-\frac{L}{\sqrt{L^2+r^2}}\bigg]\end{aligned}`],
   endpoint: [String.raw`E_x=\frac{kQ}{r\sqrt{r^2+L^2}}`, String.raw`E_y=-k\lambda\left(\frac1r-\frac1{\sqrt{r^2+L^2}}\right)`],
-  'v-disk': [String.raw`\begin{aligned}V&=\frac{\sigma}{2\varepsilon_0}\left(\sqrt{z^2+R^2}-z\right)\\&\text{for }z>0\end{aligned}`],
+  // The condition hangs under the right-hand side, after the "=", not under the "=" itself.
+  'v-disk': [String.raw`\begin{aligned}V&=\frac{\sigma}{2\varepsilon_0}\left(\sqrt{z^2+R^2}-z\right)\\&\phantom{{}={}}\text{for }z>0\end{aligned}`],
 };
 /** What the integral comes to, the built component first. */
 export function resultLines(p: Problem): string[] {

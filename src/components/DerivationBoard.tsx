@@ -1,5 +1,5 @@
 'use client';
-import {useId, type PointerEvent} from 'react';
+import {memo, useId, type PointerEvent} from 'react';
 import {MathText} from './Math';
 import type {BoardLine, Term} from '../workbench/derivation';
 /** THE INTEGRAL, ONE LINE PER STAGE OF THE RUN.
@@ -29,7 +29,12 @@ function termAt(target: EventTarget | null): Term | '' {
   const el = target instanceof Element ? target.closest('.fx') : null;
   return TERMS.find(t => el?.classList.contains(`fx-${t}`)) ?? '';
 }
-export function DerivationBoard({lines, names, notes, state, lit = '', onStep, onPoint}: {
+/* Memoised because the run re-renders the page every frame it plays -- the figure has to move --
+ * while the board changes only when the run enters a stage, pauses or settles. So its props are
+ * kept stable by the panel (the lines memoised, the state rebuilt only when one of its four fields
+ * changes, the callbacks fixed for the panel's life) and a frame that moves nothing here costs
+ * nothing here. */
+export const DerivationBoard = memo(function DerivationBoard({lines, names, notes, state, lit = '', onStep, onPoint}: {
   lines: BoardLine[]; names: string[]; notes: string[]; state: BoardState; lit?: Term | '';
   onStep?: (index: number) => void; onPoint?: (term: Term | '') => void;
 }) {
@@ -52,9 +57,12 @@ export function DerivationBoard({lines, names, notes, state, lit = '', onStep, o
           <span className="db-reveal" aria-hidden={stage === 'next' ? true : undefined}>
             <span className="db-body" id={`${uid}-${line.key}`}>
               <MathText className="db-tex" tex={line.tex} block trusted />
-              {line.where && <MathText className="db-where" tex={line.where} trusted />}
-              {line.also && <MathText className="db-where db-also" tex={line.also} trusted />}
+              {/* The second half of a chain of equalities follows the first directly, its "=" under
+                  the first one's; what the line's new symbols mean comes after the whole chain. */}
               {line.finish && <span className={'db-then' + (finished ? ' is-shown' : '')}><MathText tex={line.finish} block trusted /></span>}
+              {line.where && <MathText className="db-where" tex={line.where} trusted />}
+              {line.say && <span className="db-where db-say">{line.say}</span>}
+              {line.also && <MathText className="db-where db-also" tex={line.also} trusted />}
               {stage === 'here' && !playing && <span className="db-note">{notes[i]}</span>}
             </span>
           </span>
@@ -62,4 +70,4 @@ export function DerivationBoard({lines, names, notes, state, lit = '', onStep, o
       </li>;
     })}
   </ol>;
-}
+});

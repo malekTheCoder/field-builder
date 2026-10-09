@@ -1,5 +1,5 @@
 'use client';
-import { useId, useState } from 'react';
+import { useCallback, useId, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { ArrowDown, ArrowUpRight, Check, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { MathText } from './Math';
@@ -27,19 +27,48 @@ function boundPercent(p:Problem,value:string,params:Params){if(equivalent(value,
  * the limits because the limits are written in it; the charge lights the piece's charge. */
 const LIGHTS:Record<string,Term>={element:'element',charge:'element',distance:'distance',projection:'projection',bounds:'bounds',size:'bounds',angle:'bounds'};
 const REST:BoardState={open:false,index:-1,playing:false,settled:true};
+/** A dragged limit, written the way the lessons write their own: mathjs sets L upright, puts a
+ * stacked fraction where the board writes -L/2 -- in a limit of integration that is a fraction of a
+ * superscript, too small to read -- and dots every product. So: L in italic, φ as the lessons' φ,
+ * "(1/4)·L" as L/4, simple fractions with a slash, and products by juxtaposition. */
+const tidy=(tex:string)=>tex.replace(/\\mathrm\{([A-Za-z])\}/g,'$1').replace(/\\phi\b/g,'\\varphi')
+ .replace(/\\frac\{(-?)(\d+)\}\{(\d+)\}\\cdot\s*(\\[a-z]+|[A-Za-z])/g,(_,s:string,n:string,d:string,x:string)=>`${s}${n==='1'?'':n}${x}/${d}`)
+ .replace(/\\frac\{(-?(?:\\[a-z]+|[A-Za-z0-9]+))\}\{(\d+)\}/g,'$1/$2').replace(/\\left\(/g,'(').replace(/\\right\)/g,')').replace(/\\cdot\s*/g,'\\,');
 export function EquationWorkbench({problem:p,derivationProblem,params,onModeChange,onHighlight,boundRange,onBoundRangeChange,build=REST,onStep,highlight=''}:EquationWorkbenchProps){
+ // THE PANEL RE-RENDERS EVERY FRAME OF THE RUN, because the page does: the figure has to move. What
+ // is on the panel changes only when the run enters a stage, pauses or settles, or a bracket moves.
+ // So everything below that costs anything is memoised on what it actually reads -- the bounds go
+ // through mathjs twice, the board is thirty-odd KaTeX lines -- and the board itself is memoised.
+ // One lesson is one object for this panel's life: the infinite line's is rebuilt on every render
+ // of the page, so the memos key on the one held here rather than on whatever object arrived.
+ const[held,setHeld]=useState(p);const same=held.id===p.id&&held.variable===p.variable;if(!same)setHeld(p);const q=same?held:p;
  const uid=useId();const[worked,setWorked]=useState(false);const[stepCount,setStepCount]=useState(1);const[boundsOpen,setBoundsOpen]=useState(false);const[bounds,setBounds]=useState<[string,string]>(p.bounds);const[feedback,setFeedback]=useState('');
  const[syncedRange,setSyncedRange]=useState(boundRange);
  if(syncedRange[0]!==boundRange[0]||syncedRange[1]!==boundRange[1]){setSyncedRange(boundRange);setBounds([boundExpression(p,boundRange[0]),boundExpression(p,boundRange[1])]);}
  const g=p.geometry,scalar=p.quantity==='V',allBounds=boundRange[0]<=.001&&boundRange[1]>=99.999;
- const lower=preview(boundExpression(p,boundRange[0])),upper=preview(boundExpression(p,boundRange[1]));
- const stages=buildStages(p);
+ const[from,to]=boundRange;
+ const lower=useMemo(()=>tidy(preview(boundExpression(q,from))),[q,from]);
+ const upper=useMemo(()=>tidy(preview(boundExpression(q,to))),[q,to]);
+ const stages=useMemo(()=>buildStages(q),[q]);
+ const names=useMemo(()=>stages.map(s=>s.name),[stages]);
+ const notes=useMemo(()=>stages.map(s=>s.caption),[stages]);
  // The limits in the last line follow the brackets in the figure: drag one and the integral is
  // rewritten over the part of the charge it now covers.
- const lines=boardLines(p,allBounds?undefined:[lower,upper]);
+ const lines=useMemo(()=>boardLines(q,allBounds?undefined:[lower,upper]),[q,allBounds,lower,upper]);
+ const results=useMemo(()=>resultLines(q),[q]);
+ // The board's state is rebuilt only when one of its fields changes, not with every new object the
+ // page passes down, and its callbacks are fixed for the panel's life and call whatever is current.
+ const{open,index,playing,settled:arrived}=build;
+ const state=useMemo(()=>({open,index,playing,settled:arrived}),[open,index,playing,arrived]);
+ const latest=useRef({onStep,onHighlight});useLayoutEffect(()=>{latest.current={onStep,onHighlight}});
+ const playStep=useCallback((i:number)=>latest.current.onStep?.(i),[]),point=useCallback((term:Term|'')=>latest.current.onHighlight?.(term),[]);
  // The answer is where the derivation ends, so it waits for the run to get there -- and at rest,
  // with the derivation all on the page, it is simply the last thing on it.
- const settled=!build.open||(build.index===stages.length-1&&build.settled);
+ const settled=!open||(index===stages.length-1&&arrived);
+ // What k stands for, said once, as part of the answer it is needed to read -- it used to sit alone
+ // in a footer under the result, a definition with nothing beside it. Written for every lesson, the
+ // ones whose answer is in ε₀ too: that is the line that turns the board's k into their ε₀.
+ const withK=<MathText className="ew-result-k" tex={raw`\text{with }k=\dfrac{1}{4\pi\varepsilon_0}`} block/>;
  const algebra=derivationProblem??p;const original=algebra.steps.find(s=>s.kind==='integrate')?.worked??[];
  const steps=g==='bisector'&&!scalar?[{text:'Turn the changing distance into an angle. Hold r fixed as the source position changes.',tex:raw`y=r\tan u,\quad dy=r\sec^2u\,du`},{text:'The Jacobian supplies two powers of secant. One remains in the denominator.',tex:raw`\int\frac{r\,dy}{(y^2+r^2)^{3/2}}=\frac1r\int\cos u\,du`},{text:'Integrate, then return to the original triangle.',tex:raw`\frac{\sin u}{r}=\frac{y}{r\sqrt{y^2+r^2}}`},...original.slice(1)]:original;
  function applyBounds(event:{preventDefault():void}){event.preventDefault();try{const a=boundPercent(p,bounds[0],params),b=boundPercent(p,bounds[1],params);if(a<-.000001||b>100.000001||a>=b)throw Error('Choose an increasing interval inside the distribution.');onBoundRangeChange([Math.max(0,a),Math.min(100,b)]);onModeChange('integrate');setFeedback(a===0&&b===100?'Whole distribution selected. Equivalent forms accepted.':'Interval applied. The integral and highlighted region now match.');}catch(e){setFeedback(e instanceof Error?e.message:'Check the expressions and try again.');}}
@@ -50,17 +79,15 @@ export function EquationWorkbench({problem:p,derivationProblem,params,onModeChan
  <div className="ew-assembly">
   <h2 className="ew-section-title">Build the integral</h2>
   <p className="ew-lede">{build.open?'Each line adds one idea, in step with the figure.':'Five steps from one piece of charge to the whole. Choose one to watch it on the figure.'}</p>
-  <DerivationBoard lines={lines} names={stages.map(s=>s.name)} notes={stages.map(s=>s.caption)} state={build} lit={LIGHTS[highlight]??''}
-   onStep={onStep} onPoint={term=>onHighlight?.(term)}/>
+  <DerivationBoard lines={lines} names={names} notes={notes} state={state} lit={LIGHTS[highlight]??''} onStep={playStep} onPoint={point}/>
  </div>
  {allBounds
-  ?<div className={'ew-result'+(settled?' is-shown':'')} aria-hidden={settled?undefined:true}><span className="ew-result-label">The whole distribution</span>{resultLines(p).map(t=><MathText key={t} tex={t} block/>)}<p>{scalar?'Signed potential. Reverse the charge to reverse the sign; there is no direction to keep track of.':`Signed field component${['semi','endpoint','ramp'].includes(p.id)?'s':''}. Reversing the charge reverses the field.`}</p></div>
-  :<div className="ew-result is-shown is-partial"><span className="ew-result-label">Part of the distribution</span><p>The integral above now runs over the bracketed part of the charge only. Choose the whole distribution to get the closed form back.</p></div>}
- <footer className="ew-footer"><MathText tex={raw`k=\frac1{4\pi\varepsilon_0}`}/></footer>
+  ?<div className={'ew-result'+(settled?' is-shown':'')} aria-hidden={settled?undefined:true}><span className="ew-result-label">The whole distribution</span>{results.map(t=><MathText key={t} tex={t} block/>)}{withK}<p>{scalar?'Signed potential. Reverse the charge to reverse the sign; there is no direction to keep track of.':`Signed field component${['semi','endpoint','ramp'].includes(p.id)?'s':''}. Reversing the charge reverses the field.`}</p></div>
+  :<div className="ew-result is-shown is-partial"><span className="ew-result-label">Part of the distribution</span><p>The integral above now runs over the bracketed part of the charge only. Choose the whole distribution to get the closed form back.</p>{withK}</div>}
  {/* THE SHELF: what a reader opens afterwards. The interval, the algebra worked out, and where
      the model comes from -- all closed until asked for, so the derivation stays the subject. */}
  <div className="ew-reference">
- <div className="ew-bounds"><button className="ew-disclosure" onClick={()=>setBoundsOpen(!boundsOpen)} aria-expanded={boundsOpen} aria-controls={`${uid}-bounds`}><span>Integration interval</span><span><MathText tex={raw`${lower}\;\to\;${upper}`}/><ChevronDown size={14}/></span></button>{boundsOpen&&<form id={`${uid}-bounds`} className="ew-bound-form" onSubmit={applyBounds}><p>Use symbols such as <MathText tex={p.boundTex[0]}/> and <MathText tex={p.boundTex[1]}/>. Equivalent expressions work, too.</p><div className="ew-bound-fields"><label htmlFor={`${uid}-lower`}>Lower bound<input id={`${uid}-lower`} value={bounds[0]} onChange={e=>setBounds([e.target.value,bounds[1]])} autoComplete="off" spellCheck={false}/></label><label htmlFor={`${uid}-upper`}>Upper bound<input id={`${uid}-upper`} value={bounds[1]} onChange={e=>setBounds([bounds[0],e.target.value])} autoComplete="off" spellCheck={false}/></label></div><div className="ew-bound-actions"><Button type="submit" size="sm">Apply interval</Button><Button type="button" variant="ghost" size="sm" onClick={()=>{setBounds(p.bounds);onBoundRangeChange([0,100]);setFeedback('Whole distribution selected.');}}>Whole distribution</Button></div>{feedback&&<output className="ew-bound-feedback">{feedback}</output>}</form>}</div>
+ <div className="ew-bounds"><button className="ew-disclosure" onClick={()=>setBoundsOpen(!boundsOpen)} aria-expanded={boundsOpen} aria-controls={`${uid}-bounds`}><span>Integration interval</span><span><MathText tex={allBounds?raw`${p.boundTex[0]}\;\to\;${p.boundTex[1]}`:raw`${lower}\;\to\;${upper}`}/><ChevronDown size={14}/></span></button>{boundsOpen&&<form id={`${uid}-bounds`} className="ew-bound-form" onSubmit={applyBounds}><p>Use symbols such as <MathText tex={p.boundTex[0]}/> and <MathText tex={p.boundTex[1]}/>. Equivalent expressions work, too.</p><div className="ew-bound-fields"><label htmlFor={`${uid}-lower`}>Lower bound<input id={`${uid}-lower`} value={bounds[0]} onChange={e=>setBounds([e.target.value,bounds[1]])} autoComplete="off" spellCheck={false}/></label><label htmlFor={`${uid}-upper`}>Upper bound<input id={`${uid}-upper`} value={bounds[1]} onChange={e=>setBounds([bounds[0],e.target.value])} autoComplete="off" spellCheck={false}/></label></div><div className="ew-bound-actions"><Button type="submit" size="sm">Apply interval</Button><Button type="button" variant="ghost" size="sm" onClick={()=>{setBounds(p.bounds);onBoundRangeChange([0,100]);setFeedback('Whole distribution selected.');}}>Whole distribution</Button></div>{feedback&&<output className="ew-bound-feedback">{feedback}</output>}</form>}</div>
  <div className="ew-worked"><button className="ew-disclosure" onClick={()=>setWorked(!worked)} aria-expanded={worked} aria-controls={`${uid}-worked`}><span>Unfold the integration</span><ChevronDown size={15}/></button>{worked&&<div id={`${uid}-worked`} className="ew-worked-body"><p className="ew-context">{algebra.id==='infinite'&&algebra.variable==='y'?'Alternate derivation: start with a finite rod of length L, then let L grow at fixed λ. The live model above remains the infinite line.':allBounds?'Follow the algebra for the whole distribution, one transformation at a time.':'These steps derive the whole-distribution result. Your selected partial interval remains above.'}</p>{steps.slice(0,stepCount).map((step,i)=><div className="ew-worked-step" key={`${p.id}-${p.variable}-${i}`}><div><p>{step.text}</p><MathText tex={step.tex} block/></div></div>)}{stepCount<steps.length?<Button className="ew-next-step" variant="outline" onClick={()=>setStepCount(stepCount+1)}>Next transformation<ArrowDown size={14}/></Button>:<p className="ew-worked-done"><Check size={13}/>Every transformation accounted for.</p>}</div>}</div>
  <details className="ew-references"><summary className="ew-disclosure"><span>Model assumptions &amp; references</span><ChevronDown size={15}/></summary><div className="ew-references-body"><p>{p.setup}</p><p>Geometry uses meters. Finite distributions use total charge; unbounded distributions hold charge density fixed.</p>{p.sources.map(s=><a key={s.url} href={s.url} target="_blank" rel="noreferrer">{s.title}<ArrowUpRight size={12}/></a>)}</div></details></div>
  </div></aside>;
