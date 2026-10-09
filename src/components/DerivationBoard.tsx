@@ -1,5 +1,5 @@
 'use client';
-import {memo, useId, type PointerEvent} from 'react';
+import {memo, useId, type PointerEvent, type ReactNode} from 'react';
 import {MathText} from './Math';
 import type {BoardLine, Term} from '../workbench/derivation';
 /** THE INTEGRAL, ONE LINE PER STAGE OF THE RUN.
@@ -24,6 +24,26 @@ export type BoardState = {
   settled: boolean;
 };
 const TERMS: readonly Term[] = ['element', 'distance', 'projection', 'bounds'];
+/** A remark in words, with any symbol in it -- written $…$ -- set as math: the λ in the sentence is
+ * then the λ in the equation above it, in the same face, rather than a Greek letter from whatever
+ * font the browser found. The words still wrap; only a symbol is held together. */
+function Prose({text}: {text: string}) {
+  const parts = text.split('$');
+  const out: ReactNode[] = [];
+  for (let i = 0; i < parts.length; i++) {
+    if (!(i % 2)) { out.push(parts[i]); continue; }
+    // KaTeX sets a symbol as inline blocks, and a browser will break a line before one even after
+    // a no-break space -- so a sentence ended on a lone "P." on a line of its own. A word joined to
+    // its symbol that way is held to it, with the punctuation after, in one unbreakable run.
+    const before = typeof out.at(-1) === 'string' ? (out.at(-1) as string).match(/^([\s\S]*?)(\S+\u00a0)$/) : null;
+    if (!before) { out.push(<MathText key={i} tex={parts[i]} />); continue; }
+    const after = parts[i + 1]?.match(/^[.,;:]*/)?.[0] ?? '';
+    out[out.length - 1] = before[1];
+    out.push(<span key={i} className="db-held">{before[2]}<MathText tex={parts[i]} />{after}</span>);
+    if (after) parts[i + 1] = parts[i + 1].slice(after.length);
+  }
+  return out;
+}
 /** The factor under the pointer, from the class KaTeX carried through for it. */
 function termAt(target: EventTarget | null): Term | '' {
   const el = target instanceof Element ? target.closest('.fx') : null;
@@ -61,8 +81,11 @@ export const DerivationBoard = memo(function DerivationBoard({lines, names, note
                   the first one's; what the line's new symbols mean comes after the whole chain. */}
               {line.finish && <span className={'db-then' + (finished ? ' is-shown' : '')}><MathText tex={line.finish} block trusted /></span>}
               {line.where && <MathText className="db-where" tex={line.where} trusted />}
-              {line.say && <span className="db-where db-say">{line.say}</span>}
-              {line.also && <MathText className="db-where db-also" tex={line.also} trusted />}
+              {line.say && <span className="db-where db-say"><Prose text={line.say} /></span>}
+              {line.cancels && <MathText className="db-where db-cancels" tex={line.cancels} trusted />}
+              {/* The other component, then in words that it lives on: said in a sentence, which
+                  wraps, rather than in a \text{} glued to the equation, which cannot. */}
+              {line.also && <span className="db-where db-say db-also"><MathText tex={line.also} trusted /> survives too.</span>}
               {stage === 'here' && !playing && <span className="db-note">{notes[i]}</span>}
             </span>
           </span>

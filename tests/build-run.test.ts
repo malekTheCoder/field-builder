@@ -142,20 +142,25 @@ describe('what the captions claim is what the samplers do', () => {
  const n = 5, P = DEFAULT_PARAMS;
  const size = (v: {x: number; y: number; z: number}) => Math.hypot(v.x, v.y, v.z);
  for (const id of ['infinite', 'semi'] as const) {
-  it(`${id}: every piece, cut at an equal angle, pushes exactly as hard`, () => {
+  it(`${id}: every piece, cut at an equal angle, contributes exactly as much`, () => {
    const pushes = sampleDistribution(id, P, n).map(s => size(s.field));
    for (const push of pushes) expect(push / pushes[0]).toBeCloseTo(1, 9);
-   expect(buildStages(getProblem(id))[1].caption).toMatch(/exactly as hard/);
+   expect(buildStages(getProblem(id))[1].caption).toMatch(/exactly as much at P/);
   });
  }
- it('sheet: the rings push harder the further out they are', () => {
+ it('sheet: the rings make a bigger field the further out they are', () => {
   // The claim the line lessons' story gets backwards. Cut at equal angles from P, contributions
   // go as sin(theta): 4.9, 14.2, 22.1, 27.9 and 30.9 percent at five pieces.
   const pushes = sampleDistribution('sheet', P, n).map(s => size(s.field));
   for (let i = 1; i < n; i++) expect(pushes[i], `ring ${i + 1} vs ring ${i}`).toBeGreaterThan(pushes[i - 1]);
   const total = pushes.reduce((a, b) => a + b, 0);
   expect(pushes[n - 1] / total).toBeGreaterThan(.3);
-  expect(buildStages(getProblem('sheet'))[1].caption).toMatch(/harder, not softer/);
+  expect(buildStages(getProblem('sheet'))[1].caption).toMatch(/bigger field at P, not a smaller one/);
+  // Only when they are cut at equal angles: cut into rings of equal width, a sheet's contributions
+  // peak at s = z/√2 and fall away beyond it. The short line read while the run moves says so too.
+  expect(buildStages(getProblem('sheet'))[1].caption).toMatch(/same angle at P/);
+  expect(buildStages(getProblem('sheet'))[1].line).toMatch(/^Cut at equal angles/);
+  expect(buildStages(getProblem('sheet'))[2].caption).toMatch(/Cut at equal angles/);
  });
  it('sheet: lifting P leaves the field unchanged, which the subtitle promises', () => {
   const at = (distance: number) => size(sampleDistribution('sheet', {...P, distance}, 4000).reduce(
@@ -168,5 +173,47 @@ describe('what the captions claim is what the samplers do', () => {
    (sum, s) => ({x: sum.x + s.field.x, y: sum.y + s.field.y, z: sum.z + s.field.z}), {x: 0, y: 0, z: 0});
   expect(Math.abs(net.x) / Math.abs(net.y)).toBeCloseTo(1, 2);
   expect(buildStages(getProblem('semi'))[2].caption).toMatch(/leans/);
+ });
+});
+/* What the captions say about the argument itself, checked as claims: each of these was once
+ * written false, in a sentence a confused reader would take on trust. */
+describe('the captions say only what is true', () => {
+ it('the rod seen end-on is not denied the symmetry that makes its field point along the axis', () => {
+  // Turn it about P's line and nothing changes: no piece has a sideways part to begin with. The
+  // caption it used to share said cancellation was "a gift of symmetry, and this geometry does not
+  // have it" -- of the most symmetric rod in the library.
+  const axial = buildStages(getProblem('axial'))[2].caption;
+  expect(axial).not.toMatch(/does not have it/);
+  expect(axial).not.toMatch(/symmetry, and this geometry/);
+  expect(axial).toMatch(/no sideways parts/);
+  // The rods level with one end really do lack a partner, and keep the note that says so.
+  for (const id of ['endpoint', 'ramp'] as const) expect(buildStages(getProblem(id))[2].caption, id).toMatch(/no piece has a partner/);
+ });
+ it('the chain and the column are the sum of the N pieces, the field or potential only once they shrink', () => {
+  // At a finite N the chain is the N-piece estimate the figure labels ΣΔE: a few percent off at five
+  // pieces, and nearly three times the field at three pieces beside a long rod.
+  for (const p of PROBLEMS) {
+   const add = buildStages(p)[3];
+   for (const text of [add.line, add.caption]) {
+    expect(text, `${p.id}: "${text}"`).toMatch(/sum/);
+    expect(text, `${p.id}: "${text}"`).not.toMatch(/is the (field|potential) at P/);
+    expect(text, `${p.id}: "${text}"`).toMatch(/once they shrink/);
+   }
+  }
+ });
+ it('an unbounded line is never cut into point charges, only into pieces whose field is a point charge’s', () => {
+  // At every N the outermost piece is infinitely long. A thin angle makes its FIELD a point charge's.
+  for (const id of ['infinite', 'semi'] as const) {
+   const cut = buildStages(getProblem(id))[0].caption;
+   expect(cut, id).not.toMatch(/is just a point charge/);
+   expect(cut, id).toMatch(/thin enough in angle/);
+  }
+ });
+ it('P is a point, not a charge: nothing acts on it, nothing pushes it harder or softer', () => {
+  // A piece makes a field at P. Force words belong only where a test charge is named, and no
+  // caption names one.
+  for (const p of PROBLEMS) for (const s of buildStages(p)) for (const text of [s.line, s.caption]) {
+   expect(text, `${p.id} · ${s.key}: "${text}"`).not.toMatch(/acts? on P|acts just as hard|\bharder\b|\bsofter\b|\bpush/i);
+  }
  });
 });

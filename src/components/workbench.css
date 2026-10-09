@@ -163,8 +163,10 @@
 .db-where .katex{font-size:1em}
 /* A remark in words is set in the same roman as the words inside the math beside it, and wraps. */
 .db-say{font-family:KaTeX_Main,'Times New Roman',serif;font-size:calc(var(--db-gloss) * 1.04);text-wrap:pretty}
-/* The other component is its own statement, not part of the definition above it: a little air first. */
-.db-also{margin-top:5px}
+.db-held{white-space:nowrap}
+/* The other component is its own statement, not part of the definition above it: a little air first.
+   So is the cancellation, which is what the step is named for. */
+.db-also,.db-cancels{margin-top:5px}
 .db-then{display:grid;grid-template-rows:0fr;opacity:0;transition:grid-template-rows .6s cubic-bezier(.2,.8,.2,1),opacity .5s ease}
 .db-then.is-shown{grid-template-rows:1fr;opacity:1}
 .db-then>.math{min-height:0;overflow:hidden;font-size:var(--db-math)}
@@ -178,8 +180,12 @@
    left the 272px board beside the figure at 1060px no room at all -- and on Linux, where glyph
    advances are rounded to whole pixels, it came out 246px in a 240px box and scrolled. */
 @container (max-width:290px){.db-step{--db-math:14.5px;--db-gloss:13.5px}}
-@container (max-width:280px){.db-step{--db-math:14px;--db-gloss:13px}}
-@container (max-width:236px){.db-step{--db-math:13px;--db-gloss:12.5px}}
+/* Below 280px the type follows the board instead of stepping. The steps were set at the widths the
+   sweep measured and guessed between them: on a phone the board is the screen less 98px, and at
+   boards of 240 to 264px the ramp's last line scrolled. The line is about 16.6 times the type size
+   (17 with Linux's rounded advances) and the line's box is the board less 32px, so this is the
+   largest type at which it fits -- never above the 14px step, and never below 12px. */
+@container (max-width:280px){.db-step{--db-math:clamp(12px,calc((100cqi - 32px) / 17),14px);--db-gloss:calc(var(--db-math) - 1px)}}
 
 /* Each factor in the colour of the feature it is read off, so the eye can go from a symbol to the
    thing it measures and back. Pointing at one -- here, at a slider, or at the figure -- lights it. */
@@ -232,8 +238,14 @@
 .ew-references-body{padding-bottom:16px}
 .ew-references-body p:first-child{margin-top:0}
 .ew-worked-step{gap:0}
+/* Every worked line on the same left edge, as the board's are: KaTeX centres a display, so a line
+   that fitted sat in the middle and the next one, which did not, started at the margin. */
+.ew-worked-step .katex-display>.katex{text-align:left}
 .ew-worked-step>div{width:100%}
 @media(prefers-reduced-motion:reduce){
  .ew-references>summary>svg,.db-reveal,.db-then,.db-node,.db-step::before{transition:none}
  .db-step.is-here .fx,.ew-result.is-shown{animation:none}
 }
+/* The potential lessons' last move, under its own heading after the integration: the field back
+   out of V by one derivative. Set like a step's name on the board, so it reads as a new part. */
+.ew-worked-sub{margin:20px 0 0;font-family:var(--serif);font-size:15px;line-height:20px;font-weight:600;color:var(--foreground);letter-spacing:-.003em}

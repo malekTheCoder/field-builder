@@ -24,7 +24,10 @@ import {isReady} from '../src/problems/readiness';
  * longest line has its second half, the stage's note is open and the answer has arrived.
  *
  * The Explorer, not a bare panel, because the panel's width is the page's grid, not its own. */
-const WIDTHS: [number, number][] = [[1060, 900], [1280, 900], [1440, 900], [1728, 1000], [390, 844]];
+// The narrow phones are there for the board widths between the steps the type comes down by: below
+// the figure the board is the screen less ninety-eight pixels, so these three give boards of about
+// 240, 255 and 268px -- widths no other entry reaches, where the last step had only been guessed at.
+const WIDTHS: [number, number][] = [[1060, 900], [1280, 900], [1440, 900], [1728, 1000], [390, 844], [338, 800], [325, 800], [310, 800]];
 // Transitions and entrances off, so a measurement is of where things land, not of a frame on the way.
 const STILL = '*{transition:none!important;animation-duration:0s!important;animation-delay:0s!important}';
 
@@ -102,8 +105,8 @@ async function toTheEnd(view: View) {
 
 describe('the derivation fits its panel, in every lesson, at every width', () => {
   for (const lesson of PROBLEMS.filter(p => isReady(p.id))) {
-    // Ten layouts a lesson, each measured after the fonts have loaded and the page has laid out.
-    // About a second and a half here; given room for a CI runner several times slower.
+    // Sixteen layouts a lesson, each measured after the fonts have loaded and the page has laid out.
+    // One to two and a half seconds here; given room for a CI runner several times slower.
     it(lesson.id, async () => {
       const view = await open(lesson.id);
       const bad = await overflowing(view, 'at rest');
