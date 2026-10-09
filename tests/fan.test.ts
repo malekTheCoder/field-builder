@@ -1,5 +1,5 @@
 import {describe, expect, it} from 'vitest';
-import {area, exitDistance, rayToEdge, sub, unit, wedgePath, type Point, type Rect} from '../src/diagrams/fan';
+import {area, exitDistance, rayToEdge, rayToLine, sub, unit, wedgePath, type Point, type Rect} from '../src/diagrams/fan';
 /* The geometry the unbounded lessons are being rebuilt on, checked with arithmetic.
  *
  * A piece of an infinite line cannot be drawn where it is, but the ANGLE it subtends at the
@@ -121,5 +121,38 @@ describe('the fan of an infinite line, from the lesson\'s own substitution', () 
   const smallest = Math.min(...Array.from({length: n}, (_, i) =>
    area(wedgePath(p, seamDirection(i)!, seamDirection(i + 1)!, frame))));
   expect(smallest / (frame.width * frame.height)).toBeGreaterThan(.02);
+ });
+});
+describe('a wedge ends at the charge', () => {
+ // The chosen wedge used to run on through the line it stands for -- a pink trapezoid beyond the
+ // infinite line, a band under the semi-infinite one down to the foot of the frame -- and was read
+ // as charge. A piece is the angle it subtends AT P, and that angle ends at the line.
+ const frame: Rect = {x: 42, y: 54, width: 626, height: 317};
+ const p: Point = {x: 325, y: 216};
+ const line = {point: {x: 220, y: 216}, dir: {x: 0, y: 1}};
+ const toward = (deg: number): Point => ({x: Math.cos(deg * Math.PI / 180), y: Math.sin(deg * Math.PI / 180)});
+ it('every vertex lies on P\'s side of the line, for every wedge of a fan', () => {
+  for (let a = 95; a < 265; a += 17) {
+   const poly = wedgePath(p, toward(a), toward(a + 17), frame, line);
+   expect(poly.length).toBeGreaterThanOrEqual(3);
+   for (const v of poly) expect(v.x, `${a}°`).toBeGreaterThanOrEqual(line.point.x - 1e-6);
+  }
+ });
+ it('a wedge pointing at the line is the triangle from P to the line', () => {
+  const poly = wedgePath(p, toward(170), toward(190), frame, line);
+  // P, and two points on the line: nothing past it, and nothing of the frame's edge.
+  expect(poly).toHaveLength(3);
+  expect(poly.filter(v => Math.abs(v.x - 220) < 1e-6)).toHaveLength(2);
+ });
+ it('a ray stops where it meets the line, and runs to the frame where it never does', () => {
+  const hit = rayToLine(p, toward(180), frame, line);
+  expect(hit.x).toBeCloseTo(220, 9);
+  expect(hit.y).toBeCloseTo(216, 9);
+  const away = rayToLine(p, toward(0), frame, line);
+  expect(away.x).toBeCloseTo(frame.x + frame.width, 9);
+ });
+ it('without a line it is the wedge it always was', () => {
+  expect(wedgePath(p, toward(170), toward(190), frame)).toEqual(wedgePath(p, toward(170), toward(190), frame, undefined));
+  expect(area(wedgePath(p, toward(170), toward(190), frame))).toBeGreaterThan(area(wedgePath(p, toward(170), toward(190), frame, line)));
  });
 });

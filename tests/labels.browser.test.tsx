@@ -81,8 +81,10 @@ describe('labels across every lesson', () => {
       const marks = [...container.querySelectorAll<SVGGraphicsElement>('.cd-point, .cd-point-halo')]
         .map(el => el.getBoundingClientRect()).filter(r => r.width > 0);
       for (const b of labelBoxes(container)) for (const m of marks) {
-        // P's own letter is allowed to sit on P. Nothing else is.
-        if (b.t === 'P' || b.t === 'P = O') continue;
+        // P's own letter is allowed to sit on P. Nothing else is -- except the charge's own marks,
+        // which are the charge: they stay on the rod however close P comes to it, and P a hair's
+        // breadth above a line of charge really does sit on it.
+        if (b.t === 'P' || b.t === 'P = O' || b.t === '+' || b.t === '−') continue;
         if (overlap(b, {t: '', left: m.left, top: m.top, right: m.right, bottom: m.bottom})) covered.push(`${id} / ${name}: "${b.t}" over P`);
       }
       cleanup();

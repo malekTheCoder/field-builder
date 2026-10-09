@@ -1,5 +1,5 @@
 import {describe, expect, it} from 'vitest';
-import {cutPiece, polylineLength, runScene, stretch, trim, type RunSceneInput} from '../src/diagrams/three/runScene';
+import {LIMIT_CHAIN, cutPiece, polylineLength, resample, runScene, stretch, trim, type RunSceneInput} from '../src/diagrams/three/runScene';
 import type {Vec} from '../src/symbolic/physics';
 /* What the 3D scene draws of "Watch it build", worked out without a GPU. The browser test reads the
  * same plan back off the page; this pins the choices themselves -- which pieces are lit, which wait,
@@ -80,15 +80,18 @@ describe('the arrows at P, at the figure\'s own scale', () => {
  const field = {x: 3, y: -1, z: 0}, keep = {x: 3, y: 0, z: 0}, drop = {x: 0, y: -1, z: 0};
  const arrows = (over: Partial<NonNullable<RunSceneInput['arrows']>>) => runScene(base({stage: 'cancel', arrows: {
   scale: 2, field, keep, drop, partner: null, partnerKeep: keep, partnerDrop: {x: 0, y: 1, z: 0}, components: true, cancelled: 0, ...over}})).arrows!;
- it('without a partner, the part that goes is drawn in full from the tip of the part that stays', () => {
+ it('without a partner, the other part is drawn in full out of P, where the flat figure draws it', () => {
+  // Laid from the tip of the kept part it ended under the arrowhead of the piece's own arrow.
   const a = arrows({});
   expect(a.keep).toEqual({x: 6, y: 0, z: 0});
-  expect(a.dropFrom).toEqual({x: 6, y: 0, z: 0});
+  expect(a.dropFrom).toEqual(zero);
   expect(a.drop).toEqual({x: 0, y: -2, z: 0});
   expect(a.partner).toBeNull();
  });
- it('with a partner, the two parts that go shrink together as they cancel', () => {
+ it('with a partner, the two parts that go start together at P and shrink together as they cancel', () => {
   const a = arrows({partner: {x: 3, y: 1, z: 0}, cancelled: .75});
+  expect(a.dropFrom).toEqual(zero);
+  expect(a.partnerKeep).toEqual(zero);
   expect(a.partner).toEqual({x: 6, y: 2, z: 0});
   expect(a.drop!.y).toBeCloseTo(-.5, 12);
   expect(a.partnerDrop!.y).toBeCloseTo(.5, 12);
@@ -107,6 +110,35 @@ describe('the arrows at P, at the figure\'s own scale', () => {
   const s = runScene(base({stage: 'add', chain: {scale: 2, fields, weights: [1, 0, .5]}}));
   expect(s.chain).toEqual([zero, {x: 2, y: 0, z: 0}, {x: 2, y: 0, z: 1}]);
   expect(runScene(base({stage: 'add', chain: {scale: 2, fields, weights: [0, 0, 0]}})).chain).toBeNull();
+ });
+});
+describe('the chain while the pieces shrink', () => {
+ const fields = Array.from({length: 160}, (_, i) => ({x: Math.cos(i / 50), y: Math.sin(i / 50), z: 0}));
+ const weights = fields.map(() => 1);
+ it('is carried through the limit, and arrives as a curve of a fixed number of points with its ends in place', () => {
+  const add = runScene(base({stage: 'add', chain: {scale: 1, fields, weights}}));
+  const limit = runScene(base({stage: 'limit', chain: {scale: 1, fields, weights}}));
+  expect(add.chain).toHaveLength(161);
+  expect(limit.chain).toHaveLength(LIMIT_CHAIN);
+  // More points than the scene marks joins on, so it is drawn as a curve and never as beads.
+  expect(LIMIT_CHAIN).toBeGreaterThan(65);
+  expect(close(limit.chain![0], add.chain![0])).toBeLessThan(1e-12);
+  expect(close(limit.chain![LIMIT_CHAIN - 1], add.chain![160])).toBeLessThan(1e-9);
+ });
+ it('a short chain is filled in along its own links, which changes nothing about where it goes', () => {
+  const short = runScene(base({stage: 'limit', chain: {scale: 2, fields: fields.slice(0, 5), weights: [1, 1, 1, 1, 1]}}));
+  expect(short.chain).toHaveLength(LIMIT_CHAIN);
+  const add = runScene(base({stage: 'add', chain: {scale: 2, fields: fields.slice(0, 5), weights: [1, 1, 1, 1, 1]}}));
+  expect(polylineLength(short.chain!)).toBeCloseTo(polylineLength(add.chain!), 9);
+ });
+ it('resamples evenly along the length', () => {
+  const line: Vec[] = [zero, {x: 1, y: 0, z: 0}, {x: 1, y: 3, z: 0}];
+  const out = resample(line, 5);
+  expect(out).toHaveLength(5);
+  expect(out[1].x).toBeCloseTo(1, 12);
+  expect(out[1].y).toBeCloseTo(0, 12);
+  expect(out[2].y).toBeCloseTo(1, 12);
+  expect(out[4]).toEqual(line[2]);
  });
 });
 describe('cutting a wire', () => {

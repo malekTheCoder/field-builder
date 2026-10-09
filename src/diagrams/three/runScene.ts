@@ -26,11 +26,14 @@ export type RunTone='lit'|'added'|'idle'|'dim';
 export type RunArrows={
  /** The part of the chosen piece's arrow that survives the symmetry, from P. */
  keep:Vec|null;
- /** The part that is dropped, laid from `dropFrom` -- the tip of the kept part, whether or not the
-  * kept part itself is drawn. Where a partner is cancelling it, it is already shrunk by the
-  * cancellation, so the scene draws exactly what the flat figure draws. */
+ /** The other part, laid from `dropFrom` -- which is P itself, as the flat figure lays it: each part
+  * is a side of the parallelogram the arrow is resolved along, drawn out of P where it can be seen.
+  * Laid from the tip of the kept part instead, it ended under the arrowhead of the piece's own
+  * arrow and could not be told from it. Where a partner is cancelling it, it is already shrunk by
+  * the cancellation, so the scene draws exactly what the flat figure draws. */
  drop:Vec|null; dropFrom:Vec;
- /** The partner's whole arrow from P, and its dropped part laid from the tip of its kept part. */
+ /** The partner's whole arrow from P, and where its dropped part is laid from: P as well, for the
+  * same reason, so the two sideways parts start together and shrink into P toward each other. */
  partner:Vec|null; partnerKeep:Vec|null; partnerDrop:Vec|null;
  /** How far the two dropped parts have cancelled, 0 to 1: they fade as they shrink. Zero where
   * nothing is cancelling. */
@@ -58,7 +61,10 @@ export type RunScene={
  /** How far out a surface has been summed, in metres, or null where nothing is being summed. */
  filled:number|null;
  arrows:RunArrows|null;
- /** The running sum, head to tail from P: offsets in world metres at the net arrow's scale. */
+ /** The running sum, head to tail from P: offsets in world metres at the net arrow's scale. While
+  * the pieces shrink it is resampled along its length to a fixed count of points (`LIMIT_CHAIN`):
+  * the partition doubles to a hundred and sixty pieces, and past sixty-five the scene stops marking
+  * the joins, so the chain arrives as the smooth curve the limit is, at a fixed cost. */
  chain:Vec[]|null;
 };
 export type RunSceneInput={
@@ -80,6 +86,32 @@ export type RunSceneInput={
  chain:null|{scale:number;fields:readonly Vec[];weights:readonly number[]};
 };
 const scaled=(v:Vec,k:number):Vec=>({x:v.x*k,y:v.y*k,z:v.z*k});
+const ORIGIN:Vec={x:0,y:0,z:0};
+/** How many points the chain is drawn with while the pieces shrink: one more than the scene's
+ * cut-off for marking joins, so it is always a curve there and never a necklace of beads. */
+export const LIMIT_CHAIN=66;
+/** The same polyline through `count` points evenly spaced along its length, its two ends exactly
+ * where they were. Shorter chains are filled in along their own links, which changes nothing about
+ * their shape; longer ones lose only detail far below a pixel. */
+export function resample(path:readonly Vec[],count:number):Vec[]{
+ if(path.length<2||count<2)return path.slice();
+ const total=polylineLength(path);
+ if(!(total>0))return path.slice();
+ const out:Vec[]=[path[0]];
+ let i=1,walked=0;
+ for(let k=1;k<count-1;k++){
+  const s=total*k/(count-1);
+  while(i<path.length-1){
+   const a=path[i-1],b=path[i],d=Math.hypot(b.x-a.x,b.y-a.y,b.z-a.z);
+   if(walked+d>=s)break;
+   walked+=d;i++;
+  }
+  const a=path[i-1],b=path[i],d=Math.hypot(b.x-a.x,b.y-a.y,b.z-a.z),f=d>0?Math.max(0,Math.min(1,(s-walked)/d)):0;
+  out.push({x:a.x+(b.x-a.x)*f,y:a.y+(b.y-a.y)*f,z:a.z+(b.z-a.z)*f});
+ }
+ out.push(path[path.length-1]);
+ return out;
+}
 const tiny=(v:Vec)=>Math.hypot(v.x,v.y,v.z)<1e-9;
 /** Points along one stretch of the charge, from parameter `lo` to `hi`.
  *
@@ -134,10 +166,10 @@ export function runScene(input:RunSceneInput):RunScene{
  // one, the dropped part is drawn only when the stage asks for the parts.
  const arrows:RunArrows|null=a&&!tiny(a.field)?{
   keep:a.components?scaled(a.keep,a.scale):null,
-  dropFrom:scaled(a.keep,a.scale),
+  dropFrom:ORIGIN,
   drop:a.partner?scaled(a.drop,a.scale*(1-a.cancelled)):a.components?scaled(a.drop,a.scale):null,
   partner:a.partner?scaled(a.partner,a.scale):null,
-  partnerKeep:a.partner?scaled(a.partnerKeep,a.scale):null,
+  partnerKeep:a.partner?ORIGIN:null,
   partnerDrop:a.partner?scaled(a.partnerDrop,a.scale*(1-a.cancelled)):null,
   cancelled:a.partner?a.cancelled:0,
  }:null;
@@ -153,6 +185,7 @@ export function runScene(input:RunSceneInput):RunScene{
    chain.push(cursor);
   }
   if(chain.length<2)chain=null;
+  else if(stage==='limit')chain=resample(chain,LIMIT_CHAIN);
  }
  return {stage,kind,closed,pieces,tones,selected,partner,open,split,seams,filled,arrows,chain};
 }

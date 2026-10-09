@@ -1,5 +1,5 @@
 import {describe,expect,it} from 'vitest';
-import {candidates,collisions,placeLabels,type Box,type Label} from '../src/diagrams/labels';
+import {candidates,collisions,nearestOnBox,placeLabels,reachCandidates,segmentBoxes,type Box,type Label} from '../src/diagrams/labels';
 const box=(x:number,y:number,width=30,height=12):Box=>({x,y,width,height});
 const moved=(labels:readonly Label[],nudges:{dx:number;dy:number}[]):Box[]=>
  labels.map((l,i)=>({...l.box,x:l.box.x+nudges[i].dx,y:l.box.y+nudges[i].dy}));
@@ -105,5 +105,65 @@ describe('reporting what still overlaps',()=>{
   expect(collisions([box(0,0),box(100,100),box(200,200)])).toEqual([]);
   expect(collisions([box(0,0),box(5,5),box(300,300)])).toEqual([[0,1]]);
   expect(collisions([box(0,0),box(5,5),box(8,2)])).toHaveLength(3);
+ });
+});
+describe('a label with a reach',()=>{
+ // Past about 24px a label stops naming what it was put beside: an axis letter's neighbour pushed
+ // into empty space, a "+" nudged off the rod beside an infinity sign. With a reach, the placer
+ // tries the far side of what the label names, and failing that leaves it out.
+ it('never moves a label further than its reach, in any direction',()=>{
+  for(const n of reachCandidates(24))expect(Math.hypot(n.dx,n.dy)).toBeLessThanOrEqual(24+1e-9);
+  expect(reachCandidates(24)[0]).toEqual({dx:0,dy:0});
+ });
+ it('tries the far side of the point it names before giving up',()=>{
+  // An obstacle covering everything within reach on the right of the mirror point, nothing on the left.
+  const wall=box(100,40,120,80);
+  const labels:Label[]=[{box:box(120,74,24,12),mirror:{x:100,y:80}}];
+  const [n]=placeLabels(labels,{frame:FRAME,obstacles:[wall],maxShift:24});
+  expect(n.hidden).toBeFalsy();
+  const [b]=moved(labels,[n]);
+  expect(b.x+b.width).toBeLessThanOrEqual(100);
+  expect(collisions([b,wall])).toEqual([]);
+ });
+ it('then tries the places it is given, in order',()=>{
+  const wall=box(60,40,200,80);
+  const labels:Label[]=[{box:box(120,74,24,12),mirror:{x:130,y:80},alternates:[box(300,74,24,12)]}];
+  const [n]=placeLabels(labels,{frame:FRAME,obstacles:[wall],maxShift:24});
+  expect(moved(labels,[n])[0].x).toBeGreaterThanOrEqual(276);
+ });
+ it('hides a label that has nowhere to go, rather than floating it away',()=>{
+  const wall=box(0,0,720,430);
+  const [n]=placeLabels([{box:box(300,200)}],{frame:FRAME,obstacles:[wall],maxShift:24});
+  expect(n.hidden).toBe(true);
+ });
+ it('but never the one it must keep, and a hidden label takes up no room',()=>{
+  const wall=box(250,150,200,140);
+  const out=placeLabels([{box:box(300,200)},{box:box(310,205),keep:true}],{frame:FRAME,obstacles:[wall],maxShift:24});
+  expect(out[0].hidden).toBe(true);
+  expect(out[1].hidden).toBeFalsy();
+ });
+ it('without a reach, nothing is ever hidden: the old behaviour',()=>{
+  const wall=box(0,0,720,430);
+  expect(placeLabels([{box:box(300,200)}],{frame:FRAME,obstacles:[wall]})[0].hidden).toBeFalsy();
+ });
+});
+const PAGE:Box={x:0,y:0,width:720,height:430};
+describe('strokes as obstacles',()=>{
+ it('covers a segment with small squares along it, not its bounding box',()=>{
+  const out=segmentBoxes({x:0,y:0},{x:80,y:80},6,PAGE);
+  // A label sitting in the corner of the diagonal's bounding box is clear of it.
+  expect(collisions([...out,box(60,5,14,10)]).filter(([,j])=>j===out.length)).toEqual([]);
+  for(const b of out)expect(b.width).toBe(6);
+  expect(out.length).toBeGreaterThan(10);
+ });
+ it('keeps only the part inside the frame, so a line running a mile off the page costs nothing extra',()=>{
+  const out=segmentBoxes({x:-100000,y:200},{x:100000,y:200},4,PAGE,[],8);
+  expect(out.length).toBeLessThan(100);
+  for(const b of out){expect(b.x).toBeGreaterThanOrEqual(-2);expect(b.x).toBeLessThanOrEqual(720);}
+  expect(segmentBoxes({x:-50,y:-50},{x:-10,y:-10},4,PAGE)).toEqual([]);
+ });
+ it('a leader ends on the nearest edge of its label',()=>{
+  expect(nearestOnBox(box(100,100,30,12),{x:80,y:90})).toEqual({x:100,y:100});
+  expect(nearestOnBox(box(100,100,30,12),{x:115,y:200})).toEqual({x:115,y:112});
  });
 });
