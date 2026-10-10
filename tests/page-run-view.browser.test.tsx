@@ -272,8 +272,10 @@ describe('a short window', () => {
    window.scrollTo(0, 0);
   }
  }, 60000);
- it('a phone on its side fits the drawing and the transport together', async () => {
-  const view = await openLesson('bisector', 844, 390);
+ // Wide enough (844 by 390), the board sits beside the figure, as on a projector zoomed for the room, and
+ // the answer is the board's; narrower (667 by 375), the transport carries it.
+ for (const [w, h, where] of [[844, 390, '.ew-result.is-shown'], [667, 375, '.bp-answer']] as const) it(`a phone on its side fits the drawing and the transport together, at ${w} by ${h}`, async () => {
+  const view = await openLesson('bisector', w, h);
   fireEvent.click(view.getByRole('button', {name: 'Watch it build'}));
   fireEvent.click(view.getByRole('button', {name: 'Pause'}));
   await waitFor(() => {
@@ -284,7 +286,7 @@ describe('a short window', () => {
   // and the run used to end on the Shrink sentence with the answer a screen and a half below.
   scrubToEnd(view);
   await waitFor(() => {
-   const answer = view.container.querySelector<HTMLElement>('.bp-answer');
+   const answer = view.container.querySelector<HTMLElement>(where);
    expect(answer?.checkVisibility(), 'no answer on screen').toBe(true);
    expect(onScreen(answer!.getBoundingClientRect()), 'the answer is off screen').toBe(true);
   }, {timeout: 4000});

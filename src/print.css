@@ -49,6 +49,8 @@
   .ew-panel .lucide-chevron-down,
   /* An instruction for the screen ("choose one to watch it on the figure"), not for paper. */
   .ew-lede,
+  /* Where the lesson leads, and the laws link: buttons, for the screen. */
+  .exp-related,
   .skip-link { display: none !important; }
   /* The derivation prints whole, wherever the run had got to: paper has no "still to come". */
   .db-reveal, .db-then { grid-template-rows: 1fr !important; opacity: 1 !important; }

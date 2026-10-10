@@ -1,10 +1,10 @@
 'use client';
 import {memo,useCallback,useId,useInsertionEffect,useMemo,useState,useEffect,useRef,type CSSProperties} from 'react';
 import {useReducedMotion} from 'motion/react';
-import {ChevronLeft,CircleHelp,Download,GitBranch,Play,Printer,RotateCcw,Sun,Moon,PanelLeft,MoreHorizontal} from 'lucide-react';
+import {BookOpen,ChevronLeft,ChevronRight,CircleHelp,Download,GitBranch,Play,Printer,RotateCcw,Sun,Moon,PanelLeft,MoreHorizontal} from 'lucide-react';
 import {DropdownMenu,DropdownMenuTrigger,DropdownMenuContent,DropdownMenuItem} from '@/components/ui/dropdown-menu';
 import {Sidebar,SidebarContent,SidebarProvider,SidebarMenu,SidebarMenuItem,SidebarMenuButton} from '@/components/ui/sidebar';
-import {Tabs,TabsList,TabsTrigger} from '@/components/ui/tabs';
+import {Tabs,TabsContent,TabsList,TabsTrigger} from '@/components/ui/tabs';
 import {Slider} from '@/components/ui/slider';
 import {Dialog,DialogContent,DialogTitle,DialogDescription} from '@/components/ui/dialog';
 import {PROBLEMS,getProblem} from '../problems/definitions';
@@ -26,6 +26,7 @@ import {MathText} from '../components/Math';
 import {Assessment} from '../components/Assessment';
 import {artifactHtml,downloadArtifact,figureCopy,lessonArtifact,printLesson} from '../state/artifact';
 import {Hint} from '../components/Hint';
+import {LawsDialog,LawsReference} from '../components/Laws';
 import './explorer.css';
 import '../print.css';
 export type Mode=ExploreMode;
@@ -116,7 +117,12 @@ function confusions(p:Problem){return p.steps.flatMap((s,i)=>(s.fields??[]).map(
 // "3 meters", printed nowhere, since the page shows no numerals.
 const METERS:Intl.NumberFormatOptions={style:'unit',unit:'meter',unitDisplay:'long'};
 const DEGREES:Intl.NumberFormatOptions={style:'unit',unit:'degree',unitDisplay:'long',maximumFractionDigits:1};
-function Range({label,value,min,max,step=1,onChange,describe,onDescribe,format}:{label:string;value:number;min:number;max:number;step?:number;onChange:(n:number,reason?:string)=>void;describe?:string;onDescribe?:(k:string)=>void;format?:Intl.NumberFormatOptions}){const id=useId();const [symbol,name]=splitSymbol(label);const point=(on:boolean)=>{if(describe)onDescribe?.(on?describe:'')};return <div className="exp-range" onPointerEnter={()=>point(true)} onPointerLeave={()=>point(false)} onFocusCapture={()=>point(true)} onBlurCapture={()=>point(false)}><div><span>{symbol&&<i className="exp-sym">{symbol}</i>}<span className="exp-name">{name}</span></span></div><span id={id} className="sr-only">{label}</span><Slider aria-label={label} aria-labelledby={id} format={format} value={[value]} min={min} max={max} step={step} onValueChange={(v,details)=>onChange(Array.isArray(v)?v[0]:v,details?.reason)}/></div>}
+// AND THE CHARGE WAS A BARE NUMBER. Lengths read "3 meters" and the arc "180 degrees", but Q, λ, σ and λ₀
+// read "2", or "minus 0.1" -- of what, the reader was not told. Intl has no unit for charge, so these say
+// their own, in the units the model is written in (symbolic/physics.ts): one and many.
+type Spoken=readonly [one:string,many:string];
+const NANOCOULOMBS:Spoken=['nanocoulomb','nanocoulombs'],PER_METER:Spoken=['nanocoulomb per meter','nanocoulombs per meter'],PER_SQUARE_METER:Spoken=['nanocoulomb per square meter','nanocoulombs per square meter'];
+function Range({label,value,min,max,step=1,onChange,describe,onDescribe,format,unit}:{label:string;value:number;min:number;max:number;step?:number;onChange:(n:number,reason?:string)=>void;describe?:string;onDescribe?:(k:string)=>void;format?:Intl.NumberFormatOptions;unit?:Spoken}){const id=useId();const [symbol,name]=splitSymbol(label);const point=(on:boolean)=>{if(describe)onDescribe?.(on?describe:'')};const spoken=useMemo(()=>unit?(text:string,n:number)=>`${text} ${unit[Math.abs(n)===1?0:1]}`:undefined,[unit]);return <div className="exp-range" onPointerEnter={()=>point(true)} onPointerLeave={()=>point(false)} onFocusCapture={()=>point(true)} onBlurCapture={()=>point(false)}><div><span>{symbol&&<i className="exp-sym">{symbol}</i>}<span className="exp-name">{name}</span></span></div><span id={id} className="sr-only">{label}</span><Slider aria-label={label} aria-labelledby={id} format={format} getAriaValueText={spoken} value={[value]} min={min} max={max} step={step} onValueChange={(v,details)=>onChange(Array.isArray(v)?v[0]:v,details?.reason)}/></div>}
 /** NO CHARGE IS NOT A LESSON. The charge slider runs through zero, and at zero every sentence the
  * run says -- this charge all has one sign, its mirror piece acts just as hard -- is about nothing,
  * over a figure with no field in it. So the slider steps over zero rather than stopping on it:
@@ -140,17 +146,25 @@ function useSteady<A extends unknown[],R>(fn:(...args:A)=>R):(...args:A)=>R{cons
 /** The board re-renders when what it shows changes, not whenever the page does. */
 const Workbench=memo(EquationWorkbench);
 export default function Explorer(){
- const [id,setId]=useState<ProblemId>('bisector');const [path,setPath]=useState('angular');const [mode,setMode]=useState<Mode>('divide');const [paramsMap,setParamsMap]=useState<Partial<Record<ProblemId,Params>>>({});const [dark,setDark]=useState(false);const [ready,setReady]=useState(false);const [storageOK,setStorageOK]=useState(true);const [onboarding,setOnboarding]=useState(false);const [seen,setSeen]=useState(false);const [library,setLibrary]=useState(false);const [sidebarOpen,setSidebarOpen]=useState(true);const [showNumbers,setShowNumbers]=useState(false);const [components,setComponents]=useState(false);const [pair,setPair]=useState(false);const [progress,setProgress]=useState(1);const [selected,setSelected]=useState<number|null>(null);const [bounds,setBounds]=useState<[number,number]>([0,100]);const [limitsOpen,setLimitsOpen]=useState(false);const [slipsOpen,setSlipsOpen]=useState(false);const [limitIndex,setLimitIndex]=useState(0);const [highlight,setHighlight]=useState('');const [status,setStatus]=useState('');const [building,setBuilding]=useState(false);const [runAt]=useState(runClock);const [buildIndex,setBuildIndex]=useState(0);const [buildShown,setBuildShown]=useState(false);const [runPiece,setRunPiece]=useState(.7);const build=useRef<{stop:()=>void}|null>(null);const clock=useRef({at:0,stopAt:0});const buildC=useRef(-1);const buildStep=useRef(-1);const reduced=useReducedMotion();const tourButton=useRef<HTMLButtonElement>(null),watchButton=useRef<HTMLButtonElement>(null),walk=useRef<HTMLDivElement>(null),reveal=useRef(false);
+ const [id,setId]=useState<ProblemId>('bisector');const [path,setPath]=useState('angular');const [mode,setMode]=useState<Mode>('divide');const [paramsMap,setParamsMap]=useState<Partial<Record<ProblemId,Params>>>({});const [dark,setDark]=useState(false);const [ready,setReady]=useState(false);const [storageOK,setStorageOK]=useState(true);const [onboarding,setOnboarding]=useState(false);const [seen,setSeen]=useState(false);const [library,setLibrary]=useState(false);const [sidebarOpen,setSidebarOpen]=useState(true);const [showNumbers,setShowNumbers]=useState(false);const [components,setComponents]=useState(false);const [pair,setPair]=useState(false);const [progress,setProgress]=useState(1);const [selected,setSelected]=useState<number|null>(null);const [bounds,setBounds]=useState<[number,number]>([0,100]);const [limitsOpen,setLimitsOpen]=useState(false);const [slipsOpen,setSlipsOpen]=useState(false);const [limitIndex,setLimitIndex]=useState(0);const [highlight,setHighlight]=useState('');const [status,setStatus]=useState('');const [building,setBuilding]=useState(false);const [runAt]=useState(runClock);const [buildIndex,setBuildIndex]=useState(0);const [buildShown,setBuildShown]=useState(false);const [runPiece,setRunPiece]=useState(.7);const [laws,setLaws]=useState(false);const toolsButton=useRef<HTMLButtonElement>(null);const build=useRef<{stop:()=>void}|null>(null);const clock=useRef({at:0,stopAt:0});const buildC=useRef(-1);const buildStep=useRef(-1);const reduced=useReducedMotion();const routeLabel=useId();const tourButton=useRef<HTMLButtonElement>(null),watchButton=useRef<HTMLButtonElement>(null),walk=useRef<HTMLDivElement>(null),reveal=useRef(false);
  // Held per lesson: `getProblem` builds the infinite line afresh on every call, and a new problem
  // object is a changed prop to everything memoised below.
  const p=useMemo(()=>getProblem(id,'angular'),[id]),derivationProblem=useMemo(()=>getProblem(id,path),[id,path]),params=paramsMap[id]??DEFAULT_PARAMS;const continuum=params.continuum;const count=partitionCount(params.slices,continuum);const geom=p.geometry,scalar=p.quantity==='V';const isInfinite=['infinite','semi','sheet'].includes(geom);const isRound=['ring','disk','arc'].includes(geom);const lim=p.limits[Math.min(limitIndex,p.limits.length-1)];
  // Storage is an external system; initialize after hydration and surface write failures without aborting the lesson.
+ // A LINK IS THE WHOLE LESSON IT NAMES. Its values used to be laid over what the student had saved for
+ // that lesson -- and a link leaves out every value at its default, so each of those came from the
+ // student's own storage: a teacher's ?p=ring&distance=4.5 opened, for a student who had been there before
+ // class, with the charge reversed and twelve pieces, the field pointing down against up on the
+ // projector, and their address bar then rewritten with the mixture. Values a link does not give are the
+ // defaults the teacher saw. A reload is unchanged, since the address is rewritten from the state on
+ // every settle. A link with values but no lesson is the first lesson's, which is the only one whose
+ // address used to leave its name out (serializeAssignment).
  // A teacher's link no longer counts as having been here: the students it is sent to are exactly the
  // first-time readers the start-here cue is for. It used to hide the cue as well as the tour, back when
  // the tour opened by itself; the cue blocks nothing -- it is hidden from screen readers, cannot be
  // clicked, and goes at the first input.
  // oxlint-disable-next-line react/react-compiler
- useEffect(()=>{try{const raw=localStorage.getItem(STORAGE);const parsed=raw?JSON.parse(raw):null;const saved=parsed&&typeof parsed==='object'&&!Array.isArray(parsed)?parsed:{};const pm:Partial<Record<ProblemId,Params>>={};for(const pr of PROBLEMS)if(saved.params?.[pr.id])pm[pr.id]=cleanParams(saved.params[pr.id]);const url=parseAssignment(typeof location==='undefined'?'':location.search);if(url.id&&isReady(url.id))setId(url.id);else if(PROBLEMS.some(p=>p.id===saved.id)&&isReady(saved.id))setId(saved.id);setDark(saved.dark===true);setShowNumbers(saved.showNumbers===true);setSidebarOpen(saved.sidebarOpen!==false);if(url.params){const target=url.id??(PROBLEMS.some(p=>p.id===saved.id)?saved.id as ProblemId:'bisector');pm[target]=cleanParams({...(pm[target]??DEFAULT_PARAMS),...url.params});}setParamsMap(pm);if(url.mode)setMode(url.mode);if(url.pair)setPair(true);if(url.components)setComponents(true);setSeen(!!saved.seen);setOnboarding(false);}catch{setStorageOK(false);setOnboarding(true)}setReady(true);return()=>{build.current?.stop();build.current=null}},[]);
+ useEffect(()=>{try{const raw=localStorage.getItem(STORAGE);const parsed=raw?JSON.parse(raw):null;const saved=parsed&&typeof parsed==='object'&&!Array.isArray(parsed)?parsed:{};const pm:Partial<Record<ProblemId,Params>>={};for(const pr of PROBLEMS)if(saved.params?.[pr.id])pm[pr.id]=cleanParams(saved.params[pr.id]);const url=parseAssignment(typeof location==='undefined'?'':location.search);const linked=url.id??(url.params?'bisector':undefined);if(linked&&isReady(linked)){setId(linked);pm[linked]=cleanParams({...DEFAULT_PARAMS,...url.params})}else if(PROBLEMS.some(p=>p.id===saved.id)&&isReady(saved.id))setId(saved.id);setDark(saved.dark===true);setShowNumbers(saved.showNumbers===true);setSidebarOpen(saved.sidebarOpen!==false);setParamsMap(pm);if(url.mode)setMode(url.mode);if(url.pair)setPair(true);if(url.components)setComponents(true);setSeen(!!saved.seen);setOnboarding(false);}catch{setStorageOK(false);setOnboarding(true)}setReady(true);return()=>{build.current?.stop();build.current=null}},[]);
  // oxlint-disable-next-line react/react-compiler -- Synchronize persisted preferences; quota/security errors update the save indicator.
  useEffect(()=>{document.documentElement.classList.toggle('dark',dark)},[dark]);
  // Paper is white whatever the screen is. The print sheet keeps backgrounds (print-color-adjust:
@@ -177,11 +191,29 @@ export default function Explorer(){
  // saved continuum=1, and every later visit opened on a smooth rod "In the limit" with the board still
  // saying ΔQ. While the run is open, both write the lesson as closing the run puts it back.
  useEffect(()=>{if(!ready)return;const t=setTimeout(()=>{try{const saved=buildShown?{...paramsMap,[id]:{...params,continuum:0}}:paramsMap;localStorage.setItem(STORAGE,JSON.stringify({id,dark,params:saved,seen,showNumbers,sidebarOpen}))}catch{setStorageOK(false)}},SETTLE);return()=>clearTimeout(t)},[id,dark,paramsMap,params,ready,seen,showNumbers,sidebarOpen,buildShown]);
+ // THE ADDRESS ALWAYS NAMES ITS LESSON. The first lesson at its defaults wrote no query at all, so a
+ // teacher who shared the address bar for Finite line shared the bare home page, and every student who had
+ // used the site before opened their own last lesson instead.
+ //
+ // AND A NEW LESSON IS A NEW PLACE IN THE HISTORY. Every change replaced the entry, so Back -- the
+ // Chromebook's back key, a two-finger swipe -- went from the third lesson straight out of Field Builder
+ // to the classroom page that linked it. A change of lesson now pushes an entry, and a slider still only
+ // replaces the one it is in: one push per lesson, nowhere near the browser's rate limit.
  useEffect(()=>{if(!ready||typeof history==='undefined')return;
-  const t=setTimeout(()=>{const q=serializeAssignment(buildShown?{id,params:{...params,continuum:0}}:{id,mode,params,pair,components});const next=q?`?${q}`:location.pathname||'/';
+  const t=setTimeout(()=>{const next=`?${serializeAssignment(buildShown?{id,params:{...params,continuum:0}}:{id,mode,params,pair,components})||`p=${id}`}`;
    // Still guarded: a throw here would reach the error boundary and blank the lesson.
-   if(`${location.search}`!==(q?`?${q}`:''))try{history.replaceState(null,'',next)}catch{/* rate-limited or blocked: the URL is a convenience, the lesson is not */}},SETTLE);
+   if(location.search!==next)try{const shown=parseAssignment(location.search).id;if(shown&&shown!==id)history.pushState(null,'',next);else history.replaceState(null,'',next)}catch{/* rate-limited or blocked: the URL is a convenience, the lesson is not */}},SETTLE);
   return()=>clearTimeout(t)},[ready,id,mode,params,pair,components,buildShown]);
+ // Back and Forward return to the lesson the entry names, as it was then: the entry holds every value that
+ // differed from the defaults when the reader left it.
+ const revisit=useSteady(()=>{
+  const url=parseAssignment(location.search),to=url.id??(url.params?'bisector':undefined);
+  if(!to||!isReady(to))return;
+  if(to!==id)changeDistribution(to);
+  setParamsMap(old=>({...old,[to]:cleanParams({...DEFAULT_PARAMS,...url.params})}));
+  if(url.mode)setMode(url.mode);if(url.pair)setPair(true);if(url.components)setComponents(true);
+ });
+ useEffect(()=>{window.addEventListener('popstate',revisit);return()=>window.removeEventListener('popstate',revisit)},[revisit]);
  // Each lesson names its own tab, so history, the tab strip and a screen reader's window title can
  // tell a ring from a sheet.
  useEffect(()=>{document.title=`${p.title} · Field Builder`},[p.title]);
@@ -217,7 +249,10 @@ export default function Explorer(){
  // It now sets all five in one cell and shows the current one, the way it already sets its sentences.
  // What cancels carries the cancellation itself above what survives, as the board does: with only
  // ΔE_x under the heading "What cancels", a phone reader read ΔE_x as the part that cancels.
- const playerSteps=useMemo(()=>boardLines(p).map(line=>line.cancels?[line.cancels,line.tex]:[line.tex]),[p]);
+ // And a component that survives beside the one being built is set under it, as the board sets it: on the
+ // lessons with no mirror partner, What cancels said both parts survive and showed one of them, and E_y
+ // then arrived in the answer with no line for it.
+ const playerSteps=useMemo(()=>boardLines(p).map(line=>[...(line.cancels?[line.cancels]:[]),line.tex,...(line.also?[{also:line.also}]:[])]),[p]);
  // And once the pieces have shrunk away, how the integral comes out and its answer -- every line of
  // the answer, not the first: on the lessons whose answer has two components, the figure's arrow
  // labelled E leans, and an answer of E_x alone said it pointed along x. The answer is stated whether
@@ -233,7 +268,12 @@ export default function Explorer(){
  const figureBuild=useMemo(()=>buildOpen?{key:buildNow.key,name:buildNow.name,index:buildIndex,count:stages.length,paused:!building,clock:runAt,start:stageStart(stages,buildIndex),seconds:buildNow.seconds,piece:Math.min(count-1,Math.floor(runPiece*count))}:undefined,[buildOpen,buildNow,buildIndex,stages,building,runAt,runPiece,count]);
  const boardBuild=useMemo(()=>({open:buildOpen,index:buildIndex,playing:building,settled:cutAway}),[buildOpen,buildIndex,building,cutAway]);
  const updateParams=useCallback((partial:Partial<Params>)=>{setParamsMap(old=>({...old,[id]:{...(old[id]??DEFAULT_PARAMS),...partial}}));},[id]);
- function stop(){build.current?.stop();build.current=null;setBuilding(false)}
+ /** Whether the run came to rest by itself -- played to the end of what it was asked to play -- rather
+  * than being stopped: the board looks again at the one and leaves the other alone (see the follow). */
+ const stoppedByRun=useRef(false);
+ /** A drag along the run's bar is under way: it moves the run without narrating or following it. */
+ const [scrubbing,setScrubbing]=useState(false);const quiet=useRef(false);
+ function stop(){build.current?.stop();build.current=null;stoppedByRun.current=false;setBuilding(false)}
  function changeDistribution(next:string){stop();setId(next as ProblemId);setSelected(null);setProgress(1);setBounds([0,100]);setLibrary(false);setLimitIndex(0);setStatus('');setHighlight('');endBuild();}
  // WATCH IT BUILD. The five stages are data (`buildRun.ts`); this is the projector. It drives
  // exactly the state the manual controls drive -- mode, the mirror partner, how much of the sum
@@ -258,7 +298,10 @@ export default function Explorer(){
   // speech against stages of five to eight, so one run queued over a minute of narration for half a
   // minute of figure and the voice fell further behind the picture at every stage. The caption is
   // read when the run holds still -- the rule the screen keeps, short while moving, whole when held.
-  if(index!==buildStep.current){buildStep.current=index;setStatus(`${stage.name}. ${stage.line}`)}
+  // Not while the bar is being dragged: a drag from the first stage to the last put the full caption of
+  // every stage it crossed into the live region, about a hundred and fifty words queued for a second of
+  // movement. The stage it is let go on is read whole, once.
+  if(index!==buildStep.current){buildStep.current=index;if(!quiet.current)setStatus(`${stage.name}. ${stage.line}`)}
  }
  /** The run has stopped where it is: say the whole of what this stage shows.
   *
@@ -269,7 +312,10 @@ export default function Explorer(){
   * read as math where it sits. */
  function holdStatus(ended=false){
   const caption=stageAt(stages,runAt.get()).stage.caption;
-  const under=typeof matchMedia==='function'&&matchMedia('(max-width:1000px)').matches;
+  // Where the answer is depends on the layout, not on a width: on a short wide window the board stays
+  // beside the figure, and only there is it held to the window while the run is open.
+  const panel=document.querySelector<HTMLElement>('.explorer-app .exp-workspace>.ew-panel');
+  const under=!!panel&&getComputedStyle(panel).overflowY!=='auto';
   setStatus(ended?`${caption} The answer for the whole distribution is now ${under?'under the figure':'at the foot of the board'}.`:caption);
  }
  /** Play the run from `from` seconds until `until`, then hold there.
@@ -315,10 +361,11 @@ export default function Explorer(){
  function openRun(){if(buildShown)return;const i=geom==='ring'?Math.floor(count*(1-.5/(2*Math.PI)))%count:geom==='bisector'?count-1:geom==='sheet'?sheetPiece(count,params.distance):count-1-Math.floor((count-1)/4);setRunPiece((i+.5)/count);setBounds([0,100]);setBuildShown(true)}
  function playBuild(from:number,until:number){
   build.current?.stop();build.current=null;setHighlight('');openRun();
-  setBuilding(true);
+  setBuilding(true);setScrubbing(false);
   if(from===0)buildC.current=-1;
   clock.current={at:from,stopAt:until};
-  const done=()=>{build.current=null;setBuilding(false);holdStatus(clock.current.at>=totalSeconds(stages)-.01)};
+  stoppedByRun.current=false;
+  const done=()=>{build.current=null;stoppedByRun.current=true;setBuilding(false);holdStatus(clock.current.at>=totalSeconds(stages)-.01)};
   // REDUCED MOTION IS NOT "SKIP THE LESSON". It used to be: the run jumped straight to its last
   // frame and stopped, and because it was then already at the end, Play restarted it at the end
   // and landed on the same frame again. The setting asks for no SMOOTH movement, not for no
@@ -355,7 +402,7 @@ export default function Explorer(){
   * window, the page moves up just far enough to show it, never so far that the figure's top goes. */
  function watch(){reveal.current=true;runBuild()}
  /** Go to a moment and hold still there: a click on a stage, or a drag along the bar. */
- function seekBuild(at:number){stop();openRun();setHighlight('');applyBuild(Math.max(0,Math.min(totalSeconds(stages),at)));holdStatus()}
+ function seekBuild(at:number,dragging=false){stop();openRun();setHighlight('');setScrubbing(dragging);quiet.current=dragging;applyBuild(Math.max(0,Math.min(totalSeconds(stages),at)));quiet.current=false;if(!dragging)holdStatus()}
  /** Play one stage from its start and stop at its end -- from the derivation's lines and the
   * previous/next buttons, which is how a reader takes the argument one step at a time. Stopping a
   * hair before the end keeps the stage's own finished frame on screen, not the next one's first. */
@@ -395,7 +442,9 @@ export default function Explorer(){
   const player=walk.current;if(!player)return;
   const card=player.closest('.exp-diagram-card'),drawing=card?.querySelector('.cd-stage')??card;
   const over=player.getBoundingClientRect().bottom+16-window.innerHeight;
-  const keep=settledRun?player.querySelector('.bp-bar')??drawing:drawing;
+  // Only where the transport carries the answer: beside the board, on a short wide window, it does not.
+  const answer=player.querySelector('.bp-answer'),carries=!!answer&&answer.getClientRects().length>0;
+  const keep=settledRun&&carries?player.querySelector('.bp-bar')??drawing:drawing;
   const room=Math.max(0,(keep?.getBoundingClientRect().top??0)-12);
   const panel=opening?document.querySelector<HTMLElement>('.explorer-app .exp-workspace>.ew-panel'):null;
   const style=panel?getComputedStyle(panel):null;
@@ -409,14 +458,17 @@ export default function Explorer(){
   if(to>y+1){window.scrollTo({top:to,behavior:reduced?'auto':'smooth'});glide.current={to,until:now+900}}
  });
  const wasOpen=useRef(false);
+ // Not while the bar is being dragged: the page moving under a drag moves the bar out from under the
+ // pointer. It looks once, when the drag is let go.
  useEffect(()=>{
   if(!buildOpen){wasOpen.current=false;return}
+  if(scrubbing)return;
   const opening=!wasOpen.current;wasOpen.current=true;
   // Opened from the button: focus moves to the play button, the control that was just pressed, now
   // in its new place.
   if(reveal.current){reveal.current=false;walk.current?.querySelector<HTMLButtonElement>('.bp-play')?.focus({preventScroll:true})}
   revealRun(opening);
- },[buildOpen,buildIndex,settledRun,revealRun]);
+ },[buildOpen,buildIndex,settledRun,scrubbing,revealRun]);
  // THE BOARD FOLLOWS THE RUN WHERE IT SITS BESIDE THE FIGURE. The panel grows from about seven
  // hundred pixels to sixteen hundred as its lines arrive, so on a laptop its sticky top could not keep
  // the current line on screen: during Add them up and Shrink them the line being written was below
@@ -433,8 +485,31 @@ export default function Explorer(){
  // every laptop. Seeking never showed it, because a seek holds still from the start. What a held board
  // shows is the board's to decide, so the follow looks again whenever the run stops, and takes in a
  // step's foot, not only its top.
+ //
+ // BUT ONLY WHEN THE RUN STOPS ITSELF. Looking again whenever the run stopped included the reader
+ // stopping it: a reader who wheeled the board back to an earlier line and pressed Pause to read it had
+ // the board glide away from it, back to the current step, taking what they had paused for. The board
+ // now looks when the run moves to another stage, settles, starts playing, or comes to rest by itself --
+ // never when the reader pauses it, picks a piece, or drags along the bar (it looks once the drag ends).
+ //
+ // AND AT WHAT IS STILL OPENING. At the settle the answer appears while the line above it -- the Shrink
+ // step's finished integral -- eases open over the next half second, so the answer was placed in view and
+ // then pushed under the panel's foot, and chased back up when the second look came 650 ms later: at the
+ // run's climax the answer arrived, sank out of sight and glided back. A line easing open already holds
+ // its full height inside its clipped row, so the follow counts what each row has still to grow and aims
+ // where the lines will be, not where they are.
+ //
+ // AND THE ROOM UNDER THE BOARD IS ONLY WHAT THE LINE NEEDS. The spacer that lets a line be brought to
+ // the top as it opens was a whole window tall for the whole run (explorer.css), so a reader who wheeled
+ // past the answer found the board all but empty: the last card at the top and five hundred pixels of
+ // nothing. The follow sets it to what the place it scrolls to needs, and no more.
+ const followed=useRef({index:-1,settled:false});
  useEffect(()=>{
-  if(!buildOpen)return;
+  if(!buildOpen){followed.current={index:-1,settled:false};document.querySelector<HTMLElement>('.explorer-app .exp-workspace>.ew-panel')?.style.removeProperty('--run-room');return}
+  if(scrubbing)return;
+  const moved=followed.current.index!==buildIndex||followed.current.settled!==settledRun;
+  followed.current={index:buildIndex,settled:settledRun};
+  if(!moved&&!building&&!stoppedByRun.current)return;
   const follow=()=>{
    const panel=document.querySelector<HTMLElement>('.explorer-app .exp-workspace>.ew-panel');
    if(!panel||getComputedStyle(panel).overflowY!=='auto')return;
@@ -443,36 +518,60 @@ export default function Explorer(){
    const box=panel.getBoundingClientRect(),view=Math.min(panel.clientHeight,window.innerHeight-box.top-panel.clientTop);
    const at=(el:Element)=>{const r=el.getBoundingClientRect();return {top:r.top-box.top-panel.clientTop+panel.scrollTop,bottom:r.bottom-box.top-panel.clientTop+panel.scrollTop}};
    const step=panel.querySelector('.db-step.is-here'),result=settledRun?panel.querySelector('.ew-result.is-shown'):null;
+   // Each row still easing open, where it is and how much it has still to grow.
+   const growing=[...panel.querySelectorAll<HTMLElement>('.db-then.is-shown>.db-then-in,.db-step:not(.is-next) .db-reveal>.db-body')].map(n=>({top:at(n).top,more:Math.max(0,n.scrollHeight-n.clientHeight)})).filter(g=>g.more>1);
+   /** Where a point now on the board will be once every row above it has opened. */
+   const later=(y:number)=>y+growing.reduce((sum,g)=>g.top<y?sum+g.more:sum,0);
    let to=panel.scrollTop;
-   if(step){const s=at(step);
+   if(step){const now=at(step),s={top:later(now.top),bottom:later(now.bottom)};
     if(s.top<panel.scrollTop||s.top-panel.scrollTop>view*.4)to=Math.max(0,s.top-72);
     // Its foot too, as far as its head allows.
     if(s.bottom-to>view-16)to=Math.max(to,Math.min(s.top-16,s.bottom+16-view));
    }
    // The answer outranks the step's head: if the two cannot both be in view, the answer is.
-   if(result){const r=at(result);to=Math.max(to,r.bottom+16-view)}
+   if(result){to=Math.max(to,later(at(result).bottom)+16-view)}
+   // Room under the board's last card for the board to reach `to` (or to stay where it is, while it
+   // glides there) -- what the board does not have of it yet -- and not a pixel more.
+   const last=panel.lastElementChild,end=last?at(last).bottom:panel.scrollHeight;
+   panel.style.setProperty('--run-room',`${Math.ceil(Math.max(0,Math.max(to,panel.scrollTop)+view-end))}px`);
    if(Math.abs(to-panel.scrollTop)>2)panel.scrollTo({top:to,behavior:reduced?'auto':'smooth'});
   };
   follow();
-  const later=window.setTimeout(follow,reduced?0:650);
-  return()=>window.clearTimeout(later);
- },[buildOpen,buildIndex,settledRun,building,reduced]);
+  const again=window.setTimeout(follow,reduced?0:650);
+  return()=>window.clearTimeout(again);
+ },[buildOpen,buildIndex,settledRun,building,scrubbing,reduced]);
  // Closing the run takes away the button that had the focus. It goes back to Watch it build, the
  // button the run replaced -- not to the top of the document, which is where it fell, leaving a
  // keyboard reader with no visible focus and a screen reader with no place. Only for Close itself:
  // changing lesson or re-cutting the charge also closes the run, and must not pull the focus.
  // Without scrolling, since the button is normally in view -- except on a phone on its side, where the
  // run had taken the page down to the transport and the focused button sat above the window with only
- // its ring's lower edge showing. There the page comes back to it.
+ // its ring's lower edge showing. There the page comes back to it -- with room above it for its ring,
+ // which a scroll that only brought the button itself to the window's edge left cut off.
  const refocus=useRef(false);
- useEffect(()=>{if(!buildOpen&&refocus.current){refocus.current=false;const b=watchButton.current;b?.focus({preventScroll:true});if(b&&b.getBoundingClientRect().top<0)b.scrollIntoView({block:'nearest',behavior:'auto'})}},[buildOpen]);
+ useEffect(()=>{if(!buildOpen&&refocus.current){refocus.current=false;const b=watchButton.current;b?.focus({preventScroll:true});const top=b?.getBoundingClientRect().top??0;if(top<12)window.scrollBy({top:Math.floor(top)-12,behavior:'auto'})}},[buildOpen]);
  // Steady versions of the handlers the memoised parts are given.
  // A piece the reader picks while the run is open becomes the run's piece: the run talks about the
  // piece they chose, and the choice outlives Close. It used to pause the run and change nothing on
  // screen, against the run's own promise that it drives the state the controls drive. (While the sum
  // builds, the walking piece follows the sum, so there a click still only pauses.)
  const choose=useSteady(changeDistribution),select=useSteady((i:number)=>{stop();if(buildOpen)setRunPiece((i+.5)/count);setSelected(i)}),pickMode=useSteady(chooseMode),step=useSteady(stepBuild);
- const play=useSteady(runBuild),seek=useSteady((at:number)=>seekBuild(at)),close=useSteady(()=>{refocus.current=true;endBuild()});
+ const play=useSteady(runBuild),seek=useSteady((at:number,dragging:boolean)=>seekBuild(at,dragging)),close=useSteady(()=>{refocus.current=true;endBuild()});
+ // SPACE PAUSES THE RUN, AS IT DOES A VIDEO. A teacher presenting clicks the title or the blank beside the
+ // figure to point at something, which puts the focus on the lesson itself, and then presses Space for
+ // "pause, let's talk": the page scrolled a window down, the drawing went off the top, and the run went on
+ // playing above the window. While the run is open, Space (or K) with the focus on nothing in particular
+ // plays and pauses it. Every control keeps its own keys -- a button, a slider, the figure, a summary.
+ useEffect(()=>{
+  if(!buildOpen)return;
+  const key=(e:KeyboardEvent)=>{
+   if((e.key!==' '&&e.key!=='k')||e.repeat||e.ctrlKey||e.metaKey||e.altKey)return;
+   if(e.target!==document.body&&e.target!==document.getElementById('lesson'))return;
+   e.preventDefault();play();
+  };
+  window.addEventListener('keydown',key);
+  return()=>window.removeEventListener('keydown',key);
+ },[buildOpen,play]);
  // A line of the board plays its stage on the figure. Below 1000 pixels the board is a screen or two
  // under the figure, so the stage played on a figure and a transport that were both out of sight and
  // the reader saw only the board's line change. The focus stays on the board, where the reader is
@@ -496,7 +595,9 @@ export default function Explorer(){
    // Families first, then a divider and the ones still being drawn. Kept in the list rather
    // than hidden: a reader can see the whole plan and tell that the gap is deliberate.
    const item=(pr:typeof PROBLEMS[number])=>{const soon=!isReady(pr.id);return <SidebarMenuItem key={pr.id}><SidebarMenuButton className={'exp-shape-button '+(id===pr.id?'active':'')+(soon?' is-soon':'')} isActive={id===pr.id} aria-current={id===pr.id?'page':undefined} disabled={soon} aria-disabled={soon} title={soon?SOON_NOTE:undefined} onClick={()=>{if(!soon)choose(pr.id)}}><span className="shape-icon"><ShapeGlyph id={pr.id}/></span><span>{pr.short}</span></SidebarMenuButton></SidebarMenuItem>};
-   const group=(label:string,items:typeof PROBLEMS,soon=false)=><div className="exp-family" key={label}><h2 className="exp-family-name">{label}</h2><SidebarMenu aria-label={label} className={soon?'exp-soon-group':undefined}>{items.map(item)}</SidebarMenu></div>;
+   // The family's heading heads its list, and the list has no name of its own: named as well, every family
+   // was read twice down the column -- "Straight rods, heading level 2", then "list, Straight rods".
+   const group=(label:string,items:typeof PROBLEMS,soon=false)=><div className="exp-family" key={label}><h2 className="exp-family-name">{label}</h2><SidebarMenu className={soon?'exp-soon-group':undefined}>{items.map(item)}</SidebarMenu></div>;
    const soon=PROBLEMS.filter(pr=>!isReady(pr.id));
    return <>{families(PROBLEMS.filter(pr=>isReady(pr.id))).map(g=>group(g.label,g.items))}{soon.length>0&&group('Coming soon',soon,true)}</>;
   },[id,choose]);
@@ -510,7 +611,7 @@ export default function Explorer(){
     return <>{families(PROBLEMS.filter(pr=>isReady(pr.id))).map(g=>block(g.label,g.items))}{soon.length>0&&block('Coming soon',soon)}</>;
    },[id,choose]);
  const {distance,size,charge,phi,slices}=params;
- const parameterGrid=useMemo(()=><div className="parameter-grid">{geom!=='arc'&&<Range describe="distance" onDescribe={setHighlight} label={['ring','disk','sheet'].includes(geom)?'Height z':geom==='axial'?'End distance a':'Distance r'} format={METERS} value={distance} min={.5} max={6} step={.05} onChange={distance=>updateParams({distance})}/>} {!isInfinite&&<Range describe="size" onDescribe={setHighlight} label={isRound?'Radius R':'Length L'} format={METERS} value={isRound?size/2:size} min={isRound?.5:1} max={isRound?4:8} step={.05} onChange={v=>updateParams({size:isRound?v*2:v})}/>}<Range describe="charge" onDescribe={setHighlight} label={geom==='sheet'?'Surface density σ':geom==='ramp'?'Peak density λ₀':['infinite','semi'].includes(geom)?'Line density λ':'Total charge Q'} value={charge} min={-5} max={5} step={.1} onChange={(next,reason)=>updateParams({charge:snapCharge(next,charge,reason)})}/>{/* In degrees, on the same grid as before (a tenth of π to 2π in hundredths of π): run in
+ const parameterGrid=useMemo(()=><div className="parameter-grid">{geom!=='arc'&&<Range describe="distance" onDescribe={setHighlight} label={['ring','disk','sheet'].includes(geom)?'Height z':geom==='axial'?'End distance a':'Distance r'} format={METERS} value={distance} min={.5} max={6} step={.05} onChange={distance=>updateParams({distance})}/>} {!isInfinite&&<Range describe="size" onDescribe={setHighlight} label={isRound?'Radius R':'Length L'} format={METERS} value={isRound?size/2:size} min={isRound?.5:1} max={isRound?4:8} step={.05} onChange={v=>updateParams({size:isRound?v*2:v})}/>}<Range describe="charge" onDescribe={setHighlight} label={geom==='sheet'?'Surface density σ':geom==='ramp'?'Peak density λ₀':['infinite','semi'].includes(geom)?'Line density λ':'Total charge Q'} unit={geom==='sheet'?PER_SQUARE_METER:geom==='ramp'||['infinite','semi'].includes(geom)?PER_METER:NANOCOULOMBS} value={charge} min={-5} max={5} step={.1} onChange={(next,reason)=>updateParams({charge:snapCharge(next,charge,reason)})}/>{/* In degrees, on the same grid as before (a tenth of π to 2π in hundredths of π): run in
      units of π, the slider read "1.5" to a screen reader, which meant 1.5π and said nothing of it. */}{geom==='arc'&&<Range describe="angle" onDescribe={setHighlight} label="Arc angle φ" format={DEGREES} value={phi*180/Math.PI} min={18} max={360} step={1.8} onChange={v=>updateParams({phi:v*Math.PI/180})}/>}{/* How finely the charge is cut. It used to live inside one step of the walkthrough, so the
      one control that shows the sum closing in on the integral was three clicks deep. */}<Range describe="pieces" onDescribe={setHighlight} label="Pieces N" value={slices} min={3} max={30} onChange={recut}/><button onClick={resetGeometry} className="text-button exp-reset" aria-label="Reset geometry" title="Reset geometry"><RotateCcw size={13}/></button></div>,[geom,isInfinite,isRound,distance,size,charge,phi,slices,updateParams,recut,resetGeometry]);
  /** The offline copy, made in the light theme whatever the screen is in -- it is for paper, as the
@@ -529,6 +630,7 @@ export default function Explorer(){
  // restyled the board's thousands of KaTeX nodes with it: the arc's What cancels, the lesson's central
  // moment, ran at twenty frames a second, and every stage boundary dropped frames. A class costs one
  // restyle when the run opens, settles or closes. (tests/page-styles.test.ts keeps :has out of the sheet.)
+ const related=p.link&&isReady(p.link.id)?{...p.link,short:PROBLEMS.find(x=>x.id===p.link?.id)?.short??''}:null;
  const running=buildOpen?' is-running'+(settledRun?' is-settled':''):'',cueing=ready&&!seen&&!onboarding;
  return <div className={`explorer-app ${showNumbers?'with-numbers':'symbolic-view'}${cueing?' is-cueing':''}`}>{/* Twenty tab stops -- the header, all fifteen
      lessons, the list toggle and the library -- stood between a keyboard and the lesson's one button.
@@ -538,13 +640,14 @@ export default function Explorer(){
      a reader does at most once and never in the middle of a derivation, so they stop taking
      three of the five slots above the lesson. Every one keeps the name it had, so it is the
      same control in a quieter place. */}
- <div className="exp-header-right"><button ref={tourButton} type="button" className="text-button tour-button" aria-label="Walkthrough" onClick={()=>setOnboarding(true)}><CircleHelp size={16}/><span>Walkthrough</span></button><Hint label={dark?'Switch to light theme':'Switch to dark theme'}><button className="icon-button" onClick={()=>setDark(!dark)} aria-label={dark?'Switch to light theme':'Switch to dark theme'}>{dark?<Sun size={17}/>:<Moon size={17}/>}</button></Hint><DropdownMenu><Hint label="Lesson tools"><DropdownMenuTrigger className="icon-button no-print" aria-label="Lesson tools"><MoreHorizontal size={17}/></DropdownMenuTrigger></Hint><DropdownMenuContent className="exp-tools-menu" align="end" sideOffset={8}><DropdownMenuItem onClick={printLesson}><Printer size={15}/>Print this lesson</DropdownMenuItem><DropdownMenuItem onClick={saveCopy}><Download size={15}/>Save an offline copy of this lesson</DropdownMenuItem><DropdownMenuItem render={<a href="https://github.com/malekTheCoder/field-builder" target="_blank" rel="noreferrer" aria-label="View Field Builder on GitHub"/>}><GitBranch size={15}/>View Field Builder on GitHub</DropdownMenuItem></DropdownMenuContent></DropdownMenu></div></header>
- <SidebarProvider className={`exp-shell ${sidebarOpen?'library-expanded':'library-collapsed'}`} style={{'--sidebar-width':'196px'} as CSSProperties}>{sidebarOpen&&<Sidebar collapsible="none" className="exp-sidebar"><SidebarContent><nav className="exp-lessons" aria-label="Lessons">{lessonList}</nav><div className="exp-nav-bottom"><p>One law.<br/>Every geometry.</p><MathText tex={scalar?String.raw`dV=\frac{k\,dQ}{r_i}`:String.raw`d\mathbf E=\frac{k\,dQ}{r_i^2}\hat{\mathbf r}_i`}/><span>{storageOK?'Your settings stay on this device.':'Settings are kept for this visit.'}</span></div></SidebarContent></Sidebar>}
+ <div className="exp-header-right"><button ref={tourButton} type="button" className="text-button tour-button" aria-label="Walkthrough" onClick={()=>setOnboarding(true)}><CircleHelp size={16}/><span>Walkthrough</span></button><Hint label={dark?'Switch to light theme':'Switch to dark theme'}><button className="icon-button" onClick={()=>setDark(!dark)} aria-label={dark?'Switch to light theme':'Switch to dark theme'}>{dark?<Sun size={17}/>:<Moon size={17}/>}</button></Hint><DropdownMenu><Hint label="Lesson tools"><DropdownMenuTrigger ref={toolsButton} className="icon-button no-print" aria-label="Lesson tools"><MoreHorizontal size={17}/></DropdownMenuTrigger></Hint><DropdownMenuContent className="exp-tools-menu" align="end" sideOffset={8}><DropdownMenuItem onClick={()=>setLaws(true)}><BookOpen size={15}/>The laws behind every lesson</DropdownMenuItem><DropdownMenuItem onClick={printLesson}><Printer size={15}/>Print this lesson</DropdownMenuItem><DropdownMenuItem onClick={saveCopy}><Download size={15}/>Save an offline copy of this lesson</DropdownMenuItem><DropdownMenuItem render={<a href="https://github.com/malekTheCoder/field-builder" target="_blank" rel="noreferrer" aria-label="View Field Builder on GitHub"/>}><GitBranch size={15}/>View Field Builder on GitHub</DropdownMenuItem></DropdownMenuContent></DropdownMenu></div></header>
+ <SidebarProvider className={`exp-shell ${sidebarOpen?'library-expanded':'library-collapsed'}`} style={{'--sidebar-width':'196px'} as CSSProperties}>{sidebarOpen&&<Sidebar collapsible="none" className="exp-sidebar"><SidebarContent><nav className="exp-lessons" aria-label="Lessons">{lessonList}</nav><div className="exp-nav-bottom"><p>One law.<br/>Every geometry.</p><MathText tex={scalar?String.raw`dV=\frac{k\,dQ}{r_i}`:String.raw`d\mathbf E=\frac{k\,dQ}{r_i^2}\hat{\mathbf r}_i`}/><LawsReference quantity={p.quantity} label="The laws behind it" className="text-button exp-laws-link"/><span>{storageOK?'Your settings stay on this device.':'Settings are kept for this visit.'}</span></div></SidebarContent></Sidebar>}
  <main id="lesson" tabIndex={-1} className="exp-main"><div className="exp-breadcrumb"><Hint label={sidebarOpen?'Hide the lesson list':'Show the lesson list'}><button type="button" className="exp-library-toggle" aria-expanded={sidebarOpen} aria-label={sidebarOpen?'Hide the lesson list':'Show the lesson list'} onClick={()=>setSidebarOpen(v=>!v)}><PanelLeft size={16}/></button></Hint>{/* THE SAME LESSON WAS NAMED THREE TIMES IN THREE INCHES: lit in the list, as the tail of a
      breadcrumb, and then in full as the title. The crumb said it least well of the three, so
      the trail is now just the way back out to the library -- which on a narrow screen, where
-     the list is not there at all, is the only way to another lesson. */}
-<div className="exp-crumbs"><button type="button" className="exp-crumb-link" onClick={()=>setLibrary(true)}><ChevronLeft size={13} aria-hidden="true"/>Charge library</button></div></div><div className="exp-heading"><div><h1>{p.title}</h1><p>{p.subtitle}</p></div></div>
+     the list is not there at all, is the only way to another lesson. Its chevron makes it look like a
+     way back; it says that it opens a picker. */}
+<div className="exp-crumbs"><button type="button" className="exp-crumb-link" aria-haspopup="dialog" aria-expanded={library} onClick={()=>setLibrary(true)}><ChevronLeft size={13} aria-hidden="true"/>Charge library</button></div></div><div className="exp-heading"><div><h1>{p.title}</h1><p>{p.subtitle}</p></div></div>
  <div className={'exp-workspace'+running}><div className="exp-visual-column"><section className={'exp-diagram-card mode-'+mode+' focus-'+highlight+running} aria-label="Interactive field visualization"><div className="exp-diagram-heading"><div><MathText tex={p.coordinate}/></div>
   {/* THE LESSON'S ONE BUTTON, AT THE TOP OF ITS FIGURE. It sat under the figure and its toolbar,
       past the bottom of a laptop's window -- its top at 919 pixels on a 1440 by 900 screen -- so
@@ -568,7 +671,8 @@ export default function Explorer(){
     onPlay={play} onSeek={seek} onStep={step} onClose={close}/></div>}
 </section>
  <section className="exp-parameters">{parameterGrid}</section>
- {id==='infinite'&&<div className="exp-method"><span>Explore another route to the same result</span><Tabs value={path} onValueChange={v=>{setPath(String(v));setBounds([0,100]);}}><TabsList><TabsTrigger value="angular">Angular substitution</TabsTrigger><TabsTrigger value="limit">Finite-line limit</TabsTrigger></TabsList></Tabs></div>}
+ {/* The sentence names the two tabs: without it they were an unnamed list of two. */}
+ {id==='infinite'&&<div className="exp-method"><span id={routeLabel}>Explore another route to the same result</span><Tabs value={path} onValueChange={v=>{setPath(String(v));setBounds([0,100]);}}><TabsList aria-labelledby={routeLabel}><TabsTrigger value="angular">Angular substitution</TabsTrigger><TabsTrigger value="limit">Finite-line limit</TabsTrigger></TabsList></Tabs></div>}
  </div><Workbench key={p.id+"/"+p.variable+"/"+(derivationProblem?.variable??"")} problem={p} derivationProblem={derivationProblem} params={params} continuum={continuum} progress={progress} mode={mode} onModeChange={pickMode} onHighlight={setHighlight} boundRange={bounds} onBoundRangeChange={setBounds} highlight={figureHighlight}
   build={boardBuild} onStep={boardStep}/></div>
  {/* The end of a derivation, not a peer of it. A limiting case is the check that the answer
@@ -579,12 +683,16 @@ export default function Explorer(){
  <section className="exp-endnotes">
   <details className="exp-note" open={limitsOpen} onToggle={e=>setLimitsOpen(e.currentTarget.open)}>
    <summary><span>Limiting cases</span><small>Push the geometry to an extreme and watch whether the result still describes something real.</small></summary>
+   {/* Each limiting case is a tab's own panel. The explanation and the plot that change under the tabs
+       used to belong to none of them -- Base UI ties a tab to its content only through a panel, and
+       there was none -- so a screen reader heard "tab, 1 of 3, selected" over an unnamed list and then
+       a paragraph that was nobody's. The list is named, and each tab now controls what it shows.
+       Only the chosen panel is mounted: an Assessment integrates seventy samples on every render. */}
    {limitsOpen&&<div className="exp-note-body">
     {p.limits.length>1
-     ?<Tabs value={String(limitIndex)} onValueChange={v=>setLimitIndex(Number(v))}><TabsList className="exp-limit-tabs">{p.limits.map((x,i)=><TabsTrigger value={String(i)} key={x.id}>{x.title}</TabsTrigger>)}</TabsList></Tabs>
-     :<h3 className="exp-note-heading">{lim.title}</h3>}
-    <p>{greek(lim.explanation)}</p>
-    <Assessment key={id+limitIndex} problem={p} params={params} limit={lim}/>
+     ?<Tabs value={String(limitIndex)} onValueChange={v=>setLimitIndex(Number(v))}><TabsList aria-label="Limiting cases" className="exp-limit-tabs">{p.limits.map((x,i)=><TabsTrigger value={String(i)} key={x.id}>{x.title}</TabsTrigger>)}</TabsList>
+      {p.limits.map((x,i)=><TabsContent key={x.id} value={String(i)} className="exp-limit-panel"><p className="exp-limit-why">{greek(x.explanation)}</p><Assessment key={id+i} problem={p} params={params} limit={x}/></TabsContent>)}</Tabs>
+     :<><h3 className="exp-note-heading">{lim.title}</h3><p className="exp-limit-why">{greek(lim.explanation)}</p><Assessment key={id} problem={p} params={params} limit={lim}/></>}
    </div>}
   </details>
   <details className="exp-note" open={slipsOpen} onToggle={e=>setSlipsOpen(e.currentTarget.open)}>
@@ -594,8 +702,19 @@ export default function Explorer(){
     {g.notes.map(n=><div className="exp-slip-note" key={n.message}><span className="exp-slip-math">{n.expressions.map(x=><MathText key={x} tex={confusionTex(x)}/>)}</span><p>{greek(n.message)}</p></div>)}
    </div>)}</div>}
   </details>
+  {/* WHERE THIS LESSON LEADS. Each lesson names its neighbour -- take this rod to infinity, build a disk
+      from these rings, the field this potential differentiates back to -- and the limiting cases send the
+      reader there in words ("the Semi-infinite line lesson lays this line along x"), but nothing went
+      there. The last line of the lesson does. */}
+  {related&&<button type="button" className="exp-related" onClick={()=>{choose(related.id);window.scrollTo({top:0,behavior:'auto'});document.getElementById('lesson')?.focus({preventScroll:true})}}>
+   <span className="exp-related-text">{greek(related.text)}</span>
+   <span className="exp-related-to"><ShapeGlyph id={related.id} size={16}/>{related.short}<ChevronRight size={15} aria-hidden="true"/></span>
+  </button>}
  </section>
  <output className="sr-only" aria-live="polite">{status}</output></main></SidebarProvider>
- {/* The first-visit cue points at what the lesson is built around, not at the tour of it. */}{cueing&&<StartHere target={watchButton} onSettled={()=>setSeen(true)}/>}<Onboarding returnFocus={tourButton} open={onboarding} onClose={closeTour} onExplore={closeTour}/><Dialog open={library} onOpenChange={setLibrary}>{/* Opened on the lesson the reader is in, not on the first card: from the ring, the focus landed on
+ {/* The first-visit cue points at what the lesson is built around, not at the tour of it. */}{cueing&&<StartHere target={watchButton} onSettled={()=>setSeen(true)}/>}<Onboarding returnFocus={tourButton} open={onboarding} onClose={closeTour} onExplore={closeTour}/>{/* THE LAWS EVERY LESSON
+     RESTS ON WERE WRITTEN ONCE AND SHOWN NOWHERE BUT THE TOUR'S SECOND PAGE. They are a reader's question in
+     the middle of a lesson -- "which law is this again?" -- so they are under the formula the lesson list
+     closes on, and, where the list is not drawn, in the lesson's tools. A potential lesson leads with V. */}<LawsDialog open={laws} onOpenChange={setLaws} quantity={p.quantity} returnFocus={toolsButton}/><Dialog open={library} onOpenChange={setLibrary}>{/* Opened on the lesson the reader is in, not on the first card: from the ring, the focus landed on
      Finite line, and a keyboard or a screen reader had to go looking for where they were. */}<DialogContent className="exp-library-dialog" initialFocus={libraryFocus}><DialogTitle>Choose your geometry</DialogTitle><DialogDescription>Every lesson, including electric potential.</DialogDescription>{libraryCards}</DialogContent></Dialog></div>;
 }

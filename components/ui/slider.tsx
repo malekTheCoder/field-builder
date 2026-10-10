@@ -9,8 +9,9 @@ function Slider({
   value,
   min = 0,
   max = 100,
+  getAriaValueText,
   ...props
-}: SliderPrimitive.Root.Props) {
+}: SliderPrimitive.Root.Props & Pick<SliderPrimitive.Thumb.Props, 'getAriaValueText'>) {
   const _values = Array.isArray(value)
     ? value
     : Array.isArray(defaultValue)
@@ -43,6 +44,8 @@ function Slider({
           <SliderPrimitive.Thumb
             data-slot="slider-thumb"
             key={index}
+            // What the value is in, said with it: "2 nanocoulombs", where Intl has no unit to format.
+            getAriaValueText={getAriaValueText}
             className="border-ring ring-ring/50 relative size-3 rounded-full border bg-white transition-[color,box-shadow] after:absolute after:-inset-2 hover:ring-3 focus-visible:ring-3 focus-visible:outline-hidden active:ring-3 block shrink-0 select-none disabled:pointer-events-none disabled:opacity-50"
             // Base UI leaves an inline visibility:hidden on the thumb until it can
             // resolve a position against a measured track. A slider that mounts in a

@@ -36,6 +36,9 @@ export function runClock(): RunClock {
  * of the time, and fills as it plays, so the length of the whole thing and where you are in it are
  * both visible at a glance -- without a clock, on a page that prints no numbers. It is also how you
  * move around: click a stage to go to its start, or drag along the bar to scrub through the run. */
+/** A line of the transport's algebra: TeX, or a second component that survives beside the one being
+ * built, which the board says in words ("… survives too") and so does this. */
+export type PlayerLine = string | {also: string};
 type Props = {
   stages: readonly BuildStage[];
   /** Seconds into the run, as the store above: read here and nowhere else on the page. */
@@ -43,7 +46,7 @@ type Props = {
   index: number;
   playing: boolean;
   /** Every stage's lines of algebra, for the screens where the panel holding them is out of sight. */
-  math?: readonly string[][];
+  math?: readonly (readonly PlayerLine[])[];
   /** Once the run has settled: how the last integral comes out, and the answer. */
   chain?: readonly string[];
   answer?: readonly string[];
@@ -54,7 +57,9 @@ type Props = {
   onStep: (index: number) => void;
   onClose: () => void;
 };
-const NO_MATH: readonly string[][] = [], NO_LINES: readonly string[] = [];
+const NO_MATH: readonly (readonly PlayerLine[])[] = [], NO_LINES: readonly string[] = [];
+/** k as the panel defines it under its answer: the run's answer is written in it. */
+const K_IS = String.raw`k=1/(4\pi\varepsilon_0)`;
 /** Memoised so that the page re-rendering around it -- which it does whenever the figure moves --
  * does not redraw it; the clock alone moves it on every frame. */
 export const BuildPlayer = memo(function BuildPlayer({stages, clock, index, playing, math = NO_MATH, chain = NO_LINES, answer = NO_LINES, onPlay, onSeek, onStep, onClose}: Props) {
@@ -74,11 +79,16 @@ export const BuildPlayer = memo(function BuildPlayer({stages, clock, index, play
   const mathBlock = useMemo(() => math.length > 0 && <div className={'bp-math' + (answer.length > 0 ? ' is-settled' : '')}>
     <div className="bp-math-steps">
       {math.map((lines, i) => <div key={i} className={'bp-math-step' + (i === index ? ' is-here' : '')} aria-hidden={i === index ? undefined : true}>
-        {lines.map(tex => <MathText key={tex} tex={tex} block trusted />)}
+        {lines.map(line => typeof line === 'string'
+          ? <MathText key={line} tex={line} block trusted />
+          : <p key={`also:${line.also}`} className="bp-say"><MathText tex={line.also} trusted /> survives too.</p>)}
       </div>)}
     </div>
     {chain.length > 0 && <div className="bp-chain">{chain.map(tex => <MathText key={tex} tex={tex} block trusted />)}</div>}
-    {answer.length > 0 && <div className="bp-answer">{answer.map(tex => <MathText key={tex} tex={tex} block trusted />)}</div>}
+    {/* The answer as the panel gives it: said to be the integral done, and with its k defined. Under the
+        finished integral, a phone reader met answer rows with no word saying what they were, in a k the
+        transport never defined. */}
+    {answer.length > 0 && <div className="bp-answer"><p className="bp-say bp-lead">Doing the integral gives this.</p>{answer.map(tex => <MathText key={tex} tex={tex} block trusted />)}<p className="bp-say bp-k">with <MathText tex={K_IS} /></p></div>}
   </div>, [math, chain, answer, index]);
   const segments = useRef<(HTMLButtonElement | null)[]>([]);
   const press = useRef<{x: number; y: number; moved: boolean} | null>(null), dragged = useRef(false);
@@ -120,7 +130,8 @@ export const BuildPlayer = memo(function BuildPlayer({stages, clock, index, play
       press.current = null;
       if (p?.moved) onSeek(momentAt(ev.clientX), false);
     },
-    onPointerCancel: () => { press.current = null; },
+    // A drag the browser takes back still ends: the page stops treating the run as being scrubbed.
+    onPointerCancel: () => { const p = press.current; press.current = null; if (p?.moved) onSeek(clock.get(), false); },
   };
   // The arrow keys step between stages from anywhere in the transport, as they do in a media
   // player's chapter list. The figure keeps its own arrow keys: these only act while the focus is

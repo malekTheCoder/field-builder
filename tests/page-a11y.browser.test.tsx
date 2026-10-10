@@ -255,8 +255,8 @@ describe('what is drawn to be seen can be seen', () => {
  it('a Greek letter in a sentence is the one in the formulas, not Geist\'s stroked ϕ', async () => {
   const view = await openLesson('arc');
   fireEvent.click(view.getByText('Limiting cases'));
-  await waitFor(() => expect(view.container.querySelector('.exp-note-body > p')).toBeTruthy());
-  const note = view.container.querySelector('.exp-note-body > p')!;
+  await waitFor(() => expect(view.container.querySelector('.exp-limit-why')).toBeTruthy());
+  const note = view.container.querySelector('.exp-limit-why')!;
   const letters = [...note.querySelectorAll<HTMLElement>('.exp-greek')];
   expect(letters.map(l => l.textContent).join('')).toMatch(/φ/);
   for (const l of letters) expect(getComputedStyle(l).fontFamily).toMatch(/^KaTeX_(Math|Main)/);
