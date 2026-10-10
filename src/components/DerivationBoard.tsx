@@ -1,6 +1,6 @@
 'use client';
-import {memo, useId, type PointerEvent, type ReactNode} from 'react';
-import {MathText} from './Math';
+import {memo, useId, type PointerEvent} from 'react';
+import {MathText, Prose} from './Math';
 import type {BoardLine, Term} from '../workbench/derivation';
 /** THE INTEGRAL, ONE LINE PER STAGE OF THE RUN.
  *
@@ -24,29 +24,13 @@ export type BoardState = {
   settled: boolean;
 };
 const TERMS: readonly Term[] = ['element', 'distance', 'projection', 'bounds'];
-/** A remark in words, with any symbol in it -- written $…$ -- set as math: the λ in the sentence is
- * then the λ in the equation above it, in the same face, rather than a Greek letter from whatever
- * font the browser found. The words still wrap; only a symbol is held together. */
-function Prose({text}: {text: string}) {
-  const parts = text.split('$');
-  const out: ReactNode[] = [];
-  for (let i = 0; i < parts.length; i++) {
-    if (!(i % 2)) { out.push(parts[i]); continue; }
-    // KaTeX sets a symbol as inline blocks, and a browser will break a line before one even after
-    // a no-break space -- so a sentence ended on a lone "P." on a line of its own. A word joined to
-    // its symbol that way is held to it, with the punctuation after, in one unbreakable run -- and
-    // with the rest of a hyphenated word, which broke after its hyphen: "the x-" ending one line and
-    // "axis." starting the next.
-    // And a symbol is never broken inside: KaTeX lets a line break after an "=", and "y = L/2" was
-    // set as "y =" at the end of one line and "L/2" at the start of the next.
-    const before = typeof out.at(-1) === 'string' ? (out.at(-1) as string).match(/^([\s\S]*?)(\S+\u00a0)$/) : null;
-    if (!before) { out.push(<MathText key={i} className="db-sym" tex={parts[i]} />); continue; }
-    const after = parts[i + 1]?.match(/^(?:-[A-Za-z]+)?[.,;:]*/)?.[0] ?? '';
-    out[out.length - 1] = before[1];
-    out.push(<span key={i} className="db-held">{before[2]}<MathText className="db-sym" tex={parts[i]} />{after}</span>);
-    if (after) parts[i + 1] = parts[i + 1].slice(after.length);
-  }
-  return out;
+/** A stage's note, with the point it names set in the math face. The note is the run's caption, also
+ * read out to a screen reader, so it stays plain text; but its "P" sat in upright sans a few pixels
+ * under the remark's italic P, one point in two typefaces. So a lone P -- or V, or N -- and an axis
+ * letter before "-axis" are set as variables, in KaTeX's own italic, and the words are left alone:
+ * the note reads exactly as the caption does. */
+function Note({text}: {text: string}) {
+  return text.split(/\b([PVN]|[xyz](?=-axis))\b/).map((part, i) => i % 2 ? <var key={i} className="db-var">{part}</var> : part);
 }
 /** The factor under the pointer, from the class KaTeX carried through for it. */
 function termAt(target: EventTarget | null): Term | '' {
@@ -65,7 +49,12 @@ export const DerivationBoard = memo(function DerivationBoard({lines, names, note
   const {open, index, playing, settled} = state;
   const uid = useId();
   const point = (ev: PointerEvent) => onPoint?.(termAt(ev.target));
-  return <ol className={'db' + (open ? ' is-running' : '') + (lit ? ` db-lit-${lit}` : '')} onPointerOver={point} onPointerLeave={() => onPoint?.('')}>
+  // At rest a lit factor is chipped wherever it appears, so a reader pointing at a slider finds it in
+  // every line. While the run is open, only in the step being played: round two stopped chipping the
+  // integral's limits, so at Shrink them the one chip on the board was the range in the finished Add
+  // them up step, and the reader's eye went to the wrong line.
+  const litHere = lit ? ` db-lit-${lit}` : '';
+  return <ol className={'db' + (open ? ' is-running' : '') + (open ? '' : litHere)} onPointerOver={point} onPointerLeave={() => onPoint?.('')}>
     {lines.map((line, i) => {
       const stage = !open ? 'rest' : i < index ? 'done' : i === index ? 'here' : 'next';
       // The finished integral is the last thing the run arrives at, so it waits for it.
@@ -73,24 +62,31 @@ export const DerivationBoard = memo(function DerivationBoard({lines, names, note
       // The whole step is one button: the name, the line and its gloss. A reader reaches for the
       // equation, not the label above it, so that is where the target has to be. The name is what
       // the button is called; the line itself is read as its description.
-      return <li key={line.key} className={`db-step is-${stage}`} data-step={line.key}>
+      return <li key={line.key} className={`db-step is-${stage}` + (stage === 'here' ? litHere : '')} data-step={line.key}>
         <button type="button" className="db-head" onClick={() => onStep?.(i)} aria-current={stage === 'here' ? 'step' : undefined}
           aria-label={`${names[i]}: play this step on the figure`} aria-describedby={stage === 'next' ? undefined : `${uid}-${line.key}`}>
           <span className="db-title"><span className="db-node" aria-hidden="true" /><span className="db-name">{names[i]}</span></span>
           {/* Collapsed rather than unmounted while it is still to come, so it can open smoothly. */}
           <span className="db-reveal" aria-hidden={stage === 'next' ? true : undefined}>
             <span className="db-body" id={`${uid}-${line.key}`}>
+              {/* What cancels opens on the cancellation -- or on why nothing does: the step is named
+                  for it, and with it fourth, under a paragraph, a reader scanning the step read "What
+                  cancels: ΔE_x", the part that survives. The line after it is what is left. */}
+              {line.cancels && <MathText className="db-where db-cancels" tex={line.cancels} trusted />}
+              {line.nothing && <span className="db-where db-say db-cancels db-nothing"><Prose text={line.nothing} /></span>}
               <MathText className="db-tex" tex={line.tex} block trusted />
               {/* The second half of a chain of equalities follows the first directly, its "=" under
                   the first one's; what the line's new symbols mean comes after the whole chain. */}
-              {line.finish && <span className={'db-then' + (finished ? ' is-shown' : '')}><MathText tex={line.finish} block trusted /></span>}
+              {line.finish && <span className={'db-then' + (finished ? ' is-shown' : '')}><span className="db-then-in">
+                <MathText className="db-then-tex" tex={line.finish} block trusted />
+                {line.merged && <MathText className="db-where db-merged" tex={line.merged} trusted />}
+              </span></span>}
               {line.where && <MathText className="db-where" tex={line.where} trusted />}
               {line.say && <span className="db-where db-say"><Prose text={line.say} /></span>}
-              {line.cancels && <MathText className="db-where db-cancels" tex={line.cancels} trusted />}
               {/* The other component, then in words that it lives on: said in a sentence, which
                   wraps, rather than in a \text{} glued to the equation, which cannot. */}
               {line.also && <span className="db-where db-say db-also"><MathText tex={line.also} trusted /> survives too.</span>}
-              {stage === 'here' && !playing && <span className="db-note">{notes[i]}</span>}
+              {stage === 'here' && !playing && <span className="db-note"><Note text={notes[i]} /></span>}
             </span>
           </span>
         </button>

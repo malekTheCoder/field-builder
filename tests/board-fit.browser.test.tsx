@@ -103,6 +103,45 @@ async function toTheEnd(view: View) {
   expect(view.container.querySelector('.db-step.is-here .db-note')).not.toBeNull();
 }
 
+/* A DRAGGED BRACKET. The handles snap to whole percents, and the board used to write the limits they
+ * landed on as coefficients -- "r tan(0.185π) → r tan(0.405π)", "−13L/100 → 31L/100" -- which put
+ * numerals on the page and pushed the last line off the side at 1060 and 1280. A limit that is not an
+ * end, or a plain fraction of the charge, is now named x₁ or x₂; the sweep above only ever measured
+ * the whole distribution, so these are measured here, at the widths where it broke. */
+const PARTIAL: Record<string, [string, string]> = {
+  semi: ['r tan(37π/200)', 'r tan(81π/200)'],
+  sheet: ['z tan(37π/200)', 'z tan(81π/200)'],
+  ramp: ['37L/100', '81L/100'],
+};
+describe('a dragged bracket rewrites the integral in symbols, and it still fits', () => {
+  for (const [id, [lo, hi]] of Object.entries(PARTIAL)) {
+    it(id, async () => {
+      const view = await open(id);
+      fireEvent.click(view.getByRole('button', {name: /Integration interval/}));
+      const [low, high] = [...view.container.querySelectorAll<HTMLInputElement>('.ew-bound-fields input')];
+      fireEvent.change(low, {target: {value: lo}});
+      fireEvent.change(high, {target: {value: hi}});
+      fireEvent.click(view.getByRole('button', {name: 'Apply interval'}));
+      await waitFor(() => expect(view.container.querySelector('.ew-result.is-partial')).not.toBeNull());
+      const v = getProblem(id).variableTex;
+      const limit = view.container.querySelector('.db-step[data-step="limit"] .db-tex annotation')!.textContent!;
+      expect(limit).toContain(`${v}_1`);
+      expect(limit).toContain(`${v}_2`);
+      // No coefficient anywhere a reader reads: not in a line, a remark or the interval's label.
+      const tex = [...view.container.querySelectorAll('.db annotation, .ew-bounds .ew-disclosure annotation')].map(a => a.textContent ?? '').join(' ');
+      expect(tex).not.toMatch(/\d\.\d|\d{2,}/);
+      const bad: string[] = [];
+      for (const [width, height] of [[1060, 900], [1280, 900]] as const) {
+        await page.viewport(width, height);
+        await settle();
+        for (const el of view.container.querySelectorAll<HTMLElement>('.db .math, .ew-result .math')) {
+          if (el.scrollWidth > el.clientWidth + 1) bad.push(`${id} at ${width}px, ${el.closest<HTMLElement>('.db-step')?.dataset.step ?? 'answer'}: ${el.scrollWidth}px in ${el.clientWidth}px`);
+        }
+      }
+      expect(bad, `${bad.length} lines run off the side of the panel`).toEqual([]);
+    }, 60000);
+  }
+});
 describe('the derivation fits its panel, in every lesson, at every width', () => {
   for (const lesson of PROBLEMS.filter(p => isReady(p.id))) {
     // Sixteen layouts a lesson, each measured after the fonts have loaded and the page has laid out.

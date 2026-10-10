@@ -27,7 +27,9 @@ function unfold(view: ReturnType<typeof panel>) {
   // The TeX each worked line was set from, which KaTeX keeps beside the rendering.
   const tex = [...body.querySelectorAll('annotation')].map(a => a.textContent ?? '');
   const prose = [...body.querySelectorAll('.ew-worked-step p')].map(p => p.textContent ?? '');
-  return {body, tex, prose};
+  // A worked step's sentence sets its symbols as math, as the board's remarks do: their TeX.
+  const said = [...body.querySelectorAll('.ew-worked-step p annotation')].map(a => a.textContent ?? '');
+  return {body, tex, prose, said};
 }
 
 describe('a potential lesson takes the derivative it promises', () => {
@@ -57,24 +59,24 @@ describe('a potential lesson takes the derivative it promises', () => {
 
 describe('the bisector’s substitution keeps the board’s name for its angle', () => {
   it('α throughout, never u, and the conversion factor rather than "the Jacobian"', () => {
-    const {tex, prose} = unfold(panel('bisector'));
+    const {tex, prose, said} = unfold(panel('bisector'));
     expect(tex.join(' ')).toContain('\\alpha');
     for (const t of tex) expect(t, t).not.toMatch(/(?<![A-Za-z\\])u(?![A-Za-z])/);
     for (const p of prose) {
       expect(p, p).not.toMatch(/\bu\b/);
       expect(p, p).not.toMatch(/Jacobian/i);
     }
-    expect(prose.join(' ')).toContain('r sec²α');
+    expect(said).toContain(String.raw`r\sec^2\alpha`);
   });
 });
 
 describe('the board writes the cancellation and says what its symbols mean', () => {
-  it('the bisector’s cancel step writes E_y = 0, in the colour of the angle it comes from', () => {
+  it('the bisector’s cancel step writes E_y = 0, in ink: the pair it names is not a projection', () => {
     const view = panel('bisector');
     const cancel = view.container.querySelector<HTMLElement>('.db-step[data-step="cancel"] .db-cancels')!;
     expect(cancel).not.toBeNull();
     expect(cancel.querySelector('annotation')?.textContent).toContain('E_y=0');
-    expect(cancel.querySelector('.fx-projection')).not.toBeNull();
+    expect(cancel.querySelector('.fx')).toBeNull();
   });
   it('every lesson’s first line says in words how much charge a piece holds', () => {
     for (const p of PROBLEMS) {

@@ -99,14 +99,15 @@ const read = (el: Element) => {
 describe('every new symbol is said in words beside the line that brings it in', () => {
   it('the angle and the side of the triangle are said right under the ratio that uses them', () => {
     // α arrived in What cancels as cos α = r/√(y²+r²) with no word for it. The sentence now follows
-    // that ratio directly, before the cancellation, so the two are read together.
+    // that ratio directly, so the two are read together. (The semi-infinite line and the sheet say
+    // what their angle is where it first appears, in Cut it up; here they say the triangle's side.)
     for (const id of ['bisector', 'ring', 'semi', 'sheet'] as const) {
       const view = panel(id);
       const body = view.container.querySelector('.db-step[data-step="cancel"] .db-body')!;
-      const where = [...body.children].find(c => c.classList.contains('db-where') && !c.classList.contains('db-say'))!;
+      const where = [...body.children].find(c => c.classList.contains('db-where') && !c.classList.contains('db-say') && !c.classList.contains('db-cancels'))!;
       const say = where.nextElementSibling as HTMLElement;
       expect(say.classList.contains('db-say'), id).toBe(true);
-      expect(read(say), id).toMatch(/^α is the angle at P between ri and the/);
+      if (id === 'bisector' || id === 'ring') expect(read(say), id).toMatch(/^α is the angle at P between ri and the/);
       expect(read(say), id).toMatch(/lies along/);
       cleanup();
     }
@@ -114,7 +115,8 @@ describe('every new symbol is said in words beside the line that brings it in', 
   it('the last line says the rule: what changes from piece to piece is written in the variable first', () => {
     const view = panel('bisector');
     const say = view.container.querySelector<HTMLElement>('.db-step[data-step="limit"] .db-say')!;
-    expect(read(say)).toBe('Everything that changes from piece to piece — ri and cosαi — is written in y; then the sum over pieces becomes an integral over y.');
+    // Written, not only named: what r_i² and cos α_i become in y.
+    expect(read(say)).toBe('Write what changes from piece to piece in y: ri2=y2+r2 and cosαi=r/y2+r2. Then the sum over pieces becomes an integral over y.');
     // Its symbols are the board's, set as math.
     expect(say.querySelectorAll('.katex').length).toBe(4);
   });

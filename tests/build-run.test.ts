@@ -4,6 +4,7 @@ import {PROBLEMS, getProblem} from '../src/problems/definitions';
 import {isReady} from '../src/problems/readiness';
 import {sampleDistribution} from '../src/diagrams/sampling';
 import {DEFAULT_PARAMS} from '../src/problems/types';
+import {exactSum} from '../src/workbench/derivation';
 /* The choreography, checked as choreography.
  *
  * "Watch it build" is one animation that has to make one argument, in order: cut it up, look at
@@ -173,7 +174,11 @@ describe('what the captions claim is what the samplers do', () => {
   const [cut] = buildStages(getProblem('sheet'));
   expect(cut.line).toBe('Cut the sheet into rings that each take the same angle at P.');
   expect(cut.caption).toMatch(/same small angle at P/);
-  expect(cut.caption).toMatch(/thin enough in angle, all of its bits are nearly the same distance from P/);
+  // Nor does a thin angle put its bits nearly one distance from P: the fourth ring's run from 0.77
+  // to 1.47 times its middle distance. What holds, the outermost too, is that its FIELD is nearly a
+  // thin ring's.
+  expect(cut.caption).toMatch(/nearly the field at P of a thin ring at its middle angle/);
+  expect(cut.caption).not.toMatch(/bits are nearly the same distance/);
   for (const text of [cut.line, cut.caption]) expect(text).not.toMatch(/thin rings/);
   // The disk's rings are thin, cut at equal widths, and it keeps its own words.
   const [disk] = buildStages(getProblem('disk'));
@@ -205,12 +210,19 @@ describe('the captions say only what is true', () => {
   expect(axial).not.toMatch(/symmetry, and this geometry/);
   expect(axial).toMatch(/no sideways parts/);
   // The rods level with one end really do lack a partner, and keep the note that says so.
-  for (const id of ['endpoint', 'ramp'] as const) expect(buildStages(getProblem(id))[2].caption, id).toMatch(/no piece has a partner/);
+  // And they say where the missing partner would be: below P's line. "The same side of P" meant
+  // nothing -- P is a point.
+  for (const id of ['endpoint', 'ramp'] as const) {
+   const [, , cancel] = buildStages(getProblem(id));
+   expect(cancel.caption, id).toMatch(/no piece has a mirror partner below it/);
+   for (const text of [cancel.caption, cancel.line]) expect(text, id).not.toMatch(/same side of P/);
+  }
  });
  it('the chain and the column are the sum of the N pieces, the field or potential only once they shrink', () => {
   // At a finite N the chain is the N-piece estimate the figure labels ΣΔE: a few percent off at five
   // pieces, and nearly three times the field at three pieces beside a long rod.
-  for (const p of PROBLEMS) {
+  // Except where it is not an estimate: see below.
+  for (const p of PROBLEMS.filter(q => !exactSum(q))) {
    const add = buildStages(p)[3];
    for (const text of [add.line, add.caption]) {
     expect(text, `${p.id}: "${text}"`).toMatch(/sum/);
@@ -218,6 +230,38 @@ describe('the captions say only what is true', () => {
     expect(text, `${p.id}: "${text}"`).toMatch(/once they shrink/);
    }
   }
+ });
+ it('a ring’s field, and a ring’s and an arc’s potential, are exact at any cut, and the run says so', () => {
+  // Every piece is the same distance from P at the same angle, so the chain and the column are the
+  // answer at three pieces as at thirty. "Once they shrink" taught that calculus corrects a ring's
+  // answer -- the opposite of the ring's lesson.
+  const P = DEFAULT_PARAMS;
+  for (const id of ['ring', 'v-ring', 'v-arc'] as const) {
+   const at = (n: number) => sampleDistribution(id, P, n).reduce((t, s) => t + (id === 'ring' ? s.field.z : s.potential), 0);
+   for (const n of [3, 5, 30]) expect(at(n) / at(2000), `${id} at ${n}`).toBeCloseTo(1, 10);
+   const [, , , add, limit] = buildStages(getProblem(id));
+   for (const text of [add.line, add.caption]) {
+    expect(text, `${id}: "${text}"`).toMatch(/exactly/);
+    expect(text, `${id}: "${text}"`).not.toMatch(/once they shrink/);
+   }
+   for (const text of [limit.line, limit.caption]) {
+    expect(text, `${id}: "${text}"`).toMatch(/does not move/);
+    expect(text, `${id}: "${text}"`).not.toMatch(/stops depending/);
+   }
+  }
+  // The arc's field is not exact -- the piece is not a point seen from the centre -- and keeps the
+  // estimate's words.
+  const arc = (n: number) => sampleDistribution('arc', P, n).reduce((t, s) => t + s.field.x, 0);
+  expect(Math.abs(arc(5) / arc(2000) - 1)).toBeGreaterThan(1e-3);
+  expect(buildStages(getProblem('arc'))[3].line).toMatch(/once they shrink/);
+ });
+ it('a potential’s piece adds k times its charge over its distance, and goes on the column the next stage names', () => {
+  for (const p of PROBLEMS.filter(q => q.quantity === 'V')) {
+   const [, one, cancel] = buildStages(p);
+   expect(one.line, p.id).toMatch(/adds k times its charge over its distance/);
+   expect(cancel.caption, p.id).not.toMatch(/pile/);
+  }
+  expect(buildStages(getProblem('v-ring'))[2].caption).toMatch(/both go on the column/);
  });
  it('an unbounded line is never cut into point charges, only into pieces whose field is a point charge’s', () => {
   // At every N the outermost piece is infinitely long. A thin angle makes its FIELD a point charge's.
