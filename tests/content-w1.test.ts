@@ -115,7 +115,11 @@ describe('v-ring’s confusions diagnose the expression, for either sign',()=>{
  });
  it('0 is the scalar cancelled like a vector',()=>{
   expect(said('v-ring','result','0')).toMatch(/Potential is a scalar/);
-  expect(said('v-ring','result','0')).toMatch(/Only the components of a vector cancel/);
+  // Not "only the components of a vector cancel": a dipole's V is zero all along its bisector.
+  // What keeps this ring's dV from cancelling is that its charge has one sign.
+  expect(said('v-ring','result','0')).not.toMatch(/Only the components of a vector cancel/);
+  expect(said('v-ring','result','0')).toMatch(/charge of the same sign/);
+  expect(said('v-ring','result','0')).toMatch(/Potentials cancel only between charges of opposite sign/);
  });
  it('kQ/R: it is |V| that is smaller further up, since V is negative for a negative ring',()=>{
   expect(said('v-ring','result','k*Q/R')).toMatch(/\|V\| is smaller/);
@@ -141,7 +145,7 @@ describe('the words name what the algebra does',()=>{
   const semi=getProblem('semi'),ramp=getProblem('ramp');
   expect(semi.title).toBe('Field above the end of a semi-infinite line');
   expect(plain(semi.subtitle)).toMatch(/P sits on the perpendicular through the line’s end/);
-  expect(plain(semi.setup)).toMatch(/A uniform line charge, density λ, lies on the x-axis/);
+  expect(plain(semi.setup)).toContain(String.raw`A uniform line charge, density $\lambda$, lies on the $x$-axis`);
   expect(ramp.subtitle).not.toMatch(/same/);
   expect(plain(ramp.subtitle)).toMatch(/P is level with the rod’s empty end/);
  });
@@ -150,17 +154,17 @@ describe('the words name what the algebra does',()=>{
   expect(worked[1].tex).toMatch(/E_x/);expect(plain(worked[1].text)).toMatch(/weaker than a uniform rod/);
   const last=worked[worked.length-1];
   expect(last.tex).not.toMatch(/Q&=/);
-  expect(plain(last.text)).toBe('Evaluate from 0 to L; the lower end gives ln r.');
+  expect(plain(last.text)).toBe(String.raw`Evaluate from $0$ to $L$; the lower end gives $\ln r$.`);
   expect(said('ramp','dq','lambda0*dy')).not.toMatch(/thinner/);
   expect(said('ramp','dq','lambda0*dy')).toMatch(/density is only λ\(y\)/);
  });
  it('the endpoint derives its antiderivative, and the disk says where 2πkσz and σ/(2ε₀) come from',()=>{
   const endpoint=getProblem('endpoint').steps.find(s=>s.kind==='integrate')!.worked!;
-  expect(plain(endpoint[0].text)).toMatch(/Substitute y = r tan α/);
+  expect(plain(endpoint[0].text)).toContain(String.raw`Substitute $y=r\tan\alpha$`);
   expect(endpoint[0].text).not.toMatch(/centred rod uses/);
   const disk=getProblem('disk').steps.find(s=>s.kind==='integrate')!.worked!;
-  expect(plain(disk[0].text)).toMatch(/2πkσz comes outside the integral/);
-  expect(plain(disk[disk.length-1].text)).toMatch(/2πkσ = σ\/\(2ε₀\)/);
+  expect(plain(disk[0].text)).toContain(String.raw`$2\pi k\sigma z$ comes outside the integral`);
+  expect(plain(disk[disk.length-1].text)).toContain(String.raw`$2\pi k\sigma=\sigma/(2\varepsilon_0)$`);
  });
  it('stale or imprecise diagnoses are gone',()=>{
   expect(said('bisector','component2','0')).not.toMatch(/next step/);
@@ -199,7 +203,9 @@ describe('short equations in prose do not break across lines',()=>{
  });
  for(const p of lessons)it(`${p.id}/${p.variable}: no breaking space beside “=” or “→”, and no held run longer than a short formula`,()=>{
   const texts=[p.subtitle,p.setup,...p.steps.flatMap(s=>[s.text,...(s.worked??[]).map(w=>w.text),...(s.fields??[]).flatMap(f=>(f.mistakes??[]).map(m=>m.message))]),...p.limits.map(l=>l.explanation)];
-  for(const text of texts){
+  // A $…$ span is TeX, set by the page's Prose as one unbreakable formula: only the words around it
+  // are held by no-break spaces, and only they are checked here.
+  for(const text of texts.map(t=>t.split('$').filter((_,i)=>i%2===0).join(' '))){
    expect(text,text).not.toMatch(/ [=→]|[=→] /);
    for(const run of text.split(/[ \n]/))expect(run.length,`${p.id}: “${plain(run)}”`).toBeLessThanOrEqual(32);
   }

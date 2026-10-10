@@ -24,13 +24,21 @@ export function numerical(id:ProblemId,p:Params,n=12000):Vec {if(!Number.isFinit
  *  · `growth`: a potential with no limit at all. The exact value and its growth law are drawn
  *    themselves, as two curves, each divided by the same constant (the larger of their two end
  *    values), so both climb the plot together. A ratio would fall and settle at one, and a curve
- *    that settles reads as V levelling off -- the opposite of what the case is about. */
-export type LimitKind='ratio'|'constant'|'decay'|'peak'|'growth';
+ *    that settles reads as V levelling off -- the opposite of what the case is about.
+ *  · `law`: a field whose case is how it scales. Drawn like `growth`, the exact value and the law
+ *    themselves on one shared scale, here falling together. THE INFINITE LINE'S "DOUBLE r AND E
+ *    HALVES" WAS A FLAT LINE: its ratio to 2kλ/r, the same horizontal line on a dashed line as the
+ *    sheet's "the field does not change". Two opposite scalings in one picture, on the two lessons
+ *    whose whole contrast is that scaling, and the halving the title promises was divided out
+ *    before it was drawn. Now the field itself falls on its law, with a point charge's fall (`second`)
+ *    from the same start beside it, steeper. */
+export type LimitKind='ratio'|'constant'|'decay'|'peak'|'growth'|'law';
 /** One point on a limit's plot. `actual` and `target` are magnitudes (for the semi-infinite line's
  * direction, its two component magnitudes), so a negative charge never mirrors a curve below the
  * axis. `vector` is the field at P for that point, sign included: the thumbnail draws it.
  * `second` is the field's magnitude where a potential's case is drawn beside it: the arc closing on
- * its centre, where E vanishes and V does not, is only shown by drawing both. */
+ * its centre, where E vanishes and V does not, is only shown by drawing both. On the infinite line's
+ * `law` case it is a point charge's field from the same start, the steeper fall the line never takes. */
 export type LimitSample={actual:number;target:number;vector?:Vec;second?:number};
 const sum=(samples:{field:Vec}[]):Vec=>samples.reduce((s,x)=>({x:s.x+x.field.x,y:s.y+x.field.y,z:s.z+x.field.z}),{x:0,y:0,z:0});
 /** The arc's potential at its centre as a sum over point charges, not the closed form kQ/R. */
@@ -55,7 +63,9 @@ export function sampleLimit(problem:Problem,p:Params,limit:Limit,t:number):Limit
    // and measured from there the point-charge form is off by a term of order (L/a)², not L/a.
    const d=geom==='axial'?copy.distance+p.size/2:copy.distance;
    if(scalar){actual=Math.abs(potential(geom,copy));target=K*q/d;}else{actual=fieldOf(geom,copy);target=K*q/d**2;}break;}
-  // The transverse far field is a first moment: −kQ y_c/r³ with y_c the centre of charge. Only the ramp uses it, and its y_c is 2L/3.
+  // The vertical far field, along the rod, is a first moment: −kQ y_c/r³ with y_c the centre of
+  // charge. Only the ramp uses it, and its y_c is 2L/3. ("Transverse" named it once, which beside a
+  // rod reads as across the rod -- E_x, the other component.)
   case 'moment':{copy.distance=t*p.size;const e=field(geom,copy);vector={x:0,y:e.y,z:0};actual=Math.abs(e.y);target=K*q*(2*p.size/3)/copy.distance**3;break;}
   case 'infinite':if(scalar&&geom==='disk'){const sigma=p.charge/(Math.PI*R*R);copy.size=2*t*p.distance;copy.charge=sigma*Math.PI*(copy.size/2)**2;actual=Math.abs(potential('disk',copy));target=Math.abs(sigma)*1e-9*(copy.size/2)/(2*EPS0);}
    else if(scalar){const lambda=p.charge/p.size;copy.size=t*p.distance;copy.charge=lambda*copy.size;actual=Math.abs(potential('bisector',copy));target=2*K*Math.abs(lambda)*1e-9*Math.log(Math.max(copy.size/p.distance,1));}
@@ -79,8 +89,10 @@ export function sampleLimit(problem:Problem,p:Params,limit:Limit,t:number):Limit
   case 'half':copy.phi=Math.PI;vector=numerical('arc',copy,halfPieces(t));actual=magnitude(vector);target=2*K*q/(Math.PI*R*R);break;
   // Point-charge sums at P = t metres: the sheet's field against σ/2ε₀, the infinite line's against
   // 2kλ/r, and the semi-infinite line's two components against each other. None reads a closed form.
+  // The line's `second` is a point charge's 1/r² fall, through the line's own value at the sweep's
+  // start (t = 1): the plot scales it by its largest, which is that start, so the two leave together.
   case 'scale':copy.distance=t;if(geom==='sheet'){vector=sum(REGISTRY.sheet.sample(copy,400));actual=Math.abs(vector.z);target=q/(2*EPS0);}
-   else if(geom==='infinite'){vector=numerical('infinite',copy,400);actual=Math.abs(vector.x);target=2*K*q/t;}
+   else if(geom==='infinite'){vector=numerical('infinite',copy,400);actual=Math.abs(vector.x);target=2*K*q/t;second=2*K*q/(t*t);}
    else{vector=numerical('semi',copy,400);actual=Math.abs(vector.x);target=Math.abs(vector.y);}break;
  }return{actual,target,vector,second};
 }
@@ -99,28 +111,43 @@ export function limitPlot(problem:Problem,limit:Limit):LimitPlot{
   case 'far':return{kind:'ratio',y:`${Q} ÷ point-charge ${qty}`,axis:`distance ${d}`,from:`${d} ∼ ${size}`,to:`${d} ≫ ${size}`,line:'point charge',caption:settles('a point charge’s',`${d} ≫ ${size}`)};
   case 'moment':return{kind:'ratio',y:'|Eᵧ| ÷ first-moment field',axis:'distance r',from:'r ∼ L',to:'r ≫ L',line:'first moment',caption:'On the dashed line the vertical field is the first-moment field, set by the centre of charge ȳ. The curve settles onto it as r\u00a0≫\u00a0L.'};
   case 'infinite':
-   if(scalar)return{kind:'growth',y:'|V| and its growth law, scaled',axis:g==='disk'?'disk radius R, with σ fixed':'rod length L, with λ fixed',from:g==='disk'?'R ∼ z':'L ∼ r',to:g==='disk'?'R ≫ z':'L ≫ r',line:'growth law',caption:'Both keep growing without end, in step: V has no limit to settle on.'};
+   // The dashed curve is named by how it grows, as the rod's near case names its logarithm: "growth
+   // law" alone left a student to work out what was dashed. Both curves are scaled, so no
+   // coefficient is needed, and none could be shown.
+   if(scalar)return{kind:'growth',y:'|V| and its growth law, scaled',axis:g==='disk'?'disk radius R, with σ fixed':'rod length L, with λ fixed',from:g==='disk'?'R ∼ z':'L ∼ r',to:g==='disk'?'R ≫ z':'L ≫ r',line:g==='disk'?'grows as R':'grows as ln(L/r)',caption:'Both keep growing without end, in step: V has no limit to settle on.'};
    // On the disk and the bisector the curve is the lesson's own field, growing into its limit. On the
    // sheet and the infinite line it is a disk's or a rod's field growing into the lesson's: calling
-   // it "your exact field" told a student their answer fell short of the true field.
-   if(g==='disk'||g==='sheet')return{kind:'ratio',y:'|E| ÷ infinite-sheet field',axis:'disk radius R, with σ fixed',from:'R ∼ z',to:'R ≫ z',line:'infinite sheet',...g==='sheet'?{solid:'A disk of radius R'}:{},caption:settles('an infinite sheet’s','R ≫ z')};
-   return{kind:'ratio',y:`|E| ÷ ${g==='endpoint'?'semi-infinite':'infinite'}-line field`,axis:'rod length L, with λ fixed',from:'L ∼ r',to:'L ≫ r',line:g==='endpoint'?'semi-infinite line':'infinite line',...g==='infinite'?{solid:'A rod of length L'}:{},caption:settles(g==='endpoint'?'a semi-infinite line’s':'an infinite line’s','L ≫ r')};
+   // it "your exact field" told a student their answer fell short of the true field -- and so did
+   // the caption under it, "the exact field equals an infinite line's", in the lesson whose exact
+   // field IS the infinite line's. There the caption names the rod or the disk, as the legend does.
+   if(g==='disk'||g==='sheet')return{kind:'ratio',y:'|E| ÷ infinite-sheet field',axis:'disk radius R, with σ fixed',from:'R ∼ z',to:'R ≫ z',line:'infinite sheet',...g==='sheet'?{solid:'A disk of radius R',caption:'On the dashed line a disk’s field equals the infinite sheet’s. The curve settles onto it as R ≫ z.'}:{caption:settles('an infinite sheet’s','R ≫ z')}};
+   return{kind:'ratio',y:`|E| ÷ ${g==='endpoint'?'semi-infinite':'infinite'}-line field`,axis:'rod length L, with λ fixed',from:'L ∼ r',to:'L ≫ r',line:g==='endpoint'?'semi-infinite line':'infinite line',...g==='infinite'?{solid:'A rod of length L',caption:'On the dashed line a rod’s field equals the infinite line’s. The curve settles onto it as L ≫ r.'}:{caption:settles(g==='endpoint'?'a semi-infinite line’s':'an infinite line’s','L ≫ r')}};
+  // The ring's potential arrives level, the disk's still sloping: one caption said the same thing of
+  // both, and so pointed at neither. The slope of V along the axis is minus the field there.
   case 'center':return scalar
-   ?{kind:'ratio',y:'|V| ÷ centre value',axis:'height z above the centre',from:'z ≈ R',to:'the centre',line:'centre value',caption:'On the dashed line the exact potential equals its value at the centre. The curve arrives there, finite, as z reaches the centre.'}
+   ?{kind:'ratio',y:'|V| ÷ centre value',axis:'height z above the centre',from:'z ≈ R',to:'the centre',line:'centre value',caption:g==='disk'
+    ?'On the dashed line the exact potential equals its value at the centre. The curve arrives there finite and still sloping: just above a charged disk the field, minus V’s slope, is not zero.'
+    :'On the dashed line the exact potential equals its value at the centre. The curve arrives there finite and level: its slope is minus the field along the axis, which is zero at the centre.'}
    :{kind:'decay',y:'|E|, scaled',axis:'height z above the centre',from:'the peak',to:'the centre',line:'zero',caption:'From its peak the field falls to zero as P reaches the centre, where every element’s field lies in the ring’s plane and its partner opposite cancels it.'};
   // V and its logarithm, not their ratio: ln(L/a) is zero at a = L, so the ratio came in from off the
   // top of the plot there, where nothing is singular, and settled on one as V ran off to infinity.
   // Drawn as themselves they both climb, and close up: V − kλ ln(L/a) = kλ ln((L + a)/L) → 0.
   case 'near':return{kind:'growth',y:'|V| and k|λ| ln(L/a), scaled',axis:'gap a to the rod’s end',from:'a ∼ L',to:'a ≪ L',line:'k|λ| ln(L/a)',caption:'Both grow without end as P walks onto the rod’s end, and draw together: the difference between them, k|λ| ln((L\u00a0+\u00a0a)/L), vanishes as a\u00a0≪\u00a0L.'};
   case 'maximum':return{kind:'peak',y:'|E| ÷ its peak',axis:'height z on the axis',from:'the centre',to:'farther out',line:'the peak',marks:[{t:RING_PEAK_T,label:'peak'},{t:RING_EDGE_T,label:'R'}],caption:'The curve rises from zero at the centre, touches the dashed line once, at the marked peak inside z\u00a0=\u00a0R, and falls away beyond it.'};
+  // The arc opens at fixed Q, so λ = Q/(Rφ) thins as it opens and |E| ∝ sin(φ/2)/φ only falls. At
+  // fixed λ it would rise to the semicircle first, and the axis is where a reader learns which.
+  // The potential's curve is the arc's point charges added up, not the closed form kQ/R: a legend
+  // that said "your exact potential" read as kQ/R plotted against itself.
   case 'full':return scalar
-   ?{kind:'constant',y:'|V| ÷ kQ/R, and |E| scaled',axis:'opening angle φ',from:'φ small',to:'full circle',line:'kQ/R',second:'The field |E|, scaled',caption:'As the arc closes the field falls to zero, while the potential stays on the dashed line at every φ.'}
-   :{kind:'decay',y:'|E|, scaled',axis:'opening angle φ',from:'φ small',to:'full circle',line:'zero',caption:'The field falls to zero as the arc closes into a full circle.'};
+   ?{kind:'constant',y:'|V| ÷ kQ/R, and |E| scaled',axis:'opening angle φ, with Q fixed',from:'φ small',to:'full circle',line:'kQ/R',solid:'The arc’s pieces, added up',second:'The field |E|, scaled',caption:'As the arc closes the field falls to zero, while the potential stays on the dashed line at every φ.'}
+   :{kind:'decay',y:'|E|, scaled',axis:'opening angle φ, with Q fixed',from:'φ small',to:'full circle',line:'zero',caption:'With the charge fixed, the field only falls as the arc opens, and reaches zero when it closes into a full circle.'};
   case 'half':return{kind:'ratio',y:'|sum| ÷ integral',axis:'the semicircle as N point charges',from:'one piece',to:'many pieces',line:'the integral',solid:'Sum of N point charges',caption:'The more point charges, the closer their sum comes to the integral, the dashed line.'};
+  // The sheet's curve is its rings added up, the line's its pieces: neither is the closed form, and a
+  // legend that said "your exact field" read as σ/(2ε₀) divided by itself.
   case 'scale':return g==='sheet'
-   ?{kind:'constant',y:'|E| ÷ sheet field',axis:'height z above the sheet',from:'z small',to:'z large',line:'sheet field',caption:'Flat: the field is the same at every height.'}
+   ?{kind:'constant',y:'|E| ÷ sheet field',axis:'height z above the sheet',from:'z small',to:'z large',line:'sheet field',solid:'The sheet’s rings, added up',caption:'Flat: added up ring by ring, the field is the same at every height.'}
    :g==='infinite'
-   ?{kind:'constant',y:'|E| ÷ infinite-line field',axis:'distance r from the line',from:'r small',to:'r large',line:'infinite line',solid:'The line’s pieces, added up',caption:'Flat: added up piece by piece, the field stays on the infinite-line field, which falls as one over r. Double r and it halves.'}
+   ?{kind:'law',y:'|E|, scaled',axis:'distance r from the line',from:'r small',to:'r large',line:'infinite line',solid:'The line’s pieces, added up',second:'A point charge’s fall',caption:'Added up piece by piece, the field falls along the dashed infinite-line curve: double r and it halves. The ghost curve, a point charge’s field from the same start, drops to a quarter.'}
    :{kind:'constant',y:'|Eₓ| ÷ |Eᵧ|',axis:'distance r from the line’s end',from:'r small',to:'r large',line:'equal parts',solid:'Your field’s two components',caption:'Flat: the two components stay equal at every r, so the field never turns.'};
  }
 }

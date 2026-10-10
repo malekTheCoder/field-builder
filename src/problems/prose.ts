@@ -12,7 +12,13 @@ import type {Problem} from './types';
  *  · the spaces either side of a relation or an operator between two terms: x = 0, z > 0, a + L;
  *  · the space between two symbols: k dQ, λ dy, 2kλ ln(r₂/r₁), cos θ.
  * A space after a sentence's or a clause's punctuation is never held, so a held run is a formula,
- * not a paragraph, and the words around it still wrap. */
+ * not a paragraph, and the words around it still wrap.
+ *
+ * The setup and the unfolded integration go further: the page sets them through Prose, which reads a
+ * $…$ span as TeX, so their symbols are written that way and come out in the face of the equation
+ * under them. "Eₓ = kλ(0 − 1/r)" in the sans face, directly above the same symbols in KaTeX, was one
+ * symbol in two faces on a projected step. The limits' explanations and the confusions are still
+ * plain paragraphs, and are held here. */
 const OPERATOR=/(\S) ([=→≈∼~≫≪≤≥<>≠×·÷/+−]) (?=\S)/g;
 /** Greek letters, sub- and superscripts and the calculus marks: any of them makes a token a symbol. */
 const MATHY=/[α-ωΑ-ΩΔ∂√∫∞₀-₉ᵢᵧₓ²³′]/;
@@ -26,8 +32,13 @@ export function symbolic(token:string):boolean{
  // kQ/R, Q/L, L/2, 1/r: letters and a fraction bar or a power, with no word in them.
  return /[A-Za-z]/.test(core)&&/[/^0-9]/.test(core)&&!/[a-z]{3}/.test(core);
 }
-/** The text with its short formulas held together by no-break spaces. */
+/** The text with its short formulas held together by no-break spaces. A span written $…$ is TeX, set
+ * as math by the page's Prose (the unfolded integration, the setup) and held there as one unit: it
+ * is passed through untouched, so no no-break space lands inside a formula KaTeX has to read. */
 export function hold(text:string):string{
+ return text.split('$').map((part,i)=>i%2?part:holdWords(part)).join('$');
+}
+function holdWords(text:string):string{
  // A point's coordinates are one thing: P = (0, 0, z), never "(0," on one line and "0, z)" on the next.
  const held=text.replace(/\([^()\s]+(?:, [^()\s]+)+\)/g,tuple=>tuple.replace(/ /g,' ')).replace(OPERATOR,'$1 $2 ');
  // Between two symbols, unless the first closes a sentence or a clause.

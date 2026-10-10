@@ -35,12 +35,32 @@ describe('Limiting cases on a phone', () => {
   });
 });
 describe('a level reference is drawn over the curve that sits on it', () => {
-  for (const [id, mode] of [['v-arc', 'full'], ['sheet', 'scale'], ['semi', 'scale'], ['infinite', 'scale'], ['ring', 'far']] as const) it(`${id}/${mode}`, () => {
+  for (const [id, mode] of [['v-arc', 'full'], ['sheet', 'scale'], ['semi', 'scale'], ['ring', 'far']] as const) it(`${id}/${mode}`, () => {
     const problem = getProblem(id), limit = problem.limits.find(l => l.mode === mode)!;
     const {container} = render(<div style={{width: 560}}><Assessment problem={problem} params={DEFAULT_PARAMS} limit={limit} /></div>);
     const exact = container.querySelector('path[stroke="var(--field)"]')!, line = container.querySelector('line.comparison-reference')!;
     expect(line, 'the dashed reference').not.toBeNull();
     expect(exact.compareDocumentPosition(line) & Node.DOCUMENT_POSITION_FOLLOWING, 'drawn after, so on top of, the exact curve').toBeTruthy();
+  });
+});
+// The infinite line's scaling is drawn, not divided out: the field and its 2kλ/r law fall together,
+// the law's dashes over the curve on it, and a point charge's ghost falls faster from the same start.
+describe('the infinite line is drawn falling on its law, beside a point charge', () => {
+  it('a guide curve over the exact one, a ghost under both, on a logarithmic axis', () => {
+    const problem = getProblem('infinite'), limit = problem.limits.find(l => l.mode === 'scale')!;
+    const {container} = render(<div style={{width: 560}}><Assessment problem={problem} params={DEFAULT_PARAMS} limit={limit} /></div>);
+    expect(container.querySelector('svg.comparison-plot')!.getAttribute('data-kind')).toBe('law');
+    expect(container.querySelector('line.comparison-reference'), 'no level line: the law is a curve').toBeNull();
+    const exact = container.querySelector('path[stroke="var(--field)"]')!, guide = container.querySelector('path.comparison-guide')!, ghost = container.querySelector('path.comparison-second')!;
+    expect(exact.compareDocumentPosition(guide) & Node.DOCUMENT_POSITION_FOLLOWING, 'the dashes on top').toBeTruthy();
+    const ys = (d: string) => [...d.matchAll(/[ML]([\d.]+),([\d.]+)/g)].map(m => [Number(m[1]), Number(m[2])]);
+    const e = ys(exact.getAttribute('d')!), g = ys(ghost.getAttribute('d')!);
+    // One start; the ghost below the exact curve after it, as 1/r² runs under 1/r.
+    expect(g[0][1]).toBeCloseTo(e[0][1], 0);
+    for (const i of [15, 35, 55]) expect(g[i][1], `sample ${i}`).toBeGreaterThan(e[i][1] + 2);
+    // Logarithmic: the samples are evenly spaced across the plot, and r doubles in equal steps.
+    expect(e[1][0] - e[0][0]).toBeCloseTo(e[69][0] - e[68][0], 1);
+    expect(container.textContent).toMatch(/A point charge’s fall/);
   });
 });
 describe('the preview sliders are named where a keyboard lands', () => {
@@ -106,12 +126,30 @@ describe('the tour’s sum is a closed polygon at P', () => {
   it('the contributions run head to tail out of P, and the sum closes the chain', async () => {
     const view = await sumPage();
     const steps = [...view.baseElement.querySelectorAll('g.ob-piece path.ob-step')].map(p => /^M([\d.]+) ([\d.]+)L([\d.]+) ([\d.]+)$/.exec(p.getAttribute('d')!)!.slice(1).map(Number));
-    expect(steps[0].slice(0, 2), 'the chain starts at P').toEqual([265, 125]);
+    expect(steps[0].slice(0, 2), 'the chain starts at P').toEqual([215, 112]);
     const added = view.baseElement.querySelectorAll('g.ob-piece.is-added').length;
     const sum = /^M([\d.]+) ([\d.]+)l(-?[\d.]+) (-?[\d.]+)$/.exec(view.baseElement.querySelector('path.ob-sum')!.getAttribute('d')!)!.slice(1).map(Number);
     const head = steps[added - 1].slice(2);
     expect(sum[0] + sum[2], 'the sum ends at the head of the pieces added so far').toBeCloseTo(head[0], 1);
     expect(sum[1] + sum[3]).toBeCloseTo(head[1], 1);
+  });
+  // The pieces once sat in one row up and to the left of P: every contribution pointed the same way
+  // and the chain was a sliver lying on its own sum, with nothing to count. On a rod spanning P's
+  // level the contributions swing through the horizontal, so the chain dips and comes back.
+  it('the chain visibly bows: it dips below P’s level and returns to it, link by visible link', async () => {
+    const view = await sumPage();
+    const steps = [...view.baseElement.querySelectorAll('g.ob-piece path.ob-step')].map(p => /^M([\d.]+) ([\d.]+)L([\d.]+) ([\d.]+)$/.exec(p.getAttribute('d')!)!.slice(1).map(Number));
+    const ys = steps.map(s => s[3]), lowest = Math.max(...ys), head = steps[steps.length - 1];
+    expect(lowest - 112, 'the dip, in figure units').toBeGreaterThan(30);
+    expect(head[3], 'the up and down parts cancel: the head is back at P’s level').toBeCloseTo(112, 0);
+    expect(head[2] - 215, 'the closing side runs along +x').toBeGreaterThan(150);
+    // The first pieces push down and the last push up: the contributions swing through the horizontal.
+    expect(steps[0][3] - steps[0][1]).toBeGreaterThan(0);
+    expect(head[3] - head[1]).toBeLessThan(0);
+    // Every link ends on a joint, as the run's own chain does, so the links can be counted.
+    expect(view.baseElement.querySelectorAll('g.ob-piece circle.ob-joint').length).toBe(steps.length);
+    // And every piece is marked positive, as the description says its field is.
+    expect([...view.baseElement.querySelectorAll('g.ob-piece text.ob-plus')].map(t => t.textContent)).toEqual(Array(12).fill('+'));
   });
   it('each label sits clear of the chain and the sum', async () => {
     const view = await sumPage();

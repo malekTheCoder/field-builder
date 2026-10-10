@@ -9,6 +9,8 @@ export type LessonArtifact = {
   /** Where P is, in the lesson's own symbols: the caption under the figure. */
   coordinate?: string;
   integralTex: string;
+  /** The other component's integral, where the result has two components built separately. */
+  secondaryIntegralTex?: string;
   /** Every line of the result, the built component first -- E_x and E_y where there are both. */
   results: string[];
   /** A potential lesson's field, differentiated back from V: the step its subtitle promises. */
@@ -28,6 +30,12 @@ export function escapeHtml(s: string) {
  * an annotation, for anyone who wants to copy it. */
 export function mathml(tex: string, display = true) {
   return spaceOperators(katex.renderToString(tex, {output: 'mathml', displayMode: display, throwOnError: false, strict: 'ignore'}));
+}
+
+/** A sentence with its symbols written $…$, as a lesson writes its setup: the words escaped, each
+ * symbol set as inline MathML, so the λ in "so λ = Q/L" is the λ of the integral printed under it. */
+export function proseHtml(text: string) {
+  return text.split('$').map((part, i) => i % 2 ? mathml(part, false) : escapeHtml(part)).join('');
 }
 
 /** The operator names a lesson writes: ln, sin, cos and their kin, upright, as KaTeX marks them up. */
@@ -65,7 +73,7 @@ export function artifactHtml(a: LessonArtifact) {
     ? `<h2>The field, by differentiating</h2>\n<div class="result">${a.derived.map(tex => mathml(tex)).join('\n')}</div>\n`
     : '';
   // The page writes "with k = 1/(4πε₀)" beside its result. The copy printed kQ/… with k never said.
-  const constant = [a.integralTex, ...a.results, ...(a.derived ?? [])].some(usesK)
+  const constant = [a.integralTex, a.secondaryIntegralTex ?? '', ...a.results, ...(a.derived ?? [])].some(usesK)
     ? `<p class="where">Throughout, ${mathml(String.raw`k=\dfrac{1}{4\pi\varepsilon_0}`, false)}.</p>\n`
     : '';
   // The maths names its faces. The generic `math` family did not reach one with a MATH table in
@@ -97,10 +105,10 @@ footer { margin-top: 36px; padding-top: 12px; border-top: 1px solid #d8e1e7; col
 <p class="lede">${escapeHtml(a.subtitle)}</p>
 ${figure}
 <h2>Setup</h2>
-<p>${escapeHtml(a.setup)}</p>
-<h2>The integral</h2>
+<p>${proseHtml(a.setup)}</p>
+<h2>${a.secondaryIntegralTex ? 'The integrals' : 'The integral'}</h2>
 ${mathml(a.integralTex)}
-<h2>The result</h2>
+${a.secondaryIntegralTex ? `${mathml(a.secondaryIntegralTex)}\n` : ''}<h2>The result</h2>
 <div class="result">${a.results.map(tex => mathml(tex)).join('\n')}</div>
 ${derived}${constant}
 <footer>Saved from Field Builder. The equations are MathML, so this page needs no network to read or print.</footer>

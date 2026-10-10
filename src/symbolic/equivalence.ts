@@ -110,7 +110,22 @@ const symbolTex=(node:MathNode,options?:object):string|undefined=>{
  * are set by juxtaposition with a thin space, as the lessons write them, except in two places: before
  * a numeral, where juxtaposition would read as one number, and after a numeric fraction, where the
  * bound labels' tidy() reads "\frac{1}{2}\cdot L" as L/2 and needs the \cdot to find it. */
-export function preview(input:string):string {try{return safeParse(input).toTex({parenthesis:'auto',implicit:'hide',handler:symbolTex}).replace(/\\cdot/g,'\\cdot ').replace(/(\\frac\{-?\d+\}\{\d+\})?\\cdot (?!\s*\d)/g,(m:string,fraction?:string)=>fraction?m:'\\,');}catch{return String.raw`\text{Keep typing…}`;}}
+export function preview(input:string):string {try{return texOf(safeParse(input));}catch{return String.raw`\text{Keep typing…}`;}}
+const texOf=(node:MathNode)=>node.toTex({parenthesis:'auto',implicit:'hide',handler:symbolTex}).replace(/\\cdot/g,'\\cdot ').replace(/(\\frac\{-?\d+\}\{\d+\})?\\cdot (?!\s*\d)/g,(m:string,fraction?:string)=>fraction?m:'\\,');
+/** The expression with the minus that leads it taken off, or null when nothing leads with one. mathjs
+ * binds a unary minus tighter than a product, so −kλ/r is ((−k)·λ)/r: the minus sits on the first
+ * factor of the numerator, however deep, and it is found by following first factors down. */
+function withoutLeadingMinus(node:MathNode):MathNode|null{
+ if(node.type!=='OperatorNode')return null;
+ const o=node as OperatorNode;
+ if(o.fn==='unaryMinus')return o.args[0];
+ if(o.op!=='*'&&o.op!=='/')return null;
+ const first=withoutLeadingMinus(o.args[0]);
+ if(!first)return null;
+ const copy=o.clone() as OperatorNode;
+ copy.args[0]=first;
+ return copy;
+}
 /** An expression in "Easy to confuse with", set to be read.
  *
  * Those expressions ARE the section: each is the wrong turn a sentence beside it diagnoses. Set
@@ -118,8 +133,16 @@ export function preview(input:string):string {try{return safeParse(input).toTex(
  * the size, and (s² + z²)^{3/2} with a stacked ³⁄₂ at script-script size, under half the size of the
  * prose next to it. So they are set in display style, as a textbook sets a formula it is talking
  * about, and a fraction in an exponent is written with a slash, which is how it is printed and the
- * only way it can be read at exponent size. `preview` itself is unchanged: the bound labels parse it. */
+ * only way it can be read at exponent size. `preview` itself is unchanged: the bound labels parse it.
+ *
+ * And a leading minus is set before the fraction, −kλ/r, as the lessons write it: mathjs puts it in
+ * the numerator, \frac{-k\lambda}{r}, which no textbook prints and which sat beside the lesson's own
+ * −\frac{k\lambda}{r} as a second way of writing one expression. Only a minus that leads the whole
+ * expression is moved, so a product can never read as a difference. */
 export function confusionTex(input:string):string{
- return '\\displaystyle '+preview(input).replace(/\^\{\\frac\{(-?\d+)\}\{(\d+)\}\}/g,'^{$1/$2}');
+ let shown:string;
+ try{const node=safeParse(input),bare=withoutLeadingMinus(node);shown=bare?'-'+texOf(bare):texOf(node);}
+ catch{shown=String.raw`\text{Keep typing…}`;}
+ return '\\displaystyle '+shown.replace(/\^\{\\frac\{(-?\d+)\}\{(\d+)\}\}/g,'^{$1/$2}');
 }
 export function feedback(input:string,field:import('../problems/types').Answer,p:Problem):{text:string;highlight:string}{for(const m of field.mistakes??[]){if(equivalent(input,m.expression,p).ok)return{text:m.message,highlight:m.highlight??'element'};}return{text:field.hint,highlight:field.id.includes('component')?'components':field.id==='distance'?'distance':'element'};}

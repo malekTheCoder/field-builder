@@ -55,9 +55,10 @@ describe('the explanations are true',()=>{
   expect(plain(getProblem('v-rod-axial').limits.find(l=>l.mode==='near')!.explanation)).toMatch(/k dQ\/rᵢ/);
  });
  it('the semi-infinite line’s bracket is evaluated, not described as positive',()=>{
-  const first=plain(getProblem('semi').steps.find(s=>s.kind==='integrate')!.worked![0].text);
-  expect(first).not.toMatch(/comes out positive/);
-  expect(first).toContain('kλ(0 − 1/r) = −kλ/r');
+  // The bracket's evaluation is its own TeX line now, under the sentence that explains its sign.
+  const worked=getProblem('semi').steps.find(s=>s.kind==='integrate')!.worked!;
+  for(const w of worked)expect(plain(w.text)).not.toMatch(/comes out positive/);
+  expect(worked.some(w=>w.tex.includes(String.raw`k\lambda\left(0-\frac1r\right)=-\frac{k\lambda}{r}`))).toBe(true);
  });
 });
 describe('the words hold for either sign of charge, and speak of fields, not forces',()=>{
@@ -75,6 +76,7 @@ describe('the words hold for either sign of charge, and speak of fields, not for
 });
 describe('prose shown as plain text carries no raw notation',()=>{
  for(const p of lessons)it(`${p.id}/${p.variable}: no _ or ^ outside KaTeX`,()=>{
-  for(const [where,text] of shown(p))expect(text,`${p.id} ${where}: ${text}`).not.toMatch(/[_^]/);
+  // A $…$ span is TeX, which the setup and the unfolded steps set through the page's Prose.
+  for(const [where,text] of shown(p))expect(text.split('$').filter((_,i)=>i%2===0).join(' '),`${p.id} ${where}: ${text}`).not.toMatch(/[_^]/);
  });
 });

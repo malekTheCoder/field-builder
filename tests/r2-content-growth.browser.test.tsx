@@ -38,7 +38,7 @@ describe('a diverging potential is drawn as two rising curves', () => {
       expect(y[0] - y[y.length - 1], `${id} ${name} climbs`).toBeGreaterThan(90);
     }
     expect(container.querySelector('.numerical-check')!.textContent).toMatch(/^Both (keep growing|grow) without end/);
-    expect(container.querySelector('.comparison-labels')!.textContent).toContain(mode === 'near' ? 'k|λ| ln(L/a)' : 'Growth law');
+    expect(container.querySelector('.comparison-labels')!.textContent).toMatch(mode === 'near' ? /k\|λ\| ln\(L\/a\)/ : /Grows as (R|ln\(L\/r\))/);
     // The growth law's name sits beside it, touching neither curve.
     const label = svg.querySelector<SVGTextElement>('text.comparison-line')!, box = label.getBBox();
     expect(box.width).toBeGreaterThan(20);

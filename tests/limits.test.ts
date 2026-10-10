@@ -23,8 +23,10 @@ describe('every limiting case compares like with like',()=>{
     expect(Math.max(...s.map(x=>x.actual))/last.target).toBeCloseTo(1,3);return;}
    if(last.target===0){expect(last.actual).toBeLessThan(first.actual*1e-3+1e-12);return;}
    const err=(x:{actual:number;target:number})=>Math.abs(x.actual/x.target-1);
-   // A constancy demonstration has nothing to approach: it is on the line from the first sample.
-   if(limitPlot(problem,limit).kind==='constant'){for(const x of s)expect(err(x)).toBeLessThan(1e-5);return;}
+   // A constancy demonstration has nothing to approach: it is on the line from the first sample. Nor
+   // has a law: the line's pieces, added up, fall on 2kλ/r from the start.
+   const kind=limitPlot(problem,limit).kind;
+   if(kind==='constant'||kind==='law'){for(const x of s)expect(err(x)).toBeLessThan(1e-5);return;}
    expect(err(last)).toBeLessThan(.05);
    expect(err(last)).toBeLessThanOrEqual(err(first));
   });
@@ -83,7 +85,7 @@ describe('no limit is a formula plotted against itself',()=>{
  const CONSTANT=['semi/scale','sheet/scale','infinite/scale','v-arc/full'];
  for(const problem of PROBLEMS)for(const limit of problem.limits)it(`${problem.id}/${limit.id}`,()=>{
   const kind=limitPlot(problem,limit).kind,s=sweep(problem,limit);
-  if(kind==='constant'){expect(CONSTANT,`${problem.id}/${limit.id} calls itself a constancy demonstration`).toContain(`${problem.id}/${limit.id}`);return;}
+  if(kind==='constant'||kind==='law'){expect(CONSTANT,`${problem.id}/${limit.id} calls itself a constancy demonstration`).toContain(`${problem.id}/${limit.id}`);return;}
   // Somewhere on the sweep the exact value is visibly not the reference.
   const apart=Math.max(...s.map(x=>x.target>0?Math.abs(x.actual/x.target-1):x.actual>0?1:0));
   expect(apart,`${problem.id}/${limit.id} never leaves its reference`).toBeGreaterThan(1e-3);
@@ -150,5 +152,55 @@ describe('a potential that grows without end is drawn growing',()=>{
   const late=(k:'actual'|'target')=>(s[69][k]-s[52][k])/s[69][k];
   expect(late('actual')).toBeGreaterThan(.2);
   expect(late('target')).toBeGreaterThan(.2);
+ });
+});
+// THE INFINITE LINE'S SCALING IS DRAWN, NOT DIVIDED OUT. "Double r and E halves" was a flat ratio on a
+// dashed line, the same picture as the sheet's "the field does not change": two opposite scalings in
+// one drawing. It is now the field itself falling on 2kλ/r, with a point charge's steeper fall beside it.
+describe('the infinite line’s field is drawn halving, beside a point charge’s quartering',()=>{
+ const line=getProblem('infinite'),limit=line.limits.find(l=>l.mode==='scale')!,plot=limitPlot(line,limit);
+ it('is a law plot of |E| itself, with the point charge’s fall as its second curve',()=>{
+  expect(plot.kind).toBe('law');
+  expect(plot.y).toBe('|E|, scaled');
+  expect(plot.second).toMatch(/point charge/);
+  expect(plot.caption).toMatch(/double r and it halves/);
+  expect(plot.caption).not.toMatch(/^Flat/);
+ });
+ it('doubling r halves the summed field and quarters the ghost, from one shared start',()=>{
+  for(const t of [1,2.5,7]){
+   const a=sampleLimit(line,p,limit,t),b=sampleLimit(line,p,limit,2*t);
+   expect(b.actual/a.actual,`t=${t}`).toBeCloseTo(.5,4);
+   expect(b.second!/a.second!,`t=${t}`).toBeCloseTo(.25,12);
+  }
+  const start=sampleLimit(line,p,limit,1);
+  expect(start.second!/start.actual).toBeCloseTo(1,4);
+ });
+ it('the sheet keeps its flat plot: the two lessons no longer share one picture',()=>{
+  const sheet=getProblem('sheet'),flat=limitPlot(sheet,sheet.limits.find(l=>l.mode==='scale')!);
+  expect(flat.kind).toBe('constant');
+  expect(flat.kind).not.toBe(plot.kind);
+ });
+});
+// The arc opens at fixed Q, which is what its plot holds: reasoned at fixed λ, sin(φ/2) peaks at the
+// semicircle, and a student predicted a hump the curve does not have.
+describe('the arc closing into a circle is reasoned at the fixed Q its plot holds',()=>{
+ const arc=getProblem('arc'),full=arc.limits.find(l=>l.mode==='full')!;
+ const words=(s:string)=>s.replace(/ /g,' ');
+ it('the formula, the explanation and the axis say Q is fixed',()=>{
+  expect(full.formula).toContain(String.raw`(Q\text{ fixed})`);
+  expect(full.formula).toContain(String.raw`\frac{\sin(\varphi/2)}{\varphi}`);
+  expect(words(full.explanation)).toMatch(/total charge Q stays fixed/);
+  expect(words(full.explanation)).toMatch(/At fixed λ the field would instead grow until the semicircle/);
+  expect(limitPlot(arc,full).axis).toMatch(/with Q fixed/);
+  const v=getProblem('v-arc');
+  expect(limitPlot(v,v.limits.find(l=>l.mode==='full')!).axis).toMatch(/with Q fixed/);
+ });
+ it('at fixed Q the field only falls; at fixed λ it would peak at the semicircle',()=>{
+  const s=Array.from({length:70},(_,i)=>sampleLimit(arc,p,full,1+29*i/69).actual);
+  for(let i=1;i<s.length;i++)expect(s[i],`sample ${i}`).toBeLessThan(s[i-1]);
+  // At fixed λ the field goes as sin(φ/2): largest at φ = π, smaller on either side.
+  const fixedLambda=(phi:number)=>Math.sin(phi/2);
+  expect(fixedLambda(Math.PI)).toBeGreaterThan(fixedLambda(.5*Math.PI));
+  expect(fixedLambda(Math.PI)).toBeGreaterThan(fixedLambda(1.5*Math.PI));
  });
 });

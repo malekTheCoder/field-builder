@@ -91,7 +91,7 @@ describe('far limits are written in each lesson’s own symbols',()=>{
   }
  });
  it('the ring and the disk speak of z and R, the potentials of z or r',()=>{
-  for(const id of ['ring','disk'])expect(getProblem(id).limits.find(l=>l.mode==='far')!.formula,id).toBe(String.raw`z\gg R:\quad E_z\to kQ/z^2`);
+  for(const id of ['ring','disk'])expect(getProblem(id).limits.find(l=>l.mode==='far')!.formula,id).toBe(String.raw`z\gg R:\quad E_z\sim kQ/z^2`);
   for(const id of ['v-ring','v-disk'])expect(getProblem(id).limits.find(l=>l.mode==='far')!.explanation,id).toMatch(/kQ\/z\b/);
   expect(getProblem('v-rod-bisector').limits.find(l=>l.mode==='far')!.explanation).toMatch(/kQ\/r\b/);
  });
@@ -127,13 +127,14 @@ describe('the rod potentials’ subtitles say where P is',()=>{
  });
  it('the bisector potential says what it is the bisector of',()=>{
   expect(getProblem('v-rod-bisector').title).toBe('Potential on the bisector of a rod');
-  expect(getProblem('v-rod-bisector').short,'the sidebar name is unchanged').toBe('Line · potential');
+  expect(getProblem('v-rod-bisector').short,'the sidebar name pairs with its field twin').toBe('Finite line · potential');
  });
 });
 describe('“Differentiate back” says why −dV is the whole field, and only there',()=>{
  const where:Record<string,RegExp>={'v-ring':/axis/,'v-disk':/axis/,'v-rod-bisector':/bisector/,'v-rod-axial':/line/};
  for(const [id,place] of Object.entries(where))it(id,()=>{
-  const first=getProblem(id).steps.find(s=>s.kind==='gradient')!.worked![0].text;
+  // Its symbols are TeX, $\mathbf E$ and $V$; read here as the words they stand for.
+  const first=getProblem(id).steps.find(s=>s.kind==='gradient')!.worked![0].text.replace(/\$\\mathbf E\$/g,'E').replace(/\$([^$]*)\$/g,'$1');
   expect(first).toMatch(/symmetry leaves E with only its/);
   expect(first).toMatch(/so that part is the whole field there/);
   expect(first).toMatch(/V known only on the (axis|bisector|line) cannot give E off it/);

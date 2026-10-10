@@ -40,8 +40,9 @@ function rodScale(mode:Limit['mode'],t:number,room:number,far:number,near:number
 function LimitFigure({id,mode,t,vector,scale,arrow}:{id:ProblemId;mode:Limit['mode'];t:number;vector?:Vec;scale:number;arrow:boolean}){
  const P=(x:number,y:number,axial=false)=><Observer x={x} y={y} vector={arrow?vector:undefined} axial={axial} scale={scale}/>;
  if(id==='bisector'||id==='infinite'){
-  // The infinite line moving P away: the whole line, and P walking out from it.
-  if(mode==='scale'){const x=76+130*(t-1)/29;return <><path d={`M64 25H${x}`} {...RAIL}/><path d="M64 -4V52" {...CHARGE} strokeWidth="7"/><path d="M57 6l14-4M57 44l14 4" {...CHARGE}/>{P(x,25)}</>}
+  // The infinite line moving P away: the whole line, and P walking out from it -- along the plot's
+  // own logarithmic axis, so P is where the dot on the curve is.
+  if(mode==='scale'){const x=76+130*Math.log(t)/Math.log(30);return <><path d={`M64 25H${x}`} {...RAIL}/><path d="M64 -4V52" {...CHARGE} strokeWidth="7"/><path d="M57 6l14-4M57 44l14 4" {...CHARGE}/>{P(x,25)}</>}
   // Centred on P's level: the rod's whole length L against P's distance r, half above and half below.
   const {length,gap,unbounded}=rodScale(mode,t,42,134,30),h=Math.max(1.5,length/2);
   return <><path d={`M64 25H${64+gap-8}`} {...RAIL}/><path d={`M64 ${25-h}V${25+h}`} {...CHARGE} strokeWidth="7"/>{unbounded&&<path d="M57 6l14-4M57 44l14 4" {...CHARGE}/>}{P(64+gap,25)}</>}
@@ -91,15 +92,16 @@ const THUMB_PAD:Partial<Record<ProblemId,[number,number]>>={semi:[10,10],endpoin
 // The plot's frame, in the SVG's own units.
 const X0=40,X1=452,TOP=34,BASE=165,WIDTH=480;
 /** What the plotted curve is at one sample: the exact value over the reference, or, where the
- * reference is zero, the exact value over its largest on the sweep. A growth plot draws the exact
- * value itself, over the one constant both of its curves share. */
-const plotted=(plot:LimitPlot,s:LimitSample,largest:number)=>plot.kind==='decay'||plot.kind==='growth'?s.actual/largest:s.target>0?s.actual/s.target:Infinity;
+ * reference is zero, the exact value over its largest on the sweep. A growth plot, or a law one,
+ * draws the exact value itself, over the one constant both of its curves share. */
+const twoCurves=(plot:LimitPlot)=>plot.kind==='growth'||plot.kind==='law';
+const plotted=(plot:LimitPlot,s:LimitSample,largest:number)=>plot.kind==='decay'||twoCurves(plot)?s.actual/largest:s.target>0?s.actual/s.target:Infinity;
 /** The vertical window. A ratio is drawn close up around its line at one -- the approach is the whole
  * story, and from zero it would be a few pixels of rise and then a flat line on top of the reference.
  * A start that runs off to infinity (a reference that is itself zero there) is cut at twice the line.
  * A level line drawn beside a field that falls to zero needs the whole height, down to the axis. */
 function yWindow(plot:LimitPlot,values:number[]):[number,number]{
- if(plot.second||plot.kind==='decay'||plot.kind==='peak'||plot.kind==='growth')return [0,1.08];
+ if(plot.second||plot.kind==='decay'||plot.kind==='peak'||twoCurves(plot))return [0,1.08];
  if(plot.kind==='constant')return [.5,1.5];
  const finite=values.filter(Number.isFinite),lo=Math.min(1,...finite),hi=Math.min(2,Math.max(1,...finite)),pad=Math.max(hi-lo,.02)*.1;
  return [lo-pad,hi+pad];
@@ -108,15 +110,24 @@ function yWindow(plot:LimitPlot,values:number[]):[number,number]{
  * stroked ϕ, while KaTeX and the slider set the curly φ: two glyphs for one angle in one card.
  * The list is written out, not var(--serif): that token reads a font variable that is not set
  * everywhere, and one unset variable voids the whole declaration -- back to the stroked ϕ. */
+const GREEK={fontFamily:'KaTeX_Math, "Source Serif 4", Georgia, serif',fontStyle:'italic'} as const;
 function Sym({text}:{text:string}):ReactNode{
- return text.split(/([α-ωΑ-Ω])/).map((part,i)=>i%2?<tspan key={i} className="comparison-sym" style={{fontFamily:'KaTeX_Math, "Source Serif 4", Georgia, serif',fontStyle:'italic'}}>{part}</tspan>:<Fragment key={i}>{part}</Fragment>);
+ return text.split(/([α-ωΑ-Ω])/).map((part,i)=>i%2?<tspan key={i} className="comparison-sym" style={GREEK}>{part}</tspan>:<Fragment key={i}>{part}</Fragment>);
+}
+/** The same, for the caption under the plot, which is HTML: "at every ϕ" in the sans face sat
+ * under an axis that names the curly φ. */
+function SymText({text}:{text:string}):ReactNode{
+ return text.split(/([α-ωΑ-Ω])/).map((part,i)=>i%2?<span key={i} className="comparison-sym" style={GREEK}>{part}</span>:<Fragment key={i}>{part}</Fragment>);
 }
 export function Assessment({problem,params,limit}:{problem:Problem;params:Params;limit:Limit}){
  const [s,setS]=useState(4),sliderLabel=useId();const scalar=problem.quantity==='V',qty=scalar?'potential':'field',units=scalar?'volts':'newtons per coulomb';
  const plot=useMemo(()=>limitPlot(problem,limit),[problem,limit]);
  // An approach to infinity, or to many pieces, is swept on a logarithmic axis: distance ten times the
  // size sits halfway, not a third of the way, and the approach gets the width of the plot.
- const log=limit.mode==='far'||limit.mode==='moment'||limit.mode==='infinite'||limit.mode==='near'||(limit.mode==='half'&&!scalar);
+ // A law is drawn on one too: doubling r is then one step of the same width wherever it is taken,
+ // and each step halves the curve -- on a linear axis from one to thirty every halving after the
+ // first crowded into the left tenth of the plot.
+ const log=limit.mode==='far'||limit.mode==='moment'||limit.mode==='infinite'||limit.mode==='near'||(limit.mode==='half'&&!scalar)||plot.kind==='law';
  const tAt=(i:number)=>log?30**(i/69):1+29*i/69,xAt=(u:number)=>X0+(log?Math.log(u)/Math.log(30):(u-1)/29)*(X1-X0);
  // The slider moves along the plot's own axis, so its thumb and the dot on the curve stay in step.
  const t=log?30**((s-1)/29):s;
@@ -125,8 +136,9 @@ export function Assessment({problem,params,limit}:{problem:Problem;params:Params
  const val=useMemo(()=>sampleLimit(problem,params,limit,t),[problem,params,limit,t]);
  // A growth plot shares one constant between its two curves -- the larger of their end values -- so
  // neither is stretched to look like the other and both stay inside the window.
- const growth=plot.kind==='growth',largest=Math.max(...samples.map(s=>growth?Math.max(s.actual,s.target):s.actual),Number.MIN_VALUE),values=samples.map(s=>plotted(plot,s,largest));
- // The field drawn beside a potential, scaled to its own largest on the sweep.
+ const growth=plot.kind==='growth',shared=twoCurves(plot),largest=Math.max(...samples.map(s=>shared?Math.max(s.actual,s.target):s.actual),Number.MIN_VALUE),values=samples.map(s=>plotted(plot,s,largest));
+ // The field drawn beside a potential, or the point charge's fall beside the line's, scaled to its
+ // own largest on the sweep.
  const largestSecond=Math.max(...samples.map(s=>s.second??0),Number.MIN_VALUE),second=plot.second?samples.map(s=>(s.second??0)/largestSecond):null;
  const [lo,hi]=yWindow(plot,values),reference=plot.kind==='decay'?0:1;
  // Type held at about ten pixels however narrow the plot is drawn. Once it has grown, the axis name
@@ -136,20 +148,27 @@ export function Assessment({problem,params,limit}:{problem:Problem;params:Params
  // Past the top of the window the curve runs out of the plot, clipped, rather than along its edge.
  const yAt=(v:number)=>BASE-(Math.min(Math.max(Number.isFinite(v)?v:3*hi,lo),3*hi)-lo)/(hi-lo)*(BASE-TOP),clip='limit-clip-'+useId().replace(/[^a-zA-Z0-9_-]/g,'');
  const trace=(vs:number[])=>vs.map((v,i)=>`${i?'L':'M'}${xAt(tAt(i)).toFixed(1)},${yAt(v).toFixed(1)}`).join(' ');
- const path=trace(values),guide=growth?samples.map(s=>s.target/largest):null;
+ const path=trace(values),guide=shared?samples.map(s=>s.target/largest):null;
  // A level line is named at its right end, except a decay's: that comes down onto its line at the
  // right, so it is named at the left, where the curve is high above it. The growth law is a curve,
  // not a level, so its name sits beside it a little past the middle, on the side away from the
  // exact curve: below it where the exact value runs above, above it where the exact value runs under.
- const named=guide?Math.round(samples.length*.55):0,under=guide?guide[named]<values[named]:false;
+ // A law falls, and its exact curve lies on it, so neither side of it is clear by the middle: there
+ // the ghost runs just under it. Its name goes early and above, to the right, in the open corner a
+ // falling curve leaves.
+ const law=plot.kind==='law',named=guide?Math.round(samples.length*(law?.3:.55)):0,under=guide&&!law?guide[named]<values[named]:false;
  const lineLabel:{x:number;y:number;anchor:'start'|'end'}=guide
-  ?{x:xAt(tAt(named))+(under?6:-6),y:yAt(guide[named])+(under?15:-7),anchor:under?'start':'end'}
+  ?law?{x:xAt(tAt(named))+10,y:yAt(guide[named])-10,anchor:'start'}
+  :{x:xAt(tAt(named))+(under?6:-6),y:yAt(guide[named])+(under?15:-7),anchor:under?'start':'end'}
   :{x:plot.kind==='decay'?X0+8:X1,y:yAt(reference)-7,anchor:plot.kind==='decay'?'start':'end'};
  // The thumbnail's frame is 48 units tall. Where P's arrow leans out of it -- up and to the left
  // above a half line's end, down and away beside a rod standing on P's level -- the frame grows by
  // just that much, at the same scale, rather than cutting the arrow off at its edge.
  const arrow=!scalar||!!second,pad=arrow?THUMB_PAD[problem.geometry]??[0,0]:[0,0];
- const here=plotted(plot,val,largest),scale=second?(val.second??0)/largestSecond:plot.kind==='decay'?val.actual/largest:plot.kind==='peak'?val.actual/val.target:1;
+ // The thumbnail's arrow is the field: beside a potential that is the second curve; on a law, the
+ // exact curve itself, shrinking as P walks out.
+ const here=plotted(plot,val,largest),secondHere=second?(val.second??0)/largestSecond:0;
+ const scale=second&&scalar?secondHere:plot.kind==='decay'||law?val.actual/largest:plot.kind==='peak'?val.actual/val.target:1;
  return <div className="assessment"><MathText tex={limit.formula} block/>
  <div className="comparison-labels"><span><i className="legend-dot field"/>{plot.solid??`Your exact ${qty}`}</span>{plot.second&&<span><i className="legend-dot" style={{background:'var(--ghost)'}}/>{plot.second}</span>}<span><i className="legend-dot"/>{/^[a-z]{2,}/.test(plot.line)?plot.line[0].toUpperCase()+plot.line.slice(1):plot.line}</span></div>
  <svg ref={svgRef} viewBox={`0 0 ${WIDTH} ${height}`} className="comparison-plot" role="img" data-kind={plot.kind} aria-label={`${scalar?'Electric potential':'Electric field'} comparison for ${limit.title}: ${plot.y}, against ${plot.axis} from ${plot.from} to ${plot.to}. Exact ${qty} ${pretty(val.actual)} ${units}, ${growth?'growth law':'reference'} ${pretty(val.target)}.`}>
@@ -164,7 +183,7 @@ export function Assessment({problem,params,limit}:{problem:Problem;params:Params
       line the whole way across, and "stays on the dashed line" pointed at a line no one could see. */}
   {!guide&&<line className="comparison-reference" x1={X0} x2={X1} y1={yAt(reference)} y2={yAt(reference)} stroke="var(--charge)" strokeWidth="2" strokeDasharray="6 4"/>}
   {guide&&<path d={trace(guide)} className="comparison-guide" clipPath={`url(#${clip})`} stroke="var(--charge)" strokeWidth="2" strokeDasharray="6 4" fill="none" strokeLinejoin="round"/>}
-  {second&&<circle cx={xAt(t)} cy={yAt(scale)} r="4" fill="var(--ghost)" clipPath={`url(#${clip})`}/>}
+  {second&&<circle cx={xAt(t)} cy={yAt(secondHere)} r="4" fill="var(--ghost)" clipPath={`url(#${clip})`}/>}
   <circle cx={xAt(t)} cy={yAt(here)} r="5" fill="var(--field)" clipPath={`url(#${clip})`}/>
   <text x="7" y="17" className="comparison-y" style={size(11.5)}><Sym text={plot.y}/></text>
   <text x={X0} y="193" className="comparison-end" style={size(10.5)}><Sym text={plot.from}/></text><text x={X1} y="193" textAnchor="end" className="comparison-end" style={size(10.5)}><Sym text={plot.to}/></text>
@@ -179,5 +198,5 @@ export function Assessment({problem,params,limit}:{problem:Problem;params:Params
      input is named by pointing at a hidden label, as the page's own sliders are. */}
  <span id={sliderLabel} className="sr-only">Explore limiting case</span>
  <Slider aria-label="Explore limiting case" aria-labelledby={sliderLabel} min={1} max={30} step={.1} value={[s]} onValueChange={v=>setS((v as number[])[0])}/>
- <p className="numerical-check">{plot.caption}</p></div>;
+ <p className="numerical-check"><SymText text={plot.caption}/></p></div>;
 }

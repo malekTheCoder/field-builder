@@ -168,7 +168,8 @@ describe('the answer and the shelf speak as the board does', () => {
     expect(first.textContent).not.toMatch(/\$/);
     cleanup();
     const vdisk = panel('v-disk');
-    expect(vdisk.container.querySelector('.ew-references-body p')!.textContent).toContain('z > 0');
+    // The model note's relations are set as math, which never breaks inside: z > 0 is one formula.
+    expect([...vdisk.container.querySelectorAll('.ew-references-body p annotation')].map(a => a.textContent)).toContain('z>0');
     // A page that shows no numbers says nothing about their units.
     expect(vdisk.container.querySelector('.ew-references-body')!.textContent).not.toMatch(/Geometry uses/);
   });

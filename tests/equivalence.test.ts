@@ -103,6 +103,8 @@ describe('mathematical input',()=>{
 // preview() is display only: the confusions list and the dragged bounds' labels. mathjs's own toTex
 // sets a name it does not know letter by letter (dθ as d·t·h·e·t·a, rᵢ as r·i, ε₀ as e·p·s·0), sets
 // L, s and ds upright as if they were litres and seconds, and dots every product.
+// Shared by both blocks below: TeX the confusions show, read back into the grader's syntax.
+const unbrace=(tex:string)=>{tex=tex.replace(/\\(sin|cos|tan|sec)(?:\^\{([^{}]*)\})?\s*(\\(?!left)[a-zA-Z]+|[a-zA-Z](?:_[a-z0-9])?)/g,(_,f:string,power:string|undefined,arg:string)=>power?`(\\${f}(${arg}))^{${power}}`:`\\${f}(${arg})`);for(let i=0;i<20;i++){const next=tex.replace(/\^\{([^{}]*)\}/g,'^($1)').replace(/\\frac\{([^{}]*)\}\{([^{}]*)\}/g,'(($1)/($2))').replace(/\{([^{}]*)\}\^/g,'($1)^').replace(/([^a-zA-Z}^])\{([^{}]*)\}/g,'$1($2)');if(next===tex)break;tex=next;}return tex;};
 describe('preview sets the model’s symbols as the lessons write them',()=>{
  it('writes dθ, rᵢ, ε₀ and λ₀ as symbols, not as strings of letters',()=>{
   const theta=preview('lambda*dtheta');expect(theta).toContain('\\theta');expect(theta).not.toContain('dtheta');
@@ -129,7 +131,6 @@ describe('preview sets the model’s symbols as the lessons write them',()=>{
  // every base it raises to a power, {r_i}^{2}, which the grader's normalize() was never asked to
  // read; those groups are made parentheses first, innermost out. A function of one symbol is set
  // as a textbook sets it, \cos^{3}\theta, and is given its brackets back: (\cos(\theta))^{3}.
- const unbrace=(tex:string)=>{tex=tex.replace(/\\(sin|cos|tan|sec)(?:\^\{([^{}]*)\})?\s*(\\(?!left)[a-zA-Z]+|[a-zA-Z](?:_[a-z0-9])?)/g,(_,f:string,power:string|undefined,arg:string)=>power?`(\\${f}(${arg}))^{${power}}`:`\\${f}(${arg})`);for(let i=0;i<20;i++){const next=tex.replace(/\^\{([^{}]*)\}/g,'^($1)').replace(/\\frac\{([^{}]*)\}\{([^{}]*)\}/g,'(($1)/($2))').replace(/\{([^{}]*)\}\^/g,'($1)^').replace(/([^a-zA-Z}^])\{([^{}]*)\}/g,'$1($2)');if(next===tex)break;tex=next;}return tex;};
  for(const p of PROBLEMS)it(`${p.id}: every listed confusion displays as itself`,()=>{
   for(const f of p.steps.flatMap(s=>s.fields??[]))for(const m of f.mistakes??[]){
    const tex=preview(m.expression);
@@ -156,10 +157,26 @@ describe('the confusions are set to be read',()=>{
   expect(preview('-L/2')).toBe('\\frac{-L}{2}');
  });
  const unslash=(tex:string)=>tex.replace(/^\\displaystyle /,'').replace(/\^\{(-?\d+)\/(\d+)\}/g,'^{\\frac{$1}{$2}}');
+ // Either preview() itself, or -- where a minus leads -- that minus set before the fraction, which
+ // still reads back as the expression.
  for(const p of PROBLEMS)it(`${p.id}: every confusion as displayed is still the expression it stands for`,()=>{
   for(const f of p.steps.flatMap(s=>s.fields??[]))for(const m of f.mistakes??[]){
-   const tex=confusionTex(m.expression);
-   expect(unslash(tex),m.expression).toBe(preview(m.expression));
+   const tex=unslash(confusionTex(m.expression));
+   if(tex===preview(m.expression))continue;
+   expect(tex,m.expression).toMatch(/^-/);
+   expect(equivalent(unbrace(tex),m.expression,p).ok,`${m.expression} shown as ${tex}`).toBe(true);
   }
+ });
+ it('a leading minus is set before the fraction, never inside its numerator',()=>{
+  expect(confusionTex('-k*lambda/r')).toBe('\\displaystyle -\\frac{k\\,\\lambda}{r}');
+  expect(confusionTex('-dV/dz')).toBe('\\displaystyle -\\frac{dV}{dz}');
+  expect(confusionTex('-sigma/(2*eps0)*(1-z/sqrt(z^2+R^2))')).toMatch(/^\\displaystyle -\\frac\{\\sigma\}/);
+  for(const p of PROBLEMS)for(const f of p.steps.flatMap(s=>s.fields??[]))for(const m of f.mistakes??[])
+   expect(confusionTex(m.expression),m.expression).not.toMatch(/\\frac\{-/);
+  // A minus that does not lead stays where it is: a product never reads as a difference.
+  expect(confusionTex('k*(-lambda)/r')).not.toMatch(/^\\displaystyle -/);
+  // The disk's and the sheet's ring kernels are written as the lessons write them, 2πkσs.
+  for(const id of ['disk','sheet','v-disk'])for(const f of PROBLEMS.find(x=>x.id===id)!.steps.flatMap(s=>s.fields??[]))for(const m of f.mistakes??[])
+   expect(m.expression,id).not.toMatch(/sigma\*2\*pi/);
  });
 });

@@ -33,7 +33,9 @@ describe('a citation outside OpenStax opens the book it names',()=>{
  // OpenStax links are held to their § by the slug test in content-w1; these are pinned by hand.
  const PINNED:Record<string,RegExp>={
   'https://www.pearson.com/en-us/subject-catalog/p/physics-for-scientists-and-engineers-a-strategic-approach-with-modern-physics/P200000006998/9780136956297':/^Knight · Physics for Scientists and Engineers, 5th ed\., ch\. 23 /,
-  'https://www.pks.mpg.de/~haque/maynooth_MP204/MP204_2021s2_mainfinal_withsolns_a.pdf':/^Maynooth MP204/,
+  // An exam's own partial solutions, which warn of typographical errors: named as what they are, and
+  // listed after the textbook, never as a lesson's first authority.
+  'https://www.pks.mpg.de/~haque/maynooth_MP204/MP204_2021s2_mainfinal_withsolns_a.pdf':/^Maynooth University MP204, May exam 2020–21, Q1\(b\), with the lecturers’ partial solutions \(pp\. 8–10\)$/,
  };
  it('every non-OpenStax source is one of the pinned, checked pages, under its checked title',()=>{
   for(const p of lessons)for(const s of p.sources){
@@ -150,7 +152,10 @@ describe('a grown object says what is held fixed',()=>{
   const l=limitOf('endpoint','infinite');
   expect(l.formula).toContain(String.raw`(\lambda\text{ fixed})`);
   expect(plain(l.explanation)).toMatch(/x and y trade places and the same field reads \(kλ\/r\)\(−x̂ \+ ŷ\) there/);
-  expect(plain(getProblem('semi').setup)).toMatch(/This is the off-the-end rod grown without end and laid along x/);
+  expect(plain(getProblem('semi').setup)).toContain('This is the rod of Line · level with an end, grown without end and laid along $x$');
+  // The sidebar names the lesson it points at.
+  expect(getProblem('endpoint').short).toBe('Line · level with an end');
+  expect(getProblem('semi').sources[0].url).toMatch(/^https:\/\/openstax\.org\//);
  });
 });
 describe('the far cases explain the limit, and state its error correctly',()=>{
