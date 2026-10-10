@@ -339,8 +339,18 @@ describe('with reduced motion asked for', () => {
   jump(view, 3, 'What cancels');
   await waitFor(() => expect(view.container.querySelector('[data-cancel-transverse]')).toBeTruthy());
   expect(Number(view.container.querySelector('[data-cancel-transverse]')?.getAttribute('opacity'))).toBeGreaterThan(.9);
-  await waitFor(() => expect(Number(view.container.querySelector('[data-cancel-transverse]')?.getAttribute('opacity'))).toBeLessThan(.2), {timeout: 4000});
- });
+  // The pair goes on the run's own clock, which steps for this reader: played, it is seen whole, then
+  // at lengths on the way in, then gone -- stepped through, never skipped.
+  const part = () => view.container.querySelector('[data-cancel-transverse="piece"] .cd-vector line')!;
+  const length = () => Math.hypot(Number(part().getAttribute('x2')) - Number(part().getAttribute('x1')), Number(part().getAttribute('y2')) - Number(part().getAttribute('y1')));
+  const full = length(), seen: number[] = [];
+  fireEvent.click(view.getByRole('button', {name: 'Play'}));
+  await waitFor(() => {
+   seen.push(length() / full);
+   expect(Number(view.container.querySelector('[data-cancel-transverse]')?.getAttribute('opacity'))).toBeLessThan(.2);
+  }, {timeout: 12000, interval: 60});
+  expect(seen.some(f => f > .1 && f < .9), seen.map(f => f.toFixed(2)).join(' ')).toBe(true);
+ }, 30000);
  it('still advances through the stages, in steps', async () => {
   const view = await openLesson('bisector');
   fireEvent.click(view.getByRole('button', {name: 'Watch it build'}));
@@ -422,8 +432,13 @@ describe('the figure tells the truth at every stage', () => {
   // The surviving part is there, solid; no second, dashed copy of the sideways part outlives it.
   expect(view.container.querySelectorAll('.cd-grow-parts .cd-vector:not(.is-dashed)').length).toBe(1);
   expect(view.container.querySelectorAll('.cd-grow-parts .cd-vector.is-dashed').length).toBe(0);
-  // And it does cancel.
-  await waitFor(() => expect(Number(view.container.querySelector('[data-cancel-transverse]')?.getAttribute('opacity'))).toBeLessThan(.2), {timeout: 4000});
+  // And it does cancel: held late in the stage, the two parts have met and gone.
+  const track = view.container.querySelector<HTMLElement>('.bp-track')!;
+  const seg = [...view.container.querySelectorAll<HTMLElement>('.bp-seg')][2].getBoundingClientRect(), x = seg.left + .9 * seg.width;
+  fireEvent.pointerDown(track, {clientX: x - 6, button: 0, pointerId: 7});
+  fireEvent.pointerMove(track, {clientX: x, pointerId: 7});
+  fireEvent.pointerUp(track, {clientX: x, pointerId: 7});
+  await waitFor(() => expect(Number(view.container.querySelector('[data-cancel-transverse]')?.getAttribute('opacity'))).toBeLessThan(.2));
  });
 });
 describe('the potential has a picture of its own', () => {

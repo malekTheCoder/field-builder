@@ -49,7 +49,10 @@ const FRAME_MS = 1000 / 60;
 const CI_FACTOR = 6.5;
 /** The stages that hold the figure still from their first frame to their last: the run's clock is
  * the only thing moving, and it moves only the transport. */
-const STILL = ['Cut it up', 'One piece', 'What cancels'];
+const STILL = ['Cut it up', 'One piece'];
+/** What cancels holds the figure still too, except while its two sideways parts shrink into P: that
+ * is read off the run's clock, in the middle third of the stage, one render a frame. */
+const shrinkFrames = (id: string) => { const s = buildStages(getProblem(id as never))[2]; return s.pair ? Math.ceil(.35 * s.seconds / .05) + 1 : 0; };
 describe('a frame of the run is cheap enough to be smooth', () => {
  let queue: FrameRequestCallback[] = [];
  let realRaf: typeof window.requestAnimationFrame, realCancel: typeof window.cancelAnimationFrame;
@@ -116,6 +119,7 @@ describe('a frame of the run is cheap enough to be smooth', () => {
    // A stage that holds the figure still does not redraw it. A couple of renders are allowed for
    // the stage's own arrival -- the one before it can hand over in its last frame -- but not one a frame.
    for (const s of STILL) expect(figureRenders.get(s), `${id} / ${s}: renders of a figure held still`).toBeLessThanOrEqual(3);
+   expect(figureRenders.get('What cancels'), `${id} / What cancels: renders beyond the shrink`).toBeLessThanOrEqual(3 + shrinkFrames(id));
    // And while the pieces shrink, the field is not redrawn for every new cut: it is traced once,
    // from the cut the stage ends on, however many times the pieces double on the way.
    expect(fieldDraws.get('Shrink them') ?? 0, `${id}: field redraws while the pieces shrink`).toBeLessThanOrEqual(2);

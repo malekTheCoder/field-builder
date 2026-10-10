@@ -117,17 +117,19 @@ export function ViewCube({view, at, size = 22, onPick, onSpin, onSpinStart, onSt
       if (towards <= .55) return null;
       const centre = place([f.normal[0] * 1.03, f.normal[1] * 1.03, f.normal[2] * 1.03]);
       const xs = corners(f.normal).map(c => place(c).x), across = Math.max(...xs) - Math.min(...xs);
-      const fit = .86 * across / (.7 * f.label.length);
+      // The caller scales `size` with the figure's labels on a phone, so the face -- and the name it
+      // holds -- grows with them; scaling the type again on top of that would double it.
+      const fit = .88 * across / (.66 * f.label.length);
       return <text key={f.key} className="cd-cube-label" x={centre.x.toFixed(2)} y={centre.y.toFixed(2)}
         textAnchor="middle" dominantBaseline="middle"
-        style={{fontSize: `min(${fit.toFixed(1)}px, calc(${Math.max(9, size * .42).toFixed(1)}px * var(--cd-k, 1)))`}}>{f.label}</text>;
+        style={{fontSize: `${Math.min(fit, Math.max(9, size * .46)).toFixed(1)}px`}}>{f.label}</text>;
     })}
     {onStep && steps.map(s => <g key={s.key} className="cd-cube-step" role="button" tabIndex={0} aria-label={s.title}
-      transform={`translate(${(at.x + s.at.x).toFixed(1)} ${(at.y + s.at.y).toFixed(1)})`}
+      transform={`translate(${(at.x + s.at.x).toFixed(1)} ${(at.y + s.at.y).toFixed(1)}) scale(${(size / 22).toFixed(3)})`}
       onClick={ev => { ev.stopPropagation(); onStep(s.key); }}
       onKeyDown={ev => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); onStep(s.key); } }}>
       <title>{s.title}</title>
-      <circle r={(size * .38).toFixed(1)} />
+      <circle r="8.4" />
       <path d={s.path} />
     </g>)}
   </g>;
