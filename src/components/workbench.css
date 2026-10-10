@@ -115,6 +115,8 @@
 .ew-assembly{margin:0;border:0;padding:0}
 .ew-section-title{font-family:var(--serif);font-size:var(--type-sub);font-weight:500;letter-spacing:-.01em;color:var(--foreground);margin:0 0 4px}
 .ew-lede{margin:0 0 16px;font-size:var(--type-meta);line-height:1.55;color:var(--muted-foreground);max-width:34ch;text-wrap:pretty}
+/* A screen that cannot hover cannot point at a symbol: a tap on one plays its step. */
+@media (hover:none){.ew-lede-hover{display:none}}
 
 /* ---- the board ------------------------------------------------------ */
 /* A rail down the left joins the steps, the way a derivation is read: top
@@ -185,6 +187,11 @@
    so a symbol set at the sentence's own size read a size down from the words around it. The page sets
    inline math a little up from its text everywhere else for the same reason; so does a remark. */
 .db-say .db-sym .katex{font-size:1.1em}
+/* And a gloss's math, for the same reason. At 1em it was a size below the symbols in the sentence
+   under it -- "y: −L/2 → L/2" smaller than the "y = −L/2" in its own remark, the definitions quieter
+   than their uses. A gloss is still muted and still under its line's 16.5px. The cancellation is its
+   own size, a step up, below. */
+.db-where:not(.db-say):not(.db-cancels) .katex,.db-also .katex{font-size:1.1em}
 /* The other component is its own statement, not part of the definition above it: a little air first.
    The cancellation opens its step, directly under the step's name -- What cancels is named for it --
    with a little air before the line that is what survives it. */
@@ -193,9 +200,11 @@
 .db .math.db-cancels{margin:-3px -4px -2px}
 /* The cancellation is what the step is named for, so it is set in ink, a size up from a gloss: in the
    gloss's muted grey at the gloss's size, the answer to What cancels was the quietest math on its
-   card. "Nothing cancels" stays a remark, in the remark's face and colour. */
+   card. "Nothing cancels" stays a remark, in the remark's face and colour. Its math is the size of the
+   board's lines (the page sets KaTeX at 1.14em): at 1.08em it stood less than a pixel above the glosses
+   once they were raised to the remarks' 1.1em. */
 .db-cancels:not(.db-nothing){color:var(--foreground);font-size:var(--db-math)}
-.db-cancels:not(.db-nothing) .katex{font-size:1.08em}
+.db-cancels:not(.db-nothing) .katex{font-size:1.14em}
 .db-then{display:grid;grid-template-rows:0fr;opacity:0;transition:grid-template-rows .6s cubic-bezier(.2,.8,.2,1),opacity .5s ease}
 .db-then.is-shown{grid-template-rows:1fr;opacity:1}
 .db-then-in{display:block;min-height:0;overflow:hidden}

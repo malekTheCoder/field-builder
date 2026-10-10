@@ -100,7 +100,8 @@ describe('the card speaks in one face', () => {
   it('a remark is set in the page’s sans, its symbols in KaTeX, each held whole', () => {
     const view = panel('v-ring');
     const say = view.container.querySelector<HTMLElement>('.db-step[data-step="cancel"] .db-say')!;
-    expect(say.textContent).toBe('Its mirror piece adds the same; nothing cancels.');
+    // With its reason: the field's twin cancelled the same partner one lesson earlier.
+    expect(say.textContent).toMatch(/^The same length of ring straight across is just as far away and its charge has the same sign, so it adds the same .*nothing cancels, since a number has no sideways part\.$/);
     expect(getComputedStyle(say).fontFamily).toMatch(/Geist/);
     expect(getComputedStyle(say).fontFamily).not.toMatch(/KaTeX/);
     // As the note under it is, and the stage's caption.

@@ -42,7 +42,7 @@ describe('the sheet sums the thin ring that stands in for each wide one', () => 
     expect(fourth.wrong / fourth.exact).toBeGreaterThan(1.25);
     expect(Math.tan((n) * dA)).toBeGreaterThan(1e15);
     // So the board's sum is over the thin ring, and the cancel step says so without "nearly".
-    expect(step('sheet', 'one').tex).toContain(String.raw`\sum_{\text{thin ring}}`);
+    expect(step('sheet', 'one').tex).toContain(String.raw`\sum\nolimits_{\text{thin ring}}`);
     expect(step('sheet', 'one').say).toMatch(/stands in/);
   });
 });
@@ -97,7 +97,7 @@ describe('the exact lessons never say the pieces must be small', () => {
 describe('the answer follows the board’s letters', () => {
   it('the bisector’s answer is said in λ before Q, as the board integrated it', () => {
     const [ex] = resultLines(lesson('bisector'));
-    expect(ex).toContain(String.raw`\frac{k\lambda L}{r\sqrt{r^2+(L/2)^2}}`);
+    expect(ex).toContain(String.raw`\frac{k\lambda L}{r\sqrt{(L/2)^2+r^2}}`);
     expect(ex.indexOf('k\\lambda L')).toBeLessThan(ex.indexOf('kQ'));
     // And the two are one: ∫ kλ r dy/(y²+r²)^{3/2} from −L/2 to L/2 is kλL/(r√(r²+(L/2)²)).
     const k = 2, lambda = 1.3, L = 4, r = 1.7, n = 20000;

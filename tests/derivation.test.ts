@@ -39,7 +39,7 @@ const RING_SWAPS: Swap[] = [[String.raw`r_i^2=s^2+z^2`, 's^2+z^2', 'distance^2']
 const RING_CHARGE: Swap = [String.raw`\Delta Q_i=\sigma\,2\pi s\,\Delta s`, 'sigma*2*pi*s', 'none'];
 const SWAPS: Record<string, Swap[]> = {
   bisector: ROD_SWAPS, endpoint: ROD_SWAPS,
-  ramp: [[String.raw`\lambda(y)=\lambda_0 y/L`, 'lambda0*y/L', 'none'], ...ROD_SWAPS],
+  ramp: [[String.raw`\lambda(y)=\lambda_0\,(y/L)`, 'lambda0*y/L', 'none'], ...ROD_SWAPS],
   axial: [[String.raw`r_i^2=(L+a-x)^2`, '(L+a-x)^2', 'distance^2']],
   infinite: [[String.raw`r_i^2=r^2\sec^2\theta`, 'r^2/cos(theta)^2', 'distance^2']],
   semi: [[String.raw`r_i^2=x^2+r^2`, 'x^2+r^2', 'distance^2'], [String.raw`\sin\alpha_i=x/\sqrt{x^2+r^2}`, 'x/sqrt(x^2+r^2)', 'none']],
@@ -71,8 +71,9 @@ describe('the derivation board', () => {
     it(`${p.id}: words are set as words, never as \\text inside a gloss`, () => {
       // KaTeX never breaks a \text{} run, and sets it in Computer Modern beside the panel's prose:
       // "for every bit of the ring" and "θ: the piece's angle at P" both ran that way.
-      // (A one-word label, like the ring under a sum, is a label and not a sentence.)
-      for (const l of lines) for (const tex of [l.where, l.cancels, l.also, l.merged]) if (tex) expect(tex, `${l.key}: ${tex}`).not.toMatch(/\\text\{[^}]*[\s:][^}]*\}/);
+      // (A label under a sum, like the ring or the sheet's thin ring, is a label and not a sentence.)
+      const label = (tex: string) => tex.replace(/\\sum\\nolimits_\{\\text\{[^}]*\}\}/g, '');
+      for (const l of lines) for (const tex of [l.where, l.cancels, l.also, l.merged]) if (tex) expect(label(tex), `${l.key}: ${tex}`).not.toMatch(/\\text\{[^}]*[\s:][^}]*\}/);
       // And a remark's words carry no raw TeX: every symbol in one sits between its dollar signs.
       for (const l of lines) for (const text of remarks(l)) {
         expect(text.split('$').length % 2, `${l.key}: unbalanced $ in "${text}"`).toBe(1);
@@ -105,7 +106,9 @@ describe('the derivation board', () => {
       const dragged = boardLines(p, ['a', 'b']).find(l => l.key === 'add')!.say!;
       expect(dragged, p.id).toContain(`from $${v}=a$ to $${v}=b$`);
       expect(dragged, p.id).toMatch(/bracketed/);
-      expect(dragged, p.id).toMatch(/counted once/);
+      // "So each of them is counted once" went from the whole charge's sentence as redundant, and from
+      // the bracket's too.
+      expect(dragged, p.id).not.toMatch(/counted once/);
     });
     it(`${p.id}: the add line says what the sum is, and why it is only nearly the answer -- or that it is already exact`, () => {
       const add = lines.find(l => l.key === 'add')!;
@@ -137,14 +140,13 @@ describe('the derivation board', () => {
         const want = against === 'projection' ? Math.abs(evaluate(p.projection, at)) : evaluate(p.distance, at) ** (against === 'distance^2' ? 2 : 1);
         close(Math.abs(evaluate(expr, at)), want, `${p.id} ${tex}`);
       }
-      if (exactSum(p)) expect(limit, p.id).toMatch(/^Nothing changes from piece to piece/);
-      else expect(limit, p.id).toMatch(/changes from (piece to piece|ring to ring)/);
+      expect(limit, p.id).toMatch(/changes from (piece to piece|ring to ring)/);
       // And what shrinking is, on the board, not only in a note: N → ∞, and where the lesson is cut in
-      // its own variable, Δv → dv. The step named Shrink them never said the pieces got thinner.
-      if (!exactSum(p)) {
-        expect(limit, p.id).toMatch(/^Make the (piece|ring)s thinner without end, \$N\\to\\infty\$/);
-        if (p.id !== 'semi' && p.id !== 'sheet') expect(limit, p.id).toContain(`$\\Delta ${p.variableTex}$ becomes $d${p.variableTex}$`);
-      }
+      // its own variable, Δv → dv. The step named Shrink them never said the pieces got thinner -- nor,
+      // on the exact lessons, did it ever: they said only that the term never changes, and credited the
+      // integral to that.
+      expect(limit, p.id).toMatch(/^Make the (piece|ring)s thinner without end, \$N\\to\\infty\$/);
+      if (p.id !== 'semi' && p.id !== 'sheet') expect(limit, p.id).toContain(`$\\Delta ${p.variableTex}$ becomes $d${p.variableTex}$`);
       // "Write … in y" is "in terms of y", as a student is taught to say it.
       expect(limit, p.id).not.toMatch(/written in \$/);
     });
@@ -286,7 +288,7 @@ describe('the derivation board', () => {
     // The sheet's sum is over the thin ring that stands in for each wide one, so of it this is exact.
     expect(say('sheet')).toContain(String.raw`add to $k\,\Delta Q\cos\alpha/r_i^2$, where $\Delta Q=\sum\delta q$ is the thin ring’s charge`);
     expect(say('sheet')).not.toMatch(/nearly/);
-    for (const id of ['disk', 'sheet']) expect(step(id, 'cancel').cancelsSay, id).toMatch(/undone by the bit straight across the ring/);
+    for (const id of ['disk', 'sheet']) expect(step(id, 'cancel').cancelsSay, id).toMatch(/the bit straight across the ring makes \$-\\delta\\mathbf E_\\perp\$/);
   });
   it('what cancels is written as the figure draws it, and in ink', () => {
     // The figure labels the pair ΔE_y and −ΔE_y. Coloured as a projection, the whole equation lit the
@@ -294,8 +296,9 @@ describe('the derivation board', () => {
     for (const id of ['bisector', 'infinite', 'arc']) {
       expect(step(id, 'cancel').cancels, id).toContain(String.raw`\Delta E_y+(-\Delta E_y)=0\;\Rightarrow\;E_y=0`);
       expect(step(id, 'cancel').say, id).toMatch(/Its mirror piece, at \$-\\(alpha|theta)\$, makes the same \$\\Delta E_x\$\.$/);
-      // ΔE_y is named directly under the cancellation that uses it, not at the paragraph's end.
-      expect(step(id, 'cancel').cancelsSay, id).toMatch(/^A piece’s part (along the rod|along the line|across the axis), \$\\Delta E_y\$, and its mirror piece’s, \$-\\Delta E_y\$\.$/);
+      // ΔE_y is named directly under the cancellation that uses it, not at the paragraph's end -- in a
+      // sentence with a verb, as the ring's and the disk's are.
+      expect(step(id, 'cancel').cancelsSay, id).toMatch(/^\$\\Delta E_y\$ is a piece’s part (along the rod|along the line|across the axis); its mirror piece makes \$-\\Delta E_y\$\.$/);
     }
     expect(step('ring', 'cancel').cancels).toContain(String.raw`\Delta\mathbf E_\perp+(-\Delta\mathbf E_\perp)=\mathbf 0`);
     for (const id of ['disk', 'sheet']) expect(step(id, 'cancel').cancels, id).toContain(String.raw`\delta\mathbf E_\perp=\mathbf 0`);
@@ -357,9 +360,10 @@ describe('the derivation board', () => {
     // board's one-piece line says so with ≈, not =.
     const one = step('sheet', 'one');
     expect(one.say).toMatch(/^\$\\delta q\$ is one bit of the thin ring that stands in for this one: its bits hold \$\\Delta Q\$ between them, all \$r_i\$ from/);
-    expect(one.say).toMatch(/The ring itself is wide and its bits are not all \$r_i\$ away/);
-    expect(one.tex).toContain('\\approx');
-    expect(one.tex).toContain(String.raw`\sum_{\text{thin ring}}`);
+    // ΔE is the thin ring's field, as on the lines it is the stand-in point charge's: "=", as there. Cut
+    // it up says the stand-in's field is nearly the wide ring's, and Add keeps the one ≈.
+    expect(one.tex).not.toContain('\\approx');
+    expect(one.tex).toContain(String.raw`\sum\nolimits_{\text{thin ring}}`);
     expect(step('disk', 'one').tex).not.toContain('\\approx');
     // At five pieces, P three metres up: the fourth ring's bits run from 0.77 to 1.47 of its r_i.
     const z = 3, edges = [3, 4].map(i => z * Math.tan(Math.PI / 2 * i / 5)), mid = z * Math.tan(Math.PI / 2 * 3.5 / 5);
@@ -414,7 +418,9 @@ describe('the derivation board', () => {
       expect(limit.merged, id).toMatch(/\\sqrt\{.*\}=\(.*\)\^\{3\/2\}/);
       expect(limit.finish, id).toContain('^{3/2}');
     }
-    for (const id of ['axial', 'infinite', 'arc']) expect(step(id, 'limit').merged, id).toBeUndefined();
+    for (const id of ['axial', 'arc']) expect(step(id, 'limit').merged, id).toBeUndefined();
+    // The infinite line's second row cancels a sec²θ, the lesson's whole claim, and says so.
+    expect(step('infinite', 'limit').merged).toContain(String.raw`\frac{\lambda r\sec^2\theta}{r^2\sec^2\theta}=\frac{\lambda}{r}`);
   });
   it('every answer contains the k its definition defines, and says it in k before ε₀', () => {
     for (const p of PROBLEMS) expect(resultLines(p).join(' '), p.id).toMatch(/k/);
@@ -435,8 +441,10 @@ describe('the derivation board', () => {
       const viaLambda = at.k * at.lambda * at.L / (at.r * Math.sqrt(at.r ** 2 + at.L ** 2));
       close(viaLambda, at.k * (at.lambda * at.L) / (at.r * Math.sqrt(at.r ** 2 + at.L ** 2)), 'E_x in λ is kQ/(r√(r²+L²))');
     }
-    // The semi-infinite line's magnitude is a line of its own, not one of its signed components.
-    expect(resultLines(lesson('semi'))).toHaveLength(3);
+    // The semi-infinite line's magnitude is a row of its own, not one of its signed components -- in the
+    // one aligned block its components are set in.
+    expect(resultLines(lesson('semi'))).toHaveLength(1);
+    expect(resultLines(lesson('semi'))[0]).toMatch(/E_x&=.*E_y&=.*\|\\mathbf E\|&=/);
   });
   it('the bisector’s worked substitution writes every identity it uses, in α', () => {
     const all = BISECTOR_UNFOLD.map(s => s.text + ' ' + s.tex).join(' ');

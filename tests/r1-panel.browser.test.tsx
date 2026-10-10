@@ -16,13 +16,13 @@ function panel(id: ProblemId) {
   return render(<EquationWorkbench problem={getProblem(id)} params={DEFAULT_PARAMS} continuum={0} progress={1} mode="divide"
     onModeChange={vi.fn()} boundRange={[0, 100]} onBoundRangeChange={vi.fn()} />);
 }
-/** Open "Unfold the integration" and step through every transformation it has. */
+/** Open "Unfold the integration" and step through every step it has. */
 function unfold(view: ReturnType<typeof panel>) {
   fireEvent.click(view.getByRole('button', {name: /Unfold the integration/}));
-  for (let i = 0; i < 20 && view.queryByRole('button', {name: /Next transformation/}); i++) {
-    fireEvent.click(view.getByRole('button', {name: /Next transformation/}));
+  for (let i = 0; i < 20 && view.queryByRole('button', {name: /Next step/}); i++) {
+    fireEvent.click(view.getByRole('button', {name: /Next step/}));
   }
-  expect(view.container.textContent).toContain('Every transformation accounted for.');
+  expect(view.container.textContent).toContain('Every step accounted for.');
   const body = view.container.querySelector<HTMLElement>('.ew-worked-body')!;
   // The TeX each worked line was set from, which KaTeX keeps beside the rendering.
   const tex = [...body.querySelectorAll('annotation')].map(a => a.textContent ?? '');
@@ -95,7 +95,7 @@ describe('the board writes the cancellation and says what its symbols mean', () 
     // KaTeX sets a symbol as inline blocks, which a browser breaks before even after a no-break
     // space; the unit vector's sentence ended on a line holding nothing but "P." beside the figure.
     const view = panel('bisector');
-    const held = view.container.querySelector<HTMLElement>('.db-step[data-step="one"] .db-say .db-held')!;
+    const held = [...view.container.querySelectorAll<HTMLElement>('.db-step[data-step="one"] .db-say .db-held')].find(h => (h.textContent ?? '').startsWith('toward'))!;
     expect(held).not.toBeNull();
     expect(getComputedStyle(held).whiteSpace).toBe('nowrap');
     expect(held.textContent).toMatch(/^toward\u00a0/);
@@ -114,7 +114,9 @@ describe('the model note does not tell the ramp’s reader the slider is a total
   it('ramp: the charge slider is the peak density', () => {
     const view = panel('ramp');
     const note = view.container.querySelector('.ew-references-body')!.textContent!;
-    expect(note).toMatch(/peak density λ₀/);
+    // λ₀ set by KaTeX, as the board sets it: in the page's sans its subscript fell far below the λ.
+    expect(note).toMatch(/peak density λ/);
+    expect(view.container.querySelector('.ew-references-body .katex')).not.toBeNull();
     cleanup();
     expect(panel('bisector').container.querySelector('.ew-references-body')!.textContent).not.toMatch(/peak density/);
   });

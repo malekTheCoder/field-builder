@@ -83,7 +83,7 @@ describe('a paused stage says each thing once', () => {
     const kids = [...body.children];
     const at = kids.findIndex(c => c.classList.contains('db-cancels'));
     expect(kids[at + 1].classList.contains('db-pair')).toBe(true);
-    expect(kids[at + 1].textContent).toMatch(/^A piece’s part along the rod, /);
+    expect(kids[at + 1].textContent).toMatch(/is a piece’s part along the rod; its mirror piece makes /);
     expect(kids[at + 1].querySelectorAll('.katex')).toHaveLength(2);
   });
 });
@@ -153,11 +153,11 @@ describe('the answer and the shelf speak as the board does', () => {
     fireEvent.click(view.getByRole('button', {name: 'Show every step'}));
     expect(view.container.querySelector('.ew-worked-body')).not.toBeNull();
     cleanup();
-    // Every step, as the link says -- it opened one, behind a "Next transformation" button.
+    // Every step, as the link says -- it opened one, behind a "Next step" button.
     const bisector = panel('bisector');
     fireEvent.click(bisector.getByRole('button', {name: 'Show every step'}));
     expect(bisector.container.querySelectorAll('.ew-worked-step').length).toBeGreaterThan(4);
-    expect(bisector.queryByRole('button', {name: /Next transformation/})).toBeNull();
+    expect(bisector.queryByRole('button', {name: /Next step/})).toBeNull();
     expect(bisector.container.querySelector('.ew-worked-done')).not.toBeNull();
   });
   it('a worked step’s symbols are set as math, and a model note never breaks inside a relation', () => {

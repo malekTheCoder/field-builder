@@ -53,8 +53,10 @@ describe('offline lesson artifact', () => {
   it('gives every line of the result, so the rod seen off its end keeps its E_y', () => {
     const html = copyOf('endpoint');
     const annotations = [...html.matchAll(/<annotation encoding="application\/x-tex">([\s\S]*?)<\/annotation>/g)].map(m => m[1]);
-    expect(annotations.some(t => t.startsWith('E_x'))).toBe(true);
-    expect(annotations.some(t => t.startsWith('E_y'))).toBe(true);
-    expect(copyOf('semi')).toMatch(/<annotation encoding="application\/x-tex">E_y/);
+    // A result of several rows is one aligned block, so a component may open a row rather than the TeX.
+    const row = (c: string) => (t: string) => new RegExp(`(^|\\\\(\\[[^\\]]*\\])?)${c}(&amp;|&)?=`).test(t.replace(/^\\begin\{aligned\}/, ''));
+    expect(annotations.some(row('E_x'))).toBe(true);
+    expect(annotations.some(row('E_y'))).toBe(true);
+    expect([...copyOf('semi').matchAll(/<annotation encoding="application\/x-tex">([\s\S]*?)<\/annotation>/g)].map(m => m[1]).some(row('E_y'))).toBe(true);
   });
 });

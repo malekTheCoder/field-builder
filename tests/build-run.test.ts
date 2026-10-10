@@ -172,7 +172,8 @@ describe('what the captions claim is what the samplers do', () => {
   expect(edges[3] - edges[2], 'the fourth ring is not thin').toBeGreaterThan(1.9);
   expect(sampleDistribution('sheet', P3, n).map(s => s.coordinate).at(-1)).toBeGreaterThan(edges[4]);
   const [cut] = buildStages(getProblem('sheet'));
-  expect(cut.line).toBe('Cut the sheet into rings that each take the same angle at P.');
+  // The line goes on from the stage's name, "Cut it up.", rather than saying its verb again.
+  expect(cut.line).toBe('Rings that each take the same angle at P.');
   expect(cut.caption).toMatch(/same small angle at P/);
   // Nor does a thin angle put its bits nearly one distance from P: the fourth ring's run from 0.77
   // to 1.47 times its middle distance. What holds, the outermost too, is that its FIELD is nearly a
@@ -182,7 +183,7 @@ describe('what the captions claim is what the samplers do', () => {
   for (const text of [cut.line, cut.caption]) expect(text).not.toMatch(/thin rings/);
   // The disk's rings are thin, cut at equal widths, and it keeps its own words.
   const [disk] = buildStages(getProblem('disk'));
-  expect(disk.line).toMatch(/^Cut the disk into thin rings\. Every bit of one ring is the same distance from P\./);
+  expect(disk.line).toMatch(/^Thin rings: every bit of one ring is the same distance from P\./);
   expect(disk.caption).toMatch(/cutting the disk into thin rings/);
  });
  it('sheet: lifting P leaves the field unchanged, which the subtitle promises', () => {
@@ -261,7 +262,10 @@ describe('the captions say only what is true', () => {
    expect(one.line, p.id).toMatch(/adds k times its charge over its distance/);
    expect(cancel.caption, p.id).not.toMatch(/pile/);
   }
-  expect(buildStages(getProblem('v-ring'))[2].caption).toMatch(/both go on the column/);
+  // A rod's mirror piece is one of the column's pieces. The ring's partner is a length of ring, which
+  // at an odd N straddles two of them, so it is not said to go on the column as one.
+  expect(buildStages(getProblem('v-rod-bisector'))[2].caption).toMatch(/both go on the column/);
+  expect(buildStages(getProblem('v-ring'))[2].caption).not.toMatch(/both go on the column/);
  });
  it('an unbounded line is never cut into point charges, only into pieces whose field is a point charge’s', () => {
   // At every N the outermost piece is infinitely long. A thin angle makes its FIELD a point charge's.

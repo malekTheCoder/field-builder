@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { MathText, Prose } from './Math';
 import { DerivationBoard, type BoardState } from './DerivationBoard';
 import { equivalent, safeParse } from '../symbolic/equivalence';
-import { BISECTOR_UNFOLD, boardLines, resultLines, type Term } from '../workbench/derivation';
+import { BISECTOR_UNFOLD, ENDPOINT_UNFOLD, INFINITE_UNFOLD, boardLines, componentOf, exactSum, resultLines, type Term } from '../workbench/derivation';
 import { buildStages } from '../explorer/buildRun';
 import type { Params, Problem } from '../problems/types';
 import './workbench.css';
@@ -95,12 +95,15 @@ export function EquationWorkbench({problem:p,derivationProblem,params,onModeChan
  // across the axis survives: the board said E_y = 0 over a figure whose ΣΔE leaned 17° on the upper
  // half of the rod, 45° on a quarter of the arc. A ring needs the whole turn.
  const keeps=allBounds||(g!=='ring'&&Math.abs(from+to-100)<1e-6);
+ // And does it hold none of them? Wholly on one side of the middle, or half the ring or less, no piece's
+ // mirror is inside, and "some pieces' mirrors lie outside it" said too little.
+ const oneSided=!allBounds&&(g==='ring'?to-from<=50+1e-6:to<=50+1e-6||from>=50-1e-6);
  const span=useMemo(()=>spanTex(q,from,to),[q,from,to]);
  const stages=useMemo(()=>buildStages(q),[q]);
  const names=useMemo(()=>stages.map(s=>s.name),[stages]);
  // The limits in the last line follow the brackets in the figure: drag one and the integral is
  // rewritten over the part of the charge it now covers.
- const lines=useMemo(()=>boardLines(q,allBounds?undefined:[lower,upper],{keeps,span}),[q,allBounds,lower,upper,keeps,span]);
+ const lines=useMemo(()=>boardLines(q,allBounds?undefined:[lower,upper],{keeps,span,oneSided}),[q,allBounds,lower,upper,keeps,span,oneSided]);
  const results=useMemo(()=>resultLines(q),[q]);
  // The board's state is rebuilt only when one of its fields changes, not with every new object the
  // page passes down, and its callbacks are fixed for the panel's life and call whatever is current.
@@ -117,10 +120,30 @@ export function EquationWorkbench({problem:p,derivationProblem,params,onModeChan
  // page's, in the page's sans: it was the one KaTeX-serif word left on the card. Slashed, as One piece
  // sets it: stacked, it was a second typesetting of one definition, two storeys beside a line of sans.
  const withK=<p className="ew-result-k">with <MathText tex={raw`k=1/(4\pi\varepsilon_0)`}/></p>;
+ // The board builds one component and says once, in What cancels, that ΔE_y survives too; the answer
+ // then printed a whole E_y -- the ramp's with a logarithm -- under "Doing the integral gives this", with
+ // nothing to tie it to that sentence. One pointer back, where the answer has a second component.
+ const surviving=['endpoint','ramp','semi'].includes(p.id)?raw`$E_y$ is the surviving $\Delta E_y$ added up the same way.`:'';
+ // WHAT A BRACKET'S INTEGRAL IS. "Choose the whole distribution to get the closed form back" sat under a
+ // board that, on the ring and the two exact potentials, had just finished on a closed form -- and told
+ // every other reader that part of a charge cannot be integrated to an answer, which is false: it is the
+ // same integral between other ends. And "closed form" is a word a first-year reader does not have.
+ const part=componentOf(q);
+ const partNote=exactSum(q)
+  ?raw`The integral above now adds up only the bracketed part of the charge, and its last line already gives that part’s $${part}$: every piece in it is ${g==='arc'?'$R$ from $P$':'the same distance away'}${scalar?'':', at the same angle'}.${scalar?'':' Its part across the axis no longer cancels, so that part’s field leans off the axis.'}`
+  :raw`The integral above now adds up only the bracketed part of the charge. Done between these ends, the same integral gives that part’s $${part}$. The answer for the whole distribution comes back when the brackets are at the ends again.`;
  const algebra=derivationProblem??p;const original=algebra.steps.find(s=>s.kind==='integrate')?.worked??[];
  // The bisector's angle is α on the board and on the figure, so it is α here too -- it was u, a
  // second name for the same angle, under a word ("Jacobian") the course has not taught yet.
- const integration=g==='bisector'&&!scalar?[...BISECTOR_UNFOLD,...original.slice(1)]:original;
+ //
+ // The rod level with one end does the same integral between 0 and L, and its own first step said the
+ // four in one sentence of plain text; the infinite line's opened on a y-integral its board never wrote.
+ // Each now starts from its board's last line and goes on into the lesson's own steps.
+ const integration=scalar?original
+  :g==='bisector'?[...BISECTOR_UNFOLD,...original.slice(1)]
+  :g==='endpoint'?[...ENDPOINT_UNFOLD,...original.slice(1)]
+  :algebra.id==='infinite'&&algebra.variable!=='y'?[...INFINITE_UNFOLD,...original.slice(2)]
+  :original;
  // A potential lesson promises the field "falls out of one derivative", and its lesson carries that
  // derivative worked out -- which this list used to stop short of. It follows the integration,
  // under its own heading, wherever the lesson has one.
@@ -129,7 +152,7 @@ export function EquationWorkbench({problem:p,derivationProblem,params,onModeChan
  const workedRef=useRef<HTMLDivElement>(null);
  // The answer arrived under the integral with no word that it is that integral done, and the steps
  // sat under a muted disclosure further down that a reader who does not integrate never opened.
- // "Show every step" opened one step behind a "Next transformation" button; the bisector has eight.
+ // "Show every step" opened one step behind a "Next step" button; the bisector has eight.
  function unfold(){setWorked(true);setStepCount(steps.length);requestAnimationFrame(()=>workedRef.current?.scrollIntoView({block:'nearest',behavior:'smooth'}));}
  function applyBounds(event:{preventDefault():void}){event.preventDefault();try{const a=boundPercent(p,bounds[0],params),b=boundPercent(p,bounds[1],params);if(a<-.000001||b>100.000001||a>=b)throw Error('Choose an increasing interval inside the distribution.');const range:[number,number]=[Math.max(0,a),Math.min(100,b)];setAsked(range);onBoundRangeChange(range);onModeChange('integrate');setFeedback(a===0&&b===100?'Whole distribution selected. Equivalent forms accepted.':'Interval applied. The integral and highlighted region now match.');}catch(e){setFeedback(e instanceof Error?e.message:'Check the expressions and try again.');}}
  function wholeBounds(){setAsked([0,100]);setBounds([shown(p.bounds[0]),shown(p.bounds[1])]);onBoundRangeChange([0,100]);setFeedback('Whole distribution selected.');}
@@ -141,17 +164,20 @@ export function EquationWorkbench({problem:p,derivationProblem,params,onModeChan
   <h2 className="ew-section-title">Build the integral</h2>
   {/* One sentence in both states: swapping it for a shorter one when the run opened moved the whole
       board up forty pixels while the reader was watching the figure. */}
-  <p className="ew-lede">Five steps from one piece of charge to the whole, each adding one idea. Choose one to watch it on the figure, or point at a coloured symbol to find it there.</p>
+  {/* Pointing is for a mouse. On a touch screen every coloured symbol sits inside its step's button,
+      so a tap plays the step -- which clears the highlight -- and the figure is above the panel anyway:
+      the clause could not be followed as worded, so a screen that cannot hover does not show it. */}
+  <p className="ew-lede">Five steps from one piece of charge to the whole, each adding one idea. Choose one to watch it on the figure<span className="ew-lede-hover">, or point at a coloured symbol to find it there</span>.</p>
   <DerivationBoard lines={lines} names={names} state={state} lit={LIGHTS[highlight]??''} onStep={playStep} onPoint={point}/>
  </div>
  {allBounds
-  ?<div className={'ew-result'+(settled?' is-shown':'')} aria-hidden={settled?undefined:true}><span className="ew-result-label">The whole distribution</span><p className="ew-result-lead">Doing the integral gives this. <button type="button" className="ew-result-unfold" onClick={unfold}>Show every step</button></p>{results.map(t=><MathText key={t} tex={t} block/>)}{withK}<p>{scalar?'Signed potential. Reverse the charge to reverse the sign; there is no direction to keep track of.':`Signed field component${['semi','endpoint','ramp'].includes(p.id)?'s':''}. Reversing the charge reverses the field.`}</p></div>
-  :<div className="ew-result is-shown is-partial"><span className="ew-result-label">Part of the distribution</span><p>The integral above now runs over the bracketed part of the charge only. Choose the whole distribution to get the closed form back.</p></div>}
+  ?<div className={'ew-result'+(settled?' is-shown':'')} aria-hidden={settled?undefined:true}><span className="ew-result-label">The whole distribution</span><p className="ew-result-lead">Doing the integral gives this. {surviving&&<><Prose text={surviving}/> </>}<button type="button" className="ew-result-unfold" onClick={unfold}>Show every step</button></p>{results.map(t=><MathText key={t} tex={t} block/>)}{withK}<p>{scalar?'Signed potential. Reverse the charge to reverse the sign; there is no direction to keep track of.':`Signed field component${['semi','endpoint','ramp'].includes(p.id)?'s':''}. Reversing the charge reverses the field.`}</p></div>
+  :<div className="ew-result is-shown is-partial"><span className="ew-result-label">Part of the distribution</span><p><Prose text={partNote}/></p></div>}
  {/* THE SHELF: what a reader opens afterwards. The interval, the algebra worked out, and where
      the model comes from -- all closed until asked for, so the derivation stays the subject. */}
  <div className="ew-reference">
  <div className="ew-bounds"><button className="ew-disclosure" onClick={()=>setBoundsOpen(!boundsOpen)} aria-expanded={boundsOpen} aria-controls={`${uid}-bounds`}><span>Integration interval</span><span><MathText tex={allBounds?raw`${p.boundTex[0]}\;\to\;${p.boundTex[1]}`:raw`${lower}\;\to\;${upper}`}/><ChevronDown size={14}/></span></button>{boundsOpen&&<form id={`${uid}-bounds`} className="ew-bound-form" onSubmit={applyBounds}><p>Use symbols such as <MathText tex={p.boundTex[0]}/> and <MathText tex={p.boundTex[1]}/>. Equivalent expressions work, too.</p><div className="ew-bound-fields"><label htmlFor={`${uid}-lower`}>Lower bound<input id={`${uid}-lower`} value={bounds[0]} onChange={e=>setBounds([e.target.value,bounds[1]])} autoComplete="off" spellCheck={false}/></label><label htmlFor={`${uid}-upper`}>Upper bound<input id={`${uid}-upper`} value={bounds[1]} onChange={e=>setBounds([bounds[0],e.target.value])} autoComplete="off" spellCheck={false}/></label></div><div className="ew-bound-actions"><Button type="submit" size="sm">Apply interval</Button><Button type="button" variant="ghost" size="sm" onClick={wholeBounds}>Whole distribution</Button></div>{feedback&&<output className="ew-bound-feedback">{feedback}</output>}</form>}</div>
- <div className="ew-worked" ref={workedRef}><button className="ew-disclosure" onClick={()=>setWorked(!worked)} aria-expanded={worked} aria-controls={`${uid}-worked`}><span>Unfold the integration</span><ChevronDown size={15}/></button>{worked&&<div id={`${uid}-worked`} className="ew-worked-body"><p className="ew-context">{algebra.id==='infinite'&&algebra.variable==='y'?'Alternate derivation: start with a finite rod of length L, then let L grow at fixed λ. The live model above remains the infinite line.':allBounds?'Follow the algebra for the whole distribution, one transformation at a time.':'These steps derive the whole-distribution result. Your selected partial interval remains above.'}</p>{steps.slice(0,stepCount).map((step,i)=><Fragment key={`${p.id}-${p.variable}-${i}`}>{back.length>0&&i===integration.length&&<h3 className="ew-worked-sub">Differentiate back</h3>}<div className="ew-worked-step"><div><p><Prose text={step.text}/></p><MathText tex={step.tex} block/></div></div></Fragment>)}{stepCount<steps.length?<Button className="ew-next-step" variant="outline" onClick={()=>setStepCount(stepCount+1)}>Next transformation<ArrowDown size={14}/></Button>:<p className="ew-worked-done"><Check size={13}/>Every transformation accounted for.</p>}</div>}</div>
- <details className="ew-references"><summary className="ew-disclosure"><span>Model assumptions &amp; references</span><ChevronDown size={15}/></summary><div className="ew-references-body"><p><Prose text={algebra.setup}/></p><p>{p.id==='ramp'?'Finite distributions use total charge, except this rod: its charge slider sets the peak density λ₀. Unbounded distributions hold charge density fixed.':'Finite distributions use total charge; unbounded distributions hold charge density fixed.'}</p>{p.sources.map(s=><a key={s.url} href={s.url} target="_blank" rel="noreferrer">{s.title}<ArrowUpRight size={12}/></a>)}</div></details></div>
+ <div className="ew-worked" ref={workedRef}><button className="ew-disclosure" onClick={()=>setWorked(!worked)} aria-expanded={worked} aria-controls={`${uid}-worked`}><span>Unfold the integration</span><ChevronDown size={15}/></button>{worked&&<div id={`${uid}-worked`} className="ew-worked-body"><p className="ew-context">{algebra.id==='infinite'&&algebra.variable==='y'?'Alternate derivation: start with a finite rod of length L, then let L grow at fixed λ. The live model above remains the infinite line.':allBounds?'Follow the algebra for the whole distribution, one step at a time.':'These steps derive the whole-distribution result. Your selected partial interval remains above.'}</p>{steps.slice(0,stepCount).map((step,i)=><Fragment key={`${p.id}-${p.variable}-${i}`}>{back.length>0&&i===integration.length&&<h3 className="ew-worked-sub">Differentiate back</h3>}<div className="ew-worked-step"><div><p><Prose text={step.text}/></p><MathText tex={step.tex} block/></div></div></Fragment>)}{stepCount<steps.length?<Button className="ew-next-step" variant="outline" onClick={()=>setStepCount(stepCount+1)}>Next step<ArrowDown size={14}/></Button>:<p className="ew-worked-done"><Check size={13}/>Every step accounted for.</p>}</div>}</div>
+ <details className="ew-references"><summary className="ew-disclosure"><span>Model assumptions &amp; references</span><ChevronDown size={15}/></summary><div className="ew-references-body"><p><Prose text={algebra.setup}/></p><p><Prose text={p.id==='ramp'?raw`Finite distributions use total charge, except this rod: its charge slider sets the peak density $\lambda_0$. Unbounded distributions hold charge density fixed.`:'Finite distributions use total charge; unbounded distributions hold charge density fixed.'}/></p>{p.sources.map(s=><a key={s.url} href={s.url} target="_blank" rel="noreferrer">{s.title}<ArrowUpRight size={12}/></a>)}</div></details></div>
  </div></aside>;
 }

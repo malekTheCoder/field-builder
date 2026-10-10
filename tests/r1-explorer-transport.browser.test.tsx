@@ -37,8 +37,10 @@ describe('the run settled', () => {
   // Settled on the answer: the stage says so, and the bar has not moved out from under the drag.
   expect(view.container.querySelector('.bp-line')?.textContent).toMatch(/^Shrink them\./);
   const tex = () => [...view.container.querySelectorAll('.bp-math annotation')].map(a => a.textContent ?? '');
-  await waitFor(() => expect(tex().some(t => t.startsWith('E_y')), tex().join(' | ')).toBe(true));
-  expect(tex().some(t => t.startsWith('E_x'))).toBe(true);
+  // A result of several rows is one aligned block: a component opens the TeX or one of its rows.
+  const row = (c: string) => (t: string) => new RegExp(`(^|\\\\(\\[[^\\]]*\\])?)${c}&?=`).test(t.replace(/^\\begin\{aligned\}/, ''));
+  await waitFor(() => expect(tex().some(row('E_y')), tex().join(' | ')).toBe(true));
+  expect(tex().some(row('E_x'))).toBe(true);
   expect(getComputedStyle(view.container.querySelector('.bp-math')!).display).not.toBe('none');
  }, 15000);
 });
