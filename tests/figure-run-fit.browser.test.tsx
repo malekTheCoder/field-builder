@@ -97,16 +97,18 @@ describe('where the pieces mostly cancel, every arrow and the chain stay in the 
  }, 45000);
 });
 describe('an arc closed into a ring: the field is zero, and the run says so', () => {
- it('Shrink them leaves the chain the size it had, round P, and names E = 0', async () => {
+ it('Add them up takes the sum out along the axis and back to P, and Shrink them names E = 0', async () => {
   const v = await openLesson('arc', {phi: Math.PI * 2});
-  await hold(v, 4, .97);
-  const size = () => { const pts = reached(v).filter(p => p.what === 'chain'); const xs = pts.map(p => p.x), ys = pts.map(p => p.y); return Math.max(Math.max(...xs) - Math.min(...xs), Math.max(...ys) - Math.min(...ys)); };
-  const added = size();
-  await hold(v, 5, .99);
-  // Each link shrinks as the links multiply, so the closed chain keeps its size -- it was inflated to
-  // thousands of pixels when the scale was read off the pieces of the moment.
+  // The pieces go in as mirror pairs from the middle out: the near pairs take the sum out along the axis...
+  const sum = () => { const l = v.container.querySelector('[data-sum-arrow] line'); return l ? Math.hypot(Number(l.getAttribute('x2')) - Number(l.getAttribute('x1')), Number(l.getAttribute('y2')) - Number(l.getAttribute('y1'))) : 0; };
+  await hold(v, 4, .8 * (.2675 + .7325 * .55));
+  expect(sum()).toBeGreaterThan(20);
   expect(reached(v).filter(p => !inPlot(p))).toEqual([]);
-  expect(size()).toBeLessThan(added * 1.25);
+  // ...and the far pairs, past a quarter turn, bring it back to P.
+  await hold(v, 4, .97);
+  expect(sum()).toBeLessThan(2);
+  await hold(v, 5, .99);
+  expect(reached(v).filter(p => !inPlot(p))).toEqual([]);
   const zero = v.container.querySelector<SVGTextElement>('.cd-zero');
   expect(zero?.textContent).toBe('E = 0');
   expect(zero!.dataset.placerHidden).toBeUndefined();

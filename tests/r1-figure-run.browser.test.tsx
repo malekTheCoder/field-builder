@@ -108,8 +108,9 @@ describe('the potential\'s pile, at a ring cut an odd number of ways', () => {
  });
 });
 describe('shrinking the pieces is something the chain is seen to do', () => {
+ // On a lesson with nothing to pair: the rod's pieces go in as mirror pairs and draw no chain (below).
  it('keeps the chain through the limit, refining as the pieces multiply, its end on the field\'s tip', async () => {
-  const view = await openLesson('bisector');
+  const view = await openLesson('endpoint');
   stage(view, 5);
   await waitFor(() => expect(view.container.querySelector('.cd-stage-limit')).toBeTruthy());
   const at = () => Number(view.container.querySelector('[data-sum-chain]')?.getAttribute('data-sum-chain') ?? 0);
@@ -122,6 +123,21 @@ describe('shrinking the pieces is something the chain is seen to do', () => {
   const end = points[points.length - 1];
   const net = [...view.container.querySelectorAll<SVGGElement>('.cd-vector')].find(v => /Σ|^E$/.test(v.querySelector('.cd-vector-label')?.textContent ?? ''))!.querySelector('line')!;
   await waitFor(() => expect(Math.hypot(end.x - Number(net.getAttribute('x2')), end.y - Number(net.getAttribute('y2')))).toBeLessThan(2));
+ });
+ it('where the pieces went in as mirror pairs, the pairs\' marks on the sum grow finer as the pieces multiply, and its end stays put', async () => {
+  const view = await openLesson('bisector');
+  stage(view, 5);
+  await waitFor(() => expect(view.container.querySelector('.cd-stage-limit')).toBeTruthy());
+  const marks = () => Number(view.container.querySelector('[data-pair-ticks]')?.getAttribute('data-pair-ticks') ?? 0);
+  const tip = () => { const l = view.container.querySelector('[data-sum-arrow] line')!; return {x: Number(l.getAttribute('x2')), y: Number(l.getAttribute('y2'))}; };
+  await waitFor(() => expect(marks()).toBeGreaterThan(0));
+  const start = marks(), was = tip();
+  expect(view.container.querySelector('[data-sum-chain]')).toBeNull();
+  scrub(view, 4, .4);
+  await waitFor(() => expect(marks()).toBeGreaterThan(start));
+  // A few percent at most: the sum of more, thinner pieces is a little nearer the field.
+  await waitFor(() => expect(Math.abs(tip().y - was.y)).toBeLessThan(.5));
+  expect(Math.abs(tip().x - was.x)).toBeLessThan(12);
  });
 });
 describe('a new lesson opens its own way', () => {

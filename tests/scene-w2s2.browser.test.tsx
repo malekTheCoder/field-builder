@@ -156,7 +156,21 @@ describe('two lines running together on the screen do not carry two heads', () =
 });
 
 describe('the newest link of the chain is marked in space', () => {
- for (const id of ['ring', 'disk']) it(`${id}: in Add them up the walk's newest link is drawn as its own arrow; in Shrink them it is not`, async () => {
+ // The ring's pieces go in as pairs straight across, the sum an arrow up its axis with no chain to mark: its pair
+ // is drawn from the sum's tip instead (see figure-pairs and run-3d). The disk walks its chain.
+ it('ring: in Add them up the pair going in is drawn from the tip of the sum, and there is no newest link', async () => {
+  const view = await openLesson('ring');
+  await inSpace(view);
+  fireEvent.click(view.getByRole('button', {name: 'Watch it build'}));
+  await waitFor(() => expect(stage(view)?.dataset.runStage).toBe('pieces'));
+  scrub(view, 3, .6);
+  await frames(8);
+  expect(stage(view)!.dataset.runStage).toBe('add');
+  expect(stage(view)!.dataset.runChain).toBeUndefined();
+  expect(stage(view)!.dataset.runNewest).not.toBe('true');
+  expect(stage(view)!.dataset.runArrowsFrom).toBeTruthy();
+ }, HEAVY);
+ for (const id of ['disk']) it(`${id}: in Add them up the walk's newest link is drawn as its own arrow; in Shrink them it is not`, async () => {
   const view = await openLesson(id);
   await inSpace(view);
   fireEvent.click(view.getByRole('button', {name: 'Watch it build'}));

@@ -658,6 +658,10 @@ export function boardLines(p: Problem, bounds?: [string, string], opts: {keeps?:
   // WHAT THE SUM IS, AND WHY "≈". The figure's chain adds whole arrows while the board adds one
   // part of each, and nothing said how the two are related, or why the sum is only nearly the field.
   const along = lhs === 'E_z' ? 'the axis' : '$x$';
+  // Where the charge has a mirror about P's axis, Watch it build adds its pieces in mirror pairs, and the sum is
+  // an arrow along the axis rather than a chain (see `pairs.ts` in the diagrams).
+  // Over a bracketed part there is no mirror to pair with, and the figure draws the chain.
+  const inPairs = whole && !scalar && (p.geometry === 'bisector' || p.geometry === 'infinite' || p.geometry === 'arc');
   // Why only ≈. The disk's pieces were called thin rings from the first line, so "each ring is still
   // treated as one thin ring" gave the approximation as its own reason. What is approximate is that a
   // ring Δs wide has all its charge counted at one radius. The sheet's ring is the stand-in itself.
@@ -696,7 +700,7 @@ export function boardLines(p: Problem, bounds?: [string, string], opts: {keeps?:
   // Its own paragraph: where the pieces are is one idea, what their sum is another.
   const sumIs = constant
     ? `${BREAK}Every piece is ${p.geometry === 'arc' ? '$R$ from' : 'the same distance from'}${NB}$P$${scalar ? '' : ' at the same angle'}, so this sum is already exact, however the ${p.geometry === 'arc' ? 'arc' : 'ring'} is cut: $${shared}$ is the same in every term and comes out of the sum, and $\\sum_i\\Delta Q_i$ is ${whole ? 'the whole charge $Q$. The answer needs no integral' : 'the bracketed part’s charge'}.`
-    : `${BREAK}${scalar ? 'The column on the figure stacks these numbers, and its height is this sum.' : `The chain on the figure adds the whole arrows, and how far it reaches along ${along} is this sum.`} It is only $\\approx$: ${roughly}.${finite}`;
+    : `${BREAK}${scalar ? 'The column on the figure stacks these numbers, and its height is this sum.' : inPairs ? `The figure adds the whole arrows in mirror pairs, whose sideways parts cancel, so the sum it builds runs along ${along}, and how far it reaches is this sum.` : `The chain on the figure adds the whole arrows, and how far it reaches along ${along} is this sum.`} It is only $\\approx$: ${roughly}.${finite}`;
   // THE EXACT SUM, DONE. Add said in words that the shared factor leaves the sum and Σ ΔQ_i is Q, so
   // "the answer needs no integral" -- and the line under it was still E_z = Σ k ΔQ_i cos α / r_i². The
   // board then integrated anyway, while the answer credited the sum: the claim was never shown. So the

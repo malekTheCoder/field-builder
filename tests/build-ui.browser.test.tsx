@@ -194,11 +194,12 @@ describe('the transport says how long the run is and where it has got to', () =>
   await waitFor(() => expect(stage(view)).toBe('Add them up'));
   fireEvent.pointerUp(track, {clientX: across(3, .5), pointerId: 1});
   expect(view.getByRole('button', {name: 'Play'})).toBeTruthy();
-  // Halfway through the adding stage, half the chain is drawn: the scrub drives the figure itself.
+  // Halfway through the adding stage, half the sum is drawn: the scrub drives the figure itself. The rod's
+  // pieces go in as mirror pairs, one pair at the tip of the sum so far.
   const fill = fills(view)[3];
   expect(fill).toBeGreaterThan(.4);
   expect(fill).toBeLessThan(.6);
-  expect(view.container.querySelector('[data-sum-chain]')).toBeTruthy();
+  expect(view.container.querySelector('.cd-pair-step')).toBeTruthy();
  });
  it('the next-stage button plays exactly one stage, then holds its finished frame', async () => {
   const view = await openLesson('bisector');
@@ -326,7 +327,8 @@ describe('every stage changes the figure, not just the caption', () => {
    if (key) seen.add(key);
    expect(seen.size).toBeGreaterThanOrEqual(3);
   }, {timeout: 8000, interval: 50});
-  expect(view.container.querySelectorAll('.cd-sum-joint').length).toBeGreaterThan(0);
+  // And each pair's share is marked where it ends, across the sum's arrow, once the next has gone in past it.
+  await waitFor(() => expect(view.container.querySelector('.cd-pair-ticks')).toBeTruthy(), {timeout: 8000, interval: 50});
  }, 60000);
 });
 describe('with reduced motion asked for', () => {

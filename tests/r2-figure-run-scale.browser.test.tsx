@@ -74,11 +74,13 @@ describe('the run\'s piece has an arrow worth reading, however far off it is', (
  });
 });
 describe('the sum is drawn to one scale, and the piece is seen to join it', () => {
+ // On a lesson with nothing to pair, whose sum is the chain: where the pieces go in as mirror pairs, each pair's
+ // share of the sum is checked against the physics in figure-pairs.
  it('at the end of Add them up every link of the chain is to the sum as the field it stands for', async () => {
-  const view = await openLesson('bisector');
+  const view = await openLesson('endpoint');
   stage(view, 4);
   scrub(view, 3, .95);
-  const samples = sampleDistribution('bisector', DEFAULT_PARAMS, 5), total = magnitude(sumSamples(samples));
+  const samples = sampleDistribution('endpoint', DEFAULT_PARAMS, 5), total = magnitude(sumSamples(samples));
   // Waited for as a whole: the sum's arrow glides to its new length over a few frames.
   await waitFor(() => {
    expect(view.container.querySelector('[data-sum-chain="6"]')).toBeTruthy();
@@ -90,14 +92,17 @@ describe('the sum is drawn to one scale, and the piece is seen to join it', () =
    });
   });
  }, 20000);
- it('fifteen percent into Add them up, the run\'s piece has shrunk to exactly its own link', async () => {
+ it('fifteen percent into Add them up, the run\'s piece has shrunk to exactly its own length at the sum\'s scale', async () => {
   const view = await openLesson('bisector');
   stage(view, 4);
   scrub(view, 3, .95);
-  await waitFor(() => expect(view.container.querySelector('[data-sum-chain="6"]')).toBeTruthy());
-  const chain = points(view.container.querySelector('.cd-sum-chain')!.getAttribute('d')!);
-  // The run talks about the bisector's end piece, the last link of the chain.
-  const own = Math.hypot(chain[5].x - chain[4].x, chain[5].y - chain[4].y);
+  // The run talks about the bisector's end piece. Its true length is its field's share of the sum's: the sum
+  // ends on the sum of the pieces.
+  const samples = sampleDistribution('bisector', DEFAULT_PARAMS, 5), total = magnitude(sumSamples(samples));
+  await waitFor(() => expect(length(named(view, 'Σ ΔE'))).toBeGreaterThan(100));
+  // Its glide to the scrubbed length done.
+  await new Promise(r => setTimeout(r, 400));
+  const own = length(named(view, 'Σ ΔE')) * magnitude(samples[4].field) / total;
   scrub(view, 3, .16);
   await waitFor(() => expect(view.container.querySelector('.cd-hand-over')).toBeTruthy());
   expect(Math.abs(length(view.container.querySelector('.cd-hand-over .cd-vector line')!) - own)).toBeLessThanOrEqual(2);

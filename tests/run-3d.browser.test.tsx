@@ -122,23 +122,26 @@ describe('the run in space', () => {
   expect(lit).toHaveLength(2);
   expect(lit[1] - lit[0]).toBe(3);
  }, HEAVY);
- it('a ring fills in as it is summed, and its chain is drawn at the flat figure\'s own scale', async () => {
+ it('a ring fills in as it is summed, pair by pair, and the scene lays each pair at the tip of the flat figure\'s sum', async () => {
   const view = await openLesson('ring');
   await openRun(view);
   jump(view, 4, 'Add them up');
-  scrub(view, 3, .5);
+  // The second pair, before its parts along the axis go in: the sum so far is the first pair's.
+  scrub(view, 3, .47);
   await waitFor(() => expect(Number(plan(view, 'runAdded'))).toBeGreaterThan(0));
   // What is still to come waits faintly; what is in the sum is coloured.
   expect(Number(plan(view, 'runDim'))).toBeGreaterThan(0);
-  expect(Number(plan(view, 'runChain'))).toBeGreaterThan(2);
-  // The flat chain is still in the tree, drawn in the same view; the scene's chain must end where
-  // it does. The scene's is in metres and the flat one in pixels, so the view is read back off the
-  // figure itself: its x and y axes are drawn a fixed number of pixels long along their projected
+  // No chain: the ring's pieces go in as pairs straight across, and the sum is an arrow along the axis.
+  expect(plan(view, 'runChain')).toBeUndefined();
+  expect(plan(view, 'runPartner')).toBe('across');
+  // The flat sum is still in the tree, drawn in the same view, its stroke left to the scene's; the scene's pair
+  // must start where it ends. The scene's is in metres and the flat one in pixels, so the view is read back off
+  // the figure itself: its x and y axes are drawn a fixed number of pixels long along their projected
   // directions, O is labelled, and P sits at its own height straight up the z axis.
-  const flat = view.container.querySelector<SVGPathElement>('[data-sum-chain]')!;
-  expect(painted(flat)).toBe(false);
-  const points = [...(flat.getAttribute('d') ?? '').matchAll(/[ML](-?[\d.]+),(-?[\d.]+)/g)].map(m => ({x: Number(m[1]), y: Number(m[2])}));
-  const first = points[0], last = points[points.length - 1];
+  const flat = view.container.querySelector<SVGLineElement>('[data-sum-arrow] line')!;
+  await new Promise(r => setTimeout(r, 400));
+  const first = {x: Number(flat.getAttribute('x1')), y: Number(flat.getAttribute('y1'))}, last = {x: Number(flat.getAttribute('x2')), y: Number(flat.getAttribute('y2'))};
+  expect(Math.hypot(last.x - first.x, last.y - first.y), 'the first pair is in').toBeGreaterThan(5);
   const origin = view.container.querySelector<SVGTextElement>('.cd-origin')!;
   // The origin's label says where O is, rather than leaving it to be worked back from an offset.
   const [ox, oy] = (origin.dataset.at ?? '').split(' ').map(Number);
@@ -148,7 +151,7 @@ describe('the run in space', () => {
   const cp = Math.sqrt(1 - (px.y ** 2 + py.y ** 2));
   const height = Number(view.container.querySelector<HTMLInputElement>('input[aria-label="Observation distance in meters"]')!.value);
   const unit = Math.hypot(first.x - O.x, first.y - O.y) / (height * cp);
-  const [x, y, z] = (plan(view, 'runChainEnd') ?? '').split(' ').map(Number);
+  const [x, y, z] = (plan(view, 'runArrowsFrom') ?? '').split(' ').map(Number);
   const drawn = {x: x * px.x + y * py.x, y: x * px.y + y * py.y - z * cp};
   expect(drawn.x * unit).toBeCloseTo(last.x - first.x, 0);
   expect(drawn.y * unit).toBeCloseTo(last.y - first.y, 0);
@@ -280,7 +283,8 @@ describe('the mirror piece in space is a whole contribution, and what it keeps i
 describe('the chain in space is drawn beside the net arrow by the lesson, not by its first link', () => {
  // With one link and no net arrow yet, any chain is collinear with itself: the ring's first link hung
  // beside P on a tie, and the whole chain jumped back onto P when the second arrived.
- for (const [id, beside] of [['ring', false], ['bisector', false], ['disk', true]] as const) it(`${id}: ${beside ? 'beside' : 'on P'} from its first link to its last`, async () => {
+ // (The ring's and the bisector's pieces go in as mirror pairs and draw no chain: see the last case.)
+ for (const [id, beside] of [['endpoint', false], ['disk', true]] as const) it(`${id}: ${beside ? 'beside' : 'on P'} from its first link to its last`, async () => {
   const view = await openLesson(id);
   await openRun(view);
   jump(view, 4, 'Add them up');
@@ -290,6 +294,20 @@ describe('the chain in space is drawn beside the net arrow by the lesson, not by
    await waitFor(() => expect(Number(plan(view, 'runChain') ?? 0)).toBeGreaterThan(1));
    expect(plan(view, 'runChainBeside'), `${id} at ${at}`).toBe(beside ? 'true' : undefined);
   }
+ }, HEAVY);
+ for (const id of ['ring', 'bisector'] as const) it(`${id}: no chain, the pairs laid from the tip of a sum along the axis`, async () => {
+  const view = await openLesson(id);
+  await openRun(view);
+  jump(view, 4, 'Add them up');
+  for (const at of [.35, .6]) {
+   scrub(view, 3, at);
+   await waitFor(() => expect(plan(view, 'runArrows')).toBeTruthy());
+   expect(plan(view, 'runChain'), `${id} at ${at}`).toBeUndefined();
+  }
+  // Past the first step the pair starts off P, on the axis: z alone for the ring, x alone for the rod.
+  const [x, y, z] = (plan(view, 'runArrowsFrom') ?? '').split(' ').map(Number);
+  expect(id === 'ring' ? Math.hypot(x, y) : Math.hypot(y, z)).toBeLessThan(1e-9);
+  expect(Math.abs(id === 'ring' ? z : x)).toBeGreaterThan(0);
  }, HEAVY);
 });
 describe('the charge\'s sign is said in space', () => {

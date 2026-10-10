@@ -52,6 +52,9 @@ export type FieldStageProps={
   * a tangent line lying against it rather than a piece of it. */
  point:Vec; element:{path:Vec[]}|{annulus:{inner:number;outer:number}}|null;
  net:Vec|null; contribution:Vec|null;
+ /** Where the contribution starts, as an offset from P: P itself, except while the run's Add them up takes
+  * a mirror pair into the sum from the tip of the sum so far. */
+ contributionFrom?:Vec|null;
  /** During an orbit the SVG moves from motion values without re-rendering, so reading yaw
   * and pitch from props would leave the body behind the drawing. While `animating`, the
   * stage reads the live view every frame instead. */
@@ -1211,12 +1214,15 @@ export function FieldStage(props:FieldStageProps){
     pieceSolid.visible=opened;pieceGhost.visible=opened;
     // The chosen piece, cut exactly as the others are: drawn whole it bridged its own two gaps and
     // looked longer than the pieces round it.
-    const selectedPath=opened&&p.element&&'path' in p.element?pieceOf(run!.selected):null;
+    // ...or the stretch the run names in its place: the half piece a ring cut an odd number of ways puts
+    // into its last mirror pair, which has no cut of its own to respect.
+    const own=opened?run!.selectedPath:null;
+    const selectedPath=opened&&p.element&&'path' in p.element?own??pieceOf(run!.selected):null;
     if(selectedPath){
-     const key=`r:${nextPieces}:${run!.selected}:${thick.toFixed(4)}`;
+     const key=`r:${nextPieces}:${run!.selected}:${own?`${signature(own[0])}:${signature(own.at(-1))}`:''}:${thick.toFixed(4)}`;
      if(elementKey!==key){
       element.geometry.dispose();
-      element.geometry=tubes(cutOf(run!.selected,selectedPath).map(points=>({points,rgba:[1,1,1,1]})),thick,14,n>40);
+      element.geometry=tubes((own?[own]:cutOf(run!.selected,selectedPath)).map(points=>({points,rgba:[1,1,1,1]})),thick,14,n>40);
       elementKey=key;
      }
     }
@@ -1273,7 +1279,9 @@ export function FieldStage(props:FieldStageProps){
     for(const m of [pieceMaterial,ghostMaterial]){m.emissive.set(CHARGE.glow);m.emissiveIntensity=dark?.85:.35;}
     // The arrows at P, all at the figure's own scale.
     const arrows=run?.arrows??null,P=p.point,plus=(a:Vec,b:Vec):Vec=>({x:a.x+b.x,y:a.y+b.y,z:a.z+b.z});
-    if(arrows?.keep)layArrow(keepArrow,P,arrows.keep,Math.hypot(arrows.keep.x,arrows.keep.y,arrows.keep.z),wr*.62);else keepArrow.group.visible=false;
+    // From P -- or, while a mirror pair goes into the sum, from the tip of the sum so far.
+    const at=plus(P,arrows?.from??{x:0,y:0,z:0});
+    if(arrows?.keep)layArrow(keepArrow,at,arrows.keep,Math.hypot(arrows.keep.x,arrows.keep.y,arrows.keep.z),wr*.62);else keepArrow.group.visible=false;
     // The dropped part: solid where it survives, dashed and fading where a partner cancels it.
     const drop=dropStyle(arrows);
     if(drop==='solid'&&arrows?.drop)layArrow(dropArrow,plus(P,arrows.dropFrom),arrows.drop,Math.hypot(arrows.drop.x,arrows.drop.y,arrows.drop.z),wr*.62);else dropArrow.group.visible=false;
@@ -1281,11 +1289,11 @@ export function FieldStage(props:FieldStageProps){
     // metres shrink with the figure, and the dashed pair came out a faint pixel wide over the grid.
     const pair=Math.max(wr*.3,.9*cssPx);
     layDashed(pairDropArrow,plus(P,arrows?.dropFrom??P),drop==='dashed'?arrows!.drop:null,pair);
-    if(arrows?.partner)layArrow(partnerArrow,P,arrows.partner,Math.hypot(arrows.partner.x,arrows.partner.y,arrows.partner.z),Math.max(wr*.45,.8*cssPx));else partnerArrow.group.visible=false;
+    if(arrows?.partner&&arrows.whole!==false)layArrow(partnerArrow,at,arrows.partner,Math.hypot(arrows.partner.x,arrows.partner.y,arrows.partner.z),Math.max(wr*.45,.8*cssPx));else partnerArrow.group.visible=false;
     layDashed(partnerDropArrow,plus(P,arrows?.partnerFrom??P),arrows?.partnerDrop??null,pair);
     // What the mirror keeps, from the tip of what the piece keeps, once the sideways parts are going.
     const kept=arrows?.keep&&arrows.partnerSurvivor&&arrows.cancelled>.5?arrows.partnerSurvivor:null;
-    if(kept)layArrow(partnerKeepArrow,plus(P,arrows!.keep!),kept,Math.hypot(kept.x,kept.y,kept.z),wr*.62);else partnerKeepArrow.group.visible=false;
+    if(kept)layArrow(partnerKeepArrow,plus(at,arrows!.keep!),kept,Math.hypot(kept.x,kept.y,kept.z),wr*.62);else partnerKeepArrow.group.visible=false;
     partnerKeepMaterial.opacity=Math.min(1,Math.max(0,((arrows?.cancelled??0)-.5)*2));
     // The pair that cancels fades as it shrinks, never quite to nothing until it is gone.
     fadeMaterial.opacity=Math.max(.12,1-(arrows?.cancelled??0));
@@ -1441,7 +1449,7 @@ export function FieldStage(props:FieldStageProps){
     }else element.visible=false;
     if(p.net)layArrow(netArrow,p.point,p.net,Math.hypot(p.net.x,p.net.y,p.net.z),wr*.75);else netArrow.group.visible=false;
     // One element's contribution is the field AT P due to that element, so it is laid from P.
-    if(p.contribution)layArrow(partArrow,p.point,p.contribution,Math.hypot(p.contribution.x,p.contribution.y,p.contribution.z),wr*.55);else partArrow.group.visible=false;
+    if(p.contribution)layArrow(partArrow,p.contributionFrom?{x:p.point.x+p.contributionFrom.x,y:p.point.y+p.contributionFrom.y,z:p.point.z+p.contributionFrom.z}:p.point,p.contribution,Math.hypot(p.contribution.x,p.contribution.y,p.contribution.z),wr*.55);else partArrow.group.visible=false;
     for(const m of [bodyMaterial,sheetMaterial]){
      m.color.set(CHARGE.body);
      m.emissive.set(CHARGE.glow);
@@ -1622,6 +1630,8 @@ function runData(run:RunScene|null|undefined):Record<string,string>{
   ...(run.seams.length?{'data-run-seams':String(run.seams.length)}:{}),
   ...(run.filled!==null?{'data-run-filled':'true'}:{}),
   ...(arrows?{'data-run-arrows':arrows}:{}),
+  // Where they start, where that is not P: the tip of the sum, while a mirror pair goes into it.
+  ...(a&&(a.from.x||a.from.y||a.from.z)?{'data-run-arrows-from':`${a.from.x} ${a.from.y} ${a.from.z}`}:{}),
   // How the dropped part is drawn: 'solid' where it survives, 'dashed' where a partner cancels it.
   ...(dropStyle(a)?{'data-run-drop':dropStyle(a)!}:{}),
   // The mirror piece's own arrow is a whole contribution, drawn solid; see `partnerMaterial`.

@@ -382,7 +382,9 @@ describe('v-arc\'s One piece draws r_i = R and θ', () => {
 });
 
 describe('the sum\'s chain beside the net, where every piece pushes nearly the same way', () => {
- for (const [id, params, view] of [['bisector', {size: 1, distance: 6}, null], ['ring', {size: 1, distance: 6}, '2D']] as const) it(id, async () => {
+ // The rod's and the ring's pieces go in as mirror pairs and draw no chain (see figure-pairs); the rod level with
+ // its end, short and seen from far off, and the ramp still lay theirs beside the sum.
+ for (const [id, params, view] of [['endpoint', {size: 1, distance: 6}, null], ['ramp', {size: 1, distance: 6}, null]] as const) it(id, async () => {
   const v = await openLesson(id, params);
   if (view) await turn(v, view);
   await hold(v, 4, .6);

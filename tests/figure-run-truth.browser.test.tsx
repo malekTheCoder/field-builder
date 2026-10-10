@@ -303,7 +303,8 @@ describe('the run\'s sum starts from the first piece', () => {
   expect(v.container.querySelector('[data-hand-over]'), 'handing over').toBeTruthy();
   expect(v.container.querySelector('[data-sum-chain]'), 'no chain yet').toBeNull();
   await hold(v, 4, .24);
-  expect(v.container.querySelector('.cd-piece.is-selected')?.getAttribute('data-piece-key')).toBe(intervalKey(0, 5));
+  // The rod's pieces go in as mirror pairs from the middle out, and the middle piece, on P's axis, first.
+  expect(v.container.querySelector('.cd-piece.is-selected')?.getAttribute('data-piece-key')).toBe(intervalKey(2, 5));
  }, 30000);
 });
 

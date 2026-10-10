@@ -440,6 +440,10 @@
    already in the sum is plainly coloured, what is still to come waits pale. */
 .cd-stage-add .cd-piece.is-added{fill:color-mix(in oklab,var(--charge,#b8460f) 42%,var(--charge-fill,#fdefe6))}
 .cd-sum-joint{fill:var(--diagram,#fff);stroke:var(--contribution,#2f9089);stroke-width:1.8}
+/* Where the sum goes in mirror pairs, a tick across its arrow at the end of each pair's share: the near pairs'
+   long, the far pairs' short. On the arrow's own ink, a little heavier than a hairline so it is seen across the
+   shaft, never so heavy it reads as a second arrow. */
+.cd-pair-ticks{stroke:var(--field,#0b6b63);stroke-width:2;stroke-linecap:round;pointer-events:none}
 
 /* Potential lessons: until the stack is being built, only the lit piece's segment shows. */
 /* Faint, not gone: the lit piece is seen to be one block of a pile, not a block floating on nothing. */

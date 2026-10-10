@@ -247,7 +247,9 @@ export default function Explorer(){
  // on its opening frame, threw the reader out of the run and back to the start button.
  const buildOpen=buildShown;
  // The piece being added walks along the charge while the sum builds, so it is always plain
- // which piece is going in.
+ // which piece is going in. Where the charge has a mirror about P's axis the figure adds a piece and its
+ // mirror together, and works out from the stage's own progress which pair is going in and lights both
+ // (see `pairs.ts`): the run's piece it is handed is all it needs from here.
  const following=buildOpen&&buildNow.key==='add';
  // The piece a lesson rests on until the reader picks one: the fourth, except on the sheet, whose
  // fourth ring is so far out that its far edge runs through P in the opening view and P reads as

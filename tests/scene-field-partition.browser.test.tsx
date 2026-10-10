@@ -57,14 +57,23 @@ describe('the field the Explorer draws', () => {
   };
   expect(await colour(-2)).toBe(await colour(2));
  }, HEAVY);
- it('Add them up draws the disk\'s chain beside its net arrow, and the ring\'s where it is', async () => {
-  for (const [id, beside] of [['disk', 'true'], ['ring', undefined]] as const) {
+ it('Add them up draws the disk\'s chain beside its net arrow, and the ring\'s pairs at the tip of a sum along its axis', async () => {
+  for (const id of ['disk', 'ring'] as const) {
    const view = await openLesson(id);
    fireEvent.click(view.getByRole('button', {name: 'Watch it build'}));
    await waitFor(() => expect(stage(view)?.dataset.runStage).toBe('pieces'));
-   scrub(view, 3, .8);
-   await waitFor(() => expect(Number(stage(view)?.dataset.runChain)).toBeGreaterThan(2));
-   expect(stage(view)?.dataset.runChainBeside, id).toBe(beside);
+   scrub(view, 3, id === 'ring' ? .6 : .8);
+   if (id === 'disk') {
+    await waitFor(() => expect(Number(stage(view)?.dataset.runChain)).toBeGreaterThan(2));
+    expect(stage(view)?.dataset.runChainBeside, id).toBe('true');
+   } else {
+    // The ring's pieces go in as pairs straight across: no chain, and each pair laid from the sum's tip, up the axis.
+    await waitFor(() => expect(stage(view)?.dataset.runArrowsFrom).toBeTruthy());
+    expect(stage(view)?.dataset.runChain, id).toBeUndefined();
+    const [x, y, z] = stage(view)!.dataset.runArrowsFrom!.split(' ').map(Number);
+    expect(Math.hypot(x, y), id).toBeLessThan(1e-9);
+    expect(z, id).toBeGreaterThan(0);
+   }
    cleanup();
    window.history.replaceState(null, '', '/');
   }

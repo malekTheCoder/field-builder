@@ -16,6 +16,7 @@ import type { Params, Problem, ProblemId } from '../problems/types';
 import { field, magnitude, pretty, potential, type Vec } from '../symbolic/physics';
 import { sampleDistribution, sumSamples, sumInterval, intervalWeights, sumPotential, activeIntervalIndex } from './sampling';
 import { intervalKey, partitionCount, seamFractions, seamKey, splitFractions, splitProgress } from './subdivision';
+import { acrossAxis, alongAxis, pairOrder, pairPhase, pairPlan, pairShares, pairStepAt, pairSum } from './pairs';
 import { clampCamera, depthFromScreen, keyboardCamera, openingCamera, orbitCamera, projectCamera, surfaceUnit, type CameraView } from './camera';
 import { ViewCube } from './ViewCube';
 import { nearestOnBox, placeLabels, segmentBoxes, type Box, type HalfPlane, type Segment } from './labels';
@@ -379,7 +380,21 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
   // the run's piece lit and named -- and when the hand-over ended the walk began at the second piece, so the
   // first was never lit at all: the first arrow of the sum arrived from an unmarked piece.
   const sumProgress = handsOver ? clamp((progress - ADD_SHRINK - ADD_FADE) / (1 - ADD_SHRINK - ADD_FADE), 0, 1) : progress;
-  const selectedIndex = handingOver ? runPiece : handsOver ? activeIntervalIndex(n, boundRange, sumProgress) : clamp(Math.round(selected), 0, n - 1);
+  // THE SUM IN MIRROR PAIRS (see `pairs.ts`). Laid tip to tail in the order the pieces sit, a symmetric
+  // charge's arrows arched over the axis -- on the endless line a half polygon with the field as its chord --
+  // and the sideways parts cancelled only at the arch's far end, unseen. So where the charge has a mirror about
+  // P's axis and the whole of it is summed, the run adds a piece and its mirror together: their sideways parts
+  // go, their parts along the axis go in, and the sum is an arrow along the axis at every moment. The ring
+  // goes round from the run's own piece. Over part of the charge -- the brackets dragged in -- nothing is
+  // paired, and the sum is the chain.
+  const pairedRun = !!build && supportsPair && boundRange[0] === 0 && boundRange[1] === 100 && (build.key === 'add' || build.key === 'limit');
+  const pairStart = id === 'ring' && runPiece >= 0 ? runPiece : 0;
+  const pairSlots = useMemo(() => pairedRun ? pairOrder(id, n, pairStart) : null, [pairedRun, id, n, pairStart]);
+  const pairAt = pairSlots && handsOver && !handingOver ? pairStepAt(pairSlots.length, sumProgress) : null;
+  const pairSlot = pairAt && pairSlots ? pairSlots[pairAt.k] : null;
+  // The ring's last pair at an odd count is two half pieces: neither is a whole piece to light.
+  const halfPair = pairSlot?.a.kind === 'half';
+  const selectedIndex = handingOver ? runPiece : pairSlot ? pairSlot.a.of : handsOver ? activeIntervalIndex(n, boundRange, sumProgress) : clamp(Math.round(selected), 0, n - 1);
   const partnerIndex = id === 'ring' ? (selectedIndex + Math.floor(n / 2)) % n : n - 1 - selectedIndex;
   // A PIECE THAT IS ITS OWN MIRROR -- the middle one of an odd number, level with P -- has no partner: its
   // sideways part is nothing already. Paired with itself, it was drawn with a phantom mirror -- its ΔE twice,
@@ -427,7 +442,15 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
   // those must stay the reader's own pieces.
   const runCut = build?.key === 'limit' && !UNBOUNDED.has(id) ? partitionCount(p.slices, 1) : 0;
   const canvasSamples = useMemo(() => runCut ? sampleDistribution(id, shape, runCut) : fieldSamples, [id, shape, runCut, fieldSamples]);
-  const sample = samples[selectedIndex], total = sumSamples(samples), weights = intervalWeights(n,boundRange,sumProgress), partial = sumInterval(samples,boundRange,sumProgress);
+  // The pairs with their fields, and where the sum has got to: every step before this one in, and as much of
+  // this one's part along the axis as the sum's arrow has taken. A piece is coloured in once all of it is in --
+  // the ring's lengths straight across go in half a piece at a time -- and not while it is lit as the pair.
+  const pairSteps = useMemo(() => pairSlots ? pairPlan(id, samples, pairStart) : null, [pairSlots, id, samples, pairStart]);
+  const pairNow = pairSteps && pairAt ? { ...pairAt, ...pairPhase(pairAt.u), step: pairSteps[pairAt.k] } : null;
+  const pairSoFar = pairNow && pairSteps ? pairSum(pairSteps, pairNow.k) : zero;
+  const sample = samples[selectedIndex], total = sumSamples(samples);
+  const weights = pairNow && pairSteps ? pairShares(pairSteps, n, pairNow.k).map(s => s > .999 ? 1 : 0) : intervalWeights(n,boundRange,sumProgress);
+  const partial = pairNow && pairSteps ? pairSum(pairSteps, pairNow.k, pairNow.merge) : sumInterval(samples,boundRange,sumProgress);
   const wholeWeights = intervalWeights(n,boundRange,1);
   const full = boundRange[0]===0 && boundRange[1]===100;
   // The drawn arrow is the field itself only once every piece is in and the pieces are gone.
@@ -650,7 +673,15 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
     }
     const reach: Point[] = [netV];
     let partialSum: Vec = zero;
-    for (const s of runSamples) { partialSum = { x: partialSum.x + s.field.x, y: partialSum.y + s.field.y, z: partialSum.z + s.field.z }; reach.push(screen(partialSum), screen(s.field)); }
+    // Where the sum goes in mirror pairs, what it reaches is the pairs' running sum along the axis and each
+    // pair's arrows drawn from its tip -- not the arch the chain would have made, which is never drawn.
+    const runPairs = supportsPair && full ? pairPlan(id, runSamples, id === 'ring' && runPiece >= 0 ? Math.floor((runPiece + .5) / n * runSamples.length) : 0) : null;
+    if (runPairs) for (const st of runPairs) {
+      for (const f of [st.fa, st.fb ?? zero, alongAxis(id, st.fa)]) reach.push(screen({ x: partialSum.x + f.x, y: partialSum.y + f.y, z: partialSum.z + f.z }));
+      partialSum = { x: partialSum.x + st.along.x, y: partialSum.y + st.along.y, z: partialSum.z + st.along.z };
+      reach.push(screen(partialSum));
+    }
+    for (const s of runSamples) { if (!runPairs) { partialSum = { x: partialSum.x + s.field.x, y: partialSum.y + s.field.y, z: partialSum.z + s.field.z }; reach.push(screen(partialSum)); } reach.push(screen(s.field)); }
     // Thirty in from the plot's edge -- or, for a P that sits nearer the edge than that, two fifths of
     // the way to it -- so an arrowhead and the name beside it are inside the window too.
     const room = (lo: number, hi: number, c: number, d: number) => d > 1e-9 ? Math.max(hi - 30 - c, .4 * (hi - c)) / d : d < -1e-9 ? Math.max(c - lo - 30, .4 * (c - lo)) / -d : Infinity;
@@ -767,7 +798,8 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
   // the partition of the moment: the stage says each piece's arrow shrinks while there are ever more
   // of them, and the chain is where that is seen -- its links multiply and shorten into a smooth
   // curve while its end stays on the tip of the field. It used to vanish on the stage's first frame.
-  const chaining = !scalar && (mode === 'sum' || build?.key === 'limit');
+  // Not where the run adds in mirror pairs: there the sum is drawn as the pairs and the arrow they build.
+  const chaining = !scalar && !pairedRun && (mode === 'sum' || build?.key === 'limit');
   const chainPoints: Point[] = [];
   let chainEnds = '', chainBeside = false;
   if (chaining) {
@@ -802,6 +834,38 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
   }
   const newestLink = chainPoints.length > 1 && Math.hypot(chainPoints[chainPoints.length - 1].x - chainPoints[chainPoints.length - 2].x, chainPoints[chainPoints.length - 1].y - chainPoints[chainPoints.length - 2].y) > 6
     ? [chainPoints[chainPoints.length - 2], chainPoints[chainPoints.length - 1]] as [Point, Point] : null;
+  // THE PAIR GOING IN, drawn from the tip of the sum so far, as What cancels drew a pair at P: the piece's arrow
+  // and its mirror's, each resolved into its part along the axis and its part across (dashed). The parts across
+  // shrink to nothing toward each other, the mirror's part along the axis slides out to lie tip to tail on the
+  // piece's, and the sum's arrow, drawn over them, grows along the axis to take both in. The whole arrows go as
+  // their parts across do. The middle piece of an odd count lies on the axis: its arrow is all along it.
+  const pairDraw = pairNow ? (() => {
+    const { step, grow, cancel, merge } = pairNow;
+    const from = plus(P, fieldScreen(pairSoFar)), g = (v: Vec, k = 1) => fieldScreen(v, grow * k);
+    const aKeep = g(alongAxis(id, step.fa)), bKeep = step.fb ? g(alongAxis(id, step.fb)) : null;
+    const aDrop = g(acrossAxis(id, step.fa), 1 - cancel), bDrop = step.fb ? g(acrossAxis(id, step.fb), 1 - cancel) : null;
+    const across = Math.hypot(fieldScreen(acrossAxis(id, step.fa)).x, fieldScreen(acrossAxis(id, step.fa)).y);
+    return { from, a: g(step.fa), b: step.fb ? g(step.fb) : null, aKeep, bKeep, aDrop, bDrop, bKeepFrom: plus(from, scaleVec2(aKeep, cancel)),
+      hasDrop: !!step.fb && across > 1, whole: clamp(1 - cancel * 1.25, 0, 1), dropFade: clamp((1 - cancel) * 6, 0, 1), keepFade: 1 - merge };
+  })() : null;
+  // A TICK ACROSS THE SUM'S ARROW WHERE EACH PAIR'S SHARE ENDS: long steps for the near pairs, short for the far.
+  // In Shrink them they crowd and fade as the pieces multiply, as the chain's links used to. Not at the arrow's
+  // own tip, where its head is, nor closer than a few units to the last one drawn.
+  const pairTicks = (() => {
+    if (!pairSteps) return '';
+    const ends = pairNow ? pairNow.k : build?.key === 'limit' ? pairSteps.length : 0;
+    const u = direction(fieldScreen(id === 'ring' ? { x: 0, y: 0, z: 1 } : { x: 1, y: 0, z: 0 }));
+    if (!u || ends < 1) return '';
+    const tip = plus(P, fieldScreen(displayed)), nrm = { x: -u.y, y: u.x };
+    let last = P, d = '';
+    for (let j = 1; j <= ends; j++) {
+      const c = plus(P, fieldScreen(pairSum(pairSteps, j)));
+      if (Math.hypot(c.x - last.x, c.y - last.y) < 4 || Math.hypot(c.x - tip.x, c.y - tip.y) < 9) continue;
+      d += `M${(c.x - nrm.x * 6).toFixed(1)} ${(c.y - nrm.y * 6).toFixed(1)}L${(c.x + nrm.x * 6).toFixed(1)} ${(c.y + nrm.y * 6).toFixed(1)}`;
+      last = c;
+    }
+    return d;
+  })();
   // Pointing at one piece's CHARGE lights the piece and names it; it does not need the arrow and
   // the construction lines, which belong to the distance and the direction. The run's first stage
   // lights the charge while it cuts, and drawing the arrow there would show the second stage early.
@@ -823,7 +887,8 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
     // ones, and a shared step drew the selected band nowhere near the ring being summed.
     // `world` is the same function the sampler partitions by, so these edges are that ring's.
     if (surface) return { annulus: { inner: Math.abs(world(selectedIndex / n).x), outer: Math.abs(world((selectedIndex + 1) / n).x) } };
-    const lo = selectedIndex / n, hi = (selectedIndex + 1) / n;
+    // The ring's last pair at an odd count lights half a piece, not the piece.
+    const lo = halfPair && pairSlot ? pairSlot.a.lo : selectedIndex / n, hi = halfPair && pairSlot ? pairSlot.a.hi : (selectedIndex + 1) / n;
     return { path: Array.from({ length: 13 }, (_, k) => world(lo + (hi - lo) * k / 12)) };
   })();
   // THE ANGULAR FAN, for the geometries whose charge runs off the page.
@@ -923,7 +988,9 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
   // point: the piece that CANCELS the field's sideways push ADDS the same amount to V.
   const scalarPartner = scalar && pair && !selfMirror && (id === 'bisector' || id === 'ring' || id === 'arc');
   // The partner piece is marked on the charge whenever its arrow is being shown.
-  const partnerLit = (building === 'cancel' || pair) && !selfMirror && (supportsPair || scalarPartner);
+  // ...and while the run adds in mirror pairs, the pair going in: both of its pieces lit together.
+  const pairLit = !!pairSlot?.b && !halfPair;
+  const partnerLit = ((building === 'cancel' || pair) && !selfMirror && (supportsPair || scalarPartner)) || pairLit;
   // HOW FAR THE TWO SIDEWAYS PARTS HAVE CANCELLED, 0 to 1.
   //
   // Inside the run it is read off the run's own clock: the stage's first two fifths hold the pair
@@ -1787,7 +1854,7 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
       else if (components && hasDrop) add(dropScreen);
     }
     if (showContribution && building !== 'limit' && selectedOnFrame) add(vsub(selectedPoint, P));
-    if ((pairing && showContribution) || scalarPartner) add(vsub(partnerPos, P));
+    if ((pairing && showContribution) || scalarPartner || pairLit) add(vsub(partnerPos, P));
     if (chainPoints.length > 1) { add(vsub(chainPoints[1], P)); add(vsub(chainPoints[chainPoints.length - 1], P)); }
     const through: Vec[] = id === 'arc' ? [{ x: 1, y: 0, z: 0 }, { x: 0, y: 1, z: 0 }] : [perspective ? { x: 0, y: 0, z: 1 } : id === 'semi' ? { x: 0, y: 1, z: 0 } : { x: 1, y: 0, z: 0 }];
     for (const v of through) { const d = vsub(project(v), project(zero)); add(d); add({ x: -d.x, y: -d.y }); }
@@ -2128,6 +2195,11 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
       if (components && hasDrop) { arrow(P, keepScreen, 5); if (!pairing) arrow(P, dropScreen, 5); }
     }
     if (handOver) arrow(P, handOver.vector, 5);
+    if (pairDraw) {
+      arrow(pairDraw.from, pairDraw.aKeep, 5);
+      if (pairDraw.b) { arrow(pairDraw.from, pairDraw.a, 5); arrow(pairDraw.from, pairDraw.b, 5); }
+      if (pairDraw.bKeep) arrow(pairDraw.bKeepFrom, pairDraw.bKeep, 5);
+    }
     if (partnerKeepShown && drawingPiece) arrow(partnerKeepFrom, partnerKeepScreen, 5);
     line(chainPoints, 5);
     // A bar is a line no name may be set across, even with nowhere free: a kept −L/2 on the bisector's short
@@ -2142,7 +2214,7 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
     // The construction: the dashed lines from the piece and its partner to P, the triangle's legs and
     // the arc of its angle. A name laid across a line it does not name reads as crossed out.
     if (showContribution && building !== 'limit' && id !== 'axial') { seg(selectedPoint, P, 4); constructionLines.push({ a: selectedPoint, b: P }); }
-    if (!surface && (pairing || scalarPartner) && showContribution) { seg(partnerPos, P, 4); constructionLines.push({ a: partnerPos, b: P }); }
+    if (!surface && (pairing || scalarPartner || pairLit) && showContribution) { seg(partnerPos, P, 4); constructionLines.push({ a: partnerPos, b: P }); }
     if (triangle) {
       for (const [a, b] of triangle.legs) { seg(a, b, 4); constructionLines.push({ a, b }); }
       line(triangle.arc, 4);
@@ -2402,14 +2474,20 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
       plane={perspective ? 'xz' : 'xy'} layout={surface ? 'surface' : 'wire'} />}
     {inSpace && <FieldStage quiet={!!building} kind={id === 'disk' ? 'disk' : id === 'sheet' ? 'sheet' : 'wire'} closed={id === 'ring'} samples={UNBOUNDED.has(id) ? fieldSamples : samples} fieldSamples={fieldSamples} detail={UNBOUNDED.has(id) ? 144 : 48} selected={selectedIndex}
       radius={R} distance={p.distance} yaw={view.yaw} pitch={view.pitch} fieldView={scalar ? 'off' : fieldView} reach={fieldReach}
-      bodyPath={bodyPath} point={pWorld} element={sceneElement} net={netShown ? scaleVec(displayed, gain / unit) : null} contribution={handOver ? scaleVec(handOver.field, handOver.multiplier * gain / unit) : scalar || !showContribution || mode === 'sum' || building === 'limit' ? null : scaleVec(sample.field, selectedGain * gain / unit)}
+      bodyPath={bodyPath} point={pWorld} element={sceneElement} net={netShown ? scaleVec(displayed, gain / unit) : null} contribution={handOver ? scaleVec(handOver.field, handOver.multiplier * gain / unit) : pairNow ? (pairNow.step.fb && pairNow.cancel < .6 ? scaleVec(pairNow.step.fa, pairNow.grow * gain / unit) : null) : scalar || !showContribution || mode === 'sum' || building === 'limit' ? null : scaleVec(sample.field, selectedGain * gain / unit)}
+      contributionFrom={pairNow ? scaleVec(pairSoFar, gain / unit) : null}
       unit={unit} frame={{ width: 720, height: 430 }} origin={O} charge={p.charge} animating={moving}
       getView={() => ({ yaw: yawMv.get(), pitch: pitchMv.get() })}
       // The run, for the scene to draw as bodies: the same partition, partner, sum and arrows the
       // flat marks below are drawn from, at the same scale, so the two can never tell it differently.
       run={build ? runScene({ stage: building, kind: id === 'disk' ? 'disk' : id === 'sheet' ? 'sheet' : 'wire', closed: id === 'ring', n, selected: selectedIndex, at: world,
-        partner: partnerLit ? (mirrorArc ? 'across' : partnerIndex) : null, weights, summing: mode === 'sum' || mode === 'integrate', continuum, split,
-        arrows: !scalar && showContribution && mode !== 'sum' && building !== 'limit' ? { scale: selectedGain * gain / unit, field: sample.field, keep, drop, partner: pairing ? partnerField : null, partnerKeep, partnerDrop, components, cancelled: cancelT } : null,
+        selectedSpan: halfPair && pairSlot ? [pairSlot.a.lo, pairSlot.a.hi] : null,
+        partner: partnerLit ? (mirrorArc ? 'across' : partnerIndex) : halfPair && pairSlot?.b ? { lo: pairSlot.b.lo, hi: pairSlot.b.hi } : null, weights, summing: mode === 'sum' || mode === 'integrate', continuum, split,
+        // The pair going in, laid from the tip of the sum so far at the sum's own scale: see `pairDraw`.
+        arrows: pairNow ? { scale: pairNow.grow * gain / unit, field: pairNow.step.fa, keep: alongAxis(id, pairNow.step.fa), drop: acrossAxis(id, pairNow.step.fa), partner: pairNow.step.fb,
+            partnerKeep: pairNow.step.fb ? alongAxis(id, pairNow.step.fb) : zero, partnerDrop: pairNow.step.fb ? acrossAxis(id, pairNow.step.fb) : zero, components: true, cancelled: pairNow.cancel,
+            from: scaleVec(pairSoFar, gain / unit), whole: pairNow.cancel < .6, fade: 1 - pairNow.merge }
+          : !scalar && showContribution && mode !== 'sum' && building !== 'limit' ? { scale: selectedGain * gain / unit, field: sample.field, keep, drop, partner: pairing ? partnerField : null, partnerKeep, partnerDrop, components, cancelled: cancelT } : null,
         chain: chaining ? { scale: gain / unit, fields: samples.map(s => s.field), weights } : null }) : null} />}
     <LabelScale.Provider value={labelScale}>
     <svg ref={svg} className={`cd-svg${inSpace ? ' cd-orbitable' : ''}${scalar ? ' cd-scalar' : ''}`} viewBox="0 0 720 430" role="img" tabIndex={inSpace ? 0 : undefined} {...(inSpace ? orbit : {})} aria-label={`${problem.title}. Interactive charge distribution and ${scalar ? 'electric potential' : 'electric field'} visualization.${inSpace ? ' Drag or use the arrow keys to rotate the view, plus and minus to zoom, Home to reset it.' : ''}`}>
@@ -2454,12 +2532,15 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
                 shared layout animation between lessons is keyed to it. */}
             <g opacity={inSpace ? 0 : 1}><motion.path layoutId={`fb-source-${family}`} data-source-body="true" data-dim="charge" initial={false} animate={{ d: pathThrough(worldArc(R)) }} transition={{ duration: still ? 0 : .45 }} className="cd-charge-base" /></g>
             {samples.map((_, i) => {
-              const active = i === selectedIndex, accumulated = Math.abs(weights[i]) > 0 && (mode === 'sum' || mode === 'integrate');
+              const active = i === selectedIndex && !halfPair, accumulated = Math.abs(weights[i]) > 0 && (mode === 'sum' || mode === 'integrate');
               const inInterval = Math.abs(wholeWeights[i]) > 0;
               const opacity = !inInterval ? .14 : active ? 1 : accumulated ? .94 : building === 'add' ? .16 : .48 + continuum * .3;
               const a0 = 2 * Math.PI * i / n, a1 = 2 * Math.PI * (i + 1) / n, identity = intervalKey(i, n);
               return <g key={identity} data-piece-key={identity} className={`cd-piece ${active ? 'is-selected' : ''}${partnerLit && i === partnerIndex && !active && !mirrorArc ? ' is-partner' : ''}${accumulated && !active ? ' is-added' : ''}`} style={{ opacity, ...cutAt(i / n) }} onPointerDown={ev => { ev.stopPropagation(); onSelect(i); }}><motion.path initial={false} animate={{ d: pathThrough(worldArc(R, a0, a1)) }} transition={{ duration: still ? 0 : .18 }} fill="none" strokeWidth={active ? 10 : 7} /></g>;
             })}
+            {/* The ring's last pair at an odd count: two half pieces, straight across from each other. */}
+            {halfPair && pairSlot?.b && [pairSlot.a, pairSlot.b].map((span, k) => <g key={k} className={`cd-piece ${k ? 'is-partner' : 'is-selected'} cd-half-piece`} data-half-piece={k ? 'partner' : 'piece'} style={{ pointerEvents: 'none' }}>
+              <path d={pathThrough(worldArc(R, 2 * Math.PI * span.lo, 2 * Math.PI * span.hi))} fill="none" strokeWidth={k ? 7 : 10} /></g>)}
             {mirrorArc && partnerLit && (() => { const a0 = 2 * Math.PI * selectedIndex / n + Math.PI, a1 = 2 * Math.PI * (selectedIndex + 1) / n + Math.PI;
               return <g className="cd-piece is-partner cd-mirror-arc" data-mirror-arc="true" style={{ pointerEvents: 'none' }}><path d={pathThrough(worldArc(R, a0, a1))} fill="none" strokeWidth={7} /></g>; })()}
             {continuum < .995 && <g className="cd-seams" aria-hidden="true" style={{ opacity: .7 * (1 - continuum) }}>
@@ -2515,7 +2596,7 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
           {seamFractions(n).map(t => { const mark = seamStroke(t, 1); return mark ? <g key={seamKey(t)} data-seam={seamKey(t)} className="cd-seam" style={cutAt(t)}>{mark}</g> : null; })}
           {split > .04 && split < .995 && splitFractions(n).map(t => { const mark = seamStroke(t, split); return mark ? <g key={seamKey(t)} data-seam={seamKey(t)} className="cd-seam is-growing" style={{ opacity: split }}>{mark}</g> : null; })}
         </g>}
-        {!surface && (pairing || scalarPartner) && showContribution && (() => { const a = offRod(partnerPos, P, partnerIndex);
+        {!surface && (pairing || scalarPartner || pairLit) && showContribution && (() => { const a = offRod(partnerPos, P, partnerIndex);
           // A dashed ring round the mirror piece, on a field lesson, only blotted a piece already lit dark with
           // its own arrow at P: it is kept where nothing else at P says which piece is the mirror -- a
           // potential's, whose pieces have no arrows.
@@ -2626,6 +2707,19 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
       {building === 'add' && !scalar && !handOver && newestLink && <g className="cd-sum-newest" data-sum-newest="true"><Vector from={newestLink[0]} to={newestLink[1]} color="var(--contribution)" width={3.6} reduced ghost={inSpace} clip={plotClip} /></g>}
       {!scalar && chainEnds && chainPoints.length > 1 && <path className="cd-sum-chain cd-sum-chain-ends" d={chainEnds} fill="none" clipPath={plotClip} style={{ opacity: clamp((1 - continuum) / .7, 0, 1) }} />}
       {building === 'add' && !scalar && chainPoints.length > 1 && chainPoints.length <= 65 && chainPoints.slice(1).map((c, k) => Math.hypot(c.x - chainPoints[k].x, c.y - chainPoints[k].y) < 8 ? null : <circle key={k} className="cd-sum-joint" cx={c.x} cy={c.y} r="2.8" />)}
+      {/* THE PAIR GOING IN, at the tip of the sum so far (see `pairDraw`): the mirror's whole arrow in its lighter
+          tint under the piece's, their parts across dashed, and their parts along the axis -- the mirror's laid
+          first, so the piece's is on top while the two coincide. In space the scene draws them as bodies. */}
+      {pairDraw && pairNow && !inSpace && <g className="cd-pair-step" data-pair-step={pairNow.k} data-pair-from={`${pairDraw.from.x.toFixed(1)} ${pairDraw.from.y.toFixed(1)}`} data-pair-cancel={pairNow.cancel.toFixed(3)} data-pair-merge={pairNow.merge.toFixed(3)}>
+        {pairDraw.b && <g data-pair-whole="partner" opacity={pairDraw.whole}><Vector from={pairDraw.from} to={plus(pairDraw.from, pairDraw.b)} clip={plotClip} color={PARTNER_TINT} width={1.8} reduced /></g>}
+        {pairDraw.b && <g data-pair-whole="piece" opacity={pairDraw.whole}><Vector from={pairDraw.from} to={plus(pairDraw.from, pairDraw.a)} clip={plotClip} color="var(--contribution)" width={1.8} reduced /></g>}
+        {pairDraw.hasDrop && pairDraw.bDrop && <>
+          <g data-pair-across="piece" opacity={pairDraw.dropFade}><Vector from={pairDraw.from} to={plus(pairDraw.from, pairDraw.aDrop)} clip={plotClip} color="var(--contribution)" width={2.4} dashed reduced /></g>
+          <g data-pair-across="partner" opacity={pairDraw.dropFade}><Vector from={pairDraw.from} to={plus(pairDraw.from, pairDraw.bDrop)} clip={plotClip} color="var(--contribution)" width={2.4} dashed reduced /></g>
+        </>}
+        {pairDraw.bKeep && <g data-pair-along="partner" opacity={pairDraw.keepFade}><Vector from={pairDraw.bKeepFrom} to={plus(pairDraw.bKeepFrom, pairDraw.bKeep)} clip={plotClip} color={PARTNER_TINT} width={2.4} reduced /></g>}
+        <g data-pair-along="piece" opacity={pairDraw.keepFade}><Vector from={pairDraw.from} to={plus(pairDraw.from, pairDraw.aKeep)} clip={plotClip} color="var(--contribution)" width={2.4} reduced /></g>
+      </g>}
       {/* The run's piece, shrinking to its true length as the sum begins: the scale it was drawn at
           in the two stages before was its own, and this is where that is said, by showing it. */}
       {handOver && <g className="cd-hand-over" data-hand-over={handOver.multiplier.toFixed(3)} opacity={handOver.opacity}>
@@ -2641,7 +2735,11 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
           the run is open the stage's name has the top of the figure, and the legend steps aside. */}
       {inSpace && !build && <ViewHelp x={690} y={30} />}
       {/* The sum the stage builds, and the field it ends on: named whenever they are the stage's result. */}
-      {netShown && <Vector from={P} to={plus(P, net)} width={3.5} label={finished ? 'E' : '\u03a3 \u0394E'} side={awayFrom(net, toCharge)} reduced={still} ghost={inSpace} keep={!building || building === 'add' || building === 'limit'} priority={building === 'add' || building === 'limit' ? 2 : 1} clip={plotClip} />}
+      {/* While the pairs go in, the sum is named once it is long enough to carry its name clear of P's: a first
+          pair's share is a stub beside P, and its name stood on P's own. */}
+      {netShown && <g className="cd-sum-arrow" data-sum-arrow="true"><Vector from={P} to={plus(P, net)} width={3.5} label={finished ? 'E' : pairNow && Math.hypot(net.x, net.y) < 34 ? undefined : '\u03a3 \u0394E'} side={awayFrom(net, toCharge)} reduced={still} ghost={inSpace} keep={!building || building === 'add' || building === 'limit'} priority={building === 'add' || building === 'limit' ? 2 : 1} clip={plotClip} /></g>}
+      {/* Each pair's share of the sum, marked across its arrow. */}
+      {netShown && pairTicks && <path className="cd-pair-ticks" data-pair-ticks={String((pairTicks.match(/M/g) ?? []).length)} d={pairTicks} fill="none" clipPath={plotClip} style={build?.key === 'limit' ? { opacity: clamp((1 - continuum) / .7, 0, 1) } : undefined} />}
       {netShown && trueField && <g className="cd-true-field" data-true-field="true"><Vector from={P} to={plus(P, trueField)} width={2.2} label="E" at="tip" reduced={still} fade={.8} clip={plotClip} /></g>}
       {/* "E = 0" only where the arrow it stands for is the field: the finished integral, or a sum of
           every piece. At the start of "Add them up" the sum is empty, and an empty sum is not a field

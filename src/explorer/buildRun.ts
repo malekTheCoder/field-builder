@@ -125,6 +125,13 @@ const NO_CANCEL = 'Nothing cancels here. Every piece lies above the x-axis, the 
  * because there the contrast with the field is the lesson: the same piece cancels one and adds
  * to the other. */
 const PAIRS = new Set(['bisector', 'infinite', 'ring', 'arc']);
+/** What a mirror pair does as it goes into the sum, in each lesson's own words for its two parts (see
+ * `CANCEL_LINES`): true for either sign of charge, since it says which parts, not which way they point. */
+const PAIR_PARTS: Record<string, string> = {
+  bisector: 'the parts along the rod cancel, the perpendicular parts',
+  infinite: 'the parts along the line cancel, the perpendicular parts',
+  arc: 'the parts across the axis cancel, the parts along it',
+};
 const SCALAR_PAIRS = new Set(['bisector', 'ring', 'arc']);
 const PARTNER_ADDS_V = 'Now its mirror piece. For the field, the sideways parts of these two would cancel, but nothing cancels in this potential: it has no direction, and all the charge has one sign. The mirror piece is the same distance from P, so it adds exactly the same amount, and both go on the column.';
 // The ring's partner is a length of ring, not a piece (see CANCELS.ring): at an odd N it straddles two
@@ -215,7 +222,14 @@ export function buildStages(p: Problem): BuildStage[] {
     // At a finite N the chain is the N-piece estimate -- the figure labels it ΣΔE and the board writes
     // it with ≈ -- and it can be far off: at N = 3 beside a long rod it is nearly three times the field.
     // It becomes the field only as the pieces shrink, which is the next stage, so it says so.
-    add: exact ? (scalar ? `Stack every piece’s contribution. The column is exactly the potential at${P}: every piece is the same distance away.`
+    // IN MIRROR PAIRS where the charge has a mirror about P's axis: the figure adds a piece and its mirror
+    // together, so the sum is an arrow along the axis at every moment (see `pairs.ts` in the diagrams). Laid tip
+    // to tail in order instead, the endless line's arrows made a great arch whose cancelling was never seen.
+    // In the board's own components -- ΔE_y and ΔE_x, a ring's ΔE_⊥ and ΔE_z -- and short: the transport sets
+    // every stage's line in one cell, and a longer one here pushed it off a phone held on its side.
+    add: pairs && !scalar ? (exact ? `Pairs straight across: parts across the axis cancel, $z$ parts add, exactly to the field at${P}.`
+        : `Mirror pairs: their $y$ parts cancel, their $x$ parts add. The sum: the field at${P} once they shrink.`)
+      : exact ? (scalar ? `Stack every piece’s contribution. The column is exactly the potential at${P}: every piece is the same distance away.`
         : `Every piece’s arrow, tip to tail. The sum ends exactly at the field at${P}: every piece is equally far, at the same angle.`)
       : scalar ? `Stack every ${unit}’s contribution. The column is their sum — the potential at${P} once they shrink.`
       : `Every ${unit}’s arrow, tip to tail: the chain is their sum — the field at${P} once they shrink.`,
@@ -267,7 +281,13 @@ export function buildStages(p: Problem): BuildStage[] {
     : geometry === 'sheet' ? 'treating each ring as a thin ring, which was only nearly right, becomes exact'
     : surface ? 'counting each ring’s charge at one radius, which was only nearly right, becomes exact'
     : 'treating each piece as a point charge, which was only nearly right, becomes exact';
-  const adds = exact
+  // The pairs' order, said: from the middle out on a rod, a line or an arc; round the ring, where every piece is
+  // as near as every other.
+  const adds = pairs && exact
+    ? 'Now add the pieces in pairs, each with the same length of ring straight across from it. In each pair the parts across the axis cancel and the parts along it add, so the sum grows straight along the axis and ends exactly at the field at P: every piece is the same distance away at the same angle, so cutting finer changes nothing.'
+    : pairs
+    ? `Now add the pieces in mirror pairs, working out from the middle. In each pair ${PAIR_PARTS[geometry]} add, so the sum runs straight along the axis, pair by pair, and ${stops}`
+    : exact
     ? 'Now add every piece’s arrow, tip to tail. The sideways parts undo each other along the way, so the chain bends back to the axis, and it ends exactly at the field at P: every piece is the same distance away at the same angle, so cutting finer changes nothing.'
     : geometry === 'axial' || surface
     ? `Now add every ${unit}’s arrow, tip to tail. They all point along the axis, so the chain runs straight, and ${stops}`

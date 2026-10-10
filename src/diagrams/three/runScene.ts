@@ -45,6 +45,12 @@ export type RunArrows={
  /** How far the two dropped parts have cancelled, 0 to 1: they fade as they shrink. Zero where
   * nothing is cancelling. */
  cancelled:number;
+ /** Where the arrows start, as an offset from P: P itself, except while Add them up takes a mirror pair
+  * into the sum, when the pair is laid from the tip of the sum so far (see `pairs.ts`). */
+ from:Vec;
+ /** Whether the partner's whole arrow is drawn: the pair going into the sum lets the whole arrows go as
+  * their parts across do, leaving the parts along the axis to be taken in. */
+ whole:boolean;
 };
 /** How the dropped part of the chosen piece's arrow is drawn: dashed where a partner's part is
  * cancelling it, solid where nothing does.
@@ -61,6 +67,9 @@ export type RunScene={
  pieces:RunPiece[];
  tones:RunTone[];
  selected:number;
+ /** The chosen stretch where it is not a whole piece -- the half piece a ring cut an odd number of ways
+  * puts into its last mirror pair -- or null. */
+ selectedPath:Vec[]|null;
  /** The mirror partner as a stretch of wire: a whole piece, or -- for a ring cut into an odd
   * number of pieces, where no piece sits straight across -- an arc of the same length centred
   * opposite. Null where the stage shows no partner, or the geometry has none. */
@@ -93,19 +102,25 @@ export type RunScene={
 };
 export type RunSceneInput={
  stage:string; kind:BodyKind; closed:boolean; n:number; selected:number;
+ /** The chosen stretch as a range of `at`'s parameter, where it is not the whole piece `selected`. */
+ selectedSpan?:readonly [number,number]|null;
  /** The point a fraction t of the way along the charge -- for a surface, the radius it has
   * reached as x. The same function the sampler partitions by, so a piece drawn here is exactly
   * the piece being summed. */
  at:(t:number)=>Vec;
- /** The partner: a whole piece, the arc straight across, or none. */
- partner:number|'across'|null;
+ /** The partner: a whole piece, the arc straight across, a stretch given as a range of `at`'s parameter
+  * (the ring's half piece straight across another), or none. */
+ partner:number|'across'|{lo:number;hi:number}|null;
  weights:readonly number[];
  summing:boolean;
  continuum:number; split:number;
  /** One piece's field, its partner's, and the two split into parts, in newtons per coulomb;
   * `scale` turns them into world metres at the figure's own magnification. Null when the stage
   * draws no single piece's arrow. */
- arrows:null|{scale:number;field:Vec;keep:Vec;drop:Vec;partner:Vec|null;partnerKeep:Vec;partnerDrop:Vec;components:boolean;cancelled:number};
+ arrows:null|{scale:number;field:Vec;keep:Vec;drop:Vec;partner:Vec|null;partnerKeep:Vec;partnerDrop:Vec;components:boolean;cancelled:number;
+  /** Where they start, as an offset from P in world metres; whether the partner's whole arrow is drawn;
+   * and how much of the parts along the axis is still to be taken into the sum (they go at nothing). */
+  from?:Vec;whole?:boolean;fade?:number};
  /** Every piece's field and the net arrow's scale, while the sum is being drawn. */
  chain:null|{scale:number;fields:readonly Vec[];weights:readonly number[]};
 };
@@ -155,7 +170,7 @@ export function runScene(input:RunSceneInput):RunScene{
   ?{annulus:{inner:Math.abs(at(i/n).x),outer:Math.abs(at((i+1)/n).x)}}
   :{path:stretch(at,i/n,(i+1)/n,n)});
  const partnerIndex=typeof input.partner==='number'&&input.partner!==selected?input.partner:null;
- const across=input.partner==='across';
+ const across=input.partner==='across',span=typeof input.partner==='object'&&input.partner?input.partner:null;
  // The same choices the flat figure makes for its pieces' classes and opacities: the chosen piece
  // and its partner are lit; while summing, what is in the sum is coloured and what is still to come
  // waits faintly; while one piece is being explained, every other piece steps back.
@@ -165,7 +180,8 @@ export function runScene(input:RunSceneInput):RunScene{
   if(stage==='one'||stage==='cancel')return 'dim';
   return 'idle';
  });
- const partner=surface||(!across&&partnerIndex===null)?null
+ const partner=surface||(!across&&!span&&partnerIndex===null)?null
+  :span?{path:stretch(at,span.lo,span.hi,n),across:true,index:null}
   // Half a turn on, for the ring: `at` runs once round per unit, so t + 1/2 is straight across.
   :across?{path:stretch(at,selected/n+.5,(selected+1)/n+.5,n),across,index:null}
   :{path:stretch(at,partnerIndex!/n,(partnerIndex!+1)/n,n),across,index:partnerIndex};
@@ -195,15 +211,17 @@ export function runScene(input:RunSceneInput):RunScene{
  // they are seen to shrink away, whether or not the stage splits the arrow into parts -- a second,
  // full-length copy of the sideways part used to outlive the cancellation it was showing. Without
  // one, the dropped part is drawn only when the stage asks for the parts.
+ const from=a?.from??ORIGIN,taken=a?.fade!==undefined&&a.fade<=1e-3;
  const arrows:RunArrows|null=a&&!tiny(a.field)?{
-  keep:a.components?scaled(a.keep,a.scale):null,
-  dropFrom:ORIGIN,
+  keep:a.components&&!taken?scaled(a.keep,a.scale):null,
+  dropFrom:from,
   drop:a.partner?scaled(a.drop,a.scale*(1-a.cancelled)):a.components?scaled(a.drop,a.scale):null,
   partner:a.partner?scaled(a.partner,a.scale):null,
-  partnerFrom:a.partner?ORIGIN:null,
-  partnerSurvivor:a.partner&&a.components?scaled(a.partnerKeep,a.scale):null,
+  partnerFrom:a.partner?from:null,
+  partnerSurvivor:a.partner&&a.components&&!taken?scaled(a.partnerKeep,a.scale):null,
   partnerDrop:a.partner?scaled(a.partnerDrop,a.scale*(1-a.cancelled)):null,
   cancelled:a.partner?a.cancelled:0,
+  from,whole:a.whole??true,
  }:null;
  let chain:Vec[]|null=null;
  if(input.chain){
@@ -219,7 +237,8 @@ export function runScene(input:RunSceneInput):RunScene{
   if(chain.length<2)chain=null;
   else if(stage==='limit')chain=resample(chain,LIMIT_CHAIN);
  }
- return {stage,kind,closed,pieces,tones,selected,partner,open,split,seams,filled,arrows,chain,chainBeside:!!chain&&fieldsCollinear(input.chain!.fields)};
+ const selectedPath=input.selectedSpan&&!surface?stretch(at,input.selectedSpan[0],input.selectedSpan[1],n):null;
+ return {stage,kind,closed,pieces,tones,selected,selectedPath,partner,open,split,seams,filled,arrows,chain,chainBeside:!!chain&&fieldsCollinear(input.chain!.fields)};
 }
 /** Whether the chain of the whole partition, laid head to tail, would be drawn inside the arrow it adds
  * up to: every link pointing forward along the sum, and the whole chain never straying more than `stray`

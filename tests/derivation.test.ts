@@ -118,7 +118,8 @@ describe('the derivation board', () => {
       } else {
         expect(add.tex, p.id).toContain('\\approx');
         expect(add.say, p.id).toMatch(/only \$\\approx\$: (each (piece is still treated as a point charge|ring is still treated as one thin ring|ring is \$\\Delta s\$ wide, but all its charge is counted at one radius)|every bit of a piece is \$R\$ from)/);
-        expect(add.say, p.id).toMatch(scalar ? /column/ : /chain/);
+        // The figure's chain -- or, where the run adds the pieces in mirror pairs, those pairs.
+        expect(add.say, p.id).toMatch(scalar ? /column/ : /chain|mirror pairs/);
       }
     });
     it(`${p.id}: the last line writes the rule -- what changes from piece to piece, written in the variable`, () => {
