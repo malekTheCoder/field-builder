@@ -27,7 +27,24 @@ export function escapeHtml(s: string) {
  * copy opened on a train years later still reads as mathematics. The TeX rides along inside it as
  * an annotation, for anyone who wants to copy it. */
 export function mathml(tex: string, display = true) {
-  return katex.renderToString(tex, {output: 'mathml', displayMode: display, throwOnError: false, strict: 'ignore'});
+  return spaceOperators(katex.renderToString(tex, {output: 'mathml', displayMode: display, throwOnError: false, strict: 'ignore'}));
+}
+
+/** The operator names a lesson writes: ln, sin, cos and their kin, upright, as KaTeX marks them up. */
+const OPERATOR = String.raw`<mi(?: mathvariant="normal")?>(?:ln|log|exp|sin|cos|tan|sec|sgn)</mi>`;
+/** What may sit just before an operator and be set off from it: a symbol, a number, a fraction, a
+ * root, a script or a closed group -- an ordinary atom, in TeX's terms. After a relation, an opening
+ * bracket or a sign the operator follows on directly, as it does in TeX. */
+const ORDINARY_BEFORE = new RegExp(String.raw`(</(?:mi|mn|msub|msup|msubsup|mfrac|msqrt|mover|mrow)>)(${OPERATOR})`, 'g');
+/** After the operator's invisible function application, a symbol or a fraction is set off too; a
+ * bracket is not: "ln(L/a)", but "sin θ". */
+const ORDINARY_AFTER = new RegExp(String.raw`(${OPERATOR}<mo>⁡</mo>)(?=<(?:mi|mn|mfrac|msub|msup|msubsup|msqrt)[ >])`, 'g');
+const THIN = '<mspace width="0.1667em"/>';
+/** TeX puts a thin space between an operator name and the ordinary atoms beside it. MathML Core does
+ * not: it gives the invisible function application no width, so the copy printed "kλln" run
+ * together and "cosα" -- maths that looks unset on a handout. The space is written in. */
+function spaceOperators(markup: string) {
+  return markup.replace(ORDINARY_BEFORE, `$1${THIN}$2`).replace(ORDINARY_AFTER, `$1${THIN}`);
 }
 
 /** A self-contained HTML copy a student can save offline and print later. No network, no app chrome.
@@ -51,6 +68,9 @@ export function artifactHtml(a: LessonArtifact) {
   const constant = [a.integralTex, ...a.results, ...(a.derived ?? [])].some(usesK)
     ? `<p class="where">Throughout, ${mathml(String.raw`k=\dfrac{1}{4\pi\varepsilon_0}`, false)}.</p>\n`
     : '';
+  // The maths names its faces. The generic `math` family did not reach one with a MATH table in
+  // Chromium, so the display integral came out at text size and \left( \right) never grew: a
+  // handout that looked unset. STIX Two ships with macOS, Latin Modern with TeX, Cambria with Windows.
   return `<!DOCTYPE html>
 <html lang="en"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/><title>${escapeHtml(a.title)} · Field Builder</title>
 <style>
@@ -65,7 +85,7 @@ p { max-width: 62ch; margin: 0 0 10px; }
 figure { margin: 22px 0 6px; break-inside: avoid; }
 figure svg { display:block; width: 100%; height: auto; max-height: 440px; }
 figcaption { margin-top: 4px; color:#4a6274; font-size: 15px; }
-math { font-size: 1.12em; }
+math { font-family: "STIX Two Math", "Latin Modern Math", "Cambria Math", math; font-size: 1.12em; }
 math[display="block"] { margin: 10px 0 14px; }
 .result math[display="block"] { margin: 6px 0; }
 .where { margin-top: 12px; }

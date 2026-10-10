@@ -17,8 +17,10 @@ afterEach(cleanup);
  * both climb the plot. */
 const ys = (d: string) => [...d.matchAll(/[ML](-?[\d.]+),(-?[\d.]+)/g)].map(m => Number(m[2]));
 describe('a diverging potential is drawn as two rising curves', () => {
-  for (const id of ['v-rod-bisector', 'v-disk']) it(id, async () => {
-    const problem = getProblem(id), limit = problem.limits.find(l => l.mode === 'infinite')!;
+  // The rod's potential walking onto its end is the third: drawn as V over its logarithm, the ratio
+  // came in from off the top at a = L, where ln(L/a) is zero, and settled on one as V ran off.
+  for (const [id, mode] of [['v-rod-bisector', 'infinite'], ['v-disk', 'infinite'], ['v-rod-axial', 'near']] as const) it(`${id}/${mode}`, async () => {
+    const problem = getProblem(id), limit = problem.limits.find(l => l.mode === mode)!;
     const {container} = render(<div style={{width: 560}}><Assessment problem={problem} params={DEFAULT_PARAMS} limit={limit}/></div>);
     await document.fonts.ready;
     const svg = container.querySelector<SVGSVGElement>('svg.comparison-plot')!;
@@ -35,8 +37,8 @@ describe('a diverging potential is drawn as two rising curves', () => {
       for (let i = 1; i < y.length; i++) expect(y[i], `${id} ${name} at ${i}`).toBeLessThanOrEqual(y[i - 1]);
       expect(y[0] - y[y.length - 1], `${id} ${name} climbs`).toBeGreaterThan(90);
     }
-    expect(container.querySelector('.numerical-check')!.textContent).toBe('Both keep growing without end, in step: V has no limit to settle on.');
-    expect(container.querySelector('.comparison-labels')!.textContent).toContain('Growth law');
+    expect(container.querySelector('.numerical-check')!.textContent).toMatch(/^Both (keep growing|grow) without end/);
+    expect(container.querySelector('.comparison-labels')!.textContent).toContain(mode === 'near' ? 'k|λ| ln(L/a)' : 'Growth law');
     // The growth law's name sits beside it, touching neither curve.
     const label = svg.querySelector<SVGTextElement>('text.comparison-line')!, box = label.getBBox();
     expect(box.width).toBeGreaterThan(20);

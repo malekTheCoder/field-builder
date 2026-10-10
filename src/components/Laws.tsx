@@ -37,7 +37,9 @@ export function Laws({quantity='E',lede=true}:{quantity?:'E'|'V';lede?:boolean})
   <ul className="laws-list">{ordered(quantity).map(l=>{const shown=open===l.id;return <li className="law" key={l.id} data-open={shown}>
    <button type="button" onClick={()=>setOpen(shown?'':l.id)} aria-expanded={shown} aria-controls={`${uid}-${l.id}`}>
     <span className="law-name">{l.name}</span><ChevronDown size={15} aria-hidden="true"/>
-    <MathText className="law-tex" tex={l.tex}/><span className="law-why">{l.why}</span></button>
+    {/* In display style: set inline, kQ over r² was a text-style fraction, its numerator at twelve
+        pixels and r² under nine, so the law everything rests on was the smallest maths on its page. */}
+    <MathText className="law-tex" tex={String.raw`\displaystyle `+l.tex}/><span className="law-why">{l.why}</span></button>
    {shown&&<div className="law-detail" id={`${uid}-${l.id}`}><p>{l.detail}</p>{l.more.map(tex=><MathText key={tex} tex={tex} block/>)}</div>}
   </li>})}</ul></div>;
 }

@@ -52,7 +52,7 @@ export function sampleLimit(problem:Problem,p:Params,limit:Limit,t:number):Limit
  switch(limit.mode){
   case 'far':{copy.distance=t*p.size;
    // The rod on its own axis is placed by its near end, a. Its charge is centred L/2 further off,
-   // and measured from there the point-charge form is right to second order in L, not just first.
+   // and measured from there the point-charge form is off by a term of order (L/a)², not L/a.
    const d=geom==='axial'?copy.distance+p.size/2:copy.distance;
    if(scalar){actual=Math.abs(potential(geom,copy));target=K*q/d;}else{actual=fieldOf(geom,copy);target=K*q/d**2;}break;}
   // The transverse far field is a first moment: −kQ y_c/r³ with y_c the centre of charge. Only the ramp uses it, and its y_c is 2L/3.
@@ -107,8 +107,11 @@ export function limitPlot(problem:Problem,limit:Limit):LimitPlot{
    return{kind:'ratio',y:`|E| ÷ ${g==='endpoint'?'semi-infinite':'infinite'}-line field`,axis:'rod length L, with λ fixed',from:'L ∼ r',to:'L ≫ r',line:g==='endpoint'?'semi-infinite line':'infinite line',...g==='infinite'?{solid:'A rod of length L'}:{},caption:settles(g==='endpoint'?'a semi-infinite line’s':'an infinite line’s','L ≫ r')};
   case 'center':return scalar
    ?{kind:'ratio',y:'|V| ÷ centre value',axis:'height z above the centre',from:'z ≈ R',to:'the centre',line:'centre value',caption:'On the dashed line the exact potential equals its value at the centre. The curve arrives there, finite, as z reaches the centre.'}
-   :{kind:'decay',y:'|E|, scaled',axis:'height z above the centre',from:'the peak',to:'the centre',line:'zero',caption:'From its peak the field falls to zero as P reaches the centre, where every element has a partner opposite.'};
-  case 'near':return{kind:'ratio',y:'|V| ÷ logarithm',axis:'gap a to the rod’s end',from:'a ∼ L',to:'a ≪ L',line:'logarithm',caption:'On the dashed line the exact potential is the logarithm, growing without end. The curve settles onto it as a\u00a0≪\u00a0L.'};
+   :{kind:'decay',y:'|E|, scaled',axis:'height z above the centre',from:'the peak',to:'the centre',line:'zero',caption:'From its peak the field falls to zero as P reaches the centre, where every element’s field lies in the ring’s plane and its partner opposite cancels it.'};
+  // V and its logarithm, not their ratio: ln(L/a) is zero at a = L, so the ratio came in from off the
+  // top of the plot there, where nothing is singular, and settled on one as V ran off to infinity.
+  // Drawn as themselves they both climb, and close up: V − kλ ln(L/a) = kλ ln((L + a)/L) → 0.
+  case 'near':return{kind:'growth',y:'|V| and k|λ| ln(L/a), scaled',axis:'gap a to the rod’s end',from:'a ∼ L',to:'a ≪ L',line:'k|λ| ln(L/a)',caption:'Both grow without end as P walks onto the rod’s end, and draw together: the difference between them, k|λ| ln((L\u00a0+\u00a0a)/L), vanishes as a\u00a0≪\u00a0L.'};
   case 'maximum':return{kind:'peak',y:'|E| ÷ its peak',axis:'height z on the axis',from:'the centre',to:'farther out',line:'the peak',marks:[{t:RING_PEAK_T,label:'peak'},{t:RING_EDGE_T,label:'R'}],caption:'The curve rises from zero at the centre, touches the dashed line once, at the marked peak inside z\u00a0=\u00a0R, and falls away beyond it.'};
   case 'full':return scalar
    ?{kind:'constant',y:'|V| ÷ kQ/R, and |E| scaled',axis:'opening angle φ',from:'φ small',to:'full circle',line:'kQ/R',second:'The field |E|, scaled',caption:'As the arc closes the field falls to zero, while the potential stays on the dashed line at every φ.'}

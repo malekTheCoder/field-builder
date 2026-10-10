@@ -35,10 +35,12 @@ describe('a single element or an integrand is never zero by symmetry; only a sum
   for(const p of lessons)for(const m of mistakes(p))if((m.id.startsWith('component')||m.id.startsWith('kernel'))&&m.expression==='0')
    expect(m.message,`${p.id} ${m.id}`).not.toMatch(/centred rod’s answer|would give zero here|Zero would need/);
  });
- it('one element’s vertical part is never zero, even on a centred rod',()=>{
+ it('one element’s vertical part is not zero, even on a centred rod, save the piece level with P',()=>{
   for(const id of ['endpoint','ramp']){
    const m=said(id,'component2','0');
-   expect(m,id).toMatch(/never zero/);
+   // "Never zero" was false: the piece at y = 0, level with P, has no vertical part at all.
+   expect(m,id).not.toMatch(/never zero/);
+   expect(m,id).toMatch(/is not zero \(only the piece exactly level with P has none\)/);
    expect(m,id).toMatch(/cancels only against a partner below P/);
   }
   // The centred rod's own entry says the same thing.
