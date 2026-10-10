@@ -88,6 +88,14 @@ export type TraceOptions={
   * exactly as the field gives it, and the join is added after, by the one function that knows
   * which ends arrived. */
  root?:(x:number,y:number,z:number)=>{x:number;y:number;z:number}|null;
+ /** WHERE A HALF ARRIVED, ITS LAST STRETCH TRACED AGAIN, FINER, before it is joined to the body: on
+  * `samples` -- the partition before it was coarsened -- at `step`, until it is within one and a half of
+  * their spacing of them. The coarse tracer stops a step and an element's spacing short, about a quarter
+  * of a metre off a rod, and the straight join square to the rod across that stretch was cornered by
+  * fourteen degrees where lines turn round a rod's ends and twenty at the ramp's light end, where the
+  * field leans well off square to the charge; traced on in, the join is a few centimetres long and is
+  * the line to well under a degree. */
+ finish?:{samples:readonly ChargeSample[];step:number};
 };
 /** A rectangle of the plane, in world metres: the window the figure shows, or one a trace was made for. */
 export type PlaneRect={x0:number;y0:number;x1:number;y1:number};
@@ -303,9 +311,23 @@ export function fieldLines(samples:readonly ChargeSample[],count:number,options:
  const crowd=options.crowd??span*.012;
  const drawn=drawnPoints(Math.max(crowd,1e-6));
  const lines:Plane[][]=[];
+ // The last stretch of a half that arrived, traced again on the finer partition (see `finish`). Kept only
+ // if it arrives too: a half that wanders off is joined as before.
+ const finish=options.finish,fine=finish?finish.samples:null;
+ const fineRadii=fine?fine.map((s,i)=>{
+  let gap=Infinity;
+  for(const j of [i-1,i+1]){const o=fine[j];if(o)gap=Math.min(gap,Math.hypot(s.position.x-o.position.x,s.position.y-o.position.y,s.position.z-o.position.z));}
+  return Math.max(finish!.step*.9,1.5*(Number.isFinite(gap)?gap:0));
+ }):[];
+ const finished=(half:{path:Plane[];arrived:boolean},sign:number)=>{
+  if(!fine||!half.arrived||!half.path.length)return half;
+  const from=half.path[half.path.length-1],within=Math.max(...radii)*2+stride*2;
+  const more=trace(fine,from,{step:finish!.step,radii:fineRadii,maxSteps:Math.ceil(within/finish!.step)+12,outerLimit:options.outerLimit,sign});
+  return more.arrived&&more.path.length>1?{path:[...half.path,...more.path.slice(1)],arrived:true}:half;
+ };
  for(const seed of starts){
-  const along=trace(samples,seed,{...options,arrive,radii,crowd,drawn,sign:1});
-  const against=trace(samples,seed,{...options,arrive,radii,crowd,drawn,sign:-1});
+  const along=finished(trace(samples,seed,{...options,arrive,radii,crowd,drawn,sign:1}),1);
+  const against=finished(trace(samples,seed,{...options,arrive,radii,crowd,drawn,sign:-1}),-1);
   const line=[...against.path.slice(1).reverse(),...along.path];
   if(line.length<=3)continue;
   for(const q of line)drawn.add(q);
@@ -314,12 +336,36 @@ export function fieldLines(samples:readonly ChargeSample[],count:number,options:
   if(root){
    const foot=(q:Plane)=>{const f=root(q.x,q.y,0);return f?{x:f.x,y:f.y}:null;};
    const head=against.arrived?foot(line[0]):null,tail=along.arrived?foot(line[line.length-1]):null;
-   if(head&&Math.hypot(head.x-line[0].x,head.y-line[0].y)>1e-9)line.unshift(head);
-   if(tail&&Math.hypot(tail.x-line[line.length-1].x,tail.y-line[line.length-1].y)>1e-9)line.push(tail);
+   if(head&&Math.hypot(head.x-line[0].x,head.y-line[0].y)>1e-9)line.unshift(...joinCurve(line[0],line[1],foot).reverse());
+   if(tail&&Math.hypot(tail.x-line[line.length-1].x,tail.y-line[line.length-1].y)>1e-9)line.push(...joinCurve(line[line.length-1],line[line.length-2],foot));
   }
   lines.push(line);
  }
  return lines;
+}
+/** THE LAST STRETCH OF A LINE INTO THE CHARGE: the points after `end`, where the trace stopped, on to the
+ * body, whose nearest point to any point `footOf` gives. Not a straight stroke square to the body: a curve
+ * leaving `end` the way the line was going (from `before`) and meeting the body square, which is how a field
+ * line meets a line of charge -- close in, the charge's own field is square to it; a little further out,
+ * near its ends, it leans. The straight join met the traced line at a corner of up to fourteen degrees where
+ * lines turn round a rod's ends. A quadratic whose middle control point is on the line's own direction,
+ * half as far from the body as `end` is, and which ends on the body at that point's foot, so it arrives
+ * square; cut into a few chords. A line running along the body or away from it is joined straight. */
+export function joinCurve(end:Plane,before:Plane,footOf:(q:Plane)=>Plane|null,chords=6):Plane[]{
+ const f=footOf(end);
+ if(!f)return [];
+ const tx=end.x-before.x,ty=end.y-before.y,lt=Math.hypot(tx,ty),nx=f.x-end.x,ny=f.y-end.y,h=Math.hypot(nx,ny);
+ if(!(lt>1e-12&&h>1e-12))return [f];
+ const ux=tx/lt,uy=ty/lt,into=(ux*nx+uy*ny)/h;
+ if(!(into>.2))return [f];
+ const s=h/(2*into),c={x:end.x+ux*s,y:end.y+uy*s},g=footOf(c);
+ if(!g)return [f];
+ const out:Plane[]=[];
+ for(let k=1;k<=chords;k++){
+  const t=k/chords,a=(1-t)*(1-t),b=2*(1-t)*t,d=t*t;
+  out.push(k===chords?g:{x:a*end.x+b*c.x+d*g.x,y:a*end.y+b*c.y+d*g.y});
+ }
+ return out;
 }
 /** WHICH WAY THE FIELD GOES, on the line itself.
  *
@@ -341,7 +387,7 @@ export type LineHead={segment:number;t:number;x:number;y:number;dx:number;dy:num
  * narrower than it is long, so it reads as a direction rather than as a dot on the line. The flat
  * canvas and the scene draw the same head. */
 export const LINE_HEAD={length:6.5,half:2.6} as const;
-export function lineHeads(screen:readonly {x:number;y:number}[],rect:{x:number;y:number;width:number;height:number},every=180,least=28,margin=6):LineHead[]{
+export function lineHeads(screen:readonly {x:number;y:number}[],rect:{x:number;y:number;width:number;height:number},every=180,least=28,margin=6,keepOut:readonly Box[]=[]):LineHead[]{
  const x0=rect.x+margin,x1=rect.x+rect.width-margin,y0=rect.y+margin,y1=rect.y+rect.height-margin;
  // The part of each segment inside the window, as a range of t (Liang and Barsky): a straight line
  // may be one segment from the charge to far past the edge, and only its visible stretch counts.
@@ -359,15 +405,100 @@ export function lineHeads(screen:readonly {x:number;y:number}[],rect:{x:number;y
   parts.push({t0,t1,l:seen});total+=seen;
  }
  if(!(total>=least))return [];
- const count=Math.max(1,Math.round(total/every)),heads:LineHead[]=[];
- let i=0,before=0;
- for(let j=0;j<count;j++){
-  const want=total*(j+.5)/count;
+ /** The head `want` units along the visible stretch of the line. */
+ const at=(want:number):LineHead|null=>{
+  let i=0,before=0;
   while(i<parts.length-1&&before+parts[i].l<want){before+=parts[i].l;i++;}
-  const part=parts[i];if(!(part.l>0))continue;
+  const part=parts[i];if(!part||!(part.l>0))return null;
   const a=screen[i],b=screen[i+1],full=Math.hypot(b.x-a.x,b.y-a.y);
   const t=Math.min(part.t1,Math.max(part.t0,part.t0+(want-before)/full));
-  heads.push({segment:i,t,x:a.x+(b.x-a.x)*t,y:a.y+(b.y-a.y)*t,dx:(b.x-a.x)/full,dy:(b.y-a.y)/full});
+  return {segment:i,t,x:a.x+(b.x-a.x)*t,y:a.y+(b.y-a.y)*t,dx:(b.x-a.x)/full,dy:(b.y-a.y)/full};
+ };
+ // NOT ON A NAME. A head is a solid mark, and one set where a line crosses the figure's names sat on the
+ // letter -- a head on the y beside the disk, through the x on the sheet. It slides along its own line,
+ // up to about a third of the spacing either way, to the nearest place clear of every name; with none, it
+ // is not drawn: the line's other heads say which way it runs.
+ const clear=(h:LineHead)=>!keepOut.length||!meetsBoxes({x:h.x-h.dx*LINE_HEAD.length/2,y:h.y-h.dy*LINE_HEAD.length/2},{x:h.x+h.dx*LINE_HEAD.length/2,y:h.y+h.dy*LINE_HEAD.length/2},keepOut,LINE_HEAD.half);
+ const count=Math.max(1,Math.round(total/every)),heads:LineHead[]=[],reach=Math.min(every/3,total/2),edge=LINE_HEAD.length/2;
+ for(let j=0;j<count;j++){
+  const want=total*(j+.5)/count;
+  let head=at(want);
+  if(head&&!clear(head)){
+   head=null;
+   for(let k=6;k<=reach&&!head;k+=6)for(const s of [want+k,want-k]){
+    if(s<edge||s>total-edge)continue;
+    const moved=at(s);
+    if(moved&&clear(moved)){head=moved;break;}
+   }
+  }
+  if(head)heads.push(head);
  }
  return heads;
+}
+/** A box in the figure's viewBox units. */
+export type Box={x:number;y:number;width:number;height:number};
+/** Whether the segment from `a` to `b` passes through any of `boxes`, each grown by `pad` (Liang and
+ * Barsky against each box in turn). */
+export function meetsBoxes(a:{x:number;y:number},b:{x:number;y:number},boxes:readonly Box[],pad=0):boolean{
+ const dx=b.x-a.x,dy=b.y-a.y;
+ for(const box of boxes){
+  const x0=box.x-pad,x1=box.x+box.width+pad,y0=box.y-pad,y1=box.y+box.height+pad;
+  let t0=0,t1=1,inside=true;
+  for(const [p,q] of [[-dx,a.x-x0],[dx,x1-a.x],[-dy,a.y-y0],[dy,y1-a.y]]){
+   if(p===0){if(q<0){inside=false;break;}continue;}
+   const r=q/p;
+   if(p<0){if(r>t0)t0=r;}else if(r<t1)t1=r;
+   if(t0>t1){inside=false;break;}
+  }
+  if(inside&&t0<=t1)return true;
+ }
+ return false;
+}
+/** How far the point `p` is from the nearest of `boxes`, zero inside one; Infinity with none. */
+export function boxGap(p:{x:number;y:number},boxes:readonly Box[]):number{
+ let best=Infinity;
+ for(const b of boxes){
+  const dx=Math.max(b.x-p.x,0,p.x-(b.x+b.width)),dy=Math.max(b.y-p.y,0,p.y-(b.y+b.height));
+  best=Math.min(best,Math.hypot(dx,dy));
+ }
+ return best;
+}
+/** THE NAMES THE FIGURE HAS PAINTED, as boxes in its viewBox, each grown by `pad`: every text of `svg` that
+ * is drawn -- not empty, not inside a hidden or fully transparent group -- where it stands now, after the
+ * placer has moved it. Read from the screen, as the placer reads them, so a name and the field's marks are
+ * judged in one space. The field gives way to the names: the placer cannot see the field, which is drawn on
+ * a canvas or in the scene under the SVG. */
+export function paintedLabels(svg:Element|null|undefined,pad=4):Box[]{
+ if(!svg)return [];
+ const frame=svg.getBoundingClientRect();
+ if(!(frame.width>2&&frame.height>2))return [];
+ const view=(svg as SVGSVGElement).viewBox?.baseVal,sx=(view?.width||720)/frame.width,sy=(view?.height||430)/frame.height;
+ const out:Box[]=[];
+ for(const t of svg.querySelectorAll('text')){
+  // Not the charge's own plus signs, which are the charge, nor the view cube's faces, outside the window.
+  if(!t.textContent?.trim()||t.closest('.cd-help, .cd-plus, .cd-cube'))continue;
+  try{if(!t.checkVisibility({opacityProperty:true,visibilityProperty:true}))continue;}catch{/* an older engine: judged by its box alone */}
+  const r=t.getBoundingClientRect();
+  if(!(r.width>.5&&r.height>.5))continue;
+  out.push({x:(r.left-frame.left)*sx-pad,y:(r.top-frame.top)*sy-pad,width:r.width*sx+2*pad,height:r.height*sy+2*pad});
+ }
+ // And the potential's column beside P, which is a mark about P as its name is.
+ for(const g of svg.querySelectorAll('.cd-gauge')){
+  const r=g.getBoundingClientRect();
+  if(r.width>.5&&r.height>.5)out.push({x:(r.left-frame.left)*sx-pad,y:(r.top-frame.top)*sy-pad,width:r.width*sx+2*pad,height:r.height*sy+2*pad});
+ }
+ return out;
+}
+/** Whether a mutation of the figure's SVG can have moved, shown or hidden one of its names: it touched a
+ * text, or a group holding one. Everything else the run changes every frame -- arrows, pieces, brackets --
+ * is not the field's business. */
+export function touchesLabels(records:readonly MutationRecord[]):boolean{
+ const holds=(n:Node|null)=>!!n&&(n.nodeName==='text'||n.nodeName==='tspan'||(n.nodeType===1&&!!(n as Element).querySelector('text')));
+ return records.some(r=>{
+  const n=r.target;
+  if(n.nodeType!==1)return !!n.parentElement?.closest('text');
+  if((n as Element).closest('text'))return true;
+  if(r.type==='childList')return [...r.addedNodes,...r.removedNodes].some(holds);
+  return holds(n);
+ });
 }

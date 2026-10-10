@@ -2,10 +2,10 @@
 import {useEffect,useMemo,useRef} from 'react';
 import type {ChargeSample} from '../distributions/types';
 import type {Vec} from '../symbolic/physics';
-import {covers,fieldLines,LINE_HEAD as HEAD,lineHeads,seedPool,traceLimit,traceWindow,type Plane,type PlaneRect} from './fieldlines';
+import {covers,fieldLines,LINE_HEAD as HEAD,lineHeads,meetsBoxes,paintedLabels,seedPool,touchesLabels,traceLimit,traceWindow,type Plane,type PlaneRect} from './fieldlines';
 import {coarsen} from './sampling';
 import {arrowLength,bodyFoot,latticeArea,PLOT,vectorGrid,visibleArea} from './vectorfield';
-import {meridianLines,sheetLines,spaceGrid,type Layout} from './field3d';
+import {endlessRay,meridianLines,rayLines,sheetLines,spaceGrid,type Layout} from './field3d';
 import {SNAPSHOT_EVENT,type SnapshotDetail} from './snapshot';
 /** The field itself, under the construction drawing.
  *
@@ -107,8 +107,16 @@ export function FieldCanvas({samples,project,frame,lines=15,mode='lines',reach=6
   // spaced across the whole window, as many to a metre as the traced ones were, and ordered by the
   // sign of the charge.
   const endless=!!tracedFor&&endlessSheet(coarse,reach,plane,layout);
+  // THE SEMI-INFINITE LINE IS TRACED THROUGH ITS CLOSED FORM, as the scene traces it (see `rayField`): from
+  // the partition, cut at equal angles from P, its lines hooked toward the metre-long far pieces at a small
+  // height, ran together into one stroke and left a hole beside it, on a uniform line. Its roots are evenly
+  // spaced along the stretch of it the window shows, both sides of the wire at each, as many as before.
+  const ray=plane==='xy'&&tracedFor?endlessRay(samples,shown):null;
+  const window=tracedFor;
   const fresh=endless?sideSheet(coarse,lines,opts.seedLimit,tracedFor!)
-   :plane==='xz'?meridianLines(coarse,layout,lines,{...opts,root:{},seedSpan}).map(line=>line.map(v=>({x:v.x,y:v.z}))):fieldLines(coarse,pool.count,{...opts,seedPool:pool.pool,root:bodyFoot(coarse,'wire')});
+   :ray&&window?rayLines(ray,pool.count,shown,opts.seedLimit*.05,0,{step:step/2,maxSteps:Math.min(3200,2*opts.maxSteps),outerLimit:limit,crowd:opts.seedLimit*.012,
+     far:v=>v.x<window.x0||v.x>window.x1||v.y<window.y0||v.y>window.y1},true).map(line=>line.map(v=>({x:v.x,y:v.y})))
+   :plane==='xz'?meridianLines(coarse,layout,lines,{...opts,root:{},seedSpan}).map(line=>line.map(v=>({x:v.x,y:v.z}))):fieldLines(coarse,pool.count,{...opts,seedPool:pool.pool,root:bodyFoot(coarse,'wire'),finish:{samples,step:step/4}});
   TRACES.set(traceKey,fresh);
   for(const old of TRACES.keys()){if(TRACES.size<=TRACES_KEPT)break;TRACES.delete(old);}
   return fresh;
@@ -163,6 +171,14 @@ export function FieldCanvas({samples,project,frame,lines=15,mode='lines',reach=6
    ctx.lineWidth=1.1;ctx.lineCap='round';ctx.lineJoin='round';
    const stroke=getComputedStyle(host).getPropertyValue('--field-line').trim()||'rgba(120,160,175,.5)';
    ctx.strokeStyle=stroke;
+   // THE FIELD GIVES WAY TO THE NAMES. An arrow drawn through a letter -- through the infinity sign at the
+   // semi-infinite line's end, the x and z of the sheet's side view, the plus-or-minus L over 2 of the rod --
+   // and a line's head set on one: the halos kept them legible, but no textbook vector plot sets its names on
+   // the field's arrows. The names are read where the placer has put them (see `paintedLabels`), and an
+   // arrow that would cross one is left out; a head slides along its line clear of it (see `lineHeads`).
+   const names=paintedLabels(host.parentElement?.querySelector('svg.cd-svg'));
+   // What is drawn, tail to tip in the figure's units, where the tests can check it against the names.
+   const marks:string[]=[],mark=(a:{x:number;y:number},b:{x:number;y:number})=>marks.push(`${a.x.toFixed(1)},${a.y.toFixed(1)},${b.x.toFixed(1)},${b.y.toFixed(1)}`);
    if(mode==='vectors'){
     const lift=(q:Plane):Vec=>plane==='xz'?{x:q.x,y:0,z:q.y}:{x:q.x,y:q.y,z:0};
     for(const a of arrows){
@@ -170,6 +186,8 @@ export function FieldCanvas({samples,project,frame,lines=15,mode='lines',reach=6
      const tail=project(lift({x:a.at.x-a.dir.x*half,y:a.at.y-a.dir.y*half}));
      const head=project(lift({x:a.at.x+a.dir.x*half,y:a.at.y+a.dir.y*half}));
      if(![tail.x,tail.y,head.x,head.y].every(Number.isFinite))continue;
+     if(meetsBoxes(tail,head,names,1))continue;
+     mark(tail,head);
      // Weight reads twice — once as length, once as weight of line — so a strong arrow is
      // unmistakable even where the grid is dense.
      ctx.globalAlpha=.28+.62*a.weight;ctx.lineWidth=.9+1.3*a.weight;
@@ -183,6 +201,7 @@ export function FieldCanvas({samples,project,frame,lines=15,mode='lines',reach=6
     }
     ctx.globalAlpha=1;
     ctx.restore();
+    host.setAttribute('data-field-marks',marks.join(' '));
     return;
    }
    // The heads in the line's own ink, filled: a small arrowhead the way the line runs, which is the
@@ -199,8 +218,9 @@ export function FieldCanvas({samples,project,frame,lines=15,mode='lines',reach=6
      if(drawing)ctx.lineTo(s.x,s.y);else{ctx.moveTo(s.x,s.y);drawing=true;}
     }
     ctx.stroke();
-    for(const h of lineHeads(screen,PLOT)){
+    for(const h of lineHeads(screen,PLOT,180,28,6,names)){
      const tipX=h.x+h.dx*HEAD.length/2,tipY=h.y+h.dy*HEAD.length/2,backX=h.x-h.dx*HEAD.length/2,backY=h.y-h.dy*HEAD.length/2;
+     mark({x:backX,y:backY},{x:tipX,y:tipY});
      heads.moveTo(tipX,tipY);
      heads.lineTo(backX-h.dy*HEAD.half,backY+h.dx*HEAD.half);heads.lineTo(backX+h.dy*HEAD.half,backY-h.dx*HEAD.half);
      heads.closePath();
@@ -208,6 +228,7 @@ export function FieldCanvas({samples,project,frame,lines=15,mode='lines',reach=6
    }
    ctx.fillStyle=stroke;ctx.fill(heads);
    ctx.restore();
+   host.setAttribute('data-field-marks',marks.join(' '));
   };
   frameId=requestAnimationFrame(draw);
   const observer=new ResizeObserver(()=>{cancelAnimationFrame(frameId);frameId=requestAnimationFrame(draw);});
@@ -219,7 +240,14 @@ export function FieldCanvas({samples,project,frame,lines=15,mode='lines',reach=6
    frameId=requestAnimationFrame(draw);
   };
   host.addEventListener(SNAPSHOT_EVENT,snapshot);
-  return ()=>{cancelAnimationFrame(frameId);observer.disconnect();host.removeEventListener(SNAPSHOT_EVENT,snapshot);};
+  // Drawn again when the names move: the placer moves them after the render that drew this layer.
+  const again=()=>{cancelAnimationFrame(frameId);frameId=requestAnimationFrame(draw);};
+  const nameWatch=new MutationObserver(records=>{if(touchesLabels(records))again();});
+  const svg=host.parentElement?.querySelector('svg.cd-svg'),figure=host.closest('.charge-diagram');
+  if(svg)nameWatch.observe(svg,{subtree:true,childList:true,characterData:true,attributes:true,attributeFilter:['transform','x','y','style','opacity','class']});
+  const stages=new MutationObserver(again);
+  if(figure)stages.observe(figure,{attributes:true,attributeFilter:['class']});
+  return ()=>{cancelAnimationFrame(frameId);observer.disconnect();nameWatch.disconnect();stages.disconnect();host.removeEventListener(SNAPSHOT_EVENT,snapshot);};
  },[traced,arrows,mode,plane,project,frame.width,frame.height]);
  // How finely the charge the field is traced from is cut, for the tests: see ChargeDiagram.
  return <div ref={box} className={`cd-field-canvas ${className}`} aria-hidden="true" data-field-samples={samples.length}><canvas ref={canvas}/></div>;

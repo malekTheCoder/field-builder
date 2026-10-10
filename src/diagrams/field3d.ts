@@ -252,7 +252,8 @@ function spanPoint(pool:readonly ChargeSample[],index:number,frac:number):Vec{
  * `twist` turns each element's directions on by the golden angle from the last one's. Without it every
  * element of a straight wire fired the same four directions, so the infinite and semi-infinite lines'
  * fields printed as two families of parallel lines -- a plaid over the ground grid -- and the field
- * round the wire, the thing those lessons are about, could not be seen. A ring keeps its meridians. */
+ * round the wire, the thing those lessons are about, could not be seen. The scene asks it of the ring
+ * too (see `spaceLines`). */
 export function spaceSeeds(samples:readonly ChargeSample[],layout:Layout,count:number,offset:number,around=4,limit=Infinity,twist=false):Vec[]{
  const seeds:Vec[]=[];
  if(samples.length<2)return seeds;
@@ -302,7 +303,7 @@ export function spaceSeeds(samples:readonly ChargeSample[],layout:Layout,count:n
  // the field of two charged rings: nothing left the middle of the face under P or the band by the rim,
  // and the lines looked as if they came out of the highlighted ring. A uniform disk has as many lines
  // leaving every patch of it, which is what `surfaceRoots` lays.
- for(const [k,{x,y}] of surfaceRoots(pool,count).entries()){
+ for(const [k,{x,y}] of surfaceRoots(pool,count,2).entries()){
   const rho=Math.hypot(x,y),r=Math.max(rho,offset*.5),c=rho>1e-12?r/rho:1;
   seeds.push({x:x*c,y:y*c,z:k%2===0?offset:-offset});
  }
@@ -310,18 +311,25 @@ export function spaceSeeds(samples:readonly ChargeSample[],layout:Layout,count:n
 }
 /** WHERE A SURFACE'S LINES LEAVE IT, IN SPACE: `count` points, one at the middle of each equal share of
  * the charge -- the share's radius found inside the band its annulus stands for by area (s ds, so a
- * uniform band is filled evenly), its azimuth the golden angle on from the last. A sunflower, restricted
- * to the charge that is there: as many roots on every patch as the charge on it, and no rows or rings
- * for the eye to pick out. The caller alternates the faces, so each face is a sunflower too. */
-export function surfaceRoots(pool:readonly ChargeSample[],count:number):{x:number;y:number}[]{
+ * uniform band is filled evenly). A sunflower, restricted to the charge that is there: as many roots on
+ * every patch as the charge on it, and no rows or rings for the eye to pick out.
+ *
+ * EACH FACE IS ITS OWN SUNFLOWER. The shares are dealt to the `faces` in turn (the caller puts share k on
+ * face k mod `faces`), and the golden angle steps on per share ON ITS FACE, each face turned half a step
+ * from the last. The angle used to step per share across both faces, so each face stepped by twice the
+ * golden angle -- 275 degrees, which is -85: a quarter turn less a little, so each face's roots came round
+ * in four directions, and the two shares dealt one after the other, an inner and an outer one, sat twenty
+ * degrees apart in almost one meridian plane. The disk's field, the same all round its axis, was drawn as
+ * eight doubled bundles: a four-fold field, its doubled strokes looking like a fault in the drawing. */
+export function surfaceRoots(pool:readonly ChargeSample[],count:number,faces=2):{x:number;y:number}[]{
  const n=pool.length;
  if(!n||count<1)return [];
- const c=pool.map(s=>Math.abs(s.coordinate));
+ const c=pool.map(s=>Math.abs(s.coordinate)),f=Math.max(1,Math.round(faces));
  // The band each annulus stands for: halfway to its neighbours, the outer ones mirrored -- as in `sliceRadii`.
  const lo=(i:number)=>i>0?(c[i-1]+c[i])/2:n>1?Math.max(0,c[0]-(c[1]-c[0])/2):0;
  const hi=(i:number)=>i<n-1?(c[i]+c[i+1])/2:n>1?c[n-1]+(c[n-1]-c[n-2])/2:c[0];
  return along(pool,count).map(({index,frac},k)=>{
-  const a=lo(index),b=hi(index),r=Math.sqrt(a*a+(b*b-a*a)*frac),angle=k*GOLDEN+.4;
+  const a=lo(index),b=hi(index),r=Math.sqrt(a*a+(b*b-a*a)*frac),angle=Math.floor(k/f)*GOLDEN+.4+(k%f)*GOLDEN/f;
   return {x:r*Math.cos(angle),y:r*Math.sin(angle)};
  });
 }
@@ -373,7 +381,16 @@ function throughSeeds(samples:readonly ChargeSample[],layout:Layout,seeds:readon
  }
  return lines;
 }
-/** Full streamlines through every seed, each ordered along the field whichever way it runs. */
+/** Full streamlines through every seed, each ordered along the field whichever way it runs.
+ *
+ * A WIRE'S LINES LEAVE IT FROM TWICE AS MANY PLACES, TWO TO A PLACE. Sixteen lines were four stations of
+ * four directions each: on the ring, four tufts in four meridian planes, with eighty-nine degrees of a
+ * uniformly charged ring between them that no line left -- the ring read as four lumps of charge -- and
+ * on an eight-metre rod, stations two metres apart, while the flat view of the same lines uses eight.
+ * Eight stations of two opposite directions, each pair turned the golden angle on from the last (the
+ * caller asks for `twist`), leave the ring at most forty-four degrees bare and bring a line within
+ * three quarters of a metre of P at its default. Not one direction to a station: a line launched near
+ * the ring's inward direction runs into the null at its centre and kinks through a right angle. */
 export function spaceLines(samples:readonly ChargeSample[],layout:Layout,count:number,options:TraceOptions={}):Vec[][]{
  const {arrive,stops}=stopping(samples,layout,options);
  const reach=Math.max(...samples.map(s=>LEN(s.position)),.5);
@@ -381,7 +398,7 @@ export function spaceLines(samples:readonly ChargeSample[],layout:Layout,count:n
  // extent launched the sheet's lines twenty-one metres above the plane -- its refined partition
  // reaches 355 m -- so every line began outside the frame and was discarded on its first step.
  const span=options.seedLimit??options.outerLimit??reach;
- const seeds=spaceSeeds(samples,layout,count,Math.max(arrive*1.6,span*.06),4,options.seedPool??options.seedLimit??options.outerLimit??Infinity,!!options.twist);
+ const seeds=spaceSeeds(samples,layout,count,Math.max(arrive*1.6,span*.06),layout==='wire'?2:4,options.seedPool??options.seedLimit??options.outerLimit??Infinity,!!options.twist);
  return throughSeeds(samples,layout,seeds,options,stops,options.crowd??span*.012);
 }
 /** HOW FAR THE SCENE TRACES A LINE: until the drawing has faded it to nothing, 1.35 reaches from the
@@ -411,8 +428,12 @@ export function meridianLines(samples:readonly ChargeSample[],layout:Layout,coun
   for(const s of crossings){
    const key=`${Math.sign(s.position.x)}`;
    if(seen.has(key))continue;seen.add(key);
-   const around=Math.max(2,Math.round(count/2));
-   for(let k=0;k<around;k++){const a=2*Math.PI*(k+.5)/around;seeds.push({x:s.position.x+offset*Math.cos(a),y:0,z:offset*Math.sin(a)});}
+   const half=Math.max(1,Math.round(Math.max(2,Math.round(count/2))/2));
+   const at=Math.sign(s.position.x)*Math.hypot(s.position.x,s.position.y),out=Math.sign(at)||1;
+   // Never so far off the wire that a seed launched inward lands past the axis: on a small ring with P
+   // high above it the inward seeds crossed over and left a floating half-metre fragment.
+   const off=Math.min(offset,.45*Math.abs(at));
+   for(const k of meridianLaunch(half))for(const up of [1,-1])seeds.push({x:at+out*off*Math.cos(k),y:0,z:up*off*Math.sin(k)});
   }
  }else{
   const out=Math.max(span,options.seedSpan??span);
@@ -426,7 +447,27 @@ export function meridianLines(samples:readonly ChargeSample[],layout:Layout,coun
    for(const side of [1,-1])for(const sign of [1,-1])seeds.push({x:side*r,y:0,z:sign*offset});
   }
  }
- return throughSeeds(samples,layout,seeds,options,stops,options.crowd??span*.012);
+ // A ring's side view is sixteen lines laid on purpose, which all meet at the wire: the crowding rule cut the
+ // mirror of the line launched nearly inward, three and a half degrees off the plane, within a few steps of
+ // its root, against the line it mirrors. Two strokes that meet at the charge are the picture, not a repeat.
+ return throughSeeds(samples,layout,seeds,options,stops,options.crowd??(layout==='wire'?0:span*.012));
+}
+/** WHERE A RING'S SIDE VIEW LAUNCHES ITS LINES, as angles round the wire where it crosses the cut, from
+ * the outward horizontal up toward the inward one: `half` of them for each half of the cut, the lower half
+ * the mirror of the upper.
+ *
+ * They were evenly spaced round the crossing, which spreads the FLUX evenly -- right in space, and wrong in a
+ * cut through the axis, where a line drawn stands for a whole cone of flux and the lines nearer the axis
+ * stand for less of it. Every inner line curved outward, and the corridor above the ring's middle, where P
+ * is and where the field at P's height is strongest, was the widest gap in the picture: no line within 1.7 m
+ * of P. So the lines are launched to end evenly spaced in far polar angle, the textbook cross-section of a
+ * charge seen from far off. Next to a thin wire its flux leaves evenly in the angle psi round it, and the
+ * flux between psi and the inward direction ends in the polar cap above the far polar angle theta, so
+ * (pi - psi) / (2 pi) = (1 - cos theta) / 2, which is cos theta = psi / pi: for theta_k = (k + 1/2) (pi/2) /
+ * half, launch at psi_k = pi cos theta_k. */
+export function meridianLaunch(half:number):number[]{
+ const n=Math.max(1,Math.round(half));
+ return Array.from({length:n},(_,k)=>Math.PI*Math.cos((k+.5)*(Math.PI/2)/n));
 }
 /** Where a side view's lines leave a surface: at equal steps of CHARGE PER UNIT LENGTH OF THE CUT,
  * sigma ds -- not of each annulus' charge.
@@ -537,6 +578,97 @@ export function endlessAxis(samples:readonly ChargeSample[],window:number):{foot
  const half=Math.sqrt(window*window-gap*gap),ends=[dot(a)-dot(foot),dot(b)-dot(foot)];
  return Math.min(...ends)<-half&&Math.max(...ends)>half?{foot,dir,half}:null;
 }
+/** A STRAIGHT LINE OF CHARGE WITH ONE END IN THE PICTURE AND THE OTHER FAR PAST IT -- the semi-infinite
+ * line -- as its end `end`, the unit direction it runs in from there, and its charge per metre. Null for
+ * anything else: a bent wire, a finite rod, or the infinite line (see `endlessAxis`).
+ *
+ * The charge per metre is read off the stretch of it within half the window: the partition is cut at
+ * equal angles from P, so its far pieces are metres long, and only near the end are they fine enough for
+ * charge over length to be the line's own to a small fraction of a per cent. The end is the first piece's
+ * far edge, half a gap beyond it, as `bodyDistance` pads a wire. */
+export type Ray={end:Vec;dir:Vec;lambda:number};
+export function endlessRay(samples:readonly ChargeSample[],window:number):Ray|null{
+ if(samples.length<4)return null;
+ const first=samples[0].position,last=samples[samples.length-1].position,flip=LEN(first)>LEN(last);
+ const list=flip?[...samples].reverse():samples;
+ const a=list[0].position,b=list[1].position,z=list[list.length-1].position;
+ const dir=unit({x:z.x-a.x,y:z.y-a.y,z:z.z-a.z});
+ if(!dir)return null;
+ const length=LEN({x:z.x-a.x,y:z.y-a.y,z:z.z-a.z});
+ if(list.some(s=>LEN(cross({x:s.position.x-a.x,y:s.position.y-a.y,z:s.position.z-a.z},dir))>1e-6*Math.max(1,length)))return null;
+ const end=add(a,{x:a.x-b.x,y:a.y-b.y,z:a.z-b.z},.5);
+ // One end in the picture, the other far past it.
+ if(!(LEN(end)<window*.5)||!(LEN(z)>window*3))return null;
+ const along=(v:Vec)=>(v.x-end.x)*dir.x+(v.y-end.y)*dir.y+(v.z-end.z)*dir.z;
+ let charge=0,upTo=0;
+ for(let i=0;i+1<list.length;i++){
+  const edge=(along(list[i].position)+along(list[i+1].position))/2;
+  if(edge>window*.5&&i>2)break;
+  charge+=list[i].dq;upTo=edge;
+ }
+ return upTo>0?{end,dir,lambda:charge/upTo}:null;
+}
+/** THE FIELD OF THAT HALF-LINE, IN CLOSED FORM. With d = r - end, x = d . u along the line from its end,
+ * rho the rest of d and R = |d|:
+ *   E = k lambda [ -u / R + rho (1 + x / R) / rho^2 ],
+ * the line integral of Coulomb's law from the end out to infinity: along the line it is -k lambda / R, and
+ * square to it k lambda (1 + x/R) / rho, which is the infinite line's 2 k lambda / rho far past the end and
+ * half of it level with the end.
+ *
+ * Traced from the partition, the semi-infinite line's lines followed the integration's lumps: at a small
+ * height its pieces are metres long by the far side of the picture, and lines seeded a third of a metre
+ * off the wire, inside the ripple of that row of lumps, hooked toward them by up to fifty degrees, ran
+ * together in pairs and left holes -- on a uniform line, so both the direction and the density were wrong.
+ * There is no lump in the charge itself, so the field is taken from the charge itself. */
+export function rayField(ray:Ray):(at:Vec)=>Vec{
+ const {end,dir:u,lambda}=ray,k=K*lambda;
+ return at=>{
+  const d={x:at.x-end.x,y:at.y-end.y,z:at.z-end.z},x=d.x*u.x+d.y*u.y+d.z*u.z,R=LEN(d);
+  if(!(R>1e-12))return {x:0,y:0,z:0};
+  const rho={x:d.x-u.x*x,y:d.y-u.y*x,z:d.z-u.z*x},r2=rho.x*rho.x+rho.y*rho.y+rho.z*rho.z;
+  // On the line itself, past the end, the field square to it has no direction; on its continuation
+  // behind the end it is the axial field alone.
+  const side=r2>1e-18?(1+x/R)/r2:0;
+  return {x:k*(-u.x/R+rho.x*side),y:k*(-u.y/R+rho.y*side),z:k*(-u.z/R+rho.z*side)};
+ };
+}
+/** THE HALF-LINE'S LINES IN SPACE, traced through its closed-form field (see `rayField`), from roots at
+ * equal steps of length along the stretch of it within `window` of O -- the charge is uniform, so equal
+ * length is equal charge -- each turned the golden angle on from the last, launched `offset` off the wire,
+ * finished on the tube `inset` from its axis, and ordered along the field. A line stops where it reaches
+ * the tube (`clearance`), as a surface's do, rather than inside an element's arrival radius: there are no
+ * elements. With `flat`, the lines are the flat figure's: in the plane z = 0, which holds the wire, from
+ * half as many roots, one line leaving each side of the wire at each. */
+export function rayLines(ray:Ray,count:number,window:number,offset:number,inset:number,options:TraceOptions={},flat=false):Vec[][]{
+ const {end,dir}=ray,field=rayField(ray);
+ const reference:Vec=Math.abs(dir.z)<.9?{x:0,y:0,z:1}:{x:1,y:0,z:0};
+ const n1=unit(cross(dir,reference))!,n2=unit(cross(dir,n1))!;
+ const roots=flat?Math.max(1,Math.round(count/2)):count;
+ // How far the wire runs inside the window: the end's own distance from O is small.
+ const span=Math.max(1e-3,window-LEN(end));
+ const clear=(x:number,y:number,z:number)=>{
+  const d={x:x-end.x,y:y-end.y,z:z-end.z},t=Math.max(0,d.x*dir.x+d.y*dir.y+d.z*dir.z);
+  return Math.hypot(d.x-dir.x*t,d.y-dir.y*t,d.z-dir.z*t);
+ };
+ const foot=(q:Vec):Vec=>{const t=Math.max(0,(q.x-end.x)*dir.x+(q.y-end.y)*dir.y+(q.z-end.z)*dir.z);return add(end,dir,t);};
+ const step=options.step??.06,crowd=options.crowd??0,drawn=drawnPoints(Math.max(crowd,1e-6)),lines:Vec[][]=[];
+ const stops:TraceOptions={...options,field,clear,clearance:Math.max(inset,step/2),radii:[],crowd,drawn};
+ for(let j=0;j<roots*(flat?2:1);j++){
+  const at=flat?j>>1:j,root=add(end,dir,span*(at+.5)/roots),a=flat?(j%2)*Math.PI:j*GOLDEN+.3;
+  const n=add(scale(n1,Math.cos(a)),n2,Math.sin(a)),seed=add(root,n,offset);
+  const along=trace3([],seed,{...stops,sign:1}),against=trace3([],seed,{...stops,sign:-1});
+  const line=[...against.path.slice(1).reverse(),...along.path];
+  if(line.length<=3)continue;
+  for(const q of line)drawn.add(q);
+  // Finished on the tube, square to it: within the clearance the field is the line's own and radial.
+  const rootOf=(q:Vec)=>{const f=foot(q),d=LEN({x:q.x-f.x,y:q.y-f.y,z:q.z-f.z});return d>inset+1e-9?add(f,{x:q.x-f.x,y:q.y-f.y,z:q.z-f.z},inset/d):null;};
+  const head=against.arrived?rootOf(line[0]):null,tail=along.arrived?rootOf(line[line.length-1]):null;
+  if(head)line.unshift(head);
+  if(tail)line.push(tail);
+  lines.push(line);
+ }
+ return lines;
+}
 /** THE INFINITE LINE'S FIELD IN SPACE, from Gauss, as the sheet's is: straight lines square to the wire,
  * from roots evenly spaced along the stretch of it the picture shows, each turned the golden angle on
  * from the last, ordered along the field -- out of positive charge, into negative.
@@ -563,9 +695,10 @@ export function radialLines(axis:{foot:Vec;dir:Vec;half:number},count:number,ins
  * and the labels. What is drawn is four by four by four about `centre`, where the field has its shape,
  * weighted among themselves. Half a step off every plane through the centre, as the lattice always
  * is, so a surface has as many arrows under it as over it. See `latticeFrame` for where it stands. */
-export function latticeCore(samples:readonly ChargeSample[],reach:number,layout:Layout,centre:Vec={x:0,y:0,z:0},spacing=reach/3):Arrow3[]{
+export function latticeCore(samples:readonly ChargeSample[],reach:number,layout:Layout,centre:Vec={x:0,y:0,z:0},spacing=reach/3,given?:(at:Vec)=>Vec):Arrow3[]{
  if(!(spacing>0)||!samples.length)return [];
- const field=fieldOf(samples,layout),clear=bodyDistance(samples,layout==='surface'?'surface':'wire');
+ // `given` is a closed form where the charge has one the partition cannot match: see `rayField`.
+ const field=given??fieldOf(samples,layout),clear=bodyDistance(samples,layout==='surface'?'surface':'wire');
  const steps=[-1.5,-.5,.5,1.5].map(k=>k*spacing),raw:{at:Vec;dir:Vec;magnitude:number}[]=[];
  for(const dx of steps)for(const dy of steps)for(const dz of steps){
   const at={x:centre.x+dx,y:centre.y+dy,z:centre.z+dz};
@@ -605,6 +738,28 @@ export function latticeFrame(points:readonly Vec[],reach:number,endless=false):{
   spacing*=1.15;
  }
  return {centre,spacing};
+}
+/** THE POINTS AN ENDLESS CHARGE'S ARROWS ARE FITTED ROUND, P included. An endless charge kept a cube of
+ * fixed size about O -- arrows at plus or minus one and three steps of a third of the reach on every axis,
+ * whatever the height -- so once P was set more than three metres off, P stood outside the arrows
+ * altogether: on the sheet, whose lesson is that E is the same at every height, no arrow stood at P's
+ * height; and on the semi-infinite line, where O is the END of the charge, nothing stood beside the two
+ * thirds of the wire the picture shows past it, where its field becomes the infinite line's. The
+ * axial rod had the same fault and was fitted (see `latticeFrame`); these are fitted too:
+ *  - the infinite line, round O and P -- the line is the same everywhere along it;
+ *  - the sheet, round O, P and a point as far to either side of O as P is above it, so the layers
+ *    spread across the plane as far as they rise above it, and stay half a step off it;
+ *  - the semi-infinite line, round O, P and a point along the wire twice P's distance out (never less
+ *    than three of the old steps), so the arrows run on beside the charge past its end. */
+export function endlessBody(kind:'wire'|'disk'|'sheet',samples:readonly ChargeSample[],point:Vec,reach:number):Vec[]{
+ const O:Vec={x:0,y:0,z:0},d=LEN(point);
+ if(kind==='sheet')return [O,point,{x:d,y:0,z:0},{x:-d,y:0,z:0}];
+ if(samples.length<2)return [O,point];
+ const a=samples[0].position,b=samples[samples.length-1].position,[near,far]=LEN(a)<=LEN(b)?[a,b]:[b,a];
+ // Both ends far past the picture: the infinite line.
+ if(LEN(near)>reach)return [O,point];
+ const dir=unit({x:far.x-near.x,y:far.y-near.y,z:far.z-near.z});
+ return dir?[O,point,add(near,dir,Math.max(2*d,reach))]:[O,point];
 }
 /** The points the arrows' cube is fitted round, besides P: a wire's own path, and a disk's RIM. A disk's
  * annuli are stored at (s, 0, 0), so fitting the cube to them fitted it to the half of the disk on +x

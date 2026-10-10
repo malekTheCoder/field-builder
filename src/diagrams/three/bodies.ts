@@ -74,6 +74,24 @@ export function sheetFarFade(height:number,pitch:number,unit:number,opening=open
  * near, `fade.low` (by default SHEET_FAR_LOW) far. */
 export type FarFade={inner:number;outer:number;low?:number};
 export const farAlpha=(depth:number,fade:FarFade)=>{const low=fade.low??SHEET_FAR_LOW;return low+(1-low)*fadeOut(depth,fade.inner,fade.outer);};
+/** THE GAP THE CHARGE LEAVES ROUND P WHERE IT PASSES BEHIND IT, in CSS pixels from P on the screen -- the
+ * drafting gap a far line is given where it passes behind a near point.
+ *
+ * Tipping the view up brought the far side of the charge onto P in every lesson that stands P over it: the
+ * sheet's chosen ring and the summed shading under P and the foot of the sum, the ring's far arc through P
+ * and the chain, the disk's far rim through P's halo. P read as lying on the charge, or in it -- the one
+ * thing each of those lessons says it is not. A translucent surface keeps `low` of itself within `inner`
+ * and all of it from `outer`, smoothly between; an opaque wire, which cannot be faded, is cut clean within
+ * `hard`. Wide enough to clear P's halo and the root of the net arrow with paper round them; narrow enough
+ * that the charge is plainly still there, going on behind. The scene's shader draws exactly this curve
+ * (see FieldStage's `patch`); `behindGap` is it, for the tests. */
+export const BEHIND_GAP={inner:22,outer:38,low:.08,hard:22} as const;
+export function behindGap(distance:number,behind:boolean,wire=false,gap:{inner:number;outer:number;low:number;hard:number}=BEHIND_GAP):number{
+ if(!behind)return 1;
+ if(wire)return distance<gap.hard?0:1;
+ const t=Math.min(1,Math.max(0,(distance-gap.inner)/(gap.outer-gap.inner)));
+ return gap.low+(1-gap.low)*t*t*(3-2*t);
+}
 /** The chosen ring dims less than the plane under it: it is the piece being talked about, and its
  * far arc must still be plainly there -- only plainly behind P. */
 export const PIECE_FAR_LOW=.42;
@@ -122,6 +140,12 @@ export function wirePath(samples:readonly ChargeSample[],limit=160):{x:number;y:
  if(out[out.length-1]!==last)out.push(last);
  return out;
 }
+/** HALF THE THICKNESS OF A SURFACE'S CHOSEN RING, in metres, for a piece as thick as `thick` would make
+ * it: no thicker than a sixth of the ring's width, and never so thin that its walls are under a pixel and a
+ * half tall (`px` metres is one unit of the figure), so they still catch the light. At a fixed thickness the
+ * sheet's innermost ring with P half a metre up -- from O out to sixteen centimetres -- stood under P as a
+ * lit cylinder, a puck sitting on the sheet rather than a piece of it. */
+export const washerHalf=(thick:number,inner:number,outer:number,px:number)=>Math.max(.75*px,Math.min(thick*.62,.15*(outer-inner)));
 /** Wire thickness in world units. Thin enough to read as a line of charge, thick enough to
  * take a highlight — and growing a little with the scene so it does not vanish on a big one. */
 export const wireRadius=(reach:number)=>.036+.008*Math.min(3,reach/2);
@@ -147,6 +171,24 @@ export function lineStrength(away:number,reach:number):number{
  const far=Math.min(1,Math.max(0,(away-reach*.25)/(reach*1.1)));
  return 1-far*far;
 }
+/** HOW FAR THE CHAIN IS MOVED ASIDE FROM THE NET ARROW, in units of the figure, when it is `shown` units
+ * long on the screen: not at all under `from` -- a stub on P moved aside reads as a sideways field at P --
+ * and then three tenths of its length, never more than `most`. See FieldStage's `layChain`. */
+export const CHAIN_ASIDE={from:30,most:10,share:.3} as const;
+export const chainAside=(shown:number)=>shown<CHAIN_ASIDE.from?0:Math.min(CHAIN_ASIDE.most,CHAIN_ASIDE.share*shown);
+/** HOW FAR THE SCENE DRAWS A CHARGE'S FIELD: its reach, and never short of P. `reach` is the figure's own
+ * (a charge's size, a little over), and both the trace and the fade (see `lineStrength`) were tied to it
+ * alone -- so with a rod or a ring a metre or two across and P five or six metres off, every line had
+ * faded to nothing two to four metres short of P. The net arrow stood in empty space, and the picture
+ * said the field does not reach the point the lesson is about, and that field lines end in mid-air; the
+ * flat view of the same state runs its lines on past P. So the field is drawn out to 1.3 times P's
+ * distance from the charge where that is further, rounded UP to a power of 1.25 so that dragging P
+ * retraces only at each step, not on every frame. `away` is P's distance from the charge's body. */
+export function lineReach(reach:number,away:number):number{
+ const want=1.3*away;
+ if(!(want>reach))return reach;
+ return Math.max(reach,1.25**Math.ceil(Math.log(want)/Math.log(1.25)-1e-9));
+}
 type Point3={x:number;y:number;z:number};
 /** WHERE THE SIGN IS WRITTEN ON A WIRE IN SPACE: points along the charge at equal steps of |dq|, so a
  * uniform wire is marked evenly and the ramp's marks crowd toward its heavy end and thin out toward
@@ -160,7 +202,10 @@ export function signMarks(samples:readonly ChargeSample[],window:number,step:num
  if(pool.length<2||!(step>0))return pool.map(s=>s.position);
  let length=0;
  for(let i=1;i<pool.length;i++){const a=pool[i-1].position,b=pool[i].position;length+=Math.hypot(b.x-a.x,b.y-a.y,b.z-a.z);}
- const count=Math.max(2,Math.min(most,Math.round(length/step)));
+ // As few as one: a wire shorter than a step and a half gets a single mark. It used to get two whatever
+ // its length, and on the narrowest arc the two marks -- each wider than the tube -- covered most of the
+ // charge they were there to label.
+ const count=Math.max(1,Math.min(most,Math.round(length/step)));
  const weights=pool.map(s=>Math.abs(s.dq)),total=weights.reduce((a,b)=>a+b,0);
  if(!(total>0))return [];
  // Cumulative charge at each sample's middle, and a position interpolated between samples for each target.
@@ -276,6 +321,44 @@ export function diskSignRadii(R:number,unit:number,annulus:{inner:number;outer:n
  const count=Math.max(1,Math.min(most,Math.round(total*unit/30)+1));
  return Array.from({length:count},(_,k)=>at(count>1?total*k/(count-1):total/2));
 }
+/** WHERE THE DISK'S SIGN MARKS GO: round each of `diskSignRadii`, as many as fit. `half` is a mark's half
+ * size with its paper ring, in metres; `unit` is viewBox units per metre.
+ *
+ * Every ring of marks used to get at least three, whatever its circumference on the screen, so on the
+ * smallest disk the three marks of its inner ring were drawn on top of one another in its middle. Now a
+ * ring carries a mark every fifty-six units round it, and never so many that two neighbours come within
+ * 2.6 half-sizes -- a mark's width and a little paper between -- and a ring too small to go round a mark
+ * with room to spare (its radius under 1.3 marks' widths) carries none. Rings are at least fifteen units
+ * apart (see `diskSignRadii`). A disk too small for any ring gets one mark, off the chosen ring. */
+export function diskSignMarks(R:number,unit:number,annulus:{inner:number;outer:number}|null,half:number):Point3[]{
+ const m=half*unit,out:Point3[]=[];
+ diskSignRadii(R,unit,annulus,half).forEach((r,k)=>{
+  const across=r*unit;
+  if(across<1.3*2*m)return;
+  let most=1;
+  while(most<64&&2*across*Math.sin(Math.PI/(most+1))>=2.6*m)most++;
+  const count=Math.min(most,Math.max(1,Math.round(2*Math.PI*across/56)));
+  for(let j=0;j<count;j++){const a=2*Math.PI*(j+.5*(k%2))/count+.3;out.push({x:r*Math.cos(a),y:r*Math.sin(a),z:0});}
+ });
+ // Too small for a ring of marks: one, on the outermost free radius, off the chosen ring.
+ if(!out.length){const radii=diskSignRadii(R,unit,annulus,half),r=radii.length?radii[radii.length-1]:0;out.push({x:r*Math.cos(.3),y:r*Math.sin(.3),z:0});}
+ return out;
+}
+/** THE MARKS THAT CAN BE TOLD APART ON THE SCREEN: each kept unless it would be drawn within `gap` viewBox
+ * units of one already kept, in the order given. Laid in space, marks a step apart along a wire land on top
+ * of one another once the wire is turned end on, or is short beside a mark's width. */
+export function apartOnScreen<T extends {at:Point3}>(marks:readonly T[],toScreen:(v:Point3)=>{x:number;y:number},gap:number):T[]{
+ const kept:{x:number;y:number}[]=[],out:T[]=[];
+ for(const mark of marks){
+  const s=toScreen(mark.at);
+  if(kept.some(k=>Math.hypot(k.x-s.x,k.y-s.y)<gap))continue;
+  kept.push(s);out.push(mark);
+ }
+ return out;
+}
+/** The least distance between two of the sheet's sign marks on the screen, in viewBox units: about the
+ * spacing the opening view lays them at. See FieldStage's `laySigns`. */
+export const SHEET_SIGN_GAP=44;
 /** THE SHEET'S SIGN MARKS, LAID ON THE SHEET. They were laid on a lattice fixed to the screen -- a mark
  * every ninety units across and sixty up, from the window's bottom edge -- and only then turned into the
  * plane for the current view, so in a drag they stood still while the grid, the axes and the chosen ring
