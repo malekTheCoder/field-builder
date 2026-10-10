@@ -36,8 +36,11 @@
 .cd-svg .cd-plus text{font-size:calc(13px * var(--cd-k,1));paint-order:stroke;stroke:var(--diagram,#ffffff);stroke-width:2.4px;stroke-linejoin:round}
 .cd-svg .cd-plus text.is-on-fill{stroke:var(--charge,#b8460f)}
 .cd-construction{stroke:var(--charge,#b8460f);stroke-opacity:.7;stroke-width:1.4;stroke-dasharray:5 5;fill:none}
-.cd-construction.cd-pair{stroke:var(--contribution,#2f9089);stroke-opacity:.7}
-.cd-partner{fill:none;stroke:var(--contribution,#2f9089);stroke-width:1.8;stroke-dasharray:4 3}
+/* The mirror piece's line to P is a construction line like the piece's own r_i, in the charge's colour
+   -- lighter, as the mirror's arrows are. Teal and dashed, it was the partner's dashed arrow's own style
+   and always collinear with it, so the two read as one long field line through P. Teal is for fields. */
+.cd-construction.cd-pair{stroke:color-mix(in oklab,var(--charge,#b8460f) 62%,var(--diagram,#fff));stroke-opacity:.9}
+.cd-partner{fill:none;stroke:color-mix(in oklab,var(--charge,#b8460f) 62%,var(--diagram,#fff));stroke-width:1.8;stroke-dasharray:4 3}
 .cd-infinity path,.cd-continuation{fill:none;stroke:var(--charge,#b8460f);stroke-width:2.2}
 .cd-svg .cd-infinity text{fill:var(--charge,#b8460f)}
 .cd-dimension path,.cd-dimension line{stroke:var(--ghost,#6d8492);stroke-width:1.3;fill:none}
@@ -48,6 +51,10 @@
 .cd-svg .cd-zero{fill:var(--field,#0b6b63);font-size:12px}
 .cd-observation{touch-action:none;cursor:grab;outline:none}.cd-observation:active{cursor:grabbing}.cd-observation.is-fixed{cursor:default}
 .cd-point-halo{fill:var(--diagram,#ffffff);fill-opacity:.7;stroke:var(--field,#0b6b63);stroke-opacity:.7;stroke-width:1.5;transition:r .3s ease,stroke-opacity .3s ease,stroke-width .3s ease}
+/* P IS A POINT, NOT ⊙. A dot inside a ring is the symbol a student meets for a vector out of the page,
+   and P is where every arrow starts. The halo that says P can be dragged is a soft disc of tint, and its
+   ring is drawn only when the pointer or the focus is on it. */
+.cd-point-halo{fill:color-mix(in oklab,var(--field,#0b6b63) 9%,var(--diagram,#fff));fill-opacity:.88;stroke-opacity:0}
 .cd-observation:hover .cd-point-halo,.cd-observation:focus-visible .cd-point-halo{r:20px;stroke-opacity:1;stroke-width:3}.cd-observation:focus-visible .cd-point-halo{stroke:var(--primary,#0b6b63);stroke-dasharray:none}
 .cd-point{fill:var(--field,#0b6b63);stroke:var(--diagram,#ffffff);stroke-width:2.5}
 .cd-svg .cd-point-label{fill:var(--cd-ink);paint-order:stroke;stroke:var(--diagram,#ffffff);stroke-width:5px}
@@ -99,14 +106,24 @@
 .cd-svg .cd-point-label{font-size:calc(var(--cd-sym-p) * var(--cd-k,1));stroke-width:6px}
 .cd-svg .cd-vector-label{stroke-width:6px}
 .cd-axes text{fill:var(--cd-ink)}
-.cd-svg .cd-origin{fill:var(--cd-ink)}
+/* Upright: the italic serif O is a narrow oval that reads as the digit zero. */
+.cd-svg .cd-origin,.cd-svg .cd-origin-o{fill:var(--cd-ink);font-style:normal}
 .cd-svg .cd-end{fill:var(--cd-ink)}
 /* Prose annotation stays sans and stays quiet — it is not the figure. */
 .cd-svg :where(text){font-family:var(--font-geist-sans),system-ui,sans-serif;font-size:13px;font-weight:500}
 .cd-svg .cd-kicker{font-size:11px;letter-spacing:.14em;font-weight:600}
 .cd-svg .cd-small{font-size:12px}
 .cd-svg .cd-footer{font-size:calc(12px * var(--cd-k,1))}
-.cd-triangle .cd-triangle-note{font-size:11px}
+/* The charge element's formula, set as the figure sets its symbols: the display serif, a real subscript
+   on λ₀. In the upright sans the Unicode ₀ fell back to a tiny ring and the ramp read "λ°". */
+.cd-svg .cd-footer-math{font-family:var(--font-display),Georgia,serif;font-style:italic;font-weight:600;font-size:calc(14px * var(--cd-k,1));fill:var(--cd-ink)}
+/* On a phone the figure is drawn at half size: at the desktop's 12px the footer came out under nine. */
+.cd-narrow .cd-svg .cd-footer{font-size:calc(15px * var(--cd-k,1))}
+.cd-narrow .cd-svg .cd-footer-math{font-size:calc(15.5px * var(--cd-k,1))}
+.cd-triangle .cd-triangle-note{font-size:12px}
+/* The schematic's letters and its note are set over the scene's grid and field lines: a thin ring of the
+   ground keeps a line from running through a letter, with no slab behind them. */
+.cd-svg .cd-triangle text{paint-order:stroke;stroke:var(--diagram,#fff);stroke-width:4px;stroke-linejoin:round}
 .cd-scale text{font-size:11px}
 /* Rules: confident, not hairline. */
 .cd-axes path{stroke-width:2.4;opacity:1;stroke:color-mix(in oklab,var(--cd-ink) 52%,transparent)}
@@ -171,16 +188,18 @@
 .cd-focus-element .cd-piece.is-selected{filter:drop-shadow(0 0 9px var(--term-element))}
 .cd-focus-element .cd-source-tag text{fill:var(--term-element);font-weight:600}
 .cd-focus-distance .cd-construction:not(.cd-pair){stroke:var(--term-distance);stroke-width:2.8;stroke-opacity:1;stroke-dasharray:none}
-.cd-focus-distance .cd-triangle text:not(.cd-angle){fill:var(--term-distance);font-weight:600}
+.cd-focus-distance .cd-triangle text:not(.cd-angle):not(.cd-triangle-note){fill:var(--term-distance);font-weight:600}
 .cd-focus-projection .cd-triangle path,.cd-focus-projection .cd-triangle line{stroke:var(--term-projection);stroke-width:2.1;stroke-dasharray:none}
 .cd-focus-projection .cd-triangle .cd-angle{fill:var(--term-projection);font-weight:700}
 .cd-svg .cd-triangle .cd-angle-arc{fill:none;stroke:var(--ghost);stroke-width:1.4;stroke-dasharray:none}
 .cd-svg .cd-triangle .cd-angle-leader{stroke:var(--ghost);stroke-width:1.1;stroke-dasharray:none}
 .cd-focus-projection .cd-triangle .cd-angle-arc{stroke:var(--term-projection);stroke-width:2}
-.cd-focus-bounds .cd-bound rect{fill:var(--term-bounds);stroke:var(--term-bounds)}
+/* A handle lit for the limits stays a handle: the ground inside, a heavier ring of the bounds colour.
+   Filled solid it was a dark lozenge on each of the rod's caps, read as chrome rather than as a limit. */
+.cd-focus-bounds .cd-bound rect{fill:var(--diagram,#fff);stroke:var(--term-bounds);stroke-width:3.8}
 .cd-focus-bounds .cd-bound text{fill:var(--term-bounds);font-weight:600}
 .cd-svg .cd-end{transition:fill .25s ease}
-.cd-focus-bounds .cd-svg .cd-end,.cd-focus-bounds .cd-end{fill:var(--term-bounds);font-weight:700}
+.cd-focus-bounds .cd-svg .cd-end:not(.cd-density-end),.cd-focus-bounds .cd-end:not(.cd-density-end){fill:var(--term-bounds);font-weight:700}
 /* How finely it is cut: the cuts themselves come forward, and the figure's own note of it. */
 .cd-focus-pieces .cd-seam line{stroke:var(--term-element);stroke-opacity:1;stroke-width:2.6}
 .cd-focus-pieces text[data-dim="pieces"]{fill:var(--term-element);font-weight:700}
@@ -215,7 +234,7 @@
    the charge or the arrows. The selected wedge is the one that speaks. */
 .cd-fan{transition:opacity .3s ease}
 .cd-fan.is-quiet{opacity:.45}
-.cd-ray{stroke:var(--charge);stroke-opacity:.16;stroke-width:1;fill:none;pointer-events:none}
+.cd-ray{stroke:var(--charge);stroke-opacity:.3;stroke-width:1;fill:none;pointer-events:none}
 /* Only the chosen wedge is painted. Five filled wedges read as a wash of colour behind the
    figure rather than as five pieces -- the drawing stops being a line of charge with a point
    beside it and becomes a pinwheel. The others stay as invisible targets, so every piece is
@@ -224,6 +243,13 @@
 .cd-wedge:hover{fill-opacity:.05}
 .cd-wedge.is-selected{fill-opacity:.1}
 .cd-wedge.is-selected:hover{fill-opacity:.13}
+/* CUT IT UP, ON A LINE THAT NEVER ENDS: the stage says every piece takes up the same angle at P, so every
+   angle is drawn -- alternate wedges faintly tinted, and the rays between them firm -- where one tinted
+   wedge and two hairlines left the equal angles to be taken on trust. */
+.cd-stage-pieces .cd-ray{stroke-opacity:.5}
+.cd-stage-pieces .cd-wedge{fill-opacity:.035}
+.cd-stage-pieces .cd-wedge.is-odd{fill-opacity:.08}
+.cd-stage-pieces .cd-wedge.is-selected{fill-opacity:.13}
 @media (prefers-reduced-motion:reduce){.cd-fan,.cd-wedge{transition:none}}
 
 /* The field layer sits under the construction and never takes a pointer: everything
@@ -274,6 +300,12 @@
 .cd-in-space.cd-wire-kind .cd-piece path,.cd-in-space.cd-wire-kind .cd-piece rect,.cd-in-space.cd-wire-kind .cd-plus,
 .cd-in-space.cd-wire-kind .cd-charge-base{opacity:0!important}
 .cd-in-space .cd-axes path{opacity:0}
+/* The ring's and the disk's flat pieces and cuts too, at rest as well as in the run: the scene draws the
+   ring, its pieces and its cuts, and the flat strokes painted over it doubled every one of them -- in
+   orange over the scene's blue for a negative ring. They stay in the tree, where they take the clicks. */
+.cd-in-space.cd-surface-kind .cd-piece path,.cd-in-space.cd-surface-kind .cd-seams{opacity:0!important}
+/* The flat partner's ring sat round the scene's lit partner as a "( )". */
+.cd-in-space .cd-partner{opacity:0}
 /* A rod's flat cuts are laid out for the flat view: each is a tick across a vertical or horizontal
    rod at a fixed screen column, so turned into space they hung in a line a long way from the tilted
    rod they were meant to cut. The scene makes the cuts in space; these are not painted there. */
@@ -310,6 +342,11 @@
 .charge-diagram:hover .cd-help,.cd-svg:focus-within .cd-help{opacity:.95}
 .cd-svg .cd-help text{fill:var(--muted-foreground);font-size:calc(11px * var(--cd-k,1));font-weight:500;
  letter-spacing:.02em;paint-order:stroke;stroke:var(--diagram,#fff);stroke-width:4px;stroke-linejoin:round}
+/* On a phone or any touch screen the page scrolls under a finger, there are no arrow keys, and zoom is
+   the − and + under the figure: the one promise true there is the drag, set large enough to read. */
+.cd-narrow .cd-svg .cd-help text{font-size:calc(13.5px * var(--cd-k,1))}
+.cd-narrow .cd-help-more{display:none}
+@media (pointer:coarse){.cd-help-more{display:none}}
 @media (prefers-reduced-motion:reduce){.cd-help{transition:none}}
 
 
@@ -487,7 +524,7 @@
 /* P DURING THE RUN. The arrows at P are the subject then, and the resting halo -- sixteen pixels
    of filled white with a glow round it -- swallowed the angle marks and the first stretch of every
    arrow leaving P. While the run plays it is a hairline ring just round the dot. */
-.cd-building .cd-point-halo{fill:none;stroke-width:1.2;stroke-opacity:.8}
+.cd-building .cd-point-halo{fill:none;stroke-width:1.2;stroke-opacity:0}
 /* A limit lying off the page: an arrowhead on the frame's edge, pointing on toward it. */
 .cd-bound.is-edge path{fill:var(--field,#0b6b63);stroke:var(--diagram,#ffffff);stroke-width:1.5;stroke-linejoin:round}
 .cd-focus-bounds .cd-bound.is-edge path{fill:var(--term-bounds)}
@@ -495,11 +532,15 @@
 .dark .cd-svg .cd-dimension text,.dark .cd-svg .cd-end,.dark .cd-svg .cd-axes text,.dark .cd-svg .cd-origin,.dark .cd-triangle text{paint-order:stroke;stroke:var(--diagram);stroke-width:4px;stroke-linejoin:round}
 /* The ramp's rod is an outline, crisp like every other rod's: its density is shown by its pieces' fill
    alone. It used to be a 17px translucent band, a blur round the very thing being read. */
-.cd-source-rod.is-ramp{fill:none}
+/* ...filled with the ground, though: hollow, the y axis ran down its middle at every stage. */
+.cd-source-rod.is-ramp{fill:var(--diagram,#fff)}
 
 /* A ghost of a part that has cancelled: the stroke is drawn faintly by the figure, and its name is
    muted with it -- there, so a still frame says what went, and plainly gone. */
-.cd-svg .cd-vector-label.is-muted{opacity:.6}
+.cd-svg .cd-vector-label.is-muted{opacity:.55}
+/* The mirror's surviving part is the flat figure's own; in space while the run plays the scene draws the
+   arrows as bodies, and a flat copy laid over them would be a second drawing of the same thing. */
+.cd-in-space.cd-building .cd-partner-keep{opacity:0!important}
 /* The triangle's right angle is a mark, not a construction line: solid, so its eight pixels read. */
 .cd-triangle .cd-right-angle{stroke-dasharray:none;stroke-width:1.4}
 /* The distance from a piece to P on the rod seen along its axis: a dimension in the distance's own
@@ -517,3 +558,15 @@
 .cd-narrow .cd-triangle-note{display:none}
 .cd-svg .cd-dimension .cd-extension{stroke-width:1;stroke-dasharray:2 2}
 .cd-point-leader{stroke:var(--cd-ink);stroke-width:1.1;opacity:.55;pointer-events:none}
+/* Dark mode: the ring's band, translucent orange on navy, came out a muddy brown, and its unlit pieces
+   all but vanished into it -- the charge, the figure's subject, was the faintest thing in it. */
+.dark .cd-charge-base{stroke-opacity:.4}
+.dark .cd-surface-kind .cd-piece:not(.is-selected) path{stroke:color-mix(in oklab,var(--charge) 82%,#fff)}
+/* The chosen piece's own length, bracketed beside it on the side away from P: the charge's colour, since
+   it is the piece's, and lit with the charge element when the board points there. */
+.cd-piece-length path{fill:none;stroke:color-mix(in oklab,var(--charge,#b8460f) 72%,var(--cd-ink));stroke-width:1.6}
+.cd-svg .cd-piece-length text{font-family:var(--font-display),Georgia,serif;font-style:italic;font-weight:600;font-size:calc(var(--cd-sym) * var(--cd-k,1));
+ fill:var(--charge,#b8460f);paint-order:stroke;stroke:var(--diagram,#fff);stroke-width:4px;stroke-linejoin:round}
+.cd-focus-element .cd-piece-length path{stroke:var(--term-element);stroke-width:2.4}
+.cd-building .cd-piece-length{animation:cd-fade .5s ease-out .2s both}
+@media (prefers-reduced-motion:reduce){.cd-building .cd-piece-length{animation:none}}

@@ -126,7 +126,9 @@ describe('α stands inside its angle, clear of the lines that make it', () => {
  }, 20000);
 });
 describe('the r bar\'s ticks stand clear of the arrows at P', () => {
- for (const id of ['bisector', 'endpoint', 'ramp', 'infinite', 'semi']) it(`${id}, What cancels`, async () => {
+ // On the rods and the line that never ends, What cancels letters the triangle's leg r instead of drawing
+ // the bar: see tests/figure-cancel.browser.test.tsx. The semi-infinite line keeps its bar.
+ for (const id of ['semi']) it(`${id}, What cancels`, async () => {
   const view = await openLesson(id);
   await stage(view, 3);
   const bar = svgOf(view).querySelector<SVGPathElement>('.cd-dimension[data-dim="distance"] path')!;

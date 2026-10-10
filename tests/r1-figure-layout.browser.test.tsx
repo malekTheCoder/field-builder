@@ -61,7 +61,8 @@ describe('one type scale for the symbols', () => {
   // In the display face's italic, not in the prose face the default rule sets.
   const style = getComputedStyle(view.container.querySelector('.cd-axes text')!);
   expect(style.fontStyle).toBe('italic');
-  expect(getComputedStyle(view.container.querySelector('.cd-origin')!).fontStyle).toBe('italic');
+  // The origin is the one letter set upright: in the italic serif its O was a narrow oval read as zero.
+  expect(getComputedStyle(view.container.querySelector('.cd-origin')!).fontStyle).toBe('normal');
  });
  it('the charge\'s marks are the charge\'s colour, and the ones on a filled piece are the ground\'s', async () => {
   const view = await openLesson('bisector');

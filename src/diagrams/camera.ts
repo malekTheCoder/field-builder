@@ -28,6 +28,16 @@ export const openingCamera = (geometry: string): CameraView => ({...(OPENING[geo
 /** Pixels per metre the ring, the disk and the sheet open at: the figure's `baseUnit` for the
  * three lessons drawn in perspective, before any zoom. */
 export const SURFACE_UNIT = 42;
+/** THE SAME, FITTED TO HOW HIGH P IS. At a fixed 42 per metre P rose 42·cos(pitch) units for every
+ * metre it was lifted, so at z = 4.5 the arrows the run draws up from P sat on the stage's title and
+ * at z = 6 P itself left the plot -- while the lower two thirds of the picture stood empty. Every
+ * other lesson fits its scale to what it has to show; these three now do too: SURFACE_UNIT while P,
+ * seen at `pitch`, stands no more than 125 units above O -- every height up to the default -- and
+ * below that in steps of five, so a drag rescales the picture now and then, not continuously. */
+export function surfaceUnit(height: number, pitch: number): number {
+  const fit = 125 / Math.max(.5, Math.abs(height) * Math.cos(pitch));
+  return fit >= SURFACE_UNIT ? SURFACE_UNIT : Math.max(18, Math.floor(fit / 5) * 5);
+}
 /** How far below P, on screen, the far edge of the sheet's chosen ring must stay. */
 export const SHEET_CLEARANCE = 24;
 /** WHICH RING OF THE SHEET TO TALK ABOUT: the largest one whose far edge, at the opening camera,
@@ -44,14 +54,14 @@ export const SHEET_CLEARANCE = 24;
  * angles from P, so a ring is an angle, and the angle whose far edge stays below P does not depend
  * on how far P is lifted -- only, a little, on the margin. At the default height and five pieces it
  * is the ring 18 to 36 degrees below P. */
-export function sheetPiece(count: number, height: number, unit = SURFACE_UNIT, view: CameraView = openingCamera('sheet'), clear = SHEET_CLEARANCE): number {
-  const n = Math.max(1, Math.round(count)), z = Math.abs(height);
-  const room = Math.cos(view.pitch) * z * unit - clear;
+export function sheetPiece(count: number, height: number, unit?: number, view: CameraView = openingCamera('sheet'), clear = SHEET_CLEARANCE): number {
+  const n = Math.max(1, Math.round(count)), z = Math.abs(height), scale = unit ?? surfaceUnit(height, view.pitch);
+  const room = Math.cos(view.pitch) * z * scale - clear;
   let best = 0;
   for (let i = 0; i < n; i++) {
     // The same cut the sampler makes: s = z tan(pi t / 2), held short of the right angle.
     const outer = z * Math.tan(Math.PI / 2 * Math.min(.999, (i + 1) / n));
-    if (Math.sin(view.pitch) * outer * unit <= room) best = i; else break;
+    if (Math.sin(view.pitch) * outer * scale <= room) best = i; else break;
   }
   return best;
 }

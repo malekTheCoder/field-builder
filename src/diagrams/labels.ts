@@ -45,6 +45,11 @@ export type Label={
  /** Where the label's centre has to stay: the side of an axis its arrow lies on, say. A name moved
   * across the axis reads as naming whatever is on the other side of it. */
  within?:readonly HalfPlane[];
+ /** Where a leader back to what it names would start, if it has to be placed past its reach. The leader
+  * is a stroke like any other: a spot whose leader would cross another name is not offered, and once it
+  * is drawn later names keep off it. A placer that knew only label boxes ran an angle's leader straight
+  * through r_i. */
+ from?:{x:number;y:number};
 };
 export const overlaps=(a:Box,b:Box,pad:number,padY=pad)=>
  a.x-pad<b.x+b.width+pad&&b.x-pad<a.x+a.width+pad&&a.y-padY<b.y+b.height+padY&&b.y-padY<a.y+a.height+padY;
@@ -193,13 +198,20 @@ export function placeLabels(labels:readonly Label[],options:PlaceOptions={}):Nud
   // Near before far across EVERY place the label may stand, not one place at a time: a name that fits
   // as it is on the far side of its arrow, or past its tip, is better than one pushed a long way off
   // its first spot -- pushed far enough, it ends up beside some other arrow.
-  const search=(rings:Nudge[],from:Box[])=>{
+  // The leader a far spot would need, clear of every name already placed by half the air between names.
+  const leaderClear=(moved:Box)=>{
+   const from=label.from;
+   if(!from)return true;
+   const seg={a:from,b:nearestOnBox(grow(moved,2,2),from)};
+   return !near.some(t=>t.label&&boxSegmentDistance(t.box,seg)<labelPad/2);
+  };
+  const search=(rings:Nudge[],from:Box[],onLeader=false)=>{
    for(const ring of byDistance(rings))for(const home of from){
     for(const nudge of ring){
      const moved=shift(home,nudge);
      if(frame&&!inside(moved,frame))continue;
      const at={dx:moved.x-label.box.x,dy:moved.y-label.box.y};
-     const ok=honest(moved);
+     const ok=honest(moved)&&(!onLeader||leaderClear(moved));
      if(ok&&free(moved,near)){best=at;return true;}
      // Remember the least-bad option in case nothing is free: a label half over another is
      // still better than one dropped off the edge of the picture. A spot by the wrong arrow is
@@ -221,10 +233,16 @@ export function placeLabels(labels:readonly Label[],options:PlaceOptions={}):Nud
   };
   placed=search(tries,homes);
   // A label it must keep, with nowhere free within reach: further out, on a leader back to it.
-  if(!placed&&capped&&label.keep&&far.length){const keepBest=best,keepCost=bestCost;placed=search(far,homes.slice(0,1));if(placed)leader=true;else{best=keepBest;bestCost=keepCost;}}
+  if(!placed&&capped&&label.keep&&far.length){const keepBest=best,keepCost=bestCost;placed=search(far,homes.slice(0,1),true);if(placed)leader=true;else{best=keepBest;bestCost=keepCost;}}
   if(!placed&&capped&&!label.keep){out.push({dx:0,dy:0,hidden:true});continue;}
   out.push(leader?{...best,leader:true}:best);
-  taken.push({box:shift(label.box,best),label:true});
+  const at=shift(label.box,best);
+  taken.push({box:at,label:true});
+  // Its leader, as a stroke the names after it keep off.
+  if(leader&&label.from){
+   const bounds=frame?{x:0,y:0,width:frame.width,height:frame.height}:{x:-1e5,y:-1e5,width:2e5,height:2e5};
+   for(const box of segmentBoxes(label.from,nearestOnBox(grow(at,2,2),label.from),3,bounds))taken.push({box,label:false});
+  }
  }
  return out;
 }
