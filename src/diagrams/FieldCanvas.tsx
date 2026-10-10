@@ -2,9 +2,9 @@
 import {useEffect,useMemo,useRef} from 'react';
 import type {ChargeSample} from '../distributions/types';
 import type {Vec} from '../symbolic/physics';
-import {covers,fieldLines,traceLimit,traceWindow,type Plane,type PlaneRect} from './fieldlines';
+import {covers,fieldLines,LINE_HEAD as HEAD,lineHeads,traceLimit,traceWindow,type Plane,type PlaneRect} from './fieldlines';
 import {coarsen} from './sampling';
-import {arrowLength,latticeArea,PLOT,vectorGrid,visibleArea} from './vectorfield';
+import {arrowLength,bodyFoot,latticeArea,PLOT,vectorGrid,visibleArea} from './vectorfield';
 import {meridianLines,spaceGrid,type Layout} from './field3d';
 import {SNAPSHOT_EVENT,type SnapshotDetail} from './snapshot';
 /** The field itself, under the construction drawing.
@@ -91,7 +91,12 @@ export function FieldCanvas({samples,project,frame,lines=15,mode='lines',reach=6
   const step=Math.min(reach,chargeSpan)*.05;
   // Enough steps to get there: a line covers about a step per step, and bends a little on the way.
   const opts={step,maxSteps:Math.min(1600,Math.max(420,Math.ceil(1.3*limit/step))),outerLimit:limit,seedLimit:reach*.95,...(tracedFor?{bounds:tracedFor}:{})};
-  const fresh=plane==='xz'?meridianLines(coarse,layout,lines,opts).map(line=>line.map(v=>({x:v.x,y:v.z}))):fieldLines(coarse,lines,opts);
+  // Each line is finished on the charge it comes from rather than an element spacing short of it,
+  // where the tracer has to stop; see `bodyFoot`.
+  // A side view of a surface starts its lines across the whole window, not only the field's reach:
+  // an infinite sheet's field fills the picture (see TraceOptions.seedSpan).
+  const seedSpan=plane==='xz'&&tracedFor?Math.max(Math.abs(tracedFor.x0),Math.abs(tracedFor.x1)):undefined;
+  const fresh=plane==='xz'?meridianLines(coarse,layout,lines,{...opts,root:{},seedSpan}).map(line=>line.map(v=>({x:v.x,y:v.z}))):fieldLines(coarse,lines,{...opts,root:bodyFoot(coarse,'wire')});
   TRACES.set(traceKey,fresh);
   for(const old of TRACES.keys()){if(TRACES.size<=TRACES_KEPT)break;TRACES.delete(old);}
   return fresh;
@@ -166,6 +171,11 @@ export function FieldCanvas({samples,project,frame,lines=15,mode='lines',reach=6
     ctx.restore();
     return;
    }
+   // The heads in the line's own ink, filled: a small arrowhead the way the line runs, which is the
+   // way the field points -- out of a positive charge, into a negative one. See `lineHeads`. They are
+   // gathered into one path and filled once, after the lines, so the canvas's own path holds only
+   // the lines.
+   const heads=new Path2D();
    for(const line of traced){
     const screen=line.map(p=>project(plane==='xz'?{x:p.x,y:0,z:p.y}:{x:p.x,y:p.y,z:0}));
     ctx.beginPath();
@@ -175,7 +185,14 @@ export function FieldCanvas({samples,project,frame,lines=15,mode='lines',reach=6
      if(drawing)ctx.lineTo(s.x,s.y);else{ctx.moveTo(s.x,s.y);drawing=true;}
     }
     ctx.stroke();
+    for(const h of lineHeads(screen,PLOT)){
+     const tipX=h.x+h.dx*HEAD.length/2,tipY=h.y+h.dy*HEAD.length/2,backX=h.x-h.dx*HEAD.length/2,backY=h.y-h.dy*HEAD.length/2;
+     heads.moveTo(tipX,tipY);
+     heads.lineTo(backX-h.dy*HEAD.half,backY+h.dx*HEAD.half);heads.lineTo(backX+h.dy*HEAD.half,backY-h.dx*HEAD.half);
+     heads.closePath();
+    }
    }
+   ctx.fillStyle=stroke;ctx.fill(heads);
    ctx.restore();
   };
   frameId=requestAnimationFrame(draw);
@@ -190,6 +207,7 @@ export function FieldCanvas({samples,project,frame,lines=15,mode='lines',reach=6
   host.addEventListener(SNAPSHOT_EVENT,snapshot);
   return ()=>{cancelAnimationFrame(frameId);observer.disconnect();host.removeEventListener(SNAPSHOT_EVENT,snapshot);};
  },[traced,arrows,mode,plane,project,frame.width,frame.height]);
- return <div ref={box} className={`cd-field-canvas ${className}`} aria-hidden="true"><canvas ref={canvas}/></div>;
+ // How finely the charge the field is traced from is cut, for the tests: see ChargeDiagram.
+ return <div ref={box} className={`cd-field-canvas ${className}`} aria-hidden="true" data-field-samples={samples.length}><canvas ref={canvas}/></div>;
 }
 export type {Plane};

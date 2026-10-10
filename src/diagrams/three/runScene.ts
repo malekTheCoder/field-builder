@@ -198,6 +198,34 @@ export function runScene(input:RunSceneInput):RunScene{
  }
  return {stage,kind,closed,pieces,tones,selected,partner,open,split,seams,filled,arrows,chain};
 }
+/** Whether the chain runs along the arrow it adds up to, so that drawn where it is it would vanish
+ * inside that arrow's shaft.
+ *
+ * Where every piece pushes along one line -- above a disk or a sheet, down the axis of a rod -- the
+ * head-to-tail chain is collinear with the net arrow, and in the scene it was laid exactly inside
+ * the net arrow's thicker shaft: Add them up showed one dark shaft with a few beads on it, read as
+ * ticks on the net arrow, on the very lessons that open in 3D. The flat figure moves such a chain
+ * to one side for that reason; the scene does the same, by this test. `net` is the net arrow when
+ * it is shown, which keeps the answer steady while the chain is still growing; otherwise the chain's
+ * own end stands in for it. Every link must lie within `degrees` of it, pointing the same way. */
+export function chainBeside(chain:readonly Vec[]|null|undefined,net:Vec|null|undefined,degrees=2):boolean{
+ if(!chain||chain.length<2)return false;
+ const first=chain[0],last=chain[chain.length-1];
+ const along=net&&Math.hypot(net.x,net.y,net.z)>1e-12?net:{x:last.x-first.x,y:last.y-first.y,z:last.z-first.z};
+ const n=Math.hypot(along.x,along.y,along.z);
+ if(!(n>1e-12))return false;
+ const sin=Math.sin(degrees*Math.PI/180);
+ let links=0;
+ for(let k=0;k+1<chain.length;k++){
+  const a=chain[k],b=chain[k+1],dx=b.x-a.x,dy=b.y-a.y,dz=b.z-a.z,l=Math.hypot(dx,dy,dz);
+  if(l<1e-12)continue;
+  const dot=(dx*along.x+dy*along.y+dz*along.z)/(l*n);
+  const cx=dy*along.z-dz*along.y,cy=dz*along.x-dx*along.z,cz=dx*along.y-dy*along.x;
+  if(dot<=0||Math.hypot(cx,cy,cz)/(l*n)>sin)return false;
+  links++;
+ }
+ return links>0;
+}
 /** What is left of one piece of a wire once it is cut.
  *
  * A cut is a gap in the wire, not a mark on it: the pieces come apart, which is what "cut it up"

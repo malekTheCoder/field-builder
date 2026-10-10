@@ -83,6 +83,45 @@ export function bodyDistance(samples:readonly ChargeSample[],layout:'wire'|'surf
   return pts.length===1?Math.hypot(x-pts[0][0],y-pts[0][1],z-pts[0][2]):best;
  };
 }
+/** The point of the charge ITSELF nearest a given point: the foot of the perpendicular onto the
+ * same body `bodyDistance` measures to -- a wire's padded polyline, a surface's padded annulus in
+ * z = 0. Null when there is no charge to be near.
+ *
+ * It is what a field line is finished with. A traced line has to stop about one element spacing
+ * short of the charge, because closer in the summed field is the field of the nearest lump rather
+ * than of the rod (see `localRadii`) -- and so every line used to begin in empty space, eleven to
+ * twenty-nine pixels beside the rod it comes from. Field lines begin on positive charge and end on
+ * negative charge. Within that last spacing the continuous body's field is radial to it, so the
+ * straight join to this point is the line, to about a degree. */
+export function bodyFoot(samples:readonly ChargeSample[],layout:'wire'|'surface'='wire'):(x:number,y:number,z:number)=>Vec|null{
+ if(!samples.length)return ()=>null;
+ if(layout==='surface'){
+  const radii=samples.map(s=>Math.abs(s.coordinate));
+  const lo=Math.min(...radii),hi=Math.max(...radii);
+  const pad=radii.length>1?(hi-lo)/(2*(radii.length-1)):0;
+  const inner=Math.max(0,lo-pad),outer=hi+pad;
+  return (x,y)=>{
+   const rho=Math.hypot(x,y),s=Math.min(outer,Math.max(inner,rho));
+   return rho>1e-12?{x:x*s/rho,y:y*s/rho,z:0}:{x:s,y:0,z:0};
+  };
+ }
+ const pts=samples.map(s=>[s.position.x,s.position.y,s.position.z] as [number,number,number]);
+ if(pts.length===1)return ()=>({x:pts[0][0],y:pts[0][1],z:pts[0][2]});
+ const half=(a:number[],b:number[]):[number,number,number]=>[a[0]+(a[0]-b[0])/2,a[1]+(a[1]-b[1])/2,a[2]+(a[2]-b[2])/2];
+ pts.unshift(half(pts[0],pts[1]));
+ pts.push(half(pts[pts.length-1],pts[pts.length-2]));
+ return (x,y,z)=>{
+  let best=Infinity,foot:Vec={x:pts[0][0],y:pts[0][1],z:pts[0][2]};
+  for(let i=0;i+1<pts.length;i++){
+   const a=pts[i],b=pts[i+1];
+   const dx=b[0]-a[0],dy=b[1]-a[1],dz=b[2]-a[2],len=dx*dx+dy*dy+dz*dz;
+   const t=len>0?Math.max(0,Math.min(1,((x-a[0])*dx+(y-a[1])*dy+(z-a[2])*dz)/len)):0;
+   const fx=a[0]+t*dx,fy=a[1]+t*dy,fz=a[2]+t*dz,d=Math.hypot(x-fx,y-fy,z-fz);
+   if(d<best){best=d;foot={x:fx,y:fy,z:fz};}
+  }
+  return foot;
+ };
+}
 /** Field samples on a lattice, with a weight for how strong each one is relative to the
  * rest of the picture.
  *

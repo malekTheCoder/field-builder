@@ -77,6 +77,13 @@ export type TraceOptions={
   * one drawn line width, the distance below which two lines are the same stroke on screen
   * and the second carries no information the first did not. Culling redundancy, not density. */
  crowd?:number; drawn?:ReturnType<typeof drawnPoints>;
+ /** Finish every line on the charge it comes from: where a half of a line stopped because it had
+  * ARRIVED at the charge, the line is carried on, straight, to this point of the body (see
+  * `bodyFoot`). Only the drawing asks for it. The tracer stops an element spacing short for a
+  * reason that still holds -- the summed field there is a lump's -- so the traced polyline is left
+  * exactly as the field gives it, and the join is added after, by the one function that knows
+  * which ends arrived. */
+ root?:(x:number,y:number,z:number)=>{x:number;y:number;z:number}|null;
 };
 /** A rectangle of the plane, in world metres: the window the figure shows, or one a trace was made for. */
 export type PlaneRect={x0:number;y0:number;x1:number;y1:number};
@@ -130,6 +137,12 @@ export function localRadii(samples:readonly ChargeSample[],floor=ARRIVED):number
 /** One streamline, stepped by RK4 on the unit field direction so the arc length per step is
  * honest and the curve does not drift wide on tight bends the way Euler does. */
 export function traceLine(samples:readonly ChargeSample[],start:Plane,options:TraceOptions={}):Plane[]{
+ return trace(samples,start,options).path;
+}
+/** The same walk, saying also whether it ended by arriving at the charge -- as opposed to leaving
+ * the picture, running into a line already drawn, or running out of steps. Only an arrival is
+ * finished on the body. */
+function trace(samples:readonly ChargeSample[],start:Plane,options:TraceOptions):{path:Plane[];arrived:boolean}{
  const step=options.step??.06,maxSteps=options.maxSteps??900,outer=options.outerLimit??40,sign=options.sign??1,arrive=options.arrive??ARRIVED;
  // Each element stops a line at ITS OWN spacing, not at one radius shared by all of them.
  //
@@ -164,10 +177,10 @@ export function traceLine(samples:readonly ChargeSample[],start:Plane,options:Tr
    // line a final chord that hooks: 41 degrees of turn on the bisector, against 0.15
    // for every chord before it. The line stops one step short instead.
    if(path.length>1)path.pop();
-   break;
+   return {path,arrived:true};
   }
  }
- return path;
+ return {path,arrived:false};
 }
 /** Where to start the lines, and the reason the picture means anything.
  *
@@ -264,10 +277,70 @@ export function fieldLines(samples:readonly ChargeSample[],count:number,options:
  const drawn=drawnPoints(Math.max(crowd,1e-6));
  const lines:Plane[][]=[];
  for(const seed of starts){
-  const along=traceLine(samples,seed,{...options,arrive,radii,crowd,drawn,sign:1});
-  const against=traceLine(samples,seed,{...options,arrive,radii,crowd,drawn,sign:-1});
-  const line=[...against.slice(1).reverse(),...along];
-  if(line.length>3){lines.push(line);for(const q of line)drawn.add(q);}
+  const along=trace(samples,seed,{...options,arrive,radii,crowd,drawn,sign:1});
+  const against=trace(samples,seed,{...options,arrive,radii,crowd,drawn,sign:-1});
+  const line=[...against.path.slice(1).reverse(),...along.path];
+  if(line.length<=3)continue;
+  for(const q of line)drawn.add(q);
+  // Joined after the line is booked as drawn, so a root never stops a neighbour short of the charge.
+  const root=options.root;
+  if(root){
+   const foot=(q:Plane)=>{const f=root(q.x,q.y,0);return f?{x:f.x,y:f.y}:null;};
+   const head=against.arrived?foot(line[0]):null,tail=along.arrived?foot(line[line.length-1]):null;
+   if(head&&Math.hypot(head.x-line[0].x,head.y-line[0].y)>1e-9)line.unshift(head);
+   if(tail&&Math.hypot(tail.x-line[line.length-1].x,tail.y-line[line.length-1].y)>1e-9)line.push(tail);
+  }
+  lines.push(line);
  }
  return lines;
+}
+/** WHICH WAY THE FIELD GOES, on the line itself.
+ *
+ * Every line is ordered along E (see `fieldLines`), but nothing on the page said so: a field line
+ * with no arrowhead is only a curve, and flipping the charge negative left every line exactly as it
+ * was -- only the arrow at P turned round. A textbook never draws field lines without their
+ * direction, away from positive charge and into negative, and on the infinite line and the sheet a
+ * bare straight line through the charge is the textbook picture of a uniform EXTERNAL field, the
+ * opposite of what those lessons are about.
+ *
+ * So each line carries a small head pointing the way the polyline runs. Where they go is decided on
+ * the screen, by the part of the line the reader can actually see inside `rect`: one at the middle
+ * of that part, and one more for every `every` units of it, spread evenly, so a long line is marked
+ * along its length and a line that merely clips a corner of the window gets none (under `least`).
+ * Returns, for each head, the segment it sits on, how far along it, and the screen position and unit
+ * direction there. */
+export type LineHead={segment:number;t:number;x:number;y:number;dx:number;dy:number};
+/** A field line's arrowhead in units of the figure's viewBox: as long as the flat arrows' barbs and
+ * narrower than it is long, so it reads as a direction rather than as a dot on the line. The flat
+ * canvas and the scene draw the same head. */
+export const LINE_HEAD={length:6.5,half:2.6} as const;
+export function lineHeads(screen:readonly {x:number;y:number}[],rect:{x:number;y:number;width:number;height:number},every=180,least=28,margin=6):LineHead[]{
+ const x0=rect.x+margin,x1=rect.x+rect.width-margin,y0=rect.y+margin,y1=rect.y+rect.height-margin;
+ // The part of each segment inside the window, as a range of t (Liang and Barsky): a straight line
+ // may be one segment from the charge to far past the edge, and only its visible stretch counts.
+ const parts:{t0:number;t1:number;l:number}[]=[];let total=0;
+ for(let i=0;i+1<screen.length;i++){
+  const a=screen[i],b=screen[i+1],dx=b.x-a.x,dy=b.y-a.y,l=Math.hypot(dx,dy);
+  let t0=0,t1=1;
+  if(![a.x,a.y,b.x,b.y].every(Number.isFinite)||!(l>0))t1=-1;
+  else for(const [p,q] of [[-dx,a.x-x0],[dx,x1-a.x],[-dy,a.y-y0],[dy,y1-a.y]]){
+   if(p===0){if(q<0){t1=-1;break;}continue;}
+   const r=q/p;
+   if(p<0){if(r>t0)t0=r;}else if(r<t1)t1=r;
+  }
+  const seen=t1>t0?(t1-t0)*l:0;
+  parts.push({t0,t1,l:seen});total+=seen;
+ }
+ if(!(total>=least))return [];
+ const count=Math.max(1,Math.round(total/every)),heads:LineHead[]=[];
+ let i=0,before=0;
+ for(let j=0;j<count;j++){
+  const want=total*(j+.5)/count;
+  while(i<parts.length-1&&before+parts[i].l<want){before+=parts[i].l;i++;}
+  const part=parts[i];if(!(part.l>0))continue;
+  const a=screen[i],b=screen[i+1],full=Math.hypot(b.x-a.x,b.y-a.y);
+  const t=Math.min(part.t1,Math.max(part.t0,part.t0+(want-before)/full));
+  heads.push({segment:i,t,x:a.x+(b.x-a.x)*t,y:a.y+(b.y-a.y)*t,dx:(b.x-a.x)/full,dy:(b.y-a.y)/full});
+ }
+ return heads;
 }

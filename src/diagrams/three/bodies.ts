@@ -33,6 +33,11 @@ export function bodyReach(kind:BodyKind,radius:number,frameWorld:number):number{
  * it is drawn. The ramp begins inside the frame on purpose: a surface that only faded out
  * past the edge of the picture would still read as a slab filling it. */
 export const SHEET_FADE={inner:.22,outer:.8};
+/** The sheet's field lines in space (see `sheetRoots`): this many on each face, rooted over a disc
+ * this fraction of the picture's width in metres -- far enough out that the field fills the window,
+ * and dimmed with the plane on its far side, so a line rising from where the plane has faded to a
+ * trace is a trace too rather than a line beginning in mid-air. */
+export const SHEET_LINES={count:22,radius:.45};
 /** A smooth 1 → 0 ramp -- solid up to `inner`, gone by `outer`.
  *
  * Every edge the scene cannot honestly draw uses this one curve: the sheet, the ground grid
@@ -93,3 +98,25 @@ export function wirePath(samples:readonly ChargeSample[],limit=160):{x:number;y:
 /** Wire thickness in world units. Thin enough to read as a line of charge, thick enough to
  * take a highlight — and growing a little with the scene so it does not vanish on a big one. */
 export const wireRadius=(reach:number)=>.036+.008*Math.min(3,reach/2);
+/** Whether a body is drawn writing depth. A wire is a solid tube. A disk and a sheet are translucent,
+ * and a translucent surface that writes depth deletes whatever lies behind it instead of tinting it:
+ * the sheet hid every arrow and every line of the half-space under it, so its field -- away from
+ * the sheet on BOTH sides -- was drawn on one side only. */
+export const writesDepth=(kind:BodyKind)=>kind==='wire';
+/** An arrowhead's length and half-width, in metres, for an arrow `length` long with a shaft `thick`
+ * in radius, where `px` metres is one unit of the figure's viewBox. At least seven shaft radii and
+ * nine units of the figure long, so it reads at any zoom; never more than .45 of its arrow; and at
+ * least half again as long as it is wide. The heads were cones about as long as they were wide, and
+ * an arrow lying in the plane, seen from above, ended in a dot. */
+export function arrowHead(length:number,thick:number,px:number):{length:number;half:number}{
+ const l=Math.min(length*.45,Math.max(thick*7,9*px));
+ return {length:l,half:Math.min(thick*2.2,l*.32)};
+}
+/** How strongly each point of a field line is drawn: full near the charge, fading out by a little
+ * past the field's reach -- measured from the CHARGE, not from O. From O, the field of an infinite
+ * line was drawn weaker along the line, which its symmetry forbids, and the axial rod's field was
+ * faded round P and full at the rod's far end. `away` is the distance to the charge's body. */
+export function lineStrength(away:number,reach:number):number{
+ const far=Math.min(1,Math.max(0,(away-reach*.25)/(reach*1.1)));
+ return 1-far*far;
+}

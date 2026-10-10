@@ -323,13 +323,14 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
   // drawn with a hole around it.
   //
   // That lumpiness is an artifact of a change of variable made for integrating, not a feature of
-  // the charge. So on those three the field is traced from a partition fine enough to BE the
-  // geometry, while the pieces, the marks and the integral all stay at the reader's own N.
+  // the charge. So the field is traced from a partition fine enough to BE the geometry, while the
+  // pieces, the marks and the integral all stay at the reader's own N.
   //
-  // Only on those three. Everywhere else a bounded partition IS the charge at any N, and the
-  // field of what you are summing is the honest thing to draw -- refine a rod and the field
-  // barely moves; refine an infinite line and it stops being five lumps.
-  const fieldSamples = useMemo(() => UNBOUNDED.has(id) ? sampleDistribution(id, shape, Math.max(n, 400)) : samples, [id, shape, n, samples]);
+  // On every lesson, not only those three. A bounded partition at small N is lumpy too: a ring cut
+  // into five drew the field of five point charges, not one of its lines reaching the ring, two
+  // of them floating with both ends in empty space, and a closed arc showed almost no field. Ninety-
+  // six pieces is the ring to well within a line's width; the tracers coarsen it to their budgets.
+  const fieldSamples = useMemo(() => sampleDistribution(id, shape, Math.max(n, UNBOUNDED.has(id) ? 400 : 96)), [id, shape, n]);
   // WHILE THE RUN SHRINKS THE PIECES, the flat field is traced from the charge as that stage will
   // leave it -- cut as finely as it ends up cut -- rather than as it happens to be cut at this
   // moment. The stage doubles the pieces five or six times as it plays, and every doubling handed
@@ -1820,7 +1821,7 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
     <div ref={stageBox} className="cd-stage">
     {!inSpace && !scalar && fieldView !== 'off' && <FieldCanvas samples={canvasSamples} detail={UNBOUNDED.has(id) ? 192 : 64} project={project} frame={{ width: 720, height: 430 }} mode={fieldView} reach={Math.max(2.5, p.distance * 1.7, p.size)}
       plane={perspective ? 'xz' : 'xy'} layout={surface ? 'surface' : 'wire'} />}
-    {inSpace && <FieldStage quiet={!!building} kind={id === 'disk' ? 'disk' : id === 'sheet' ? 'sheet' : 'wire'} closed={id === 'ring'} samples={fieldSamples} detail={UNBOUNDED.has(id) ? 144 : 48} selected={selectedIndex}
+    {inSpace && <FieldStage quiet={!!building} kind={id === 'disk' ? 'disk' : id === 'sheet' ? 'sheet' : 'wire'} closed={id === 'ring'} samples={UNBOUNDED.has(id) ? fieldSamples : samples} fieldSamples={fieldSamples} detail={UNBOUNDED.has(id) ? 144 : 48} selected={selectedIndex}
       radius={R} distance={p.distance} yaw={view.yaw} pitch={view.pitch} fieldView={scalar ? 'off' : fieldView} reach={fieldReach}
       bodyPath={bodyPath} point={pWorld} element={sceneElement} net={netShown ? scaleVec(displayed, gain / unit) : null} contribution={handOver ? scaleVec(handOver.field, handOver.multiplier * gain / unit) : scalar || !showContribution || mode === 'sum' || building === 'limit' ? null : scaleVec(sample.field, selectedGain * gain / unit)}
       unit={unit} frame={{ width: 720, height: 430 }} origin={O} charge={p.charge} animating={moving}

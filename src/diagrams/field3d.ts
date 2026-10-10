@@ -1,7 +1,7 @@
 import {K} from '../distributions/constants';
 import type {ChargeSample} from '../distributions/types';
 import type {Vec} from '../symbolic/physics';
-import {bodyDistance,logWeights} from './vectorfield';
+import {bodyDistance,bodyFoot,logWeights} from './vectorfield';
 import {localRadii} from './fieldlines';
 /** The field in space, for the 3D view.
  *
@@ -125,10 +125,26 @@ export type TraceOptions={step?:number;maxSteps?:number;outerLimit?:number;sign?
  /** Jobard and Lefer's dtest rule, and only that rule — their even seeding would destroy
   * density meaning field strength. About one drawn line width: below it two lines are the
   * same stroke and the second says nothing the first did not. */
- crowd?:number; drawn?:ReturnType<typeof drawnPoints>};
+ crowd?:number; drawn?:ReturnType<typeof drawnPoints>;
+ /** Finish every line on the charge, as the flat tracer's `root` does: where a half of a line
+  * arrived, it is carried on straight to the body, stopping `inset` short of it -- a wire's tube is
+  * drawn with a radius, and a line that ran on to the axis inside it would be hidden in the last
+  * stretch anyway. A surface is a plane with no thickness, so its lines run onto it. */
+ root?:{inset?:number};
+ /** How far out along a surface a SIDE VIEW's lines may start, when that is not `seedLimit`: the
+  * half-width of the window the side view shows. A disk's rings all lie inside it anyway; an
+  * infinite sheet's go on past it, and its lines must fill the window its field fills -- seeded only
+  * to the field's reach they stopped a hundred pixels short of either edge, a uniform field with
+  * empty margins. The number of lines grows with the distance, so their spacing does not. */
+ seedSpan?:number};
 /** One streamline in space, RK4 on the unit field direction so each step is one honest
  * increment of arc length; stops on leaving the picture or arriving at the charge. */
 export function traceLine3(samples:readonly ChargeSample[],start:Vec,options:TraceOptions={}):Vec[]{
+ return trace3(samples,start,options).path;
+}
+/** The walk, saying also whether it ended by arriving at the charge: on a wire, inside an element's
+ * stopping radius; on a surface, at its clearance above the face. */
+function trace3(samples:readonly ChargeSample[],start:Vec,options:TraceOptions):{path:Vec[];arrived:boolean}{
  const step=options.step??.06,maxSteps=options.maxSteps??600,outer=options.outerLimit??40,sign=options.sign??1,arrive=options.arrive??ARRIVED;
  // Each element stops a line at its own spacing; see localRadii in fieldlines.ts.
  const radii=options.radii??localRadii(samples,arrive);
@@ -161,7 +177,7 @@ export function traceLine3(samples:readonly ChargeSample[],start:Vec,options:Tra
     const from=clear(here.x,here.y,here.z),h=step*(from-clearance)/(from-to);
     const end=h>step*1e-3?advance(here,h):null;
     if(end)path.push(end);
-    break;
+    return {path,arrived:true};
    }
   }
   path.push(next);here=next;
@@ -177,10 +193,10 @@ export function traceLine3(samples:readonly ChargeSample[],start:Vec,options:Tra
    // line a final chord that hooks: 41 degrees of turn on the bisector, against 0.15
    // for every chord before it. The line stops one step short instead.
    if(path.length>1)path.pop();
-   break;
+   return {path,arrived:true};
   }
  }
- return path;
+ return {path,arrived:false};
 }
 /** How the charge is laid out, which decides where lines can start.
  * A wire is a rod, an arc or a ring: samples run along it. A surface is a disk or a sheet:
@@ -291,6 +307,38 @@ function stopping(samples:readonly ChargeSample[],layout:Layout,options:TraceOpt
  if(layout!=='surface')return {arrive,stops:{arrive,radii}};
  return {arrive,stops:{arrive,radii,clear:bodyDistance(samples,'surface'),clearance:Math.max(ARRIVED,step/2),field:fieldOf(samples,layout)}};
 }
+/** Trace both halves through every seed and join them, each line ordered along the field.
+ *
+ * Both halves are traced against the grid as it stood BEFORE this line, then added together:
+ * otherwise the second half stops against the first at the seed they share. Where a half arrived
+ * and the caller asked for roots, the line is then carried on to the body (see TraceOptions.root). */
+function throughSeeds(samples:readonly ChargeSample[],layout:Layout,seeds:readonly Vec[],options:TraceOptions,stops:TraceOptions,crowd:number):Vec[][]{
+ const drawn=drawnPoints(Math.max(crowd,1e-6));
+ const foot=options.root?bodyFoot(samples,layout):null,inset=options.root?.inset??0;
+ /** The point `inset` short of the body on the way from `q` to its foot, or null where `q` is
+  * already that close -- a line never doubles back to meet its own tube. */
+ const rootOf=(q:Vec):Vec|null=>{
+  const f=foot?.(q.x,q.y,q.z);if(!f)return null;
+  const d=Math.hypot(q.x-f.x,q.y-f.y,q.z-f.z);
+  if(!(d>inset+1e-9))return null;
+  const k=inset/d;return {x:f.x+(q.x-f.x)*k,y:f.y+(q.y-f.y)*k,z:f.z+(q.z-f.z)*k};
+ };
+ const lines:Vec[][]=[];
+ for(const seed of seeds){
+  const along=trace3(samples,seed,{...options,...stops,crowd,drawn,sign:1});
+  const against=trace3(samples,seed,{...options,...stops,crowd,drawn,sign:-1});
+  const line=[...against.path.slice(1).reverse(),...along.path];
+  if(line.length<=3)continue;
+  for(const q of line)drawn.add(q);
+  if(foot){
+   const head=against.arrived?rootOf(line[0]):null,tail=along.arrived?rootOf(line[line.length-1]):null;
+   if(head)line.unshift(head);
+   if(tail)line.push(tail);
+  }
+  lines.push(line);
+ }
+ return lines;
+}
 /** Full streamlines through every seed, each ordered along the field whichever way it runs. */
 export function spaceLines(samples:readonly ChargeSample[],layout:Layout,count:number,options:TraceOptions={}):Vec[][]{
  const {arrive,stops}=stopping(samples,layout,options);
@@ -300,18 +348,7 @@ export function spaceLines(samples:readonly ChargeSample[],layout:Layout,count:n
  // reaches 355 m -- so every line began outside the frame and was discarded on its first step.
  const span=options.seedLimit??options.outerLimit??reach;
  const seeds=spaceSeeds(samples,layout,count,Math.max(arrive*1.6,span*.06),4,options.seedLimit??options.outerLimit??Infinity);
- // Both halves are traced against the grid as it stood BEFORE this line, then added
- // together: otherwise the second half stops against the first at the seed they share.
- const crowd=options.crowd??span*.012;
- const drawn=drawnPoints(Math.max(crowd,1e-6));
- const lines:Vec[][]=[];
- for(const seed of seeds){
-  const along=traceLine3(samples,seed,{...options,...stops,crowd,drawn,sign:1});
-  const against=traceLine3(samples,seed,{...options,...stops,crowd,drawn,sign:-1});
-  const line=[...against.slice(1).reverse(),...along];
-  if(line.length>3){lines.push(line);for(const q of line)drawn.add(q);}
- }
- return lines;
+ return throughSeeds(samples,layout,seeds,options,stops,options.crowd??span*.012);
 }
 /** The side view of a ring, a disk or a sheet is a cut through the plane y = 0, and every
  * one of them is symmetric about its axis, so a line that starts in that plane stays in it.
@@ -336,26 +373,49 @@ export function meridianLines(samples:readonly ChargeSample[],layout:Layout,coun
    for(let k=0;k<around;k++){const a=2*Math.PI*(k+.5)/around;seeds.push({x:s.position.x+offset*Math.cos(a),y:0,z:offset*Math.sin(a)});}
   }
  }else{
-  const wanted=Math.max(1,Math.round(count/4));
-  const near=samples.filter(s=>Math.abs(s.coordinate)<=span);
+  const out=Math.max(span,options.seedSpan??span);
+  const near=samples.filter(s=>Math.abs(s.coordinate)<=out);
   const pool=near.length?near:samples.slice(0,Math.max(1,Math.ceil(samples.length/4)));
-  for(const i of chosen(pool,wanted)){
-   const r=Math.max(Math.abs(pool[i].coordinate),offset*.5);
+  // As many lines per metre of the cut as count/4 spread over the field's reach, never fewer.
+  const reached=Math.max(...pool.map(s=>Math.abs(s.coordinate)));
+  const wanted=Math.max(1,Math.round(count/4*Math.max(1,reached/span)));
+  for(const r0 of sliceRadii(pool,wanted)){
+   const r=Math.max(r0,offset*.5);
    for(const side of [1,-1])for(const sign of [1,-1])seeds.push({x:side*r,y:0,z:sign*offset});
   }
  }
- // Both halves are traced against the grid as it stood BEFORE this line, then added
- // together: otherwise the second half stops against the first at the seed they share.
- const crowd=options.crowd??span*.012;
- const drawn=drawnPoints(Math.max(crowd,1e-6));
- const lines:Vec[][]=[];
- for(const seed of seeds){
-  const along=traceLine3(samples,seed,{...options,...stops,crowd,drawn,sign:1});
-  const against=traceLine3(samples,seed,{...options,...stops,crowd,drawn,sign:-1});
-  const line=[...against.slice(1).reverse(),...along];
-  if(line.length>3){lines.push(line);for(const q of line)drawn.add(q);}
+ return throughSeeds(samples,layout,seeds,options,stops,options.crowd??span*.012);
+}
+/** Where a side view's lines leave a surface: at equal steps of CHARGE PER UNIT LENGTH OF THE CUT,
+ * sigma ds -- not of each annulus' charge.
+ *
+ * In space a ring at radius s carries charge in proportion to s ds, and seeding by it is right:
+ * lines per unit AREA follow the charge. A side view is a cut through the axis, and there the
+ * surface is a line; lines per unit LENGTH of it must follow sigma, or a uniform sheet is drawn
+ * with its lines crowding outward like the square root of the radius. That is what it was: the
+ * infinite sheet -- the lesson whose whole point is that its field is the same everywhere -- drawn
+ * with a 1.7 m hole over its axis and P, and the disk's lines bunched toward its rim.
+ *
+ * Each annulus is weighted by |dq|/s, and the seed is placed inside the band it stands for rather
+ * than on its middle, so a coarse partition still lands its seeds evenly. */
+export function sliceRadii(pool:readonly ChargeSample[],wanted:number):number[]{
+ const n=pool.length;
+ if(!n)return [];
+ const c=pool.map(s=>Math.abs(s.coordinate));
+ // The band each annulus stands for: halfway to its neighbours, the outer ones mirrored.
+ const lo=(i:number)=>i>0?(c[i-1]+c[i])/2:n>1?Math.max(0,c[0]-(c[1]-c[0])/2):0;
+ const hi=(i:number)=>i<n-1?(c[i]+c[i+1])/2:n>1?c[n-1]+(c[n-1]-c[n-2])/2:c[0];
+ const weights=pool.map((s,i)=>Math.abs(s.dq)/Math.max(c[i],(hi(i)-lo(i))/2,1e-9));
+ const total=weights.reduce((a,b)=>a+b,0);
+ if(!(total>0))return [];
+ const out:number[]=[];let index=0,carried=weights[0];
+ for(let j=0;j<wanted;j++){
+  const target=total*(j+.5)/wanted;
+  while(carried<target&&index<n-1){index+=1;carried+=weights[index];}
+  const frac=weights[index]>0?Math.min(1,Math.max(0,(target-(carried-weights[index]))/weights[index])):.5;
+  out.push(lo(index)+(hi(index)-lo(index))*frac);
  }
- return lines;
+ return out;
 }
 export type Arrow3={at:Vec;dir:Vec;magnitude:number;weight:number};
 /** A lattice of arrows through the volume, weighted on the same log scale as the flat view.
@@ -387,4 +447,47 @@ export function spaceGrid(samples:readonly ChargeSample[],extent:number,spacing:
  }
  const weights=logWeights(raw.map(a=>a.magnitude));
  return raw.map((a,i)=>({...a,weight:weights[i]}));
+}
+/** THE INFINITE SHEET'S FIELD IN SPACE, drawn as what it is: straight lines, square to the plane,
+ * equally dense everywhere, leaving both faces.
+ *
+ * It used to be traced like every other charge, from a few rings chosen by charge, at four
+ * azimuths each, and only out to a sphere about O. In the one lesson whose field is the same
+ * everywhere, lines began and ended in mid-air at random heights -- sources and sinks that do not
+ * exist -- and came in clumps ten pixels apart beside gaps of a hundred, when line density is meant
+ * to BE field strength. Gauss settles the field outright: sigma/2 epsilon_0, normal to the sheet, on
+ * both sides, at every distance; and the traced lines agree with it to under two per cent of their
+ * height (see the drawn-field truth tests). So nothing is traced. Each line leaves the plane at one
+ * of `roots` and runs `length` straight out, which is meant to be past every edge of the picture,
+ * and is ordered along the field: away from the sheet for positive charge, into it for negative. */
+export function sheetLines(roots:readonly {x:number;y:number}[],length:number,sign:number):Vec[][]{
+ const lines:Vec[][]=[];
+ for(const {x,y} of roots)for(const side of [1,-1]){
+  const root={x,y,z:0},end={x,y,z:side*length};
+  lines.push(sign>=0?[root,end]:[end,root]);
+ }
+ return lines;
+}
+/** Where the sheet's lines leave it: `count` points over a disc of `radius` about O, a sunflower --
+ * the golden angle round, the square root out -- which puts the same number of lines on every patch
+ * of the plane, as a uniform field has, with no rows for the camera to line up into clumps from
+ * whichever direction it is turned. A square lattice, seen at a slant, prints as clumped rows. */
+export function sheetRoots(radius:number,count:number):{x:number;y:number}[]{
+ const golden=Math.PI*(3-Math.sqrt(5)),roots:{x:number;y:number}[]=[];
+ for(let k=0;k<count;k++){
+  const r=radius*Math.sqrt((k+.5)/count),a=k*golden+.4;
+  roots.push({x:r*Math.cos(a),y:r*Math.sin(a)});
+ }
+ return roots;
+}
+/** THE ARROWS THE SCENE DRAWS: a readable subset of the lattice, not the whole cube. Six by six by
+ * six, each three to four times the length of a flat arrow, ran over the charge, P, the net arrow
+ * and the labels. The outer layer goes; what is left is the four by four by four nearest the charge,
+ * where the field has its shape, weighted again among themselves. Half a step off every plane, as
+ * the lattice always is, so a surface has as many arrows under it as over it. */
+export function latticeCore(samples:readonly ChargeSample[],reach:number,layout:Layout):Arrow3[]{
+ const spacing=reach/3;
+ const inner=spaceGrid(samples,reach,spacing,.14,undefined,layout).filter(a=>Math.max(Math.abs(a.at.x),Math.abs(a.at.y),Math.abs(a.at.z))<2*spacing);
+ const weights=logWeights(inner.map(a=>a.magnitude));
+ return inner.map((a,i)=>({...a,weight:weights[i]}));
 }
