@@ -91,7 +91,7 @@ describe('far limits are written in each lesson’s own symbols',()=>{
   }
  });
  it('the ring and the disk speak of z and R, the potentials of z or r',()=>{
-  for(const id of ['ring','disk'])expect(getProblem(id).limits.find(l=>l.mode==='far')!.formula,id).toBe(String.raw`z\gg R:\quad E_z\sim kQ/z^2`);
+  for(const id of ['ring','disk'])expect(getProblem(id).limits.find(l=>l.mode==='far')!.formula,id).toBe(String.raw`z\gg R:\quad E_z\sim\frac{kQ}{z^2}`);
   for(const id of ['v-ring','v-disk'])expect(getProblem(id).limits.find(l=>l.mode==='far')!.explanation,id).toMatch(/kQ\/z\b/);
   expect(getProblem('v-rod-bisector').limits.find(l=>l.mode==='far')!.explanation).toMatch(/kQ\/r\b/);
  });

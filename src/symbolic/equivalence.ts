@@ -138,12 +138,43 @@ function withoutLeadingMinus(node:MathNode):MathNode|null{
  * And a leading minus is set before the fraction, −kλ/r, as the lessons write it: mathjs puts it in
  * the numerator, \frac{-k\lambda}{r}, which no textbook prints and which sat beside the lesson's own
  * −\frac{k\lambda}{r} as a second way of writing one expression. Only a minus that leads the whole
- * expression is moved, so a product can never read as a difference. */
+ * expression is moved, so a product can never read as a difference.
+ *
+ * One symbol over a numeral is set with a slash, L/2 and φ/2, as every lesson writes it. Display
+ * style reaches only the outer fraction; one storey down TeX drops to text style, so the half rod's
+ * ln((L/2 + √((L/2)² + r²))/r) set its L/2 stacked at about seven pixels inside the numerator,
+ * directly above the next entry's stacked full-size L/2 -- unreadable projected, and two typesettings
+ * of one quantity, neither of them the lesson's. */
 export function confusionTex(input:string):string{
  let shown:string;
  try{const node=safeParse(input),bare=withoutLeadingMinus(node);shown=bare?'-'+texOf(bare):texOf(node);}
  catch{shown=String.raw`\text{Keep typing…}`;}
- return '\\displaystyle '+tight(shown).replace(/\^\{\\frac\{(-?\d+)\}\{(\d+)\}\}/g,'^{$1/$2}');
+ return '\\displaystyle '+slashHalves(tight(shown)).replace(/\^\{\\frac\{(-?\d+)\}\{(\d+)\}\}/g,'^{$1/$2}');
+}
+/** The brace-balanced group opening at tex[i]: its contents and the index just past its closing brace. */
+function braced(tex:string,i:number):[string,number]|null{
+ if(tex[i]!=='{')return null;
+ for(let j=i,depth=0;j<tex.length;j++){if(tex[j]==='{')depth++;else if(tex[j]==='}'&&--depth===0)return [tex.slice(i+1,j),j+1];}
+ return null;
+}
+/** One symbol: a letter, or a macro such as \varphi. */
+const ONE_SYMBOL=/^(?:[A-Za-z]|\\[A-Za-z]+)$/;
+/** \frac{X}{d}, X one symbol and d a numeral, written X/d wherever it sits. */
+function slashHalves(tex:string):string{
+ let out='',i=0;
+ while(i<tex.length){
+  if(tex.startsWith('\\frac',i)&&!/[A-Za-z]/.test(tex[i+5]??'')){
+   const top=braced(tex,i+5),bottom=top&&braced(tex,top[1]);
+   if(top&&bottom){
+    const [num,den]=[top[0].trim(),bottom[0].trim()];
+    out+=ONE_SYMBOL.test(num)&&/^\d+$/.test(den)?`${num}/${den}`:`\\frac{${slashHalves(top[0])}}{${slashHalves(bottom[0])}}`;
+    i=bottom[1];
+    continue;
+   }
+  }
+  out+=tex[i++];
+ }
+ return out;
 }
 /** Factors set as a textbook sets them: side by side. texOf puts a thin space at every product, so the
  * list printed "π s² ds", "2 π R ds" and "k R dQ" with a gap between each factor, beside a board and

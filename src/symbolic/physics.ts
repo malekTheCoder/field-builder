@@ -128,11 +128,17 @@ export function limitPlot(problem:Problem,limit:Limit):LimitPlot{
    return{kind:'ratio',y:`|E| ÷ ${g==='endpoint'?'semi-infinite':'infinite'}-line field`,axis:'rod length L, with λ fixed',from:'L ∼ r',to:'L ≫ r',line:g==='endpoint'?'semi-infinite line':'infinite line',...g==='infinite'?{solid:'A rod of length L',caption:'On the dashed line a rod’s field equals the infinite line’s. The curve settles onto it as L ≫ r.'}:{caption:settles(g==='endpoint'?'a semi-infinite line’s':'an infinite line’s','L ≫ r')}};
   // The ring's potential arrives level, the disk's still sloping: one caption said the same thing of
   // both, and so pointed at neither. The slope of V along the axis is minus the field there.
+  //
+  // THE SWEEP RUNS DOWN THE AXIS, AND THE AXIS SAYS SO. It is P walking down onto the centre, so z falls
+  // to the right; the ring's next tab, the peak, runs from the centre outward, with z rising. Under
+  // "height z above the centre" the same stretch of E_z was drawn falling on one tab and rising on the
+  // next, and the potentials' curves, climbing to the right, read as V growing with height -- the
+  // opposite of the truth. The axis now names the direction of the walk.
   case 'center':return scalar
-   ?{kind:'ratio',y:'|V| ÷ centre value',axis:'height z above the centre',from:'z ≈ R',to:'the centre',line:'centre value',caption:g==='disk'
+   ?{kind:'ratio',y:'|V| ÷ centre value',axis:'P coming down the axis to the centre',from:'z ≈ R',to:'the centre',line:'centre value',caption:g==='disk'
     ?'On the dashed line the exact potential equals its value at the centre. The curve arrives there finite and still sloping: just above a charged disk the field, minus V’s slope, is not zero.'
     :'On the dashed line the exact potential equals its value at the centre. The curve arrives there finite and level: its slope is minus the field along the axis, which is zero at the centre.'}
-   :{kind:'decay',y:'|E|, scaled',axis:'height z above the centre',from:'the peak',to:'the centre',line:'zero',caption:'From its peak the field falls to zero as P reaches the centre, where every element’s field lies in the ring’s plane and its partner opposite cancels it.'};
+   :{kind:'decay',y:'|E|, scaled',axis:'P coming down the axis to the centre',from:'the peak',to:'the centre',line:'zero',caption:'From its peak the field falls to zero as P reaches the centre, where every element’s field lies in the ring’s plane and its partner opposite cancels it.'};
   // V and its logarithm, not their ratio: ln(L/a) is zero at a = L, so the ratio came in from off the
   // top of the plot there, where nothing is singular, and settled on one as V ran off to infinity.
   // Drawn as themselves they both climb, and close up: V − kλ ln(L/a) = kλ ln((L + a)/L) → 0.

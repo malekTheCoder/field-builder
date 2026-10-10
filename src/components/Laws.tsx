@@ -18,7 +18,11 @@ import './laws.css';
 // Nor does every lesson start from Coulomb's field. The five potential lessons start from V = kQ/r,
 // the third row of this same page, and "every derivation starts by applying it" told their reader
 // that the law they were using was not the one their lesson began with.
-export const LAWS_LEDE='Every lesson here is the same three moves: a point charge’s law gives each piece of charge its field, or on the potential lessons its potential, a piece being a bit small enough to count as a point or a ring whose every bit is the same distance from P; superposition says the pieces add; shrinking the pieces turns that sum into an integral. Only the geometry changes.';
+//
+// One move to a sentence. Those two corrections had been folded into one sentence of seventy-five
+// words, two semicolons and two asides, which a projector's back row cannot parse; the tour opens
+// this page, so it is the first paragraph many readers meet.
+export const LAWS_LEDE='Every lesson makes the same three moves. Cut the charge into pieces, each small enough to count as a point, or a ring whose every bit is the same distance from P. A point charge’s law gives each piece its field (on the potential lessons, its potential), and superposition adds the pieces. Shrinking them turns the sum into an integral. Only the geometry changes.';
 type Law={id:string;name:string;tex:string;why:string;detail:string;more:string[]};
 const LAWS:Law[]=[
  {id:'coulomb',name:'Coulomb’s law',tex:String.raw`\mathbf E=\frac{kQ}{r^{2}}\,\hat{\mathbf r}`,

@@ -221,7 +221,7 @@ describe('the laws page says which law each lesson starts from',()=>{
   expect(laws).toMatch(/The potential lessons start from its scalar partner, V = kQ\/r/);
   const lede=/LAWS_LEDE='([^']*)'/.exec(laws)![1];
   expect(lede).not.toMatch(/Coulomb’s law gives the field of each piece/);
-  expect(lede).toMatch(/or on the potential lessons its potential/);
+  expect(lede).toMatch(/\(on the potential lessons, its potential\)/);
  });
 });
 describe('the potential subtitles promise only the axial field',()=>{

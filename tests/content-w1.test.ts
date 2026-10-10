@@ -227,10 +227,10 @@ describe('the laws page and the offline copy',()=>{
   const html=artifactHtml({title:v.title,subtitle:v.subtitle,setup:v.setup,integralTex:v.integralTex,results:resultLines(v),derived});
   expect(html).toMatch(/The field, by differentiating/);
   expect(html).toContain('<annotation encoding="application/x-tex">E_z=-\\frac{dV}{dz}');
-  expect(html).toMatch(/<p class="where">Throughout, <span class="katex"><math/);
+  expect(html).toMatch(/<p class="where">Here <span class="katex"><math/);
   expect(html).toContain('k=\\dfrac{1}{4\\pi\\varepsilon_0}');
   // No k anywhere in what the copy prints: no definition either.
   const bare=artifactHtml({title:'t',subtitle:'s',setup:'u',integralTex:String.raw`E_z=\frac{\sigma}{2\varepsilon_0}`,results:[String.raw`E_z=\frac{\sigma}{2\varepsilon_0}`]});
-  expect(bare).not.toMatch(/Throughout/);
+  expect(bare).not.toMatch(/class="where"/);
  });
 });

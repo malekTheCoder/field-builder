@@ -2,10 +2,13 @@ import katex from 'katex';
 import {snapshotLayer} from '../diagrams/snapshot';
 import {PLOT} from '../diagrams/vectorfield';
 import type {Problem} from '../problems/types';
-import {BISECTOR_UNFOLD,ENDPOINT_UNFOLD,INFINITE_UNFOLD} from '../workbench/derivation';
+import {ARC_UNFOLD,AXIAL_UNFOLD,BISECTOR_UNFOLD,DISK_UNFOLD,ENDPOINT_UNFOLD,INFINITE_UNFOLD,SEMI_UNFOLD} from '../workbench/derivation';
 
 /** One step of worked algebra: a sentence with its symbols written $…$, and the line it arrives at. */
 export type WorkedStep = {text: string; tex: string};
+
+/** One of a lesson's limiting cases, as the copy prints it: its title, its formula and why. */
+export type LessonCheck = {title: string; formula: string; explanation: string};
 
 export type LessonArtifact = {
   title: string;
@@ -24,6 +27,10 @@ export type LessonArtifact = {
   derived?: string[];
   /** The same, with its working, where the lesson has it: printed in place of `derived`. */
   back?: WorkedStep[];
+  /** The limiting cases the page's "Does the physics make sense?" walks through. */
+  checks?: LessonCheck[];
+  /** Where the lesson's physics is written up: a textbook section, a problem it is set as. */
+  sources?: {title: string; url: string}[];
   svg?: string;
 };
 
@@ -34,11 +41,20 @@ export type LessonArtifact = {
  * a first-year student cannot guess -- it showed the integral and then the result with nothing
  * between, while the page had every step behind "Unfold the integration".
  *
- * These are the steps the panel unfolds (EquationWorkbench builds the same list): on the bisector and
- * the rod level with an end, the substitution written out in full from the board's last line, then
- * the lesson's own steps from its evaluation; on the infinite line's angular route, kλ/r taken out
- * and ∫cos θ dθ = sin θ, then the evaluation. `algebra` is the route the panel derives on -- the
- * infinite line's finite-rod limit, when that is the route chosen. */
+ * These are the steps the panel unfolds: on the bisector and the rod level with an end, the
+ * substitution written out in full from the board's last line, then the lesson's own steps from its
+ * evaluation; on the infinite line's angular route, kλ/r taken out and ∫cos θ dθ = sin θ, then the
+ * evaluation; on the semi-infinite line, both components in the angle One piece set up; on the disk,
+ * the arc and the rod on its axis, the constant coming out, the power rule and the turned-round ends,
+ * then the lesson's last steps. `algebra` is the route the panel derives on -- the infinite line's
+ * finite-rod limit, when that is the route chosen.
+ *
+ * THE COPY PRINTED A DIFFERENT DERIVATION FROM THE PAGE. This list once carried only the first three
+ * of those branches, while EquationWorkbench built its own with all seven: the handout did the
+ * semi-infinite line's E_x by u = x² + r² and its E_y by x = r tan α -- the α to x to α route the panel
+ * had dropped -- printed "Sine is odd" where the arc's panel writes sin(−φ/2) = −sin(φ/2), and gave the
+ * disk three steps to the panel's six. A lecturer projecting the page and handing out the copy gave a
+ * class two routes. This is the one list; the panel is to read it rather than keep its own. */
 export function lessonWorking(p: Problem, algebra: Problem = p): {worked: WorkedStep[]; back: WorkedStep[]} {
   const original = algebra.steps.find(s => s.kind === 'integrate')?.worked ?? [];
   const g = p.geometry, scalar = p.quantity === 'V';
@@ -46,6 +62,11 @@ export function lessonWorking(p: Problem, algebra: Problem = p): {worked: Worked
     : g === 'bisector' ? [...BISECTOR_UNFOLD, ...original.slice(1)]
     : g === 'endpoint' ? [...ENDPOINT_UNFOLD, ...original.slice(1)]
     : algebra.id === 'infinite' && algebra.variable !== 'y' ? [...INFINITE_UNFOLD, ...original.slice(2)]
+    : g === 'semi' ? [...SEMI_UNFOLD, ...original.slice(-1)]
+    // The lesson's last steps with their terms in the board's order, R² + z², as the answer has them.
+    : g === 'disk' ? [...DISK_UNFOLD, ...original.slice(1).map(s => ({...s, tex: s.tex.replace(/z\^2\+R\^2/g, 'R^2+z^2')}))]
+    : g === 'arc' ? [...ARC_UNFOLD, ...original.slice(2)]
+    : g === 'axial' ? [...AXIAL_UNFOLD, ...original.slice(2)]
     : original;
   return {worked, back: algebra.steps.find(s => s.kind === 'gradient')?.worked ?? []};
 }
@@ -53,12 +74,19 @@ export function lessonWorking(p: Problem, algebra: Problem = p): {worked: Worked
 /** Everything the offline copy prints about a lesson, but its figure. The result is the lesson's own
  * one line per component: the panel splits the ramp's E_y and the disk's field over two rows to fit
  * a column under three hundred pixels wide, and on a page of seven hundred the split bracket hung
- * half its contents off to the right of the line above. */
+ * half its contents off to the right of the line above.
+ *
+ * The setup and the integral are the route's, as the working is: on the infinite line's finite-rod
+ * route the copy said "use y = r tan θ to sweep the whole line" and printed the θ integral, and then
+ * worked a rod of length L that neither had mentioned. The page's own references show the route's
+ * setup too. And the copy carries the lesson's limiting cases and its sources, which a handout is
+ * the place for: it had neither, so a student holding it could check nothing and look nothing up. */
 export function lessonArtifact(p: Problem, algebra: Problem = p): LessonArtifact {
   const {worked, back} = lessonWorking(p, algebra);
-  return {title: p.title, subtitle: p.subtitle, setup: p.setup, coordinate: p.coordinate, integralTex: p.integralTex,
-    secondaryIntegralTex: p.secondaryIntegralTex, results: [p.resultTex, ...(p.secondaryResultTex ? [p.secondaryResultTex] : [])],
-    worked, back, derived: back.slice(-1).map(w => w.tex)};
+  return {title: p.title, subtitle: p.subtitle, setup: algebra.setup, coordinate: p.coordinate, integralTex: algebra.integralTex,
+    secondaryIntegralTex: algebra.secondaryIntegralTex, results: [algebra.resultTex, ...(algebra.secondaryResultTex ? [algebra.secondaryResultTex] : [])],
+    worked, back, derived: back.slice(-1).map(w => w.tex),
+    checks: p.limits.map(l => ({title: l.title, formula: l.formula, explanation: l.explanation})), sources: p.sources};
 }
 
 /** Whether the TeX writes Coulomb's constant: once the macro names are gone, any k left is a symbol. */
@@ -140,9 +168,20 @@ export function artifactHtml(a: LessonArtifact) {
     ? `<h2>The field, by differentiating</h2>\n<div class="result">${a.derived.map(tex => mathml(tex)).join('\n')}</div>\n`
     : '';
   const working = a.worked?.length ? `<h2>Working</h2>\n${steps(a.worked)}\n` : '';
-  // The page writes "with k = 1/(4πε₀)" beside its result. The copy printed kQ/… with k never said.
-  const constant = [a.integralTex, a.secondaryIntegralTex ?? '', ...a.results, ...(a.derived ?? []), ...[...(a.worked ?? []), ...(a.back ?? [])].map(w => w.tex)].some(usesK)
-    ? `<p class="where">Throughout, ${mathml(String.raw`k=\dfrac{1}{4\pi\varepsilon_0}`, false)}.</p>\n`
+  // The page writes "with k = 1/(4πε₀)" beside its result. The copy printed kQ/… with k never said --
+  // and then, once it did say it, said it after the result, a page below the integral where k is
+  // first used. It is said where the reader first meets it, under the integral.
+  const constant = [a.integralTex, a.secondaryIntegralTex ?? '', ...a.results, ...(a.derived ?? []), ...[...(a.worked ?? []), ...(a.back ?? [])].map(w => w.tex), ...(a.checks ?? []).map(c => c.formula)].some(usesK)
+    ? `<p class="where">Here ${mathml(String.raw`k=\dfrac{1}{4\pi\varepsilon_0}`, false)}.</p>\n`
+    : '';
+  // What the page checks the answer against, and where the physics is written up. A handout without
+  // them gave a student nothing to test the result by and nowhere to read further.
+  const checks = a.checks?.length
+    ? `<h2>Checks</h2>\n${a.checks.map(c => `<div class="check"><h3>${escapeHtml(c.title)}</h3>\n${mathml(c.formula)}\n<p>${escapeHtml(c.explanation)}</p></div>`).join('\n')}\n`
+    : '';
+  // A printed link is only its words, so the address is printed under them.
+  const sources = a.sources?.length
+    ? `<h2>Sources</h2>\n<ul class="sources">${a.sources.map(s => `<li><a href="${escapeHtml(s.url)}">${escapeHtml(s.title)}</a><span class="url">${escapeHtml(s.url)}</span></li>`).join('\n')}</ul>\n`
     : '';
   // The maths names its faces. The generic `math` family did not reach one with a MATH table in
   // Chromium, so the display integral came out at text size and \left( \right) never grew: a
@@ -175,6 +214,13 @@ mtable[columnalign^="right left"] > mtr > mtd:nth-child(even) { text-align: left
 .nobr { white-space: nowrap; }
 .step p { margin: 14px 0 2px; }
 .where { margin-top: 12px; }
+h3 { font: 600 15px/1.3 system-ui, -apple-system, "Segoe UI", sans-serif; margin: 18px 0 2px; }
+.check { break-inside: avoid; }
+.check math[display="block"] { margin: 6px 0 8px; }
+.sources { margin: 0; padding-left: 20px; }
+.sources li { margin: 0 0 10px; }
+.sources a { color: #0e2333; }
+.url { display: block; color: #4a6274; font-size: 12px; overflow-wrap: anywhere; }
 footer { margin-top: 36px; padding-top: 12px; border-top: 1px solid #d8e1e7; color: #4a6274; font-size: 12px; }
 </style></head>
 <body><main>
@@ -186,9 +232,9 @@ ${figure}
 <p>${proseHtml(a.setup)}</p>
 <h2>${a.secondaryIntegralTex ? 'The integrals' : 'The integral'}</h2>
 ${mathml(a.integralTex)}
-${a.secondaryIntegralTex ? `${mathml(a.secondaryIntegralTex)}\n` : ''}${working}<h2>The result</h2>
+${a.secondaryIntegralTex ? `${mathml(a.secondaryIntegralTex)}\n` : ''}${constant}${working}<h2>The result</h2>
 <div class="result">${a.results.map(tex => mathml(tex)).join('\n')}</div>
-${derived}${constant}
+${derived}${checks}${sources}
 <footer>Saved from Field Builder. The equations are MathML, so this page needs no network to read or print.</footer>
 </main></body></html>`;
 }
