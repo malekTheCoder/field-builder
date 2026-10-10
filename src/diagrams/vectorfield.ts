@@ -122,6 +122,27 @@ export function bodyFoot(samples:readonly ChargeSample[],layout:'wire'|'surface'
   return foot;
  };
 }
+/** HOW CLOSE TO EACH ELEMENT ITS FIELD IS A LUMP'S: four fifths of the larger gap to its neighbours.
+ *
+ * The fixed guard of `TOO_CLOSE` is right where the pieces are centimetres apart, and wrong where a
+ * partition cut for integrating has made them metres apart: beside the semi-infinite line's far stretch
+ * at a small height, an arrow half a metre from the line -- well past the guard -- showed the field of
+ * the nearest lump, up to sixty degrees off the line's own. Within about a gap of a row of charges the
+ * field ripples with the row; at four fifths of one the drawn direction is within ten degrees. */
+export function lumpRadii(samples:readonly ChargeSample[]):number[]{
+ return samples.map((s,i)=>{
+  let gap=0;
+  for(const j of [i-1,i+1]){const o=samples[j];if(o)gap=Math.max(gap,Math.hypot(s.position.x-o.position.x,s.position.y-o.position.y,s.position.z-o.position.z));}
+  return .8*gap;
+ });
+}
+/** Whether a point is within the lump radius of the element NEAREST it: the far, metre-long pieces have
+ * radii of metres, and only matter to the points that are nearest them. */
+const lumpy=(samples:readonly ChargeSample[],radii:readonly number[],x:number,y:number,z:number)=>{
+ let best=Infinity,k=-1;
+ samples.forEach((s,i)=>{const d=Math.hypot(x-s.position.x,y-s.position.y,z-s.position.z);if(d<best){best=d;k=i;}});
+ return k>=0&&best<radii[k];
+};
 /** Field samples on a lattice, with a weight for how strong each one is relative to the
  * rest of the picture.
  *
@@ -132,11 +153,11 @@ export function bodyFoot(samples:readonly ChargeSample[],layout:'wire'|'surface'
  * absolute value, so the picture stays readable as the charge is changed. */
 export function vectorGrid(samples:readonly ChargeSample[],area:GridArea,spacing:number):Arrow[]{
  if(!(spacing>0)||!samples.length)return [];
- const clear=bodyDistance(samples,'wire');
+ const clear=bodyDistance(samples,'wire'),lumps=lumpRadii(samples);
  const raw:{at:Plane;dir:Plane;magnitude:number}[]=[];
  for(let x=area.x0;x<=area.x1+1e-9;x+=spacing)for(let y=area.y0;y<=area.y1+1e-9;y+=spacing){
   const at={x,y};
-  if(clear(x,y,0)<TOO_CLOSE)continue;
+  if(clear(x,y,0)<TOO_CLOSE||lumpy(samples,lumps,x,y,0))continue;
   const e=planeField(samples,at),magnitude=Math.hypot(e.x,e.y);
   if(!Number.isFinite(magnitude)||magnitude<=0)continue;
   raw.push({at,dir:{x:e.x/magnitude,y:e.y/magnitude},magnitude});

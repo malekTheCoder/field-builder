@@ -34,7 +34,14 @@ export type RunArrows={
  drop:Vec|null; dropFrom:Vec;
  /** The partner's whole arrow from P, and where its dropped part is laid from: P as well, for the
   * same reason, so the two sideways parts start together and shrink into P toward each other. */
- partner:Vec|null; partnerKeep:Vec|null; partnerDrop:Vec|null;
+ partner:Vec|null; partnerFrom:Vec|null; partnerDrop:Vec|null;
+ /** WHAT THE MIRROR PIECE KEEPS: the partner's surviving part, laid on the piece's own surviving part
+  * once the sideways parts have gone, tip to tail -- so the pair is seen to give twice the piece's
+  * part along the axis, which is what the board writes. Null where the stage does not resolve the
+  * arrow into parts, or there is no partner. It was never drawn in space: the scene ended What
+  * cancels showing one piece's part where the pair gives two, and the flat copy of it is hidden in
+  * space on the grounds that the scene draws the arrows. */
+ partnerSurvivor:Vec|null;
  /** How far the two dropped parts have cancelled, 0 to 1: they fade as they shrink. Zero where
   * nothing is cancelling. */
  cancelled:number;
@@ -75,6 +82,13 @@ export type RunScene={
   * the partition doubles to a hundred and sixty pieces, and past sixty-five the scene stops marking
   * the joins, so the chain arrives as the smooth curve the limit is, at a fixed cost. */
  chain:Vec[]|null;
+ /** Whether the chain is drawn beside the net arrow rather than along it, decided once for the whole
+  * stage from EVERY piece's field (see `chainBeside`) -- not from the links laid so far. With one
+  * link, or none of the net arrow shown yet, any chain is "collinear" with itself: the ring's first
+  * link was drawn ten units off P on a tie, and the whole chain jumped back onto P when the second
+  * arrived. Decided by the pieces, a ring, an off-axis rod or an arc is never beside, and a disk, a
+  * sheet or the rod seen along its axis is beside from its first link. */
+ chainBeside:boolean;
 };
 export type RunSceneInput={
  stage:string; kind:BodyKind; closed:boolean; n:number; selected:number;
@@ -178,7 +192,8 @@ export function runScene(input:RunSceneInput):RunScene{
   dropFrom:ORIGIN,
   drop:a.partner?scaled(a.drop,a.scale*(1-a.cancelled)):a.components?scaled(a.drop,a.scale):null,
   partner:a.partner?scaled(a.partner,a.scale):null,
-  partnerKeep:a.partner?ORIGIN:null,
+  partnerFrom:a.partner?ORIGIN:null,
+  partnerSurvivor:a.partner&&a.components?scaled(a.partnerKeep,a.scale):null,
   partnerDrop:a.partner?scaled(a.partnerDrop,a.scale*(1-a.cancelled)):null,
   cancelled:a.partner?a.cancelled:0,
  }:null;
@@ -196,7 +211,14 @@ export function runScene(input:RunSceneInput):RunScene{
   if(chain.length<2)chain=null;
   else if(stage==='limit')chain=resample(chain,LIMIT_CHAIN);
  }
- return {stage,kind,closed,pieces,tones,selected,partner,open,split,seams,filled,arrows,chain};
+ return {stage,kind,closed,pieces,tones,selected,partner,open,split,seams,filled,arrows,chain,chainBeside:!!chain&&fieldsCollinear(input.chain!.fields)};
+}
+/** Whether every piece's field points along the sum of them all, within `degrees`: the chain of the
+ * whole partition, laid head to tail, measured against the arrow it adds up to. */
+export function fieldsCollinear(fields:readonly Vec[],degrees=2):boolean{
+ const whole:Vec[]=[{x:0,y:0,z:0}];
+ for(const f of fields){const c=whole[whole.length-1];whole.push({x:c.x+f.x,y:c.y+f.y,z:c.z+f.z});}
+ return chainBeside(whole,whole[whole.length-1],degrees);
 }
 /** Whether the chain runs along the arrow it adds up to, so that drawn where it is it would vanish
  * inside that arrow's shaft.

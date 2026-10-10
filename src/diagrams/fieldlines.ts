@@ -63,6 +63,10 @@ export type TraceOptions={
   * three unbounded lessons, whose charge reaches hundreds of metres: a line may usefully run
   * a little past the frame, but one that BEGINS out there is drawn entirely off the picture. */
  seedLimit?:number;
+ /** Which of the charge lines may start FROM, as a distance from O, where that is not `seedLimit`:
+  * the part of an endless line the window shows (see `seedPool`). `seedLimit` still sets the
+  * picture's scale -- the launch offset and the crowding radius -- which the pool must not move. */
+ seedPool?:number;
  /** Stop once outside this rectangle: the window the figure shows, with a margin. A line that has
   * left the picture has nothing more to draw, and the circle `outerLimit` sets is the wrong shape for
   * a window twice as wide as it is tall -- lines heading for its near side ran on, unseen, for as far
@@ -238,6 +242,29 @@ export function chargeSeeds(samples:readonly ChargeSample[],count:number,offset:
  }
  return seeds;
 }
+/** WHERE THE LINES OF AN ENDLESS CHARGE START: along all of it that the window shows.
+ *
+ * Lines are seeded from the charge within `span` of O -- the field's reach, a little under -- and on
+ * a bounded lesson that is all of it. An infinite or semi-infinite line goes on past the window, and
+ * the part of it beyond the reach but still on the picture had no line leaving it at all: the semi-
+ * infinite line, drawn out to about nine and a half metres, had lines only from its first five, so the
+ * whole region beside the right half of the charge -- where its field is strongest, falling as 1/r --
+ * was drawn empty, and line density is what says how strong a field is. Zoomed out, the infinite line
+ * had empty bands beside it.
+ *
+ * So where the charge runs beyond the window, the pool is the window (`window`, as a distance from O),
+ * and the number of lines grows with the charge it now holds, so the lines per unit of charge -- and so
+ * the density that means strength -- are what they were. Capped, because a zoomed-out window is a lot
+ * of line to trace; past the cap the lines thin evenly rather than stopping. A bounded charge is left
+ * exactly as it was. */
+export function seedPool(samples:readonly ChargeSample[],count:number,span:number,window:number,most=4):{count:number;pool:number}{
+ const far=Math.max(0,...samples.map(s=>Math.hypot(s.position.x,s.position.y,s.position.z)));
+ if(!(window>span)||!(far>window))return {count,pool:span};
+ const within=(r:number)=>samples.reduce((q,s)=>Math.hypot(s.position.x,s.position.y,s.position.z)<=r?q+Math.abs(s.dq):q,0);
+ const before=within(span),after=within(window);
+ const grown=before>0?count*after/before:count;
+ return {count:Math.max(count,Math.min(count*most,Math.round(grown))),pool:window};
+}
 /** A circle enclosing everything. Kept as the fallback for layouts the tangent trick cannot
  * read, such as a single element with no neighbours to take a direction from. */
 export function seedRing(samples:readonly ChargeSample[],count:number):Plane[]{
@@ -266,7 +293,7 @@ export function fieldLines(samples:readonly ChargeSample[],count:number,options:
  const stride=options.step??span*.05;
  const radii=localRadii(samples,Math.max(ARRIVED,stride*.9));
  const arrive=Math.min(...radii);
- const seeded=chargeSeeds(samples,count,Math.max(arrive*1.6,span*.05),options.seedLimit??Infinity);
+ const seeded=chargeSeeds(samples,count,Math.max(arrive*1.6,span*.05),options.seedPool??options.seedLimit??Infinity);
  const starts=seeded.length?seeded:seedRing(samples,count);
  // About a drawn line width in world units. Both halves of one line are traced against the
  // grid as it stood BEFORE the line began, then added together: otherwise the second half

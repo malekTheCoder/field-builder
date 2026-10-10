@@ -1,15 +1,15 @@
 'use client';
-import {useEffect,useRef} from 'react';
+import {useEffect,useRef,useState} from 'react';
 import type {ChargeSample} from '../../distributions/types';
 import type {Vec} from '../../symbolic/physics';
 import {cameraBasis,cameraPosition,frameTarget,frustum,tickStep} from './orthoCamera';
-import {arrowHead,bodyReach,fadeOut,farAlpha,frameExtent,lineStrength,PIECE_FAR_LOW,SHEET_FADE,SHEET_LINES,sheetFarFade,surfaceOpacity,visibleRadii,wirePath,wireRadius,writesDepth,type BodyKind,type FarFade} from './bodies';
-import {latticeCore,sheetLines,sheetRoots,spaceLines,type Layout} from '../field3d';
-import {LINE_HEAD,lineHeads} from '../fieldlines';
+import {arrowHead,bodyReach,fadeOut,farAlpha,fillFade,frameExtent,lineStrength,pieceFade,SHEET_FADE,signMarks,tickGaps,SHEET_UNDER,sheetColumns,sheetFarFade,splitAtPlane,surfaceOpacity,visibleRadii,wirePath,wireRadius,writesDepth,type BodyKind,type FarFade} from './bodies';
+import {latticeCore,latticeFrame,sheetLines,spaceLines,traceTo,type Layout} from '../field3d';
+import {LINE_HEAD,lineHeads,seedPool} from '../fieldlines';
 import {coarsen} from '../sampling';
 import {arrowLength,bodyDistance,PLOT} from '../vectorfield';
 import {SNAPSHOT_EVENT,type SnapshotDetail} from '../snapshot';
-import {chainBeside,cutPiece,dropStyle,type RunScene} from './runScene';
+import {cutPiece,dropStyle,type RunScene} from './runScene';
 /** The 3D half of the figure: the charge as a real body with depth, and the field around it
  * in space, under the SVG that carries every label and every control.
  *
@@ -99,6 +99,12 @@ const pct=(v:number,of:number)=>`${(100*v/of).toFixed(3)}%`;
 export const STAGE_CLIP=`inset(${pct(PLOT.y,430)} ${pct(720-PLOT.x-PLOT.width,720)} ${pct(430-PLOT.y-PLOT.height,430)} ${pct(PLOT.x,720)} round ${pct(PLOT.radius,720)} / ${pct(PLOT.radius,430)})`;
 export function FieldStage(props:FieldStageProps){
  const host=useRef<HTMLDivElement>(null),live=useRef<Live|null>(null),latest=useRef(props);
+ // A SCENE THAT CANNOT START SAYS SO. The 3D layer is a chunk fetched on demand and a WebGL context, and
+ // either can fail: a chunk that does not arrive, a school machine whose GPU is blocklisted or whose
+ // acceleration a policy has turned off. Nothing caught it, and the ring, the disk and the sheet -- which
+ // open in space -- showed their labels floating over an empty figure, with an unhandled rejection and
+ // no word of why. Now the figure says the 3D view is unavailable here and that 2D still works.
+ const [failed,setFailed]=useState(false);
  useEffect(()=>{latest.current=props;live.current?.update(props);});
  useEffect(()=>{
   const mount=host.current;
@@ -108,7 +114,8 @@ export function FieldStage(props:FieldStageProps){
    const [THREE,{mergeGeometries},{LineSegments2},{LineSegmentsGeometry},{LineMaterial}]=await Promise.all([import('three'),import('three/examples/jsm/utils/BufferGeometryUtils.js'),
     import('three/examples/jsm/lines/LineSegments2.js'),import('three/examples/jsm/lines/LineSegmentsGeometry.js'),import('three/examples/jsm/lines/LineMaterial.js')]);
    if(cancelled||!host.current)return;
-   const renderer=new THREE.WebGLRenderer({antialias:true,alpha:true,powerPreference:'high-performance'});
+   // A stencil, for the translucent part of the field lines: see `once`.
+   const renderer=new THREE.WebGLRenderer({antialias:true,alpha:true,stencil:true,powerPreference:'high-performance'});
    renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));
    renderer.setClearAlpha(0);
    mount.appendChild(renderer.domElement);
@@ -154,10 +161,27 @@ export function FieldStage(props:FieldStageProps){
    const lineMaterial=new LineMaterial({color:0xffffff,linewidth:1.1,vertexColors:true,worldUnits:false});
    // The lattice of arrows, unlit and premixed for the same reasons, and in the flat arrows' ink: it
    // was lit slate grey, the colour the lines and the contribution arrows were both taken out of.
-   const arrowMaterial=new THREE.MeshBasicMaterial({color:0xffffff});
+   const arrowMaterial=new THREE.MeshBasicMaterial({color:0xffffff}),latticeHeadMaterial=new THREE.MeshBasicMaterial({color:0xffffff,side:THREE.DoubleSide});
    // Each field line's arrowhead: a flat triangle turned to face the camera about the line's own
    // direction, in the line's colour. See `lineHeads`.
    const lineHeadMaterial=new THREE.MeshBasicMaterial({vertexColors:true,side:THREE.DoubleSide});
+   // THE PART OF A LINE IN FRONT OF A SURFACE IS TRANSLUCENT INK (see `splitAtPlane`): its colour as it
+   // is, its strength as a per-vertex alpha patched into the line shader, laid after the surfaces so it
+   // is blended over whatever the disk, the sheet or the summed fill has made of the paper there. A
+   // stencil lets each pixel take that ink once -- the round caps of neighbouring steps overlap, and
+   // blended twice there the line read as dotted, which is why the lines were made opaque in the first
+   // place. The heads are drawn first under the same rule, so a line does not darken its own head.
+   const once=(m:InstanceType<typeof THREE.Material>)=>{
+    m.stencilWrite=true;m.stencilRef=1;m.stencilFunc=THREE.NotEqualStencilFunc;
+    m.stencilZPass=THREE.ReplaceStencilOp;m.stencilFail=THREE.KeepStencilOp;m.stencilZFail=THREE.KeepStencilOp;
+   };
+   const frontLineMaterial=new LineMaterial({color:0xffffff,linewidth:1.1,vertexColors:true,worldUnits:false,transparent:true,depthWrite:false});
+   frontLineMaterial.onBeforeCompile=shader=>{
+    shader.vertexShader=shader.vertexShader.replace('void main() {','attribute float instanceInkStart;\nattribute float instanceInkEnd;\nvarying float vInk;\nvoid main() {\n\tvInk = ( position.y < 0.5 ) ? instanceInkStart : instanceInkEnd;');
+    shader.fragmentShader=shader.fragmentShader.replace('void main() {','varying float vInk;\nvoid main() {').replace('gl_FragColor = vec4( diffuseColor.rgb, alpha );','gl_FragColor = vec4( diffuseColor.rgb, alpha * vInk );');
+   };
+   const frontHeadMaterial=new THREE.MeshBasicMaterial({vertexColors:true,side:THREE.DoubleSide,transparent:true,depthWrite:false});
+   once(frontLineMaterial);once(frontHeadMaterial);
    const body=new THREE.Group(),slices=new THREE.Group(),field=new THREE.Group(),marks=new THREE.Group();
    scene.add(body,slices,field,marks);
    // P is a small solid with a soft halo; the element is a brighter, thicker length of the
@@ -219,7 +243,12 @@ export function FieldStage(props:FieldStageProps){
      [new THREE.CylinderGeometry(ro,ro,half*2,segments,1,true).rotateX(Math.PI/2),1],
      [invert(new THREE.CylinderGeometry(ri,ri,half*2,segments,1,true).rotateX(Math.PI/2)),1],
     ];
-    for(const [g,alpha] of parts)fadeGeometry(g,fade?.inner??0,fade?.outer??0,alpha,far);
+    // Its walls are an outline, and on the sheet an outline goes entirely once it is behind P; its faces
+    // are a tint, and keep a trace. See `pieceFade`.
+    // A band wider than the picture is drawn as a light wash, and a wash behind P goes with the outline:
+    // the outermost ring's far face was a faint card edge arcing over P.
+    const wash=faceAlpha<.5;
+    parts.forEach(([g,alpha],i)=>fadeGeometry(g,fade?.inner??0,fade?.outer??0,alpha,far&&(i>1||wash)?pieceFade(far,'outline'):far));
     const merged=mergeGeometries(parts.map(([g])=>g));
     parts.forEach(([g])=>g.dispose());
     return merged??new THREE.BufferGeometry();
@@ -274,7 +303,7 @@ export function FieldStage(props:FieldStageProps){
    // Toward the camera and up the screen, kept current by `apply`; and the size of one unit of the
    // figure's viewBox in metres, so a head can be given a size on the screen.
    const toCamera=new THREE.Vector3(0,0,1),screenUp=new THREE.Vector3(0,1,0);
-   let px=.02;
+   let px=.02,cssPx=.02;
    const hx=new THREE.Vector3(),hz=new THREE.Vector3(),hm=new THREE.Matrix4();
    /** Stand a flat head along `u`, centred on `centre`, facing the camera as squarely as it can. An
     * arrow pointing straight at the camera has no direction on the screen, and its head goes edge on. */
@@ -387,7 +416,17 @@ export function FieldStage(props:FieldStageProps){
       .replace('#include <opaque_fragment>','#include <opaque_fragment>\n{vec2 fc=gl_FragCoord.xy;float e=clamp(min(min(fc.x-uEdgeRect.x,uEdgeRect.z-fc.x),min(fc.y-uEdgeRect.y,uEdgeRect.w-fc.y))/uEdgeFeather,0.,1.);gl_FragColor.a*=e*e*(3.-2.*e);}');
     };
    };
-   fadeAtEdges(sheetMaterial);fadeAtEdges(fillMaterial);
+   // And the chosen piece: the sheet's outermost ring reaches past every edge of the window, and its face
+   // painted the whole top of the picture out to the window's rounded corners.
+   fadeAtEdges(sheetMaterial);fadeAtEdges(fillMaterial);fadeAtEdges(elementMaterial);
+   /** The sheet's summed shading out to radius `r`: a disc faded by an ellipse about O (see `fillFade`),
+    * in the mesh's own frame, which is turned by the yaw so its +y is the camera's far direction. */
+   const fillGeometry=(r:number,wide:number,far:FarFade|null)=>{
+    const g=new THREE.RingGeometry(0,r,128,32),position=g.getAttribute('position') as Attribute,rgba=new Float32Array(position.count*4);
+    for(let i=0;i<position.count;i++){rgba[i*4]=rgba[i*4+1]=rgba[i*4+2]=1;rgba[i*4+3]=.42*(far?fillFade(position.getX(i),position.getY(i),wide,far):1);}
+    g.setAttribute('color',new THREE.BufferAttribute(rgba,4));
+    return g;
+   };
    // A surface's cuts, as the circles it is cut along.
    // Coloured per vertex so the sheet's far cuts can dim with the sheet they are cut in.
    const cutMaterial=new THREE.LineBasicMaterial({transparent:true,vertexColors:true}),growMaterial=new THREE.LineBasicMaterial({transparent:true,vertexColors:true});
@@ -396,10 +435,17 @@ export function FieldStage(props:FieldStageProps){
    // The mirror partner: the same material and weight as the chosen piece it answers.
    const partnerBody=new THREE.Mesh(new THREE.BufferGeometry(),elementMaterial);
    // The parts of one piece's arrow. The part that survives is solid, like the arrow it came from;
-   // the parts that go, and the partner's arrow, are dashed, as they are in the flat figure. The
-   // two parts that cancel have their own material, because they fade as they shrink.
-   const dashMaterial=new THREE.MeshBasicMaterial();
+   // the parts that go are dashed, as they are in the flat figure, and have their own material,
+   // because they fade as they shrink.
+   //
+   // THE MIRROR PIECE'S ARROW IS SOLID. It was dashed for the whole stage, in the same teal as the
+   // sideways parts that cancel -- the figure's mark for what goes -- so the scene said the mirror
+   // piece contributes nothing, while the board says its part along the axis adds. It is a whole
+   // contribution, of which only the sideways part goes: solid, in the flat figure's lighter tint for
+   // it (the contribution colour 52% of the way from the paper), and once the sideways parts have gone
+   // its own surviving part is laid on the piece's, tip to tail, fading in as the flat one does.
    const fadeMaterial=new THREE.MeshBasicMaterial({transparent:true,depthWrite:false});
+   const partnerMaterial=new THREE.MeshBasicMaterial(),partnerKeepMaterial=new THREE.MeshBasicMaterial({transparent:true,depthWrite:false});
    const DASHES=64,dashGeometry=new THREE.CylinderGeometry(1,1,1,8,1);
    const dashed=(material:InstanceType<typeof THREE.Material>)=>{
     const dashes=new THREE.InstancedMesh(dashGeometry,material,DASHES),head=new THREE.Mesh(flatHead,material),group=new THREE.Group();
@@ -410,7 +456,7 @@ export function FieldStage(props:FieldStageProps){
    };
    // The dropped part with nothing to cancel it survives, and is drawn as the survivor it is: a
    // second solid arrow, as thick as the kept part, in the same ink. See `dropStyle`.
-   const keepArrow=arrow(partMaterial),dropArrow=arrow(partMaterial),pairDropArrow=dashed(fadeMaterial),partnerArrow=dashed(dashMaterial),partnerDropArrow=dashed(fadeMaterial);
+   const keepArrow=arrow(partMaterial),dropArrow=arrow(partMaterial),pairDropArrow=dashed(fadeMaterial),partnerArrow=arrow(partnerMaterial),partnerKeepArrow=arrow(partnerKeepMaterial),partnerDropArrow=dashed(fadeMaterial);
    const dashM=new THREE.Matrix4(),dashP=new THREE.Vector3(),dashS=new THREE.Vector3();
    /** A dashed arrow: dashes along the shaft and a solid head, so it is plainly an arrow and
     * plainly not one of the solid ones. */
@@ -435,7 +481,7 @@ export function FieldStage(props:FieldStageProps){
    const LINKS=256,chainMaterial=new THREE.MeshBasicMaterial(),jointMaterial=new THREE.MeshBasicMaterial();
    const chainLinks=new THREE.InstancedMesh(dashGeometry,chainMaterial,LINKS),chainJoints=new THREE.InstancedMesh(new THREE.SphereGeometry(1,14,10),jointMaterial,LINKS);
    chainLinks.frustumCulled=false;chainJoints.frustumCulled=false;chainLinks.count=0;chainJoints.count=0;
-   marks.add(partnerBody,keepArrow.group,dropArrow.group,pairDropArrow.group,partnerArrow.group,partnerDropArrow.group,chainLinks,chainJoints);
+   marks.add(partnerBody,keepArrow.group,dropArrow.group,pairDropArrow.group,partnerArrow.group,partnerKeepArrow.group,partnerDropArrow.group,chainLinks,chainJoints);
    const linkA=new THREE.Vector3(),linkQ=new THREE.Quaternion(),one=new THREE.Vector3(1,1,1),aside=new THREE.Vector3(),across=new THREE.Vector3(),screenRight=new THREE.Vector3(1,0,0);
    /** One straight link of the chain, from a to b (offsets from P), drawn as a rod. */
    const link=(from:Vec,a:Vec,b:Vec,thick:number,at:number)=>{
@@ -446,12 +492,12 @@ export function FieldStage(props:FieldStageProps){
     dashM.compose(dashP,linkQ,dashS);chainLinks.setMatrixAt(at,dashM);
     return at+1;
    };
-   const layChain=(from:Vec,chain:readonly Vec[]|null,thick:number,net:Vec|null)=>{
-    // Moved to one side of the net arrow where it would lie inside it (see `chainBeside`): ten units
-    // of the figure, as the flat chain is moved -- right of an arrow standing up on the screen, above
-    // one lying across it -- and tied back to P by a hairline, so it still visibly starts there.
+   const layChain=(from:Vec,chain:readonly Vec[]|null,thick:number,net:Vec|null,beside:boolean)=>{
+    // Moved to one side of the net arrow where it would lie inside it (see `RunScene.chainBeside`): ten
+    // units of the figure, as the flat chain is moved -- right of an arrow standing up on the screen,
+    // above one lying across it -- and tied back to P by a hairline, so it still visibly starts there.
     let shift:Vec={x:0,y:0,z:0};
-    if(chain&&chainBeside(chain,net)){
+    if(chain&&beside){
      const end=chain[chain.length-1],u=linkA.set(net?.x??end.x,net?.y??end.y,net?.z??end.z).normalize();
      const upright=Math.abs(u.dot(screenUp))>=Math.abs(u.dot(screenRight));
      aside.copy(upright?screenRight:screenUp).addScaledVector(u,-(upright?screenRight:screenUp).dot(u));
@@ -475,11 +521,10 @@ export function FieldStage(props:FieldStageProps){
     }
     chainJoints.count=Math.max(0,beads);chainJoints.instanceMatrix.needsUpdate=true;
    };
-   // A unit arrow along +y, from 0 to 1: shaft then head, merged so one instanced draw covers
-   // the whole lattice.
-   const shaft=new THREE.CylinderGeometry(.05,.05,.66,7);shaft.translate(0,.33,0);
-   const head=new THREE.ConeGeometry(.17,.34,12);head.translate(0,.83,0);
-   const arrowGeometry=mergeGeometries([shaft,head])!;shaft.dispose();head.dispose();
+   // The lattice's arrows: an instanced shaft, a unit cylinder along +y, and an instanced flat head --
+   // the same camera-facing triangle as every other arrow here. They were a cone merged onto the shaft,
+   // squat, and an arrow short or pointing at the camera ended in a round blob: a pin, not an arrow.
+   const arrowGeometry=new THREE.CylinderGeometry(1,1,1,7);
    const unitCircle=(segments=128)=>new THREE.BufferGeometry().setFromPoints(
     Array.from({length:segments+1},(_,i)=>{const t=2*Math.PI*i/segments;return new THREE.Vector3(Math.cos(t),Math.sin(t),0);}));
    const clearGroup=(group:InstanceType<typeof THREE.Group>)=>{
@@ -495,14 +540,17 @@ export function FieldStage(props:FieldStageProps){
    const axisMaterial=new THREE.LineBasicMaterial({transparent:true,opacity:.78,vertexColors:true});
    const gridMaterial=new THREE.LineBasicMaterial({transparent:true,opacity:.2,vertexColors:true});
    const axes=new THREE.LineSegments(new THREE.BufferGeometry(),axisMaterial),grid=new THREE.LineSegments(new THREE.BufferGeometry(),gridMaterial);
-   scene.add(grid,axes);
+   // The ticks are their own strokes, so the ones under P and its arrows can be let go: see `tickGaps`.
+   const ticks=new THREE.LineSegments(new THREE.BufferGeometry(),axisMaterial);
+   scene.add(grid,axes,ticks);
+   let tickMeta:{axis:0|1|2;t:number;base:[number,number]}[]=[],tickMinor=1,tickKey='';
    let frameKey='';
    const buildFrame=(extent:number)=>{
     // Both the axes and the grid are cut into short pieces and faded per vertex, so they run
     // out into the background instead of stopping at a square boundary the reader can see.
     // A line drawn end to end would take the fade as one straight interpolation and the whole
     // middle of the picture would dim with it.
-    const a:number[]=[],ac:number[]=[],g:number[]=[],gc:number[]=[];
+    const a:number[]=[],ac:number[]=[],g:number[]=[],gc:number[]=[],k:number[]=[],kc:number[]=[],meta:typeof tickMeta=[];
     const inner=extent*.42;
     const push=(list:number[],colours:number[],x1:number,y1:number,z1:number,x2:number,y2:number,z2:number)=>{
      list.push(x1,y1,z1,x2,y2,z2);
@@ -524,7 +572,8 @@ export function FieldStage(props:FieldStageProps){
       const t=i*minor,long=Math.abs(t/step-Math.round(t/step))<1e-9;
       // a tick lies across the axis, in the plane of the grid where it can
       const [ux,uy,uz]=z?[1,0,0]:[0,0,1],tick=long?.17:.075;
-      push(a,ac,t*x-ux*tick,t*y-uy*tick,t*z-uz*tick,t*x+ux*tick,t*y+uy*tick,t*z+uz*tick);
+      push(k,kc,t*x-ux*tick,t*y-uy*tick,t*z-uz*tick,t*x+ux*tick,t*y+uy*tick,t*z+uz*tick);
+      meta.push({axis:x?0:y?1:2,t,base:[kc[kc.length-5],kc[kc.length-1]]});
      }
     }
     for(let i=-count;i<=count;i++){
@@ -535,7 +584,11 @@ export function FieldStage(props:FieldStageProps){
       push(g,gc,u0,t,0,u1,t,0);
      }
     }
-    axes.geometry.dispose();grid.geometry.dispose();
+    axes.geometry.dispose();grid.geometry.dispose();ticks.geometry.dispose();
+    ticks.geometry=new THREE.BufferGeometry()
+     .setAttribute('position',new THREE.Float32BufferAttribute(k,3))
+     .setAttribute('color',new THREE.Float32BufferAttribute(kc,4));
+    tickMeta=meta;tickMinor=minor;tickKey='';
     axes.geometry=new THREE.BufferGeometry()
      .setAttribute('position',new THREE.Float32BufferAttribute(a,3))
      .setAttribute('color',new THREE.Float32BufferAttribute(ac,4));
@@ -543,7 +596,88 @@ export function FieldStage(props:FieldStageProps){
      .setAttribute('position',new THREE.Float32BufferAttribute(g,3))
      .setAttribute('color',new THREE.Float32BufferAttribute(gc,4));
    };
-   let bodyKey='',fieldKey='',sliceKey='',tracedFrom='',sheetFarKey='',disposed=false;
+   /** Let go of the ticks under P and the arrows lying along an axis with it (see `tickGaps`): the net
+    * arrow, one piece's arrow, the part of it that survives with the mirror's laid on, and the chain. */
+   const clearTicks=(p:FieldStageProps)=>{
+    const a=p.run?.arrows,end=p.run?.chain?.at(-1)??null;
+    const kept=a?.keep&&a.partnerSurvivor?{x:a.keep.x+a.partnerSurvivor.x,y:a.keep.y+a.partnerSurvivor.y,z:a.keep.z+a.partnerSurvivor.z}:a?.keep??null;
+    const arrows=[p.net,p.contribution,kept,a?.partner,end];
+    const sig=(v:Vec|null|undefined)=>v?`${v.x.toFixed(3)},${v.y.toFixed(3)},${v.z.toFixed(3)}`:'-';
+    const key=`${sig(p.point)}|${arrows.map(sig).join('|')}|${px.toFixed(5)}|${tickMeta.length}`;
+    if(key===tickKey)return;
+    tickKey=key;
+    const gaps=[0,1,2].map(axis=>tickGaps(axis as 0|1|2,p.point,arrows,tickMinor*.75,8*px,24*px));
+    const colour=ticks.geometry.getAttribute('color') as Attribute|undefined;
+    if(!colour)return;
+    tickMeta.forEach((m,i)=>{
+     const hidden=gaps[m.axis].some(([lo,hi])=>m.t>=lo&&m.t<=hi);
+     colour.setW(i*2,hidden?0:m.base[0]);colour.setW(i*2+1,hidden?0:m.base[1]);
+    });
+    colour.needsUpdate=true;
+   };
+   // THE SIGN, WRITTEN ON THE CHARGE. The flat figure writes + or − along its charge; in space those
+   // marks are hidden (they are laid out for the flat view), the charge is one colour for both signs,
+   // and the only thing left to say which sign it was were the field lines' heads -- which a potential
+   // lesson, or Field Off, does not draw. A negative ring looked exactly like a positive one. So the
+   // scene writes the sign itself: small glyphs facing the camera, in the charge's line colour, along a
+   // wire at equal steps of charge (see `signMarks`) and in a sparse pattern over a surface. Laid again
+   // when the view turns, since each faces the camera. At rest only: in the run the pieces are the
+   // subject, and the marks over cut and stepped-back pieces were clutter.
+   const signMaterial=new THREE.MeshBasicMaterial({vertexColors:true,side:THREE.DoubleSide,transparent:true,depthWrite:false});
+   const signs=new THREE.Mesh(new THREE.BufferGeometry(),signMaterial);signs.frustumCulled=false;signs.renderOrder=3;scene.add(signs);
+   let signKey='';
+   const laySigns=(p:FieldStageProps,frameWorld:number,far:FarFade|null,yaw:number,pitch:number,wr:number,positive:boolean,paper:InstanceType<typeof THREE.Color>,dark:boolean)=>{
+    const centres:{at:Vec;alpha:number}[]=[];
+    if(p.kind==='wire'){
+     const source=p.fieldSamples??p.samples;
+     // A mark every forty units of the figure, and the closed ring's every forty units round it.
+     for(const at of signMarks(source,poolWindow(frameWorld),34/p.unit))centres.push({at,alpha:1});
+    }else if(p.kind==='disk'){
+     const R=Math.max(.01,p.radius),rings=Math.max(1,Math.min(3,Math.round(R*p.unit/70)));
+     for(let k=0;k<rings;k++){
+      const r=R*(k+.6)/(rings+.1),count=Math.max(3,Math.round(2*Math.PI*r*p.unit/56));
+      for(let j=0;j<count;j++){const a=2*Math.PI*(j+.5*(k%2))/count+.3;centres.push({at:{x:r*Math.cos(a),y:r*Math.sin(a),z:0},alpha:1});}
+     }
+    }else if(far){
+     // On the sheet: a loose lattice over the solid near part of the plane, in screen terms -- a mark
+     // every ninety units across and every sixty up the screen -- and none where the plane has faded.
+     const lift=Math.max(.05,Math.sin(pitch))*p.unit,right={x:Math.cos(yaw),y:Math.sin(yaw)},ahead={x:-Math.sin(yaw),y:Math.cos(yaw)};
+     const near=Math.max(-frameWorld,(p.origin.y-(PLOT.y+PLOT.height))/lift*.85);
+     for(let row=0;;row++){
+      const depth=near+row*60/lift;
+      if(depth>far.inner||row>12)break;
+      for(let col=-6;col<=6;col++){
+       const across=(col+(row%2)*.5)*90;
+       if(PLOT.x-p.origin.x+30>across||across>PLOT.x+PLOT.width-p.origin.x-30)continue;
+       const x=right.x*across/p.unit+ahead.x*depth,y=right.y*across/p.unit+ahead.y*depth;
+       centres.push({at:{x,y,z:0},alpha:farAlpha(depth,far)*.8});
+      }
+     }
+    }
+    // The flat figure's marks: the charge's deep orange, ringed with the paper so they read over the
+    // orange tube as well as off it -- the size of the flat figure's thirteen-pixel plus.
+    const positions:number[]=[],colours:number[]=[],ink=new THREE.Color(dark?0xf0a070:0xb8460f);
+    const h=4.6*px,t=1*px,ring=1.25*px,lift=p.kind==='wire'?wr*1.6:wr*.4;
+    const quad=(o:Vec,a:number,b:number,c:InstanceType<typeof THREE.Color>,alpha:number)=>{
+     const ux=screenRight,uy=screenUp,corner=(sx:number,sy:number)=>[o.x+ux.x*a*sx+uy.x*b*sy,o.y+ux.y*a*sx+uy.y*b*sy,o.z+ux.z*a*sx+uy.z*b*sy];
+     const [p0,p1,p2,p3]=[corner(-1,-1),corner(1,-1),corner(1,1),corner(-1,1)];
+     positions.push(...p0,...p1,...p2,...p0,...p2,...p3);
+     for(let n=0;n<6;n++)colours.push(c.r,c.g,c.b,alpha);
+    };
+    for(const {at,alpha} of centres){
+     if(!(alpha>.02))continue;
+     const o={x:at.x+toCamera.x*lift,y:at.y+toCamera.y*lift,z:at.z+toCamera.z*lift};
+     // The ring first, then the mark over it: drawn in order, at one depth.
+     quad(o,h+ring,t+ring,paper,alpha);
+     if(positive)quad(o,t+ring,h+ring,paper,alpha);
+     quad(o,h,t,ink,alpha);
+     if(positive)quad(o,t,h,ink,alpha);
+    }
+    signs.geometry.dispose();
+    signs.geometry=new THREE.BufferGeometry().setAttribute('position',new THREE.Float32BufferAttribute(positions,3)).setAttribute('color',new THREE.Float32BufferAttribute(colours,4));
+   };
+   let themeKey='\u0000',themeTint=new THREE.Color(),themePaper=new THREE.Color(),themePart=new THREE.Color();
+   let bodyKey='',fieldKey='',sliceKey='',tracedFrom='',sheetFarKey='',disposed=false,farFrom='',chargeFar=0;
    const cssColor=(name:string,fallback:number)=>{
     try{const v=getComputedStyle(mount).getPropertyValue(name).trim();if(/^#|^rgb|^hsl/.test(v))return new THREE.Color(v);}catch{/* unreadable: fall through to the fallback */}
     return new THREE.Color(fallback);
@@ -591,14 +725,18 @@ export function FieldStage(props:FieldStageProps){
     body.add(new THREE.Mesh(new THREE.CircleGeometry(1,128),bodyMaterial));
     body.add(new THREE.Line(unitCircle(),pickedMaterial));
    };
-   let builds=0;
+   let builds=0,laid=0;
    // What the field was last built as, kept so that its colour, its arrowheads and the arrows hidden
    // round P can follow the paper, the quiet run and the camera without tracing anything again.
-   let traced:Vec[][]=[],strength:number[]=[],shade:number[]=[],deep:Vec[]|null=null,hairlines:InstanceType<typeof LineSegments2>|null=null;
-   let lattice:{at:Vec;dir:Vec;weight:number}[]=[],latticeMesh:InstanceType<typeof THREE.InstancedMesh>|null=null,latticeSpacing=1;
-   const lineHeadMesh=new THREE.Mesh(new THREE.BufferGeometry(),lineHeadMaterial);
-   lineHeadMesh.frustumCulled=false;lineHeadMesh.renderOrder=1;scene.add(lineHeadMesh);
-   let paintKey='',headsKey='',latticeKey='';
+   // `strength` is per point of each traced line; the strokes are the lines cut into the part behind a
+   // surface, drawn opaque, and the part in front of it, drawn as translucent ink (see `splitAtPlane`).
+   type Strokes={positions:number[];strength:number[];mesh:InstanceType<typeof LineSegments2>|null};
+   let traced:Vec[][]=[],strength:number[][]=[],back:Strokes={positions:[],strength:[],mesh:null},front:Strokes={positions:[],strength:[],mesh:null};
+   let frontInk:InstanceType<typeof THREE.InstancedInterleavedBuffer>|null=null;
+   let lattice:{at:Vec;dir:Vec;weight:number}[]=[],latticeMesh:InstanceType<typeof THREE.InstancedMesh>|null=null,latticeHeads:InstanceType<typeof THREE.InstancedMesh>|null=null,latticeSpacing=1;
+   const lineHeadMesh=new THREE.Mesh(new THREE.BufferGeometry(),lineHeadMaterial),frontHeadMesh=new THREE.Mesh(new THREE.BufferGeometry(),frontHeadMaterial);
+   lineHeadMesh.frustumCulled=false;lineHeadMesh.renderOrder=1;frontHeadMesh.frustumCulled=false;frontHeadMesh.renderOrder=4;scene.add(lineHeadMesh,frontHeadMesh);
+   let paintKey='',headsKey='',latticeKey='',sheetKey='';
    /** Ink laid on paper at strength `a`, mixed as the flat canvas mixes a translucent stroke -- in
     * sRGB -- so the scene's opaque lines are the flat figure's colour, not a darker linear blend. */
    const inkRGB={r:0,g:0,b:0},paperRGB={r:0,g:0,b:0};
@@ -606,8 +744,59 @@ export function FieldStage(props:FieldStageProps){
     paper.getRGB(paperRGB,THREE.SRGBColorSpace);ink.getRGB(inkRGB,THREE.SRGBColorSpace);
     return out.setRGB(paperRGB.r+(inkRGB.r-paperRGB.r)*a,paperRGB.g+(inkRGB.g-paperRGB.g)*a,paperRGB.b+(inkRGB.b-paperRGB.b)*a,THREE.SRGBColorSpace);
    };
+   /** The window an endless line's lines are seeded across, rounded up to a power of 1.25 so a small
+    * zoom does not trace the field again; see `seedPool`. */
+   const poolWindow=(frameWorld:number)=>1.25**Math.ceil(Math.log(Math.max(1e-3,frameWorld*.6))/Math.log(1.25)-1e-9);
+   const dropStrokes=()=>{
+    for(const k of [back,front])if(k.mesh){field.remove(k.mesh);scene.remove(k.mesh);k.mesh.geometry.dispose();}
+    back={positions:[],strength:[],mesh:null};front={positions:[],strength:[],mesh:null};frontInk=null;
+   };
+   /** Cut the traced lines into their two kinds of stroke and build a mesh for each. Only a surface has
+    * a front and a back; a wire's lines are all drawn opaque, as before. */
+   const layStrokes=(surface:boolean)=>{
+    dropStrokes();
+    traced.forEach((line,l)=>{
+     const k=strength[l];
+     for(let i=0;i+1<line.length;i++){
+      const at=(v:Vec)=>v===line[i]?k[i]:v===line[i+1]?k[i+1]:(k[i]+k[i+1])/2;
+      const parts=surface?splitAtPlane([line[i],line[i+1]]):[{a:line[i],b:line[i+1],behind:true}];
+      for(const {a,b,behind} of parts){
+       const into=behind?back:front;
+       into.positions.push(a.x,a.y,a.z,b.x,b.y,b.z);into.strength.push(at(a),at(b));
+      }
+     }
+    });
+    if(back.positions.length){
+     back.mesh=new LineSegments2(new LineSegmentsGeometry().setPositions(back.positions),lineMaterial);
+     // Every segment is an instance of one quad, which three cannot bound from the quad alone.
+     back.mesh.frustumCulled=false;field.add(back.mesh);
+    }
+    if(front.positions.length){
+     const g=new LineSegmentsGeometry().setPositions(front.positions);
+     frontInk=new THREE.InstancedInterleavedBuffer(new Float32Array(front.positions.length/3),2,1);
+     g.setAttribute('instanceInkStart',new THREE.InterleavedBufferAttribute(frontInk,1,0));
+     g.setAttribute('instanceInkEnd',new THREE.InterleavedBufferAttribute(frontInk,1,1));
+     front.mesh=new LineSegments2(g,frontLineMaterial);
+     front.mesh.frustumCulled=false;front.mesh.renderOrder=5;scene.add(front.mesh);
+    }
+    laid++;paintKey='';headsKey='';
+   };
+   /** The sheet's lines, laid by the screen (see `sheetColumns`): again whenever the view turns or the
+    * picture moves, which costs a few dozen straight segments and no tracing. The halves under the plane
+    * are drawn at under half strength, so each line is seen to leave the sheet at its root rather than
+    * run through it as one stroke with a head pointing each way and nothing between them. */
+   const laySheet=(p:FieldStageProps,frameWorld:number,yaw:number,pitch:number,far:FarFade)=>{
+    const lift=Math.max(.05,Math.sin(pitch))*p.unit;
+    const near=Math.max(-frameWorld,(p.origin.y-(PLOT.y+PLOT.height))/lift*.82),deepest=Math.max(near*.15,far.inner*.85);
+    const roots=sheetColumns(yaw,p.unit,PLOT.x-p.origin.x,PLOT.x+PLOT.width-p.origin.x,near,deepest);
+    traced=sheetLines(roots,frameWorld*3,p.charge>=0?1:-1);
+    // By the half, not the point: each half is one straight segment, and a strength given per point
+    // would be blended along it from the root, three pictures long, and never seen to change.
+    strength=traced.map(line=>{const under=line.some(v=>v.z<-1e-9);return line.map(()=>under?SHEET_UNDER:1);});
+    layStrokes(true);
+   };
    const buildField=(p:FieldStageProps,wr:number,frameWorld:number)=>{
-    clearGroup(field);hairlines=null;latticeMesh=null;traced=[];strength=[];shade=[];deep=null;lattice=[];paintKey='';headsKey='';latticeKey='';
+    clearGroup(field);dropStrokes();latticeMesh=null;latticeHeads=null;traced=[];strength=[];lattice=[];paintKey='';headsKey='';latticeKey='';sheetKey='';
     // Counted where the tests can read it: a retrace is the costly thing, and how often one happens
     // does not depend on how fast the machine is.
     builds++;mount.parentElement?.setAttribute('data-field-builds',String(builds));
@@ -633,97 +822,116 @@ export function FieldStage(props:FieldStageProps){
      // A line was allowed to run to 3.2 reaches while the frame shows about one, so most of
      // every line was drawn outside the view and what crossed the frame was its middle -- long
      // sweeps entering one edge and leaving another, with no visible root on the charge. Ending
-     // them a little past the frame keeps the part that is about this charge. Seeds stay inside
-     // it for the separate reason that the sheet's charge is mostly in huge outer rings.
+     // them where the drawing has faded them (see `traceTo`) keeps the part that is about this
+     // charge. Seeds stay inside the picture for the separate reason that the sheet's charge is
+     // mostly in huge outer rings.
      // The step is the smaller of the picture and the charge, as the flat view already did. A
      // step set by the picture alone is far too coarse for a small charge inside a big frame:
      // on the disk it was 0.24 m for a radius of 2, twice the distance a line is launched from
      // the face, so the first chord of every line was taken before the line had cleared it.
      //
-     // The sheet is not traced at all: see `sheetLines`. Its lines leave the plane over the part
-     // of it that is drawn solid and run three pictures out, past every edge, as a uniform field's
-     // lines do -- where tracing them to a sphere about O ended and began them in mid-air.
+     // The sheet is not traced at all: see `sheetLines`, and `laySheet` for where its lines stand.
+     if(p.kind==='sheet')return;
      const span=Math.max(...few.map(c=>Math.hypot(c.position.x,c.position.y,c.position.z)),.5);
-     traced=p.kind==='sheet'
-      ?sheetLines(sheetRoots(frameWorld*SHEET_LINES.radius,SHEET_LINES.count),frameWorld*3,p.charge>=0?1:-1)
-      :spaceLines(few,layout,16,{step:Math.min(p.reach,span)*.04,maxSteps:420,outerLimit:p.reach*1.6,seedLimit:p.reach*.95,root:{inset:p.kind==='wire'?wr:0}});
+     // An endless line starts lines all along the part of it the picture shows, not only within the
+     // field's reach of O: see `seedPool`. The semi-infinite line's lines all came from beside O.
+     const pool=seedPool(few,16,p.reach*.95,poolWindow(frameWorld));
+     traced=spaceLines(few,layout,pool.count,traceTo(few,layout,p.reach,span,{seedLimit:p.reach*.95,seedPool:pool.pool,root:{inset:p.kind==='wire'?wr:0}}));
      // Fade with distance FROM THE CHARGE: strong near it, gone by the edge of the reach. Measured
      // from O it said an infinite line's field weakens along the line, which its symmetry forbids,
      // and drew the axial rod's field faded round P and full at the rod's far end.
      //
      // Fading with distance says the field is weakening, which is true of every charge here except
      // the one whose entire lesson is that it does not: an infinite sheet's field is the same however
-     // far away you stand. Fading its lines out would teach the opposite of what the page says, so
-     // the sheet's keep their colour and the drawing's edge ends them.
-     // What the sheet's lines do dim with is the plane's own depth cue (see `sheetFarFade`): a line
-     // rising from where the plane has faded to a trace is drawn as a trace, so it does not seem to
-     // begin in mid-air behind P. Kept per vertex, to be repainted as the camera turns.
-     const away=p.kind==='sheet'?null:bodyDistance(few,layout),positions:number[]=[];
-     if(!away)deep=[];
-     for(const line of traced)for(let i=0;i+1<line.length;i++){
-      const a=line[i],b=line[i+1];
-      positions.push(a.x,a.y,a.z,b.x,b.y,b.z);
-      for(const v of [a,b]){
-       strength.push(away?lineStrength(away(v.x,v.y,v.z),p.reach):1);
-       deep?.push(v);
-      }
-     }
-     if(!positions.length)return;
-     hairlines=new LineSegments2(new LineSegmentsGeometry().setPositions(positions),lineMaterial);
-     // Every segment is an instance of one quad, which three cannot bound from the quad alone.
-     hairlines.frustumCulled=false;
-     field.add(hairlines);
+     // far away you stand. So the sheet's lines keep their colour, and what they do dim with is the
+     // plane's own depth cue (see `sheetFarFade`), repainted as the camera turns.
+     const away=bodyDistance(few,layout);
+     strength=traced.map(line=>line.map(v=>lineStrength(away(v.x,v.y,v.z),p.reach)));
+     layStrokes(p.kind!=='wire');
      return;
     }
     // The arrows are a readable subset of the lattice (see `latticeCore`), and the ones round P are
     // hidden as P moves (see `paintLattice`).
-    lattice=latticeCore(few,p.reach,layout);latticeSpacing=p.reach/3;
+    // Centred on the charge and P together, not on O; see `latticeFrame`.
+    const lit=latticeFrame([...(p.bodyPath??source.map(s=>s.position)),p.point],p.reach,p.kind==='sheet'||source.some(s=>Math.hypot(s.position.x,s.position.y,s.position.z)>p.reach*3));
+    lattice=latticeCore(few,p.reach,layout,lit.centre,lit.spacing);latticeSpacing=lit.spacing;
     if(!lattice.length)return;
     latticeMesh=new THREE.InstancedMesh(arrowGeometry,arrowMaterial,lattice.length);
-    field.add(latticeMesh);
+    latticeHeads=new THREE.InstancedMesh(flatHead,latticeHeadMaterial,lattice.length);
+    // They move with the camera; a bounding sphere cached from the first frame would cull them.
+    latticeMesh.frustumCulled=false;latticeHeads.frustumCulled=false;
+    field.add(latticeMesh,latticeHeads);
    };
-   /** The field's colour: every vertex of every line, and every arrow, mixed with the paper. */
+   /** How strongly a point of the field is drawn once the sheet's far side has dimmed it (see
+    * `sheetFarFade`); `far` is only ever given on the sheet. */
+   const farShade=(k:number,x:number,y:number,far:FarFade|null,sy:number,cy:number)=>far?k*farAlpha(-x*sy+y*cy,far):k;
+   /** The field's colour: behind a surface every vertex mixed with the paper, in front of one the ink
+    * itself at the vertex's strength; and every arrow, mixed with the paper. */
    const paintField=(quiet:boolean,ink:InstanceType<typeof THREE.Color>,paper:InstanceType<typeof THREE.Color>,far:FarFade|null,yaw:number)=>{
     // During the build the field is background to the one piece being explained, and at full
     // strength its lines drown the thin construction drawn over them.
     const q=quiet?.35:1,c=new THREE.Color(),sy=Math.sin(yaw),cy=Math.cos(yaw);
-    shade=strength.map((k,i)=>{const v=deep?.[i];return v&&far?k*farAlpha(-v.x*sy+v.y*cy,far):k;});
-    if(hairlines){
-     const colours=new Float32Array(shade.length*3);
-     shade.forEach((k,i)=>{mixInk(c,paper,ink,inkAlpha*q*k);colours[i*3]=c.r;colours[i*3+1]=c.g;colours[i*3+2]=c.b;});
-     (hairlines.geometry as InstanceType<typeof LineSegmentsGeometry>).setColors(colours);
+    if(back.mesh){
+     const colours=new Float32Array(back.strength.length*3),P=back.positions;
+     back.strength.forEach((k,i)=>{mixInk(c,paper,ink,inkAlpha*q*farShade(k,P[i*3],P[i*3+1],far,sy,cy));colours[i*3]=c.r;colours[i*3+1]=c.g;colours[i*3+2]=c.b;});
+     (back.mesh.geometry as InstanceType<typeof LineSegmentsGeometry>).setColors(colours);
+    }
+    if(front.mesh&&frontInk){
+     const colours=new Float32Array(front.strength.length*3),alphas=frontInk.array as Float32Array,P=front.positions;
+     front.strength.forEach((k,i)=>{colours[i*3]=ink.r;colours[i*3+1]=ink.g;colours[i*3+2]=ink.b;alphas[i]=inkAlpha*q*farShade(k,P[i*3],P[i*3+1],far,sy,cy);});
+     (front.mesh.geometry as InstanceType<typeof LineSegmentsGeometry>).setColors(colours);
+     frontInk.needsUpdate=true;
     }
     if(latticeMesh){
      // The flat arrows' ink and weighting -- strength reads twice, as length and as colour -- at about
      // twice the flat arrows' strength, since a shaft a pixel wide carries half the ink of their stroke.
-     lattice.forEach((a,i)=>latticeMesh!.setColorAt(i,mixInk(c,paper,ink,Math.min(1,2*inkAlpha*(.28+.62*a.weight))*(quiet?.45:1))));
+     lattice.forEach((a,i)=>{mixInk(c,paper,ink,Math.min(1,2*inkAlpha*(.28+.62*a.weight))*(quiet?.45:1));latticeMesh!.setColorAt(i,c);latticeHeads?.setColorAt(i,c);});
      if(latticeMesh.instanceColor)latticeMesh.instanceColor.needsUpdate=true;
+     if(latticeHeads?.instanceColor)latticeHeads.instanceColor.needsUpdate=true;
     }
    };
-   /** Lay the arrows, leaving out the ones on top of P and its arrow. */
-   const paintLattice=(point:Vec)=>{
-    if(!latticeMesh)return;
+   /** Lay the arrows, leaving out the ones round P and across the net arrow -- within 1.2 steps of P,
+    * where its name and its arrow's are set, or within .6 of a step of the net arrow's shaft. Each head
+    * is turned to face the camera, so this runs again when the view turns. */
+   const paintLattice=(point:Vec,net:Vec|null)=>{
+    if(!latticeMesh||!latticeHeads)return;
     const m=new THREE.Matrix4(),q=new THREE.Quaternion(),up=new THREE.Vector3(0,1,0),pos=new THREE.Vector3(),dir=new THREE.Vector3(),scl=new THREE.Vector3();
+    const n=net??{x:0,y:0,z:0},nn=n.x*n.x+n.y*n.y+n.z*n.z;
+    const offNet=(v:Vec)=>{
+     const t=nn>0?Math.max(0,Math.min(1,((v.x-point.x)*n.x+(v.y-point.y)*n.y+(v.z-point.z)*n.z)/nn)):0;
+     return Math.hypot(v.x-point.x-n.x*t,v.y-point.y-n.y*t,v.z-point.z-n.z*t);
+    };
+    const thick=latticeSpacing*.006;
     lattice.forEach((a,i)=>{
-     const clear=Math.hypot(a.at.x-point.x,a.at.y-point.y,a.at.z-point.z)>=latticeSpacing*.75;
-     const length=arrowLength(a.weight,latticeSpacing)*.6,thick=latticeSpacing*.12;
+     const clear=Math.hypot(a.at.x-point.x,a.at.y-point.y,a.at.z-point.z)>=latticeSpacing*1.2&&offNet(a.at)>=latticeSpacing*.6;
+     const length=arrowLength(a.weight,latticeSpacing)*.6;
+     // As long as the flat arrows' barbs, never more than two fifths of the arrow, and half again as
+     // long as it is wide.
+     const headLength=Math.min(length*.4,7*px),half=headLength/3,shaftLength=Math.max(1e-4,length-headLength);
      dir.set(a.dir.x,a.dir.y,a.dir.z);
-     pos.set(a.at.x-a.dir.x*length/2,a.at.y-a.dir.y*length/2,a.at.z-a.dir.z*length/2);
-     q.setFromUnitVectors(up,dir);scl.set(clear?thick:0,clear?length:0,clear?thick:0);
+     const from={x:a.at.x-a.dir.x*length/2,y:a.at.y-a.dir.y*length/2,z:a.at.z-a.dir.z*length/2};
+     pos.set(from.x+a.dir.x*shaftLength/2,from.y+a.dir.y*shaftLength/2,from.z+a.dir.z*shaftLength/2);
+     q.setFromUnitVectors(up,dir);scl.set(clear?thick:0,clear?shaftLength:0,clear?thick:0);
      m.compose(pos,q,scl);latticeMesh!.setMatrixAt(i,m);
+     // The head, as `faceHead` stands one, into an instance.
+     hz.copy(toCamera).addScaledVector(dir,-toCamera.dot(dir));
+     if(hz.lengthSq()<1e-8)hz.copy(screenUp).addScaledVector(dir,-screenUp.dot(dir));
+     hz.normalize();hx.crossVectors(dir,hz);hm.makeBasis(hx,dir,hz);q.setFromRotationMatrix(hm);
+     const c=shaftLength+headLength/2;
+     pos.set(from.x+a.dir.x*c,from.y+a.dir.y*c,from.z+a.dir.z*c);scl.set(clear?half*2:0,clear?headLength:0,1);
+     m.compose(pos,q,scl);latticeHeads!.setMatrixAt(i,m);
     });
-    latticeMesh.instanceMatrix.needsUpdate=true;
+    latticeMesh.instanceMatrix.needsUpdate=true;latticeHeads.instanceMatrix.needsUpdate=true;
    };
    /** Each field line's arrowheads, placed on the part of it the reader can see (see `lineHeads`) and
-    * turned to face the camera, in the line's own colour there. Rebuilt when the view moves: a few
-    * dozen triangles, against a trace that is never repeated for a camera frame. */
-   const layLineHeads=(quiet:boolean,ink:InstanceType<typeof THREE.Color>,paper:InstanceType<typeof THREE.Color>,target:Vec,unit:number)=>{
-    const positions:number[]=[],colours:number[]=[],c=new THREE.Color(),side=new THREE.Vector3(),u=new THREE.Vector3();
-    const R=screenRight,U=screenUp,len=LINE_HEAD.length/unit,half=LINE_HEAD.half/unit;
+    * turned to face the camera, in the line's own colour there -- premixed behind a surface, the ink
+    * itself in front of one, as the strokes are. Rebuilt when the view moves: a few dozen triangles,
+    * against a trace that is never repeated for a camera frame. */
+   const layLineHeads=(quiet:boolean,ink:InstanceType<typeof THREE.Color>,paper:InstanceType<typeof THREE.Color>,target:Vec,unit:number,far:FarFade|null,yaw:number,surface:boolean)=>{
+    const positions:number[]=[],colours:number[]=[],frontPositions:number[]=[],frontColours:number[]=[],c=new THREE.Color(),side=new THREE.Vector3(),u=new THREE.Vector3();
+    const R=screenRight,U=screenUp,len=LINE_HEAD.length/unit,half=LINE_HEAD.half/unit,sy=Math.sin(yaw),cy=Math.cos(yaw);
     const toScreen=(v:Vec)=>{const dx=v.x-target.x,dy=v.y-target.y,dz=v.z-target.z;return {x:360+(dx*R.x+dy*R.y+dz*R.z)*unit,y:215-(dx*U.x+dy*U.y+dz*U.z)*unit};};
-    let vertex=0;
-    for(const line of traced){
-     const first=vertex;vertex+=2*(line.length-1);
+    traced.forEach((line,l)=>{
      for(const h of lineHeads(line.map(toScreen),PLOT)){
       const a=line[h.segment],b=line[h.segment+1];
       u.set(b.x-a.x,b.y-a.y,b.z-a.z).normalize();
@@ -731,14 +939,16 @@ export function FieldStage(props:FieldStageProps){
       if(side.lengthSq()<1e-10)continue;
       side.normalize().multiplyScalar(half);
       const at={x:a.x+(b.x-a.x)*h.t,y:a.y+(b.y-a.y)*h.t,z:a.z+(b.z-a.z)*h.t};
-      const tip=[at.x+u.x*len/2,at.y+u.y*len/2,at.z+u.z*len/2],back=[at.x-u.x*len/2,at.y-u.y*len/2,at.z-u.z*len/2];
-      positions.push(tip[0],tip[1],tip[2],back[0]+side.x,back[1]+side.y,back[2]+side.z,back[0]-side.x,back[1]-side.y,back[2]-side.z);
-      mixInk(c,paper,ink,inkAlpha*(quiet?.35:1)*(shade[first+2*h.segment]??1));
-      for(let k=0;k<3;k++)colours.push(c.r,c.g,c.b);
+      const tip=[at.x+u.x*len/2,at.y+u.y*len/2,at.z+u.z*len/2],tail=[at.x-u.x*len/2,at.y-u.y*len/2,at.z-u.z*len/2];
+      const k=inkAlpha*(quiet?.35:1)*farShade(strength[l]?.[h.segment]??1,at.x,at.y,far,sy,cy),inFront=surface&&at.z>=0;
+      (inFront?frontPositions:positions).push(tip[0],tip[1],tip[2],tail[0]+side.x,tail[1]+side.y,tail[2]+side.z,tail[0]-side.x,tail[1]-side.y,tail[2]-side.z);
+      if(inFront)for(let n=0;n<3;n++)frontColours.push(ink.r,ink.g,ink.b,k);
+      else{mixInk(c,paper,ink,k);for(let n=0;n<3;n++)colours.push(c.r,c.g,c.b);}
      }
-    }
-    lineHeadMesh.geometry.dispose();
+    });
+    lineHeadMesh.geometry.dispose();frontHeadMesh.geometry.dispose();
     lineHeadMesh.geometry=new THREE.BufferGeometry().setAttribute('position',new THREE.Float32BufferAttribute(positions,3)).setAttribute('color',new THREE.Float32BufferAttribute(colours,3));
+    frontHeadMesh.geometry=new THREE.BufferGeometry().setAttribute('position',new THREE.Float32BufferAttribute(frontPositions,3)).setAttribute('color',new THREE.Float32BufferAttribute(frontColours,4));
    };
    // When the first stage began, so its cuts can be made one after another rather than all at once.
    // Restarted whenever the run comes back to that stage, as the flat figure's animation is.
@@ -754,7 +964,7 @@ export function FieldStage(props:FieldStageProps){
    const cutting=()=>runStage==='pieces'&&performance.now()-cutStart<CUT_MS;
    const quantise=(v:number,steps=40)=>Math.round(v*steps)/steps;
    const toneColour=(tone:string)=>new THREE.Color(tone==='added'?CHARGE.added:CHARGE.body);
-   const applyRun=(p:FieldStageProps,wr:number,positive:boolean,dark:boolean,spread:number,thick:number,far:FarFade|null,yaw:number)=>{
+   const applyRun=(p:FieldStageProps,wr:number,positive:boolean,dark:boolean,spread:number,thick:number,far:FarFade|null,yaw:number,frameWorld:number)=>{
     const run=p.run??null,now=performance.now();
     const stage=run?.stage??'';
     if(stage!==runStage){if(stage==='pieces')cutStart=reducedMotion()?-Infinity:now;runStage=stage;}
@@ -828,7 +1038,7 @@ export function FieldStage(props:FieldStageProps){
      cutsKey=nextCuts;clearGroup(cuts);
      for(const s of seams){
       const radius=Math.max(.01,s.radius),circle=unitCircle(96),position=circle.getAttribute('position') as Attribute,rgba=new Float32Array(position.count*4);
-      for(let i=0;i<position.count;i++){rgba[i*4]=rgba[i*4+1]=rgba[i*4+2]=1;rgba[i*4+3]=far?farAlpha(position.getY(i)*radius,far):1;}
+      for(let i=0;i<position.count;i++){rgba[i*4]=rgba[i*4+1]=rgba[i*4+2]=1;rgba[i*4+3]=far?farAlpha(position.getY(i)*radius,pieceFade(far,'outline')):1;}
       circle.setAttribute('color',new THREE.BufferAttribute(rgba,4));
       const loop=new THREE.Line(circle,s.grow<1?growMaterial:cutMaterial);
       loop.scale.setScalar(radius);loop.position.z=wr*.06;loop.userData.at=s.at;cuts.add(loop);
@@ -843,12 +1053,12 @@ export function FieldStage(props:FieldStageProps){
     // shading dissolves exactly as the sheet under it does rather than ending at a hard rim.
     const filled=run&&!wire?run.filled:null;
     const reach=p.kind==='sheet'?spread:Math.max(.01,p.radius);
-    const nextFill=filled!==null?`${p.kind}:${quantise(Math.min(filled,reach)/reach,400)}:${spread.toFixed(3)}:${positive}:${farKey}`:'';
+    const nextFill=filled!==null?`${p.kind}:${quantise(Math.min(filled,reach)/reach,400)}:${spread.toFixed(3)}:${frameWorld.toFixed(2)}:${positive}:${farKey}`:'';
     if(nextFill!==fillKey){
      fillKey=nextFill;fill.geometry.dispose();
      const r=Math.max(.001,Math.min(filled??0,reach));
      fill.geometry=filled===null?new THREE.BufferGeometry()
-      :p.kind==='sheet'?fadeGeometry(new THREE.RingGeometry(0,r,128,24),SHEET_FADE.inner*spread,SHEET_FADE.outer*spread,.42,far)
+      :p.kind==='sheet'?fillGeometry(r,frameWorld*.45,far)
       :fadeGeometry(new THREE.RingGeometry(0,r,128,4),0,0,.5);
     }
     fill.visible=filled!==null;fill.position.z=wr*.03;fill.rotation.z=far?yaw:0;
@@ -860,12 +1070,19 @@ export function FieldStage(props:FieldStageProps){
     // The dropped part: solid where it survives, dashed and fading where a partner cancels it.
     const drop=dropStyle(arrows);
     if(drop==='solid'&&arrows?.drop)layArrow(dropArrow,plus(P,arrows.dropFrom),arrows.drop,Math.hypot(arrows.drop.x,arrows.drop.y,arrows.drop.z),wr*.62);else dropArrow.group.visible=false;
-    layDashed(pairDropArrow,plus(P,arrows?.dropFrom??P),drop==='dashed'?arrows!.drop:null,wr*.3);
-    layDashed(partnerArrow,P,arrows?.partner??null,wr*.4);
-    layDashed(partnerDropArrow,plus(P,arrows?.partnerKeep??P),arrows?.partnerDrop??null,wr*.3);
+    // The pair that cancels is never thinner than about two pixels across: on a phone the scene's
+    // metres shrink with the figure, and the dashed pair came out a faint pixel wide over the grid.
+    const pair=Math.max(wr*.3,.9*cssPx);
+    layDashed(pairDropArrow,plus(P,arrows?.dropFrom??P),drop==='dashed'?arrows!.drop:null,pair);
+    if(arrows?.partner)layArrow(partnerArrow,P,arrows.partner,Math.hypot(arrows.partner.x,arrows.partner.y,arrows.partner.z),Math.max(wr*.45,.8*cssPx));else partnerArrow.group.visible=false;
+    layDashed(partnerDropArrow,plus(P,arrows?.partnerFrom??P),arrows?.partnerDrop??null,pair);
+    // What the mirror keeps, from the tip of what the piece keeps, once the sideways parts are going.
+    const kept=arrows?.keep&&arrows.partnerSurvivor&&arrows.cancelled>.5?arrows.partnerSurvivor:null;
+    if(kept)layArrow(partnerKeepArrow,plus(P,arrows!.keep!),kept,Math.hypot(kept.x,kept.y,kept.z),wr*.62);else partnerKeepArrow.group.visible=false;
+    partnerKeepMaterial.opacity=Math.min(1,Math.max(0,((arrows?.cancelled??0)-.5)*2));
     // The pair that cancels fades as it shrinks, never quite to nothing until it is gone.
     fadeMaterial.opacity=Math.max(.12,1-(arrows?.cancelled??0));
-    layChain(P,run?.chain??null,wr*.6,p.net);
+    layChain(P,run?.chain??null,wr*.6,p.net,!!run?.chainBeside);
     return !!selectedPath;
    };
    const apply=(p:FieldStageProps)=>{
@@ -886,17 +1103,25 @@ export function FieldStage(props:FieldStageProps){
     const basis=cameraBasis(view.yaw,view.pitch),eye=cameraPosition(view.yaw,view.pitch,120),up=basis.up;
     // Kept for the marks that are turned to face the camera: the arrowheads and the chain's side.
     toCamera.set(basis.forward.x,basis.forward.y,basis.forward.z);screenUp.set(up.x,up.y,up.z);screenRight.set(basis.right.x,basis.right.y,basis.right.z);
-    px=1/p.unit;
+    px=1/p.unit;cssPx=px*p.frame.width/w;
     camera.position.set(target.x+eye.x,target.y+eye.y,target.z+eye.z);
     camera.up.set(up.x,up.y,up.z);
     camera.lookAt(target.x,target.y,target.z);
     camera.updateProjectionMatrix();
     // The theme lives on the document, not in props: one source of truth, and it stays
     // correct when the toggle flips without this component re-rendering.
+    //
+    // Read once per theme, not on every frame: during the run this runs on every frame, and a computed
+    // style read after the SVG has changed makes the browser work out the page's styles there and then.
     const dark=document.documentElement.classList.contains('dark');
-    const tint=cssColor('--field',dark?0x5fd3c4:0x0b6b63);
-    const paper=cssColor('--diagram',dark?0x172936:0xffffff);
-    lineInk(tint);
+    const theme=document.documentElement.className;
+    if(theme!==themeKey){
+     themeKey=theme;
+     themeTint=cssColor('--field',dark?0x5fd3c4:0x0b6b63);themePaper=cssColor('--diagram',dark?0x172936:0xffffff);
+     themePart=cssColor('--contribution',dark?0x35a9a2:0x2f9089);
+     lineInk(themeTint);
+    }
+    const tint=themeTint,paper=themePaper;
     const positive=p.charge>=0;
     const shape=sampleKey(p);
     // A disk and a sheet are drawn at unit size and scaled, so how finely they are cut says
@@ -940,25 +1165,34 @@ export function FieldStage(props:FieldStageProps){
     // The sheet's lines are not traced (see `sheetLines`), and are drawn out to three pictures, so
     // they are laid again when the zoom changes the picture; nothing else about the field depends on it.
     const wr=wireRadius(p.reach);
-    const nextField=`${p.fieldView}:${p.kind}:${from}:${p.reach.toFixed(2)}:${positive}${p.kind==='sheet'?`:${frameWorld.toFixed(1)}`:''}`;
+    // An endless line is seeded across the window, so its lines are laid again when the window grows
+    // past the last power of 1.25 (see `poolWindow`); a bounded charge's never depend on the zoom.
+    if(charge!==farFrom){farFrom=charge;chargeFar=Math.max(0,...(p.fieldSamples??p.samples).map(s=>Math.hypot(s.position.x,s.position.y,s.position.z)));}
+    const endless=p.kind==='wire'&&chargeFar>poolWindow(frameWorld);
+    const nextField=`${p.fieldView}:${p.kind}:${from}:${p.reach.toFixed(2)}:${positive}${p.kind==='sheet'?`:${frameWorld.toFixed(1)}`:endless?`:${poolWindow(frameWorld).toFixed(3)}`:''}`;
     if(fieldKey!==nextField){buildField(p,wr,frameWorld);fieldKey=nextField;tracedFrom=from;}
+    // The sheet's lines are laid by the screen, so they follow the view (see `laySheet`).
+    if(p.kind==='sheet'&&p.fieldView==='lines'&&far){
+     const nextSheet=`${builds}:${view.yaw.toFixed(4)}:${view.pitch.toFixed(3)}:${p.unit.toFixed(3)}:${p.origin.x.toFixed(1)},${p.origin.y.toFixed(1)}:${far.inner.toFixed(2)}:${frameWorld.toFixed(1)}`;
+     if(sheetKey!==nextSheet){laySheet(p,frameWorld,view.yaw,view.pitch,far);sheetKey=nextSheet;}
+    }
     // Its colour follows the paper and the quiet run, and its arrowheads the camera, without a retrace.
     const quiet=!!p.quiet;
-    const nextPaint=`${builds}:${quiet}:${inkSource}:${inkAlpha}:${paper.getHexString()}${far?`:${far.inner.toFixed(2)},${far.outer.toFixed(2)},${view.yaw.toFixed(3)}`:''}`;
+    const nextPaint=`${builds}:${laid}:${quiet}:${inkSource}:${inkAlpha}:${paper.getHexString()}${far?`:${far.inner.toFixed(2)},${far.outer.toFixed(2)},${view.yaw.toFixed(3)}`:''}`;
     if(paintKey!==nextPaint){paintField(quiet,inkColour,paper,far,view.yaw);paintKey=nextPaint;headsKey='';}
-    const nextHeads=`${builds}:${view.yaw.toFixed(4)}:${view.pitch.toFixed(4)}:${p.unit.toFixed(3)}:${target.x.toFixed(3)},${target.y.toFixed(3)},${target.z.toFixed(3)}`;
-    if(headsKey!==nextHeads){layLineHeads(quiet,inkColour,paper,target,p.unit);headsKey=nextHeads;}
-    const nextLattice=`${builds}:${p.point.x.toFixed(3)},${p.point.y.toFixed(3)},${p.point.z.toFixed(3)}`;
-    if(latticeKey!==nextLattice){paintLattice(p.point);latticeKey=nextLattice;}
+    const nextHeads=`${builds}:${laid}:${view.yaw.toFixed(4)}:${view.pitch.toFixed(4)}:${p.unit.toFixed(3)}:${target.x.toFixed(3)},${target.y.toFixed(3)},${target.z.toFixed(3)}`;
+    if(headsKey!==nextHeads){layLineHeads(quiet,inkColour,paper,target,p.unit,far,view.yaw,p.kind!=='wire');headsKey=nextHeads;}
+    const nextLattice=latticeMesh?`${builds}:${p.point.x.toFixed(3)},${p.point.y.toFixed(3)},${p.point.z.toFixed(3)}:${p.net?`${p.net.x.toFixed(3)},${p.net.y.toFixed(3)},${p.net.z.toFixed(3)}`:'-'}:${view.yaw.toFixed(4)}:${view.pitch.toFixed(4)}:${p.unit.toFixed(3)}`:'';
+    if(latticeKey!==nextLattice){paintLattice(p.point,p.net);latticeKey=nextLattice;}
     // The marks: cheap to place every frame, so they always sit on the live geometry.
     point.position.set(p.point.x,p.point.y,p.point.z);point.scale.setScalar(wr*1.7);
     halo.position.copy(point.position);halo.scale.setScalar(wr*4.2);
     const thick=wr*1.5;
     // The run goes first: while it has the wire cut up, it builds the chosen piece itself.
     // The sheet's chosen ring dims on its far side with the sheet, though less: see PIECE_FAR_LOW.
-    const pieceFar=far&&p.element&&'annulus' in p.element?{...far,low:PIECE_FAR_LOW}:null;
+    const pieceFar=far&&p.element&&'annulus' in p.element?pieceFade(far,'face'):null;
     element.rotation.z=pieceFar?view.yaw:0;
-    if(applyRun(p,wr,positive,dark,spread,thick,far,view.yaw))element.visible=true;
+    if(applyRun(p,wr,positive,dark,spread,thick,far,view.yaw,frameWorld))element.visible=true;
     else if(p.element){
      element.visible=true;
      const key='annulus' in p.element
@@ -996,25 +1230,33 @@ export function FieldStage(props:FieldStageProps){
     pickedMaterial.color.set(CHARGE.body);
     // As wide as the flat figure's lines, which are 1.1 of its 720 units across: the same hairline
     // at any size the figure is drawn, and at any zoom, since the width is in pixels.
-    lineMaterial.resolution.set(w,h);lineMaterial.linewidth=1.1*w/p.frame.width;
+    for(const m of [lineMaterial,frontLineMaterial]){m.resolution.set(w,h);m.linewidth=1.1*w/p.frame.width;}
     // The window in drawing-buffer pixels, upward from the bottom as gl_FragCoord counts them, and a
     // fade forty units of the figure wide.
     const W=renderer.domElement.width,H=renderer.domElement.height,sx=W/p.frame.width,sy=H/p.frame.height;
     edge.uEdgeRect.value.set(PLOT.x*sx,H-(PLOT.y+PLOT.height)*sy,(PLOT.x+PLOT.width)*sx,H-PLOT.y*sy);edge.uEdgeFeather.value=40*sx;
     // The charge's colour, where a test can read it: the same for both signs (see CHARGE).
     mount.parentElement?.setAttribute('data-charge-colour',`#${bodyMaterial.color.getHexString()}`);
+    // And its sign, which the scene now writes on it (see `laySigns`).
+    mount.parentElement?.setAttribute('data-charge-sign',positive?'+':'\u2212');
+    signs.visible=!p.run;
+    const nextSigns=signs.visible?`${paper.getHexString()}:${dark}:${shape}:${chargeKey(p)}:${positive}:${view.yaw.toFixed(4)}:${view.pitch.toFixed(4)}:${p.unit.toFixed(3)}:${p.origin.x.toFixed(1)},${p.origin.y.toFixed(1)}:${frameWorld.toFixed(2)}:${p.radius.toFixed(3)}:${far?far.inner.toFixed(2):''}`:'';
+    if(signs.visible&&nextSigns!==signKey){laySigns(p,frameWorld,far,view.yaw,view.pitch,wr,positive,paper,dark);signKey=nextSigns;}
     pointMaterial.color.copy(tint);pointMaterial.emissive.copy(tint);pointMaterial.emissiveIntensity=dark?.7:.3;
     haloMaterial.color.copy(tint);
     elementMaterial.color.set(CHARGE.line);elementMaterial.emissive.set(CHARGE.line);elementMaterial.emissiveIntensity=dark?.34:.14;
     netMaterial.color.copy(tint);netMaterial.emissive.copy(tint);netMaterial.emissiveIntensity=dark?.6:.25;
     // The flat figure's contribution colour, which is what every label of one piece's arrow is set in.
-    partMaterial.color.copy(cssColor('--contribution',dark?0x35a9a2:0x2f9089));
+    partMaterial.color.copy(themePart);
     mount.parentElement?.setAttribute('data-part-colour',`#${partMaterial.color.getHexString()}`);
     // The parts, the partner's arrow and the chain are all one piece's arrow or a sum of them, so
     // they wear its colour; the beads where the chain joins are pale, like the flat figure's.
-    for(const m of [dashMaterial,fadeMaterial,chainMaterial])m.color.copy(partMaterial.color);
+    for(const m of [fadeMaterial,chainMaterial])m.color.copy(partMaterial.color);
+    // The mirror's lighter tint, as the flat figure mixes it: see PARTNER_TINT in ChargeDiagram.
+    mixInk(partnerMaterial.color,paper,partMaterial.color,.52);partnerKeepMaterial.color.copy(partnerMaterial.color);
     jointMaterial.color.copy(partMaterial.color);
     axisMaterial.color.set(dark?0x9fb3c1:0x4a6172);gridMaterial.color.set(dark?0x9fb3c1:0x4a6172);
+    clearTicks(p);
     renderer.render(scene,camera);
    };
    const observer=new ResizeObserver(()=>{if(!disposed)apply(latest.current);});
@@ -1062,26 +1304,39 @@ export function FieldStage(props:FieldStageProps){
     dispose:()=>{
      disposed=true;cancelAnimationFrame(frameId);cancelAnimationFrame(cutFrame);observer.disconnect();root?.removeEventListener(SNAPSHOT_EVENT,snapshot);
      clearGroup(body);clearGroup(slices);clearGroup(field);clearGroup(cuts);arrowGeometry.dispose();
-     for(const mesh of [point,halo,element,netArrow.shaft,netArrow.head,partArrow.shaft,partArrow.head,keepArrow.shaft,keepArrow.head,dropArrow.shaft,dropArrow.head,pieceSolid,pieceGhost,fill,partnerBody,chainJoints])mesh.geometry.dispose();
+     for(const mesh of [point,halo,element,netArrow.shaft,netArrow.head,partArrow.shaft,partArrow.head,keepArrow.shaft,keepArrow.head,dropArrow.shaft,dropArrow.head,partnerArrow.shaft,partnerKeepArrow.shaft,pieceSolid,pieceGhost,fill,partnerBody,chainJoints])mesh.geometry.dispose();
      dashGeometry.dispose();flatHead.dispose();
-     lineHeadMesh.geometry.dispose();
-     for(const m of [bodyMaterial,sheetMaterial,sliceMaterial,pickedMaterial,lineMaterial,arrowMaterial,lineHeadMaterial,axisMaterial,gridMaterial,pointMaterial,haloMaterial,elementMaterial,netMaterial,partMaterial,
-      pieceMaterial,ghostMaterial,fillMaterial,cutMaterial,growMaterial,dashMaterial,fadeMaterial,chainMaterial,jointMaterial])m.dispose();
-     axes.geometry.dispose();grid.geometry.dispose();
+     lineHeadMesh.geometry.dispose();frontHeadMesh.geometry.dispose();signs.geometry.dispose();dropStrokes();
+     for(const m of [bodyMaterial,sheetMaterial,sliceMaterial,pickedMaterial,lineMaterial,frontLineMaterial,frontHeadMaterial,arrowMaterial,latticeHeadMaterial,signMaterial,lineHeadMaterial,axisMaterial,gridMaterial,pointMaterial,haloMaterial,elementMaterial,netMaterial,partMaterial,
+      pieceMaterial,ghostMaterial,fillMaterial,cutMaterial,growMaterial,partnerMaterial,partnerKeepMaterial,fadeMaterial,chainMaterial,jointMaterial])m.dispose();
+     axes.geometry.dispose();grid.geometry.dispose();ticks.geometry.dispose();
      renderer.dispose();
      if(renderer.domElement.parentNode===mount)mount.removeChild(renderer.domElement);
     },
    };
-  })();
+  })().catch(()=>{
+   if(cancelled)return;
+   try{live.current?.dispose();}catch{/* half built: nothing more to free */}
+   live.current=null;
+   while(mount.firstChild)mount.removeChild(mount.firstChild);
+   mount.parentElement?.setAttribute('data-scene-failed','true');
+   setFailed(true);
+  });
   return ()=>{cancelled=true;live.current?.dispose();live.current=null;};
  },[]);
  // NO NUMBERS ON THE AXES. The ticks carried metre values, the only numerals left on the page, and
  // they landed on the net arrow, the chain and the potential column. The marks stay in the scene,
  // so the axes still read as rulers; the values can come back on the owner's word -- the layout
  // that placed them is `axisTickLabels`, still in orthoCamera and still tested.
- return <div className="cd-field-stage" aria-hidden="true" style={{clipPath:STAGE_CLIP}} {...runData(props.run,props.net)}>
-  <div ref={host} className="cd-stage-gl"/>
- </div>;
+ return <>
+  <div className="cd-field-stage" aria-hidden="true" style={{clipPath:STAGE_CLIP}} {...runData(props.run)}>
+   <div ref={host} className="cd-stage-gl"/>
+  </div>
+  {failed&&<output className="cd-stage-unavailable" style={{display:'block',position:'absolute',left:'50%',top:'50%',transform:'translate(-50%,-50%)',margin:0,padding:'.5em .9em',maxWidth:'80%',textAlign:'center',
+   font:'500 14px/1.4 var(--font-geist-sans),system-ui,sans-serif',color:'var(--muted-foreground,#4a6172)',background:'var(--diagram,#fff)',borderRadius:8,pointerEvents:'none',zIndex:2}}>
+   The 3D view is not available on this device. The 2D view shows the same figure.
+  </output>}
+ </>;
 }
 /** What the scene has been asked to draw of the run, written on the stage itself.
  *
@@ -1089,10 +1344,10 @@ export function FieldStage(props:FieldStageProps){
  * context, so they cannot count meshes, but they can read the plan the meshes are built from --
  * which is the thing that went wrong before, when the plan simply had no partner and no pieces
  * already added in it. Words and counts, nothing a reader sees. */
-function runData(run:RunScene|null|undefined,net:Vec|null):Record<string,string>{
+function runData(run:RunScene|null|undefined):Record<string,string>{
  if(!run)return {};
  const count=(tone:string)=>String(run.tones.filter(t=>t===tone).length);
- const a=run.arrows,arrows=a?[a.keep&&'keep',a.drop&&'drop',a.partner&&'partner',a.partnerDrop&&'partner-drop'].filter(Boolean).join(' '):'';
+ const a=run.arrows,arrows=a?[a.keep&&'keep',a.drop&&'drop',a.partner&&'partner',a.partnerDrop&&'partner-drop',a.keep&&a.partnerSurvivor&&a.cancelled>.5&&'partner-keep'].filter(Boolean).join(' '):'';
  const end=run.chain?.[run.chain.length-1];
  return {
   'data-run-stage':run.stage,'data-run-cut':run.open>.004?'open':'closed',
@@ -1104,8 +1359,10 @@ function runData(run:RunScene|null|undefined,net:Vec|null):Record<string,string>
   ...(arrows?{'data-run-arrows':arrows}:{}),
   // How the dropped part is drawn: 'solid' where it survives, 'dashed' where a partner cancels it.
   ...(dropStyle(a)?{'data-run-drop':dropStyle(a)!}:{}),
+  // The mirror piece's own arrow is a whole contribution, drawn solid; see `partnerMaterial`.
+  ...(a?.partner?{'data-run-partner-style':'solid'}:{}),
   ...(run.chain&&end?{'data-run-chain':String(run.chain.length),'data-run-chain-end':`${end.x} ${end.y} ${end.z}`}:{}),
   // Whether the chain is drawn beside the net arrow rather than along it, inside its shaft.
-  ...(run.chain&&chainBeside(run.chain,net)?{'data-run-chain-beside':'true'}:{}),
+  ...(run.chain&&run.chainBeside?{'data-run-chain-beside':'true'}:{}),
  };
 }

@@ -51,7 +51,9 @@ async function hold(view: View, n: number, f: number) {
 }
 async function turn(view: View, to: '2D' | '3D') {
  fireEvent.click(view.getByRole('button', {name: to}));
- await waitFor(() => expect(view.container.querySelector('.cd-in-space') !== null).toBe(to === '3D'));
+ // The turn to 2D is a 0.65 s glide before the figure goes flat, and a loaded machine draws the scene's
+ // frames slowly through it: the default second was measured at 0.7 to 0.9 s here, on old code and new.
+ await waitFor(() => expect(view.container.querySelector('.cd-in-space') !== null).toBe(to === '3D'), {timeout: 5000});
  await new Promise(r => setTimeout(r, 1000));
  await settle(view);
 }

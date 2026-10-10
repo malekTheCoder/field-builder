@@ -2,10 +2,10 @@
 import {useEffect,useMemo,useRef} from 'react';
 import type {ChargeSample} from '../distributions/types';
 import type {Vec} from '../symbolic/physics';
-import {covers,fieldLines,LINE_HEAD as HEAD,lineHeads,traceLimit,traceWindow,type Plane,type PlaneRect} from './fieldlines';
+import {covers,fieldLines,LINE_HEAD as HEAD,lineHeads,seedPool,traceLimit,traceWindow,type Plane,type PlaneRect} from './fieldlines';
 import {coarsen} from './sampling';
 import {arrowLength,bodyFoot,latticeArea,PLOT,vectorGrid,visibleArea} from './vectorfield';
-import {meridianLines,spaceGrid,type Layout} from './field3d';
+import {meridianLines,sheetLines,spaceGrid,type Layout} from './field3d';
 import {SNAPSHOT_EVENT,type SnapshotDetail} from './snapshot';
 /** The field itself, under the construction drawing.
  *
@@ -96,7 +96,19 @@ export function FieldCanvas({samples,project,frame,lines=15,mode='lines',reach=6
   // A side view of a surface starts its lines across the whole window, not only the field's reach:
   // an infinite sheet's field fills the picture (see TraceOptions.seedSpan).
   const seedSpan=plane==='xz'&&tracedFor?Math.max(Math.abs(tracedFor.x0),Math.abs(tracedFor.x1)):undefined;
-  const fresh=plane==='xz'?meridianLines(coarse,layout,lines,{...opts,root:{},seedSpan}).map(line=>line.map(v=>({x:v.x,y:v.z}))):fieldLines(coarse,lines,{...opts,root:bodyFoot(coarse,'wire')});
+  // An endless line starts lines all along the part of it the window shows; see `seedPool`.
+  const shown=tracedFor?Math.max(Math.abs(tracedFor.x0),Math.abs(tracedFor.x1),Math.abs(tracedFor.y0),Math.abs(tracedFor.y1)):0;
+  const pool=seedPool(coarse,lines,opts.seedLimit,shown);
+  // THE SHEET'S SIDE VIEW IS DRAWN AS THE SCENE DRAWS IT: from Gauss, not traced. Traced, its lines
+  // crossed the coarse far annuli of a partition cut for integrating, and a uniform field came out with
+  // S-bends of up to five pixels where the lines left the plane and gaps varying by a fifth toward the
+  // edges -- at small heights, on the lesson whose point is a field the same everywhere. A surface whose
+  // charge runs on far past the picture's reach is that sheet: its lines are straight normals, evenly
+  // spaced across the whole window, as many to a metre as the traced ones were, and ordered by the
+  // sign of the charge.
+  const endless=plane==='xz'&&layout==='surface'&&!!tracedFor&&chargeSpan>reach*3;
+  const fresh=endless?sideSheet(coarse,lines,opts.seedLimit,tracedFor!)
+   :plane==='xz'?meridianLines(coarse,layout,lines,{...opts,root:{},seedSpan}).map(line=>line.map(v=>({x:v.x,y:v.z}))):fieldLines(coarse,pool.count,{...opts,seedPool:pool.pool,root:bodyFoot(coarse,'wire')});
   TRACES.set(traceKey,fresh);
   for(const old of TRACES.keys()){if(TRACES.size<=TRACES_KEPT)break;TRACES.delete(old);}
   return fresh;
@@ -211,3 +223,13 @@ export function FieldCanvas({samples,project,frame,lines=15,mode='lines',reach=6
  return <div ref={box} className={`cd-field-canvas ${className}`} aria-hidden="true" data-field-samples={samples.length}><canvas ref={canvas}/></div>;
 }
 export type {Plane};
+/** The infinite sheet's side view: straight lines square to the plane, one every `4 span / lines`
+ * metres -- the spacing the traced side view had -- placed symmetrically about the axis, across the
+ * whole of `window` and out past its top and bottom, each ordered along the field. In the cut y = 0's
+ * own coordinates, x across and z up. */
+export function sideSheet(samples:readonly ChargeSample[],lines:number,span:number,window:PlaneRect):Plane[][]{
+ const gap=4*span/Math.max(1,lines),reach=Math.max(Math.abs(window.x0),Math.abs(window.x1)),count=Math.ceil(reach/gap);
+ const charge=samples.reduce((q,s)=>q+s.dq,0),length=Math.max(Math.abs(window.y0),Math.abs(window.y1))*1.2;
+ const roots=Array.from({length:2*count},(_,j)=>({x:(j-count+.5)*gap,y:0}));
+ return sheetLines(roots,length,charge>=0?1:-1).map(line=>line.map(v=>({x:v.x,y:v.z})));
+}

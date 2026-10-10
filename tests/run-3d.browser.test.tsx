@@ -243,3 +243,45 @@ describe('a surface in space', () => {
   expect(plan(view, 'runChain')).toBeUndefined();
  }, HEAVY);
 });
+describe('the mirror piece in space is a whole contribution, and what it keeps is laid on', () => {
+ // The mirror's arrow was dashed for the whole of What cancels -- the figure's mark for what goes --
+ // and its surviving part was never drawn, so the stage ended showing one piece's part along the axis
+ // where the pair gives two. The ring opens in 3D, so that was its default What cancels.
+ for (const id of ['ring', 'bisector']) it(`${id}: solid, and its surviving part laid on once the sideways parts have gone`, async () => {
+  const view = await openLesson(id);
+  await openRun(view);
+  jump(view, 3, 'What cancels');
+  await waitFor(() => expect(plan(view, 'runPartner')).toBeTruthy());
+  expect(plan(view, 'runPartnerStyle')).toBe('solid');
+  // At the start nothing has gone yet, so there is nothing to lay on.
+  expect(plan(view, 'runArrows')?.split(' ')).not.toContain('partner-keep');
+  scrub(view, 2, .97);
+  await waitFor(() => expect(plan(view, 'runArrows')?.split(' ')).toContain('partner-keep'));
+  expect(plan(view, 'runPartnerStyle')).toBe('solid');
+ }, HEAVY);
+});
+describe('the chain in space is drawn beside the net arrow by the lesson, not by its first link', () => {
+ // With one link and no net arrow yet, any chain is collinear with itself: the ring's first link hung
+ // beside P on a tie, and the whole chain jumped back onto P when the second arrived.
+ for (const [id, beside] of [['ring', false], ['bisector', false], ['disk', true]] as const) it(`${id}: ${beside ? 'beside' : 'on P'} from its first link to its last`, async () => {
+  const view = await openLesson(id);
+  await openRun(view);
+  jump(view, 4, 'Add them up');
+  for (const at of [.1, .6]) {
+   scrub(view, 3, at);
+   await waitFor(() => expect(Number(plan(view, 'runChain') ?? 0)).toBeGreaterThan(1));
+   expect(plan(view, 'runChainBeside'), `${id} at ${at}`).toBe(beside ? 'true' : undefined);
+  }
+ }, HEAVY);
+});
+describe('the charge\'s sign is said in space', () => {
+ it('a negative ring reads as negative, with no field drawn to say so', async () => {
+  const view = await openLesson('v-ring', {charge: -2});
+  await waitFor(() => expect(scene(view)?.dataset.chargeSign).toBe('\u2212'));
+  cleanup();
+  window.history.replaceState(null, '', '/');
+  const plus = await openLesson('v-ring');
+  await waitFor(() => expect(scene(plus)?.dataset.chargeSign).toBe('+'));
+ }, HEAVY);
+});
+

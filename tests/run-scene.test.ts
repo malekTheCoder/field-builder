@@ -91,7 +91,7 @@ describe('the arrows at P, at the figure\'s own scale', () => {
  it('with a partner, the two parts that go start together at P and shrink together as they cancel', () => {
   const a = arrows({partner: {x: 3, y: 1, z: 0}, cancelled: .75});
   expect(a.dropFrom).toEqual(zero);
-  expect(a.partnerKeep).toEqual(zero);
+  expect(a.partnerFrom).toEqual(zero);
   expect(a.partner).toEqual({x: 6, y: 2, z: 0});
   expect(a.drop!.y).toBeCloseTo(-.5, 12);
   expect(a.partnerDrop!.y).toBeCloseTo(.5, 12);

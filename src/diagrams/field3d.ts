@@ -104,10 +104,20 @@ function drawnPoints(cell:number){
  };
 }
 export type TraceOptions={step?:number;maxSteps?:number;outerLimit?:number;sign?:number;
+ /** Stop where the DRAWING has let the line go, as opposed to the sphere `outerLimit` sets about O.
+  * The scene fades each line with its distance from the charge (see `lineStrength`), and the sphere
+  * about O was a different place wherever the charge is not centred on O: on the rod seen along its
+  * axis -- O is its end -- lines stopped dead in empty space beside P while still drawn at a third to
+  * three fifths of their ink, each end a sink that is not there. Given this, a line runs on until it
+  * has faded to nothing, and `outerLimit` is only a guard. */
+ far?:(at:Vec)=>boolean;
  /** How far out lines may START, as opposed to how far they may run. The two differ on the
   * sheet: a line may usefully run well past the edge of the drawing, but one that BEGINS out
   * there is drawn entirely off the picture. Defaults to `outerLimit`. */
  seedLimit?:number;
+ /** Which of the charge lines may start from, where that is not `seedLimit`; see `seedPool` in
+  * fieldlines.ts. */
+ seedPool?:number;
  /** How close to a point charge counts as having arrived. */
  arrive?:number;
  /** Per-element stopping radii, when the caller has worked them out. */
@@ -181,7 +191,7 @@ function trace3(samples:readonly ChargeSample[],start:Vec,options:TraceOptions):
    }
   }
   path.push(next);here=next;
-  if(LEN(here)>outer)break;
+  if(LEN(here)>outer||options.far?.(here))break;
   // Not at the root: every line leaves the charge from nearly the same place.
   if(crowd>0&&drawn&&i>4&&drawn.within(here,crowd))break;
   if(clear)continue;
@@ -347,8 +357,16 @@ export function spaceLines(samples:readonly ChargeSample[],layout:Layout,count:n
  // extent launched the sheet's lines twenty-one metres above the plane -- its refined partition
  // reaches 355 m -- so every line began outside the frame and was discarded on its first step.
  const span=options.seedLimit??options.outerLimit??reach;
- const seeds=spaceSeeds(samples,layout,count,Math.max(arrive*1.6,span*.06),4,options.seedLimit??options.outerLimit??Infinity);
+ const seeds=spaceSeeds(samples,layout,count,Math.max(arrive*1.6,span*.06),4,options.seedPool??options.seedLimit??options.outerLimit??Infinity);
  return throughSeeds(samples,layout,seeds,options,stops,options.crowd??span*.012);
+}
+/** HOW FAR THE SCENE TRACES A LINE: until the drawing has faded it to nothing, 1.35 reaches from the
+ * charge's body, where `lineStrength` reaches zero (see TraceOptions.far) -- with the sphere about O
+ * kept only as a guard, at three reaches, and enough steps to get there. The step is the smaller of
+ * the picture and the charge, as it always was. `span` is how far the charge itself runs from O. */
+export function traceTo(samples:readonly ChargeSample[],layout:Layout,reach:number,span:number,extra:TraceOptions={}):TraceOptions{
+ const away=bodyDistance(samples,layout==='surface'?'surface':'wire'),step=Math.min(reach,span)*.04,gone=reach*1.35;
+ return {step,maxSteps:Math.min(1200,Math.max(420,Math.ceil(2*gone/step))),outerLimit:Math.max(reach*3,span+gone),far:v=>away(v.x,v.y,v.z)>gone,...extra};
 }
 /** The side view of a ring, a disk or a sheet is a cut through the plane y = 0, and every
  * one of them is symmetric about its axis, so a line that starts in that plane stays in it.
@@ -482,12 +500,38 @@ export function sheetRoots(radius:number,count:number):{x:number;y:number}[]{
 }
 /** THE ARROWS THE SCENE DRAWS: a readable subset of the lattice, not the whole cube. Six by six by
  * six, each three to four times the length of a flat arrow, ran over the charge, P, the net arrow
- * and the labels. The outer layer goes; what is left is the four by four by four nearest the charge,
- * where the field has its shape, weighted again among themselves. Half a step off every plane, as
- * the lattice always is, so a surface has as many arrows under it as over it. */
-export function latticeCore(samples:readonly ChargeSample[],reach:number,layout:Layout):Arrow3[]{
- const spacing=reach/3;
- const inner=spaceGrid(samples,reach,spacing,.14,undefined,layout).filter(a=>Math.max(Math.abs(a.at.x),Math.abs(a.at.y),Math.abs(a.at.z))<2*spacing);
- const weights=logWeights(inner.map(a=>a.magnitude));
- return inner.map((a,i)=>({...a,weight:weights[i]}));
+ * and the labels. What is drawn is four by four by four about `centre`, where the field has its shape,
+ * weighted among themselves. Half a step off every plane through the centre, as the lattice always
+ * is, so a surface has as many arrows under it as over it. See `latticeFrame` for where it stands. */
+export function latticeCore(samples:readonly ChargeSample[],reach:number,layout:Layout,centre:Vec={x:0,y:0,z:0},spacing=reach/3):Arrow3[]{
+ if(!(spacing>0)||!samples.length)return [];
+ const field=fieldOf(samples,layout),clear=bodyDistance(samples,layout==='surface'?'surface':'wire');
+ const steps=[-1.5,-.5,.5,1.5].map(k=>k*spacing),raw:{at:Vec;dir:Vec;magnitude:number}[]=[];
+ for(const dx of steps)for(const dy of steps)for(const dz of steps){
+  const at={x:centre.x+dx,y:centre.y+dy,z:centre.z+dz};
+  if(clear(at.x,at.y,at.z)<.14)continue;
+  const e=field(at),magnitude=LEN(e);
+  if(!Number.isFinite(magnitude)||magnitude<=0)continue;
+  raw.push({at,dir:scale(e,1/magnitude),magnitude});
+ }
+ const weights=logWeights(raw.map(a=>a.magnitude));
+ return raw.map((a,i)=>({...a,weight:weights[i]}));
+}
+/** WHERE THE ARROWS STAND: about the middle of the charge and P together, not about O.
+ *
+ * The cube was centred on the world's origin, and O is where each lesson's own labels need it, not
+ * the middle of what the lesson is about. On the rod seen along its axis O is the rod's END: half the
+ * arrows stood in empty space behind it, and none lay between the rod's far end and P, or round P --
+ * the gap the lesson is about -- while the flat arrows cover the whole window. So the cube is centred
+ * on the middle of the box holding the charge and P, rounded to a whole step so the arrows stand still
+ * as P moves a little, and opened up until that box fits inside it. A charge that goes on past the
+ * picture (`endless`) keeps O, which is the middle of everything it has. */
+export function latticeFrame(points:readonly Vec[],reach:number,endless=false):{centre:Vec;spacing:number}{
+ const base=reach/3;
+ if(endless||!points.length)return {centre:{x:0,y:0,z:0},spacing:base};
+ const lo={x:Infinity,y:Infinity,z:Infinity},hi={x:-Infinity,y:-Infinity,z:-Infinity};
+ for(const v of points){lo.x=Math.min(lo.x,v.x);lo.y=Math.min(lo.y,v.y);lo.z=Math.min(lo.z,v.z);hi.x=Math.max(hi.x,v.x);hi.y=Math.max(hi.y,v.y);hi.z=Math.max(hi.z,v.z);}
+ const half=Math.max(hi.x-lo.x,hi.y-lo.y,hi.z-lo.z)/2,spacing=Math.max(base,half/1.45);
+ const snap=(v:number)=>Math.round(v/spacing)*spacing+0;
+ return {centre:{x:snap((lo.x+hi.x)/2),y:snap((lo.y+hi.y)/2),z:snap((lo.z+hi.z)/2)},spacing};
 }
