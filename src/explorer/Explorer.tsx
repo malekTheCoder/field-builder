@@ -9,7 +9,8 @@ import {Slider} from '@/components/ui/slider';
 import {Dialog,DialogContent,DialogTitle,DialogDescription} from '@/components/ui/dialog';
 import {PROBLEMS,getProblem} from '../problems/definitions';
 import {DEFAULT_PARAMS,type Params,type Problem,type ProblemId} from '../problems/types';
-import {preview} from '../symbolic/equivalence';
+import {confusionTex} from '../symbolic/equivalence';
+import {sheetPiece} from '../diagrams/camera';
 import {activeIntervalIndex} from '../diagrams/sampling';
 import {partitionCount} from '../diagrams/subdivision';
 import {cleanParams,parseAssignment,serializeAssignment,type ExploreMode} from '../state/assignment';
@@ -58,7 +59,7 @@ function ShapeGlyph({id,size=18}:{id:ProblemId;size?:number}){const label=PROBLE
 // lesson, so the list is grouped by them and each group says its own name.
 const FAMILIES:{label:string;ids:ProblemId[]}[]=[
  {label:'Straight rods',ids:['bisector','axial','endpoint','ramp']},
- {label:'Rings, discs and arcs',ids:['ring','disk','arc']},
+ {label:'Rings, disks and arcs',ids:['ring','disk','arc']},
  {label:'Charge with no end',ids:['infinite','semi','sheet']},
  {label:'The same shapes, as potential',ids:['v-ring','v-disk','v-arc','v-rod-bisector','v-rod-axial']}];
 /** Group a set of lessons into the families above, keeping each family's stated order and
@@ -123,7 +124,7 @@ function useSteady<A extends unknown[],R>(fn:(...args:A)=>R):(...args:A)=>R{cons
 /** The board re-renders when what it shows changes, not whenever the page does. */
 const Workbench=memo(EquationWorkbench);
 export default function Explorer(){
- const [id,setId]=useState<ProblemId>('bisector');const [path,setPath]=useState('angular');const [mode,setMode]=useState<Mode>('divide');const [paramsMap,setParamsMap]=useState<Partial<Record<ProblemId,Params>>>({});const [dark,setDark]=useState(false);const [ready,setReady]=useState(false);const [storageOK,setStorageOK]=useState(true);const [onboarding,setOnboarding]=useState(false);const [seen,setSeen]=useState(false);const [library,setLibrary]=useState(false);const [sidebarOpen,setSidebarOpen]=useState(true);const [showNumbers,setShowNumbers]=useState(false);const [components,setComponents]=useState(false);const [pair,setPair]=useState(false);const [progress,setProgress]=useState(1);const [selected,setSelected]=useState(3);const [bounds,setBounds]=useState<[number,number]>([0,100]);const [limitsOpen,setLimitsOpen]=useState(false);const [slipsOpen,setSlipsOpen]=useState(false);const [limitIndex,setLimitIndex]=useState(0);const [highlight,setHighlight]=useState('');const [status,setStatus]=useState('');const [building,setBuilding]=useState(false);const [runAt]=useState(runClock);const [buildIndex,setBuildIndex]=useState(0);const [buildShown,setBuildShown]=useState(false);const [runPiece,setRunPiece]=useState(.7);const build=useRef<{stop:()=>void}|null>(null);const clock=useRef({at:0,stopAt:0});const buildC=useRef(-1);const buildStep=useRef(-1);const reduced=useReducedMotion();const tourButton=useRef<HTMLButtonElement>(null),watchButton=useRef<HTMLButtonElement>(null),walk=useRef<HTMLDivElement>(null),reveal=useRef(false);
+ const [id,setId]=useState<ProblemId>('bisector');const [path,setPath]=useState('angular');const [mode,setMode]=useState<Mode>('divide');const [paramsMap,setParamsMap]=useState<Partial<Record<ProblemId,Params>>>({});const [dark,setDark]=useState(false);const [ready,setReady]=useState(false);const [storageOK,setStorageOK]=useState(true);const [onboarding,setOnboarding]=useState(false);const [seen,setSeen]=useState(false);const [library,setLibrary]=useState(false);const [sidebarOpen,setSidebarOpen]=useState(true);const [showNumbers,setShowNumbers]=useState(false);const [components,setComponents]=useState(false);const [pair,setPair]=useState(false);const [progress,setProgress]=useState(1);const [selected,setSelected]=useState<number|null>(null);const [bounds,setBounds]=useState<[number,number]>([0,100]);const [limitsOpen,setLimitsOpen]=useState(false);const [slipsOpen,setSlipsOpen]=useState(false);const [limitIndex,setLimitIndex]=useState(0);const [highlight,setHighlight]=useState('');const [status,setStatus]=useState('');const [building,setBuilding]=useState(false);const [runAt]=useState(runClock);const [buildIndex,setBuildIndex]=useState(0);const [buildShown,setBuildShown]=useState(false);const [runPiece,setRunPiece]=useState(.7);const build=useRef<{stop:()=>void}|null>(null);const clock=useRef({at:0,stopAt:0});const buildC=useRef(-1);const buildStep=useRef(-1);const reduced=useReducedMotion();const tourButton=useRef<HTMLButtonElement>(null),watchButton=useRef<HTMLButtonElement>(null),walk=useRef<HTMLDivElement>(null),reveal=useRef(false);
  // Held per lesson: `getProblem` builds the infinite line afresh on every call, and a new problem
  // object is a changed prop to everything memoised below.
  const p=useMemo(()=>getProblem(id,'angular'),[id]),derivationProblem=useMemo(()=>getProblem(id,path),[id,path]),params=paramsMap[id]??DEFAULT_PARAMS;const continuum=params.continuum;const count=partitionCount(params.slices,continuum);const geom=p.geometry,scalar=p.quantity==='V';const isInfinite=['infinite','semi','sheet'].includes(geom);const isRound=['ring','disk','arc'].includes(geom);const lim=p.limits[Math.min(limitIndex,p.limits.length-1)];
@@ -165,10 +166,15 @@ export default function Explorer(){
  // The piece being added walks along the charge while the sum builds, so it is always plain
  // which piece is going in.
  const following=buildOpen&&buildNow.key==='add';
+ // The piece a lesson rests on until the reader picks one: the fourth, except on the sheet, whose
+ // fourth ring is so far out that its far edge runs through P in the opening view and P reads as
+ // lying in the sheet. The sheet rests on the largest ring still drawn clearly below P instead --
+ // an angle at P, so lifting P hardly ever moves it to another ring. See `sheetPiece`.
+ const restingPiece=geom==='sheet'?sheetPiece(count,params.distance):3;
  // The run shows its own piece, held at one place along the charge rather than at one index: the
  // limit multiplies the pieces, and a fixed index slid from most of the way along the rod to its
  // very end as they shrank.
- const activeIndex=following?activeIntervalIndex(count,bounds,progress):buildOpen?Math.min(count-1,Math.floor(runPiece*count)):Math.min(count-1,Math.max(0,selected));
+ const activeIndex=following?activeIntervalIndex(count,bounds,progress):buildOpen?Math.min(count-1,Math.floor(runPiece*count)):Math.min(count-1,Math.max(0,selected??restingPiece));
  // While the run is open, the figure lights the factor the current stage puts into the integral
  // -- the distance as the first arrow is drawn, the angle as the parts cancel -- unless the
  // reader is pointing at something else, which always wins.
@@ -185,7 +191,7 @@ export default function Explorer(){
  const boardBuild=useMemo(()=>({open:buildOpen,index:buildIndex,playing:building,settled:cutAway}),[buildOpen,buildIndex,building,cutAway]);
  const updateParams=useCallback((partial:Partial<Params>)=>{setParamsMap(old=>({...old,[id]:{...(old[id]??DEFAULT_PARAMS),...partial}}));},[id]);
  function stop(){build.current?.stop();build.current=null;setBuilding(false)}
- function changeDistribution(next:string){stop();setId(next as ProblemId);setSelected(3);setProgress(1);setBounds([0,100]);setLibrary(false);setLimitIndex(0);setStatus('');setHighlight('');endBuild();}
+ function changeDistribution(next:string){stop();setId(next as ProblemId);setSelected(null);setProgress(1);setBounds([0,100]);setLibrary(false);setLimitIndex(0);setStatus('');setHighlight('');endBuild();}
  // WATCH IT BUILD. The five stages are data (`buildRun.ts`); this is the projector. It drives
  // exactly the state the manual controls drive -- mode, the mirror partner, how much of the sum
  // is drawn, how fine the partition is -- so the run can never show a figure the reader cannot
@@ -237,8 +243,12 @@ export default function Explorer(){
   * round is the near side, so the two sideways parts pointed straight along the line of sight and
   * shrank to a few pixels in both views. The ring's piece is the one lying across the screen in the
   * view the ring opens in -- yaw -0.5, about 331 degrees round -- so its sideways parts are drawn at
-  * full length, either side of the axis, and are seen to cancel. */
- function openRun(){if(buildShown)return;const i=geom==='ring'?Math.floor(count*(1-.5/(2*Math.PI)))%count:geom==='bisector'?count-1:count-1-Math.floor((count-1)/4);setRunPiece((i+.5)/count);setBuildShown(true)}
+  * full length, either side of the axis, and are seen to cancel.
+  *
+  * The sheet's piece is its resting one, the largest ring still drawn clearly below P: three
+  * quarters of the way out was the ring 54 to 72 degrees below P, whose far edge ran through P in the
+  * opening view, so P looked as if it lay in the sheet for the whole run. */
+ function openRun(){if(buildShown)return;const i=geom==='ring'?Math.floor(count*(1-.5/(2*Math.PI)))%count:geom==='bisector'?count-1:geom==='sheet'?sheetPiece(count,params.distance):count-1-Math.floor((count-1)/4);setRunPiece((i+.5)/count);setBuildShown(true)}
  function playBuild(from:number,until:number){
   build.current?.stop();build.current=null;setHighlight('');openRun();
   setBuilding(true);
@@ -305,7 +315,7 @@ export default function Explorer(){
  // Steady versions of the handlers the memoised parts are given.
  const choose=useSteady(changeDistribution),select=useSteady((i:number)=>{stop();setSelected(i)}),pickMode=useSteady(chooseMode),step=useSteady(stepBuild);
  const play=useSteady(runBuild),seek=useSteady((at:number)=>seekBuild(at)),close=useSteady(endBuild);
- const recut=useSteady((slices:number)=>{if(buildOpen)endBuild();updateParams({slices,continuum:0})}),resetGeometry=useSteady(()=>{stop();updateParams({...DEFAULT_PARAMS});setProgress(1);setBounds([0,100]);setSelected(3)});
+ const recut=useSteady((slices:number)=>{if(buildOpen)endBuild();updateParams({slices,continuum:0})}),resetGeometry=useSteady(()=>{stop();updateParams({...DEFAULT_PARAMS});setProgress(1);setBounds([0,100]);setSelected(null)});
  // The lesson list, the library and the sliders: none of them moves while the run plays, and the
  // list and the library are fifteen lessons, each with its drawn glyph, every one rebuilt per render.
  const lessonList=useMemo(()=>{
@@ -390,7 +400,7 @@ export default function Explorer(){
    <summary><span>Easy to confuse with</span><small>The expressions this geometry sits next to, and what each one would actually describe.</small></summary>
    {slipsOpen&&<div className="exp-note-body exp-slips">{confusions(p).map(g=><div className="exp-slip" key={g.key}>
     <span className="exp-slip-of">{g.label}</span>
-    {g.notes.map(n=><div className="exp-slip-note" key={n.message}><span className="exp-slip-math">{n.expressions.map(x=><MathText key={x} tex={preview(x)}/>)}</span><p>{n.message}</p></div>)}
+    {g.notes.map(n=><div className="exp-slip-note" key={n.message}><span className="exp-slip-math">{n.expressions.map(x=><MathText key={x} tex={confusionTex(x)}/>)}</span><p>{n.message}</p></div>)}
    </div>)}</div>}
   </details>
  </section>

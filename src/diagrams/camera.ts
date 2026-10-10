@@ -25,6 +25,36 @@ const OPENING: Record<string, CameraView> = {
   disk: {yaw: -.5, pitch: .6}, sheet: {yaw: -.5, pitch: .6}, ring: {yaw: -.5, pitch: .6},
 };
 export const openingCamera = (geometry: string): CameraView => ({...(OPENING[geometry] ?? DEFAULT_CAMERA)});
+/** Pixels per metre the ring, the disk and the sheet open at: the figure's `baseUnit` for the
+ * three lessons drawn in perspective, before any zoom. */
+export const SURFACE_UNIT = 42;
+/** How far below P, on screen, the far edge of the sheet's chosen ring must stay. */
+export const SHEET_CLEARANCE = 24;
+/** WHICH RING OF THE SHEET TO TALK ABOUT: the largest one whose far edge, at the opening camera,
+ * still lies clearly below P on the screen.
+ *
+ * Every lesson used to open on its fourth piece, and the run on the piece three quarters of the
+ * way along. On the sheet that is the ring 54 to 72 degrees below P -- out to 9.2 m at z = 3 --
+ * and in the opening view a flat ring of radius s rises sin(pitch)·s on the screen while P rises
+ * cos(pitch)·z. So the ring's far edge ran straight through P, the line from P to it lay nearly
+ * flat, and P looked as if it sat IN the sheet: in the one lesson whose whole argument is that
+ * lifting P off the sheet changes nothing.
+ *
+ * The camera cannot simply go lower (see OPENING). The ring can come in: the sheet is cut at equal
+ * angles from P, so a ring is an angle, and the angle whose far edge stays below P does not depend
+ * on how far P is lifted -- only, a little, on the margin. At the default height and five pieces it
+ * is the ring 18 to 36 degrees below P. */
+export function sheetPiece(count: number, height: number, unit = SURFACE_UNIT, view: CameraView = openingCamera('sheet'), clear = SHEET_CLEARANCE): number {
+  const n = Math.max(1, Math.round(count)), z = Math.abs(height);
+  const room = Math.cos(view.pitch) * z * unit - clear;
+  let best = 0;
+  for (let i = 0; i < n; i++) {
+    // The same cut the sampler makes: s = z tan(pi t / 2), held short of the right angle.
+    const outer = z * Math.tan(Math.PI / 2 * Math.min(.999, (i + 1) / n));
+    if (Math.sin(view.pitch) * outer * unit <= room) best = i; else break;
+  }
+  return best;
+}
 /** Orthographic projection into screen coordinates; world +z points upward. */
 export function projectCamera(v: Vec, yaw: number, pitch: number): { x: number; y: number } {
   const cy = Math.cos(yaw), sy = Math.sin(yaw), cp = Math.cos(pitch), sp = Math.sin(pitch);
