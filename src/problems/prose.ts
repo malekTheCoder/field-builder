@@ -23,9 +23,11 @@ const OPERATOR=/(\S) ([=→≈∼~≫≪≤≥<>≠×·÷/+−]) (?=\S)/g;
 /** Greek letters, sub- and superscripts and the calculus marks: any of them makes a token a symbol. */
 const MATHY=/[α-ωΑ-ΩΔ∂√∫∞₀-₉ᵢᵧₓ²³′]/;
 const FUNCTIONS=new Set(['sin','cos','tan','sec','ln','log']);
-/** Whether a whitespace-delimited token is a symbol or a formula rather than a word. */
+/** Whether a whitespace-delimited token is a symbol or a formula rather than a word. A sign in front
+ * is part of the symbol: "−dE", "+dE" and "−(cos" were read as words, so "the x-part of dE is −dE"
+ * ended one line and "sin α." began the next. */
 export function symbolic(token:string):boolean{
- const core=token.replace(/^[(“‘]+/,'').replace(/[.,;:!?)”’]+$/,'');
+ const core=token.replace(/^[−+]?[(“‘]*/,'').replace(/[.,;:!?)”’]+$/,'');
  if(!core)return false;
  if(MATHY.test(core))return true;
  if(/^[A-Za-z]$/.test(core)||/^d[A-Za-z]$/.test(core)||FUNCTIONS.has(core))return true;

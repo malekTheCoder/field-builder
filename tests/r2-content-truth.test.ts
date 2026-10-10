@@ -79,7 +79,7 @@ describe('a piece makes a field at P; nothing acts on P',()=>{
   expect(JSON.stringify(p),p.id).not.toMatch(/\bacts? on P\b|\bpush(es|ed)?\b|\bharder\b/);
  });
  it('the sheet’s subtitle says the rings make the same field at P',()=>{
-  expect(getProblem('sheet').subtitle).toMatch(/makes exactly the same field at P as before/);
+  expect(getProblem('sheet').subtitle).toMatch(/making the same field at P/);
  });
 });
 describe('far limits are written in each lesson’s own symbols',()=>{

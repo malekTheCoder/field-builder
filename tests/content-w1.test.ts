@@ -169,7 +169,7 @@ describe('the words name what the algebra does',()=>{
  });
  it('stale or imprecise diagnoses are gone',()=>{
   expect(said('bisector','component2','0')).not.toMatch(/next step/);
-  expect(said('bisector','component2','0')).toMatch(/What cancels stage/);
+  expect(said('bisector','component2','0')).toMatch(/the run’s “What cancels” stage/);
   expect(said('sheet','kernel','k*z*sigma/(s^2+z^2)^(3/2)')).toMatch(/circumference, 2πs/);
   for(const p of lessons)for(const [where,text] of shown(p))expect(text,`${p.id} ${where}`).not.toMatch(/green/);
   expect(said('bisector','field','k*dQ/ri')).toBe(said('ring','field','k*dQ/ri'));

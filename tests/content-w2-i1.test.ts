@@ -63,15 +63,19 @@ describe('the offline copy prints the derivation the panel unfolds',()=>{
 });
 
 describe('the potentials and the rod level with an end write the steps their twins write',()=>{
- it('v-rod-axial: the constant out, the ends turned round, the bracket evaluated, a log of a ratio',()=>{
+ it('v-rod-axial: the constant out, the ends turned round, then the logarithm of the ends’ ratio',()=>{
   const steps=worked('v-rod-axial');
   expect(steps[0].tex).toBe(String.raw`V=k\lambda\int_0^L\frac{dx}{L+a-x}`);
   expect(plain(steps[1].text)).toMatch(/the minus turns the ends round/);
   expect(steps[1].tex).toContain(String.raw`=k\lambda\int_a^{L+a}\frac{du}{u}`);
-  expect(steps[2].tex).toContain(String.raw`\ln\frac{a}{a}`);
-  expect(plain(steps[2].text)).toMatch(/upper end minus lower end/i);
-  const L=1.7,a=.45;
-  expect(Math.log((L+a)/a)-Math.log(a/a)).toBeCloseTo(Math.log(1+L/a),14);
+  // The standard identity, ∫_a^b du/u = ln(b/a), not an antiderivative chosen to hold its own lower
+  // limit (wave 2, iteration 2): the logarithm is still of a ratio.
+  expect(steps[2].text).toContain(String.raw`$\int_a^b du/u=\ln(b/a)$`);
+  expect(steps[2].tex).toBe(String.raw`V=k\lambda\int_a^{L+a}\frac{du}{u}=k\lambda\ln\frac{L+a}{a}`);
+  expect(plain(steps[2].text)).not.toMatch(/ln\(u\/a\)|textbook antiderivative/);
+  const L=1.7,a=.45,n=20000;
+  let sum=0;for(let i=0;i<n;i++){const u=a+(i+.5)*L/n;sum+=L/n/u;}
+  expect(sum).toBeCloseTo(Math.log((L+a)/a),6);
  });
  it('v-disk: 2πkσ comes outside, and the bracket is written before it is evaluated',()=>{
   const steps=worked('v-disk');
@@ -88,11 +92,11 @@ describe('the potentials and the rod level with an end write the steps their twi
   const r=.8,L=2.3;
   expect(-1/Math.hypot(L,r)-(-1/r)).toBeGreaterThan(0);
  });
- it('the sheet writes 2πkσz coming out and the subtraction 0 − (−1/|z|)',()=>{
+ it('the sheet writes 2πkσz coming out and the subtraction 0 − (−1/z), at the z > 0 its model has',()=>{
   const steps=worked('sheet');
   expect(steps[0].tex).toContain(String.raw`2\pi k\sigma z\int_0^\infty`);
-  expect(plain(steps[1].text)).toContain(String.raw`$0-(-1/|z|)=1/|z|$`);
-  expect(steps[1].tex).toContain(String.raw`\left(0+\frac1{|z|}\right)`);
+  const bracket=steps.find(w=>w.tex.includes(String.raw`\left(0+\frac1z\right)`))!;
+  expect(plain(bracket.text)).toContain(String.raw`$0-(-1/z)=1/z$`);
  });
  it('the axial Unfold says “upper minus lower” once and prints no row twice',()=>{
   const steps=lessonWorking(getProblem('axial')).worked;

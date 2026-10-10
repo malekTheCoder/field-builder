@@ -48,7 +48,8 @@ const FINITE=getProblem('infinite','finite');
 function unalign(tex:string):string{
  const m=/^\\begin\{aligned\}([\s\S]*)\\end\{aligned\}$/.exec(tex.trim());
  if(!m)return tex;
- return m[1].split('\\\\').map(row=>row.trim()).reduce((out,row,i)=>
+ // A break sized to its row, \\[1em], is the same break: the gap is spacing, not a term.
+ return m[1].split(/\\\\(?:\[[^\]]*\])?/).map(row=>row.trim()).reduce((out,row,i)=>
   i===0?row.replace(/&/g,''):row.startsWith('&')?out+row.replace(/^&\s*(?:\\q?quad\s*)*/,'').replace(/&/g,''):`${out},\\quad ${row.replace(/&/g,'')}`,'');
 }
 const flat=(p:Problem):Problem=>({...p,steps:p.steps.map(s=>s.worked?{...s,worked:s.worked.map(w=>({...w,tex:unalign(w.tex)}))}:s)});
@@ -101,7 +102,10 @@ function expandCommand(s:string,cmd:RegExp,arity:number,build:(args:string[])=>s
 }
 function deTex(input:string):string{
  let s=input;
- s=s.replace(/\\(?:left|right|bigl|bigr|Bigl|Bigr|big|Big)/g,'');
+ // A \phantom only sets aside room -- the ramp's E_y hangs its second row under its bracket -- and
+ // says nothing; a \bigg bracket is a bracket.
+ s=expandCommand(s,/\\phantom(?![a-zA-Z])/,1,()=>'');
+ s=s.replace(/\\(?:left|right|biggl|biggr|bigg|bigl|bigr|Bigl|Bigr|big|Big)/g,'');
  s=s.replace(/\\[,;!: ]/g,' ');
  s=s.replace(/\\text\{[^{}]*\}|\\mathrm\{[^{}]*\}|\\mathbf\s*/g,'');
  s=s.replace(/\\bar\s*y/g,'d');                     // the ramp's centre of charge ȳ: a length

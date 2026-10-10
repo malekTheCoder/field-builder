@@ -49,7 +49,7 @@ describe('one claim per factor',()=>{
  it('the arc’s projection heading and its diagnosis agree on cos θ',()=>{
   const projection=fields(getProblem('arc')).find(f=>f.id==='projection')!;
   expect(projection.label).toBe('Projection factor cos θ');
-  expect(said('arc','projection','sin(theta)')).toMatch(/uses cos θ, with the minus that the direction from the piece to the centre, −\(cos θ, sin θ\), carries/);
+  expect(said('arc','projection','sin(theta)')).toMatch(/uses cos θ, and with a minus sign: the direction from the piece to the centre is −\(cos θ, sin θ\)\./);
  });
  it('the ramp’s far E_y is vertical, along the rod, not “transverse”',()=>{
   const text=plain(limitOf('ramp','moment').explanation);

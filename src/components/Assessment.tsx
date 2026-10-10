@@ -13,9 +13,15 @@ const CHARGE={stroke:'var(--charge)',fill:'none',strokeLinecap:'round'} as const
 /** P, and the field it feels at this point of the sweep: the direction of the lesson's own field,
  *  sign included, on the silhouette's axes (x right and y up; z to the right for the axial views,
  *  which lie on their side). The arrow keeps one length, except where the plotted field falls
- *  away, where `scale` shrinks it with it. */
-function Observer({x,y,vector,axial=false,scale=1}:{x:number;y:number;vector?:Vec;axial?:boolean;scale?:number}){
- const sx=vector?(axial?vector.z:vector.x):0,sy=vector?(axial?0:-vector.y):0,m=Math.hypot(sx,sy),len=26*Math.min(1,scale);
+ *  away, where `scale` shrinks it with it.
+ *  `floor` is the top edge of a source drawn just under P, and `wall` the right-hand end of one
+ *  drawn just to its left: an arrow pointing at it stops short of it. A negative half line's field
+ *  at P points down onto the line, and drawn its full length it ran straight across the charge and
+ *  out below it -- a field passing through the line. Where there is no room at all, as P reaches a
+ *  negative rod's end, there is no arrow rather than one laid over the charge. */
+function Observer({x,y,vector,axial=false,scale=1,floor,wall}:{x:number;y:number;vector?:Vec;axial?:boolean;scale?:number;floor?:number;wall?:number}){
+ const sx=vector?(axial?vector.z:vector.x):0,sy=vector?(axial?0:-vector.y):0,m=Math.hypot(sx,sy),ux0=m>0?sx/m:0,uy0=m>0?sy/m:0;
+ const len=Math.min(26*Math.min(1,scale),floor!==undefined&&uy0>0?(floor-y-uy0*7)/uy0:Infinity,wall!==undefined&&ux0<0?(x+ux0*7-wall)/-ux0:Infinity);
  const show=m>0&&Number.isFinite(m)&&len>2.5,ux=show?sx/m:0,uy=show?sy/m:0,bx=x+ux*7,by=y+uy*7,tx=bx+ux*len,ty=by+uy*len;
  return <g><circle cx={x} cy={y} r="4" fill="var(--foreground)"/>{show&&<g className="limit-arrow" data-dx={ux.toFixed(4)} data-dy={uy.toFixed(4)} stroke="var(--field)" strokeWidth="2" fill="none" strokeLinecap="round">
   <path d={`M${bx.toFixed(1)} ${by.toFixed(1)}L${tx.toFixed(1)} ${ty.toFixed(1)}`}/>
@@ -39,7 +45,7 @@ function rodScale(mode:Limit['mode'],t:number,room:number,far:number,near:number
  *  filled dot with the field it feels. Decorative -- every number is in the plot's aria-label and
  *  the table under it. */
 function LimitFigure({id,mode,t,vector,scale,arrow}:{id:ProblemId;mode:Limit['mode'];t:number;vector?:Vec;scale:number;arrow:boolean}){
- const P=(x:number,y:number,axial=false)=><Observer x={x} y={y} vector={arrow?vector:undefined} axial={axial} scale={scale}/>;
+ const P=(x:number,y:number,axial=false,floor?:number,wall?:number)=><Observer x={x} y={y} vector={arrow?vector:undefined} axial={axial} scale={scale} floor={floor} wall={wall}/>;
  if(id==='bisector'||id==='infinite'){
   // The infinite line moving P away: the whole line, and P walking out from it -- along the plot's
   // own logarithmic axis, so P is where the dot on the curve is.
@@ -49,10 +55,13 @@ function LimitFigure({id,mode,t,vector,scale,arrow}:{id:ProblemId;mode:Limit['mo
   return <><path d={`M64 25H${64+gap-8}`} {...RAIL}/><path d={`M64 ${25-h}V${25+h}`} {...CHARGE} strokeWidth="7"/>{unbounded&&<path d="M57 6l14-4M57 44l14 4" {...CHARGE}/>}{P(64+gap,25)}</>}
  // On its own line: the rod's length L against the gap a. Far away the two share the frame's
  // length in the proportion a = tL; walking in, the rod keeps its length and the gap closes on it.
- if(id==='axial'){const w=mode==='near'?85:Math.max(4,170/(1+t)),x=mode==='near'?129+85/t:214;return <><path d={`M${44+w} 25H${x-8}`} {...RAIL}/><path d={`M44 25h${w}`} {...CHARGE} strokeWidth="7"/>{P(x,25)}</>}
+ if(id==='axial'){const w=mode==='near'?85:Math.max(4,170/(1+t)),x=mode==='near'?129+85/t:214;return <><path d={`M${44+w} 25H${x-8}`} {...RAIL}/><path d={`M44 25h${w}`} {...CHARGE} strokeWidth="7"/>{P(x,25,false,undefined,44+w+5)}</>}
  // The half line moving P away: P walks out along the plot's own logarithmic axis, as on the whole
- // line, so P is where the dot on the curve is.
- if(id==='semi'){const y=32-16*Math.log(t)/Math.log(30);return <><path d="M108 38H246" {...CHARGE} strokeWidth="7"/><path d="M238 31l9 7-9 7" {...CHARGE}/><path d={`M108 38V${y+6}`} {...RAIL}/>{P(108,y)}</>}
+ // line, so P is where the dot on the curve is. P STARTS A CLEAR GAP ABOVE THE LINE'S END. It began
+ // at y = 32, its dot touching the line's 7-unit stroke (top edge 34.5) at the start of the sweep and
+ // grazing it at the slider's default -- P drawn on the line, in a lesson about P a distance r above
+ // its end. A negative line's arrow, which points down at the line, stops at its top edge.
+ if(id==='semi'){const y=24-16*Math.log(t)/Math.log(30);return <><path d="M108 38H246" {...CHARGE} strokeWidth="7"/><path d="M238 31l9 7-9 7" {...CHARGE}/><path d={`M108 38V${y+6}`} {...RAIL}/>{P(108,y,false,33)}</>}
  if(id==='endpoint'||id==='ramp'){
   const {length,gap,unbounded}=rodScale(mode,t,32,94,24),h=Math.max(3,length);
   return <><path d={`M104 34H${104+gap-8}`} {...RAIL}/>
@@ -91,7 +100,7 @@ function LimitFigure({id,mode,t,vector,scale,arrow}:{id:ProblemId;mode:Limit['mo
   {P(S+gap,Y,true)}</>
 }
 /** Room above and below a thumbnail's 48-unit frame, for the arrows that lean out of it. */
-const THUMB_PAD:Partial<Record<ProblemId,[number,number]>>={semi:[10,10],endpoint:[0,20],ramp:[0,20]};
+const THUMB_PAD:Partial<Record<ProblemId,[number,number]>>={semi:[18,4],endpoint:[0,20],ramp:[0,20]};
 // The plot's frame, in the SVG's own units.
 const X0=40,X1=452,TOP=34,BASE=165,WIDTH=480;
 /** What the plotted curve is at one sample: the exact value over the reference, or, where the
@@ -122,6 +131,14 @@ function Sym({text}:{text:string}):ReactNode{
 function SymText({text}:{text:string}):ReactNode{
  return text.split(/([α-ωΑ-Ω])/).map((part,i)=>i%2?<span key={i} className="comparison-sym" style={GREEK}>{part}</span>:<Fragment key={i}>{part}</Fragment>);
 }
+/** A limit's formula with its condition on a line of its own: "r ≫ L:" and, under it, the relation.
+ * The condition is everything before the formula's first ":\quad", which is how every limit writes it.
+ * Its colon is set as punctuation, \colon: TeX's ":" is a relation, spaced on both sides, and at the
+ * end of a line it left "(λ fixed) :" with a gap before the colon. */
+export function twoLines(tex:string):string{
+ const at=tex.indexOf(':\\quad');
+ return at<0?tex:String.raw`\begin{aligned}&${tex.slice(0,at)}\colon\\[0.15em]&\quad ${tex.slice(at+6).trim()}\end{aligned}`;
+}
 export function Assessment({problem,params,limit}:{problem:Problem;params:Params;limit:Limit}){
  const [s,setS]=useState(4),sliderLabel=useId();const scalar=problem.quantity==='V',qty=scalar?'potential':'field',units=scalar?'volts':'newtons per coulomb';
  const plot=useMemo(()=>limitPlot(problem,limit),[problem,limit]);
@@ -134,7 +151,14 @@ export function Assessment({problem,params,limit}:{problem:Problem;params:Params
  // arrow shrinks as 1/r, and that shrinking is spread evenly along the slider instead of spent in its
  // first tenth.
  const semi=problem.geometry==='semi'&&limit.mode==='scale';
- const log=limit.mode==='far'||limit.mode==='moment'||limit.mode==='infinite'||limit.mode==='near'||(limit.mode==='half'&&!scalar)||plot.kind==='law'||semi;
+ // EXCEPT A POTENTIAL THAT GROWS AS R. On a log axis the disk's V ∼ σR/(2ε₀), dashed and labelled
+ // "grows as R", bent up like an exponential: the picture said the opposite of its label. Swept
+ // linearly it is the straight line it is. The two logarithms keep the log axis, where a logarithm is
+ // the straight line -- and every log axis now says it is one, or the rod's ln(L/r), drawn straight,
+ // read as V growing in proportion to L.
+ const linearGrowth=plot.kind==='growth'&&problem.geometry==='disk';
+ const log=(limit.mode==='far'||limit.mode==='moment'||limit.mode==='infinite'||limit.mode==='near'||(limit.mode==='half'&&!scalar)||plot.kind==='law'||semi)&&!linearGrowth;
+ const axisName=log?`${plot.axis} (log scale)`:plot.axis;
  const tAt=(i:number)=>log?30**(i/69):1+29*i/69,xAt=(u:number)=>X0+(log?Math.log(u)/Math.log(30):(u-1)/29)*(X1-X0);
  // The slider moves along the plot's own axis, so its thumb and the dot on the curve stay in step.
  const t=log?30**((s-1)/29):s;
@@ -152,6 +176,11 @@ export function Assessment({problem,params,limit}:{problem:Problem;params:Params
  // takes a row of its own under the two end labels, which it would otherwise run into.
  const [svgRef,width]=useRenderedWidth(WIDTH),grow=Math.max(1,10*WIDTH/(10.5*width)),size=(n:number)=>({fontSize:`${(n*grow).toFixed(2)}px`});
  const stacked=grow>1.05,axisY=stacked?193+13*grow:193,height=stacked?Math.ceil(axisY+4*grow):205;
+ // On a phone the card is under four hundred pixels wide, and a formula with a condition before it --
+ // "L → ∞ (λ fixed): V ∼ 2kλ ln(L/r), |V| → ∞" -- ran past its edge, the rest behind a sideways scroll no
+ // one finds: the rod's potential read "|V| →" with no ∞. There the condition takes a line of its own
+ // and the relation is set under it, indented, as a book sets "For L → ∞:" before its result.
+ const formula=width<460?twoLines(limit.formula):limit.formula;
  // Past the top of the window the curve runs out of the plot, clipped, rather than along its edge.
  const yAt=(v:number)=>BASE-(Math.min(Math.max(Number.isFinite(v)?v:3*hi,lo),3*hi)-lo)/(hi-lo)*(BASE-TOP),clip='limit-clip-'+useId().replace(/[^a-zA-Z0-9_-]/g,'');
  const trace=(vs:number[])=>vs.map((v,i)=>`${i?'L':'M'}${xAt(tAt(i)).toFixed(1)},${yAt(v).toFixed(1)}`).join(' ');
@@ -182,11 +211,11 @@ export function Assessment({problem,params,limit}:{problem:Problem;params:Params
  const atMarks=useMemo(()=>plot.kind==='law'?(plot.marks??[]).map(m=>sampleLimit(problem,params,limit,m.t).actual):[],[plot,problem,params,limit]),levels=atMarks.map(v=>v/largest);
  // What the plot's two numbers are, for a screen reader: on the half line they are its two components.
  const [exactName,referenceName]=semi?['|Eₓ|','|Eᵧ|']:[`Exact ${qty}`,growth?'growth law':'reference'];
- return <div className="assessment"><MathText tex={limit.formula} block/>
+ return <div className="assessment"><MathText tex={formula} block/>
  {/* Whole items wrap: at phone width each wrapped inside itself, "added / up", and the last one's
      dot was left alone on a line above its words. */}
  <div className="comparison-labels" style={{flexWrap:'wrap',rowGap:4}}><span style={NOWRAP}><i className="legend-dot field"/>{plot.solid??`Your exact ${qty}`}</span>{plot.second&&<span style={NOWRAP}><i className="legend-dot" style={{background:'var(--ghost)'}}/>{plot.second}</span>}<span style={NOWRAP}><i className="legend-dot"/>{/^[a-z]{2,}/.test(plot.line)?plot.line[0].toUpperCase()+plot.line.slice(1):plot.line}</span></div>
- <svg ref={svgRef} viewBox={`0 0 ${WIDTH} ${height}`} className="comparison-plot" role="img" data-kind={plot.kind} aria-label={`${scalar?'Electric potential':'Electric field'} comparison for ${limit.title}: ${plot.y}, against ${plot.axis} from ${plot.from} to ${plot.to}. ${exactName} ${pretty(val.actual)} ${units}, ${referenceName} ${pretty(val.target)}${semi?' '+units:''}.`}>
+ <svg ref={svgRef} viewBox={`0 0 ${WIDTH} ${height}`} className="comparison-plot" role="img" data-kind={plot.kind} aria-label={`${scalar?'Electric potential':'Electric field'} comparison for ${limit.title}: ${plot.y}, against ${axisName} from ${plot.from} to ${plot.to}. ${exactName} ${pretty(val.actual)} ${units}, ${referenceName} ${pretty(val.target)}${semi?' '+units:''}.`}>
   <path d={`M${X0} ${TOP-8}V${BASE}H${X1+5}`} stroke="var(--ghost)" fill="none"/>
   {(plot.marks??[]).map(m=><g key={m.t} className="comparison-mark"><line x1={xAt(m.t)} x2={xAt(m.t)} y1={TOP} y2={BASE} stroke="var(--border)" strokeDasharray="2 4"/>{m.label&&<text x={xAt(m.t)} y="179" textAnchor="middle" style={size(10.5)}>{m.label}</text>}</g>)}
   <text x={lineLabel.x} y={lineLabel.y} textAnchor={lineLabel.anchor} className="comparison-line" style={size(10.5)}><Sym text={plot.line}/></text>
@@ -205,7 +234,7 @@ export function Assessment({problem,params,limit}:{problem:Problem;params:Params
   <circle cx={xAt(t)} cy={yAt(here)} r="5" fill="var(--field)" clipPath={`url(#${clip})`}/>
   <text x="7" y="17" className="comparison-y" style={size(11.5)}><Sym text={plot.y}/></text>
   <text x={X0} y="193" className="comparison-end" style={size(10.5)}><Sym text={plot.from}/></text><text x={X1} y="193" textAnchor="end" className="comparison-end" style={size(10.5)}><Sym text={plot.to}/></text>
-  <text x={(X0+X1)/2} y={axisY} textAnchor="middle" className="comparison-axis" style={size(10.5)}><Sym text={plot.axis}/></text>
+  <text x={(X0+X1)/2} y={axisY} textAnchor="middle" className="comparison-axis" style={size(10.5)}><Sym text={axisName}/></text>
  </svg>
  {/* A table box sizes to its content whatever width it is given, so sr-only's one pixel did not hold
      it: it laid out five hundred pixels wide and a phone page scrolled sideways as soon as Limiting

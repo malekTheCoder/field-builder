@@ -163,8 +163,8 @@ describe('the far cases explain the limit, and state its error correctly',()=>{
   const text=plain(limitOf('ramp','far').explanation);
   expect(text).toMatch(/only its total charge does/);
   expect(text).not.toMatch(/never converges|at every distance/);
-  expect(text).toMatch(/settle at one half/);
-  // So it would: with λ₀L in place of Q = λ₀L/2 the plotted ratio tends to one half.
+  expect(text).toMatch(/far field would come out twice too large/);
+  // So it would: with λ₀L in place of Q = λ₀L/2 the point-charge field is twice the true far field.
   const ramp=getProblem('ramp'),far=limitOf('ramp','far'),x=sampleLimit(ramp,DEFAULT_PARAMS,far,30);
   expect(x.actual/(2*x.target)).toBeCloseTo(.5,2);
  });

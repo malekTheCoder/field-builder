@@ -78,6 +78,18 @@ export function lessonArtifact(p: Problem, algebra: Problem = p): LessonArtifact
     checks: p.limits.map(l => ({title: l.title, formula: l.formula, explanation: l.explanation})), sources: p.sources};
 }
 
+/** Two TeX strings that set the same display: braces and spaces are only grouping. */
+const sameTex = (a: string, b: string) => a.replace(/[{}\s]/g, '') === b.replace(/[{}\s]/g, '');
+
+/** A plain sentence, escaped, with its Greek letters in the face the formula above it uses. The
+ * checks' sentences are set in the body's system sans, which draws φ as the stroked ϕ -- directly under
+ * the curly φ of the formula they explain: "λ = Q/(Rϕ)" under −(2kQ/R²) sin(φ/2)/φ. The page fixed this
+ * with its own greek(); the copy now does the same. Lower case is italic, as in the formula; a capital
+ * -- the Δ of ΔV -- stays upright, as TeX sets it. */
+export function greekHtml(text: string) {
+  return escapeHtml(text).replace(/[Ͱ-Ͽ]+/g, run => run.split('').map(c => `<span class="g${c === c.toLowerCase() ? '' : ' up'}">${c}</span>`).join(''));
+}
+
 /** Whether the TeX writes Coulomb's constant: once the macro names are gone, any k left is a symbol. */
 const usesK = (tex: string) => tex.replace(/\\[A-Za-z]+/g, '').includes('k');
 
@@ -110,11 +122,15 @@ export function proseHtml(text: string) {
 const OPERATOR = String.raw`<mi(?: mathvariant="normal")?>(?:ln|log|exp|sin|cos|tan|sec|sgn)</mi>`;
 /** What may sit just before an operator and be set off from it: a symbol, a number, a fraction, a
  * root, a script or a closed group -- an ordinary atom, in TeX's terms. After a relation, an opening
- * bracket or a sign the operator follows on directly, as it does in TeX. */
-const ORDINARY_BEFORE = new RegExp(String.raw`(</(?:mi|mn|msub|msup|msubsup|mfrac|msqrt|mover|mrow)>)(${OPERATOR})`, 'g');
+ * bracket or a sign the operator follows on directly, as it does in TeX.
+ * A squared operator is the same operator: KaTeX writes r sec²α as <mi>r</mi><msup><mrow><mi>sec</mi>…,
+ * the operator one level down inside its script, and the copy printed "rsec²α" and "r³sec³α" run
+ * together in five lessons' working. */
+const ORDINARY_BEFORE = new RegExp(String.raw`(</(?:mi|mn|msub|msup|msubsup|mfrac|msqrt|mover|mrow)>)((?:<msup><mrow>)?${OPERATOR})`, 'g');
 /** After the operator's invisible function application, a symbol or a fraction is set off too; a
- * bracket is not: "ln(L/a)", but "sin θ". */
-const ORDINARY_AFTER = new RegExp(String.raw`(${OPERATOR}<mo>⁡</mo>)(?=<(?:mi|mn|mfrac|msub|msup|msubsup|msqrt)[ >])`, 'g');
+ * bracket is not: "ln(L/a)", but "sin θ". After a squared operator the application sits inside the
+ * script, and the space goes after the whole of it: "sec²α", not "sec²α" run on. */
+const ORDINARY_AFTER = new RegExp(String.raw`(${OPERATOR}<mo>⁡</mo>|<msup><mrow>${OPERATOR}<mo>⁡</mo></mrow><mn>[^<]*</mn></msup>)(?=<(?:mi|mn|mfrac|msub|msup|msubsup|msqrt)[ >])`, 'g');
 const THIN = '<mspace width="0.1667em"/>';
 /** A sign with nothing to its left to be the difference of: after a relation, an opening bracket, a
  * separating comma or the start of a group. KaTeX writes it as a plain <mo>, and MathML Core spaces
@@ -156,7 +172,14 @@ export function artifactHtml(a: LessonArtifact) {
     : a.derived?.length
     ? `<h2>The field, by differentiating</h2>\n<div class="result">${a.derived.map(tex => mathml(tex)).join('\n')}</div>\n`
     : '';
-  const working = a.worked?.length ? `<h2>Working</h2>\n${steps(a.worked)}\n` : '';
+  // THE INTEGRAL WAS PRINTED TWICE. Most lessons' first worked step takes the constants outside, and
+  // the integral the copy prints is already in that form: in eleven of sixteen copies the same display
+  // stood under "The integral" and again as the first line of the working. The step's sentence -- why
+  // the constants come out -- is kept, as a note under the integral, and the working starts after it.
+  const repeats = !!a.worked?.length && sameTex(a.worked[0].tex, a.integralTex);
+  const note = repeats ? `<p class="note">${proseHtml(a.worked![0].text)}</p>\n` : '';
+  const shown = repeats ? a.worked!.slice(1) : a.worked ?? [];
+  const working = shown.length ? `<h2>Working</h2>\n${steps(shown)}\n` : '';
   // The page writes "with k = 1/(4πε₀)" beside its result. The copy printed kQ/… with k never said --
   // and then, once it did say it, said it after the result, a page below the integral where k is
   // first used. It is said where the reader first meets it, under the integral.
@@ -166,7 +189,7 @@ export function artifactHtml(a: LessonArtifact) {
   // What the page checks the answer against, and where the physics is written up. A handout without
   // them gave a student nothing to test the result by and nowhere to read further.
   const checks = a.checks?.length
-    ? `<h2>Checks</h2>\n${a.checks.map(c => `<div class="check"><h3>${escapeHtml(c.title)}</h3>\n${mathml(c.formula)}\n<p>${escapeHtml(c.explanation)}</p></div>`).join('\n')}\n`
+    ? `<h2>Checks</h2>\n${a.checks.map(c => `<div class="check"><h3>${escapeHtml(c.title)}</h3>\n${mathml(c.formula)}\n<p>${greekHtml(c.explanation)}</p></div>`).join('\n')}\n`
     : '';
   // A printed link is only its words, so the address is printed under them.
   const sources = a.sources?.length
@@ -197,12 +220,17 @@ math[display="block"] { margin: 10px 0 14px; }
    centres it, so "E_x   =" printed with a gap TeX never sets and each row's "=" sat at its own place.
    Written here as the CSS it stands for. */
 mtable[columnalign^="right left"] > mtr > mtd { padding-left: 0; padding-right: 0; }
-mtable[columnalign^="right left"] > mtr > mtd:nth-child(odd) { text-align: right; }
-mtable[columnalign^="right left"] > mtr > mtd:nth-child(even) { text-align: left; }
+/* Chromium sets a cell's MathML content at its start whatever text-align says, so the shorter left
+   column hung at the left with a gap before its "=" (E_x over E_x(π)). Its own -webkit-right moves it. */
+mtable[columnalign^="right left"] > mtr > mtd:nth-child(odd) { text-align: right; text-align: -webkit-right; }
+mtable[columnalign^="right left"] > mtr > mtd:nth-child(even) { text-align: left; text-align: -webkit-left; }
 .step { break-inside: avoid; }
 .nobr { white-space: nowrap; }
 .step p { margin: 14px 0 2px; }
 .where { margin-top: 12px; }
+.note { margin: -4px 0 10px; }
+.g { font-family: "STIX Two Math", "Latin Modern Math", "Cambria Math", serif; font-style: italic; }
+.g.up { font-style: normal; }
 h3 { font: 600 15px/1.3 system-ui, -apple-system, "Segoe UI", sans-serif; margin: 18px 0 2px; }
 .check { break-inside: avoid; }
 .check math[display="block"] { margin: 6px 0 8px; }
@@ -221,7 +249,7 @@ ${figure}
 <p>${proseHtml(a.setup)}</p>
 <h2>${a.secondaryIntegralTex ? 'The integrals' : 'The integral'}</h2>
 ${mathml(a.integralTex)}
-${a.secondaryIntegralTex ? `${mathml(a.secondaryIntegralTex)}\n` : ''}${constant}${working}<h2>The result</h2>
+${note}${a.secondaryIntegralTex ? `${mathml(a.secondaryIntegralTex)}\n` : ''}${constant}${working}<h2>The result</h2>
 <div class="result">${a.results.map(tex => mathml(tex)).join('\n')}</div>
 ${derived}${checks}${sources}
 <footer>Saved from Field Builder. The equations are MathML, so this page needs no network to read or print.</footer>

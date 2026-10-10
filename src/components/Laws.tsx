@@ -22,11 +22,17 @@ import './laws.css';
 // One move to a sentence. Those two corrections had been folded into one sentence of seventy-five
 // words, two semicolons and two asides, which a projector's back row cannot parse; the tour opens
 // this page, so it is the first paragraph many readers meet.
-export const LAWS_LEDE='Every lesson makes the same three moves. Cut the charge into pieces, each small enough to count as a point, or a ring whose every bit is the same distance from P. A point charge’s law gives each piece its field (on the potential lessons, its potential), and superposition adds the pieces. Shrinking them turns the sum into an integral. Only the geometry changes.';
+//
+// "Small enough" was not true either. The endless lines are cut at equal angles, and the outermost
+// piece never ends: what makes it a point is how thin it looks from P, which is what the run says
+// ("Made thin enough in angle, each piece makes the field at P that a point charge would"). And
+// Coulomb's law is the only field law the lessons BUILD from, not the only one in the app: the sheet's
+// sources include Gauss's law and a charged plane.
+export const LAWS_LEDE='Every lesson makes the same three moves. Cut the charge into pieces, each thin enough, seen from P, to count as a point, or a ring whose every bit is the same distance from P. A point charge’s law gives each piece its field (on the potential lessons, its potential), and superposition adds the pieces. Shrinking them turns the sum into an integral. Only the geometry changes.';
 type Law={id:string;name:string;tex:string;why:string;detail:string;more:string[]};
 const LAWS:Law[]=[
  {id:'coulomb',name:'Coulomb’s law',tex:String.raw`\mathbf E=\frac{kQ}{r^{2}}\,\hat{\mathbf r}`,
-  why:'The only field law in the app. Every field lesson starts by applying it to pieces of the charge: a bit small enough to count as a point, or a ring whose every bit is the same distance from P. The potential lessons start from its scalar partner, V = kQ/r.',
+  why:'The only field law the lessons build from. Every field lesson starts by applying it to pieces of the charge: a bit thin enough, seen from P, to count as a point, or a ring whose every bit is the same distance from P. The potential lessons start from its scalar partner, V = kQ/r.',
   detail:'A point charge Q fills the space around it with a field that falls off as the inverse square of the distance. The unit vector points from the charge out to the place you are asking about, so the field points away from a positive Q and back toward a negative one. Coulomb measured the force between two charges; dividing by the charge you would put at that place leaves the field, which depends on the source alone.',
   more:[String.raw`\mathbf F=\frac{k\,q_{1}q_{2}}{r^{2}}\,\hat{\mathbf r}`,String.raw`k=\frac{1}{4\pi\varepsilon_{0}}`]},
  {id:'superposition',name:'Superposition',tex:String.raw`\mathbf E=\sum_{i}\Delta\mathbf E_{i}\quad\longrightarrow\quad\mathbf E=\int d\mathbf E`,
@@ -43,7 +49,7 @@ export function Laws({quantity='E',lede=true}:{quantity?:'E'|'V';lede?:boolean})
  const [open,setOpen]=useState('');const uid=useId();
  return <div className="laws">{lede&&<p className="laws-lede">{LAWS_LEDE}</p>}
   <ul className="laws-list">{ordered(quantity).map(l=>{const shown=open===l.id;return <li className="law" key={l.id} data-open={shown}>
-   <button type="button" onClick={()=>setOpen(shown?'':l.id)} aria-expanded={shown} aria-controls={`${uid}-${l.id}`}>
+   <button type="button" onClick={()=>setOpen(shown?'':l.id)} aria-expanded={shown} aria-controls={shown?`${uid}-${l.id}`:undefined}>
     <span className="law-name">{l.name}</span><ChevronDown size={15} aria-hidden="true"/>
     {/* In display style: set inline, kQ over r² was a text-style fraction, its numerator at twelve
         pixels and r² under nine, so the law everything rests on was the smallest maths on its page. */}

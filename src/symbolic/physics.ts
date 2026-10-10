@@ -77,7 +77,10 @@ export function sampleLimit(problem:Problem,p:Params,limit:Limit,t:number):Limit
   // it first climbed, under a caption that said it fell. The potential has no peak to start from.
   case 'center':if(scalar){copy.distance=R*(1-t/30);actual=Math.abs(potential(geom,copy));target=geom==='disk'?2*K*q/R:K*q/R;}
    else{copy.distance=R/Math.SQRT2*(1-(t-1)/29);actual=fieldOf('ring',copy);target=0;}break;
-  case 'near':copy.distance=p.size/t;actual=Math.abs(potential('axial',copy));target=K*Math.abs(p.charge/p.size)*1e-9*Math.log(Math.max(p.size/copy.distance,1));break;
+  // P walking onto the rod's end, a = L/t. The potential against its logarithm; the field against
+  // kλ/a, a semi-infinite line's on its own axis, which the rod's kλ(1/a − 1/(L + a)) approaches.
+  case 'near':copy.distance=p.size/t;if(scalar){actual=Math.abs(potential('axial',copy));target=K*Math.abs(p.charge/p.size)*1e-9*Math.log(Math.max(p.size/copy.distance,1));}
+   else{actual=fieldOf('axial',copy);target=K*Math.abs(p.charge/p.size)*1e-9/copy.distance;}break;
   // From the centre, z = 0, out to 3R. It used to start at R/10, where the field is already a
   // quarter of its peak, under the label "the centre" -- beside a tab that says it is zero there.
   case 'maximum':copy.distance=ringPeakZ(R,t);actual=fieldOf('ring',copy);target=K*q/(R*R)*2/(3*Math.sqrt(3));break;
@@ -105,6 +108,9 @@ export function sampleLimit(problem:Problem,p:Params,limit:Limit,t:number):Limit
  * t = 1. On its logarithmic axis they are equal steps, and the field halves across each. Unlabelled:
  * "2r" and "4r" would put numerals on a page that shows none, so the caption names them instead. */
 export const DOUBLINGS=[2,4,8,16];
+/** What a logarithm looks like on the log axis it is swept on: a straight line, which a reader takes
+ * for growth in proportion unless told. */
+const LOG_STRAIGHT=(ratio:string)=>` The axis is a log scale, on which a logarithm is a straight line: V grows only as ln(${ratio}).`;
 export type LimitPlot={kind:LimitKind;y:string;axis:string;from:string;to:string;line:string;caption:string;solid?:string;second?:string;marks?:{t:number;label:string}[]};
 export function limitPlot(problem:Problem,limit:Limit):LimitPlot{
  const g=problem.geometry,scalar=problem.quantity==='V',rod=g==='bisector'||g==='axial'||g==='endpoint'||g==='ramp';
@@ -118,7 +124,10 @@ export function limitPlot(problem:Problem,limit:Limit):LimitPlot{
    // The dashed curve is named by how it grows, as the rod's near case names its logarithm: "growth
    // law" alone left a student to work out what was dashed. Both curves are scaled, so no
    // coefficient is needed, and none could be shown.
-   if(scalar)return{kind:'growth',y:'|V| and its growth law, scaled',axis:g==='disk'?'disk radius R, with σ fixed':'rod length L, with λ fixed',from:g==='disk'?'R ∼ z':'L ∼ r',to:g==='disk'?'R ≫ z':'L ≫ r',line:g==='disk'?'grows as R':'grows as ln(L/r)',caption:'Both keep growing without end, in step: V has no limit to settle on.'};
+   // The rod's is swept on a log axis (Assessment), where its logarithm is a straight line: drawn
+   // straight with nothing said, ln(L/r) read as V growing in proportion to L. The disk's grows as R
+   // and is swept on a linear axis, where that is the straight line.
+   if(scalar)return{kind:'growth',y:'|V| and its growth law, scaled',axis:g==='disk'?'disk radius R, with σ fixed':'rod length L, with λ fixed',from:g==='disk'?'R ∼ z':'L ∼ r',to:g==='disk'?'R ≫ z':'L ≫ r',line:g==='disk'?'grows as R':'grows as ln(L/r)',caption:'Both keep growing without end, in step: V has no limit to settle on.'+(g==='disk'?'':LOG_STRAIGHT('L/r'))};
    // On the disk and the bisector the curve is the lesson's own field, growing into its limit. On the
    // sheet and the infinite line it is a disk's or a rod's field growing into the lesson's: calling
    // it "your exact field" told a student their answer fell short of the true field -- and so did
@@ -142,7 +151,8 @@ export function limitPlot(problem:Problem,limit:Limit):LimitPlot{
   // V and its logarithm, not their ratio: ln(L/a) is zero at a = L, so the ratio came in from off the
   // top of the plot there, where nothing is singular, and settled on one as V ran off to infinity.
   // Drawn as themselves they both climb, and close up: V − kλ ln(L/a) = kλ ln((L + a)/L) → 0.
-  case 'near':return{kind:'growth',y:'|V| and k|λ| ln(L/a), scaled',axis:'gap a to the rod’s end',from:'a ∼ L',to:'a ≪ L',line:'k|λ| ln(L/a)',caption:'Both grow without end as P walks onto the rod’s end, and draw together: the difference between them, k|λ| ln((L\u00a0+\u00a0a)/L), vanishes as a\u00a0≪\u00a0L.'};
+  case 'near':return !scalar?{kind:'ratio',y:'|E| ÷ semi-infinite-line field',axis:'gap a to the rod’s end',from:'a ∼ L',to:'a ≪ L',line:'semi-infinite line',caption:'On the dashed line the exact field equals a semi-infinite line’s at the same gap a beyond its end, on its axis. The curve settles onto it as a\u00a0≪\u00a0L.'}
+   :{kind:'growth',y:'|V| and k|λ| ln(L/a), scaled',axis:'gap a to the rod’s end',from:'a ∼ L',to:'a ≪ L',line:'k|λ| ln(L/a)',caption:'Both grow without end as P walks onto the rod’s end, and draw together: the difference between them, k|λ| ln((L\u00a0+\u00a0a)/L), vanishes as a\u00a0≪\u00a0L.'+LOG_STRAIGHT('L/a')};
   case 'maximum':return{kind:'peak',y:'|E| ÷ its peak',axis:'height z on the axis',from:'the centre',to:'farther out',line:'the peak',marks:[{t:RING_PEAK_T,label:'peak'},{t:RING_EDGE_T,label:'R'}],caption:'The curve rises from zero at the centre, touches the dashed line once, at the marked peak inside z\u00a0=\u00a0R, and falls away beyond it.'};
   // The arc opens at fixed Q, so λ = Q/(Rφ) thins as it opens and |E| ∝ sin(φ/2)/φ only falls. At
   // fixed λ it would rise to the semicircle first, and the axis is where a reader learns which.
@@ -151,7 +161,7 @@ export function limitPlot(problem:Problem,limit:Limit):LimitPlot{
   case 'full':return scalar
    ?{kind:'constant',y:'|V| ÷ kQ/R, and |E| scaled',axis:'opening angle φ, with Q fixed',from:'φ small',to:'full circle',line:'kQ/R',solid:'The arc’s pieces, added up',second:'The field |E|, scaled',caption:'As the arc closes the field falls to zero, while the potential stays on the dashed line at every φ.'}
    :{kind:'decay',y:'|E|, scaled',axis:'opening angle φ, with Q fixed',from:'φ small',to:'full circle',line:'zero',caption:'With the charge fixed, the field only falls as the arc opens, and reaches zero when it closes into a full circle.'};
-  case 'half':return{kind:'ratio',y:'|sum| ÷ integral',axis:'the semicircle as N point charges',from:'one piece',to:'many pieces',line:'the integral',solid:'Sum of N point charges',caption:'The more point charges, the closer their sum comes to the integral, the dashed line.'};
+  case 'half':return{kind:'ratio',y:'|sum| ÷ integral',axis:'the semicircle as N point charges',from:'one piece',to:'many pieces',line:'the integral',solid:'Sum of N point charges',caption:'The plot builds the semicircle from N point charges: the more there are, the closer their sum comes to the integral, the dashed line.'};
   // The sheet's curve is its rings added up, the line's its pieces: neither is the closed form, and a
   // legend that said "your exact field" read as σ/(2ε₀) divided by itself.
   case 'scale':return g==='sheet'
