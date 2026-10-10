@@ -152,7 +152,15 @@ export function placeLabels(labels:readonly Label[],options:PlaceOptions={}):Nud
  for(const l of labels)if(l.fixed)taken.push({box:l.box,label:true});
  // Across, the full label margin: words side by side on one baseline read as one phrase. Up and down,
  // half of it, because a text box already carries its line's empty ascent and descent.
- const free=(b:Box)=>!taken.some(t=>t.label?overlaps(b,t.box,labelPad,Math.max(pad,labelPad/2)):overlaps(b,t.box,pad));
+ const padY=Math.max(pad,labelPad/2);
+ type Taken={box:Box;label:boolean};
+ const free=(b:Box,near:readonly Taken[])=>!near.some(t=>t.label?overlaps(b,t.box,labelPad,padY):overlaps(b,t.box,pad));
+ // How far from where it was searched from any spot tried can stand, and how far past its own box a
+ // mark can still be in its way. Every stroke is cut into squares, so the picture holds hundreds of
+ // marks; a label's search only ever meets the few near it, and asking all of them about every spot
+ // tried cost a crowded stage several milliseconds a frame.
+ const spread=(ns:readonly Nudge[])=>ns.reduce((m,n)=>Math.max(m,Math.abs(n.dx),Math.abs(n.dy)),0);
+ const nearSpread=spread(tries),farSpread=spread(far),air=2*Math.max(pad,labelPad,padY)+1;
  const out:Nudge[]=[];
  for(const label of labels){
   if(label.fixed){out.push({dx:0,dy:0});continue;}
@@ -175,6 +183,12 @@ export function placeLabels(labels:readonly Label[],options:PlaceOptions={}):Nud
   const homes=[frame?clampInto(label.box,frame):label.box];
   if(capped&&label.mirror){const m=reflect(label.box,label.mirror);homes.push(frame?clampInto(m,frame):m);}
   if(capped)for(const alt of label.alternates??[])homes.push(frame?clampInto(alt,frame):alt);
+  // Only the marks some spot it may try can reach: one further off neither blocks nor costs any of
+  // them, so leaving it out changes nothing but the time.
+  const reach=Math.max(nearSpread,capped&&label.keep?farSpread:0)+air;
+  const x0=Math.min(...homes.map(h=>h.x))-reach,x1=Math.max(...homes.map(h=>h.x+h.width))+reach;
+  const y0=Math.min(...homes.map(h=>h.y))-reach,y1=Math.max(...homes.map(h=>h.y+h.height))+reach;
+  const near=taken.filter(t=>t.box.x<=x1&&t.box.x+t.box.width>=x0&&t.box.y<=y1&&t.box.y+t.box.height>=y0);
   let best:Nudge={dx:homes[0].x-label.box.x,dy:homes[0].y-label.box.y},bestCost=Infinity,placed=false,leader=false;
   // Near before far across EVERY place the label may stand, not one place at a time: a name that fits
   // as it is on the far side of its arrow, or past its tip, is better than one pushed a long way off
@@ -186,14 +200,20 @@ export function placeLabels(labels:readonly Label[],options:PlaceOptions={}):Nud
      if(frame&&!inside(moved,frame))continue;
      const at={dx:moved.x-label.box.x,dy:moved.y-label.box.y};
      const ok=honest(moved);
-     if(ok&&free(moved)){best=at;return true;}
+     if(ok&&free(moved,near)){best=at;return true;}
      // Remember the least-bad option in case nothing is free: a label half over another is
      // still better than one dropped off the edge of the picture. A spot by the wrong arrow is
      // worse than any overlap.
      // Counted with the same air `free` asks for: a spot that merely touches another label costs
      // nothing by bare overlap, and a kept name with nowhere free was set flush against its neighbour
      // -- "z" hard under "−ΔE⊥" on a phone -- where a spot a little further off had room.
-     const cost=taken.reduce((sum,t)=>sum+(t.label?area(grow(moved,labelPad,Math.max(pad,labelPad/2)),t.box):area(moved,t.box)),0)+Math.hypot(at.dx,at.dy)*.01+(ok?0:1e6);
+     // Summed only while it could still be the least bad: every term is at least nothing, so a sum
+     // already past the best can only end past it.
+     if(!ok&&bestCost<=1e6)continue;
+     let sum=0;
+     for(const t of near){sum+=t.label?area(grow(moved,labelPad,padY),t.box):area(moved,t.box);if(sum>=bestCost)break;}
+     if(sum>=bestCost)continue;
+     const cost=sum+Math.hypot(at.dx,at.dy)*.01+(ok?0:1e6);
      if(cost<bestCost){bestCost=cost;best=at;}
     }
    }
