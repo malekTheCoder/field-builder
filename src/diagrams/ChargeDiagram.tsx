@@ -1037,13 +1037,15 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
     const opening = Math.acos(clamp(a.x * b.x + a.y * b.y, -1, 1));
     // Kept whenever it is drawn: an arc with no name says there is an angle and not which one.
     const size = SYM * labelScale, keep = { 'data-keep': 'true', 'data-priority': term ? 2.5 : 1 };
-    // INSIDE THE ANGLE, JUST PAST ITS ARC -- and the arc reaches out to it. It is measured as the ink of
-    // one italic letter, not the line box the type sits in: measured by the line box, which is nearly
-    // twice as tall as the letter, the bisector's thirty degrees could not hold an α anywhere on a phone,
-    // and the letter went outside on a leader that ran through r_i or across the rod -- read as the angle
-    // at O. The sides run as far as `sides` says, which for the rod's triangle is to the rod: past the
-    // rod's foot the letter would stand nearer the right angle than the angle it names.
-    const w = .62 * size, h = .75 * size, margin = 3;
+    // INSIDE THE ANGLE, JUST PAST ITS ARC -- and the arc reaches out to it. It is measured as one italic
+    // letter with a little of its line's ascent and descent, not the whole line box the type sits in:
+    // measured by the line box, with eight units clear of each side, the bisector's thirty degrees could
+    // not hold an α anywhere on a phone, and the letter went outside on a leader that ran through r_i or
+    // across the rod -- read as the angle at O. Not by the bare ink either: the display serif's line runs
+    // well above and below an α, and a box that tight let r_i cross the lower part of the letter's own.
+    // The sides run as far as `sides` says, which for the rod's triangle is to the rod: past the rod's
+    // foot the letter would stand nearer the right angle than the angle it names.
+    const w = .62 * size, h = .95 * size, margin = 3;
     const lenA = sides?.a ?? Math.hypot(alongA.x - at.x, alongA.y - at.y), lenB = sides?.b ?? Math.hypot(alongB.x - at.x, alongB.y - at.y);
     const towardB = { x: -a.y, y: a.x }, nA = towardB.x * b.x + towardB.y * b.y >= 0 ? towardB : { x: a.y, y: -a.x };
     const towardA = { x: -b.y, y: b.x }, nB = towardA.x * a.x + towardA.y * a.y >= 0 ? towardA : { x: b.y, y: -b.x };
