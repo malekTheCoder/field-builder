@@ -42,8 +42,11 @@ type Props = {
   clock: RunClock;
   index: number;
   playing: boolean;
-  /** The current stage's lines of algebra, for the screens where the panel holding them is out of sight. */
-  math?: string[];
+  /** Every stage's lines of algebra, for the screens where the panel holding them is out of sight. */
+  math?: readonly string[][];
+  /** Once the run has settled: how the last integral comes out, and the answer. */
+  chain?: readonly string[];
+  answer?: readonly string[];
   onPlay: () => void;
   /** Go to a moment, holding still there. `scrubbing` is true while a drag is still under way. */
   onSeek: (seconds: number, scrubbing: boolean) => void;
@@ -51,21 +54,34 @@ type Props = {
   onStep: (index: number) => void;
   onClose: () => void;
 };
-const NO_MATH: string[] = [];
+const NO_MATH: readonly string[][] = [], NO_LINES: readonly string[] = [];
 /** Memoised so that the page re-rendering around it -- which it does whenever the figure moves --
  * does not redraw it; the clock alone moves it on every frame. */
-export const BuildPlayer = memo(function BuildPlayer({stages, clock, index, playing, math = NO_MATH, onPlay, onSeek, onStep, onClose}: Props) {
+export const BuildPlayer = memo(function BuildPlayer({stages, clock, index, playing, math = NO_MATH, chain = NO_LINES, answer = NO_LINES, onPlay, onSeek, onStep, onClose}: Props) {
   const [at, setAt] = useState(clock.get);
   // Subscribed before the browser can run another frame: layout effects run inside the commit.
   useLayoutEffect(() => clock.subscribe(() => setAt(clock.get())), [clock]);
   const starts = useMemo(() => stages.map((_, i) => stages.slice(0, i).reduce((t, s) => t + s.seconds, 0)), [stages]);
   const total = stages.reduce((t, s) => t + s.seconds, 0);
   const ended = !playing && at >= total - .01;
-  const stage = stages[index];
   // The algebra changes with the stage, not with the clock, so it is not rebuilt with every frame.
-  const mathBlock = useMemo(() => math.length > 0 && <div key={`m-${stage.key}`} className="bp-math">{math.map(tex => <MathText key={tex} tex={tex} block trusted />)}</div>, [math, stage.key]);
+  // EVERY STAGE'S ALGEBRA IS SET, AND ONLY THE CURRENT STAGE'S SHOWS -- as with the sentences above it,
+  // and for the same reason: each stage's line is a different height, and on a phone the page under
+  // the transport moved by that difference at every stage, just as the figure began to move. The cell
+  // is as tall as the tallest of them until the run settles, which adds the answer once.
+  // The finished integral and the answer are set apart, so a window with room for one line of algebra
+  // can keep the answer alone (explorer.css).
+  const mathBlock = useMemo(() => math.length > 0 && <div className={'bp-math' + (answer.length > 0 ? ' is-settled' : '')}>
+    <div className="bp-math-steps">
+      {math.map((lines, i) => <div key={i} className={'bp-math-step' + (i === index ? ' is-here' : '')} aria-hidden={i === index ? undefined : true}>
+        {lines.map(tex => <MathText key={tex} tex={tex} block trusted />)}
+      </div>)}
+    </div>
+    {chain.length > 0 && <div className="bp-chain">{chain.map(tex => <MathText key={tex} tex={tex} block trusted />)}</div>}
+    {answer.length > 0 && <div className="bp-answer">{answer.map(tex => <MathText key={tex} tex={tex} block trusted />)}</div>}
+  </div>, [math, chain, answer, index]);
   const segments = useRef<(HTMLButtonElement | null)[]>([]);
-  const press = useRef<{x: number; moved: boolean} | null>(null), dragged = useRef(false);
+  const press = useRef<{x: number; y: number; moved: boolean} | null>(null), dragged = useRef(false);
   /** The moment under a point on the bar: find the stage it is over, then how far along it. */
   const momentAt = (clientX: number) => {
     const boxes = segments.current.map(el => el?.getBoundingClientRect());
@@ -84,12 +100,18 @@ export const BuildPlayer = memo(function BuildPlayer({stages, clock, index, play
   // A press only becomes a scrub once it has moved. Capturing the pointer straight away would
   // steal the click from the stage button under it, so a plain click still means "go to the start
   // of this stage" -- the keyboard's meaning too -- and only a drag scrubs.
+  // And only a drag ALONG the bar. The bar lets a touch screen scroll the page up and down over it
+  // (touch-action:pan-y, explorer.css): it sits mid-screen, where a thumb rests while the run plays,
+  // and a swipe there scrolled nothing. A swipe that drifts a few pixels sideways on its way up is
+  // still a scroll, not a seek, so a press turns into a scrub only when it has gone further across
+  // than up or down; the browser takes the rest and cancels the press.
   const pointer = {
-    onPointerDown: (ev: PointerEvent<HTMLDivElement>) => { dragged.current = false; if (ev.button === 0) press.current = {x: ev.clientX, moved: false}; },
+    onPointerDown: (ev: PointerEvent<HTMLDivElement>) => { dragged.current = false; if (ev.button === 0) press.current = {x: ev.clientX, y: ev.clientY, moved: false}; },
     onPointerMove: (ev: PointerEvent<HTMLDivElement>) => {
       const p = press.current;
       if (!p) return;
-      if (!p.moved && Math.abs(ev.clientX - p.x) < 4) return;
+      const dx = Math.abs(ev.clientX - p.x), dy = Math.abs(ev.clientY - p.y);
+      if (!p.moved && (dx < 4 || dx <= dy)) return;
       if (!p.moved) { p.moved = dragged.current = true; try { ev.currentTarget.setPointerCapture(ev.pointerId); } catch { /* the drag still scrubs without capture */ } }
       onSeek(momentAt(ev.clientX), true);
     },
@@ -131,7 +153,9 @@ export const BuildPlayer = memo(function BuildPlayer({stages, clock, index, play
         {stages.map((s, i) => {
           const fill = Math.max(0, Math.min(1, (at - starts[i]) / s.seconds));
           const here = i === index;
-          return <button key={s.key} ref={el => { segments.current[i] = el; }} type="button"
+          // One tab stop for the five, on the stage the run is at: the arrow keys already move between
+          // them, as in a list of tabs, and five stops stood between Play and Close.
+          return <button key={s.key} ref={el => { segments.current[i] = el; }} type="button" tabIndex={here ? 0 : -1}
             className={'bp-seg' + (here ? ' is-here' : '') + (fill >= 1 ? ' is-done' : '')}
             style={{flexGrow: s.seconds}} aria-label={`Stage ${i + 1}: ${s.name}`} aria-current={here ? 'step' : undefined} title={`${s.name}. ${s.line}`}
             onClick={() => { if (!dragged.current) onSeek(starts[i], false); dragged.current = false; }}>

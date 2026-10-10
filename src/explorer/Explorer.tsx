@@ -82,6 +82,15 @@ const REDUCED_BEAT=450;
  * interrupted for twenty seconds resumes a tenth of a second later rather than at the end. */
 const MAX_STEP=100;
 const STORAGE='field-builder:explorer:v1';
+/** The library's card for the open lesson, where the dialog puts the focus; the first card if none is. */
+const libraryFocus=()=>document.querySelector<HTMLElement>('.exp-library-dialog [aria-current=page]')??true;
+/** No lines: one value, so a run that has not settled hands the transport the same empty list. */
+const NONE:string[]=[];
+/** A Greek letter in a sentence of the page's sans, set in the face the formulas use. Geist draws φ as
+ * the stroked ϕ, so the limiting cases and the confusions wrote "every ϕ" in a line whose plot, slider
+ * and formulas all set the curly φ -- one symbol in two shapes, beside each other. Lower case is italic,
+ * as KaTeX sets it; capitals stand upright, as Δ does in every formula on the page. */
+function greek(text:string){return text.split(/([\u0370-\u03ff\u1f00-\u1fff]+)/).map((part,i)=>i%2?<span key={i} className={'exp-greek'+(/^[\u0391-\u03a9]+$/.test(part)?' is-upright':'')}>{part}</span>:part)}
 // Variable-first: every control is named by its symbol. The words are the
 // gloss, the number is the consequence — so the symbol is set large in the
 // display serif and the reading stays quiet and monospaced beside it.
@@ -202,13 +211,21 @@ export default function Explorer(){
  // The line of the derivation the run has reached, for the player to carry where the panel is
  // out of sight -- and once the pieces have shrunk away, the integral done and its answer.
  const cutAway=continuum>=.99,settledRun=buildIndex===stages.length-1&&cutAway;
- const playerMath=useMemo(()=>{if(!buildOpen)return [];const line=boardLines(p)[buildIndex];if(!line)return [];
-  // Every line of the result, not the first: on the lessons whose answer has two components, the
-  // figure's arrow labelled E leans, and an answer of E_x alone said it pointed along x.
-  // The result is stated whether or not the last line has a step of its own to finish on: four
-  // potential lessons leave their integral unsimplified on the board, and ended on it here, so on a
-  // screen without the panel the run never said what V is.
-  return settledRun?[line.tex,...(line.finish?[line.finish]:[]),...resultLines(p)]:[line.tex];},[buildOpen,p,buildIndex,settledRun]);
+ // EVERY STAGE'S ALGEBRA, HANDED OVER AT ONCE. The transport used to hold only the current stage's
+ // line, and each line is a different height -- forty-six pixels, then sixty-four, then sixty-nine --
+ // so on a phone the page moved under the reader at every stage, just as the figure started to move.
+ // It now sets all five in one cell and shows the current one, the way it already sets its sentences.
+ // What cancels carries the cancellation itself above what survives, as the board does: with only
+ // ΔE_x under the heading "What cancels", a phone reader read ΔE_x as the part that cancels.
+ const playerSteps=useMemo(()=>boardLines(p).map(line=>line.cancels?[line.cancels,line.tex]:[line.tex]),[p]);
+ // And once the pieces have shrunk away, how the integral comes out and its answer -- every line of
+ // the answer, not the first: on the lessons whose answer has two components, the figure's arrow
+ // labelled E leans, and an answer of E_x alone said it pointed along x. The answer is stated whether
+ // or not the last line has a step of its own to finish on: four potential lessons leave their
+ // integral unsimplified on the board, and ended on it here, so on a screen without the panel the run
+ // never said what V is. The two go separately because a short window has room for the answer alone.
+ const playerChain=useMemo(()=>{const finish=boardLines(p).at(-1)?.finish;return settledRun&&finish?[finish]:NONE},[p,settledRun]);
+ const playerAnswer=useMemo(()=>settledRun?resultLines(p):NONE,[p,settledRun]);
  // What the figure and the board are told about the run, held still until it actually changes.
  // The run's clock goes with it, and where the stage on screen starts and how long it lasts: a stage
  // that moves within itself reads its own moment off the clock, so a pause or a seek holds it there.
@@ -243,8 +260,18 @@ export default function Explorer(){
   // read when the run holds still -- the rule the screen keeps, short while moving, whole when held.
   if(index!==buildStep.current){buildStep.current=index;setStatus(`${stage.name}. ${stage.line}`)}
  }
- /** The run has stopped where it is: say the whole of what this stage shows. */
- function holdStatus(){setStatus(stageAt(stages,runAt.get()).stage.caption)}
+ /** The run has stopped where it is: say the whole of what this stage shows.
+  *
+  * And at the end of a run played through, say that the answer has arrived and where. A sighted reader
+  * sees it appear -- at the foot of the board, or under the figure where the board is a screen away --
+  * but the board's answer is not a live region, so a screen reader's run ended on "make the pieces
+  * smaller without end" and never said that it had produced anything. Where, not what: the answer is
+  * read as math where it sits. */
+ function holdStatus(ended=false){
+  const caption=stageAt(stages,runAt.get()).stage.caption;
+  const under=typeof matchMedia==='function'&&matchMedia('(max-width:1000px)').matches;
+  setStatus(ended?`${caption} The answer for the whole distribution is now ${under?'under the figure':'at the foot of the board'}.`:caption);
+ }
  /** Play the run from `from` seconds until `until`, then hold there.
   *
   * THE RUN ADVANCES BY FRAMES, NOT BY THE CLOCK. It used to be a 21-second tween, which asks the
@@ -291,7 +318,7 @@ export default function Explorer(){
   setBuilding(true);
   if(from===0)buildC.current=-1;
   clock.current={at:from,stopAt:until};
-  const done=()=>{build.current=null;setBuilding(false);holdStatus()};
+  const done=()=>{build.current=null;setBuilding(false);holdStatus(clock.current.at>=totalSeconds(stages)-.01)};
   // REDUCED MOTION IS NOT "SKIP THE LESSON". It used to be: the run jumped straight to its last
   // frame and stopped, and because it was then already at the end, Play restarted it at the end
   // and landed on the same frame again. The setting asks for no SMOOTH movement, not for no
@@ -340,6 +367,8 @@ export default function Explorer(){
  function chooseMode(next:Mode){setMode(next);if(next==='project'&&!scalar)setComponents(true);if(next==='integrate'){setProgress(1);stop()}}
  function closeTour(){setOnboarding(false);setSeen(true)}
  function skipToLesson(e:{preventDefault():void}){e.preventDefault();(watchButton.current??walk.current?.querySelector<HTMLElement>('.bp-play')??document.getElementById('lesson'))?.focus()}
+ /** Where the page was last sent, and until when it may still be gliding there. */
+ const glide=useRef({to:0,until:0});
  /** Show the transport under the figure: scroll down just far enough for its bottom to clear the
   * window's, never so far that the drawing's own top goes. The drawing, not its card: on a short
   * window the card's heading row and the point's coordinates above the drawing may go, which is what
@@ -349,20 +378,44 @@ export default function Explorer(){
   * and at the end it adds the integral and the answer -- about a hundred and fifty pixels that arrived
   * below the window, so the moment the run builds toward happened off-screen. It is looked at again on
   * every stage and when the run settles. It only ever scrolls down, and only while the transport runs
-  * off the bottom, so a reader who has scrolled away to read the board is left there. */
- const revealRun=useSteady(()=>{
+  * off the bottom, so a reader who has scrolled away to read the board is left there.
+  *
+  * At the settle the answer outranks the top of the drawing. On a Chromebook snapped to half its screen
+  * (683 by 657) the transport's answer still ended below the window in every lesson, and the run ended,
+  * as far as the reader could see, on the integral it set out to do. So once the pieces have shrunk away
+  * the page may go on until the transport's own bar is at the top -- the figure has finished moving.
+  *
+  * And as the run opens beside the board, the page goes up until the board reaches its sticky top, if
+  * the drawing can spare it. While the run is open the board is held to the window's height from that
+  * top (explorer.css), but where the page had not yet scrolled it sat lower, and its last lines -- the
+  * answer among them -- were under the window: a wheel over the board scrolled the board alone, so they
+  * could not be reached without moving the pointer off it. Only as the run opens, so a reader who has
+  * scrolled back up to the title is not pulled down again at the next stage. */
+ const revealRun=useSteady((opening:boolean)=>{
   const player=walk.current;if(!player)return;
   const card=player.closest('.exp-diagram-card'),drawing=card?.querySelector('.cd-stage')??card;
   const over=player.getBoundingClientRect().bottom+16-window.innerHeight;
-  const room=Math.max(0,(drawing?.getBoundingClientRect().top??0)-12);
-  if(over>0&&room>0)window.scrollBy({top:Math.min(over,room),behavior:reduced?'auto':'smooth'});
+  const keep=settledRun?player.querySelector('.bp-bar')??drawing:drawing;
+  const room=Math.max(0,(keep?.getBoundingClientRect().top??0)-12);
+  const panel=opening?document.querySelector<HTMLElement>('.explorer-app .exp-workspace>.ew-panel'):null;
+  const style=panel?getComputedStyle(panel):null;
+  const lift=panel&&style?.overflowY==='auto'?panel.getBoundingClientRect().top-(parseFloat(style.top)||0):0;
+  const want=Math.max(over,lift);
+  if(!(want>1&&room>0))return;
+  // A scroll this began a moment ago may still be gliding, and a new one replaces it: a stage clicked
+  // just as the run opened cut the board's lift short. So the page aims at the further of the two.
+  const y=window.scrollY,now=performance.now(),pending=now<glide.current.until?glide.current.to:y;
+  const to=Math.min(Math.max(pending,y+want),y+room);
+  if(to>y+1){window.scrollTo({top:to,behavior:reduced?'auto':'smooth'});glide.current={to,until:now+900}}
  });
+ const wasOpen=useRef(false);
  useEffect(()=>{
-  if(!buildOpen)return;
+  if(!buildOpen){wasOpen.current=false;return}
+  const opening=!wasOpen.current;wasOpen.current=true;
   // Opened from the button: focus moves to the play button, the control that was just pressed, now
   // in its new place.
   if(reveal.current){reveal.current=false;walk.current?.querySelector<HTMLButtonElement>('.bp-play')?.focus({preventScroll:true})}
-  revealRun();
+  revealRun(opening);
  },[buildOpen,buildIndex,settledRun,revealRun]);
  // THE BOARD FOLLOWS THE RUN WHERE IT SITS BESIDE THE FIGURE. The panel grows from about seven
  // hundred pixels to sixteen hundred as its lines arrive, so on a laptop its sticky top could not keep
@@ -372,6 +425,14 @@ export default function Explorer(){
  // and scrolled inside itself -- never the window, which would take the figure away -- so the current
  // line, and at the end the answer, is in view beside the figure that is drawing it. Looked at again
  // once the line's own reveal has settled, since it is still opening when this first runs.
+ //
+ // AND AGAIN WHEN THE RUN STOPS. The board is told whether the run plays or holds, and a held board
+ // has drawn more than a playing one: it wrote the stage's note under its line, about a hundred and
+ // thirty pixels, and a run played to its end held on Shrink them -- so the note arrived after the
+ // answer had been brought into view and pushed it back under the window, cut through its fraction on
+ // every laptop. Seeking never showed it, because a seek holds still from the start. What a held board
+ // shows is the board's to decide, so the follow looks again whenever the run stops, and takes in a
+ // step's foot, not only its top.
  useEffect(()=>{
   if(!buildOpen)return;
   const follow=()=>{
@@ -383,20 +444,28 @@ export default function Explorer(){
    const at=(el:Element)=>{const r=el.getBoundingClientRect();return {top:r.top-box.top-panel.clientTop+panel.scrollTop,bottom:r.bottom-box.top-panel.clientTop+panel.scrollTop}};
    const step=panel.querySelector('.db-step.is-here'),result=settledRun?panel.querySelector('.ew-result.is-shown'):null;
    let to=panel.scrollTop;
-   if(step){const s=at(step);if(s.top<panel.scrollTop||s.top-panel.scrollTop>view*.4)to=Math.max(0,s.top-72)}
+   if(step){const s=at(step);
+    if(s.top<panel.scrollTop||s.top-panel.scrollTop>view*.4)to=Math.max(0,s.top-72);
+    // Its foot too, as far as its head allows.
+    if(s.bottom-to>view-16)to=Math.max(to,Math.min(s.top-16,s.bottom+16-view));
+   }
+   // The answer outranks the step's head: if the two cannot both be in view, the answer is.
    if(result){const r=at(result);to=Math.max(to,r.bottom+16-view)}
    if(Math.abs(to-panel.scrollTop)>2)panel.scrollTo({top:to,behavior:reduced?'auto':'smooth'});
   };
   follow();
   const later=window.setTimeout(follow,reduced?0:650);
   return()=>window.clearTimeout(later);
- },[buildOpen,buildIndex,settledRun,reduced]);
+ },[buildOpen,buildIndex,settledRun,building,reduced]);
  // Closing the run takes away the button that had the focus. It goes back to Watch it build, the
  // button the run replaced -- not to the top of the document, which is where it fell, leaving a
  // keyboard reader with no visible focus and a screen reader with no place. Only for Close itself:
  // changing lesson or re-cutting the charge also closes the run, and must not pull the focus.
+ // Without scrolling, since the button is normally in view -- except on a phone on its side, where the
+ // run had taken the page down to the transport and the focused button sat above the window with only
+ // its ring's lower edge showing. There the page comes back to it.
  const refocus=useRef(false);
- useEffect(()=>{if(!buildOpen&&refocus.current){refocus.current=false;watchButton.current?.focus({preventScroll:true})}},[buildOpen]);
+ useEffect(()=>{if(!buildOpen&&refocus.current){refocus.current=false;const b=watchButton.current;b?.focus({preventScroll:true});if(b&&b.getBoundingClientRect().top<0)b.scrollIntoView({block:'nearest',behavior:'auto'})}},[buildOpen]);
  // Steady versions of the handlers the memoised parts are given.
  // A piece the reader picks while the run is open becomes the run's piece: the run talks about the
  // piece they chose, and the choice outlives Close. It used to pause the run and change nothing on
@@ -406,14 +475,19 @@ export default function Explorer(){
  const play=useSteady(runBuild),seek=useSteady((at:number)=>seekBuild(at)),close=useSteady(()=>{refocus.current=true;endBuild()});
  // A line of the board plays its stage on the figure. Below 1000 pixels the board is a screen or two
  // under the figure, so the stage played on a figure and a transport that were both out of sight and
- // the reader saw only the board's line change. If the drawing is not at least half on screen, the
- // page goes to it. The focus stays on the board, where the reader is working.
+ // the reader saw only the board's line change. The focus stays on the board, where the reader is
+ // working.
+ // The whole drawing, not half of it. The page went to the drawing only when less than half of it was
+ // on screen, and in the 3D lessons P, the cancelling arrows and the stage's name sit in its top part:
+ // with the top two-fifths scrolled away, "What cancels" played on a ring and a grid while the
+ // cancellation happened above the window. Any of it off screen now brings it back -- to its top where
+ // it is taller than the window, or where the top is what is missing; otherwise just its foot.
  const boardStep=useSteady((i:number)=>{
   stepBuild(i);
-  const card=document.querySelector<HTMLElement>('.explorer-app .exp-diagram-card'),drawing=card?.querySelector('.cd-stage');
-  if(!card||!drawing)return;
-  const r=drawing.getBoundingClientRect(),shown=Math.min(r.bottom,window.innerHeight)-Math.max(r.top,0);
-  if(shown<r.height/2)window.scrollBy({top:card.getBoundingClientRect().top-12,behavior:reduced?'auto':'smooth'});
+  const drawing=document.querySelector<HTMLElement>('.explorer-app .exp-diagram-card .cd-stage');
+  if(!drawing)return;
+  const r=drawing.getBoundingClientRect(),h=window.innerHeight;
+  if(r.top<0||r.bottom>h)window.scrollBy({top:r.top<0||r.height>h-24?r.top-12:r.bottom-h+12,behavior:reduced?'auto':'smooth'});
  });
  const recut=useSteady((slices:number)=>{if(buildOpen)endBuild();updateParams({slices,continuum:0})}),resetGeometry=useSteady(()=>{stop();updateParams({...DEFAULT_PARAMS});setProgress(1);setBounds([0,100]);setSelected(null)});
  // The lesson list, the library and the sliders: none of them moves while the run plays, and the
@@ -449,7 +523,14 @@ export default function Explorer(){
   finally{if(wasDark)root.classList.add('dark')}
   downloadArtifact(`field-builder-${id}.html`,artifactHtml({title:p.title,subtitle:p.subtitle,setup:p.setup,coordinate:p.coordinate,integralTex:p.integralTex,secondaryIntegralTex:p.secondaryIntegralTex,results:resultLines(p),derived:p.steps.find(s=>s.kind==='gradient')?.worked?.slice(-1).map(w=>w.tex),svg:figure}));
  }
- return <div className={`explorer-app ${showNumbers?'with-numbers':'symbolic-view'}`}>{/* Twenty tab stops -- the header, all fifteen
+ // THE PAGE'S STATES ARE CLASSES SET HERE, NOT SELECTORS THAT LOOK DOWN THE PAGE FOR THEM. The rules
+ // for the open run were written as `.exp-workspace:has(.exp-walk.is-open)`, and with them Chromium
+ // re-matched the workspace on every change inside it -- each label moved, each arrow redrawn -- and
+ // restyled the board's thousands of KaTeX nodes with it: the arc's What cancels, the lesson's central
+ // moment, ran at twenty frames a second, and every stage boundary dropped frames. A class costs one
+ // restyle when the run opens, settles or closes. (tests/page-styles.test.ts keeps :has out of the sheet.)
+ const running=buildOpen?' is-running'+(settledRun?' is-settled':''):'',cueing=ready&&!seen&&!onboarding;
+ return <div className={`explorer-app ${showNumbers?'with-numbers':'symbolic-view'}${cueing?' is-cueing':''}`}>{/* Twenty tab stops -- the header, all fifteen
      lessons, the list toggle and the library -- stood between a keyboard and the lesson's one button.
      The first stop now goes straight to it (or to the run's play button, while the run is open). */}
  <a className="skip-link" href="#lesson" onClick={skipToLesson}>Skip to the lesson</a><header className="exp-header"><div className="exp-brand"><span className="exp-logo">∫</span><span>field<span className="brand-light">builder</span></span></div>{/* FIVE ACTIONS BECAME TWO AND A MENU. Walkthrough is how a reader starts, and the theme
@@ -464,7 +545,7 @@ export default function Explorer(){
      the trail is now just the way back out to the library -- which on a narrow screen, where
      the list is not there at all, is the only way to another lesson. */}
 <div className="exp-crumbs"><button type="button" className="exp-crumb-link" onClick={()=>setLibrary(true)}><ChevronLeft size={13} aria-hidden="true"/>Charge library</button></div></div><div className="exp-heading"><div><h1>{p.title}</h1><p>{p.subtitle}</p></div></div>
- <div className="exp-workspace"><div className="exp-visual-column"><section className={'exp-diagram-card mode-'+mode+' focus-'+highlight} aria-label="Interactive field visualization"><div className="exp-diagram-heading"><div><MathText tex={p.coordinate}/></div>
+ <div className={'exp-workspace'+running}><div className="exp-visual-column"><section className={'exp-diagram-card mode-'+mode+' focus-'+highlight+running} aria-label="Interactive field visualization"><div className="exp-diagram-heading"><div><MathText tex={p.coordinate}/></div>
   {/* THE LESSON'S ONE BUTTON, AT THE TOP OF ITS FIGURE. It sat under the figure and its toolbar,
       past the bottom of a laptop's window -- its top at 919 pixels on a 1440 by 900 screen -- so
       a first-time reader never saw the feature the lesson is built around. Here it is on the first
@@ -483,7 +564,7 @@ export default function Explorer(){
       and neither one touched the equation beside the figure. The run is now the walkthrough as
       well: it plays, pauses, scrubs and steps one stage at a time, and the derivation in the
       panel arrives with it. */}
-  {buildOpen&&<div ref={walk} className="exp-walk is-open"><BuildPlayer stages={stages} clock={runAt} index={buildIndex} playing={building} math={playerMath}
+  {buildOpen&&<div ref={walk} className="exp-walk is-open"><BuildPlayer stages={stages} clock={runAt} index={buildIndex} playing={building} math={playerSteps} chain={playerChain} answer={playerAnswer}
     onPlay={play} onSeek={seek} onStep={step} onClose={close}/></div>}
 </section>
  <section className="exp-parameters">{parameterGrid}</section>
@@ -502,7 +583,7 @@ export default function Explorer(){
     {p.limits.length>1
      ?<Tabs value={String(limitIndex)} onValueChange={v=>setLimitIndex(Number(v))}><TabsList className="exp-limit-tabs">{p.limits.map((x,i)=><TabsTrigger value={String(i)} key={x.id}>{x.title}</TabsTrigger>)}</TabsList></Tabs>
      :<h3 className="exp-note-heading">{lim.title}</h3>}
-    <p>{lim.explanation}</p>
+    <p>{greek(lim.explanation)}</p>
     <Assessment key={id+limitIndex} problem={p} params={params} limit={lim}/>
    </div>}
   </details>
@@ -510,10 +591,11 @@ export default function Explorer(){
    <summary><span>Easy to confuse with</span><small>The expressions this geometry sits next to, and what each one would actually describe.</small></summary>
    {slipsOpen&&<div className="exp-note-body exp-slips">{confusions(p).map(g=><div className="exp-slip" key={g.key}>
     <span className="exp-slip-of">{g.label}</span>
-    {g.notes.map(n=><div className="exp-slip-note" key={n.message}><span className="exp-slip-math">{n.expressions.map(x=><MathText key={x} tex={confusionTex(x)}/>)}</span><p>{n.message}</p></div>)}
+    {g.notes.map(n=><div className="exp-slip-note" key={n.message}><span className="exp-slip-math">{n.expressions.map(x=><MathText key={x} tex={confusionTex(x)}/>)}</span><p>{greek(n.message)}</p></div>)}
    </div>)}</div>}
   </details>
  </section>
  <output className="sr-only" aria-live="polite">{status}</output></main></SidebarProvider>
- {/* The first-visit cue points at what the lesson is built around, not at the tour of it. */}{ready&&!seen&&!onboarding&&<StartHere target={watchButton} onSettled={()=>setSeen(true)}/>}<Onboarding returnFocus={tourButton} open={onboarding} onClose={closeTour} onExplore={closeTour}/><Dialog open={library} onOpenChange={setLibrary}><DialogContent className="exp-library-dialog"><DialogTitle>Choose your geometry</DialogTitle><DialogDescription>Every lesson, including electric potential.</DialogDescription>{libraryCards}</DialogContent></Dialog></div>;
+ {/* The first-visit cue points at what the lesson is built around, not at the tour of it. */}{cueing&&<StartHere target={watchButton} onSettled={()=>setSeen(true)}/>}<Onboarding returnFocus={tourButton} open={onboarding} onClose={closeTour} onExplore={closeTour}/><Dialog open={library} onOpenChange={setLibrary}>{/* Opened on the lesson the reader is in, not on the first card: from the ring, the focus landed on
+     Finite line, and a keyboard or a screen reader had to go looking for where they were. */}<DialogContent className="exp-library-dialog" initialFocus={libraryFocus}><DialogTitle>Choose your geometry</DialogTitle><DialogDescription>Every lesson, including electric potential.</DialogDescription>{libraryCards}</DialogContent></Dialog></div>;
 }
