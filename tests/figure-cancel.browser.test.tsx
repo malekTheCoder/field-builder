@@ -124,7 +124,9 @@ describe('What cancels, held at its end', () => {
   await hold(view, 3, .97);
   const partner = view.container.querySelector<SVGLineElement>('.cd-grow-pair > .cd-vector line')!;
   expect(getComputedStyle(partner).strokeDasharray === 'none' || !partner.getAttribute('stroke-dasharray')).toBe(true);
-  for (const g of view.container.querySelectorAll('[data-cancel-ghost] .cd-vector line')) expect(Number(getComputedStyle(g).opacity)).toBeGreaterThanOrEqual(.4);
+  // As painted: the strength is set on the group round the stroke.
+  const painted = (el: Element) => { let o = 1; for (let e: Element | null = el; e && !(e instanceof SVGSVGElement); e = e.parentElement) o *= Number(getComputedStyle(e).opacity); return o; };
+  for (const g of view.container.querySelectorAll('[data-cancel-ghost] .cd-vector line')) expect(painted(g)).toBeGreaterThanOrEqual(.4);
   const keep = [...view.container.querySelectorAll<SVGGElement>('.cd-vector')].find(g => g.querySelector('.cd-vector-label')?.getAttribute('data-symbol') === 'ΔE_x')!;
   const [, , kx, ky] = keep.dataset.shaft!.split(' ').map(Number);
   const more = view.container.querySelector<SVGGElement>('[data-partner-keep] .cd-vector')!;

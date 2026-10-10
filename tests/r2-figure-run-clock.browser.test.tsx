@@ -74,7 +74,9 @@ describe('the stage\'s end keeps what cancelled', () => {
   expect(ghosts.length).toBe(2);
   for (const g of ghosts) {
    const line = g.querySelector('line')!;
-   const opacity = Number(getComputedStyle(line).opacity);
+   // As painted: the stroke's strength is set on a group round it (see Vector), not on the line itself.
+   let opacity = 1;
+   for (let e: Element | null = line; e && !(e instanceof SVGSVGElement); e = e.parentElement) opacity *= Number(getComputedStyle(e).opacity);
    expect(opacity).toBeGreaterThan(.1);
    expect(opacity).toBeLessThan(.5);
    // Full length: the ghost is the part as it was, not as it shrank.

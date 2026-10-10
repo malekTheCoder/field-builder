@@ -129,6 +129,8 @@ export function ViewCube({view, at, size = 22, onPick, onSpin, onSpinStart, onSt
       onClick={ev => { ev.stopPropagation(); onStep(s.key); }}
       onKeyDown={ev => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); onStep(s.key); } }}>
       <title>{s.title}</title>
+      {/* A target a finger can hit: the drawn step is fourteen pixels across on a phone. */}
+      <circle className="cd-cube-hit" r="12.5" />
       <circle r="8.4" />
       <path d={s.path} />
     </g>)}

@@ -267,7 +267,8 @@ describe('the chain in space is drawn beside the net arrow by the lesson, not by
   const view = await openLesson(id);
   await openRun(view);
   jump(view, 4, 'Add them up');
-  for (const at of [.1, .6]) {
+  // From the first link: the sum starts once the run's piece has been handed over, a quarter of the way in.
+  for (const at of [.35, .6]) {
    scrub(view, 3, at);
    await waitFor(() => expect(Number(plan(view, 'runChain') ?? 0)).toBeGreaterThan(1));
    expect(plan(view, 'runChainBeside'), `${id} at ${at}`).toBe(beside ? 'true' : undefined);

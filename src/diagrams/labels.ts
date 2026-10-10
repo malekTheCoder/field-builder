@@ -50,6 +50,15 @@ export type Label={
   * is drawn later names keep off it. A placer that knew only label boxes ran an angle's leader straight
   * through r_i. */
  from?:{x:number;y:number};
+ /** It always hangs from a line back to `from`, wherever it goes -- the charge's tag does -- so every spot
+  * it tries must keep that line off the names already placed, and the line is a stroke the names after it
+  * keep off. Checked only for a far spot, the tag's line was redrawn through the radius' letter. */
+ tethered?:boolean;
+ /** Where it stood last time, if its own spot is taken: tried before any other. Re-solved from scratch on
+  * every frame of a run, a name whose spots were near ties hopped between them from one frame to the next
+  * -- P = O a hundred units out and back two frames apart. Held where it was while that is still free and
+  * honest, it moves only when it has to. `leader` says the spot needed one. */
+ prefer?:Box&{leader?:boolean};
 };
 export const overlaps=(a:Box,b:Box,pad:number,padY=pad)=>
  a.x-pad<b.x+b.width+pad&&b.x-pad<a.x+a.width+pad&&a.y-padY<b.y+b.height+padY&&b.y-padY<a.y+a.height+padY;
@@ -172,14 +181,19 @@ export function placeLabels(labels:readonly Label[],options:PlaceOptions={}):Nud
   const own=label.shaft,others=own?shafts.filter(s=>!sameSegment(s,own)):[];
   // A spot is honest if it is nearer its own arrow than any other, and on its own side of the lines
   // it must not cross.
-  const honest=(b:Box)=>{
+  // How far a spot is from honest: nothing where it is nearer its own arrow than any other, by how much
+  // nearer another arrow it stands where it is not.
+  const dishonesty=(b:Box)=>{
    const c={x:b.x+b.width/2,y:b.y+b.height/2};
-   if(label.within?.some(h=>(c.x-h.x)*h.nx+(c.y-h.y)*h.ny<0))return false;
-   if(!own||!others.length)return true;
+   if(label.within?.some(h=>(c.x-h.x)*h.nx+(c.y-h.y)*h.ny<0))return 1e3;
+   if(!own||!others.length)return 0;
    const mine=boxSegmentDistance(b,own);
    // Not merely no nearer: plainly further, or the name reads as belonging to either.
-   return others.every(s=>boxSegmentDistance(b,s)>=mine+3);
+   let worst=0;
+   for(const s of others)worst=Math.max(worst,mine+3-boxSegmentDistance(b,s));
+   return worst;
   };
+  const honest=(b:Box)=>dishonesty(b)<=0;
   // Search from where the label asks to be -- unless that is outside the picture, in which
   // case search from the nearest spot inside it. Every candidate is rejected for leaving the
   // frame, so a label that STARTS outside has no candidate at all and would otherwise be left
@@ -191,8 +205,9 @@ export function placeLabels(labels:readonly Label[],options:PlaceOptions={}):Nud
   // Only the marks some spot it may try can reach: one further off neither blocks nor costs any of
   // them, so leaving it out changes nothing but the time.
   const reach=Math.max(nearSpread,capped&&label.keep?farSpread:0)+air;
-  const x0=Math.min(...homes.map(h=>h.x))-reach,x1=Math.max(...homes.map(h=>h.x+h.width))+reach;
-  const y0=Math.min(...homes.map(h=>h.y))-reach,y1=Math.max(...homes.map(h=>h.y+h.height))+reach;
+  const span=label.prefer?[...homes,label.prefer]:homes;
+  const x0=Math.min(...span.map(h=>h.x))-reach,x1=Math.max(...span.map(h=>h.x+h.width))+reach;
+  const y0=Math.min(...span.map(h=>h.y))-reach,y1=Math.max(...span.map(h=>h.y+h.height))+reach;
   const near=taken.filter(t=>t.box.x<=x1&&t.box.x+t.box.width>=x0&&t.box.y<=y1&&t.box.y+t.box.height>=y0);
   let best:Nudge={dx:homes[0].x-label.box.x,dy:homes[0].y-label.box.y},bestCost=Infinity,placed=false,leader=false;
   // Near before far across EVERY place the label may stand, not one place at a time: a name that fits
@@ -205,13 +220,16 @@ export function placeLabels(labels:readonly Label[],options:PlaceOptions={}):Nud
    const seg={a:from,b:nearestOnBox(grow(moved,2,2),from)};
    return !near.some(t=>t.label&&boxSegmentDistance(t.box,seg)<labelPad/2);
   };
+  // Whether a box -- a unit in from its edge, so a name merely touching an arrowhead is not counted --
+  // has any arrow's shaft running through it.
+  const crossesShaft=(b:Box)=>{const inner=grow(b,-1,-1);return inner.width>0&&inner.height>0&&shafts.some(s=>boxSegmentDistance(inner,s)===0);};
   const search=(rings:Nudge[],from:Box[],onLeader=false)=>{
    for(const ring of byDistance(rings))for(const home of from){
     for(const nudge of ring){
      const moved=shift(home,nudge);
      if(frame&&!inside(moved,frame))continue;
      const at={dx:moved.x-label.box.x,dy:moved.y-label.box.y};
-     const ok=honest(moved)&&(!onLeader||leaderClear(moved));
+     const ok=honest(moved)&&(!(onLeader||label.tethered)||leaderClear(moved));
      if(ok&&free(moved,near)){best=at;return true;}
      // Remember the least-bad option in case nothing is free: a label half over another is
      // still better than one dropped off the edge of the picture. A spot by the wrong arrow is
@@ -221,17 +239,33 @@ export function placeLabels(labels:readonly Label[],options:PlaceOptions={}):Nud
      // -- "z" hard under "−ΔE⊥" on a phone -- where a spot a little further off had room.
      // Summed only while it could still be the least bad: every term is at least nothing, so a sum
      // already past the best can only end past it.
-     if(!ok&&bestCost<=1e6)continue;
+     // And a spot laid across an arrow, its own included, is as bad as one by the wrong arrow. Costed by
+     // overlap alone, a name set on a five-unit stroke cost almost nothing next to one near another name:
+     // on a phone, with nothing free, ΔE_x was set on its own shaft, the shaft through the word and the
+     // word's halo cutting the arrow in two.
+     const bad=!ok||crossesShaft(moved);
+     if(bad&&bestCost<=1e6)continue;
      let sum=0;
      for(const t of near){sum+=t.label?area(grow(moved,labelPad,padY),t.box):area(moved,t.box);if(sum>=bestCost)break;}
      if(sum>=bestCost)continue;
-     const cost=sum+Math.hypot(at.dx,at.dy)*.01+(ok?0:1e6);
+     // Among spots that are all bad, the one nearest to honest: a kept name with nowhere honest to go was
+     // set beside the mirror's arrow when a spot hard by its own was there to take.
+     const cost=sum+Math.hypot(at.dx,at.dy)*.01+(bad?1e6+100*Math.min(1e3,Math.max(0,dishonesty(moved))):0);
      if(cost<bestCost){bestCost=cost;best=at;}
     }
    }
    return false;
   };
-  placed=search(tries,homes);
+  // Its own spot first, if that is free; then wherever it stood last, if that still is.
+  const fits=(b:Box,onLeader:boolean)=>(!frame||inside(b,frame))&&honest(b)&&(!(onLeader||label.tethered)||leaderClear(b))&&free(b,near);
+  const pref=label.prefer;
+  // Still within the reach it was placed by: a spot that needed no leader, near one of the label's own spots;
+  // one that did, near its first.
+  const inReach=(b:Box&{leader?:boolean})=>!capped||(b.leader?Math.hypot(b.x-homes[0].x,b.y-homes[0].y)<=maxShift*leaderReach+1:homes.some(h=>Math.hypot(b.x-h.x,b.y-h.y)<=maxShift+1));
+  if(pref&&!fits(homes[0],false)&&(!pref.leader||(capped&&label.keep))&&inReach(pref)&&fits(pref,!!pref.leader)){
+   best={dx:pref.x-label.box.x,dy:pref.y-label.box.y};placed=true;leader=!!pref.leader;
+  }
+  if(!placed)placed=search(tries,homes);
   // A label it must keep, with nowhere free within reach: further out, on a leader back to it.
   if(!placed&&capped&&label.keep&&far.length){const keepBest=best,keepCost=bestCost;placed=search(far,homes.slice(0,1),true);if(placed)leader=true;else{best=keepBest;bestCost=keepCost;}}
   if(!placed&&capped&&!label.keep){out.push({dx:0,dy:0,hidden:true});continue;}
@@ -239,7 +273,7 @@ export function placeLabels(labels:readonly Label[],options:PlaceOptions={}):Nud
   const at=shift(label.box,best);
   taken.push({box:at,label:true});
   // Its leader, as a stroke the names after it keep off.
-  if(leader&&label.from){
+  if((leader||label.tethered)&&label.from){
    const bounds=frame?{x:0,y:0,width:frame.width,height:frame.height}:{x:-1e5,y:-1e5,width:2e5,height:2e5};
    for(const box of segmentBoxes(label.from,nearestOnBox(grow(at,2,2),label.from),3,bounds))taken.push({box,label:false});
   }

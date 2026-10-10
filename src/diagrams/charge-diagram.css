@@ -104,6 +104,9 @@
 .cd-svg .cd-source-tag text,.cd-svg .cd-bound text,.cd-svg .cd-gauge text,.cd-svg .cd-zero{
  font-family:var(--font-display),Georgia,serif;font-style:italic;font-weight:600;font-size:calc(var(--cd-sym) * var(--cd-k,1))}
 .cd-svg .cd-point-label{font-size:calc(var(--cd-sym-p) * var(--cd-k,1));stroke-width:6px}
+/* Lining figures: the display serif's italic sets its figures old-style by default, and "y = 0" read as
+   "y = o", the ring's limit as "θ = o, 2π", λ₀ as λₒ. */
+.cd-svg text{font-variant-numeric:lining-nums}
 .cd-svg .cd-vector-label{stroke-width:6px}
 .cd-axes text{fill:var(--cd-ink)}
 /* Upright: the italic serif O is a narrow oval that reads as the digit zero. */
@@ -194,6 +197,11 @@
 .cd-svg .cd-triangle .cd-angle-arc{fill:none;stroke:var(--ghost);stroke-width:1.4;stroke-dasharray:none}
 .cd-svg .cd-triangle .cd-angle-leader{stroke:var(--ghost);stroke-width:1.1;stroke-dasharray:none}
 .cd-focus-projection .cd-triangle .cd-angle-arc{stroke:var(--term-projection);stroke-width:2}
+/* r_i stays the distance through What cancels, where cos α is read off the triangle as r over r_i: the line
+   from the piece to P switched from One piece's solid distance blue to the dashed charge colour the
+   mirror's line is drawn in, and read as a different line. */
+.cd-focus-projection .cd-construction:not(.cd-pair){stroke:var(--term-distance);stroke-width:2.1;stroke-opacity:.8;stroke-dasharray:none}
+.cd-focus-projection .cd-svg .cd-ri,.cd-focus-distance .cd-svg .cd-ri{fill:var(--term-distance)}
 /* A handle lit for the limits stays a handle: the ground inside, a heavier ring of the bounds colour.
    Filled solid it was a dark lozenge on each of the rod's caps, read as chrome rather than as a limit. */
 .cd-focus-bounds .cd-bound rect{fill:var(--diagram,#fff);stroke:var(--term-bounds);stroke-width:3.8}
@@ -322,6 +330,12 @@
    view's edge-on plane. In space the plane runs off in every direction and dissolves as it goes, so
    two dashes floating at the frame's edges mark nothing. */
 .cd-in-space .cd-continuation{opacity:0}
+/* The same for the flat lines' break marks and their ∞, for the dot grid laid out on the flat page, and
+   for the fan's tinted wedges: in space the scene has its own ground, the scene's line runs somewhere
+   else entirely, and the sheet's outermost wedges, bounded by the level through P, made a pink slab whose
+   top edge was level with P -- "P lies in the sheet" again. The rays stay: they are the angles. */
+.cd-in-space .cd-infinity,.cd-in-space .cd-grid{opacity:0}
+.cd-in-space .cd-wedge{fill-opacity:0!important}
 
 /* The view pad. Every gesture the figure answers to has a button here, because a control
    that only exists as a key you have to already know about is not a control. */
@@ -366,6 +380,7 @@
 .cd-cube:hover .cd-cube-step{opacity:.72}
 .cd-cube-step:hover{opacity:1}
 .cd-cube-step circle{fill:var(--diagram,#fff);stroke:var(--ghost,#6d8492);stroke-width:1}
+.cd-cube-step circle.cd-cube-hit{fill:transparent;stroke:none}
 .cd-cube-step path{fill:none;stroke:var(--field,#0b6b63);stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
 .cd-cube-step:focus-visible{outline:2px solid var(--field);outline-offset:2px}
 
@@ -386,9 +401,9 @@
 
 /* 1 · CUT IT UP. The figure used to open this stage already cut, so nothing happened. Now the
    cuts are made in order along the charge, and each piece flashes as it comes free. */
-.cd-stage-pieces .cd-seam{transform-box:fill-box;transform-origin:center;animation:cd-cut .42s cubic-bezier(.2,.8,.2,1) both;animation-delay:calc(var(--t,0) * 1.5s + .2s)}
+.cd-stage-pieces .cd-seam{transform-box:fill-box;transform-origin:center;animation:cd-cut .42s cubic-bezier(.2,.8,.2,1) both;animation-delay:calc(var(--t,0) * 1.5s + .2s - var(--cd-local,0s))}
 @keyframes cd-cut{from{opacity:0;transform:scale(0)}to{opacity:1;transform:none}}
-.cd-stage-pieces .cd-piece{animation:cd-free .7s ease-out both;animation-delay:calc(var(--t,0) * 1.5s + .3s)}
+.cd-stage-pieces .cd-piece{animation:cd-free .7s ease-out both;animation-delay:calc(var(--t,0) * 1.5s + .3s - var(--cd-local,0s))}
 @keyframes cd-free{0%{filter:none}35%{filter:drop-shadow(0 0 8px var(--charge,#b8460f)) brightness(1.15)}100%{filter:none}}
 
 /* 2 · ONE PIECE and 3 · WHAT CANCELS. Everything but the pieces being pointed at steps back,
@@ -422,9 +437,18 @@
 /* ARRIVING, NOT APPEARING. While the run plays, an arrow grows out of P instead of popping in at
    full length, the construction lines fade up under it, and the angle that picks out the surviving
    part arrives last -- one thing at a time, in the order the argument uses them. */
-.cd-building .cd-grow{animation:cd-grow .65s cubic-bezier(.2,.8,.2,1) both}
-.cd-building .cd-grow-pair{animation-delay:.12s}
-.cd-building .cd-grow-parts{animation-delay:.3s}
+.cd-building .cd-grow{animation:cd-grow .65s cubic-bezier(.2,.8,.2,1) both;animation-delay:calc(0s - var(--cd-local,0s))}
+.cd-building .cd-grow-pair{animation-delay:calc(.12s - var(--cd-local,0s))}
+.cd-building .cd-grow-parts{animation-delay:calc(.3s - var(--cd-local,0s))}
+/* ON THE RUN'S OWN CLOCK. The cuts, the pieces' flash and the arrows' growth ran on the wall clock: paused
+   on the run's first frame, the four cuts went on to finish two and a half seconds later; paused as One
+   piece began, the arrow grew to full length anyway; scrubbing within Cut it up never moved the cuts. While
+   the run has a clock they are held still, and the clock's time into the stage -- written to --cd-local as
+   it moves -- is taken off each one's delay: a held animation shows exactly the frame that time reaches, so
+   a pause, a seek or a stepped clock shows the frame the clock is at. The piece's own arrow grew in One
+   piece and is whole through What cancels. */
+.cd-clocked.cd-stage-pieces .cd-seam,.cd-clocked.cd-stage-pieces .cd-piece,.cd-clocked.cd-building .cd-grow{animation-play-state:paused}
+.cd-clocked.cd-stage-cancel .cd-grow:not(.cd-grow-pair):not(.cd-grow-parts){animation:none}
 @keyframes cd-grow{from{opacity:0;transform:scale(.12)}to{opacity:1;transform:none}}
 .cd-building .cd-construction,.cd-building .cd-source-tag{animation:cd-fade .5s ease-out both}
 .cd-building .cd-triangle{animation:cd-fade .6s ease-out .45s both}
@@ -433,10 +457,12 @@
 /* The pieces step back and forward smoothly between stages rather than jumping. */
 .cd-building .cd-piece{transition:opacity .45s ease,filter .45s ease}
 
+/* With reduced motion the clock itself steps, in beats, so the cuts and the arrows on it are stepped through,
+   never skipped: one after another, as the stage says. Off the clock they simply appear. */
 @media (prefers-reduced-motion:reduce){
- .cd-building .cd-grow,.cd-building .cd-construction,.cd-building .cd-source-tag,.cd-building .cd-triangle,.cd-building .cd-bound{animation:none}
+ .cd-building:not(.cd-clocked) .cd-grow,.cd-building .cd-construction,.cd-building .cd-source-tag,.cd-building .cd-triangle,.cd-building .cd-bound{animation:none}
  .cd-building .cd-piece{transition:none}
- .cd-svg .cd-stage-label,.cd-stage-pieces .cd-seam,.cd-stage-pieces .cd-piece{animation:none}
+ .cd-svg .cd-stage-label,.cd-stage-pieces:not(.cd-clocked) .cd-seam,.cd-stage-pieces:not(.cd-clocked) .cd-piece{animation:none}
  .cd-field-canvas{transition:none}
 }
 
@@ -481,7 +507,8 @@
 .cd-caption>.cd-controls{margin:0 0 0 auto;flex:0 0 auto;border-top:0;padding-top:0;font-size:var(--type-meta,13px)}
 .cd-caption>.cd-controls[open]{flex:1 1 100%;margin-left:0}
 .cd-controls{color:var(--muted-foreground);font-size:var(--type-meta,13px)}
-.cd-controls>summary{cursor:pointer;font-size:var(--type-meta,13px);color:var(--muted-foreground);opacity:.75;min-height:24px}
+/* At full muted ink: faded to three quarters it was 3.6:1 against the page. */
+.cd-controls>summary{cursor:pointer;font-size:var(--type-meta,13px);color:var(--muted-foreground);min-height:24px}
 .cd-controls>summary:hover{opacity:1;color:var(--foreground)}
 .cd-controls[open]>summary{opacity:1;margin-bottom:2px}
 .cd-controls :focus-visible{outline:2px solid var(--field);outline-offset:3px;border-radius:3px}
@@ -538,11 +565,14 @@
 /* A ghost of a part that has cancelled: the stroke is drawn faintly by the figure, and its name is
    muted with it -- there, so a still frame says what went, and plainly gone. */
 .cd-svg .cd-vector-label.is-muted{opacity:.55}
-/* The mirror's surviving part is the flat figure's own; in space while the run plays the scene draws the
-   arrows as bodies, and a flat copy laid over them would be a second drawing of the same thing. */
+/* The mirror's surviving part, in space while the run plays, is the scene's: it lays it as a body on the tip
+   of the piece's own, and a flat copy over it would be a second drawing of the same thing. The flat one stays
+   in the tree, where the label placer keeps every name off it. */
 .cd-in-space.cd-building .cd-partner-keep{opacity:0!important}
 /* The triangle's right angle is a mark, not a construction line: solid, so its eight pixels read. */
 .cd-triangle .cd-right-angle{stroke-dasharray:none;stroke-width:1.4}
+/* The leg's extension line across to the piece: a hairline, as a drawing's extension lines are. */
+.cd-svg .cd-triangle .cd-extension-tick{stroke-dasharray:none;stroke-width:1;opacity:.8}
 /* The distance from a piece to P on the rod seen along its axis: a dimension in the distance's own
    colour, above the rod, where the dashed line used to lie along the rod over its marks. */
 .cd-svg .cd-triangle .cd-ri-bar{stroke:var(--term-distance);stroke-dasharray:none;stroke-width:1.6;stroke-opacity:.85}
@@ -553,7 +583,9 @@
    the axes step back so the parts can be seen. */
 .cd-arc-pair .cd-axes{opacity:.3}
 /* A leader the label placer drew, for a name it had to take past its reach. */
-.cd-label-leaders line{stroke:var(--ghost,#6d8492);stroke-width:1.2;opacity:.8}
+/* Thin and muted, so a leader reads as a leader: at the ghost colour's full strength two of them meeting at
+   P read as two more strokes of the construction. */
+.cd-label-leaders line{stroke:var(--cd-muted);stroke-width:1;opacity:.5}
 /* Too narrow for prose inside the figure. */
 .cd-narrow .cd-triangle-note{display:none}
 .cd-svg .cd-dimension .cd-extension{stroke-width:1;stroke-dasharray:2 2}
@@ -569,4 +601,11 @@
  fill:var(--charge,#b8460f);paint-order:stroke;stroke:var(--diagram,#fff);stroke-width:4px;stroke-linejoin:round}
 .cd-focus-element .cd-piece-length path{stroke:var(--term-element);stroke-width:2.4}
 .cd-building .cd-piece-length{animation:cd-fade .5s ease-out .2s both}
-@media (prefers-reduced-motion:reduce){.cd-building .cd-piece-length{animation:none}}
+/* The piece's angle at P, in the piece's own colour, as its length bracket is. */
+.cd-svg .cd-piece-angle .cd-angle-arc{fill:none;stroke:color-mix(in oklab,var(--charge,#b8460f) 72%,var(--cd-ink));stroke-width:1.6}
+.cd-svg .cd-piece-angle .cd-angle-leader,.cd-svg .cd-piece-angle .cd-piece-ray{stroke:color-mix(in oklab,var(--charge,#b8460f) 60%,var(--diagram,#fff));stroke-width:1}
+.cd-svg .cd-piece-angle text{font-family:var(--font-display),Georgia,serif;font-style:italic;font-weight:600;font-size:calc(var(--cd-sym) * var(--cd-k,1));
+ fill:var(--charge,#b8460f);paint-order:stroke;stroke:var(--diagram,#fff);stroke-width:4px;stroke-linejoin:round}
+.cd-focus-element .cd-piece-angle .cd-angle-arc{stroke:var(--term-element);stroke-width:2.4}
+.cd-building .cd-piece-angle{animation:cd-fade .5s ease-out .2s both}
+@media (prefers-reduced-motion:reduce){.cd-building .cd-piece-length,.cd-building .cd-piece-angle{animation:none}}
