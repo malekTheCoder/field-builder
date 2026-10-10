@@ -628,3 +628,7 @@
 @media (prefers-reduced-motion:reduce){.cd-building .cd-piece-length,.cd-building .cd-piece-angle{animation:none}}
 /* The arc's φ, an angle's dimension: a hairline, its arrowheads pointing out to the sides it spans. */
 .cd-dimension path.cd-phi-arc{stroke-width:1.2;stroke-linejoin:round}
+/* The axis lesson's piece coordinate, x, from O to the piece on r_i's own line: a plain dimension in ink. */
+.cd-svg .cd-triangle .cd-x-bar{stroke:color-mix(in oklab,var(--cd-ink) 46%,transparent);stroke-dasharray:none;stroke-width:1.6}
+/* The scene's r_i, on the line from P to the piece: set as the schematic's letters are. */
+.cd-svg .cd-ri-line text{font-family:var(--font-display),Georgia,serif;font-style:italic;font-weight:600;font-size:calc(var(--cd-sym) * var(--cd-k,1));fill:var(--foreground);paint-order:stroke;stroke:var(--diagram,#fff);stroke-width:4px;stroke-linejoin:round}

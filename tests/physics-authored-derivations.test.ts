@@ -492,7 +492,8 @@ describe('every displayed “=” in a worked chain is true, and the chain ends 
     if(step.kind==='gradient'&&chain!==null)
      expect(close(chain,ev(need(p,'gradient').expected,scope),1e-6),`${key} gradient chain ends at ${chain}`).toBe(true);
    }
-  });
+  // The sheet's chain is Simpson over an infinite range: about two seconds here, nearly ten on CI.
+  },60000);
  it('nothing in the corpus was silently skipped',()=>{
   ledger.push(['worked clauses',tally]);
   expect(tally.skipped,JSON.stringify(tally)).toBe(0);

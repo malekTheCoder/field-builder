@@ -404,6 +404,30 @@ describe('at rest, with the parts drawn, the part that survives is not covered b
  }, 30000);
 });
 
+describe('the width the board brackets is bracketed on the figure', () => {
+ // The sheet's board sends the reader to "the width Δs bracketed on the figure", and the disk's and the axis
+ // lesson's footers write ΔQ in Δs and Δx: none of the three was drawn.
+ for (const [w, h] of [[1280, 800], [390, 844]] as const) for (const [id, name, view] of [['sheet', 'Δs', null], ['sheet', 'Δs', '2D'], ['disk', 'Δs', null], ['v-disk', 'Δs', null], ['axial', 'Δx', null]] as const) it(`${id}${view ? ' flat' : ''} at ${w}`, async () => {
+  await page.viewport(w, h);
+  const v = await openLesson(id);
+  if (view) await turn(v, view);
+  await hold(v, 1, .99);
+  const t = svgOf(v).querySelector<SVGTextElement>('[data-piece-length] text');
+  expect(t?.textContent).toBe(name);
+  expect(shown(t!)).toBe(true);
+ }, 30000);
+ it('the axis lesson\'s piece has its own x, from O on r_i\'s line', async () => {
+  for (const id of ['axial', 'v-rod-axial']) {
+   const v = await openLesson(id);
+   await hold(v, 2, .99);
+   const g = svgOf(v).querySelector('[data-piece-coordinate]');
+   expect(g, id).toBeTruthy();
+   expect(shown(g!.querySelector('text')!), id).toBe(true);
+   cleanup(); window.history.replaceState(null, '', '/');
+  }
+ }, 30000);
+});
+
 describe('Δ and Σ are set upright, as the board sets them', () => {
  it('the footer and the arrows\' names', async () => {
   const v = await openLesson('bisector');

@@ -1277,7 +1277,13 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
   // chosen ring, on the line from O to it -- so in Shrink them, with a handle at each end of that line, s
   // read as the disk's radius. R is its own dimension, out to the rim at another azimuth, toward the reader
   // and to the left, clear of the s line and of both axes in either view.
-  const rim = id === 'disk' ? (() => {
+  // Seen flat, the radius at that azimuth foreshortens to a stub at O, and R stood beside the z bar, which then read
+  // as having two names. There R is a dimension of its own under the disk's left half, true length side-on, as a
+  // drawing dimensions the radius of a part seen edge-on: see `dims`.
+  // (Where there is no room for it under the disk -- a phone, with the flat disk lifted toward the footer -- the radius
+  // at that azimuth is kept.)
+  const flatR = id === 'disk' && !inSpace ? (() => { const y = O.y + R * unit * Math.abs(Math.sin(view.pitch)) + 16; return y + 9 + 1.37 * SYM * labelScale <= FOOTER_BAND ? y : null; })() : null;
+  const rim = id === 'disk' && flatR === null ? (() => {
     const tip = ray({ x: -Math.SQRT1_2, y: -Math.SQRT1_2, z: 0 }, R * unit), d = direction(vsub(tip, O));
     if (!d) return null;
     const below = d.x >= 0 ? { x: -d.y, y: d.x } : { x: d.y, y: -d.x }, out = below.y >= 0 ? below : { x: -below.x, y: -below.y };
@@ -1492,16 +1498,39 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
   // then gets a bracket of a fixed, readable width centred on it, named dy. (Not on the endless line, whose
   // board integrates over θ: its dθ is marked at P, below.)
   const shrinking = building === 'limit';
+  //
+  // ON THE AXIS LESSON, AND ON THE DISK AND THE SHEET, TOO. Their footers and boards say "a piece Δx long" and "a ring
+  // of width Δs", and the sheet's board sends the reader to "the width Δs bracketed on the figure": nothing was
+  // bracketed. The axis lesson's is under the rod, as the semi-infinite line's is; a ring's is across its width,
+  // along the line its radius s is drawn on, on the side away from P -- a true segment in space as well as flat.
+  // Not the sheet's outermost ring, which has no outer edge.
   const pieceLength = (() => {
-    if (inSpace || !(upright || id === 'semi') || (shrinking && id === 'infinite') || !(building === 'pieces' || building === 'one' || shrinking || highlight === 'element')) return null;
+    if (!(building === 'pieces' || building === 'one' || shrinking || highlight === 'element')) return null;
+    const size = SYM * labelScale, spot = (q: { x: number; y: number; anchor: string }) => `${q.x.toFixed(1)} ${q.y.toFixed(1)} ${q.anchor}`;
+    if (surface) {
+      if (id === 'sheet' && selectedIndex >= n - 1) return null;
+      let a = project({ x: Math.abs(world(selectedIndex / n).x), y: 0, z: 0 }), b = project({ x: Math.abs(world((selectedIndex + 1) / n).x), y: 0, z: 0 });
+      if (!visible(a) || !visible(b)) return null;
+      const u = direction(vsub(b, a));
+      if (!u) return null;
+      const middle = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+      if (Math.hypot(b.x - a.x, b.y - a.y) < 12) { if (!shrinking) return null; a = { x: middle.x - u.x * 6, y: middle.y - u.y * 6 }; b = { x: middle.x + u.x * 6, y: middle.y + u.y * 6 }; }
+      let nrm = { x: -u.y, y: u.x };
+      if (nrm.x * (P.x - middle.x) + nrm.y * (P.y - middle.y) > 0) nrm = { x: -nrm.x, y: -nrm.y };
+      const at = (q: Point, k = 9): Point => ({ x: q.x + nrm.x * k, y: q.y + nrm.y * k }), A = at(a), B = at(b), M = at(middle);
+      const tick = (q: Point) => `M${(q.x - nrm.x * 4).toFixed(1)} ${(q.y - nrm.y * 4).toFixed(1)}l${(nrm.x * 8).toFixed(1)} ${(nrm.y * 8).toFixed(1)}`;
+      const label = besidePoint(M, nrm, 5, size), ends = [direction({ x: nrm.x - u.x, y: nrm.y - u.y }) ?? nrm, direction({ x: nrm.x + u.x, y: nrm.y + u.y }) ?? nrm];
+      return { name: `${continuum >= .999 ? 'd' : '\u0394'}s`, path: `M${A.x.toFixed(1)} ${A.y.toFixed(1)}L${B.x.toFixed(1)} ${B.y.toFixed(1)}${tick(A)}${tick(B)}`, label, mirror: M, ends: [A, B] as [Point, Point],
+        alt: [besidePoint(A, ends[0], 5, size), besidePoint(B, ends[1], 5, size)].map(spot).join(';'), within: `${at(middle, 4).x.toFixed(1)} ${at(middle, 4).y.toFixed(1)} ${nrm.x.toFixed(3)} ${nrm.y.toFixed(3)}` };
+    }
+    if (inSpace || !(upright || id === 'semi' || id === 'axial') || (shrinking && id === 'infinite')) return null;
     let [lo, hi] = spanOf(selectedIndex);
     if (lo < rodLow - 1 || hi > rodHigh + 1) return null;
     if (hi - lo < 12) { if (!shrinking) return null; const c = (lo + hi) / 2; lo = c - 6; hi = c + 6; }
-    const name = `${continuum >= .999 ? 'd' : '\u0394'}${coordinate}`, size = SYM * labelScale;
+    const name = `${continuum >= .999 ? 'd' : '\u0394'}${coordinate}`;
     // Its letter stays on the bracket's side of the rod, past either end of the bracket if its middle is
     // taken: reflected through the bracket, which stands against the rod, it landed across the rod from
     // the bracket on a phone, beside the other side of the piece.
-    const spot = (q: { x: number; y: number; anchor: string }) => `${q.x.toFixed(1)} ${q.y.toFixed(1)} ${q.anchor}`;
     if (upright) {
       const x = O.x - rodHalf - 7;
       const alt = [besidePoint({ x, y: lo }, { x: -.45, y: -.9 }, 5, size), besidePoint({ x, y: hi }, { x: -.45, y: .9 }, 5, size)].map(spot).join(';');
@@ -1517,6 +1546,8 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
   // On a phone, where the letters are half as large again, by as much again: at 22 the Δy's middle spot did not fit
   // between the two brackets, and Δy jumped past the end of its bracket onto the next piece.
   const lOut = pieceLength && upright ? 22 + 26 * (labelScale - 1) : 0;
+  // And the axis lesson's L and a bars stand lower, under the piece's bracket.
+  const barY = O.y + 34 + (pieceLength && id === 'axial' ? 20 + 18 * (labelScale - 1) : 0);
   // THE ROD'S ENDS, while the limits are the subject -- Add them up, which runs the sum from one end to the
   // other, and Shrink them, which turns the ends into the integral's limits. At no priority and with nowhere
   // else to go, a rod's end names were the first the placer dropped: with P close in, "x = L" was hidden in
@@ -1528,13 +1559,14 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
     const spot = (x: number, y: number, anchor: string) => `${x.toFixed(1)} ${y.toFixed(1)} ${anchor}`;
     if (id === 'axial') {
       const x = O.x + p.size * unit;
-      return { top: [spot(x, O.y - rodHalf - 10, 'middle'), spot(x + 10, O.y + 34 + 8 + 1.9 * SYM * labelScale, 'middle')].join(';'), bottom: '' };
+      return { top: [spot(x, O.y - rodHalf - 10, 'middle'), spot(x + 10, barY + 8 + 1.9 * SYM * labelScale, 'middle')].join(';'), bottom: '' };
     }
     const top = id === 'bisector' ? O.y - R * unit : O.y - p.size * unit, bottom = id === 'bisector' ? O.y + R * unit : O.y;
     const under = id === 'bisector' ? Math.min(bottom + 20, 366) : O.y - 9;
     return {
-      top: [spot(O.x + 17, top - 28, 'start'), spot(O.x - rodHalf - 6, top - 14, 'end'), spot(O.x + 17, top + 20, 'start')].join(';'),
-      bottom: [spot(O.x + 17, Math.min(under + 22, 368), 'start'), spot(O.x - rodHalf - 6, Math.min(bottom + 24, 368), 'end'), spot(O.x + 17, id === 'bisector' ? bottom - 6 : O.y + 24, 'start')].join(';'),
+      // On P's side of the rod only: across it, an end's name stood by L's bracket and read as a second name for it.
+      top: [spot(O.x + 17, top - 28, 'start'), spot(O.x + 17, top + 20, 'start')].join(';'),
+      bottom: [spot(O.x + 17, Math.min(under + 22, 368), 'start'), spot(O.x + 17, id === 'bisector' ? bottom - 6 : O.y + 24, 'start')].join(';'),
     };
   })();
   const dims: Dim[] = [];
@@ -1591,8 +1623,8 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
   }
   if (id === 'axial') {
     // L and a on one baseline under the axis, each with its own bar and ticks.
-    dims.push(dimBar('L', 'size', { x: O.x, y: O.y + 34 }, { x: O.x + p.size * unit, y: O.y + 34 }, 'L', 1));
-    dims.push(dimBar('a', 'distance', { x: O.x + p.size * unit, y: O.y + 34 }, { x: P.x, y: O.y + 34 }, 'a', 1));
+    dims.push(dimBar('L', 'size', { x: O.x, y: barY }, { x: O.x + p.size * unit, y: barY }, 'L', 1));
+    dims.push(dimBar('a', 'distance', { x: O.x + p.size * unit, y: barY }, { x: P.x, y: barY }, 'a', 1));
   }
   if (id === 'semi' && !rOnLeg) {
     // Left of P's line, at one place in every stage. It used to stand left of whatever was drawn from P across
@@ -1602,6 +1634,7 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
     dims.push(dimBar('r', 'distance', { x, y: O.y }, { x, y: P.y }, 'r', -1));
   }
   if (perspective && !inSpace) dims.push(dimBar('z', 'distance', { x: O.x - 30, y: O.y }, { x: O.x - 30, y: P.y }, 'z', -1));
+  if (flatR !== null) dims.push({ ...dimBar('R', 'size', { x: O.x - R * unit, y: flatR }, { x: O.x, y: flatR }, 'R', 1), within: `0 ${flatR.toFixed(1)} 0 1` });
   if (perspective && inSpace) {
     // In space the bar would cross an axis on either side, so z is a letter alone: beside the axis,
     // between P and where the plane's far edge crosses it, clear of both.
@@ -1907,7 +1940,9 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
       const riSpot = besidePoint({ x: (top.x + end.x) / 2, y: (top.y + end.y) / 2 }, slope, 7, termSize, .52);
       // ...AND THE LINE FROM P TO THE PIECE, ON THE FIGURE, IS r_i: the board's term was only in the corner's
       // schematic, and the one blue stroke in the scene went unnamed -- on a phone the letter beside it was R.
-      // Beside its middle, on the side away from the axis, where z is not.
+      // Beside its middle, on the side away from the axis, where z is not. Kept on a desktop; on a phone, where the
+      // ring's names crowd round it and the schematic's r_i stands in the corner, it gives way rather than set
+      // itself against P's name.
       const lineHyp = { x: (selectedPoint.x + P.x) / 2, y: (selectedPoint.y + P.y) / 2 }, lineDir = direction(vsub(selectedPoint, P));
       const lineOut = lineDir ? (() => { const nrm = { x: -lineDir.y, y: lineDir.x }; return nrm.x * (lineHyp.x - O.x) >= 0 ? nrm : { x: -nrm.x, y: -nrm.y }; })() : null;
       const riOnLine = lineOut && selectedOnFrame && Math.hypot(selectedPoint.x - P.x, selectedPoint.y - P.y) > 40 ? { spot: besidePoint(lineHyp, lineOut, 7, termSize, .52), hyp: lineHyp, side: Math.sign(lineOut.x) || 1 } : null;
@@ -1932,8 +1967,12 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
       // On the rod seen along its axis the distance from a piece to P runs ALONG the rod, so a dashed
       // line from one to the other lay right over the rod's remaining pieces and turned their + marks
       // into minus signs. It is a dimension instead, just above the rod: from the piece to P.
-      const y = O.y - rodHalf - 14, a = { x: source.x, y }, b = { x: P.x, y };
-      return { kind: 'axial' as const, legs: [[a, b]] as [Point, Point][], arc: [] as Point[], a, b };
+      //
+      // AND THE PIECE'S OWN x, ON THE SAME LINE, from O to the piece: the bar reads O —x— piece —(L + a − x)— P. The
+      // piece's coordinate was drawn nowhere, and right under r_i = L + a − x stood "x = L", the rod's end: a
+      // student substituted the only x in sight and found every piece a away.
+      const y = O.y - rodHalf - 14, a = { x: source.x, y }, b = { x: P.x, y }, o = { x: O.x, y };
+      return { kind: 'axial' as const, legs: (a.x - o.x > 14 ? [[a, b], [o, a]] : [[a, b]]) as [Point, Point][], arc: [] as Point[], a, b, o };
     }
     // The rods and the lines. The right angle is at the foot of the perpendicular from P to the charge;
     // the angle the board takes the cosine or sine of is at P, between that perpendicular and the line
@@ -1994,8 +2033,14 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
     // the leg, and the angle's letter stands over it.
     const at = (f: number) => ({ x: foot.x + (P.x - foot.x) * f, y: foot.y + (P.y - foot.y) * f }), under = flat ? { x: -1, y: 0 } : { x: 0, y: 1 };
     const baseMid = at(.5), rSpot = besidePoint(at(.38), under, 6, termSize);
-    const rAlt = [.25, .55].map(f => besidePoint(at(f), under, 6, termSize)).map(q => `${q.x.toFixed(1)} ${q.y.toFixed(1)} ${q.anchor}`).join(';');
-    return { kind: 'rod' as const, legs: (hasLeg ? [[met, foot], [foot, P], ...(Math.hypot(start.x - met.x, start.y - met.y) > 1 ? [[met, start]] : [])] : []) as [Point, Point][], arc: mark?.arc ?? [], mark, flat, foot, start, met, extension, square, riSpot, hyp, legMid, legSpot, legAlt, legWithin, legLength, hasLeg, baseMid, rSpot, rAlt };
+    // ...and never past the mirror's line to P, which closes in under the leg toward P: set beyond it, on a phone, r
+    // read as the length of that line -- the mirror's r_i. Between the two, or, failing that, above the leg inside the
+    // triangle beside the right angle.
+    const above = { x: -under.x, y: -under.y };
+    const rAlt = [...[.25, .55, .2].map(f => besidePoint(at(f), under, 6, termSize)), besidePoint(at(.3), above, 6, termSize)].map(q => `${q.x.toFixed(1)} ${q.y.toFixed(1)} ${q.anchor}`).join(';');
+    const mirrorFrom = pairing ? offRod(partnerPos, P, partnerIndex) : null, mirrorDir = mirrorFrom ? direction(vsub(mirrorFrom, P)) : null;
+    const rWithin = mirrorDir ? (() => { let m = { x: -mirrorDir.y, y: mirrorDir.x }; if (m.x * (baseMid.x - P.x) + m.y * (baseMid.y - P.y) < 0) m = { x: -m.x, y: -m.y }; return `${P.x.toFixed(1)} ${P.y.toFixed(1)} ${m.x.toFixed(3)} ${m.y.toFixed(3)}`; })() : undefined;
+    return { kind: 'rod' as const, legs: (hasLeg ? [[met, foot], [foot, P], ...(Math.hypot(start.x - met.x, start.y - met.y) > 1 ? [[met, start]] : [])] : []) as [Point, Point][], arc: mark?.arc ?? [], mark, flat, foot, start, met, extension, square, riSpot, hyp, legMid, legSpot, legAlt, legWithin, legLength, hasLeg, baseMid, rSpot, rAlt, rWithin };
   })();
   // THE PIECE'S ANGLE, Δθ, where the lesson is cut by angle and the angle is what is integrated: across the
   // chosen wedge at P on the lines that never end, as Cut it up makes the cuts -- "one piece is one angle",
@@ -2163,6 +2208,7 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
   const reserved: Box[] = [];
   if (triangle && (triangle.kind === 'rod' || triangle.kind === 'arc') && triangle.mark?.box) reserved.push(triangle.mark.box);
   if (pieceAngle?.box) reserved.push(pieceAngle.box);
+  if (triangle?.kind === 'schematic' && triangle.riOnLine) { const q = triangle.riOnLine.spot, w = 1.1 * termSize; reserved.push({ x: q.x - (q.anchor === 'end' ? w : q.anchor === 'middle' ? w / 2 : 0), y: q.y - .98 * termSize, width: w, height: 1.5 * termSize }); }
   if (triangle && (triangle.kind === 'rod' || triangle.kind === 'slope' || (triangle.kind === 'arc' && triangle.riSpot))) {
     const q = triangle.riSpot!, w = (triangle.kind === 'arc' ? 3 : 1.1) * termSize;
     reserved.push({ x: q.x - (q.anchor === 'end' ? w : q.anchor === 'middle' ? w / 2 : 0), y: q.y - .98 * termSize, width: w, height: 1.5 * termSize });
@@ -2492,12 +2538,12 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
         {d.extension && <line className="cd-extension" x1={d.extension[0].x} y1={d.extension[0].y} x2={d.extension[1].x} y2={d.extension[1].y} />}
         {d.label && <text x={d.label.x} y={d.label.y} textAnchor={d.label.anchor} data-mirror={`${((d.a.x + d.b.x) / 2).toFixed(1)} ${((d.a.y + d.b.y) / 2).toFixed(1)}`} data-alt={d.alt} data-within={d.within} {...GIVEN}>{d.name}</text>}
       </g>)}
-      {id === 'bisector' && <g data-dim="size" className={`cd-dimension${inSpace && !perspective ? ' is-hidden' : ''}`}><text className="cd-end" x={O.x+17} y={O.y-R*unit-8} data-mirror={`${O.x.toFixed(1)} ${(O.y-R*unit).toFixed(1)}`} data-alt={rodEndAlt.top} {...endAttrs}>+L/2</text><text className="cd-end" x={O.x+17} y={Math.min(O.y+R*unit+20, 366)} data-mirror={`${O.x.toFixed(1)} ${(O.y+R*unit).toFixed(1)}`} data-alt={rodEndAlt.bottom} {...endAttrs}>−L/2</text></g>}
-      {footed && <g data-dim="size" className={`cd-dimension${inSpace && !perspective ? ' is-hidden' : ''}`}><text className={ramp ? 'cd-end cd-density-end' : 'cd-end'} x={O.x+17} y={O.y-p.size*unit-8} data-alt={rodEndAlt.top} {...(ramp ? {} : endAttrs)}>{ramp ? <SymbolText symbol="λ = λ_0" /> : 'y = L'}</text><text className={ramp ? 'cd-end cd-density-end' : 'cd-end'} x={O.x+19} y={O.y-9} data-alt={rodEndAlt.bottom} {...(ramp ? {} : endAttrs)}>{ramp ? 'λ = 0' : 'y = 0'}</text></g>}
+      {id === 'bisector' && <g data-dim="size" className={`cd-dimension${inSpace && !perspective ? ' is-hidden' : ''}`}><text className="cd-end" x={O.x+17} y={O.y-R*unit-8} data-alt={rodEndAlt.top} data-within={`${(O.x + rodHalf).toFixed(1)} 0 1 0`} {...endAttrs}>+L/2</text><text className="cd-end" x={O.x+17} y={Math.min(O.y+R*unit+20, 366)} data-alt={rodEndAlt.bottom} data-within={`${(O.x + rodHalf).toFixed(1)} 0 1 0`} {...endAttrs}>−L/2</text></g>}
+      {footed && <g data-dim="size" className={`cd-dimension${inSpace && !perspective ? ' is-hidden' : ''}`}><text className={ramp ? 'cd-end cd-density-end' : 'cd-end'} x={O.x+17} y={O.y-p.size*unit-8} data-alt={rodEndAlt.top} data-within={`${(O.x + rodHalf).toFixed(1)} 0 1 0`} {...(ramp ? {} : endAttrs)}>{ramp ? <SymbolText symbol="λ = λ_0" /> : 'y = L'}</text><text className={ramp ? 'cd-end cd-density-end' : 'cd-end'} x={O.x+19} y={O.y-9} data-alt={rodEndAlt.bottom} data-within={`${(O.x + rodHalf).toFixed(1)} 0 1 0`} {...(ramp ? {} : endAttrs)}>{ramp ? 'λ = 0' : 'y = 0'}</text></g>}
       {/* The rod's far end, by its coordinate: "L" here as well as under the bar was two L's. */}
       {/* Under the tick where the L and a bars meet, below the axis: above it, on the line the piece's
           ΔQ is written on, the two read as one phrase. */}
-      {id === 'axial' && <g data-dim="size" className={`cd-dimension${inSpace && !perspective ? ' is-hidden' : ''}`}><text className="cd-end" x={O.x+p.size*unit} y={O.y + 34 + 8 + .98 * SYM * labelScale} textAnchor="middle" data-mirror={`${(O.x+p.size*unit).toFixed(1)} ${(O.y + 34).toFixed(1)}`} data-alt={rodEndAlt.top} {...endAttrs}>x = L</text></g>}
+      {id === 'axial' && <g data-dim="size" className={`cd-dimension${inSpace && !perspective ? ' is-hidden' : ''}`}><text className="cd-end" x={O.x+p.size*unit} y={barY + 8 + .98 * SYM * labelScale} textAnchor="middle" data-mirror={`${(O.x+p.size*unit).toFixed(1)} ${barY.toFixed(1)}`} data-alt={rodEndAlt.top} {...endAttrs}>x = L</text></g>}
       {/* The radius, named beside its middle -- or nearer either end, above or below it, where the middle
           is taken: flat, a sheet's chosen ring is an ellipse that hems the radius in at its middle. */}
       {rim && <g data-dim="size" data-rim="true" className="cd-dimension"><path d={`M${O.x.toFixed(1)} ${O.y.toFixed(1)}L${rim.tip.x.toFixed(1)} ${rim.tip.y.toFixed(1)}`} />
@@ -2682,20 +2728,21 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
             <text x={riSpot.x.toFixed(1)} y={riSpot.y.toFixed(1)} textAnchor={riSpot.anchor} data-mirror={mid(top, end)} data-within={`${top.x.toFixed(1)} ${top.y.toFixed(1)} ${slope.x.toFixed(3)} ${slope.y.toFixed(3)}`} className="cd-ri" {...termAttrs(distanceTerm)}><SymbolText symbol="r_i" /></text>
             {!scalar && <text className="cd-angle" x={alpha.x.toFixed(1)} y={alpha.y.toFixed(1)} textAnchor="middle" data-anchor="fixed" {...(stageCancel ? termAttrs(true) : GIVEN)}>α</text>}
             <text x={corner.x.toFixed(1)} y={(baseSpot.y + 18).toFixed(1)} className="cd-triangle-note">Same triangle · not to scale</text>
-            {triangle.riOnLine && <text x={triangle.riOnLine.spot.x.toFixed(1)} y={triangle.riOnLine.spot.y.toFixed(1)} textAnchor={triangle.riOnLine.spot.anchor} data-ri-line="true"
-              data-mirror={`${triangle.riOnLine.hyp.x.toFixed(1)} ${triangle.riOnLine.hyp.y.toFixed(1)}`} data-within={`${O.x.toFixed(1)} 0 ${triangle.riOnLine.side} 0`} className="cd-ri" {...termAttrs(distanceTerm)}><SymbolText symbol="r_i" /></text>}
+
           </>; })()}
         {triangle.kind === 'slope' && <text x={triangle.riSpot.x.toFixed(1)} y={triangle.riSpot.y.toFixed(1)} textAnchor={triangle.riSpot.anchor} data-mirror={`${triangle.hyp.x.toFixed(1)} ${triangle.hyp.y.toFixed(1)}`} className="cd-ri" {...termAttrs(distanceTerm)}><SymbolText symbol="r_i" /></text>}
         {triangle.kind === 'arc' && <><line x1={P.x} y1={P.y} x2={selectedPoint.x} y2={selectedPoint.y}/>{triangle.mark?.node}
           {/* The line from the piece to P is r_i, and on the arc every r_i is R: the board writes the field
               with r_i, and the figure drew the line unnamed. On the side of it away from θ. */}
           {triangle.riSpot && <text x={triangle.riSpot.x.toFixed(1)} y={triangle.riSpot.y.toFixed(1)} textAnchor={triangle.riSpot.anchor} data-mirror={`${triangle.hyp.x.toFixed(1)} ${triangle.hyp.y.toFixed(1)}`} className="cd-ri" {...(stageOne ? termAttrs(true) : { 'data-priority': 1 })}><SymbolText symbol="r_i" tail=" = R" /></text>}</>}
-        {triangle.kind === 'axial' && (() => { const { a, b } = triangle;
+        {triangle.kind === 'axial' && (() => { const { a, b, o } = triangle;
           return <>
+            {a.x - o.x > 14 && <g data-piece-coordinate="true"><path className="cd-x-bar" d={`M${o.x.toFixed(1)} ${o.y.toFixed(1)}L${a.x.toFixed(1)} ${a.y.toFixed(1)}M${o.x.toFixed(1)} ${(o.y - 4).toFixed(1)}v8`} />
+              <text x={((o.x + a.x) / 2).toFixed(1)} y={(a.y - 8 - .39 * termSize).toFixed(1)} textAnchor="middle" data-mirror={`${((o.x + a.x) / 2).toFixed(1)} ${a.y.toFixed(1)}`} data-within={`0 ${(O.y - rodHalf).toFixed(1)} 0 -1`} {...(stageOne ? termAttrs(true) : GIVEN)}>x</text></g>}
             <path className="cd-ri-bar" d={`M${a.x.toFixed(1)} ${a.y.toFixed(1)}L${b.x.toFixed(1)} ${b.y.toFixed(1)}M${a.x.toFixed(1)} ${(a.y - 4).toFixed(1)}v8M${b.x.toFixed(1)} ${(b.y - 4).toFixed(1)}v8`} />
             <text x={((a.x + b.x) / 2).toFixed(1)} y={(a.y - 8 - .39 * termSize).toFixed(1)} textAnchor="middle" data-mirror={`${((a.x + b.x) / 2).toFixed(1)} ${a.y.toFixed(1)}`} {...termAttrs(distanceTerm)}><SymbolText symbol="r_i" tail=" = L + a − x" /></text>
           </>; })()}
-        {triangle.kind === 'rod' && (() => { const { start, foot, met, extension, square, riSpot, hyp, legMid, legSpot, legAlt, legWithin, legLength, flat, mark, hasLeg, baseMid, rSpot, rAlt } = triangle;
+        {triangle.kind === 'rod' && (() => { const { start, foot, met, extension, square, riSpot, hyp, legMid, legSpot, legAlt, legWithin, legLength, flat, mark, hasLeg, baseMid, rSpot, rAlt, rWithin } = triangle;
           return <>
             {hasLeg && <path data-leg="true" d={`M${met.x.toFixed(1)} ${met.y.toFixed(1)}L${foot.x.toFixed(1)} ${foot.y.toFixed(1)}L${P.x.toFixed(1)} ${P.y.toFixed(1)}`} />}
             {hasLeg && legLength > 4 && <path className="cd-extension-tick" data-leg-extension="true" d={`M${met.x.toFixed(1)} ${met.y.toFixed(1)}L${start.x.toFixed(1)} ${start.y.toFixed(1)}L${extension[1].x.toFixed(1)} ${extension[1].y.toFixed(1)}`} />}
@@ -2703,9 +2750,14 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
             <text x={riSpot.x.toFixed(1)} y={riSpot.y.toFixed(1)} textAnchor={riSpot.anchor} data-mirror={`${hyp.x.toFixed(1)} ${hyp.y.toFixed(1)}`} data-within={legWithin} className="cd-ri" {...termAttrs(distanceTerm)}><SymbolText symbol="r_i" /></text>
             {legLength > 14 && <text x={legSpot.x.toFixed(1)} y={legSpot.y.toFixed(1)} textAnchor={legSpot.anchor} data-mirror={`${legMid.x.toFixed(1)} ${legMid.y.toFixed(1)}`}
               data-alt={legAlt} data-within={legWithin} {...(distanceTerm ? termAttrs(true) : { 'data-priority': 1 })}>{flat ? 'x' : 'y'}</text>}
-            {rOnLeg && hasLeg && <text x={rSpot.x.toFixed(1)} y={rSpot.y.toFixed(1)} textAnchor={rSpot.anchor} data-dim="distance" data-mirror={`${baseMid.x.toFixed(1)} ${baseMid.y.toFixed(1)}`} data-alt={rAlt} {...GIVEN}>r</text>}
+            {rOnLeg && hasLeg && <text x={rSpot.x.toFixed(1)} y={rSpot.y.toFixed(1)} textAnchor={rSpot.anchor} data-dim="distance" data-mirror={`${baseMid.x.toFixed(1)} ${baseMid.y.toFixed(1)}`} data-alt={rAlt} data-within={rWithin} {...GIVEN}>r</text>}
             {mark?.node}
           </>; })()}
+      </g>}
+      {/* r_i on the line from P to the piece, in its own group: it is the scene's, not the schematic's. */}
+      {triangle?.kind === 'schematic' && triangle.riOnLine && <g className="cd-ri-line">
+        <text x={triangle.riOnLine.spot.x.toFixed(1)} y={triangle.riOnLine.spot.y.toFixed(1)} textAnchor={triangle.riOnLine.spot.anchor} data-ri-line="true"
+              data-mirror={`${triangle.riOnLine.hyp.x.toFixed(1)} ${triangle.riOnLine.hyp.y.toFixed(1)}`} data-within={`${O.x.toFixed(1)} 0 ${triangle.riOnLine.side} 0`} className="cd-ri" {...(narrow ? { 'data-priority': 1 } : termAttrs(distanceTerm))}><SymbolText symbol="r_i" /></text>
       </g>}
       {/* THE CHARGE'S OWN MARKS, painted over the construction and the triangle rather than under them,
           each with a thin ring of the ground colour: a dashed stroke laid through a + turned it into a
