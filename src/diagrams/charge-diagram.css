@@ -43,6 +43,9 @@
 .cd-partner{fill:none;stroke:color-mix(in oklab,var(--charge,#b8460f) 62%,var(--diagram,#fff));stroke-width:1.8;stroke-dasharray:4 3}
 .cd-infinity path,.cd-continuation{fill:none;stroke:var(--charge,#b8460f);stroke-width:2.2}
 .cd-svg .cd-infinity text{fill:var(--charge,#b8460f)}
+/* The break: the ground between its two strokes, and a ring of the ground under each stroke. */
+.cd-infinity .cd-break-gap{fill:var(--diagram,#fff);stroke:none}
+.cd-infinity path.cd-break-under{stroke:var(--diagram,#fff);stroke-width:6.6;stroke-linecap:round}
 .cd-dimension path,.cd-dimension line{stroke:var(--ghost,#6d8492);stroke-width:1.3;fill:none}
 .cd-dimension text{fill:var(--cd-ink)}
 .cd-svg .cd-small{font-size:11px}
@@ -223,7 +226,9 @@
 /* The distance's own colour, as the construction line and the board's distance factor have it -- not
    the field's teal, which put a teal r beside the teal ΔE and read as one thing. */
 .cd-focus-distance [data-dim="distance"] text,.cd-focus-distance text[data-dim="distance"]{fill:var(--term-distance);font-weight:700}
-.cd-focus-distance .cd-point-halo{stroke-opacity:1;stroke-width:3}
+/* Not P's halo: lit as a heavy ring round the dot it was ⊙, the out-of-the-page sign, in the field's teal
+   among strokes lit in the distance's blue, over the first stretch of every arrow leaving P. The r bar and
+   r_i already answer the slider. */
 .cd-focus-size [data-dim="size"] path,.cd-focus-size [data-dim="size"] line{stroke:var(--field);stroke-width:2.8;stroke-opacity:1}
 .cd-focus-size [data-dim="size"] text{fill:var(--field);font-weight:700}
 .cd-focus-angle [data-dim="angle"] path{stroke:var(--field);stroke-width:2.8;stroke-opacity:1}
@@ -233,8 +238,13 @@
 .cd-focus-charge .cd-plus text{fill:var(--charge);font-weight:700;font-size:calc(15px * var(--cd-k,1))}
 /* A round geometry has no marks along it to light, so the body answers for how much charge
    there is -- and on a rod both do. */
-.cd-focus-charge [data-source-body]{stroke-width:7}
-.cd-focus-size [data-source-body]{stroke-width:7}
+/* An outlined body -- a rod, the flat disk, the sheet -- thickens its outline. The ring and the arc ARE a
+   seventeen-unit band, and the same rule set them to seven: pointing at "Total charge Q" made the one body
+   that answers for the charge thinner, and said "less". A band widens and deepens instead. */
+.cd-focus-charge .cd-source-rod[data-source-body],.cd-focus-charge .cd-surface[data-source-body],
+.cd-focus-size .cd-source-rod[data-source-body],.cd-focus-size .cd-surface[data-source-body]{stroke-width:7}
+.cd-focus-charge .cd-charge-base[data-source-body],.cd-focus-size .cd-charge-base[data-source-body]{stroke-width:23;stroke-opacity:.42}
+.dark .cd-focus-charge .cd-charge-base[data-source-body],.dark .cd-focus-size .cd-charge-base[data-source-body]{stroke-opacity:.55}
 @media (prefers-reduced-motion:reduce){.cd-dimension [data-dim],.cd-svg [data-dim]{transition:none}}
 
 /* THE ANGULAR FAN of the unbounded lessons.
@@ -424,6 +434,8 @@
 /* 4 · ADD THEM UP. The chain is the thing: heavier, with each piece's contribution marked
    where it joins, while the pieces not yet added wait faintly on the charge. */
 .cd-stage-add .cd-sum-chain{stroke-width:3.6;opacity:1}
+/* ...the sum so far a step quieter than the link the walk has just added, which is drawn whole, with its head. */
+.cd-stage-add .cd-sum-chain:not(.cd-sum-chain-ends){opacity:.55}
 /* The charge fills in behind the piece being added, the way the chain grows in front of P: what is
    already in the sum is plainly coloured, what is still to come waits pale. */
 .cd-stage-add .cd-piece.is-added{fill:color-mix(in oklab,var(--charge,#b8460f) 42%,var(--charge-fill,#fdefe6))}
@@ -564,7 +576,12 @@
 
 /* A ghost of a part that has cancelled: the stroke is drawn faintly by the figure, and its name is
    muted with it -- there, so a still frame says what went, and plainly gone. */
-.cd-svg .cd-vector-label.is-muted{opacity:.55}
+/* ...at full strength, in a darkened contribution ink: at .55 over the teal the stage's own kept terms, on its
+   held frame, were 2:1 against the ground in light and 2.6:1 in dark. The faint dashed stroke says "gone". */
+.cd-svg .cd-vector-label.is-muted{opacity:1;fill:color-mix(in oklab,var(--contribution,#2f9089) 60%,var(--cd-ink))}
+/* A word among the symbols -- the "ring" of "ring ΔQ" -- is set as a word: upright, in the page's sans. In the
+   italic beside s and z it read as a product, r·i·n·g·ΔQ. */
+.cd-svg .cd-word{font-style:normal;font-family:var(--font-geist-sans),system-ui,sans-serif;font-weight:550}
 /* The mirror's surviving part, in space while the run plays, is the scene's: it lays it as a body on the tip
    of the piece's own, and a flat copy over it would be a second drawing of the same thing. The flat one stays
    in the tree, where the label placer keeps every name off it. */
@@ -609,3 +626,5 @@
 .cd-focus-element .cd-piece-angle .cd-angle-arc{stroke:var(--term-element);stroke-width:2.4}
 .cd-building .cd-piece-angle{animation:cd-fade .5s ease-out .2s both}
 @media (prefers-reduced-motion:reduce){.cd-building .cd-piece-length,.cd-building .cd-piece-angle{animation:none}}
+/* The arc's φ, an angle's dimension: a hairline, its arrowheads pointing out to the sides it spans. */
+.cd-dimension path.cd-phi-arc{stroke-width:1.2;stroke-linejoin:round}

@@ -157,7 +157,11 @@ const sameSegment=(s:Segment,t:Segment)=>Math.abs(s.a.x-t.a.x)<.6&&Math.abs(s.a.
 /** One nudge per label, in the order given. Labels are placed in sequence, so an earlier
  * label holds its ground and a later one moves around it: pass them most-important first. */
 export function placeLabels(labels:readonly Label[],options:PlaceOptions={}):Nudge[]{
- const {frame,obstacles=[],pad=1.5,step=9,maxShift,shafts=[],lines=[],leaderReach=2}=options;
+ const {frame,obstacles=[],pad=1.5,step=9,maxShift,shafts=[],leaderReach=2}=options;
+ // The construction's lines, and every leader drawn so far: a name is never set across one of them, and no
+ // leader crosses one. Only the strokes were known, as squares, and a kept name with nowhere free was set across a
+ // tag's line -- the disk's s struck through by the line to "ring ΔQ".
+ const lines:Segment[]=[...(options.lines??[])];
  const labelPad=options.labelPad??pad;
  const capped=maxShift!==undefined;
  const tries=capped?reachCandidates(maxShift):candidates(step);
@@ -218,11 +222,18 @@ export function placeLabels(labels:readonly Label[],options:PlaceOptions={}):Nud
   // as it is on the far side of its arrow, or past its tip, is better than one pushed a long way off
   // its first spot -- pushed far enough, it ends up beside some other arrow.
   // The leader a far spot would need, clear of every name already placed by half the air between names.
+  // Nor across a line of the construction, or an arrow's shaft other than its own: a z set out on a leader that
+  // crossed the line from P to the piece read as the name of that line, r_i. A crossing within a few units of
+  // where the leader starts is where it leaves what it names, and is no crossing.
   const leaderClear=(moved:Box)=>{
    const from=label.from;
    if(!from)return true;
    const seg={a:from,b:nearestOnBox(grow(moved,2,2),from)};
-   return !near.some(t=>t.label&&boxSegmentDistance(t.box,seg)<labelPad/2);
+   if(near.some(t=>t.label&&boxSegmentDistance(t.box,seg)<labelPad/2))return false;
+   const len=Math.hypot(seg.b.x-seg.a.x,seg.b.y-seg.a.y);
+   if(len<6)return true;
+   const k=Math.min(.5,4/len),tail={a:{x:seg.a.x+(seg.b.x-seg.a.x)*k,y:seg.a.y+(seg.b.y-seg.a.y)*k},b:seg.b};
+   return ![...lines,...(own?others:shafts)].some(l=>segmentsCross(tail,l));
   };
   // Whether a box -- a unit in from its edge, so a name merely touching an arrowhead is not counted --
   // has any arrow's shaft running through it.
@@ -276,13 +287,21 @@ export function placeLabels(labels:readonly Label[],options:PlaceOptions={}):Nud
   out.push(leader?{...best,leader:true}:best);
   const at=shift(label.box,best);
   taken.push({box:at,label:true});
-  // Its leader, as a stroke the names after it keep off.
+  // Its leader, as a stroke the names after it keep off -- and a line none may be set across.
   if((leader||label.tethered)&&label.from){
    const bounds=frame?{x:0,y:0,width:frame.width,height:frame.height}:{x:-1e5,y:-1e5,width:2e5,height:2e5};
-   for(const box of segmentBoxes(label.from,nearestOnBox(grow(at,2,2),label.from),3,bounds))taken.push({box,label:false});
+   const end=nearestOnBox(grow(at,2,2),label.from);
+   for(const box of segmentBoxes(label.from,end,3,bounds))taken.push({box,label:false});
+   if(Math.hypot(end.x-label.from.x,end.y-label.from.y)>4)lines.push({a:label.from,b:end});
   }
  }
  return out;
+}
+/** Whether two segments cross or touch. */
+export function segmentsCross(s:Segment,t:Segment):boolean{
+ const d=(p:{x:number;y:number},q:{x:number;y:number},r:{x:number;y:number})=>(q.x-p.x)*(r.y-p.y)-(q.y-p.y)*(r.x-p.x);
+ const d1=d(t.a,t.b,s.a),d2=d(t.a,t.b,s.b),d3=d(s.a,s.b,t.a),d4=d(s.a,s.b,t.b);
+ return d1*d2<=0&&d3*d4<=0&&!(d1===0&&d2===0&&d3===0&&d4===0);
 }
 /** A stroke as obstacles: squares of side `width` every `step` along the segment from a to b, kept
  * to the part of it inside `frame`. A stroke is a thin thing at an angle, and its bounding box is a

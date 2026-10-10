@@ -34,9 +34,16 @@ export const SURFACE_UNIT = 42;
  * other lesson fits its scale to what it has to show; these three now do too: SURFACE_UNIT while P,
  * seen at `pitch`, stands no more than 125 units above O -- every height up to the default -- and
  * below that in steps of five, so a drag rescales the picture now and then, not continuously. */
-export function surfaceUnit(height: number, pitch: number): number {
+export function surfaceUnit(height: number, pitch: number, radius = 0, below = 65): number {
   const fit = 125 / Math.max(.5, Math.abs(height) * Math.cos(pitch));
-  return fit >= SURFACE_UNIT ? SURFACE_UNIT : Math.max(18, Math.floor(fit / 5) * 5);
+  const tall = fit >= SURFACE_UNIT ? SURFACE_UNIT : Math.floor(fit / 5) * 5;
+  // AND TO HOW WIDE THE RING OR THE DISK IS. Fitted to P's height alone, a radius of four metres ran the rim's
+  // near side off the bottom of the plot -- sin(pitch)·R below O, and O stands only `below` units above the
+  // plot's foot -- clipped flat, its + marks sliced, the disk read as cut off; and across, past either side.
+  // The scale comes down until the near rim stands inside the plot and the whole ring across it.
+  if (!(radius > 0)) return Math.max(18, tall);
+  const sin = Math.abs(Math.sin(pitch)), low = sin > 1e-6 ? below / (radius * sin) : Infinity, wide = 300 / radius;
+  return Math.max(18, Math.min(tall, Math.floor(low / 5) * 5, Math.floor(wide / 5) * 5));
 }
 /** How far below P, on screen, the far edge of the sheet's chosen ring must stay. */
 export const SHEET_CLEARANCE = 24;

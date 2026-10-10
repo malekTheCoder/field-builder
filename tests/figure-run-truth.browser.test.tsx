@@ -220,15 +220,16 @@ describe('the limits are named in the stage that sets them', () => {
 });
 
 describe('the footer names the charge the board does', () => {
- for (const [id, want] of [['infinite', 'ΔQ = λr sec²θ Δθ'], ['semi', 'ΔQ = λr sec²α Δα'], ['sheet', 'ΔQ = σ · 2πs z sec²α Δα']] as const) it(id, async () => {
+ // In the limit, in the variable the board integrates over: θ on the endless line, x and s on the others.
+ for (const [id, want, limit] of [['infinite', 'ΔQ = λr sec²θ Δθ', 'dQ = λr sec²θ dθ'], ['semi', 'ΔQ = λr sec²α Δα', 'dQ = λ dx'], ['sheet', 'ΔQ = σ 2πs z sec²α Δα', 'dQ = σ 2πs ds']] as const) it(id, async () => {
   const v = await openLesson(id);
   await hold(v, 2, .5);
   const footer = v.container.querySelector<SVGTextElement>('.cd-footer-math')!;
   expect(footer.textContent).toBe(want);
-  // The function's name upright among the italic symbols.
-  expect(footer.querySelector('tspan[font-style="normal"]')?.textContent).toBe('sec');
+  // The function's name upright among the italic symbols, its square with it.
+  expect([...footer.querySelectorAll('tspan[font-style="normal"]')].map(t => t.textContent)).toContain('sec²');
   await hold(v, 5, .99);
-  expect(footer.textContent).not.toContain('sec');
+  expect(footer.textContent).toBe(limit);
  }, 30000);
 });
 
@@ -312,13 +313,21 @@ describe('the rods\' triangle is drawn to its piece', () => {
   await hold(v, 2, .97);
   expect(v.container.querySelector('.cd-angle-leader'), 'the angle\'s letter stands inside it').toBeNull();
   const piece = v.container.querySelector<SVGGElement>('.cd-piece.is-selected')!, pb = box(v, piece);
-  const line = v.container.querySelector<SVGLineElement>('.cd-construction:not(.cd-pair)')!;
+  // The triangle closes: r_i ends where the dashed leg does, and the leg's extension line runs on from there to
+  // the piece's own level and across to it. r_i used to start on the piece and meet the leg short of its end.
+  const line = v.container.querySelector<SVGLineElement>('.cd-construction[data-ri]')!;
   const end = {x: Number(line.getAttribute('x1')), y: Number(line.getAttribute('y1'))};
-  expect(end.y, 'r_i starts on its own piece').toBeGreaterThanOrEqual(pb.y - 1);
-  expect(end.y).toBeLessThanOrEqual(pb.y + pb.height + 1);
-  const leg = v.container.querySelector<SVGPathElement>('.cd-triangle path')!.getAttribute('d')!;
-  const top = Number(leg.match(/^M[-\d.]+ ([-\d.]+)/)![1]);
-  expect(Math.abs(top - (pb.y + pb.height / 2)), 'the leg reaches the piece\'s level').toBeLessThanOrEqual(2);
+  const leg = v.container.querySelector<SVGPathElement>('.cd-triangle path[data-leg]')!.getAttribute('d')!;
+  const [lx, ly] = leg.match(/^M([-\d.]+) ([-\d.]+)/)!.slice(1).map(Number);
+  expect(Math.hypot(lx - end.x, ly - end.y), 'r_i ends on the dashed leg\'s end').toBeLessThanOrEqual(1);
+  const ext = v.container.querySelector<SVGPathElement>('.cd-triangle path[data-leg-extension]')!.getAttribute('d')!;
+  const points = [...ext.matchAll(/[ML]([-\d.]+) ([-\d.]+)/g)].map(m => ({x: Number(m[1]), y: Number(m[2])}));
+  expect(Math.hypot(points[0].x - end.x, points[0].y - end.y), 'the extension starts where r_i meets the leg').toBeLessThanOrEqual(1);
+  expect(Math.abs(points[1].y - (pb.y + pb.height / 2)), 'the extension reaches the piece\'s level').toBeLessThanOrEqual(2);
+  expect(points[2].x, 'and across to the rod').toBeLessThanOrEqual(pb.x + pb.width + 1);
+  // r_i still points at its piece: the piece's middle lies on its line.
+  const P0 = P(v), mid = {x: pb.x + pb.width / 2, y: pb.y + pb.height / 2}, d = {x: P0.x - end.x, y: P0.y - end.y};
+  expect(Math.abs((mid.x - end.x) * d.y - (mid.y - end.y) * d.x) / Math.hypot(d.x, d.y), 'r_i\'s line runs through its piece').toBeLessThanOrEqual(2);
  }, 30000);
 });
 
