@@ -959,25 +959,29 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
     // enough, inside the triangle, is where a textbook letters it. The letter's whole box has to clear
     // both sides by a margin and stop short of where they end, which is found by walking out along the
     // halving line; an angle that cannot hold it anywhere gets the letter outside, on a leader.
-    const w = .62 * size, h = 1.37 * size, lenA = Math.hypot(alongA.x - at.x, alongA.y - at.y), lenB = Math.hypot(alongB.x - at.x, alongB.y - at.y);
+    const w = .7 * size, h = 1.37 * size, lenA = Math.hypot(alongA.x - at.x, alongA.y - at.y), lenB = Math.hypot(alongB.x - at.x, alongB.y - at.y);
     const towardB = { x: -a.y, y: a.x }, nA = towardB.x * b.x + towardB.y * b.y >= 0 ? towardB : { x: a.y, y: -a.x };
     const towardA = { x: -b.y, y: b.x }, nB = towardA.x * a.x + towardA.y * a.y >= 0 ? towardA : { x: b.y, y: -b.x };
     const fits = (c: Point) => [[-1, -1], [1, -1], [1, 1], [-1, 1]].every(([sx, sy]) => {
       const q = { x: c.x + sx * w / 2 - at.x, y: c.y + sy * h / 2 - at.y };
-      return q.x * nA.x + q.y * nA.y >= 5 && q.x * nB.x + q.y * nB.y >= 5 && q.x * a.x + q.y * a.y <= lenA - 8 && q.x * b.x + q.y * b.y <= lenB - 8;
+      // Eight clear of each side: the label placer keeps a name two units off a stroke's own few units of
+      // width, and a letter that only just fitted was pushed out of its angle by it.
+      return q.x * nA.x + q.y * nA.y >= 8 && q.x * nB.x + q.y * nB.y >= 8 && q.x * a.x + q.y * a.y <= lenA - 8 && q.x * b.x + q.y * b.y <= lenB - 8;
     });
     let inside: Point | null = null;
     for (let d = 46; d <= Math.max(lenA, lenB) && !inside; d += 2) { const c = { x: at.x + mid.x * d, y: at.y + mid.y * d }; if (fits(c)) inside = c; }
     if (inside) {
       const c = inside;
-      return { node: <>{arc}<text className="cd-angle" x={c.x.toFixed(1)} y={(c.y + .3 * size).toFixed(1)} textAnchor="middle" data-leader-from={`${at.x.toFixed(1)} ${at.y.toFixed(1)}`} {...keep}>{name}</text></>, arc: arcPoints, leader: null };
+      return { node: <>{arc}<text className="cd-angle" x={c.x.toFixed(1)} y={(c.y + .3 * size).toFixed(1)} textAnchor="middle" data-leader-from={`${at.x.toFixed(1)} ${at.y.toFixed(1)}`} {...keep}>{name}</text></>, arc: arcPoints, leader: null,
+        box: { x: c.x - w / 2, y: c.y - h / 2, width: w, height: h } };
     }
     // Too narrow to hold its own letter: the letter goes outside, past the side it opens toward, on a
     // short leader from the middle of the arc.
     const turn = sweep ? 1 : -1, off = { x: mid.x * Math.cos(.5) - turn * mid.y * Math.sin(.5), y: mid.y * Math.cos(.5) + turn * mid.x * Math.sin(.5) };
     const from = { x: at.x + mid.x * R, y: at.y + mid.y * R }, to = { x: at.x + off.x * (R + 16), y: at.y + off.y * (R + 16) };
     const spot = besidePoint(to, off, 4, size);
-    return { node: <>{arc}<line className="cd-angle-leader" x1={from.x} y1={from.y} x2={to.x} y2={to.y} /><text className="cd-angle" x={spot.x} y={spot.y} textAnchor={spot.anchor} data-leader-from={`${to.x.toFixed(1)} ${to.y.toFixed(1)}`} {...keep}>{name}</text></>, arc: arcPoints, leader: [from, to] as [Point, Point] };
+    return { node: <>{arc}<line className="cd-angle-leader" x1={from.x} y1={from.y} x2={to.x} y2={to.y} /><text className="cd-angle" x={spot.x} y={spot.y} textAnchor={spot.anchor} data-leader-from={`${to.x.toFixed(1)} ${to.y.toFixed(1)}`} {...keep}>{name}</text></>, arc: arcPoints, leader: [from, to] as [Point, Point],
+      box: { x: spot.x - (spot.anchor === 'end' ? w : spot.anchor === 'middle' ? w / 2 : 0), y: spot.y - .98 * size, width: w, height: h } };
   };
   const circlePoints = (radius: number, start = 0, end = Math.PI * 2) => Array.from({ length: 97 }, (_, i) => project({ x: radius * Math.cos(start + (end - start) * i / 96), y: radius * Math.sin(start + (end - start) * i / 96), z: 0 }));
   const radiusTip = ray({ x: 1, y: 0, z: 0 }, Math.min(surface ? sample.position.x : R, 7) * unit);
@@ -1478,12 +1482,22 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
   // above -- and if the arrows leaving P fill that side close in, a little further out along the same
   // direction, where they have diverged, on a short leader back to the dot: the arc's P = O has every
   // arrow of the stage starting at it.
+  // Where the stage's own letters at P will stand -- the angle's, and r_i's beside the line to the
+  // piece -- for P's name to leave free. P is lettered first, and on a phone it used to take the one
+  // place the angle's letter fits, which then went to the far side of the rod on a leader across it.
+  const reserved: Box[] = [];
+  if (triangle && (triangle.kind === 'rod' || triangle.kind === 'arc') && triangle.mark?.box) reserved.push(triangle.mark.box);
+  if (triangle && (triangle.kind === 'rod' || triangle.kind === 'slope')) {
+    const q = triangle.riSpot, w = 1.1 * termSize;
+    reserved.push({ x: q.x - (q.anchor === 'end' ? w : q.anchor === 'middle' ? w / 2 : 0), y: q.y - .98 * termSize, width: w, height: 1.5 * termSize });
+  }
   const pLabel = (() => {
     const { scored, upper } = pDirections, size = SYM_P * labelScale;
     const width = (id === 'arc' ? 2.45 : .72) * size;
     const boxAt = (spot: { x: number; y: number; anchor: string }): Box => ({ x: spot.x - (spot.anchor === 'end' ? width : spot.anchor === 'middle' ? width / 2 : 0), y: spot.y - .98 * size, width, height: 1.37 * size });
     const clear = (b: Box) => b.x > 46 && b.y > 58 && b.x + b.width < 664 && b.y + b.height < 367
-      && !obstacleBoxes.some(o => o.width !== 2 * haloR + 2 && b.x < o.x + o.width && o.x < b.x + b.width && b.y < o.y + o.height && o.y < b.y + b.height);
+      && !obstacleBoxes.some(o => o.width !== 2 * haloR + 2 && b.x < o.x + o.width && o.x < b.x + b.width && b.y < o.y + o.height && o.y < b.y + b.height)
+      && !reserved.some(o => b.x < o.x + o.width + 4 && o.x - 4 < b.x + b.width && b.y < o.y + o.height + 2 && o.y - 2 < b.y + b.height);
     let best = { u: scored[0].u, gap: haloR + 3 }, bestCost = Infinity;
     scored.slice(0, 5).forEach((c, rank) => {
       for (let gap = haloR + 3; gap <= 84; gap += 3) {
@@ -1760,7 +1774,10 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
       {/* Under the tick where the L and a bars meet, below the axis: above it, on the line the piece's
           ΔQ is written on, the two read as one phrase. */}
       {id === 'axial' && <g data-dim="size" className={`cd-dimension${inSpace && !perspective ? ' is-hidden' : ''}`}><text className="cd-end" x={O.x+p.size*unit} y={O.y + 34 + 8 + .98 * SYM * labelScale} textAnchor="middle" data-mirror={`${(O.x+p.size*unit).toFixed(1)} ${(O.y + 34).toFixed(1)}`}>x = L</text></g>}
-      {perspective && <g data-dim="size" className={`cd-dimension${inSpace && !perspective ? ' is-hidden' : ''}`}><path d={`M${O.x} ${O.y}L${radiusTip.x} ${radiusTip.y}`} /><text x={O.x+(radiusTip.x-O.x)*.6} y={O.y+(radiusTip.y-O.y)*.6+19} data-mirror={`${(O.x+(radiusTip.x-O.x)*.6).toFixed(1)} ${(O.y+(radiusTip.y-O.y)*.6).toFixed(1)}`} {...GIVEN}>{surface ? 's' : 'R'}</text></g>}
+      {/* The radius, named beside its middle -- or nearer either end, above or below it, where the middle
+          is taken: flat, a sheet's chosen ring is an ellipse that hems the radius in at its middle. */}
+      {perspective && <g data-dim="size" className={`cd-dimension${inSpace && !perspective ? ' is-hidden' : ''}`}><path d={`M${O.x} ${O.y}L${radiusTip.x} ${radiusTip.y}`} /><text x={O.x+(radiusTip.x-O.x)*.6} y={O.y+(radiusTip.y-O.y)*.6+19} data-mirror={`${(O.x+(radiusTip.x-O.x)*.6).toFixed(1)} ${(O.y+(radiusTip.y-O.y)*.6).toFixed(1)}`}
+        data-alt={[.35, .85].flatMap(f => [19, -8].map(dy => `${(O.x + (radiusTip.x - O.x) * f).toFixed(1)} ${(O.y + (radiusTip.y - O.y) * f + dy).toFixed(1)} start`)).join(';')} {...GIVEN}>{surface ? 's' : 'R'}</text></g>}
       {id === 'arc' && <g className={`cd-dimension${inSpace && !perspective ? ' is-hidden' : ''}`}><g data-dim="angle"><path className="cd-phi-arc" d={pathThrough(circlePoints(R*PHI_AT, -p.phi/2, p.phi/2))} /><text x={O.x+R*unit*PHI_AT+9} y={O.y-9} {...GIVEN}>φ</text></g><g data-dim="size"><line x1={O.x} y1={O.y} x2={O.x+R*unit} y2={O.y} /><text x={O.x+R*unit*.45} y={O.y+23} {...GIVEN}>R</text></g></g>}
       {/* Placed, not pinned: where every name of a term wants the room, O is the one that gives way. */}
       {id !== 'arc' && <text data-at={`${O.x.toFixed(2)} ${O.y.toFixed(2)}`} x={originLabel.x} y={originLabel.y} textAnchor="end" className="cd-origin" data-mirror={`${O.x.toFixed(1)} ${O.y.toFixed(1)}`}>O</text>}
