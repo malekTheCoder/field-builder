@@ -119,6 +119,10 @@ export type PlaceOptions={
  /** Every arrow's shaft in the picture, for the rule that a label stays nearer its own arrow than
   * any other. Only labels that name a `shaft` are held to it. */
  shafts?:readonly Segment[];
+ /** The construction's lines -- from a piece to P, the triangle's legs -- which, like the arrows, no name may
+  * be set across even where nothing is free: the arc's P = O was set on a phone with the mirror's line to P
+  * through it, its overlap with that thin line costing next to nothing. */
+ lines?:readonly Segment[];
  /** How much further than `maxShift` a label it must keep may go, as a multiple of it, when nothing
   * within reach is free. Its nudge then says it needs a leader. */
  leaderReach?:number;
@@ -153,7 +157,7 @@ const sameSegment=(s:Segment,t:Segment)=>Math.abs(s.a.x-t.a.x)<.6&&Math.abs(s.a.
 /** One nudge per label, in the order given. Labels are placed in sequence, so an earlier
  * label holds its ground and a later one moves around it: pass them most-important first. */
 export function placeLabels(labels:readonly Label[],options:PlaceOptions={}):Nudge[]{
- const {frame,obstacles=[],pad=1.5,step=9,maxShift,shafts=[],leaderReach=2}=options;
+ const {frame,obstacles=[],pad=1.5,step=9,maxShift,shafts=[],lines=[],leaderReach=2}=options;
  const labelPad=options.labelPad??pad;
  const capped=maxShift!==undefined;
  const tries=capped?reachCandidates(maxShift):candidates(step);
@@ -222,7 +226,7 @@ export function placeLabels(labels:readonly Label[],options:PlaceOptions={}):Nud
   };
   // Whether a box -- a unit in from its edge, so a name merely touching an arrowhead is not counted --
   // has any arrow's shaft running through it.
-  const crossesShaft=(b:Box)=>{const inner=grow(b,-1,-1);return inner.width>0&&inner.height>0&&shafts.some(s=>boxSegmentDistance(inner,s)===0);};
+  const crossesShaft=(b:Box)=>{const inner=grow(b,-1,-1);return inner.width>0&&inner.height>0&&(shafts.some(s=>boxSegmentDistance(inner,s)===0)||lines.some(s=>boxSegmentDistance(inner,s)===0));};
   const search=(rings:Nudge[],from:Box[],onLeader=false)=>{
    for(const ring of byDistance(rings))for(const home of from){
     for(const nudge of ring){

@@ -12,6 +12,7 @@ import Explorer from '../src/explorer/Explorer';
 import {getProblem} from '../src/problems/definitions';
 import {DEFAULT_PARAMS} from '../src/problems/types';
 import {intervalKey} from '../src/diagrams/subdivision';
+import {boxSegmentDistance} from '../src/diagrams/labels';
 /* THE RUN, AS A READER MEETS IT.
  *
  * The ghosts of the parts that cancel mount as the cancelling starts, and their strength was set in a
@@ -258,6 +259,19 @@ describe('names stay on the side of what they name', () => {
     const x = x1 + (x2 - x1) * k / 40, y = y1 + (y2 - y1) * k / 40;
     expect(x > inner.x && x < inner.x1 && y > inner.y && y < inner.y1, `${g.querySelector('.cd-vector-label')?.getAttribute('data-symbol') ?? 'an arrow'} through ΔE_x`).toBe(false);
    }
+  }
+ }, 30000);
+ for (const id of ['arc', 'bisector', 'infinite']) it(`${id} on a phone, What cancels: no name is set across a line of the construction`, async () => {
+  await page.viewport(390, 844);
+  const v = await openLesson(id);
+  await hold(v, 3, .97);
+  const lines = [...v.container.querySelectorAll<SVGLineElement>('.cd-construction')].map(l => ({a: {x: Number(l.getAttribute('x1')), y: Number(l.getAttribute('y1'))}, b: {x: Number(l.getAttribute('x2')), y: Number(l.getAttribute('y2'))}}));
+  expect(lines.length).toBeGreaterThan(0);
+  for (const t of texts(v)) {
+   // The names the placer sets: an angle's letter is fitted inside its own angle, on its own terms.
+   if (!shown(t) || t.dataset.anchor === 'fixed' || t.closest('.cd-plus, .cd-cube, .cd-axes') || t.classList.contains('cd-footer') || t.classList.contains('cd-stage-label')) continue;
+   const b = box(v, t), inner = {x: b.x + 2, y: b.y + 2, width: b.width - 4, height: b.height - 4};
+   for (const line of lines) expect(boxSegmentDistance(inner, line), `${t.textContent} across a construction line`).toBeGreaterThan(0);
   }
  }, 30000);
  for (const [id, view, n, f] of [['ring', '2D', 2, .97], ['disk', '2D', 4, .5], ['ring', null, 4, .5]] as const) it(`${id}${view ? ' flat' : ''} on a phone, stage ${n}: no scene name on the footer's divider`, async () => {

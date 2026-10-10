@@ -1809,6 +1809,9 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
   // bounding box, which for a ring is the whole inside of the ring and for a slanted arrow a quadrant.
   const FRAME_BOX: Box = { x: 0, y: 0, width: 720, height: 430 };
   const obstacleBoxes: Box[] = [];
+  // ...and the construction's lines as lines, for the rule that no name is set across one: see `lines` in
+  // labels.ts.
+  const constructionLines: Segment[] = [];
   {
     // Squares as far apart as they are wide, so they abut: eight apart, a four-unit stroke left gaps half
     // its length between its squares, and the corner of a name could stand in one with the line through it --
@@ -1841,10 +1844,10 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
     if (pieceLength) seg(pieceLength.ends[0], pieceLength.ends[1], 9);
     // The construction: the dashed lines from the piece and its partner to P, the triangle's legs and
     // the arc of its angle. A name laid across a line it does not name reads as crossed out.
-    if (showContribution && building !== 'limit' && id !== 'axial') seg(selectedPoint, P, 4);
-    if (!surface && ((supportsPair && pair) || scalarPartner) && showContribution) seg(partnerPos, P, 4);
+    if (showContribution && building !== 'limit' && id !== 'axial') { seg(selectedPoint, P, 4); constructionLines.push({ a: selectedPoint, b: P }); }
+    if (!surface && ((supportsPair && pair) || scalarPartner) && showContribution) { seg(partnerPos, P, 4); constructionLines.push({ a: partnerPos, b: P }); }
     if (triangle) {
-      for (const [a, b] of triangle.legs) seg(a, b, 4);
+      for (const [a, b] of triangle.legs) { seg(a, b, 4); constructionLines.push({ a, b }); }
       line(triangle.arc, 4);
       if ((triangle.kind === 'rod' || triangle.kind === 'arc') && triangle.mark?.leader) seg(triangle.mark.leader[0], triangle.mark.leader[1], 3);
     }
@@ -2036,7 +2039,7 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
     // the placer hid the very names the board's line was written in.
     const reach = 24 * labelScale;
     const placed = placeLabels([...fixedWords.map(box => ({ box, fixed: true })), ...movers.map(m => ({ box: m.box, mirror: m.mirror, alternates: m.alternates, keep: m.keep, shaft: m.shaft, within: m.within, from: m.from, tethered: m.tethered, prefer: prefer(m) }))],
-      { frame: { width: 720, height: 430 }, obstacles: [...fixedMarks, ...dom, ...obstacleBoxes], pad: 2, labelPad: 8, maxShift: reach, shafts });
+      { frame: { width: 720, height: 430 }, obstacles: [...fixedMarks, ...dom, ...obstacleBoxes], pad: 2, labelPad: 8, maxShift: reach, shafts, lines: constructionLines });
     const nudges = placed.slice(fixedWords.length);
     movers.forEach((m, k) => {
       const nudge = nudges[k], key = keyOf(m.t), a = anchorOf(m);
