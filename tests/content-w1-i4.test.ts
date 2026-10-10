@@ -4,8 +4,8 @@ import type {Problem} from '../src/problems/types';
 import {DEFAULT_PARAMS} from '../src/problems/types';
 import {K,limitPlot,potential,sampleLimit,DOUBLINGS} from '../src/symbolic/physics';
 import {confusionTex} from '../src/symbolic/equivalence';
-import {artifactHtml,lessonArtifact,lessonWorking} from '../src/state/artifact';
-import {BISECTOR_UNFOLD} from '../src/workbench/derivation';
+import {artifactHtml,escapeHtml,lessonArtifact,lessonWorking} from '../src/state/artifact';
+import {BISECTOR_UNFOLD,resultLines} from '../src/workbench/derivation';
 import {readFileSync} from 'node:fs';
 /* WAVE 1, FOURTH PASS · CONTENT: THE WORKING SHOWN, THE HANDOUT COMPLETE, THE RULES KEPT.
  *
@@ -237,8 +237,8 @@ describe('the offline copy carries the working, set as mathematics',()=>{
   expect(working).toBeGreaterThan(html.indexOf('<h2>The integrals</h2>'));
   expect(working).toBeLessThan(html.indexOf('<h2>The result</h2>'));
   expect(html).toContain('\\ln(\\sec\\alpha+\\tan\\alpha)-\\sin\\alpha');
-  // One line per component: the panel's two-row split is not printed on a page wide enough for one.
-  expect(html).toContain(getProblem('ramp').secondaryResultTex!);
+  // The result is the panel's answer, E_x and then E_y with its bracket hung under its first term.
+  expect(html).toContain(escapeHtml(resultLines(getProblem('ramp'))[0]));
  });
  it('the bisector’s working is the Unfold’s: the substitution in full, then the lesson’s own steps',()=>{
   const {worked}=lessonWorking(getProblem('bisector'));

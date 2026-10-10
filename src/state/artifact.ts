@@ -2,7 +2,7 @@ import katex from 'katex';
 import {snapshotLayer} from '../diagrams/snapshot';
 import {PLOT} from '../diagrams/vectorfield';
 import type {Problem} from '../problems/types';
-import {workedSteps} from '../workbench/derivation';
+import {resultLines, workedSteps} from '../workbench/derivation';
 
 /** One step of worked algebra: a sentence with its symbols written $…$, and the line it arrives at. */
 export type WorkedStep = {text: string; tex: string};
@@ -60,10 +60,17 @@ export function lessonWorking(p: Problem, algebra: Problem = p): {worked: Worked
   return workedSteps(p, algebra);
 }
 
-/** Everything the offline copy prints about a lesson, but its figure. The result is the lesson's own
- * one line per component: the panel splits the ramp's E_y and the disk's field over two rows to fit
- * a column under three hundred pixels wide, and on a page of seven hundred the split bracket hung
- * half its contents off to the right of the line above.
+/** Everything the offline copy prints about a lesson, but its figure.
+ *
+ * THE RESULT IS THE PAGE'S ANSWER. The copy printed the lesson's own one line per component, chosen
+ * for a page wider than the panel -- and so went a step back from where its own working had arrived.
+ * On the rod on its axis and the arc the Working ends in Q, kQ/(a(L + a)) and −2kQ sin(φ/2)/(R²φ), and
+ * "The result" under it said kλ(1/a − 1/(L + a)) and −(2kλ/R) sin(φ/2): λ alone, in the density those
+ * lessons' setups say is not held fixed. And on the bisector, the rod level with an end and the disk it
+ * restated the working's last line in the other order, r² + (L/2)² under (L/2)² + r². The panel's answer,
+ * `resultLines`, says each in λ and then in Q, in the board's order; the copy prints that. Its split
+ * rows -- the ramp's E_y hung under its bracket, the disk's (z > 0) under its right-hand side -- set on a
+ * page seven hundred wide as they do in the panel.
  *
  * The setup and the integral are the route's, as the working is: on the infinite line's finite-rod
  * route the copy said "use y = r tan θ to sweep the whole line" and printed the θ integral, and then
@@ -73,13 +80,42 @@ export function lessonWorking(p: Problem, algebra: Problem = p): {worked: Worked
 export function lessonArtifact(p: Problem, algebra: Problem = p): LessonArtifact {
   const {worked, back} = lessonWorking(p, algebra);
   return {title: p.title, subtitle: p.subtitle, setup: algebra.setup, coordinate: p.coordinate, integralTex: algebra.integralTex,
-    secondaryIntegralTex: algebra.secondaryIntegralTex, results: [algebra.resultTex, ...(algebra.secondaryResultTex ? [algebra.secondaryResultTex] : [])],
+    secondaryIntegralTex: algebra.secondaryIntegralTex, results: resultLines(algebra),
     worked, back, derived: back.slice(-1).map(w => w.tex),
     checks: p.limits.map(l => ({title: l.title, formula: l.formula, explanation: l.explanation})), sources: p.sources};
 }
 
 /** Two TeX strings that set the same display: braces and spaces are only grouping. */
 const sameTex = (a: string, b: string) => a.replace(/[{}\s]/g, '') === b.replace(/[{}\s]/g, '');
+/** Whether a result says everything a worked line says: the same line; the same rows, closing the
+ * result's chain, as the ramp's E_y closes its E_x and E_y; or the same left-hand side and the same last
+ * right-hand side with more equalities between them, as the sheet's E_z = 2πkσ = σ/(2ε₀) says its
+ * working's E_z = σ/(2ε₀). A row's gap is only spacing. */
+function restates(result: string, line: string) {
+  if (sameTex(result, line)) return true;
+  const bare = (t: string) => {
+    const flat = t.replace(/[{}\s]/g, '').replace(/\\\\\[[^\]]*\]/g, '\\\\');
+    return /^\\beginaligned([\s\S]*)\\endaligned$/.exec(flat)?.[1] ?? flat;
+  };
+  const r = bare(result), l = bare(line), cut = l.indexOf('=');
+  if (r.endsWith(l) && (r.length === l.length || r.slice(0, -l.length).endsWith('\\\\'))) return true;
+  if (cut > 0 && !r.includes('&') && r.startsWith(l.slice(0, cut + 1)) && r.endsWith(l.slice(cut))) return true;
+  // Or one of an aligned result's rows: the disk's working ends on E_z = σ/(2ε₀)(1 − z/√(R² + z²)), and
+  // its result is that row between 2πkσ(…) above and 2kQ/R²(…) below. Every right-hand side of the line
+  // must be among the rows under its left-hand side; a continuation row, (z > 0) under the last, is not
+  // an equality.
+  if (l.includes('&') || cut <= 0) return false;
+  const rows: [string, string][] = [];
+  let lhs = '';
+  for (const row of r.split('\\\\')) {
+    const m = /^(.*?)&=(.*)$/.exec(row);
+    if (!m) continue;
+    if (m[1]) lhs = m[1];
+    rows.push([lhs, m[2]]);
+  }
+  const [side, ...sides] = l.split('=');
+  return sides.every(s => rows.some(([a, b]) => a === side && b === s));
+}
 
 /** A plain sentence, escaped, with its Greek letters in the face the formula above it uses. The
  * checks' sentences are set in the body's system sans, which draws φ as the stroked ϕ -- directly under
@@ -97,11 +133,55 @@ export function escapeHtml(s: string) {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
-/** TeX as MathML: the browser sets it itself, with no script, no font files and no network, so a
- * copy opened on a train years later still reads as mathematics. The TeX rides along inside it as
- * an annotation, for anyone who wants to copy it. */
+/** TeX as MathML: the browser sets it itself, with no font files and no network, so a copy opened on
+ * a train years later still reads as mathematics. (Its one script only tightens Chromium's square
+ * roots; see FIT_ROOTS.) The TeX rides along inside it as an annotation, for anyone who wants to copy
+ * it. */
 export function mathml(tex: string, display = true) {
-  return spaceOperators(katex.renderToString(tex, {output: 'mathml', displayMode: display, throwOnError: false, strict: 'ignore'}));
+  return rowGaps(tex, scriptedFences(spaceOperators(katex.renderToString(tex, {output: 'mathml', displayMode: display, throwOnError: false, strict: 'ignore'}))));
+}
+
+/** A SIZED BRACKET WITH LIMITS ON IT CLOSES AT ITS FULL SIZE. KaTeX writes \Bigl[ … \Bigr]_0^{π/2} with
+ * the closing bracket as the base of the scripts, <msubsup><mo minsize="1.8em">]</mo>…, and Chromium
+ * sizes an operator only as a child of a row, not as a script's base: "[−cos α]" opened tall and closed
+ * at text size, in the half line's, the infinite line's, the arc's and the disk's potential's working.
+ * The opening bracket and what it holds are moved inside the base, as KaTeX writes \left[ … \right]_a^b,
+ * so both brackets are children of one row and the limits sit after the pair. WebKit set it right
+ * before, and sets it the same after. */
+const CLOSING = /<msubsup>(<mo fence="(?:true|false)" stretchy="true" minsize="([^"]+)" maxsize="\2">([\])])<\/mo>)/g;
+const PAIR: Record<string, string> = {']': '[', ')': '('};
+export function scriptedFences(markup: string) {
+  let out = markup;
+  for (let m = CLOSING.exec(out); m; m = CLOSING.exec(out)) {
+    const [whole, close, size, bracket] = m, before = out.slice(0, m.index);
+    const opening = `<mo fence="true" stretchy="true" minsize="${size}" maxsize="${size}">${PAIR[bracket]}</mo>`;
+    const from = Math.max(before.lastIndexOf(opening), before.lastIndexOf(opening.replace('fence="true"', 'fence="false"')));
+    const inner = from < 0 ? '' : before.slice(from);
+    // Only a run of siblings: every element opened between the two brackets is closed there too.
+    const balanced = from >= 0 && (inner.match(/<[a-z][^>]*(?<!\/)>/g) ?? []).length === (inner.match(/<\/[a-z]+>/g) ?? []).length;
+    if (!balanced) continue;
+    out = `${before.slice(0, from)}<msubsup><mrow>${inner}${close}</mrow>${out.slice(m.index + whole.length)}`;
+    CLOSING.lastIndex = from;
+  }
+  return out;
+}
+
+/** THE ROWS OF AN ALIGNED CHAIN, A GAP APART. A break sized \\[g] is where a new equality starts -- the
+ * panel sets those about .7em apart -- and a bare \\ only continues the row above: the ramp's bracket
+ * hung under its first term, the disk's (z > 0) under its right-hand side. KaTeX's MathML drops every
+ * gap, and Chromium ignores the rowspacing it writes instead, so the copy's answers stood row on row,
+ * E_x = kλL/(r√(L² + r²)) with its "= kQ/…" touching it from below. Each sized break becomes padding over
+ * the row it opens; the continuations keep the plain line spacing. */
+function rowGaps(tex: string, markup: string) {
+  const body = /^\\begin\{aligned\}([\s\S]*)\\end\{aligned\}$/.exec(tex.trim())?.[1];
+  if (!body || body.includes('\\begin') || (markup.match(/<mtable/g) ?? []).length !== 1) return markup;
+  const breaks = [...body.matchAll(/\\\\(\[[^\]]*\])?/g)].map(m => !!m[1]);
+  if ((markup.match(/<mtr>/g) ?? []).length !== breaks.length + 1) return markup;
+  let row = -1;
+  return markup.replace(/<mtr>([\s\S]*?)<\/mtr>/g, (whole, cells: string) => {
+    row++;
+    return row > 0 && breaks[row - 1] ? `<mtr>${cells.replace(/<mtd>/g, '<mtd style="padding-top:0.45em">')}</mtr>` : whole;
+  });
 }
 
 /** A sentence with its symbols written $…$, as a lesson writes its setup: the words escaped, each
@@ -142,14 +222,54 @@ const UNARY = /(<mo>(?:=|&lt;|&gt;|<|>|≈|∼|→|≤|≥|≠|≪|≫|∝)<\/mo
  * came out as a plain italic E, the same letter as the component E_x beside it. */
 const BOLD = /<mi mathvariant="bold">([A-Za-z])<\/mi>/g;
 const boldLetter = (c: string) => String.fromCodePoint((c <= 'Z' ? 0x1d400 : 0x1d41a) + c.charCodeAt(0) - (c <= 'Z' ? 65 : 97));
+/** A unit vector's hat. KaTeX writes \hat x as <mover accent="true"><mi>x</mi><mo>^</mo></mover>, the
+ * ASCII caret, which Chromium sets at the height of a letter: x̂ and ŷ printed as letters with a caret
+ * struck through them, in the rod level with an end's E = E_x x̂ + E_y ŷ and the half line's
+ * (kλ/r)(−x̂ + ŷ). U+02C6, the modifier circumflex, is the accent itself and sits above the letter. (A
+ * superscript is an <msup>, never an <mo>^, so nothing else is touched. U+0302, the combining
+ * circumflex, lost the hat on ŷ altogether.) */
+const CARET = /<mo>\^<\/mo>/g;
+/** A condition's colon, "a ≪ L: E_x ∼ kQ/(a + L/2)", is punctuation: tight to what it ends, a thin space
+ * after, as TeX's \colon sets it. KaTeX writes a bare ":" as an operator the browser spaces on both
+ * sides, and its own \colon as a run of spaces that leaves a gap before the colon. */
+const COLON = /<mo>:<\/mo>/g;
 /** TeX puts a thin space between an operator name and the ordinary atoms beside it. MathML Core does
  * not: it gives the invisible function application no width, so the copy printed "kλln" run
  * together and "cosα" -- maths that looks unset on a handout. The space is written in. */
 function spaceOperators(markup: string) {
   return markup.replace(ORDINARY_BEFORE, `$1${THIN}$2`).replace(ORDINARY_AFTER, `$1${THIN}`)
     .replace(UNARY, '$1<mo lspace="0em" rspace="0em">$2</mo>')
-    .replace(BOLD, (_, c: string) => `<mi mathvariant="normal">${boldLetter(c)}</mi>`);
+    .replace(BOLD, (_, c: string) => `<mi mathvariant="normal">${boldLetter(c)}</mi>`)
+    .replace(CARET, '<mo>\u02c6</mo>').replace(COLON, '<mo lspace="0em" rspace="0.1667em">:</mo>');
 }
+
+/** SEVERAL LINES, ONE DISPLAY. Lines printed as separate displays are each centred on their own: the
+ * half line's E_x stood alone in the middle with its longer E_y line under it, and the two integrals of
+ * the rod level with an end sat at two different places, their "=" signs nowhere near each other. Lines
+ * that are each one equation are set as one aligned block at their first "=", a gap apart, as the page's
+ * answer is; a line that is already a block of its own is left as it is. */
+export function displays(lines: string[]): string[] {
+  if (lines.length < 2 || lines.some(t => /\\begin|&/.test(t))) return lines;
+  const at = (t: string) => {
+    let depth = 0;
+    for (let i = 0; i < t.length; i++) {
+      if (t[i] === '{') depth++;
+      else if (t[i] === '}') depth--;
+      else if (t[i] === '=' && depth === 0) return i;
+    }
+    return -1;
+  };
+  if (lines.some(t => at(t) <= 0)) return lines;
+  return [String.raw`\begin{aligned}${lines.map(t => `${t.slice(0, at(t))}&${t.slice(at(t))}`).join(String.raw`\\[0.75em]`)}\end{aligned}`];
+}
+
+/** CHROMIUM ENDS A SQUARE ROOT IN BLANK SPACE. Its MathML sets every <msqrt> box 0.42em wider than the
+ * root it draws, past the end of the bar -- 2.9px on the taller radical, 7px on the usual one -- so the
+ * handout printed "(√(R² + z²)  − z)", "√2  k|λ|" and "−1/√(L² + r²)  − (−1/r)": maths that looks unset,
+ * on every potential and rod. WebKit sets the same roots tight, so no fixed margin is right in both:
+ * each root is measured once the fonts are in, and pulled in by exactly the blank it ends with. Without
+ * script the page reads as before, the gaps and all. */
+const FIT_ROOTS = `(function(){function fit(){var roots=document.querySelectorAll('msqrt');for(var i=0;i<roots.length;i++){var root=roots[i],right=-Infinity;root.style.marginInlineEnd='';for(var j=0;j<root.children.length;j++)right=Math.max(right,root.children[j].getBoundingClientRect().right);var gap=root.getBoundingClientRect().right-right;if(gap>0.5&&gap<20)root.style.marginInlineEnd=(-gap)+'px';}}if(document.fonts&&document.fonts.ready)document.fonts.ready.then(fit);else fit();})();`;
 
 /** A self-contained HTML copy a student can save offline and print later. No network, no app chrome.
  *
@@ -177,9 +297,22 @@ export function artifactHtml(a: LessonArtifact) {
   // stood under "The integral" and again as the first line of the working. The step's sentence -- why
   // the constants come out -- is kept, as a note under the integral, and the working starts after it.
   const repeats = !!a.worked?.length && sameTex(a.worked[0].tex, a.integralTex);
-  const note = repeats ? `<p class="note">${proseHtml(a.worked![0].text)}</p>\n` : '';
+  // Where there are two integrals the note follows both, and says which one it is about. Between them,
+  // "kλ is the same for every piece, so it comes outside the integral" read as a remark on the gap
+  // between E_x's integral and E_y's -- and on the ramp E_y has kλ₀/L outside, not kλ₀r/L.
+  const component = /^([A-Za-z])_([a-z])=/.exec(a.integralTex), opening = repeats ? a.worked![0].text : '';
+  const said = a.secondaryIntegralTex && component ? `In $${component[1]}_${component[2]}$, ${/^[A-Z][a-z]/.test(opening) ? opening[0].toLowerCase() + opening.slice(1) : opening}` : opening;
+  const note = repeats ? `<p class="note">${proseHtml(said)}</p>\n` : '';
   const shown = repeats ? a.worked!.slice(1) : a.worked ?? [];
-  const working = shown.length ? `<h2>Working</h2>\n${steps(shown)}\n` : '';
+  // AND THE ANSWER PRINTED TWICE. On the ring, the arc's potential and the infinite line the working's
+  // last display is the result, and on the sheet the result is that line with 2πkσ = in front: the same
+  // equation stood at the foot of the Working and again under "The result" a heading below it. The last
+  // step's sentence -- why the answer is what it is -- keeps its place, and the display it arrives at is
+  // the one under "The result".
+  const last = shown.at(-1), arrives = !!last && !!a.results.length && restates(a.results[0], last.tex);
+  const working = shown.length
+    ? `<h2>Working</h2>\n${steps(arrives ? shown.slice(0, -1) : shown)}${arrives ? `\n<div class="step"><p>${proseHtml(last!.text)}</p></div>` : ''}\n`
+    : '';
   // The page writes "with k = 1/(4πε₀)" beside its result. The copy printed kQ/… with k never said --
   // and then, once it did say it, said it after the result, a page below the integral where k is
   // first used. It is said where the reader first meets it, under the integral.
@@ -248,12 +381,14 @@ ${figure}
 <h2>Setup</h2>
 <p>${proseHtml(a.setup)}</p>
 <h2>${a.secondaryIntegralTex ? 'The integrals' : 'The integral'}</h2>
-${mathml(a.integralTex)}
-${note}${a.secondaryIntegralTex ? `${mathml(a.secondaryIntegralTex)}\n` : ''}${constant}${working}<h2>The result</h2>
-<div class="result">${a.results.map(tex => mathml(tex)).join('\n')}</div>
+${displays([a.integralTex, ...(a.secondaryIntegralTex ? [a.secondaryIntegralTex] : [])]).map(tex => mathml(tex)).join('\n')}
+${note}${constant}${working}<h2>The result</h2>
+<div class="result">${displays(a.results).map(tex => mathml(tex)).join('\n')}</div>
 ${derived}${checks}${sources}
 <footer>Saved from Field Builder. The equations are MathML, so this page needs no network to read or print.</footer>
-</main></body></html>`;
+</main>
+<script>${FIT_ROOTS}</script>
+</body></html>`;
 }
 
 /** Properties a child takes from its parent. Written on a child only where it differs, so the copy

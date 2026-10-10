@@ -191,8 +191,8 @@ describe('one arrow, one meaning',()=>{
 describe('confusions are typeset as a textbook would',()=>{
  it('the ramp’s uniform-rod confusion is one fraction, not a fraction in a numerator',()=>{
   const m=fields(getProblem('ramp')).find(f=>f.id==='result')!.mistakes!.map(x=>x.expression);
-  expect(m).toContain('k*lambda0*L/(2*r*sqrt(r^2+L^2))');
-  expect(m).not.toContain('k*(lambda0*L/2)/(r*sqrt(r^2+L^2))');
+  expect(m).toContain('k*lambda0*L/(2*r*sqrt(L^2+r^2))');
+  expect(m).not.toContain('k*(lambda0*L/2)/(r*sqrt(L^2+r^2))');
  });
  it('v-disk writes σ/(2ε₀), never σ/2ε₀',()=>{
   for(const p of lessons)for(const s of p.steps)for(const text of [s.hint,...(s.fields??[]).flatMap(f=>[f.hint,...(f.mistakes??[]).map(m=>m.message)])])

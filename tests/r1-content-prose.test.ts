@@ -46,7 +46,7 @@ describe('the confusions list says what each expression would describe',()=>{
   expect(said('ring','R/sqrt(R^2+z^2)'),'the ring’s sin α').toMatch(/sin α/);
   expect(said('v-ring','k*Q/R'),'V at the centre').toMatch(/centre/);
   expect(said('v-rod-bisector','2*k*lambda/r'),'the infinite line’s field').toMatch(/field of an infinite line/);
-  expect(said('disk','sigma/(eps0)*(1-z/sqrt(z^2+R^2))'),'twice the disk’s field').toMatch(/Twice/);
+  expect(said('disk','sigma/(eps0)*(1-z/sqrt(R^2+z^2))'),'twice the disk’s field').toMatch(/Twice/);
  });
 });
 describe('the explanations are true',()=>{

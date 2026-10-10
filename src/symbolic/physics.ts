@@ -151,7 +151,12 @@ export function limitPlot(problem:Problem,limit:Limit):LimitPlot{
   // V and its logarithm, not their ratio: ln(L/a) is zero at a = L, so the ratio came in from off the
   // top of the plot there, where nothing is singular, and settled on one as V ran off to infinity.
   // Drawn as themselves they both climb, and close up: V − kλ ln(L/a) = kλ ln((L + a)/L) → 0.
-  case 'near':return !scalar?{kind:'ratio',y:'|E| ÷ semi-infinite-line field',axis:'gap a to the rod’s end',from:'a ∼ L',to:'a ≪ L',line:'semi-infinite line',caption:'On the dashed line the exact field equals a semi-infinite line’s at the same gap a beyond its end, on its axis. The curve settles onto it as a\u00a0≪\u00a0L.'}
+  // THE AXIAL ROD'S REFERENCE IS NAMED BY ITS FORMULA. It was "semi-infinite-line field" and "semi-infinite
+  // line", the words the rod level with an end uses for √2 k|λ|/r: the field beside a half line, off its
+  // end, the one the Semi-infinite line lesson teaches. Here it is k|λ|/a, the field along the half line's
+  // own axis, and a reader who brought that lesson's answer read the reference wrong. It is named as the
+  // rod's potential names its near case, by its formula.
+  case 'near':return !scalar?{kind:'ratio',y:'|E| ÷ k|λ|/a',axis:'gap a to the rod’s end',from:'a ∼ L',to:'a ≪ L',line:'k|λ|/a, a half line on its axis',caption:'On the dashed line the exact field equals k|λ|/a, the field of a half line along its own axis, the same gap a beyond its end. The curve settles onto it as a\u00a0≪\u00a0L.'}
    :{kind:'growth',y:'|V| and k|λ| ln(L/a), scaled',axis:'gap a to the rod’s end',from:'a ∼ L',to:'a ≪ L',line:'k|λ| ln(L/a)',caption:'Both grow without end as P walks onto the rod’s end, and draw together: the difference between them, k|λ| ln((L\u00a0+\u00a0a)/L), vanishes as a\u00a0≪\u00a0L.'+LOG_STRAIGHT('L/a')};
   case 'maximum':return{kind:'peak',y:'|E| ÷ its peak',axis:'height z on the axis',from:'the centre',to:'farther out',line:'the peak',marks:[{t:RING_PEAK_T,label:'peak'},{t:RING_EDGE_T,label:'R'}],caption:'The curve rises from zero at the centre, touches the dashed line once, at the marked peak inside z\u00a0=\u00a0R, and falls away beyond it.'};
   // The arc opens at fixed Q, so λ = Q/(Rφ) thins as it opens and |E| ∝ sin(φ/2)/φ only falls. At

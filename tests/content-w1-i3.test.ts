@@ -125,7 +125,8 @@ describe('the offline copy prints the integral each result line comes from',()=>
    expect(p.secondaryIntegralTex,id).toMatch(/^E_y=.*\\int_0\^/);
    const html=artifactHtml({title:p.title,subtitle:p.subtitle,setup:p.setup,integralTex:p.integralTex,secondaryIntegralTex:p.secondaryIntegralTex,results:resultLines(p)});
    const tex=[...html.matchAll(/<annotation encoding="application\/x-tex">([\s\S]*?)<\/annotation>/g)].map(m=>m[1]);
-   expect(tex.filter(t=>t.includes('\\int')).length,id).toBeGreaterThanOrEqual(2);
+   // Both, in one display aligned at their "=" signs (content-w3-i1).
+   expect(tex.join('\n').split('\\int').length-1,id).toBeGreaterThanOrEqual(2);
    expect(html,id).toMatch(/<h2>The integrals<\/h2>/);
   }
   // One integral, one heading in the singular.

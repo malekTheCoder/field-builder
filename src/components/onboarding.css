@@ -1,0 +1,14 @@
+/* THE TOUR'S TITLES BREAK IN BALANCE. "Start from Coulomb's law." broke as "Start from Coulomb's" over a
+   lone "law." on a Chromebook's 1366 x 657: a title's last word left alone on its line. (The last
+   page's "electric-field" carries a no-break hyphen, so a balanced break falls before it, not in it.) */
+.fb-onboarding .ob-title[data-slot=dialog-title]{text-wrap:balance}
+
+/* AND ITS BUTTONS STAY IN VIEW WHEN THE PAGE IS TALLER THAN THE DIALOG. On a phone held sideways,
+   844 x 390, the dialog is 356 px tall and its page 649 px, so Continue and Skip intro sat 250 px below
+   the dialog's fold; the laws page did the same on a Chromebook and on a phone held upright. The reader
+   had to scroll inside the dialog to find the way on, with nothing saying there was more. The footer
+   now holds at the dialog's foot, over the page scrolling under it, and the dialog's bottom padding
+   moves into the footer, so where the page fits it sits exactly where it did. */
+.fb-onboarding.fb-onboarding[data-slot=dialog-content]{padding-bottom:0!important}
+.fb-onboarding .ob-footer{position:sticky;bottom:0;z-index:1;background:var(--card);padding-bottom:26px}
+@media(max-width:520px){.fb-onboarding .ob-footer{padding-bottom:20px}}

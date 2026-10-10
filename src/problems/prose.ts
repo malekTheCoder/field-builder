@@ -43,8 +43,13 @@ export function hold(text:string):string{
 function holdWords(text:string):string{
  // A point's coordinates are one thing: P = (0, 0, z), never "(0," on one line and "0, z)" on the next.
  const held=text.replace(/\([^()\s]+(?:, [^()\s]+)+\)/g,tuple=>tuple.replace(/ /g,' ')).replace(OPERATOR,'$1 $2 ');
- // Between two symbols, unless the first closes a sentence or a clause.
- return held.replace(/(\S+) (?=(\S+))/g,(whole,a:string,b:string)=>!/[.,;:!?]$/.test(a)&&symbolic(a.split(' ').at(-1)!)&&symbolic(b.split(' ')[0])?a+' ':whole);
+ // Between two symbols, unless the first closes a sentence or a clause. And before a symbol that
+ // opens on a sign, whatever comes before it: "toward −x." broke after "toward", and the next line
+ // began on "−x.", a minus at the start of a line that reads as a dash.
+ return held.replace(/(\S+) (?=(\S+))/g,(whole,a:string,b:string)=>{
+  const next=b.split(' ')[0];
+  return !/[.,;:!?]$/.test(a)&&symbolic(next)&&(symbolic(a.split(' ').at(-1)!)||/^[−+]/.test(next))?a+' ':whole;
+ });
 }
 /** Every sentence of a lesson that is shown as plain text, held. Titles, labels and the answers a
  * choice is compared against are left as written. */

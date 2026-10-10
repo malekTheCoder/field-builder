@@ -39,7 +39,8 @@ describe('every limit formula fits the card on a phone', () => {
     const p = getProblem('v-rod-bisector'), limit = p.limits.find(l => l.mode === 'infinite')!;
     const {container} = render(<div style={{width: 560}}><Assessment problem={p} params={DEFAULT_PARAMS} limit={limit} /></div>);
     await frame();
-    expect(container.querySelector('.assessment > .math annotation')!.textContent).toBe(limit.formula);
+    // One line, its colon set as punctuation (content-w2-i3.browser).
+    expect(container.querySelector('.assessment > .math annotation')!.textContent).toBe(limit.formula.replace(':\\quad', '\\colon\\quad'));
   });
 });
 

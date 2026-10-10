@@ -42,7 +42,9 @@ describe('the offline copy prints the derivation the panel unfolds',()=>{
   expect(plain(a.setup)).toMatch(/Start with a rod of length \$L\$/);
   expect(a.setup).not.toMatch(/tan\\theta/);
   expect(a.integralTex).toContain(String.raw`\lim_{L\to\infty}`);
-  expect(a.worked![0].text).toMatch(/finite-line result/);
+  // It opens by evaluating the rod's integral it has just printed, not by quoting the rod's answer.
+  expect(a.worked![0].text).toMatch(/Evaluate it between/);
+  expect(a.worked![0].tex).toContain(String.raw`\right]_{-L/2}^{L/2}`);
   // The angular route keeps its own.
   expect(lessonArtifact(p).integralTex).toContain(String.raw`\cos\theta`);
  });
@@ -142,7 +144,9 @@ describe('the plots and checks say what they draw',()=>{
   expect(worked('infinite').length).toBeGreaterThan(0);
   const text=[...p.steps.flatMap(s=>(s.worked??[]).map(w=>w.tex)),...p.limits.map(l=>plain(l.explanation))].join('\n');
   expect(text).not.toMatch(/L\^2\/4|L²\/4/);
-  expect(text).toContain(String.raw`r\sqrt{r^2+(L/2)^2}`);
+  // In the board's order, as the bisector's answer and the panel's ORDER rule write it.
+  expect(text).toContain(String.raw`r\sqrt{(L/2)^2+r^2}`);
+  expect(text).not.toContain(String.raw`r^2+(L/2)^2`);
   expect(plain(limitOf('infinite','infinite').explanation)).toMatch(/tends to 2kλ\/r/);
  });
 });

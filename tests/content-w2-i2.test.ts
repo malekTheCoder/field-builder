@@ -32,7 +32,9 @@ describe('the handout speaks only of what is on paper',()=>{
    expect(plain(text),`${p.id} check “${c.title}”`).not.toMatch(SCREEN);
    expect(plain(text),`${p.id} check “${c.title}”`).not.toMatch(STAGES);
   }
-  for(const w of [...a.worked!,...a.back!].filter(w=>!PANEL.has(w)))for(const text of [w.text,w.tex]){
+  // Every step the copy prints, the panel's own Unfold steps included: they are printed too, and the
+  // semi-infinite line's and the sheet's once said "as in Cut it up" and "Add them up’s" on paper.
+  for(const w of [...a.worked!,...a.back!])for(const text of [w.text,w.tex]){
    expect(plain(text),p.id).not.toMatch(SCREEN);
    expect(plain(text),p.id).not.toMatch(STAGES);
   }
@@ -54,7 +56,10 @@ describe('the copy prints the integral once, its operators spaced and its Greek 
   let notes=0;
   for(const p of lessons){
    const a=lessonArtifact(p),html=artifactHtml(a),integral=escapeHtml(a.integralTex);
-   expect(html.split(`<annotation encoding="application/x-tex">${integral}</annotation>`).length-1,`${p.id}/${p.variable}: the integral is printed once`).toBe(1);
+   // The display under the heading: the integral, or both integrals aligned as one where there are two.
+   const shown=/<h2>The integrals?<\/h2>[\s\S]*?<annotation encoding="application\/x-tex">([\s\S]*?)<\/annotation>/.exec(html)![1];
+   if(!a.secondaryIntegralTex)expect(shown,p.id).toBe(integral);
+   expect(html.split(`<annotation encoding="application/x-tex">${shown}</annotation>`).length-1,`${p.id}/${p.variable}: the integral is printed once`).toBe(1);
    if(html.includes('<p class="note">')){
     notes++;
     expect(html.indexOf('<p class="note">'),p.id).toBeLessThan(html.indexOf('<h2>The result</h2>'));
@@ -170,7 +175,7 @@ describe('the working says each step in the lesson’s own terms',()=>{
  });
  it('the endpoint states E_y in Q as well, as it states E_x, and both forms agree',()=>{
   const p=getProblem('endpoint');
-  expect(p.secondaryResultTex).toContain(String.raw`=-\frac{kQ}{L}\left(\frac1r-\frac1{\sqrt{r^2+L^2}}\right)`);
+  expect(p.secondaryResultTex).toContain(String.raw`=-\frac{kQ}{L}\left(\frac1r-\frac1{\sqrt{L^2+r^2}}\right)`);
   const r=1.3,L=2.1,Q=2e-9,k=8.9875517923e9,e=field('endpoint',{...DEFAULT_PARAMS,distance:r,size:L,charge:Q*1e9});
   expect(-(k*Q/L)*(1/r-1/Math.hypot(r,L))/e.y).toBeCloseTo(1,6);
  });
@@ -205,7 +210,8 @@ describe('the words',()=>{
 describe('a sign in front of a symbol is part of it',()=>{
  it('−dE, +dE and −(cos are symbols, and are held to the symbol after them',()=>{
   for(const t of ['−dE','+dE','−(cos','−dE,'])expect(symbolic(t),t).toBe(true);
-  expect(hold('the x-part of dE is −dE sin α.')).toBe('the x-part of dE is −dE\u00a0sin\u00a0α.');
+  // The sign's symbol is held to the word before it too, so no line opens on a minus (content-w3-i1).
+  expect(hold('the x-part of dE is −dE sin α.')).toBe('the x-part of dE is\u00a0−dE\u00a0sin\u00a0α.');
   expect(symbolic('−')).toBe(false);
  });
  it('no shown sentence breaks between a signed symbol and the symbol after it',()=>{

@@ -14,15 +14,22 @@ const CHARGE={stroke:'var(--charge)',fill:'none',strokeLinecap:'round'} as const
  *  sign included, on the silhouette's axes (x right and y up; z to the right for the axial views,
  *  which lie on their side). The arrow keeps one length, except where the plotted field falls
  *  away, where `scale` shrinks it with it.
- *  `floor` is the top edge of a source drawn just under P, and `wall` the right-hand end of one
- *  drawn just to its left: an arrow pointing at it stops short of it. A negative half line's field
- *  at P points down onto the line, and drawn its full length it ran straight across the charge and
- *  out below it -- a field passing through the line. Where there is no room at all, as P reaches a
- *  negative rod's end, there is no arrow rather than one laid over the charge. */
-function Observer({x,y,vector,axial=false,scale=1,floor,wall}:{x:number;y:number;vector?:Vec;axial?:boolean;scale?:number;floor?:number;wall?:number}){
+ *  `floor` is the top edge of a source drawn just under P, `wall` the right-hand edge of one drawn to
+ *  its left and `right` the left-hand edge of one drawn to its right: an arrow pointing at it stops
+ *  short of it. A negative source's field at P points at the source, and drawn its full length it ran
+ *  straight across the charge -- a field passing through its own source. That was stopped for the half
+ *  line and the rod on its axis only; twelve of thirty thumbnails still drew it, across the rod on the
+ *  bisector and the infinite line, onto the rod level with an end, through the ring, the disk and the
+ *  sheet, and over the arc -- where, at one piece, the arrow covered the lone point charge the plot is
+ *  building. Every source now says where its near edge is.
+ *  Where there is no room at all, as P reaches a negative rod's end, there is no arrow rather than one
+ *  laid over the charge; and a stopped arrow too short to show a shaft before its head is left out
+ *  too, rather than drawn as a lone head beside P. */
+const BLOCKED_MIN=6;
+function Observer({x,y,vector,axial=false,scale=1,floor,wall,right}:{x:number;y:number;vector?:Vec;axial?:boolean;scale?:number;floor?:number;wall?:number;right?:number}){
  const sx=vector?(axial?vector.z:vector.x):0,sy=vector?(axial?0:-vector.y):0,m=Math.hypot(sx,sy),ux0=m>0?sx/m:0,uy0=m>0?sy/m:0;
- const len=Math.min(26*Math.min(1,scale),floor!==undefined&&uy0>0?(floor-y-uy0*7)/uy0:Infinity,wall!==undefined&&ux0<0?(x+ux0*7-wall)/-ux0:Infinity);
- const show=m>0&&Number.isFinite(m)&&len>2.5,ux=show?sx/m:0,uy=show?sy/m:0,bx=x+ux*7,by=y+uy*7,tx=bx+ux*len,ty=by+uy*len;
+ const free=26*Math.min(1,scale),len=Math.min(free,floor!==undefined&&uy0>0?(floor-y-uy0*7)/uy0:Infinity,wall!==undefined&&ux0<0?(x+ux0*7-wall)/-ux0:Infinity,right!==undefined&&ux0>0?(right-x-ux0*7)/ux0:Infinity);
+ const show=m>0&&Number.isFinite(m)&&len>(len<free?BLOCKED_MIN:2.5),ux=show?sx/m:0,uy=show?sy/m:0,bx=x+ux*7,by=y+uy*7,tx=bx+ux*len,ty=by+uy*len;
  return <g><circle cx={x} cy={y} r="4" fill="var(--foreground)"/>{show&&<g className="limit-arrow" data-dx={ux.toFixed(4)} data-dy={uy.toFixed(4)} stroke="var(--field)" strokeWidth="2" fill="none" strokeLinecap="round">
   <path d={`M${bx.toFixed(1)} ${by.toFixed(1)}L${tx.toFixed(1)} ${ty.toFixed(1)}`}/>
   <path d={`M${(tx-ux*5-uy*3.5).toFixed(1)} ${(ty-uy*5+ux*3.5).toFixed(1)}L${tx.toFixed(1)} ${ty.toFixed(1)}L${(tx-ux*5+uy*3.5).toFixed(1)} ${(ty-uy*5-ux*3.5).toFixed(1)}`}/></g>}</g>;
@@ -45,14 +52,16 @@ function rodScale(mode:Limit['mode'],t:number,room:number,far:number,near:number
  *  filled dot with the field it feels. Decorative -- every number is in the plot's aria-label and
  *  the table under it. */
 function LimitFigure({id,mode,t,vector,scale,arrow}:{id:ProblemId;mode:Limit['mode'];t:number;vector?:Vec;scale:number;arrow:boolean}){
- const P=(x:number,y:number,axial=false,floor?:number,wall?:number)=><Observer x={x} y={y} vector={arrow?vector:undefined} axial={axial} scale={scale} floor={floor} wall={wall}/>;
+ const P=(x:number,y:number,axial=false,floor?:number,wall?:number,right?:number)=><Observer x={x} y={y} vector={arrow?vector:undefined} axial={axial} scale={scale} floor={floor} wall={wall} right={right}/>;
+ // A stopped arrow keeps this much clear of the charge's edge: touching it, the head read as part of it.
+ const CLEAR=2.5;
  if(id==='bisector'||id==='infinite'){
   // The infinite line moving P away: the whole line, and P walking out from it -- along the plot's
   // own logarithmic axis, so P is where the dot on the curve is.
-  if(mode==='scale'){const x=76+130*Math.log(t)/Math.log(30);return <><path d={`M64 25H${x}`} {...RAIL}/><path d="M64 -4V52" {...CHARGE} strokeWidth="7"/><path d="M57 6l14-4M57 44l14 4" {...CHARGE}/>{P(x,25)}</>}
+  if(mode==='scale'){const x=76+130*Math.log(t)/Math.log(30);return <><path d={`M64 25H${x}`} {...RAIL}/><path d="M64 -4V52" {...CHARGE} strokeWidth="7"/><path d="M57 6l14-4M57 44l14 4" {...CHARGE}/>{P(x,25,false,undefined,64+3.5+CLEAR)}</>}
   // Centred on P's level: the rod's whole length L against P's distance r, half above and half below.
   const {length,gap,unbounded}=rodScale(mode,t,42,134,30),h=Math.max(1.5,length/2);
-  return <><path d={`M64 25H${64+gap-8}`} {...RAIL}/><path d={`M64 ${25-h}V${25+h}`} {...CHARGE} strokeWidth="7"/>{unbounded&&<path d="M57 6l14-4M57 44l14 4" {...CHARGE}/>}{P(64+gap,25)}</>}
+  return <><path d={`M64 25H${64+gap-8}`} {...RAIL}/><path d={`M64 ${25-h}V${25+h}`} {...CHARGE} strokeWidth="7"/>{unbounded&&<path d="M57 6l14-4M57 44l14 4" {...CHARGE}/>}{P(64+gap,25,false,undefined,64+3.5+CLEAR)}</>}
  // On its own line: the rod's length L against the gap a. Far away the two share the frame's
  // length in the proportion a = tL; walking in, the rod keeps its length and the gap closes on it.
  if(id==='axial'){const w=mode==='near'?85:Math.max(4,170/(1+t)),x=mode==='near'?129+85/t:214;return <><path d={`M${44+w} 25H${x-8}`} {...RAIL}/><path d={`M44 25h${w}`} {...CHARGE} strokeWidth="7"/>{P(x,25,false,undefined,44+w+5)}</>}
@@ -67,12 +76,16 @@ function LimitFigure({id,mode,t,vector,scale,arrow}:{id:ProblemId;mode:Limit['mo
   return <><path d={`M104 34H${104+gap-8}`} {...RAIL}/>
    {/* The ramp is a wedge: empty at the foot, widest at the top. */}
    {id==='ramp'?<path d={`M104 34L100 ${34-h}h8Z`} {...CHARGE} fill="var(--charge)" strokeWidth="1.5"/>:<path d={`M104 34V${34-h}`} {...CHARGE} strokeWidth="7"/>}
-   {unbounded&&<path d="M97 12l7-6 7 6" {...CHARGE}/>}{P(104+gap,34)}</>}
+   {unbounded&&<path d="M97 12l7-6 7 6" {...CHARGE}/>}{P(104+gap,34,false,undefined,(id==='ramp'?108.75:107.5)+CLEAR)}</>}
  if(id==='arc'){
+  // A negative arc's field at its centre points at the arc. At a radius of 17 a stopped arrow had no room
+  // between P's dot and the arc's inner edge; at 20.5 it has a short shaft, and the arc still fits the
+  // frame's 48 units with its stroke.
+  const R=20.5,inner=152+R-2.5-CLEAR;
   // The field's half ring is drawn as the N point charges the plot is summing.
-  if(mode==='half'){const n=halfPieces(t);return <>{Array.from({length:n},(_,i)=>{const s=-Math.PI/2+Math.PI*(i+.5)/n;return <circle key={i} cx={(152+17*Math.cos(s)).toFixed(1)} cy={(25-17*Math.sin(s)).toFixed(1)} r={n>16?1.6:2.3} fill="var(--charge)"/>})}{P(152,25)}</>}
-  const a=mode==='full'?2*Math.PI*t/30:Math.PI,d=Array.from({length:49},(_,i)=>{const s=-a/2+a*i/48;return `${i?'L':'M'}${(152+17*Math.cos(s)).toFixed(1)},${(25-17*Math.sin(s)).toFixed(1)}`}).join(' ');
-  return <><path d={d} {...CHARGE} strokeWidth="5"/>{P(152,25)}</>}
+  if(mode==='half'){const n=halfPieces(t);return <>{Array.from({length:n},(_,i)=>{const s=-Math.PI/2+Math.PI*(i+.5)/n;return <circle key={i} cx={(152+R*Math.cos(s)).toFixed(1)} cy={(25-R*Math.sin(s)).toFixed(1)} r={n>16?1.6:2.3} fill="var(--charge)"/>})}{P(152,25,false,undefined,undefined,inner)}</>}
+  const a=mode==='full'?2*Math.PI*t/30:Math.PI,d=Array.from({length:49},(_,i)=>{const s=-a/2+a*i/48;return `${i?'L':'M'}${(152+R*Math.cos(s)).toFixed(1)},${(25-R*Math.sin(s)).toFixed(1)}`}).join(' ');
+  return <><path d={d} {...CHARGE} strokeWidth="5"/>{P(152,25,false,undefined,undefined,inner)}</>}
  // RING, DISK AND SHEET SHARE AN AXIAL VIEW, LAID ON ITS SIDE: the axis runs across the frame, the
  // source stands edge-on at its left, and P sits out along the axis. Drawn upright, P sat above the
  // source in a frame 48 units tall, and the field at P -- which lies along the axis -- ran off the
@@ -93,11 +106,13 @@ function LimitFigure({id,mode,t,vector,scale,arrow}:{id:ProblemId;mode:Limit['mo
   :[Infinity,5*t];
  // Seen almost edge-on, a disk is a narrow ellipse; once it is taller than the frame it is a band.
  const unbounded=radius>FRAME,rx=.28*Math.min(radius,FRAME);
+ // The source's near edge on the axis: its ellipse's (or band's) right-hand side, half its stroke out.
+ const edge=unbounded&&!filled?S+1.5:S+rx+(filled?1.25:1.75);
  return <><path d={`M${S} ${Y}H${S+Math.max(gap,6)}`} {...RAIL}/>
   {unbounded
    ?<>{filled&&<rect x={S-rx} y="-4" width={2*rx} height="56" fill="color-mix(in srgb,var(--charge) 20%,transparent)"/>}<path d={filled?`M${S-rx} -4V52M${S+rx} -4V52`:`M${S} -4V52`} {...CHARGE} strokeWidth={filled?2.5:3}/><path d={`M${S-7} 8l7-6 7 6M${S-7} 40l7 6 7-6`} {...CHARGE}/></>
    :<ellipse cx={S} cy={Y} rx={rx} ry={radius} {...CHARGE} fill={filled?'color-mix(in srgb,var(--charge) 20%,transparent)':'none'} strokeWidth={filled?2.5:3.5}/>}
-  {P(S+gap,Y,true)}</>
+  {P(S+gap,Y,true,undefined,edge+CLEAR)}</>
 }
 /** Room above and below a thumbnail's 48-unit frame, for the arrows that lean out of it. */
 const THUMB_PAD:Partial<Record<ProblemId,[number,number]>>={semi:[18,4],endpoint:[0,20],ramp:[0,20]};
@@ -180,7 +195,11 @@ export function Assessment({problem,params,limit}:{problem:Problem;params:Params
  // "L → ∞ (λ fixed): V ∼ 2kλ ln(L/r), |V| → ∞" -- ran past its edge, the rest behind a sideways scroll no
  // one finds: the rod's potential read "|V| →" with no ∞. There the condition takes a line of its own
  // and the relation is set under it, indented, as a book sets "For L → ∞:" before its result.
- const formula=width<460?twoLines(limit.formula):limit.formula;
+ // And on a desktop the colon is punctuation. KaTeX sets a bare ":" as a relation, a thick space either
+ // side, so every condition on a projector read "a ≪ L :", "(σ fixed) :", "r > 0 :" -- the panel's own
+ // bounds, and twoLines here, write \colon. The strings keep ":\quad", which twoLines and the
+ // formula-tail parser both find.
+ const formula=width<460?twoLines(limit.formula):limit.formula.replace(':\\quad','\\colon\\quad');
  // Past the top of the window the curve runs out of the plot, clipped, rather than along its edge.
  const yAt=(v:number)=>BASE-(Math.min(Math.max(Number.isFinite(v)?v:3*hi,lo),3*hi)-lo)/(hi-lo)*(BASE-TOP),clip='limit-clip-'+useId().replace(/[^a-zA-Z0-9_-]/g,'');
  const trace=(vs:number[])=>vs.map((v,i)=>`${i?'L':'M'}${xAt(tAt(i)).toFixed(1)},${yAt(v).toFixed(1)}`).join(' ');
@@ -214,7 +233,7 @@ export function Assessment({problem,params,limit}:{problem:Problem;params:Params
  return <div className="assessment"><MathText tex={formula} block/>
  {/* Whole items wrap: at phone width each wrapped inside itself, "added / up", and the last one's
      dot was left alone on a line above its words. */}
- <div className="comparison-labels" style={{flexWrap:'wrap',rowGap:4}}><span style={NOWRAP}><i className="legend-dot field"/>{plot.solid??`Your exact ${qty}`}</span>{plot.second&&<span style={NOWRAP}><i className="legend-dot" style={{background:'var(--ghost)'}}/>{plot.second}</span>}<span style={NOWRAP}><i className="legend-dot"/>{/^[a-z]{2,}/.test(plot.line)?plot.line[0].toUpperCase()+plot.line.slice(1):plot.line}</span></div>
+ <div className="comparison-labels" style={{flexWrap:'wrap',rowGap:4}}><span style={NOWRAP}><i className="legend-dot field"/>{plot.solid??`The exact ${qty}`}</span>{plot.second&&<span style={NOWRAP}><i className="legend-dot" style={{background:'var(--ghost)'}}/>{plot.second}</span>}<span style={NOWRAP}><i className="legend-dot"/>{/^[a-z]{2,}/.test(plot.line)?plot.line[0].toUpperCase()+plot.line.slice(1):plot.line}</span></div>
  <svg ref={svgRef} viewBox={`0 0 ${WIDTH} ${height}`} className="comparison-plot" role="img" data-kind={plot.kind} aria-label={`${scalar?'Electric potential':'Electric field'} comparison for ${limit.title}: ${plot.y}, against ${axisName} from ${plot.from} to ${plot.to}. ${exactName} ${pretty(val.actual)} ${units}, ${referenceName} ${pretty(val.target)}${semi?' '+units:''}.`}>
   <path d={`M${X0} ${TOP-8}V${BASE}H${X1+5}`} stroke="var(--ghost)" fill="none"/>
   {(plot.marks??[]).map(m=><g key={m.t} className="comparison-mark"><line x1={xAt(m.t)} x2={xAt(m.t)} y1={TOP} y2={BASE} stroke="var(--border)" strokeDasharray="2 4"/>{m.label&&<text x={xAt(m.t)} y="179" textAnchor="middle" style={size(10.5)}>{m.label}</text>}</g>)}

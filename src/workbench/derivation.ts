@@ -888,7 +888,7 @@ export const INFINITE_UNFOLD: WorkedStep[] = [
  * A bracket that opens on a minus is \Bigl[ or \left[, never \Big[: KaTeX sets \Big as an ordinary
  * symbol, so the minus after it was spaced as a subtraction, "[ − cos α ]". */
 export const SEMI_UNFOLD: WorkedStep[] = [
-  {text: String.raw`Take $k\lambda$ outside and put back $x=r\tan\alpha$, as in Cut it up: $dx=r\sec^2\alpha\,d\alpha$ and $x^2+r^2=r^2\sec^2\alpha$, so the integrand is One piece’s $d\alpha/r$ times $\sin\alpha$. As $x$ runs from $0$ to $\infty$, $\alpha$ runs from $0$ to $\pi/2$.`,
+  {text: String.raw`Take $k\lambda$ outside and put back $x=r\tan\alpha$, where the setup places each element: $dx=r\sec^2\alpha\,d\alpha$ and $x^2+r^2=r^2\sec^2\alpha$, so the integrand is $d\alpha/r$ times $\sin\alpha$. As $x$ runs from $0$ to $\infty$, $\alpha$ runs from $0$ to $\pi/2$.`,
     tex: String.raw`\begin{aligned}E_x&=-k\lambda\int_0^\infty\frac{x\,dx}{(x^2+r^2)^{3/2}}${rowGap(1)}&=-\frac{k\lambda}{r}\int_0^{\pi/2}\sin\alpha\,d\alpha\end{aligned}`},
   {text: String.raw`Integrate: $\int\sin\alpha\,d\alpha=-\cos\alpha$. Upper end minus lower end: $-\cos(\pi/2)+\cos0=1$.`,
     tex: String.raw`E_x=-\frac{k\lambda}{r}\Bigl[-\cos\alpha\Bigr]_0^{\pi/2}=-\frac{k\lambda}{r}`},
@@ -945,7 +945,7 @@ export const AXIAL_UNFOLD: WorkedStep[] = [
  * z · z tan α · z sec²α dα / z³ sec³α = sin α dα.) Gauss's pillbox, which the lesson's last step named,
  * is kept: it is the check a lecturer wants beside this. */
 export const SHEET_UNFOLD: WorkedStep[] = [
-  {text: String.raw`$2\pi k\sigma$ is the same for every ring, so it comes outside the integral. Then put back $s=z\tan\alpha$, as in Cut it up: $ds=z\sec^2\alpha\,d\alpha$ and $s^2+z^2=z^2\sec^2\alpha$, so the integrand is Add them up’s $\sin\alpha\,d\alpha$. As $s$ runs from $0$ to $\infty$, $\alpha$ runs from $0$ to a right angle, $\pi/2$.`,
+  {text: String.raw`$2\pi k\sigma$ is the same for every ring, so it comes outside the integral. Then name each ring by its angle $\alpha$ at $P$, between the axis and the line to the ring, so that $s=z\tan\alpha$: $ds=z\sec^2\alpha\,d\alpha$ and $s^2+z^2=z^2\sec^2\alpha$, so the integrand is $\sin\alpha\,d\alpha$. As $s$ runs from $0$ to $\infty$, $\alpha$ runs from $0$ to a right angle, $\pi/2$.`,
     tex: String.raw`\begin{aligned}E_z&=2\pi k\sigma\int_0^\infty\frac{zs\,ds}{(s^2+z^2)^{3/2}}${rowGap(1)}&=2\pi k\sigma\int_0^{\pi/2}\sin\alpha\,d\alpha\end{aligned}`},
   {text: String.raw`Integrate: $\int\sin\alpha\,d\alpha=-\cos\alpha$. Upper end minus lower end: $-\cos(\pi/2)+\cos0=1$.`,
     tex: String.raw`E_z=2\pi k\sigma\Bigl[-\cos\alpha\Bigr]_0^{\pi/2}=2\pi k\sigma`},

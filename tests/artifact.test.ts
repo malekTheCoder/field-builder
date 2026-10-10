@@ -42,8 +42,9 @@ describe('offline lesson artifact', () => {
     expect(html).not.toMatch(/Parameters/);
     expect(html).not.toMatch(/<li>/);
     expect(html).not.toMatch(/3\.14159/);
-    // Outside the mathematics, the only figures are in the stylesheet and the setup's own words.
-    const prose = shown(html).replace(/<style>[\s\S]*?<\/style>/, '').replace(/<math[\s\S]*?<\/math>/g, '').replace(/<svg[\s\S]*?<\/svg>/g, '');
+    // Outside the mathematics, the only figures are in the stylesheet, the script that tightens the
+    // square roots and the setup's own words.
+    const prose = shown(html).replace(/<style>[\s\S]*?<\/style>/, '').replace(/<script>[\s\S]*?<\/script>/, '').replace(/<math[\s\S]*?<\/math>/g, '').replace(/<svg[\s\S]*?<\/svg>/g, '');
     const setup = getProblem('bisector').setup;
     const words = prose.replace(escapeHtml(setup), '').replace(/<[^>]*>/g, ' ');
     expect(words).toMatch(/Field on the bisector/);
