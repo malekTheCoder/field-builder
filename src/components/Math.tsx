@@ -37,11 +37,16 @@ export function Prose({text}:{text:string}){
   // "axis." starting the next.
   // And a symbol is never broken inside: KaTeX lets a line break after an "=", and "y = L/2" was
   // set as "y =" at the end of one line and "L/2" at the start of the next.
+  //
+  // The rest of a hyphenated word is held whether or not the word before was joined: the board joins
+  // its words with a no-break space, but the lessons' own sentences in the shelf use ordinary ones, so
+  // there "the $x$-axis" was never held and broke as "on the x-" / "axis at the origin".
   const before=typeof out.at(-1)==='string'?(out.at(-1) as string).match(/^([\s\S]*?)(\S+ )$/):null;
-  if(!before){out.push(<MathText key={i} className="db-sym" tex={parts[i]}/>);continue;}
-  const after=parts[i+1]?.match(/^(?:-[A-Za-z]+)?[.,;:]*/)?.[0]??'';
-  out[out.length-1]=before[1];
-  out.push(<span key={i} className="db-held">{before[2]}<MathText className="db-sym" tex={parts[i]}/>{after}</span>);
+  const suffix=parts[i+1]?.match(/^-[A-Za-z]+[.,;:]*/)?.[0]??'';
+  if(!before&&!suffix){out.push(<MathText key={i} className="db-sym" tex={parts[i]}/>);continue;}
+  const after=before?parts[i+1]?.match(/^(?:-[A-Za-z]+)?[.,;:]*/)?.[0]??'':suffix;
+  if(before)out[out.length-1]=before[1];
+  out.push(<span key={i} className="db-held">{before?.[2]}<MathText className="db-sym" tex={parts[i]}/>{after}</span>);
   if(after)parts[i+1]=parts[i+1].slice(after.length);
  }
  return out;

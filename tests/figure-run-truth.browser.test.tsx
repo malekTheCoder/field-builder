@@ -46,7 +46,7 @@ async function settle(view: View) {
 }
 async function hold(view: View, n: number, f: number) {
  if (!view.queryByRole('button', {name: /^Stage 1: /})) fireEvent.click(view.getByRole('button', {name: 'Watch it build'}));
- fireEvent.click(view.getByRole('button', {name: `Stage ${n}: ${NAMES[n - 1]}`}));
+ fireEvent.click(view.getByRole('button', {name: new RegExp(`^Stage ${n}: ${NAMES[n - 1].replace('One piece', 'One (piece|ring)')}$`)}));
  const track = view.container.querySelector<HTMLElement>('.bp-track')!;
  const seg = [...view.container.querySelectorAll<HTMLElement>('.bp-seg')][n - 1], box = seg.getBoundingClientRect(), x = box.left + f * box.width;
  fireEvent.pointerDown(track, {clientX: x - 6, button: 0, pointerId: 7});

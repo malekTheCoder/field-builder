@@ -45,7 +45,7 @@ const KEYS = ['pieces', 'one', 'cancel', 'add', 'limit'];
 const frames = (n: number) => new Promise<void>(r => { const step = (k: number) => k ? requestAnimationFrame(() => step(k - 1)) : r(); step(n); });
 async function stage(view: View, n: number) {
  if (!view.queryByRole('button', {name: /^Stage 1: /})) fireEvent.click(view.getByRole('button', {name: 'Watch it build'}));
- fireEvent.click(view.getByRole('button', {name: `Stage ${n}: ${NAMES[n - 1]}`}));
+ fireEvent.click(view.getByRole('button', {name: new RegExp(`^Stage ${n}: ${NAMES[n - 1].replace('One piece', 'One (piece|ring)')}$`)}));
  await waitFor(() => expect(view.container.querySelector(`.cd-stage-${KEYS[n - 1]}`)).toBeTruthy());
  await frames(3);
 }

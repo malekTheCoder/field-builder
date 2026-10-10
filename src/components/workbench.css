@@ -33,17 +33,25 @@
 .ew-result-label{display:block;font-family:var(--serif);font-size:var(--type-meta);color:var(--field);letter-spacing:0}
 .ew-worked-step{padding:18px 0;gap:12px;border-bottom:1px solid var(--surface-rule)}
 .ew-worked-step>span{font-size:var(--type-meta);padding-top:3px}
-.ew-worked-step p{font-size:var(--type-meta);line-height:1.8;text-wrap:pretty}
+.ew-worked-step p{font-size:var(--type-meta);line-height:1.5;text-wrap:pretty}
 /* The shelf's sentences set their symbols as the board's remarks do: inline, at the words' own size
    and a little up, never at the size of the worked line under them. */
 .ew-worked-step p .math,.ew-references-body p .math{font-size:inherit;margin:0;padding-bottom:0}
 .ew-worked-step .db-sym .katex,.ew-references-body .db-sym .katex{font-size:1.1em}
 .ew-worked-step .db-held,.ew-worked-step .db-sym,.ew-references-body .db-held,.ew-references-body .db-sym{white-space:nowrap}
-.ew-worked-step .math{font-size:var(--type-body)}
+/* The shelf continues the board: its worked lines are set no larger than the board's own (14px, KaTeX's
+   15.96, where the board is 15.96 to 16.53), and its sentences at the board's remarks' leading. At the
+   body size and 1.8 leading, Unfold read as a louder, looser document than the derivation it unfolds, and
+   its first line sat a size above the board line it continues. */
+.ew-worked-step .math{font-size:14px}
+/* And where the board's type comes down with a narrow panel, the shelf's comes down with it, by the same
+   rule: the shelf is the board's width, so the same width gives the same size. */
+.ew-worked-body{container-type:inline-size}
+@container (max-width:280px){.ew-worked-step .math{font-size:clamp(12px,calc((100cqi - 32px) / 17),14px)}}
 .ew-next-step{font-size:var(--type-meta)!important}
 .ew-worked-done{font-size:var(--type-meta)}
 .ew-references,.ew-references summary,.ew-references a{font-size:var(--type-meta)}
-.ew-references p{line-height:1.8}
+.ew-references p{line-height:1.5}
 /* ---- Onboarding: same language as the page it introduces ------------ */
 
 .fb-onboarding[data-slot=dialog-content]{max-width:min(600px,calc(100vw - 28px))!important;padding:30px 30px 26px!important;

@@ -121,9 +121,10 @@ describe('every new symbol is said in words beside the line that brings it in', 
     const view = panel('bisector');
     const say = view.container.querySelector<HTMLElement>('.db-step[data-step="limit"] .db-say')!;
     // The limit first -- N → ∞, Δy → dy -- then written, not only named: what r_i² and cos α_i become in y.
-    expect(read(say)).toBe('Make the pieces thinner without end, N→∞: each Δy becomes dy, and the sum over pieces becomes an integral over y. For that, what changes from piece to piece is written in terms of y: ri2=y2+r2 and cosαi=r/y2+r2.');
+    // And last, why the sum's ≈ is now an =: the approximation Add named is the one shrinking removes.
+    expect(read(say)).toBe('Make the pieces thinner without end, N→∞: each Δy becomes dy, and the sum over pieces becomes an integral over y. For that, what changes from piece to piece is written in terms of y: ri2=y2+r2 and cosαi=r/y2+r2. The ≈ becomes = here: the thinner a piece, the more nearly it is a point charge, and in the limit it is one.');
     // Its symbols are the board's, set as math.
-    expect(say.querySelectorAll('.katex').length).toBe(7);
+    expect(say.querySelectorAll('.katex').length).toBe(9);
   });
 });
 

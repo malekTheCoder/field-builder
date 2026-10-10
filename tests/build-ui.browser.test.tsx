@@ -420,7 +420,7 @@ describe('the figure tells the truth at every stage', () => {
  it('a disk shades only what has been summed: the chosen piece is a thin ring, not the disk inside it', async () => {
   const view = await openLesson('disk');
   fireEvent.click(view.getByRole('button', {name: 'Watch it build'}));
-  jump(view, 2, 'One piece');
+  jump(view, 2, 'One ring');
   await waitFor(() => expect(view.container.querySelector('.cd-stage-one')).toBeTruthy());
   expect(view.container.querySelector('[data-disk-sweep]')).toBeNull();
   jump(view, 4, 'Add them up');

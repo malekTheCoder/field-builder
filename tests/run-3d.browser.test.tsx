@@ -213,7 +213,7 @@ describe('a surface in space', () => {
   const view = await openLesson('disk');
   await openRun(view);
   expect(plan(view, 'runSeams')).toBe('4');
-  jump(view, 2, 'One piece');
+  jump(view, 2, 'One ring');
   await waitFor(() => expect(plan(view, 'runStage')).toBe('one'));
   // The chosen piece is a thin ring; nothing inside it is shaded until it is summed.
   expect(plan(view, 'runFilled')).toBeUndefined();

@@ -117,7 +117,7 @@ describe('the derivation board', () => {
         expect(add.say, p.id).toMatch(/already exact/);
       } else {
         expect(add.tex, p.id).toContain('\\approx');
-        expect(add.say, p.id).toMatch(/only \$\\approx\$: each (piece is still treated as a point charge|ring is still treated as one thin ring|ring is \$\\Delta s\$ wide, but all its charge is counted at one radius)/);
+        expect(add.say, p.id).toMatch(/only \$\\approx\$: (each (piece is still treated as a point charge|ring is still treated as one thin ring|ring is \$\\Delta s\$ wide, but all its charge is counted at one radius)|every bit of a piece is \$R\$ from)/);
         expect(add.say, p.id).toMatch(scalar ? /column/ : /chain/);
       }
     });
@@ -323,7 +323,10 @@ describe('the derivation board', () => {
       const cancel = step(id, 'cancel', [...bounds] as [string, string]);
       expect(cancel.cancels, id).toBeUndefined();
       expect(cancel.nothing, id).toMatch(/no longer cancels/);
-      expect(cancel.also, id).toBeTruthy();
+      // The rods write the signed part that survives; the ring says in words what its parts across the
+      // axis do, since a magnitude cannot survive a sum.
+      if (id === 'ring') expect(cancel.also, id).toBeUndefined();
+      else expect(cancel.also, id).toBeTruthy();
     }
     // Symmetric about the middle, the partners are all inside and the cancellation stands.
     expect(step('bisector', 'cancel', ['-L/4', 'L/4']).cancels).toContain('E_y=0');
@@ -337,7 +340,7 @@ describe('the derivation board', () => {
     for (const p of PROBLEMS) {
       const one = step(p.id, 'one').say!;
       expect(one, p.id).toContain(String.raw`$k=1/(4\pi\varepsilon_0)$`);
-      if (p.quantity === 'V') expect(one, p.id).toMatch(/over \$r_i\$, not \$r_i\^2\$, and with no direction/);
+      if (p.quantity === 'V') expect(one, p.id).toMatch(/divided by its distance, \$r_i\$\u00a0— not \$r_i\^2\$, as for the field\u00a0— and a potential has no direction/);
       else expect(one, p.id).toMatch(/Coulomb’s law/);
     }
     for (const id of ['bisector', 'endpoint', 'ramp', 'semi', 'ring', 'infinite']) expect(step(id, 'one').say, id).toMatch(/\$r_i\$ is the hypotenuse/);

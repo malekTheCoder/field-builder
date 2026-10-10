@@ -135,7 +135,8 @@ describe('the equal-angle lines show why every piece makes the same field', () =
   });
   it('sec is said where it first appears', () => {
     for (const [id, a] of [['infinite', 'theta'], ['semi', 'alpha'], ['sheet', 'alpha']]) {
-      expect(step(id, 'pieces').say, id).toContain(`with $\\sec\\${a}=1/\\cos\\${a}$`);
+      // The cosine braced, so KaTeX sets no operator space after the slash: "1/ cos θ" otherwise.
+      expect(step(id, 'pieces').say, id).toContain(`with $\\sec\\${a}=1/{\\cos\\${a}}$`);
     }
   });
 });

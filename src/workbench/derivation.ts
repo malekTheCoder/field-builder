@@ -132,7 +132,9 @@ const ROD_X = {dq: String.raw`\lambda\,dx`, piece: String.raw`\lambda\,\Delta x`
 const RING = {dq: String.raw`\lambda R\,d\theta`, piece: String.raw`\lambda R\,\Delta\theta`, r: String.raw`\sqrt{R^2+z^2}`, r2: String.raw`R^2+z^2`, holds: ROUND_RING,
   at: String.raw`Every piece is $R$ out from the axis and $P$ is $z$ up it: $r_i$ is the hypotenuse.`};
 const DISK = {dq: String.raw`\sigma\,2\pi s\,ds`, piece: String.raw`\sigma\,2\pi s\,\Delta s`, r: String.raw`\sqrt{s^2+z^2}`, r2: String.raw`s^2+z^2`,
-  holds: String.raw`$\sigma$ is the charge per unit area, and a thin ring’s area is circumference × width, $2\pi s\,\Delta s$.`,
+  // s and Δs were used here and first said to be a radius two steps later, in One piece: every other
+  // lesson defines its letters in the first line that uses them.
+  holds: String.raw`$\sigma$ is the charge per unit area. A thin ring of radius $s$ and width $\Delta s$ has area circumference × width, $2\pi s\,\Delta s$.`,
   at: String.raw`The ring is $s$ out from the axis and $P$ is $z$ up it: $r_i$ is the hypotenuse.`,
   charge: String.raw`\Delta Q_i=\sigma\,2\pi s\,\Delta s`};
 const ARC = {dq: String.raw`\lambda R\,d\theta`, piece: String.raw`\lambda R\,\Delta\theta`, r: 'R', r2: 'R^2', holds: ROUND_ARC,
@@ -177,7 +179,19 @@ const COS_AXIS = (s: string) => ({dir: String.raw`\cos\alpha`, dirOf: String.raw
 // A ring's piece and the piece half a turn round from it. ⊥ and θ+π were on the board with no word
 // for either; the partner's part is −ΔE⊥, as the figure labels it. "Piece", as every other ring line
 // says: "bit" is a part of one piece on the disk and the sheet, the next two lessons.
-const ANGLE_RING = String.raw`$\alpha$ is the angle at${NB}$P$ between $r_i$ and the axis. ${ARROW} lies along $r_i$, so its part along the axis is $\Delta E\cos\alpha$.`;
+//
+// "The drawn arrow": One piece says a ring's piece is drawn as a point charge at its middle and that a
+// long piece's own field leans closer to the axis. "The arrow lies along r_i" then stated as fact what
+// is true only of the drawing -- and of the part along the axis, which is all this line keeps.
+const ANGLE_RING = String.raw`$\alpha$ is the angle at${NB}$P$ between $r_i$ and the axis. ${ARROW.replace('The arrow', 'The drawn arrow')} lies along $r_i$, so its part along the axis is $\Delta E\cos\alpha$.`;
+// A ring's piece of any size, said where its field is first written. The board wrote "A point charge's
+// field" for a third of a ring, set equal to one, while the run said the point charge is a drawing and
+// only the axial part is exact, and Add said the sum is exact "however the ring is cut": the one line
+// of the card its own run contradicted. Every bit of a piece is r_i away at the same angle to the axis,
+// so its bits' parts along the axis add to exactly the point charge's; their parts across it point
+// different ways round the ring and add to less (sin(Δθ/2)/(Δθ/2) of it: 0.83 at three pieces). The
+// angle is said in words: α is defined in What cancels, the next step.
+const ANY_SIZE = String.raw`A piece need not be small: it is drawn as a point charge at its middle, and a long piece’s own field leans a little closer to the axis, but its part along the axis is exactly this one’s at any size, since all of it is $r_i$ away at the same angle to the axis. That part is the only one the sum keeps.`;
 // Not "the piece half a turn round": the pieces' middles are at 2π(i + ½)/N, so at an odd N -- the
 // default five among them -- half a turn from one middle is the cut between two pieces, and the figure
 // draws there an arc of the piece's length centred straight across, lighting no whole piece. What
@@ -187,7 +201,9 @@ const PAIR_RING = String.raw`A piece’s part across the axis is $\Delta\mathbf 
 // the step between the ring as a sum of bits and the ring as one charge: every bit of a thin ring is
 // the same r_i away at the same α, so the bits' parts along the axis add up to the ring's charge,
 // ΔQ = Σδq, times one factor. The caption says each ring has already cancelled; this says how.
-const BITS = String.raw`Each bit’s field, of size $\delta E$, lies along its own $r_i$, so its part along the axis is $\delta E\cos\alpha$.`;
+// "Lies along its own r_i" read as each bit having a distance of its own, one sentence before "every
+// bit of the thin ring is the same r_i away": r_i is a distance on this board, so the line is named.
+const BITS = String.raw`Each bit’s field, of size $\delta E$, lies along the line from that bit to${NB}$P$, so its part along the axis is $\delta E\cos\alpha$.`;
 const ACROSS_RING = String.raw`$\delta\mathbf E_\perp$ is a bit’s part across the axis; the bit straight across the ring makes $-\delta\mathbf E_\perp$, so round the whole ring they undo each other.`;
 const ADDS = (whose: string) => String.raw`Every bit of the thin ring is the same $r_i$ away at the same $\alpha$, so the parts along the axis add to $k\,\Delta Q\cos\alpha/r_i^2$, where $\Delta Q=\sum\delta q$ is the ${whose} charge.`;
 const ANGLE_RINGS = String.raw`$\alpha$ is the angle at${NB}$P$ between $r_i$ and the axis. ${BITS} ${ADDS('whole ring’s')}`;
@@ -217,11 +233,20 @@ const STAND_IN = (what: string, as = 'a point charge') => String.raw`$\Delta Q$ 
 //
 // sec is said too, where it first appears: One piece then wrote r_i = r/cos θ and Shrink them
 // r_i² = r² sec²θ, which a reader with weak trigonometry took for two unrelated distances.
-const SEC = (angle: string) => String.raw`with $\sec${angle}=1/\cos${angle}$`;
-const BRIDGE = (angle: string, sits: string, along: string, rate: string) =>
-  String.raw`$${angle}$ is the piece’s angle at${NB}$P$, from the perpendicular to the line, so the piece sits at $${sits}$, and $${rate}$, ${SEC(angle)}, is how fast $${along}$ grows with $${angle}$: for the pieces near${NB}$P$, $${rate}\,\Delta${angle}$ is nearly the length $\Delta ${along}$ bracketed on the figure.`;
+// The cosine braced, so it is set as an ordinary symbol after the slash: bare, KaTeX gave it an
+// operator's space and the definition read "1/ cos θ".
+const SEC = (angle: string) => String.raw`with $\sec${angle}=1/{\cos${angle}}$`;
+// WHERE r sec²α Δα COMES FROM, IN THE FIGURE. It was "how fast x grows with α" -- a rate, a derivative,
+// as the justification of the lesson's first line, for the reader who never understood calculus. It is
+// geometry the figure draws: seen from P a piece Δα wide spans its distance times Δα across the line of
+// sight, and the line meets the sight line slantwise, so along the line the piece is 1/cos α longer.
+// (Δx cos α = r_i Δα with r_i = r sec α: Δx = r sec²α Δα.) Nearly the bracket only near P: an outer
+// piece's bracket is far longer, and the outermost never ends.
+const BRIDGE = (angle: string, sits: string, along: string, rate: string, o: {from: string; dist: string; unit: string; line: string; where: string; long: string; size: string; near: string}) =>
+  String.raw`$${angle}$ is the ${o.unit}’s angle at${NB}$P$, ${o.from}, so the ${o.unit} sits at $${sits}$, $${o.dist}$ from${NB}$P$, ${SEC(angle)}. Seen from${NB}$P$, a ${o.unit} $\Delta${angle}$ wide spans $${o.dist}\,\Delta${angle}$ across the line of sight, and the ${o.line} meets that sight line slantwise, so ${o.where} the ${o.unit} is $1/{\cos${angle}}$ times as ${o.long}: $${rate}\,\Delta${angle}$, for the ${o.unit}s near${o.near} nearly the ${o.size} $\Delta ${along}$ bracketed on the figure.`;
+const ON_LINE = (angle: string) => ({from: 'from the perpendicular to the line', dist: String.raw`r\sec${angle}`, unit: 'piece', line: 'line', where: 'along the line', long: 'long', size: 'length', near: `${NB}$P$`});
 const SHEET = {...DISK, piece: String.raw`\sigma\,2\pi s\,z\sec^2\alpha\,\Delta\alpha`, pieceIs: String.raw`s=z\tan\alpha`, charge: undefined,
-  holds: String.raw`$\alpha$ is the angle at${NB}$P$ between the axis and the line to the ring, so the ring sits at $s=z\tan\alpha$, and $z\sec^2\alpha$, ${SEC(String.raw`\alpha`)}, is how fast $s$ grows with $\alpha$: for the rings near the axis, $z\sec^2\alpha\,\Delta\alpha$ is nearly the width $\Delta s$ bracketed on the figure. $\sigma$ is the charge per unit area, and a thin ring’s area is $2\pi s$ times its width. ${STAND_IN('ring', 'a thin ring of charge')}`,
+  holds: String.raw`${BRIDGE(String.raw`\alpha`, String.raw`s=z\tan\alpha`, 's', String.raw`z\sec^2\alpha`, {from: 'between the axis and the line to the ring', dist: String.raw`z\sec\alpha`, unit: 'ring', line: 'sheet', where: 'across the sheet', long: 'wide', size: 'width', near: ' the axis'})} $\sigma$ is the charge per unit area, and a thin ring’s area is $2\pi s$ times its width. ${STAND_IN('ring', 'a thin ring of charge')}`,
   tail: String.raw`; and as the rings thin, the charge’s $z\sec^2\alpha\,\Delta\alpha$ becomes their width,${NB}$ds$`};
 const PARTS: Record<ProblemId, Parts> = {
   // Off-centre, the part along the rod survives as −k ΔQ sin α / r_i², right only for an α signed like
@@ -250,7 +275,7 @@ const PARTS: Record<ProblemId, Parts> = {
     at: String.raw`$r$ is the perpendicular from $P$ to the line, the side next to${NB}$\theta$, and $r_i$ is the hypotenuse.`,
     dirIs: String.raw`${ARROW} lies along $r_i$, so its part along $x$ is $\Delta E\cos\theta$, the side next to${NB}$\theta$.`, mirrorSay: MIRROR(String.raw`\theta`),
     pairSay: PAIR('along the line'), mirror: {across: String.raw`\sin\theta`, lost: 'along the line'},
-    holds: String.raw`${BRIDGE(String.raw`\theta`, String.raw`y=r\tan\theta`, 'y', String.raw`r\sec^2\theta`)} $\lambda$ is the charge per unit length. ${STAND_IN('piece')}`,
+    holds: String.raw`${BRIDGE(String.raw`\theta`, String.raw`y=r\tan\theta`, 'y', String.raw`r\sec^2\theta`, ON_LINE(String.raw`\theta`))} $\lambda$ is the charge per unit length. ${STAND_IN('piece')}`,
     // THE LESSON'S CLAIM, ON THE BOARD. The run says every equal-angle piece makes exactly as much
     // field at P, and the chain at Add is N equal links; the algebra that proves it -- the sec²θ in
     // the charge over the sec²θ in the distance -- happened only inside Shrink them's second row, with
@@ -264,7 +289,7 @@ const PARTS: Record<ProblemId, Parts> = {
   // toward the end: a minus sign and the sine of the angle at P, measured from the perpendicular
   // P drops to the line -- as the lesson's own text measures it, and as the infinite line's θ is.
   semi: {dq: String.raw`\lambda\,dx`, piece: String.raw`\lambda r\sec^2\alpha\,\Delta\alpha`, r: String.raw`\sqrt{x^2+r^2}`, r2: String.raw`x^2+r^2`, pieceIs: String.raw`x=r\tan\alpha`,
-    holds: String.raw`${BRIDGE(String.raw`\alpha`, String.raw`x=r\tan\alpha`, 'x', String.raw`r\sec^2\alpha`)} $\lambda$ is the charge per unit length. ${STAND_IN('piece')}`,
+    holds: String.raw`${BRIDGE(String.raw`\alpha`, String.raw`x=r\tan\alpha`, 'x', String.raw`r\sec^2\alpha`, ON_LINE(String.raw`\alpha`))} $\lambda$ is the charge per unit length. ${STAND_IN('piece')}`,
     at: HYPOTENUSE('x', 'r', 'line'),
     equal: String.raw`With $x=r\tan\alpha$, $r_i^2=x^2+r^2=r^2\sec^2\alpha$, and the $\sec^2\alpha$ in $\Delta Q$ cancels: every piece’s $\Delta E$ is $k\lambda\,\Delta\alpha/r$. A far piece holds more charge, and is farther away by exactly enough.`,
     sign: '-', dir: String.raw`\sin\alpha`, dirOf: String.raw`\frac{x}{\sqrt{x^2+r^2}}`, simplify: true,
@@ -343,8 +368,10 @@ const slash = (tex: string) => tex.replace(/^\\frac\{([^{}]*)\}\{(.*)\}$/, '$1/$
  * limits into "hi − lo" finished a centred arc on (φ/4 − −φ/4) and half a ring on (3π/2 − π/2).
  * `oneSided` says that no piece's mirror is in the bracket at all -- it lies wholly on one side of
  * the middle, or takes half the ring or less -- where "some pieces' mirrors lie outside it" said too
- * little. Left out, a bracket that starts or ends at the middle, 0, is one-sided. */
-export function boardLines(p: Problem, bounds?: [string, string], opts: {keeps?: boolean; span?: string; oneSided?: boolean} = {}): BoardLine[] {
+ * little. Left out, a bracket that starts or ends at the middle, 0, is one-sided. `below` says that the
+ * bracket reaches below the middle, where an angle measured from it is negative; left out, it does when
+ * its lower limit is negative or a handle's name. */
+export function boardLines(p: Problem, bounds?: [string, string], opts: {keeps?: boolean; span?: string; oneSided?: boolean; below?: boolean} = {}): BoardLine[] {
   const t = PARTS[p.id], scalar = p.quantity === 'V', lhs = componentOf(p), v = p.variableTex;
   const surface = p.geometry === 'disk' || p.geometry === 'sheet', unit = surface ? 'ring' : 'piece';
   const [lo, hi] = bounds ?? p.boundTex;
@@ -418,11 +445,14 @@ export function boardLines(p: Problem, bounds?: [string, string], opts: {keeps?:
   // A potential lesson's second line drops a square and a unit vector from the field's, and a student
   // coming from the field lessons reads both as typos: so it says why, where they go missing.
   // k is defined last: "with k = 1/(4πε₀) -- over r_i, not r_i²" read as k over r_i.
-  const POTENTIAL = String.raw`over $r_i$, not $r_i^2$, and with no direction: $\Delta V$ is a number, with nothing to split into parts. Here $k=1/(4\pi\varepsilon_0)$, and ${numbers}.`;
+  //
+  // "Over its distance — over r_i, not r_i²" said "over" twice across a dash, and read as a false start.
+  // So the distance is named once, and what it is not is said in a clause of its own.
+  const POTENTIAL = String.raw`divided by its distance, $r_i$${DASH}not $r_i^2$, as for the field${DASH}and a potential has no direction: $\Delta V$ is a number, with nothing to split into parts. Here $k=1/(4\pi\varepsilon_0)$, and ${numbers}.`;
   const toward = scalar
     ? surface
-      ? String.raw`A ring is not a point, but treated as thin, every bit of it is $r_i$ from${NB}$P$, so it adds $k$ times its charge over its distance${DASH}${POTENTIAL} ${t.at}`
-      : String.raw`A point charge’s potential is $k$ times its charge over its distance${DASH}${POTENTIAL} ${t.at}`
+      ? String.raw`A ring is not a point, but treated as thin, every bit of it is $r_i$ from${NB}$P$, so it adds $k$ times its charge ${POTENTIAL} ${t.at}`
+      : String.raw`A point charge’s potential is $k$ times its charge ${POTENTIAL} ${t.at}`
     // ΔQ stands for the thin ring, as on the infinite and the semi-infinite line it stands for a point
     // charge, and ΔE is that stand-in's field: "=", as there. The board wrote ≈ here, = for the same ΔE
     // in What cancels and ≈ again in Add, the sign flipping on one approximation. Cut it up says the
@@ -430,7 +460,7 @@ export function boardLines(p: Problem, bounds?: [string, string], opts: {keeps?:
     : p.geometry === 'sheet'
       ? String.raw`$\delta q$ is one bit of the thin ring that stands in for this one: its bits hold $\Delta Q$ between them, all $r_i$ from${NB}$P$ (${numbers}), and $\hat{\mathbf r}$ points from a bit toward${NB}$P$. ${POINT}`
       : surface ? String.raw`${bit} ${t.at} If the ring is treated as thin, every bit of it is $r_i$ from${NB}$P$ (${numbers}).`
-      : String.raw`${COULOMB} ${t.at}${t.equal ? ' ' + t.equal : ''}`;
+      : String.raw`${COULOMB} ${t.at}${t.equal ? ' ' + t.equal : ''}${p.geometry === 'ring' ? ' ' + ANY_SIZE : ''}`;
   // A potential's third line is its second line again, and that is the point: a number has no
   // direction, so there is nothing to project -- and with charge of one sign, no piece's number
   // can undo another's. (Charge of both signs could: a dipole's potential vanishes where its
@@ -462,7 +492,16 @@ export function boardLines(p: Problem, bounds?: [string, string], opts: {keeps?:
   // survives is, and the remark says why. On one side of the middle no mirror is inside at all, and
   // "some" said too little.
   const lopsided = !scalar && !!t.mirror && !keeps;
-  const across = t.mirror && String.raw`${p.geometry === 'ring' ? String.raw`|\Delta\mathbf E_\perp|=` : String.raw`\Delta E_y=-`}\frac{k\,${dQ}}{${ri2}}${fx('projection', t.mirror.across)}`;
+  // The rods' survivor is a signed component, which adds along the bracket. The ring's used to be
+  // written |ΔE⊥| = … sin α "survives too": a magnitude, which cannot survive a sum, beside a sin α
+  // the card never defined. On part of a ring the pieces' parts across the axis point different ways
+  // round it: they still partly cancel, and only what is left leans the field. So the ring says that in
+  // words, with its sine said where E_z's cosine is.
+  const across = t.mirror && p.geometry !== 'ring' ? String.raw`\Delta E_y=-\frac{k\,${dQ}}{${ri2}}${fx('projection', t.mirror.across)}` : undefined;
+  const ringAcross = String.raw`Its part across the axis, of size $k\,\Delta Q\sin\alpha/r_i^2$ with $\sin\alpha=R/\sqrt{R^2+z^2}$, no longer meets its partner: across the bracket those parts only partly cancel, and the rest leans the field.`;
+  // The angle's sign matters only where some piece is below the middle: on a bracket wholly above it,
+  // "below the x-axis α is negative" explained a negative α that never occurs.
+  const below = opts.below ?? (lo.startsWith('-') || /_[12]$/.test(lo));
   const offCentre = p.geometry === 'ring'
     ? `With the bracket ${oneSided ? 'on half the ring or less, the ring straight across every piece lies' : 'short of the whole ring, the ring straight across some pieces lies'} outside it, so the part across the axis no longer cancels: the integral below builds $${lhs}$ alone.`
     : `With the bracket ${oneSided ? 'on one side of the middle, every piece’s mirror lies outside it' : 'off-centre, not every piece’s mirror is inside it'}, so the part ${t.mirror?.lost} no longer cancels: the integral below builds $${lhs}$ alone.`;
@@ -480,7 +519,7 @@ export function boardLines(p: Problem, bounds?: [string, string], opts: {keeps?:
         // Why the part is that side of the triangle, said beside the formula -- and the mirror's
         // sentence only while the mirror is in the sum. Without it, the angle's sign is said, after
         // the sentence that says what the angle is.
-        say: t.dirIs + ((lopsided ? t.signed && ' ' + t.signed : t.mirrorSay) ?? ''),
+        say: t.dirIs + ((lopsided ? p.geometry === 'ring' ? ' ' + ringAcross : below && t.signed ? ' ' + t.signed : '' : t.mirrorSay) ?? ''),
         cancels: lopsided ? undefined : gloss(undone),
         cancelsSay: lopsided ? undefined : t.pairSay,
         nothing: lopsided ? offCentre : t.nothing,
@@ -520,9 +559,26 @@ export function boardLines(p: Problem, bounds?: [string, string], opts: {keeps?:
   // Why only ≈. The disk's pieces were called thin rings from the first line, so "each ring is still
   // treated as one thin ring" gave the approximation as its own reason. What is approximate is that a
   // ring Δs wide has all its charge counted at one radius. The sheet's ring is the stand-in itself.
+  //
+  // And small compared with what. "Each piece is still treated as a point charge" never said, and the
+  // sliders reach r = ½ beside L = 8 at three pieces, where the bisector's sum is 2.7 times the field:
+  // a piece is nearly a point charge only while it is short beside its distance from P. On the arc that
+  // distance is R for every bit of every piece, which made "only ≈" a puzzle beside the ring's "already
+  // exact": what goes wrong is direction -- cos θ changes across a piece and the sum takes it at the
+  // middle, too big by (Δθ/2)/sin(Δθ/2), 1.7% at the default five pieces and 4.7% at three.
+  const equalAngle = p.geometry === 'infinite' || p.geometry === 'semi';
   const roughly = p.geometry === 'sheet' ? 'each ring is still treated as one thin ring'
-    : surface ? String.raw`each ring is $\Delta s$ wide, but all its charge is counted at one radius $s$, one distance $r_i$ from${NB}$P$`
-    : 'each piece is still treated as a point charge';
+    : surface ? String.raw`each ring is $\Delta s$ wide, but all its charge is counted at one radius $s$, one distance $r_i$ from${NB}$P$, which is close only while a ring is narrow beside that distance`
+    : p.geometry === 'arc' ? String.raw`every bit of a piece is $R$ from${NB}$P$, but the bits’ fields point different ways: $\cos\theta$ changes across the piece, and the sum takes it at the piece’s middle`
+    : equalAngle ? 'each piece is still treated as a point charge'
+    : String.raw`each piece is still treated as a point charge, which is close only while a piece is short beside its distance from${NB}$P$`;
+  // What makes the ≈ an = in the limit, for the rule under the integral: the same approximation, gone.
+  const sharper = surface ? p.geometry === 'sheet'
+    ? 'the thinner a ring in angle, the more nearly its field is its thin ring’s, and in the limit it is'
+    : 'the thinner a ring, the more nearly all its charge sits at one radius, and in the limit it does'
+    : p.geometry === 'arc' ? String.raw`the shorter a piece, the less $\cos\theta$ changes across it, and in the limit not at all`
+    : equalAngle ? 'the thinner a piece in angle, the more nearly its field is its point charge’s, and in the limit it is'
+    : 'the thinner a piece, the more nearly it is a point charge, and in the limit it is one';
   // WHY AN EXACT SUM NEEDS NO CALCULUS. Called exact and then integrated anyway, the ring's integral
   // read as ritual. The line that answers "why integrate?" is one line: the factor every term shares
   // comes out of the sum, and what is left adds up the charge.
@@ -569,9 +625,13 @@ export function boardLines(p: Problem, bounds?: [string, string], opts: {keeps?:
       // "∫dθ = 2π counts the pieces" read as there being 2π of them. It adds up their angles.
       ? `$${constant.adds}$ adds up the pieces’ angles, ${constant.span}, just as $\\sum_i\\Delta\\theta_i$ did: the answer is the sum’s, and $${constant.total}$.`
       : `$\\int_{${lo}}^{${hi}}d\\theta=${count}$ adds up the bracketed pieces’ angles, just as $\\sum_i\\Delta\\theta_i$ did.`}`
-    : swaps.length
-      ? `${thinner} For that, what changes from ${unit} to ${unit} is written in terms of $${v}$: ${listed}${t.tail ?? ''}.`
-      : `${thinner} Only $${nth(t.dir!)}$ changes from ${unit} to ${unit}, and it is already in terms of $${v}$${t.tail ?? ''}.`;
+    // WHY THE ≈ BECOMES =. Add ended "it is only ≈: each piece is still treated as a point charge", and
+    // the next line had "=" with no word for why: a reader who never understood why we integrate read
+    // the integral as a renaming that is somehow exact. The approximation Add named is what shrinking
+    // removes -- that is the reason to integrate -- so the rule ends by saying so.
+    : `${thinner} ${swaps.length
+      ? `For that, what changes from ${unit} to ${unit} is written in terms of $${v}$: ${listed}${t.tail ?? ''}.`
+      : `Only $${nth(t.dir!)}$ changes from ${unit} to ${unit}, and it is already in terms of $${v}$${t.tail ?? ''}.`} The $\\approx$ becomes $=$ here: ${sharper}.`;
   return [
     // One factor, not two: both sides are the element, and lit -- every run's first stage, or the charge
     // slider pointed at -- two chips' rings used up the relation's space and pinched the "=" between them.
@@ -603,32 +663,51 @@ export function boardLines(p: Problem, bounds?: [string, string], opts: {keeps?:
 // equality read as a tower of fractions, while the endpoint's, the ramp's and the semi-infinite line's
 // components were separate blocks 23 px apart. Every result of more than one row is now one aligned
 // block, its "=" signs in a column, with one gap between rows. And the terms come in the order the
-// board's last line has them -- y² + r² at y = L/2 is (L/2)² + r², s² + z² at s = R is R² + z² -- so
-// the reader sees that line become the answer by substitution; and the endpoint now writes L² + r² as
-// its sibling the ramp always has.
-const GAP = String.raw`\\[.45em]`;
+// board's last line has them -- y² + r² at y = L/2 is (L/2)² + r², s² + z² at s = R is R² + z², L + a − x
+// at x = 0 is L + a -- so the reader sees that line become the answer by substitution.
+//
+// ONE GAP, SIZED TO THE ROW IT FOLLOWS. KaTeX's \\[g] does not add g: it makes the row at least
+// g + .36em deep, and a row whose fraction has a radical in its denominator is already about an em
+// deep. So the one \\[.45em] every result used added nothing on the bisector, the endpoint, the ramp
+// and the disk -- the .3em of line spacing, 5 px, between rows -- and a little on the semi-infinite
+// line's shallower ones, while the board's own chain above sat 18 px apart. Each break is now as deep
+// as its row needs to leave about .7em between one row's ink and the next's; tests/panel-rhythm.test.ts
+// measures that with KaTeX's own metrics. A row that only continues the one above -- the ramp's
+// bracket, the disk's (z > 0) -- keeps the plain line spacing.
+const rowGap = (em: number) => String.raw`\\[${em}em]`;
 const SET_OVER_TWO_LINES: Partial<Record<ProblemId, string[]>> = {
   // The board is in λ to its last line, and the answer under it was in Q: where λ went and Q came
   // from was said only in Unfold's last step. So it is said in λ first, then with λL = Q, as the disk
   // goes from k to ε₀.
-  bisector: [String.raw`\begin{aligned}E_x&=\frac{k\lambda L}{r\sqrt{(L/2)^2+r^2}}${GAP}&=\frac{kQ}{r\sqrt{(L/2)^2+r^2}}\end{aligned}`],
+  bisector: [String.raw`\begin{aligned}E_x&=\frac{k\lambda L}{r\sqrt{(L/2)^2+r^2}}${rowGap(1.2)}&=\frac{kQ}{r\sqrt{(L/2)^2+r^2}}\end{aligned}`],
   // A \left…\right pair cannot span a line break, so the ramp's brackets are sized by hand -- as
   // tall as the fractions they hold, not the shorter \Big that left the closing one shrunken. Its second
   // row hangs under the bracket's first term: a phantom of everything before it takes exactly its width.
-  ramp: [String.raw`\begin{aligned}E_x&=\frac{k\lambda_0}{L}\left(1-\frac{r}{\sqrt{L^2+r^2}}\right)${GAP}E_y&=-\frac{k\lambda_0}{L}\bigg[\ln\frac{L+\sqrt{L^2+r^2}}{r}\\&\phantom{{}=-\frac{k\lambda_0}{L}\bigg[}-\frac{L}{\sqrt{L^2+r^2}}\bigg]\end{aligned}`],
-  // Both components in λ, as the board integrated: E_x in Q above E_y in λ asked whether they were
-  // two different charges.
-  endpoint: [String.raw`\begin{aligned}E_x&=\frac{k\lambda L}{r\sqrt{L^2+r^2}}${GAP}E_y&=-k\lambda\left(\frac1r-\frac1{\sqrt{L^2+r^2}}\right)\end{aligned}`],
+  // That row continues one expression, so it follows at the plain line spacing, not the gap.
+  ramp: [String.raw`\begin{aligned}E_x&=\frac{k\lambda_0}{L}\left(1-\frac{r}{\sqrt{L^2+r^2}}\right)${rowGap(1)}E_y&=-\frac{k\lambda_0}{L}\bigg[\ln\frac{L+\sqrt{L^2+r^2}}{r}\\&\phantom{{}=-\frac{k\lambda_0}{L}\bigg[}-\frac{L}{\sqrt{L^2+r^2}}\bigg]\end{aligned}`],
+  // Both components in λ, as the board integrated, and then both in Q, as the bisector's is: the rod
+  // holds Q as L changes, and in λ alone E_x grows with L where at fixed Q it falls. (E_x in Q above
+  // E_y in λ asked whether they were two different charges, so each is said in both.)
+  endpoint: [String.raw`\begin{aligned}E_x&=\frac{k\lambda L}{r\sqrt{L^2+r^2}}${rowGap(1)}&=\frac{kQ}{r\sqrt{L^2+r^2}}${rowGap(1)}E_y&=-k\lambda\left(\frac1r-\frac1{\sqrt{L^2+r^2}}\right)${rowGap(1)}&=-\frac{kQ}{L}\left(\frac1r-\frac1{\sqrt{L^2+r^2}}\right)\end{aligned}`],
   // The magnitude on a row of its own: it is not a signed component, and the note under the
   // components says they are signed.
-  semi: [String.raw`\begin{aligned}E_x&=-\frac{k\lambda}{r}${GAP}E_y&=\frac{k\lambda}{r}${GAP}|\mathbf E|&=\frac{\sqrt2\,k|\lambda|}{r}\end{aligned}`],
+  semi: [String.raw`\begin{aligned}E_x&=-\frac{k\lambda}{r}${rowGap(.75)}E_y&=\frac{k\lambda}{r}${rowGap(.75)}|\mathbf E|&=\frac{\sqrt2\,k|\lambda|}{r}\end{aligned}`],
   // The disk's field holds only above it, as its potential does, and both say so as the sheet does,
   // "(z > 0)": on a row of their own, because on one line it ran out of the panel. The condition
   // hangs under the right-hand side, after the "=", not under the "=" itself -- close under it, as a
   // condition is, not a gap away as the next equality is.
-  disk: [String.raw`\begin{aligned}E_z&=2\pi k\sigma\left(1-\frac{z}{\sqrt{R^2+z^2}}\right)${GAP}&=\frac{\sigma}{2\varepsilon_0}\left(1-\frac{z}{\sqrt{R^2+z^2}}\right)\\&\phantom{{}={}}(z>0)\end{aligned}`],
+  disk: [String.raw`\begin{aligned}E_z&=2\pi k\sigma\left(1-\frac{z}{\sqrt{R^2+z^2}}\right)${rowGap(1)}&=\frac{\sigma}{2\varepsilon_0}\left(1-\frac{z}{\sqrt{R^2+z^2}}\right)\\&\phantom{{}={}}(z>0)\end{aligned}`],
   sheet: [String.raw`E_z=2\pi k\sigma=\frac{\sigma}{2\varepsilon_0}\quad(z>0)`],
-  'v-disk': [String.raw`\begin{aligned}V&=2\pi k\sigma\left(\sqrt{R^2+z^2}-z\right)${GAP}&=\frac{\sigma}{2\varepsilon_0}\left(\sqrt{R^2+z^2}-z\right)\\&\phantom{{}={}}(z>0)\end{aligned}`],
+  'v-disk': [String.raw`\begin{aligned}V&=2\pi k\sigma\left(\sqrt{R^2+z^2}-z\right)${rowGap(.7)}&=\frac{\sigma}{2\varepsilon_0}\left(\sqrt{R^2+z^2}-z\right)\\&\phantom{{}={}}(z>0)\end{aligned}`],
+  // THE LESSONS THAT HOLD Q AS THE SLIDER MOVES, SAID IN Q TOO. The arc, the rod on its axis and the two
+  // rod potentials keep their total charge fixed as φ or L changes -- their setups say so -- and their
+  // answers were in λ alone. Read with λ a constant, the arc's peaks at a semicircle, where sin(φ/2) is
+  // largest, and the axial rod's grows with L; dragging the slider shows both only falling, since at
+  // fixed Q they are 2kQ sin(φ/2)/(R²φ) and kQ/(a(L+a)). The bisector got "λ, then Q" for this reason.
+  arc: [String.raw`\begin{aligned}E_x&=-\frac{2k\lambda}{R}\sin\frac\varphi2${rowGap(.75)}&=-\frac{2kQ}{R^2\varphi}\sin\frac\varphi2\end{aligned}`],
+  axial: [String.raw`\begin{aligned}E_x&=k\lambda\left(\frac1a-\frac1{L+a}\right)${rowGap(1)}&=\frac{kQ}{a(L+a)}\end{aligned}`],
+  'v-rod-bisector': [String.raw`\begin{aligned}V&=2k\lambda\ln\frac{L/2+\sqrt{(L/2)^2+r^2}}{r}${rowGap(.75)}&=\frac{2kQ}{L}\ln\frac{L/2+\sqrt{(L/2)^2+r^2}}{r}\end{aligned}`],
+  'v-rod-axial': [String.raw`\begin{aligned}V&=k\lambda\ln\frac{L+a}{a}${rowGap(.75)}&=\frac{kQ}{L}\ln\left(1+\frac La\right)\end{aligned}`],
 };
 /** What the integral comes to, the built component first. */
 export function resultLines(p: Problem): string[] {
@@ -651,7 +730,7 @@ export function rodUnfold(lo: string, hi: string): WorkedStep[] {
     {text: String.raw`Turn the changing distance into an angle. Hold $r$ fixed and put $y=r\tan\alpha$, so $dy=r\sec^2\alpha\,d\alpha$; then the denominator is a power of $\sec\alpha$.`,
       tex: String.raw`y^2+r^2=r^2(\tan^2\alpha+1)=r^2\sec^2\alpha`},
     {text: String.raw`The conversion factor, $r\sec^2\alpha$, supplies two powers of secant. One $\sec\alpha$ remains in the denominator: that is $\cos\alpha$ on top.`,
-      tex: String.raw`\begin{aligned}\int\frac{r\,dy}{(y^2+r^2)^{3/2}}&=\int\frac{r\cdot r\sec^2\alpha}{r^3\sec^3\alpha}\,d\alpha\\&=\frac1r\int\cos\alpha\,d\alpha\end{aligned}`},
+      tex: String.raw`\begin{aligned}\int\frac{r\,dy}{(y^2+r^2)^{3/2}}&=\int\frac{r\cdot r\sec^2\alpha}{r^3\sec^3\alpha}\,d\alpha${rowGap(1)}&=\frac1r\int\cos\alpha\,d\alpha\end{aligned}`},
     {text: String.raw`Integrate: $\int\cos\alpha\,d\alpha=\sin\alpha$. Then return to the triangle, where $\sin\alpha=y/\sqrt{y^2+r^2}$.`,
       tex: String.raw`\frac1r\int\cos\alpha\,d\alpha=\frac{\sin\alpha}{r}=\frac{y}{r\sqrt{y^2+r^2}}`},
   ];
@@ -671,4 +750,58 @@ export const INFINITE_UNFOLD: WorkedStep[] = [
     tex: String.raw`E_x=\frac{k\lambda}{r}\int_{-\pi/2}^{\pi/2}\cos\theta\,d\theta`},
   {text: String.raw`Integrate: $\int\cos\theta\,d\theta=\sin\theta$.`,
     tex: String.raw`E_x=\frac{k\lambda}{r}\Big[\sin\theta\Big]_{-\pi/2}^{\pi/2}`},
+];
+/** THE SEMI-INFINITE LINE, IN THE ANGLE IT WAS BUILT IN. One piece proves the lesson's claim in α --
+ * the sec²α in ΔQ cancels the one in the distance, so every piece makes kλΔα/r -- and the infinite line,
+ * its sibling, finishes on ∫cos θ dθ. This one's Unfold did E_x by u = x² + r² and then, for E_y, put
+ * x = r tan α back: α to x to α, two methods for two components of one integral, and never the
+ * one-line α integral One piece set up. So both components are done in α, and the lesson's own last
+ * step, combining them, follows. (x dx/(x² + r²)^{3/2} = r tan α · r sec²α dα / r³ sec³α = sin α dα/r.)
+ *
+ * A bracket that opens on a minus is \Bigl[ or \left[, never \Big[: KaTeX sets \Big as an ordinary
+ * symbol, so the minus after it was spaced as a subtraction, "[ − cos α ]". */
+export const SEMI_UNFOLD: WorkedStep[] = [
+  {text: String.raw`Take $k\lambda$ outside and put back $x=r\tan\alpha$, as in Cut it up: $dx=r\sec^2\alpha\,d\alpha$ and $x^2+r^2=r^2\sec^2\alpha$, so the integrand is One piece’s $d\alpha/r$ times $\sin\alpha$. As $x$ runs from $0$ to $\infty$, $\alpha$ runs from $0$ to $\pi/2$.`,
+    tex: String.raw`\begin{aligned}E_x&=-k\lambda\int_0^\infty\frac{x\,dx}{(x^2+r^2)^{3/2}}${rowGap(1)}&=-\frac{k\lambda}{r}\int_0^{\pi/2}\sin\alpha\,d\alpha\end{aligned}`},
+  {text: String.raw`Integrate: $\int\sin\alpha\,d\alpha=-\cos\alpha$. Upper end minus lower end: $-\cos(\pi/2)+\cos0=1$.`,
+    tex: String.raw`E_x=-\frac{k\lambda}{r}\Bigl[-\cos\alpha\Bigr]_0^{\pi/2}=-\frac{k\lambda}{r}`},
+  {text: String.raw`$E_y$ is the same with $\cos\alpha$ in place of $\sin\alpha$, and no minus: $\int\cos\alpha\,d\alpha=\sin\alpha$.`,
+    tex: String.raw`\begin{aligned}E_y&=\frac{k\lambda}{r}\int_0^{\pi/2}\cos\alpha\,d\alpha${rowGap(.95)}&=\frac{k\lambda}{r}\Big[\sin\alpha\Big]_0^{\pi/2}=\frac{k\lambda}{r}\end{aligned}`},
+];
+/** THE DISK, WITH THE STEPS A WEAK-CALCULUS READER CANNOT SUPPLY. Its Unfold said "2πkσz comes
+ * outside the integral" over an indefinite ∫ s ds/(s² + z²)^{3/2} with neither, wrote
+ * ½∫u^{-3/2}du = −1/√(s² + z²) with the power rule in between left out, and jumped to the evaluated
+ * answer without the bracket it evaluates. Each is a line here; the lesson's own steps follow, from
+ * √(z²) = |z|. */
+export const DISK_UNFOLD: WorkedStep[] = [
+  {text: String.raw`$2\pi k\sigma z$ is the same for every ring: the height $z$ is fixed while $s$ runs over the rings. So it comes outside the integral.`,
+    tex: String.raw`E_z=2\pi k\sigma z\int_0^R\frac{s\,ds}{(s^2+z^2)^{3/2}}`},
+  {text: String.raw`Let $u=s^2+z^2$. With $z$ fixed, $du=2s\,ds$, so $s\,ds$ is $du/2$.`,
+    tex: String.raw`\int\frac{s\,ds}{(s^2+z^2)^{3/2}}=\frac12\int u^{-3/2}\,du`},
+  {text: 'Raise the power by one and divide by the new power.',
+    tex: String.raw`\begin{aligned}\frac12\int u^{-3/2}\,du&=\frac12\cdot\frac{u^{-1/2}}{-1/2}${rowGap(1)}&=-\frac1{\sqrt{s^2+z^2}}\end{aligned}`},
+  {text: 'Upper end minus lower end.',
+    tex: String.raw`\begin{aligned}E_z&=2\pi k\sigma z\left[-\frac1{\sqrt{s^2+z^2}}\right]_0^R${rowGap(1)}&=2\pi k\sigma z\left(\frac1{\sqrt{z^2}}-\frac1{\sqrt{R^2+z^2}}\right)\end{aligned}`},
+];
+/** The arc's integral from its board's last line. Its Unfold opened already integrated, −(kλ/R)[sin θ],
+ * under "Integrate the angular projection", and finished on "Sine is odd" -- the two steps a reader
+ * needs, kλ/R coming out and sin(−φ/2) = −sin(φ/2), named rather than written. */
+export const ARC_UNFOLD: WorkedStep[] = [
+  {text: String.raw`$k\lambda/R$ is the same for every piece, so it comes outside the integral.`,
+    tex: String.raw`E_x=-\frac{k\lambda}{R}\int_{-\varphi/2}^{\varphi/2}\cos\theta\,d\theta`},
+  {text: String.raw`Integrate: $\int\cos\theta\,d\theta=\sin\theta$.`,
+    tex: String.raw`E_x=-\frac{k\lambda}{R}\Big[\sin\theta\Big]_{-\varphi/2}^{\varphi/2}`},
+  {text: String.raw`Upper end minus lower end: $\sin(-\varphi/2)=-\sin(\varphi/2)$, so the two ends add.`,
+    tex: String.raw`\begin{aligned}E_x&=-\frac{k\lambda}{R}\left(\sin\frac\varphi2+\sin\frac\varphi2\right)${rowGap(.75)}&=-\frac{2k\lambda}{R}\sin\frac\varphi2\end{aligned}`},
+];
+/** The rod on its axis. "An antiderivative is positive: 1/(L + a − x)" hid du = −dx, the ends turning
+ * round and ∫u^{-2}du = −u^{-1}: the minus signs a reader loses. Each is written; the lesson's last
+ * step, the answer in Q, follows. */
+export const AXIAL_UNFOLD: WorkedStep[] = [
+  {text: String.raw`$k\lambda$ is the same for every piece, so it comes outside the integral.`,
+    tex: String.raw`E_x=k\lambda\int_0^L\frac{dx}{(L+a-x)^2}`},
+  {text: String.raw`Let $u=L+a-x$, the piece’s distance from${NB}$P$. Then $du=-dx$, and as $x$ runs from $0$ to $L$, $u$ runs from $L+a$ down to $a$: the minus turns the ends round.`,
+    tex: String.raw`E_x=k\lambda\int_{L+a}^{a}\frac{-du}{u^2}=k\lambda\int_a^{L+a}\frac{du}{u^2}`},
+  {text: String.raw`Raise the power by one and divide by the new power: $\int u^{-2}\,du=-u^{-1}$. Then upper end minus lower end.`,
+    tex: String.raw`\begin{aligned}E_x&=k\lambda\left[-\frac1u\right]_a^{L+a}${rowGap(1.05)}&=k\lambda\left(\frac1a-\frac1{L+a}\right)\end{aligned}`},
 ];

@@ -88,7 +88,7 @@ describe('the sheet in space: P is drawn above the sheet, not in it', () => {
   await waitFor(() => expect(view.container.querySelector('.cd-in-space')).toBeTruthy());
   expect(clearance(view), 'the resting ring').toBeGreaterThanOrEqual(20);
   fireEvent.click(view.getByRole('button', {name: 'Watch it build'}));
-  for (const [n, name, key] of [[2, 'One piece', 'one'], [3, 'What cancels', 'cancel']] as const) {
+  for (const [n, name, key] of [[2, 'One ring', 'one'], [3, 'What cancels', 'cancel']] as const) {
    jump(view, n, name);
    await waitFor(() => expect(stage(view)?.dataset.runStage).toBe(key));
    expect(clearance(view), name).toBeGreaterThanOrEqual(20);

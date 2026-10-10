@@ -1,7 +1,7 @@
 'use client';
 import {memo, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent, type PointerEvent} from 'react';
 import {ChevronLeft, ChevronRight, Pause, Play, RotateCcw, X} from 'lucide-react';
-import {MathText} from '../components/Math';
+import {MathText, Prose} from '../components/Math';
 import type {BuildStage} from './buildRun';
 /** Where the run is, in seconds -- kept as a little store rather than as state on the page.
  *
@@ -174,8 +174,8 @@ export const BuildPlayer = memo(function BuildPlayer({stages, clock, index, play
           so each new line arrives rather than being swapped in place. */}
       <div className="bp-lines">
         {stages.map((s, i) => i === index
-          ? <p key={s.key} className="bp-line"><strong>{s.name}.</strong> {s.line}</p>
-          : <p key={`held-${s.key}`} className="bp-line-held" aria-hidden="true"><strong>{s.name}.</strong> {s.line}</p>)}
+          ? <p key={s.key} className="bp-line"><strong>{s.name}.</strong> <Prose text={s.prose} /></p>
+          : <p key={`held-${s.key}`} className="bp-line-held" aria-hidden="true"><strong>{s.name}.</strong> <Prose text={s.prose} /></p>)}
       </div>
       <span className="bp-steps">
         <button type="button" className="bp-icon" onClick={() => onStep(at - starts[index] > .6 || index === 0 ? index : index - 1)} aria-label="Previous stage"><ChevronLeft size={17} /></button>

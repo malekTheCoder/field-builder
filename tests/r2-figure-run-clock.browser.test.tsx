@@ -27,7 +27,7 @@ type View = Awaited<ReturnType<typeof openLesson>>;
 const NAMES = ['Cut it up', 'One piece', 'What cancels', 'Add them up', 'Shrink them'];
 function stage(view: View, n: number) {
  if (!view.queryByRole('button', {name: /^Stage 1: /})) fireEvent.click(view.getByRole('button', {name: 'Watch it build'}));
- fireEvent.click(view.getByRole('button', {name: `Stage ${n}: ${NAMES[n - 1]}`}));
+ fireEvent.click(view.getByRole('button', {name: new RegExp(`^Stage ${n}: ${NAMES[n - 1].replace('One piece', 'One (piece|ring)')}$`)}));
 }
 /** Drag the transport to `f` of the way through stage `i` (0-based) and let go: the run holds there.
  * A browser follows the release with a click on the stage under it, which the transport swallows as

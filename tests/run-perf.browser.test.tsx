@@ -55,7 +55,7 @@ const SHRINK_SLACK = 1.35;
 const budget = (stage: string) => FRAME_MS * CI_FACTOR * (stage === 'Shrink them' ? SHRINK_SLACK : 1);
 /** The stages that hold the figure still from their first frame to their last: the run's clock is
  * the only thing moving, and it moves only the transport. */
-const STILL = ['Cut it up', 'One piece'];
+const STILL = (id: string) => ['Cut it up', id === 'disk' ? 'One ring' : 'One piece'];
 /** What cancels holds the figure still too, except while its two sideways parts shrink into P: that
  * is read off the run's clock, in the middle third of the stage, one render a frame. */
 const shrinkFrames = (id: string) => { const s = buildStages(getProblem(id as never))[2]; return s.pair ? Math.ceil(.35 * s.seconds / .05) + 1 : 0; };
@@ -118,13 +118,13 @@ describe('a frame of the run is cheap enough to be smooth', () => {
    const report = [...costs].map(([s, xs]) => `${s.padEnd(13)} mean ${mean(xs).toFixed(2).padStart(6)} ms  p95 ${percentile(xs, .95).toFixed(2).padStart(6)} ms  max ${Math.max(...xs).toFixed(2).padStart(6)} ms  (${xs.length} frames, figure rendered ${figureRenders.get(s)}, field drawn ${fieldDraws.get(s)}${scene ? `, scene traced ${sceneTraces.get(s)}` : ''})`);
    console.log(`[run-perf] ${id}\n  ${report.join('\n  ')}\n  ${'whole run'.padEnd(13)} mean ${mean(all).toFixed(2).padStart(6)} ms  p95 ${percentile(all, .95).toFixed(2).padStart(6)} ms  equations rewritten ${rewrites}`);
    // It did play through, so the frames timed are the run's and not a stalled page's.
-   expect([...costs.keys()]).toEqual(expect.arrayContaining(['Cut it up', 'One piece', 'What cancels', 'Add them up', 'Shrink them']));
+   expect([...costs.keys()]).toEqual(expect.arrayContaining([...STILL(id), 'What cancels', 'Add them up', 'Shrink them']));
    for (const [s, xs] of costs) expect(percentile(xs, .95), `${id} / ${s}: p95 frame cost, ms`).toBeLessThan(budget(s));
    // No equation is rebuilt from its markup while the run plays: none of them changes as it moves.
    expect(rewrites, 'equations rewritten during the run').toBe(0);
    // A stage that holds the figure still does not redraw it. A couple of renders are allowed for
    // the stage's own arrival -- the one before it can hand over in its last frame -- but not one a frame.
-   for (const s of STILL) expect(figureRenders.get(s), `${id} / ${s}: renders of a figure held still`).toBeLessThanOrEqual(3);
+   for (const s of STILL(id)) expect(figureRenders.get(s), `${id} / ${s}: renders of a figure held still`).toBeLessThanOrEqual(3);
    expect(figureRenders.get('What cancels'), `${id} / What cancels: renders beyond the shrink`).toBeLessThanOrEqual(3 + shrinkFrames(id));
    // And while the pieces shrink, the field is not redrawn for every new cut: it is traced once,
    // from the cut the stage ends on, however many times the pieces double on the way.
