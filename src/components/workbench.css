@@ -218,7 +218,11 @@
    once they were raised to the remarks' 1.1em. */
 .db-cancels:not(.db-nothing){color:var(--foreground);font-size:var(--db-math)}
 .db-cancels:not(.db-nothing) .katex{font-size:1.14em}
-.db-then{display:grid;grid-template-rows:0fr;opacity:0;transition:grid-template-rows .6s cubic-bezier(.2,.8,.2,1),opacity .5s ease}
+/* The finished line opens gently at first. It opens the moment the answer arrives under it, while the
+   board glides up to that answer; opening fast-first, it pushed the answer down faster than the glide
+   could start, and on a slow machine the answer sank under the panel's foot before rising. Eased in and
+   out, it is still a small way open when the glide is at speed. */
+.db-then{display:grid;grid-template-rows:0fr;opacity:0;transition:grid-template-rows .6s cubic-bezier(.45,0,.2,1),opacity .5s ease}
 .db-then.is-shown{grid-template-rows:1fr;opacity:1}
 .db-then-in{display:block;min-height:0;overflow:hidden}
 .db-then-tex{font-size:var(--db-math)}
