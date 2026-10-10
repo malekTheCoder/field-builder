@@ -50,6 +50,9 @@ type Props = {
   /** Once the run has settled: how the last integral comes out, and the answer. */
   chain?: readonly string[];
   answer?: readonly string[];
+  /** What the answer is said to be, over it: the integral done, or -- where the sum was already exact -- the
+   * pieces added up. Prose, so its symbols are set as math. */
+  lead?: string;
   onPlay: () => void;
   /** Go to a moment, holding still there. `scrubbing` is true while a drag is still under way. */
   onSeek: (seconds: number, scrubbing: boolean) => void;
@@ -58,11 +61,12 @@ type Props = {
   onClose: () => void;
 };
 const NO_MATH: readonly (readonly PlayerLine[])[] = [], NO_LINES: readonly string[] = [];
+const INTEGRAL_DONE = 'Doing the integral gives this.';
 /** k as the panel defines it under its answer: the run's answer is written in it. */
 const K_IS = String.raw`k=1/(4\pi\varepsilon_0)`;
 /** Memoised so that the page re-rendering around it -- which it does whenever the figure moves --
  * does not redraw it; the clock alone moves it on every frame. */
-export const BuildPlayer = memo(function BuildPlayer({stages, clock, index, playing, math = NO_MATH, chain = NO_LINES, answer = NO_LINES, onPlay, onSeek, onStep, onClose}: Props) {
+export const BuildPlayer = memo(function BuildPlayer({stages, clock, index, playing, math = NO_MATH, chain = NO_LINES, answer = NO_LINES, lead = INTEGRAL_DONE, onPlay, onSeek, onStep, onClose}: Props) {
   const [at, setAt] = useState(clock.get);
   // Subscribed before the browser can run another frame: layout effects run inside the commit.
   useLayoutEffect(() => clock.subscribe(() => setAt(clock.get())), [clock]);
@@ -87,9 +91,10 @@ export const BuildPlayer = memo(function BuildPlayer({stages, clock, index, play
     {chain.length > 0 && <div className="bp-chain">{chain.map(tex => <MathText key={tex} tex={tex} block trusted />)}</div>}
     {/* The answer as the panel gives it: said to be the integral done, and with its k defined. Under the
         finished integral, a phone reader met answer rows with no word saying what they were, in a k the
-        transport never defined. */}
-    {answer.length > 0 && <div className="bp-answer"><p className="bp-say bp-lead">Doing the integral gives this.</p>{answer.map(tex => <MathText key={tex} tex={tex} block trusted />)}<p className="bp-say bp-k">with <MathText tex={K_IS} /></p></div>}
-  </div>, [math, chain, answer, index]);
+        transport never defined. And said as the panel says it: on the ring and the exact potentials the run had
+        just said the sum needs no integral, and "Doing the integral gives this" then credited the integral. */}
+    {answer.length > 0 && <div className="bp-answer"><p className="bp-say bp-lead"><Prose text={lead} /></p>{answer.map(tex => <MathText key={tex} tex={tex} block trusted />)}<p className="bp-say bp-k">with <MathText tex={K_IS} /></p></div>}
+  </div>, [math, chain, answer, index, lead]);
   const segments = useRef<(HTMLButtonElement | null)[]>([]);
   const press = useRef<{x: number; y: number; moved: boolean} | null>(null), dragged = useRef(false);
   /** The moment under a point on the bar: find the stage it is over, then how far along it. */
@@ -139,17 +144,21 @@ export const BuildPlayer = memo(function BuildPlayer({stages, clock, index, play
   // On a stage's own segment they step from THAT stage, and the focus goes with them, as in a list
   // of tabs. They used to step from wherever the run was playing and leave the focus behind, so the
   // focus ring sat on one stage while the run moved to another.
+  // A presenter's clicker sends Page Down and Page Up: they are the arrows here too, so a clicker pressed
+  // after a click on Play steps the run rather than scrolling the figure off the projector.
   const keys = (ev: KeyboardEvent<HTMLDivElement>) => {
-    if (ev.key !== 'ArrowLeft' && ev.key !== 'ArrowRight') return;
+    const forward = ev.key === 'ArrowRight' || ev.key === 'PageDown';
+    if (!forward && ev.key !== 'ArrowLeft' && ev.key !== 'PageUp') return;
     ev.preventDefault();
+    if (ev.repeat && ev.key.startsWith('Page')) return;
     const from = segments.current.indexOf(ev.target as HTMLButtonElement);
     if (from >= 0) {
-      const next = ev.key === 'ArrowRight' ? Math.min(stages.length - 1, from + 1) : Math.max(0, from - 1);
+      const next = forward ? Math.min(stages.length - 1, from + 1) : Math.max(0, from - 1);
       onStep(next);
       segments.current[next]?.focus();
       return;
     }
-    onStep(ev.key === 'ArrowRight' ? Math.min(stages.length - 1, index + 1) : at - starts[index] > .6 || index === 0 ? index : index - 1);
+    onStep(forward ? Math.min(stages.length - 1, index + 1) : at - starts[index] > .6 || index === 0 ? index : index - 1);
   };
   const last = index === stages.length - 1;
   // A group of controls with a name, which is exactly what the role says; the tags the linter
@@ -166,9 +175,12 @@ export const BuildPlayer = memo(function BuildPlayer({stages, clock, index, play
           const here = i === index;
           // One tab stop for the five, on the stage the run is at: the arrow keys already move between
           // them, as in a list of tabs, and five stops stood between Play and Close.
+          // No title: it was the stage's sentence, which a screen reader read as the segment's description
+          // as the arrow keys moved onto it -- the same sentence the live region was reading for the stage
+          // the key had just played, so every press said it twice. The sentence is printed under the bar.
           return <button key={s.key} ref={el => { segments.current[i] = el; }} type="button" tabIndex={here ? 0 : -1}
             className={'bp-seg' + (here ? ' is-here' : '') + (fill >= 1 ? ' is-done' : '')}
-            style={{flexGrow: s.seconds}} aria-label={`Stage ${i + 1}: ${s.name}`} aria-current={here ? 'step' : undefined} title={`${s.name}. ${s.line}`}
+            style={{flexGrow: s.seconds}} aria-label={`Stage ${i + 1}: ${s.name}`} aria-current={here ? 'step' : undefined}
             onClick={() => { if (!dragged.current) onSeek(starts[i], false); dragged.current = false; }}>
             <span className="bp-seg-bar" aria-hidden="true"><span className="bp-seg-fill" style={{transform: `scaleX(${fill})`}} /></span>
             {here && <span className="bp-knob" aria-hidden="true" style={{left: `${fill * 100}%`}} />}

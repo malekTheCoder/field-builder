@@ -47,8 +47,10 @@
   .exp-reset,
   .exp-parameters,
   .ew-panel .lucide-chevron-down,
-  /* An instruction for the screen ("choose one to watch it on the figure"), not for paper. */
+  /* An instruction for the screen ("choose one to watch it on the figure"), not for paper. And the
+     answer's "Show every step", an underlined button in its lead that nobody can press on paper. */
   .ew-lede,
+  .ew-result-unfold,
   /* Where the lesson leads, and the laws link: buttons, for the screen. */
   .exp-related,
   .skip-link { display: none !important; }
@@ -64,6 +66,9 @@
   .exp-shell[data-slot='sidebar-wrapper'],
   .workspace { display: block !important; grid-template-columns: 1fr !important; min-height: 0 !important; }
   .exp-workspace, .studio-grid { display: block !important; grid-template-columns: 1fr !important; }
+  /* The board is held to the window on a laptop screen, and scrolls inside itself there; on paper it is
+     the whole board, every line of it. */
+  .exp-workspace > .ew-panel { position: static !important; max-height: none !important; overflow: visible !important; }
   .exp-main, .main-work { padding: 0 !important; max-width: none !important; }
   .exp-header, .app-top { border: 0 !important; height: auto !important; padding: 0 0 8px !important; }
   .exp-diagram-card, .charge-diagram, .ew-panel, .stage-card, .panel { break-inside: avoid; border: 0 !important; }

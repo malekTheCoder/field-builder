@@ -80,7 +80,9 @@ describe('keyboard and screen-reader path', () => {
     // printed name beside it, so every card read its name twice and then its whole subtitle; the
     // glyph is now hidden, and the subtitle is the card's description rather than part of its name.
     for (const name of ['Ring · potential', 'Disk · potential', 'Arc · potential', 'Finite line · potential', 'Line on axis · potential']) {
-      const card = within(dialog).getByRole('button', {name});
+      // A link to the lesson's address, which a teacher can open in a tab of its own.
+      const card = within(dialog).getByRole('link', {name});
+      expect(card.getAttribute('href'), name).toMatch(/^\?p=v-/);
       expect(card.querySelector('svg')?.getAttribute('aria-hidden'), name).toBe('true');
       expect(document.getElementById(card.getAttribute('aria-describedby') ?? '')?.textContent, name).toBeTruthy();
     }

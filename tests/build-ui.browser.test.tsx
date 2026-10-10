@@ -232,9 +232,24 @@ describe('the transport says how long the run is and where it has got to', () =>
   fireEvent.keyDown(play, {key: 'ArrowLeft'});
   expect(stage(view)).toBe('One piece');
   expect(fills(view)[1]).toBe(0);
-  // Outside the transport the arrows belong to whatever has the focus there.
-  fireEvent.keyDown(document.body, {key: 'ArrowRight'});
+  // Outside the transport the arrows belong to whatever has the focus there: a slider moves itself.
+  fireEvent.keyDown(view.getByRole('slider', {name: 'Distance r'}), {key: 'ArrowRight'});
   expect(stage(view)).toBe('One piece');
+  // With the focus on nothing in particular, a presenter's clicker -- Page Down, Page Up, or the arrows --
+  // steps the run instead of scrolling the figure off the projector.
+  const before = window.scrollY;
+  const down = new KeyboardEvent('keydown', {key: 'PageDown', bubbles: true, cancelable: true});
+  act(() => { document.body.dispatchEvent(down); });
+  expect(down.defaultPrevented, 'Page Down scrolled the page').toBe(true);
+  expect(stage(view)).toBe('What cancels');
+  fireEvent.keyDown(document.body, {key: 'PageUp'});
+  expect(stage(view)).toBe('One piece');
+  fireEvent.keyDown(document.body, {key: 'ArrowRight'});
+  expect(stage(view)).toBe('What cancels');
+  expect(window.scrollY).toBe(before);
+  // And on Play, which a mouse press leaves with the focus, Page Down is the transport's Next.
+  fireEvent.keyDown(view.getByRole('button', {name: 'Pause'}), {key: 'PageDown'});
+  expect(stage(view)).toBe('Add them up');
  });
  it('choosing a line of the derivation plays that stage on the figure', async () => {
   const view = await openLesson('bisector');

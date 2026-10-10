@@ -8,12 +8,17 @@ const IDS = new Set<string>(PROBLEM_IDS);
 const RANGES: Record<keyof Params, [number, number]> = { distance: [.5, 6], size: [1, 8], charge: [-5, 5], phi: [Math.PI * .1, Math.PI * 2], element: [0, 1], slices: [3, 30], continuum: [0, 1] };
 const ALIAS: Record<string, keyof Params> = { r: 'distance', L: 'size', Q: 'charge', N: 'slices', c: 'continuum', distance: 'distance', size: 'size', charge: 'charge', phi: 'phi', slices: 'slices', continuum: 'continuum', element: 'element' };
 
+/** Values held to what the controls can reach. That includes the charge's gap at zero: the slider steps
+ * over it (Explorer.tsx, snapCharge), because with no charge every sentence the run says is about nothing,
+ * over a figure with no field in it. A link reading charge=0 opened exactly that, and kept it in the
+ * address; it opens on the lesson's own charge instead. */
 export function cleanParams(v: Partial<Params>): Params {
  const out = { ...DEFAULT_PARAMS };
  for (const k of Object.keys(out) as (keyof Params)[]) {
   const n = v[k];
   if (typeof n === 'number' && Number.isFinite(n)) out[k] = Math.max(RANGES[k][0], Math.min(RANGES[k][1], n));
  }
+ if (Math.abs(out.charge) < .05) out.charge = DEFAULT_PARAMS.charge;
  return out;
 }
 function readNumber(raw: string | null): number | undefined {
@@ -34,7 +39,9 @@ export function parseAssignment(search: string): Assignment {
  let params: URLSearchParams;
  try { params = new URLSearchParams(q); } catch { return {}; }
  const out: Assignment = {};
- const id = params.get('p') ?? params.get('problem') ?? params.get('id');
+ // As a teacher might type it -- ?p=Ring, or with a space pasted after it -- the lesson is still the ring:
+ // the ids are all lower case, and an unknown one opened the first lesson with no word of why.
+ const id = (params.get('p') ?? params.get('problem') ?? params.get('id'))?.trim().toLowerCase();
  if (id && IDS.has(id)) out.id = id as ProblemId;
  const mode = params.get('mode');
  if (mode && MODES.has(mode)) out.mode = mode as ExploreMode;

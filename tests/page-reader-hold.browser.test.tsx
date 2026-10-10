@@ -101,9 +101,14 @@ describe('the board while the run is open, on a laptop', () => {
    await sleep(16);
    under.push(result.getBoundingClientRect().bottom - Math.min(panel.getBoundingClientRect().bottom, window.innerHeight));
   }
+  // A sink is more than twelve pixels back. The answer now fades in where it stays (a4007b4) rather than
+  // rising eight pixels into place, and in the first frame or two -- before the glide has picked up speed,
+  // with the answer's foot still a hundred and fifty pixels and more under the panel's -- the rows opening
+  // above it can set it down seven or eight pixels: a jitter on something still out of view, where the fault
+  // this guards against was sixty pixels, on the answer itself.
   let best = Infinity;
   for (const d of under) {
-   expect(d > 1 && d > best + 6, `the answer sank under the panel's foot on its way up: ${under.map(Math.round).join(' ')}`).toBe(false);
+   expect(d > 1 && d > best + 12, `the answer sank under the panel's foot on its way up: ${under.map(Math.round).join(' ')}`).toBe(false);
    best = Math.min(best, d);
   }
   expect(under.at(-1)!, 'the answer ended under the panel\'s foot').toBeLessThanOrEqual(1);
@@ -184,9 +189,9 @@ describe('a link is the lesson it names', () => {
   const view = await openLesson('ring');
   await sleep(400);
   const before = history.length;
-  fireEvent.click(view.getByRole('button', {name: 'Disk of charge'}));
+  fireEvent.click(view.getByRole('link', {name: 'Disk of charge'}));
   await waitFor(() => expect(location.search).toContain('p=disk'), {timeout: 2000});
-  fireEvent.click(view.getByRole('button', {name: 'Arc of charge'}));
+  fireEvent.click(view.getByRole('link', {name: 'Arc of charge'}));
   await waitFor(() => expect(location.search).toContain('p=arc'), {timeout: 2000});
   expect(history.length).toBe(before + 2);
   history.back();
@@ -292,7 +297,8 @@ describe('on a phone the transport says what the board says', () => {
   scrubToEnd(view);
   await waitFor(() => {
    const answer = view.container.querySelector('.bp-answer')?.textContent ?? '';
-   expect(answer).toMatch(/Doing the integral gives this/);
+   // Two integrals here, E_x's and the surviving E_y's, as the panel says it.
+   expect(answer).toMatch(/Doing the integrals gives this/);
    expect(answer).toMatch(/with/);
   });
  });
@@ -301,7 +307,7 @@ describe('where the lesson leads, and the laws under it', () => {
  it('the lesson\'s last line goes to the lesson it names, from the top', async () => {
   const view = await openLesson('bisector');
   window.scrollTo(0, document.body.scrollHeight);
-  fireEvent.click(view.getByRole('button', {name: /Take this rod to infinity/}));
+  fireEvent.click(view.getByRole('link', {name: /Take this rod to infinity/}));
   await waitFor(() => expect(view.container.querySelector('h1')?.textContent).toBe(getProblem('infinite').title));
   expect(window.scrollY).toBe(0);
  });

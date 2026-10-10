@@ -40,7 +40,7 @@ describe('the sliders', () => {
   expect(view.getByRole('slider', {name: 'Distance r'}).getAttribute('aria-valuetext')).toMatch(/^[\d.]+ meters?$/);
   expect(view.getByRole('slider', {name: 'Length L'}).getAttribute('aria-valuetext')).toMatch(/^[\d.]+ meters?$/);
   // The arc's opening angle read "1" for a half-turn: it ran in units of π and never said so.
-  fireEvent.click(view.getByRole('button', {name: 'Arc of charge'}));
+  fireEvent.click(view.getByRole('link', {name: 'Arc of charge'}));
   await waitFor(() => expect(view.container.querySelector('h1')?.textContent).toBe(getProblem('arc').title));
   expect(view.getByRole('slider', {name: 'Arc angle φ'}).getAttribute('aria-valuetext')).toBe('180 degrees');
  });
@@ -161,15 +161,15 @@ describe('getting around the page', () => {
   const view = await openLesson('bisector');
   const lessons = view.getByRole('navigation', {name: 'Lessons'});
   // The glyph beside each name was an image with the same name: "Finite line Finite line".
-  expect(within(lessons).getByRole('button', {name: 'Finite line'}).getAttribute('aria-current')).toBe('page');
-  expect(within(lessons).getByRole('button', {name: 'Ring of charge'}).getAttribute('aria-current')).toBeNull();
+  expect(within(lessons).getByRole('link', {name: 'Finite line'}).getAttribute('aria-current')).toBe('page');
+  expect(within(lessons).getByRole('link', {name: 'Ring of charge'}).getAttribute('aria-current')).toBeNull();
   // The one link out to the library is not a breadcrumb trail.
   expect(view.queryByRole('navigation', {name: 'Breadcrumb'})).toBeNull();
   expect(document.title).toBe(`${getProblem('bisector').title} · Field Builder`);
   await userEvent.click(view.getByRole('button', {name: 'Charge library'}));
   const dialog = await view.findByRole('dialog');
-  expect(within(dialog).getByRole('button', {name: 'Finite line'}).getAttribute('aria-current')).toBe('page');
-  const ring = within(dialog).getByRole('button', {name: 'Ring of charge'});
+  expect(within(dialog).getByRole('link', {name: 'Finite line'}).getAttribute('aria-current')).toBe('page');
+  const ring = within(dialog).getByRole('link', {name: 'Ring of charge'});
   expect(document.getElementById(ring.getAttribute('aria-describedby') ?? '')?.textContent).toBe(getProblem('ring').subtitle);
  });
  it('between 1001 and 1050 pixels, where the list is not drawn, its toggle is not offered', async () => {
@@ -211,8 +211,8 @@ describe('in a Windows contrast theme', () => {
   const view = await openLesson('infinite');
   await cdp().send('Emulation.setEmulatedMedia', {features: [{name: 'forced-colors', value: 'active'}]});
   const lessons = view.getByRole('navigation', {name: 'Lessons'});
-  const open = getComputedStyle(within(lessons).getByRole('button', {name: 'Infinite line'}));
-  const other = getComputedStyle(within(lessons).getByRole('button', {name: 'Semi-infinite line'}));
+  const open = getComputedStyle(within(lessons).getByRole('link', {name: 'Infinite line'}));
+  const other = getComputedStyle(within(lessons).getByRole('link', {name: 'Semi-infinite line'}));
   // Waited for: the rows ease their colours over a fifth of a second, a contrast theme's included.
   await waitFor(() => {
    expect(open.backgroundColor).not.toBe(other.backgroundColor);
@@ -267,6 +267,6 @@ describe('the charge library', () => {
   const view = await openLesson('ring');
   await userEvent.click(view.getByRole('button', {name: 'Charge library'}));
   const dialog = await view.findByRole('dialog');
-  await waitFor(() => expect(document.activeElement).toBe(within(dialog).getByRole('button', {name: 'Ring of charge'})));
+  await waitFor(() => expect(document.activeElement).toBe(within(dialog).getByRole('link', {name: 'Ring of charge'})));
  });
 });

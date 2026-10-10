@@ -20,7 +20,8 @@ describe('assignment URLs', () => {
  it('clamps params to the live ranges', () => {
   expect(cleanParams({ distance: 99, slices: 1, charge: -4 }).distance).toBe(6);
   expect(cleanParams({ distance: 99, slices: 1, charge: -4 }).charge).toBe(-4);
-  expect(cleanParams({ charge: 0 }).charge).toBe(0);
+  // The slider steps over zero, so a link cannot set it either: no charge is not a lesson.
+  expect(cleanParams({ charge: 0 }).charge).toBe(DEFAULT_PARAMS.charge);
   expect(cleanParams({ charge: -99 }).charge).toBe(-5);
   expect(cleanParams({ distance: 99, slices: 1 }).slices).toBe(3);
   expect(cleanParams({}).distance).toBe(DEFAULT_PARAMS.distance);
