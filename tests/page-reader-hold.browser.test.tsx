@@ -1,6 +1,6 @@
 import {act, cleanup, fireEvent, render, waitFor} from '@testing-library/react';
 import {afterEach, beforeEach, describe, expect, it} from 'vitest';
-import {cdp, page, userEvent} from 'vitest/browser';
+import {page, userEvent} from 'vitest/browser';
 // Measured with the page's own type and sheet: what fits in a window depends on both.
 import 'katex/dist/katex.min.css';
 import '@fontsource-variable/geist';
@@ -24,7 +24,6 @@ afterEach(async () => {
  cleanup();
  window.history.replaceState(null, '', '/');
  window.scrollTo(0, 0);
- try { await cdp().send('Emulation.setTouchEmulationEnabled', {enabled: false}); } catch { /* not emulating */ }
  await page.viewport(1280, 800);
 });
 const STORE = 'field-builder:explorer:v1';
@@ -254,11 +253,19 @@ describe('every slider can be seen and taken hold of', () => {
   const view = await openLesson('bisector');
   fireEvent.click(view.getByText('Limiting cases'));
   const track = await waitFor(() => { const t = view.container.querySelector<HTMLElement>('.assessment [data-slot=slider-track]'); expect(t).toBeTruthy(); return t!; });
-  expect(contrast(getComputedStyle(track).backgroundColor, getComputedStyle(document.body).backgroundColor)).toBeGreaterThanOrEqual(3);
-  await cdp().send('Emulation.setTouchEmulationEnabled', {enabled: true, maxTouchPoints: 5});
-  await waitFor(() => expect(matchMedia('(any-pointer:coarse)').matches, 'touch emulation did not report a coarse pointer').toBe(true));
-  const control = view.container.querySelector<HTMLElement>('.assessment [data-slot=slider]>div')!;
-  expect(control.getBoundingClientRect().height).toBeGreaterThanOrEqual(32);
+  // Drawn in the track token, not left to the slider's own grey (#718896 on the light ground).
+  const fill = getComputedStyle(track).backgroundColor;
+  expect(fill, 'the track is not drawn in --exp-track').toBe('rgb(113, 136, 150)');
+  expect(contrast(fill, getComputedStyle(document.body).backgroundColor)).toBeGreaterThanOrEqual(3);
+  // The finger's band is read from the sheet, not by emulating a touch screen: Chromium keeps answering
+  // (hover: none) after its touch emulation is switched off, and the files after this one then ran on a
+  // phone. Any slider, under any coarse pointer -- not only the page's own, and not only a primary one.
+  const bands = [...document.styleSheets].flatMap(sheet => { try { return [...sheet.cssRules]; } catch { return []; } })
+   .filter((r): r is CSSMediaRule => r instanceof CSSMediaRule && /any-pointer:\s*coarse/.test(r.conditionText))
+   .flatMap(r => [...r.cssRules]).filter((r): r is CSSStyleRule => r instanceof CSSStyleRule);
+  const band = bands.find(r => /^\[data-slot="?slider"?\]\s*>\s*div$/.test(r.selectorText));
+  expect(band?.style.minHeight, 'no finger-sized band for every slider').toBe('32px');
+  expect(view.container.querySelector('.assessment [data-slot=slider]>div')!.matches(band!.selectorText)).toBe(true);
  });
  it('at 320 pixels the ramp\'s confusions stay in the page\'s width', async () => {
   const view = await openLesson('ramp', 320, 700);
