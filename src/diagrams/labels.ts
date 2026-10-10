@@ -49,6 +49,7 @@ export type Label={
 export const overlaps=(a:Box,b:Box,pad:number,padY=pad)=>
  a.x-pad<b.x+b.width+pad&&b.x-pad<a.x+a.width+pad&&a.y-padY<b.y+b.height+padY&&b.y-padY<a.y+a.height+padY;
 const shift=(b:Box,n:Nudge):Box=>({x:b.x+n.dx,y:b.y+n.dy,width:b.width,height:b.height});
+const grow=(b:Box,x:number,y:number):Box=>({x:b.x-x,y:b.y-y,width:b.width+2*x,height:b.height+2*y});
 const area=(a:Box,b:Box)=>Math.max(0,Math.min(a.x+a.width,b.x+b.width)-Math.max(a.x,b.x))*Math.max(0,Math.min(a.y+a.height,b.y+b.height)-Math.max(a.y,b.y));
 const inside=(b:Box,frame:{width:number;height:number})=>b.x>=0&&b.y>=0&&b.x+b.width<=frame.width&&b.y+b.height<=frame.height;
 /** The nearest position that fits inside the frame. A label bigger than the frame is pinned
@@ -189,7 +190,10 @@ export function placeLabels(labels:readonly Label[],options:PlaceOptions={}):Nud
      // Remember the least-bad option in case nothing is free: a label half over another is
      // still better than one dropped off the edge of the picture. A spot by the wrong arrow is
      // worse than any overlap.
-     const cost=taken.reduce((sum,t)=>sum+area(moved,t.box),0)+Math.hypot(at.dx,at.dy)*.01+(ok?0:1e6);
+     // Counted with the same air `free` asks for: a spot that merely touches another label costs
+     // nothing by bare overlap, and a kept name with nowhere free was set flush against its neighbour
+     // -- "z" hard under "−ΔE⊥" on a phone -- where a spot a little further off had room.
+     const cost=taken.reduce((sum,t)=>sum+(t.label?area(grow(moved,labelPad,Math.max(pad,labelPad/2)),t.box):area(moved,t.box)),0)+Math.hypot(at.dx,at.dy)*.01+(ok?0:1e6);
      if(cost<bestCost){bestCost=cost;best=at;}
     }
    }
