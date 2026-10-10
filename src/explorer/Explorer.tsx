@@ -185,9 +185,15 @@ export default function Explorer(){
  const playerMath=useMemo(()=>{if(!buildOpen)return [];const line=boardLines(p)[buildIndex];if(!line)return [];
   // Every line of the result, not the first: on the lessons whose answer has two components, the
   // figure's arrow labelled E leans, and an answer of E_x alone said it pointed along x.
-  return settledRun&&line.finish?[line.tex,line.finish,...resultLines(p)]:[line.tex];},[buildOpen,p,buildIndex,settledRun]);
+  // The result is stated whether or not the last line has a step of its own to finish on: four
+  // potential lessons leave their integral unsimplified on the board, and ended on it here, so on a
+  // screen without the panel the run never said what V is.
+  return settledRun?[line.tex,...(line.finish?[line.finish]:[]),...resultLines(p)]:[line.tex];},[buildOpen,p,buildIndex,settledRun]);
  // What the figure and the board are told about the run, held still until it actually changes.
- const figureBuild=useMemo(()=>buildOpen?{key:buildNow.key,name:buildNow.name,index:buildIndex,count:stages.length,paused:!building}:undefined,[buildOpen,buildNow,buildIndex,stages.length,building]);
+ // The run's clock goes with it, and where the stage on screen starts and how long it lasts: a stage
+ // that moves within itself reads its own moment off the clock, so a pause or a seek holds it there.
+ // And the piece the run talks about, which the adding stage hands over to the chain.
+ const figureBuild=useMemo(()=>buildOpen?{key:buildNow.key,name:buildNow.name,index:buildIndex,count:stages.length,paused:!building,clock:runAt,start:stageStart(stages,buildIndex),seconds:buildNow.seconds,piece:Math.min(count-1,Math.floor(runPiece*count))}:undefined,[buildOpen,buildNow,buildIndex,stages,building,runAt,runPiece,count]);
  const boardBuild=useMemo(()=>({open:buildOpen,index:buildIndex,playing:building,settled:cutAway}),[buildOpen,buildIndex,building,cutAway]);
  const updateParams=useCallback((partial:Partial<Params>)=>{setParamsMap(old=>({...old,[id]:{...(old[id]??DEFAULT_PARAMS),...partial}}));},[id]);
  function stop(){build.current?.stop();build.current=null;setBuilding(false)}

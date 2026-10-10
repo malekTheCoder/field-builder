@@ -30,6 +30,11 @@
    piece filled with the charge colour turns to the ground colour, or it would vanish into it. */
 .cd-svg .cd-plus text{fill:var(--charge,#b8460f);stroke:none;font-family:var(--font-geist-sans),system-ui,sans-serif;font-style:normal;font-size:13px;font-weight:700}
 .cd-svg .cd-plus text.is-on-fill{fill:var(--diagram,#ffffff)}
+/* Painted over the construction now, so each mark keeps a thin ring of the ground colour: a dashed
+   stroke under it stops at its edge instead of running through it. On a phone the marks grow with the
+   figure's other labels; at a fixed 13px they came out six pixels tall. */
+.cd-svg .cd-plus text{font-size:calc(13px * var(--cd-k,1));paint-order:stroke;stroke:var(--diagram,#ffffff);stroke-width:2.4px;stroke-linejoin:round}
+.cd-svg .cd-plus text.is-on-fill{stroke:var(--charge,#b8460f)}
 .cd-construction{stroke:var(--charge,#b8460f);stroke-opacity:.7;stroke-width:1.4;stroke-dasharray:5 5;fill:none}
 .cd-construction.cd-pair{stroke:var(--contribution,#2f9089);stroke-opacity:.7}
 .cd-partner{fill:none;stroke:var(--contribution,#2f9089);stroke-width:1.8;stroke-dasharray:4 3}
@@ -187,8 +192,10 @@
    what changed. Every annotation carries a `data-dim` naming its control; a group's children
    inherit the highlight, so tagging the group is enough. */
 .cd-dimension [data-dim],.cd-svg [data-dim]{transition:stroke .18s ease,fill .18s ease,stroke-width .18s ease,opacity .18s ease}
-.cd-focus-distance [data-dim="distance"] path,.cd-focus-distance [data-dim="distance"] line{stroke:var(--field);stroke-width:2.8;stroke-opacity:1}
-.cd-focus-distance [data-dim="distance"] text,.cd-focus-distance text[data-dim="distance"]{fill:var(--field);font-weight:700}
+.cd-focus-distance [data-dim="distance"] path,.cd-focus-distance [data-dim="distance"] line{stroke:var(--term-distance);stroke-width:2.8;stroke-opacity:1}
+/* The distance's own colour, as the construction line and the board's distance factor have it -- not
+   the field's teal, which put a teal r beside the teal ΔE and read as one thing. */
+.cd-focus-distance [data-dim="distance"] text,.cd-focus-distance text[data-dim="distance"]{fill:var(--term-distance);font-weight:700}
 .cd-focus-distance .cd-point-halo{stroke-opacity:1;stroke-width:3}
 .cd-focus-size [data-dim="size"] path,.cd-focus-size [data-dim="size"] line{stroke:var(--field);stroke-width:2.8;stroke-opacity:1}
 .cd-focus-size [data-dim="size"] text{fill:var(--field);font-weight:700}
@@ -196,7 +203,7 @@
 .cd-focus-angle [data-dim="angle"] text{fill:var(--field);font-weight:700}
 /* Charge is the one quantity with no bracket to light: what it changes is how much is
    THERE, so the marks along the body answer for it, and the body itself thickens. */
-.cd-focus-charge .cd-plus text{fill:var(--charge);font-weight:700;font-size:15px}
+.cd-focus-charge .cd-plus text{fill:var(--charge);font-weight:700;font-size:calc(15px * var(--cd-k,1))}
 /* A round geometry has no marks along it to light, so the body answers for how much charge
    there is -- and on a rod both do. */
 .cd-focus-charge [data-source-body]{stroke-width:7}
@@ -316,7 +323,7 @@
 .cd-cube-face{fill:var(--field,#0b6b63);stroke:var(--diagram,#fff);stroke-width:1.2;stroke-linejoin:round;transition:filter .18s ease;cursor:pointer}
 .cd-cube-side:hover .cd-cube-face{filter:brightness(1.28)}
 .cd-cube-face:focus-visible{outline:2px solid var(--field);outline-offset:2px}
-.cd-svg .cd-cube-label{fill:var(--on-accent,#fff);font-weight:650;letter-spacing:.06em;pointer-events:none;font-family:var(--font-geist-sans),system-ui,sans-serif}
+.cd-svg .cd-cube-label{fill:var(--on-accent,#fff);font-weight:650;letter-spacing:.03em;pointer-events:none;font-family:var(--font-geist-sans),system-ui,sans-serif}
 /* The four steppers around it, as CAD tools put them. */
 .cd-cube-step{cursor:pointer;opacity:.34;transition:opacity .18s ease}
 .cd-cube:hover .cd-cube-step{opacity:.72}
@@ -373,7 +380,7 @@
 /* Potential lessons: until the stack is being built, only the lit piece's segment shows. */
 /* Faint, not gone: the lit piece is seen to be one block of a pile, not a block floating on nothing. */
 .cd-hide-total .cd-stack-slot:not(.is-lit){fill-opacity:.08}
-.cd-hide-total .cd-gauge text{opacity:0}
+.cd-hide-total .cd-gauge text.is-sum{opacity:0}
 
 /* ARRIVING, NOT APPEARING. While the run plays, an arrow grows out of P instead of popping in at
    full length, the construction lines fade up under it, and the angle that picks out the surviving
@@ -489,3 +496,24 @@
 /* The ramp's rod is an outline, crisp like every other rod's: its density is shown by its pieces' fill
    alone. It used to be a 17px translucent band, a blur round the very thing being read. */
 .cd-source-rod.is-ramp{fill:none}
+
+/* A ghost of a part that has cancelled: the stroke is drawn faintly by the figure, and its name is
+   muted with it -- there, so a still frame says what went, and plainly gone. */
+.cd-svg .cd-vector-label.is-muted{opacity:.6}
+/* The triangle's right angle is a mark, not a construction line: solid, so its eight pixels read. */
+.cd-triangle .cd-right-angle{stroke-dasharray:none;stroke-width:1.4}
+/* The distance from a piece to P on the rod seen along its axis: a dimension in the distance's own
+   colour, above the rod, where the dashed line used to lie along the rod over its marks. */
+.cd-svg .cd-triangle .cd-ri-bar{stroke:var(--term-distance);stroke-dasharray:none;stroke-width:1.6;stroke-opacity:.85}
+.cd-focus-distance .cd-triangle .cd-ri-bar{stroke-width:2.6;stroke-opacity:1}
+/* The ends of a line that never ends, kept legible over the field lines that run through them. */
+.cd-svg .cd-infinity text{paint-order:stroke;stroke:var(--diagram,#ffffff);stroke-width:5px;stroke-linejoin:round}
+/* While the arc's two sideways parts are drawn they lie along the y axis, dashed teal over solid grey:
+   the axes step back so the parts can be seen. */
+.cd-arc-pair .cd-axes{opacity:.3}
+/* A leader the label placer drew, for a name it had to take past its reach. */
+.cd-label-leaders line{stroke:var(--ghost,#6d8492);stroke-width:1.2;opacity:.8}
+/* Too narrow for prose inside the figure. */
+.cd-narrow .cd-triangle-note{display:none}
+.cd-svg .cd-dimension .cd-extension{stroke-width:1;stroke-dasharray:2 2}
+.cd-point-leader{stroke:var(--cd-ink);stroke-width:1.1;opacity:.55;pointer-events:none}

@@ -115,6 +115,18 @@ export function rayToLine(from: Point, dir: Point, rect: Rect, line?: Line): Poi
   if (!(t > 0) || t >= Math.hypot(edge.x - from.x, edge.y - from.y)) return edge;
   return {x: from.x + dir.x * t, y: from.y + dir.y * t};
 }
+/** Where a ray from `from` meets the charge's `line` inside `rect`, or null when it leaves the rect
+ * first. `rayToLine` falls back to the frame's edge, which is right for where a WEDGE stops; a fan's
+ * RAY that never reaches the charge is not an edge of any piece's angle on the page, and drawn to the
+ * frame the outermost two came out as one long line through P -- read as a second axis. */
+export function rayMeetsLine(from: Point, dir: Point, rect: Rect, line: Line): Point | null {
+  const denom = dir.x * line.dir.y - dir.y * line.dir.x;
+  if (Math.abs(denom) < EPS) return null;
+  const t = ((line.point.x - from.x) * line.dir.y - (line.point.y - from.y) * line.dir.x) / denom;
+  const edge = rayToEdge(from, dir, rect);
+  if (!(t > 0) || t >= Math.hypot(edge.x - from.x, edge.y - from.y)) return null;
+  return {x: from.x + dir.x * t, y: from.y + dir.y * t};
+}
 /** Area of a polygon, for asking whether a wedge is big enough to be worth drawing or clicking. */
 export function area(poly: readonly Point[]): number {
   let sum = 0;

@@ -1,5 +1,5 @@
 import {describe, expect, it} from 'vitest';
-import {area, exitDistance, rayToEdge, rayToLine, sub, unit, wedgePath, type Point, type Rect} from '../src/diagrams/fan';
+import {area, exitDistance, rayMeetsLine, rayToEdge, rayToLine, sub, unit, wedgePath, type Point, type Rect} from '../src/diagrams/fan';
 /* The geometry the unbounded lessons are being rebuilt on, checked with arithmetic.
  *
  * A piece of an infinite line cannot be drawn where it is, but the ANGLE it subtends at the
@@ -150,6 +150,20 @@ describe('a wedge ends at the charge', () => {
   expect(hit.y).toBeCloseTo(216, 9);
   const away = rayToLine(p, toward(0), frame, line);
   expect(away.x).toBeCloseTo(frame.x + frame.width, 9);
+ });
+ it('a fan\'s ray is drawn only where it reaches the charge: one that runs on to the frame is no piece\'s edge', () => {
+  // The infinite line's outermost seams lie at plus and minus infinity, so their rays run parallel to
+  // the line and never meet it; drawn to the frame, the two made one line through P, read as an axis.
+  expect(rayMeetsLine(p, toward(180), frame, line)).toEqual(rayToLine(p, toward(180), frame, line));
+  expect(rayMeetsLine(p, toward(0), frame, line)).toBeNull();
+  expect(rayMeetsLine(p, toward(-90), frame, line)).toBeNull();
+  expect(rayMeetsLine(p, toward(90), frame, line)).toBeNull();
+  // Nearly parallel: it meets the line, but only far past the frame's edge.
+  expect(rayMeetsLine(p, toward(-90.5), frame, line)).toBeNull();
+  // And where it does meet it on the page, the two agree.
+  const hit = rayMeetsLine(p, toward(225), frame, line)!;
+  expect(hit.x).toBeCloseTo(220, 9);
+  expect(hit.y).toBeCloseTo(216 - 105, 9);
  });
  it('without a line it is the wedge it always was', () => {
   expect(wedgePath(p, toward(170), toward(190), frame)).toEqual(wedgePath(p, toward(170), toward(190), frame, undefined));

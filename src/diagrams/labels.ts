@@ -15,7 +15,14 @@
 export type Box={x:number;y:number;width:number;height:number};
 /** How far to move a label, or -- when it has a reach and nowhere within it is free -- that it is
  * better not drawn at all. */
-export type Nudge={dx:number;dy:number;hidden?:boolean};
+export type Nudge={dx:number;dy:number;hidden?:boolean;
+ /** Placed past its reach, which a label it must keep may be when nothing within reach is free: it
+  * then needs a leader back to what it names, or it is a name floating near nothing. */
+ leader?:boolean};
+/** A straight stroke from a to b: the shaft of an arrow a label names. */
+export type Segment={a:{x:number;y:number};b:{x:number;y:number}};
+/** A half-plane the label's centre must stay in: the side of `(x, y)` that `(nx, ny)` points to. */
+export type HalfPlane={x:number;y:number;nx:number;ny:number};
 export type Label={
  box:Box;
  /** Anchored labels never move and are only obstacles: an axis letter that shifts is worse
@@ -31,9 +38,16 @@ export type Label={
  /** Never hidden. Placed in the least-bad spot if nothing is free: the name of the point the whole
   * figure is about is worth an overlap. */
  keep?:boolean;
+ /** The shaft of the arrow this label names. A spot nearer some other arrow's shaft than this one's
+  * is not offered: a name beside the wrong arrow is read as that arrow's name, which is worse than
+  * a name that had to move further. */
+ shaft?:Segment;
+ /** Where the label's centre has to stay: the side of an axis its arrow lies on, say. A name moved
+  * across the axis reads as naming whatever is on the other side of it. */
+ within?:readonly HalfPlane[];
 };
-const overlaps=(a:Box,b:Box,pad:number)=>
- a.x-pad<b.x+b.width+pad&&b.x-pad<a.x+a.width+pad&&a.y-pad<b.y+b.height+pad&&b.y-pad<a.y+a.height+pad;
+export const overlaps=(a:Box,b:Box,pad:number,padY=pad)=>
+ a.x-pad<b.x+b.width+pad&&b.x-pad<a.x+a.width+pad&&a.y-padY<b.y+b.height+padY&&b.y-padY<a.y+a.height+padY;
 const shift=(b:Box,n:Nudge):Box=>({x:b.x+n.dx,y:b.y+n.dy,width:b.width,height:b.height});
 const area=(a:Box,b:Box)=>Math.max(0,Math.min(a.x+a.width,b.x+b.width)-Math.max(a.x,b.x))*Math.max(0,Math.min(a.y+a.height,b.y+b.height)-Math.max(a.y,b.y));
 const inside=(b:Box,frame:{width:number;height:number})=>b.x>=0&&b.y>=0&&b.x+b.width<=frame.width&&b.y+b.height<=frame.height;
@@ -83,19 +97,75 @@ export type PlaceOptions={
   * and failing that it is hidden rather than left floating somewhere else (unless it must `keep`).
   * Left out, labels may go as far as the search reaches and are never hidden. */
  maxShift?:number;
+ /** Clear space between two LABELS, where `pad` is the space between a label and a mark. Two words
+  * two pixels apart on one baseline read as one phrase -- "ΔQ x = L" -- where a label two pixels
+  * off a stroke is still plainly beside it. Left out, it is `pad`. */
+ labelPad?:number;
+ /** Every arrow's shaft in the picture, for the rule that a label stays nearer its own arrow than
+  * any other. Only labels that name a `shaft` are held to it. */
+ shafts?:readonly Segment[];
+ /** How much further than `maxShift` a label it must keep may go, as a multiple of it, when nothing
+  * within reach is free. Its nudge then says it needs a leader. */
+ leaderReach?:number;
 };
+/** How far a box is from a segment: zero where the segment touches or crosses it. */
+export function boxSegmentDistance(b:Box,s:Segment):number{
+ const {a,b:e}=s,x0=b.x,y0=b.y,x1=b.x+b.width,y1=b.y+b.height;
+ const inBox=(p:{x:number;y:number})=>p.x>=x0&&p.x<=x1&&p.y>=y0&&p.y<=y1;
+ if(inBox(a)||inBox(e))return 0;
+ const dx=e.x-a.x,dy=e.y-a.y;
+ // Crossing any edge of the box is touching it.
+ const cross=(p:{x:number;y:number},q:{x:number;y:number})=>{
+  // a + t(e - a) = p + u(q - p), by cross products.
+  const sx=q.x-p.x,sy=q.y-p.y,d=dx*sy-dy*sx;
+  if(Math.abs(d)<1e-12)return false;
+  const wx=p.x-a.x,wy=p.y-a.y,t=(wx*sy-wy*sx)/d,u=(wx*dy-wy*dx)/d;
+  return t>=0&&t<=1&&u>=0&&u<=1;
+ };
+ const c=[{x:x0,y:y0},{x:x1,y:y0},{x:x1,y:y1},{x:x0,y:y1}];
+ for(let i=0;i<4;i++)if(cross(c[i],c[(i+1)%4]))return 0;
+ const toSeg=(p:{x:number;y:number})=>{const l=dx*dx+dy*dy,t=l>1e-12?Math.max(0,Math.min(1,((p.x-a.x)*dx+(p.y-a.y)*dy)/l)):0;return Math.hypot(p.x-a.x-t*dx,p.y-a.y-t*dy);};
+ const toBox=(p:{x:number;y:number})=>Math.hypot(Math.max(x0-p.x,0,p.x-x1),Math.max(y0-p.y,0,p.y-y1));
+ return Math.min(...c.map(toSeg),toBox(a),toBox(e));
+}
+/** Nudges grouped by how far they move, nearest first, keeping the order within each distance. */
+function byDistance(nudges:readonly Nudge[]):Nudge[][]{
+ const groups:Nudge[][]=[];let last=-1;
+ for(const n of nudges){const d=Math.round(Math.hypot(n.dx,n.dy)*10);if(d!==last){groups.push([]);last=d;}groups[groups.length-1].push(n);}
+ return groups;
+}
+const sameSegment=(s:Segment,t:Segment)=>Math.abs(s.a.x-t.a.x)<.6&&Math.abs(s.a.y-t.a.y)<.6&&Math.abs(s.b.x-t.b.x)<.6&&Math.abs(s.b.y-t.b.y)<.6;
 /** One nudge per label, in the order given. Labels are placed in sequence, so an earlier
  * label holds its ground and a later one moves around it: pass them most-important first. */
 export function placeLabels(labels:readonly Label[],options:PlaceOptions={}):Nudge[]{
- const {frame,obstacles=[],pad=1.5,step=9,maxShift}=options;
+ const {frame,obstacles=[],pad=1.5,step=9,maxShift,shafts=[],leaderReach=2}=options;
+ const labelPad=options.labelPad??pad;
  const capped=maxShift!==undefined;
  const tries=capped?reachCandidates(maxShift):candidates(step);
- const taken:Box[]=[...obstacles];
+ // Past the reach, for a label it must keep: the same rings, out to `leaderReach` times as far.
+ const far=capped?reachCandidates(maxShift*leaderReach,8).filter(n=>Math.hypot(n.dx,n.dy)>maxShift+1e-9):[];
+ // What is already on the page, and whether it is a label: two labels need more air between them
+ // than a label and a stroke do.
+ const taken:{box:Box;label:boolean}[]=obstacles.map(box=>({box,label:false}));
  // Anchored labels claim their space before anything is allowed to move.
- for(const l of labels)if(l.fixed)taken.push(l.box);
+ for(const l of labels)if(l.fixed)taken.push({box:l.box,label:true});
+ // Across, the full label margin: words side by side on one baseline read as one phrase. Up and down,
+ // half of it, because a text box already carries its line's empty ascent and descent.
+ const free=(b:Box)=>!taken.some(t=>t.label?overlaps(b,t.box,labelPad,Math.max(pad,labelPad/2)):overlaps(b,t.box,pad));
  const out:Nudge[]=[];
  for(const label of labels){
   if(label.fixed){out.push({dx:0,dy:0});continue;}
+  const own=label.shaft,others=own?shafts.filter(s=>!sameSegment(s,own)):[];
+  // A spot is honest if it is nearer its own arrow than any other, and on its own side of the lines
+  // it must not cross.
+  const honest=(b:Box)=>{
+   const c={x:b.x+b.width/2,y:b.y+b.height/2};
+   if(label.within?.some(h=>(c.x-h.x)*h.nx+(c.y-h.y)*h.ny<0))return false;
+   if(!own||!others.length)return true;
+   const mine=boxSegmentDistance(b,own);
+   // Not merely no nearer: plainly further, or the name reads as belonging to either.
+   return others.every(s=>boxSegmentDistance(b,s)>=mine+3);
+  };
   // Search from where the label asks to be -- unless that is outside the picture, in which
   // case search from the nearest spot inside it. Every candidate is rejected for leaving the
   // frame, so a label that STARTS outside has no candidate at all and would otherwise be left
@@ -104,22 +174,33 @@ export function placeLabels(labels:readonly Label[],options:PlaceOptions={}):Nud
   const homes=[frame?clampInto(label.box,frame):label.box];
   if(capped&&label.mirror){const m=reflect(label.box,label.mirror);homes.push(frame?clampInto(m,frame):m);}
   if(capped)for(const alt of label.alternates??[])homes.push(frame?clampInto(alt,frame):alt);
-  let best:Nudge={dx:homes[0].x-label.box.x,dy:homes[0].y-label.box.y},bestCost=Infinity,placed=false;
-  search:for(const home of homes){
-   for(const nudge of tries){
-    const moved=shift(home,nudge);
-    if(frame&&!inside(moved,frame))continue;
-    const from={dx:moved.x-label.box.x,dy:moved.y-label.box.y};
-    if(!taken.some(t=>overlaps(moved,t,pad))){best=from;placed=true;break search;}
-    // Remember the least-bad option in case nothing is free: a label half over another is
-    // still better than one dropped off the edge of the picture.
-    const cost=taken.reduce((sum,t)=>sum+area(moved,t),0)+Math.hypot(from.dx,from.dy)*.01;
-    if(cost<bestCost){bestCost=cost;best=from;}
+  let best:Nudge={dx:homes[0].x-label.box.x,dy:homes[0].y-label.box.y},bestCost=Infinity,placed=false,leader=false;
+  // Near before far across EVERY place the label may stand, not one place at a time: a name that fits
+  // as it is on the far side of its arrow, or past its tip, is better than one pushed a long way off
+  // its first spot -- pushed far enough, it ends up beside some other arrow.
+  const search=(rings:Nudge[],from:Box[])=>{
+   for(const ring of byDistance(rings))for(const home of from){
+    for(const nudge of ring){
+     const moved=shift(home,nudge);
+     if(frame&&!inside(moved,frame))continue;
+     const at={dx:moved.x-label.box.x,dy:moved.y-label.box.y};
+     const ok=honest(moved);
+     if(ok&&free(moved)){best=at;return true;}
+     // Remember the least-bad option in case nothing is free: a label half over another is
+     // still better than one dropped off the edge of the picture. A spot by the wrong arrow is
+     // worse than any overlap.
+     const cost=taken.reduce((sum,t)=>sum+area(moved,t.box),0)+Math.hypot(at.dx,at.dy)*.01+(ok?0:1e6);
+     if(cost<bestCost){bestCost=cost;best=at;}
+    }
    }
-  }
+   return false;
+  };
+  placed=search(tries,homes);
+  // A label it must keep, with nowhere free within reach: further out, on a leader back to it.
+  if(!placed&&capped&&label.keep&&far.length){const keepBest=best,keepCost=bestCost;placed=search(far,homes.slice(0,1));if(placed)leader=true;else{best=keepBest;bestCost=keepCost;}}
   if(!placed&&capped&&!label.keep){out.push({dx:0,dy:0,hidden:true});continue;}
-  out.push(best);
-  taken.push(shift(label.box,best));
+  out.push(leader?{...best,leader:true}:best);
+  taken.push({box:shift(label.box,best),label:true});
  }
  return out;
 }

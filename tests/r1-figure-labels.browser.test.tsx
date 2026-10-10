@@ -156,7 +156,9 @@ describe('the limits\' handles', () => {
   // each with its own letter, on top of each other.
   const handles = [...view.container.querySelectorAll<SVGGElement>('.cd-bound')];
   expect(handles).toHaveLength(1);
-  expect(handles[0].querySelector('text')?.textContent).toBe('0 = 2π');
+  // Named as values of the angle, never as an equation between two numbers: "0 = 2π" read as one.
+  expect(handles[0].querySelector('text')?.textContent).toBe('θ = 0, 2π');
+  for (const t of view.container.querySelectorAll('.cd-svg text')) expect(t.textContent ?? '').not.toMatch(/\d\s*=\s*\d/);
  });
  it('the sheet\'s limit off the page is an arrow at the edge, not a handle pinned in a corner', async () => {
   const view = await toLimit('sheet');
