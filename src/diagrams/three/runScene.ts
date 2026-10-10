@@ -39,6 +39,15 @@ export type RunArrows={
   * nothing is cancelling. */
  cancelled:number;
 };
+/** How the dropped part of the chosen piece's arrow is drawn: dashed where a partner's part is
+ * cancelling it, solid where nothing does.
+ *
+ * The dashed line is the figure's mark for a part that goes. With no mirror piece -- the rod seen
+ * from beyond its end, the ramp, the semi-infinite line -- there is nothing to cancel the sideways
+ * part, so it SURVIVES, and drawing it dashed told the reader the opposite of the stage's own line
+ * ("both parts of each survive"). The flat figure draws it solid; so does the scene. One rule, read
+ * by the scene to draw and by the stage's data to report, so the two cannot disagree. */
+export const dropStyle=(a:RunArrows|null|undefined):'solid'|'dashed'|null=>!a?.drop?null:a.partner?'dashed':'solid';
 export type RunScene={
  stage:string;
  kind:BodyKind; closed:boolean;

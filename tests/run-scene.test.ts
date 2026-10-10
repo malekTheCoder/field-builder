@@ -1,5 +1,5 @@
 import {describe, expect, it} from 'vitest';
-import {LIMIT_CHAIN, cutPiece, polylineLength, resample, runScene, stretch, trim, type RunSceneInput} from '../src/diagrams/three/runScene';
+import {LIMIT_CHAIN, cutPiece, dropStyle, polylineLength, resample, runScene, stretch, trim, type RunSceneInput} from '../src/diagrams/three/runScene';
 import type {Vec} from '../src/symbolic/physics';
 /* What the 3D scene draws of "Watch it build", worked out without a GPU. The browser test reads the
  * same plan back off the page; this pins the choices themselves -- which pieces are lit, which wait,
@@ -104,6 +104,15 @@ describe('the arrows at P, at the figure\'s own scale', () => {
   const pair = arrows({components: false, partner: {x: 3, y: 1, z: 0}});
   expect(pair.keep).toBeNull();
   expect(pair.drop).not.toBeNull();
+ });
+ it('a part nothing cancels is drawn solid, as the survivor it is; a part a partner cancels is dashed', () => {
+  // The rod seen from beyond its end, the ramp, the semi-infinite line: no mirror piece, so the
+  // sideways part survives. It used to be drawn dashed in space, the mark for a part that goes.
+  expect(dropStyle(arrows({}))).toBe('solid');
+  expect(dropStyle(arrows({partner: {x: 3, y: 1, z: 0}, cancelled: .3}))).toBe('dashed');
+  // No dropped part, no style.
+  expect(dropStyle(arrows({components: false}))).toBeNull();
+  expect(dropStyle(null)).toBeNull();
  });
  it('the chain is every piece\'s arrow tip to tail, skipping the pieces not yet in', () => {
   const fields = [{x: 1, y: 0, z: 0}, {x: 0, y: 1, z: 0}, {x: 0, y: 0, z: 1}];

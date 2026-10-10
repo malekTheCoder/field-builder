@@ -63,6 +63,11 @@ export type TraceOptions={
   * three unbounded lessons, whose charge reaches hundreds of metres: a line may usefully run
   * a little past the frame, but one that BEGINS out there is drawn entirely off the picture. */
  seedLimit?:number;
+ /** Stop once outside this rectangle: the window the figure shows, with a margin. A line that has
+  * left the picture has nothing more to draw, and the circle `outerLimit` sets is the wrong shape for
+  * a window twice as wide as it is tall -- lines heading for its near side ran on, unseen, for as far
+  * again as the picture is wide. */
+ bounds?:PlaneRect;
  /** +1 follows the field, −1 walks back against it. */
  sign?:number;
  /** Stop when the line comes this close to one already drawn. Jobard and Lefer's dtest rule,
@@ -73,6 +78,42 @@ export type TraceOptions={
   * and the second carries no information the first did not. Culling redundancy, not density. */
  crowd?:number; drawn?:ReturnType<typeof drawnPoints>;
 };
+/** A rectangle of the plane, in world metres: the window the figure shows, or one a trace was made for. */
+export type PlaneRect={x0:number;y0:number;x1:number;y1:number};
+/** HOW FAR A LINE IS TRACED: past the farthest corner of the window the figure shows.
+ *
+ * It was a circle of 1.6 times the field's reach about O, and a circle is the wrong shape for a
+ * window that is twice as wide as it is tall and does not have O in its middle. Lines that left
+ * the charge toward the far side of the picture ended in mid-air on that circle, short of the
+ * frame -- on the infinite line, a ragged column of line ends 180 pixels before the edge -- and on
+ * the semi-infinite line the lines that should have come in from the edge began in empty space.
+ *
+ * So the limit is the distance from O to the window's farthest corner, plus a tenth, and the clip
+ * on the canvas trims whatever runs past the edge. It is rounded UP to a power of 1.25, so a window
+ * that grows a little does not change it. `area` is the window in world metres (`visibleArea`);
+ * null, for a plane seen edge on, falls back to `fallback`. A caller that knows the window passes
+ * it as `bounds` too, so a line also stops once it is past the NEAR edges, which the circle alone
+ * would let it run on beyond, unseen, for as far again as the picture is wide. */
+export function traceLimit(area:PlaneRect|null,fallback:number,margin=1.1):number{
+ const far=area?Math.max(Math.hypot(area.x0,area.y0),Math.hypot(area.x1,area.y0),Math.hypot(area.x0,area.y1),Math.hypot(area.x1,area.y1)):fallback;
+ const want=Math.max(1e-3,far*margin);
+ return 1.25**Math.ceil(Math.log(want)/Math.log(1.25)-1e-9);
+}
+/** The window a trace is made for: what the figure shows, with room all round -- a seventh of its
+ * longer side -- so every line runs on past the edge, where the clip trims it, and a view that moves
+ * a little is still inside what was traced. */
+export function traceWindow(area:PlaneRect,room=1/7):PlaneRect{
+ const pad=room*Math.max(area.x1-area.x0,area.y1-area.y0);
+ return {x0:area.x0-pad,y0:area.y0-pad,x1:area.x1+pad,y1:area.y1+pad};
+}
+/** Whether a trace made for the window `traced` still reaches past every edge of what the figure
+ * shows, by at least a twentieth of its longer side. Zooming in always passes; only a window that has really
+ * grown, or moved, needs the lines traced again. */
+export function covers(traced:PlaneRect|null,area:PlaneRect|null):boolean{
+ if(!traced||!area)return traced===area;
+ const pad=.05*Math.max(area.x1-area.x0,area.y1-area.y0);
+ return area.x0-pad>=traced.x0&&area.y0-pad>=traced.y0&&area.x1+pad<=traced.x1&&area.y1+pad<=traced.y1;
+}
 /** How close a line may come to each element: about half that element's own spacing, so a
  * finely cut stretch of charge may be approached closely and a coarse one may not. */
 export function localRadii(samples:readonly ChargeSample[],floor=ARRIVED):number[]{
@@ -99,7 +140,7 @@ export function traceLine(samples:readonly ChargeSample[],start:Plane,options:Tr
  // Neither is a compromise worth making, because the right radius is local: close to a finely
  // cut stretch a line may come close, and near a coarse one it may not.
  const radii=options.radii??localRadii(samples,arrive);
- const {crowd=0,drawn}=options;
+ const {crowd=0,drawn,bounds}=options;
  const path:Plane[]=[{x:start.x,y:start.y}];
  let here={x:start.x,y:start.y};
  for(let i=0;i<maxSteps;i++){
@@ -111,6 +152,7 @@ export function traceLine(samples:readonly ChargeSample[],start:Plane,options:Tr
   if(!Number.isFinite(next.x)||!Number.isFinite(next.y))break;
   path.push(next);here=next;
   if(LEN(here)>outer)break;
+  if(bounds&&(here.x<bounds.x0||here.x>bounds.x1||here.y<bounds.y0||here.y>bounds.y1))break;
   // Not in the first few steps: every line leaves the charge from nearly the same place, so
   // testing at the root would stop each one the moment it started.
   if(crowd>0&&drawn&&i>4&&drawn.within(here,crowd))break;

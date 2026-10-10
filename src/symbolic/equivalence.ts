@@ -111,4 +111,15 @@ const symbolTex=(node:MathNode,options?:object):string|undefined=>{
  * a numeral, where juxtaposition would read as one number, and after a numeric fraction, where the
  * bound labels' tidy() reads "\frac{1}{2}\cdot L" as L/2 and needs the \cdot to find it. */
 export function preview(input:string):string {try{return safeParse(input).toTex({parenthesis:'auto',implicit:'hide',handler:symbolTex}).replace(/\\cdot/g,'\\cdot ').replace(/(\\frac\{-?\d+\}\{\d+\})?\\cdot (?!\s*\d)/g,(m:string,fraction?:string)=>fraction?m:'\\,');}catch{return String.raw`\text{Keep typing…}`;}}
+/** An expression in "Easy to confuse with", set to be read.
+ *
+ * Those expressions ARE the section: each is the wrong turn a sentence beside it diagnoses. Set
+ * inline they came out in text style -- a fraction's numerator and denominator at seven tenths of
+ * the size, and (s² + z²)^{3/2} with a stacked ³⁄₂ at script-script size, under half the size of the
+ * prose next to it. So they are set in display style, as a textbook sets a formula it is talking
+ * about, and a fraction in an exponent is written with a slash, which is how it is printed and the
+ * only way it can be read at exponent size. `preview` itself is unchanged: the bound labels parse it. */
+export function confusionTex(input:string):string{
+ return '\\displaystyle '+preview(input).replace(/\^\{\\frac\{(-?\d+)\}\{(\d+)\}\}/g,'^{$1/$2}');
+}
 export function feedback(input:string,field:import('../problems/types').Answer,p:Problem):{text:string;highlight:string}{for(const m of field.mistakes??[]){if(equivalent(input,m.expression,p).ok)return{text:m.message,highlight:m.highlight??'element'};}return{text:field.hint,highlight:field.id.includes('component')?'components':field.id==='distance'?'distance':'element'};}

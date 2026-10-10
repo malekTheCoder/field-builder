@@ -1,4 +1,5 @@
 import type {ChargeSample} from '../../distributions/types';
+import {openingCamera} from '../camera';
 /** What the 3D layer needs to know about the shape it is drawing, worked out from the same
  * samples the physics sums. Pure, so the decisions can be tested without a GPU. */
 export type BodyKind='wire'|'disk'|'sheet';
@@ -42,6 +43,35 @@ export function fadeOut(r:number,inner:number,outer:number):number{
  const t=Math.min(1,Math.max(0,(r-inner)/(outer-inner)));
  return 1-t*t*(3-2*t);
 }
+/** How much of the sheet is left past the depth where it would rise to P: a trace, not nothing --
+ * the plane goes on, and a plane that simply stopped would be a false edge on a sheet that has none. */
+export const SHEET_FAR_LOW=.18;
+/** THE SHEET'S FAR SIDE, PUSHED BACK. A flat plane seen from above rises up the screen the further
+ * away it is: at the opening camera, any part of the sheet more than about 1.5 z away along the
+ * line of sight is drawn at P's height or above it. Painted at full strength there, the plane
+ * passed behind P exactly level with it, and P read as a point lying IN the sheet -- the one lesson
+ * whose whole argument is that P is lifted off it.
+ *
+ * So the plane dims with depth, as far things do: solid while it is drawn clearly below P, faded
+ * to a trace by the depth at which it would reach P's height. Depth is measured along the camera's
+ * far direction in the plane, in metres from O. The pitch is never taken as higher than the opening
+ * camera's, so tipping the view up does not pull the fade in under P; tipping it down, toward edge
+ * on, lets the plane run further before it fades, because then it rises more slowly. */
+export function sheetFarFade(height:number,pitch:number,unit:number,opening=openingCamera('sheet').pitch):{inner:number;outer:number}{
+ const p=Math.max(.05,Math.min(pitch,opening)),perMetre=Math.sin(p)*unit;
+ const rise=Math.cos(p)*Math.abs(height)*unit;
+ // Solid until it is drawn 50 px below P; a trace by 20 px below. The span never closes to under
+ // 30 px of screen, so a P set low over the sheet still gets a ramp rather than an edge.
+ const inner=Math.max(0,(rise-50)/perMetre);
+ return {inner,outer:Math.max(inner+30/perMetre,(rise-20)/perMetre)};
+}
+/** What is left of something on the sheet at `depth` metres along the far direction: all of it
+ * near, `fade.low` (by default SHEET_FAR_LOW) far. */
+export type FarFade={inner:number;outer:number;low?:number};
+export const farAlpha=(depth:number,fade:FarFade)=>{const low=fade.low??SHEET_FAR_LOW;return low+(1-low)*fadeOut(depth,fade.inner,fade.outer);};
+/** The chosen ring dims less than the plane under it: it is the piece being talked about, and its
+ * far arc must still be plainly there -- only plainly behind P. */
+export const PIECE_FAR_LOW=.42;
 /** How far the axes and the ground grid run, in whole metres: past the field, past the frame,
  * and never less than a few. Whole metres so the ticks land on round numbers. */
 export const frameExtent=(reach:number,frameWorld:number)=>Math.ceil(Math.max(reach*1.15,frameWorld*.6,3));

@@ -1,5 +1,5 @@
 import {describe,it,expect} from 'vitest';
-import {equivalent,normalize,safeParse,preview} from '../src/symbolic/equivalence';
+import {confusionTex,equivalent,normalize,safeParse,preview} from '../src/symbolic/equivalence';
 import {bisector,getProblem,PROBLEMS} from '../src/problems/definitions';
 const eq=(input:string,expected:string,id='bisector')=>equivalent(input,expected,getProblem(id)).ok;
 describe('mathematical input',()=>{
@@ -135,6 +135,31 @@ describe('preview sets the model’s symbols as the lessons write them',()=>{
    const tex=preview(m.expression);
    expect(tex,m.expression).not.toMatch(/dtheta|eps0|lambda0|\bri\b|\\mathrm/);
    expect(equivalent(unbrace(tex),m.expression,p).ok,`${m.expression} shown as ${tex}`).toBe(true);
+  }
+ });
+});
+// "Easy to confuse with" sets its expressions to be read: in display style, so a fraction is not
+// shrunk to seven tenths, with a fraction in an exponent written as a slash, which is how it is
+// printed and the only way it reads at exponent size. preview() stays as it was: the bound labels'
+// tidy() parses it.
+describe('the confusions are set to be read',()=>{
+ it('sets display style, and a fractional power with a slash',()=>{
+  const tex=confusionTex('k*z*dQ/(s^2+z^2)^(3/2)');
+  expect(tex.startsWith('\\displaystyle ')).toBe(true);
+  expect(tex).toContain('^{3/2}');
+  expect(tex).not.toContain('^{\\frac');
+  // The fraction itself is still a fraction: only the exponent is slashed.
+  expect(tex).toContain('\\frac{k\\,z\\,dQ}');
+ });
+ it('leaves preview() exactly as the bound labels read it',()=>{
+  expect(preview('k*z*dQ/(s^2+z^2)^(3/2)')).toBe('\\frac{k\\,z\\,dQ}{{\\left({s}^{2}+{z}^{2}\\right)}^{\\frac{3}{2}}}');
+  expect(preview('-L/2')).toBe('\\frac{-L}{2}');
+ });
+ const unslash=(tex:string)=>tex.replace(/^\\displaystyle /,'').replace(/\^\{(-?\d+)\/(\d+)\}/g,'^{\\frac{$1}{$2}}');
+ for(const p of PROBLEMS)it(`${p.id}: every confusion as displayed is still the expression it stands for`,()=>{
+  for(const f of p.steps.flatMap(s=>s.fields??[]))for(const m of f.mistakes??[]){
+   const tex=confusionTex(m.expression);
+   expect(unslash(tex),m.expression).toBe(preview(m.expression));
   }
  });
 });
