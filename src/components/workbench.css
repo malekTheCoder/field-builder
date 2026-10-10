@@ -161,9 +161,16 @@
    it is set at the row's own size, not KaTeX's larger one, so a gloss never outweighs its line. */
 .db-where{display:block;font-size:var(--db-gloss);line-height:1.45;color:var(--muted-foreground);padding:1px 0}
 .db-where .katex{font-size:1em}
-/* A remark in words is set in the same roman as the words inside the math beside it, and wraps. */
-.db-say{font-family:KaTeX_Main,'Times New Roman',serif;font-size:calc(var(--db-gloss) * 1.04);text-wrap:pretty}
-.db-held{white-space:nowrap}
+/* A remark in words is set in the page's sans, at the gloss size, and wraps -- one face for every
+   sentence on the card. It was KaTeX's serif, which put two faces in one card: on v-ring "Its mirror
+   piece adds the same; nothing cancels." sat serif directly on top of the sans note under it. Its
+   symbols are still KaTeX, set by Prose, so the λ in the sentence is the λ in the equation. */
+.db-say{font-family:var(--font-geist-sans),Arial,sans-serif;font-size:var(--db-gloss);text-wrap:pretty}
+.db-held,.db-sym{white-space:nowrap}
+/* KaTeX's letters are drawn smaller on the em than Geist's -- an x-height of about .43 against .53 --
+   so a symbol set at the sentence's own size read a size down from the words around it. The page sets
+   inline math a little up from its text everywhere else for the same reason; so does a remark. */
+.db-say .db-sym .katex{font-size:1.1em}
 /* The other component is its own statement, not part of the definition above it: a little air first.
    So is the cancellation, which is what the step is named for. */
 .db-also,.db-cancels{margin-top:5px}
@@ -189,15 +196,34 @@
 
 /* Each factor in the colour of the feature it is read off, so the eye can go from a symbol to the
    thing it measures and back. Pointing at one -- here, at a slider, or at the figure -- lights it. */
-.db .fx{border-radius:4px;transition:background-color .2s ease,box-shadow .2s ease}
+/* A block, so the chip wraps the factor's whole box. As an inline span it was only a line of text
+   tall: lit, its edge ran through the middle of cos α = r/√(y²+r²), across the fraction bar and the
+   radical. KaTeX has already placed every glyph by the time this applies -- the superscript on r_i,
+   the spacing either side -- so the block changes where the chip is drawn and nothing else: every
+   line of every lesson measures the same width and height with it as without.
+   Set solid, one em to the line, so a chip holding a single row of symbols is as tall as the type and
+   no taller. At the formulas' own 1.2 it reached past the type, and the ΔQ over a fraction's bar and
+   the rᵢ under it both ran their chips across the bar. A chip holding a fraction is as tall as the
+   fraction whatever this says, which is the point of the block. */
+.db .fx{display:inline-block;line-height:1;border-radius:4px;transition:background-color .2s ease,box-shadow .2s ease}
 .db .fx-element{color:var(--term-element)}
 .db .fx-distance{color:var(--term-distance)}
 .db .fx-projection{color:var(--term-projection)}
 .db .fx-bounds{color:var(--term-bounds)}
 .db .fx:hover,.db-lit-element .fx-element,.db-lit-distance .fx-distance,.db-lit-projection .fx-projection,.db-lit-bounds .fx-bounds{
  background-color:color-mix(in oklab,currentColor 13%,transparent);box-shadow:0 0 0 2px color-mix(in oklab,currentColor 13%,transparent)}
+/* Over or under a fraction's bar the ring grows sideways only: two pixels up or down was all the room
+   there is, and a denominator's radical sits closer to the bar than that. */
+.db .mfrac .fx:hover,.db-lit-element .mfrac .fx-element,.db-lit-distance .mfrac .fx-distance,.db-lit-projection .mfrac .fx-projection,.db-lit-bounds .mfrac .fx-bounds{
+ box-shadow:-2px 0 0 color-mix(in oklab,currentColor 13%,transparent),2px 0 0 color-mix(in oklab,currentColor 13%,transparent)}
+/* The limits of an integral sit in the hooks of the ∫, a hair from its stroke and from the integrand:
+   no chip fits there, and one drawn anyway sat on the ∫ and touched what it bounds. So a limit says
+   it is lit in its colour alone -- the same limits, lit, are chipped in the line above, where the
+   sum's range is written out on a line of its own. */
+.db .msupsub .fx-bounds{background-color:transparent!important;box-shadow:none!important}
 /* The factor a stage puts in, said once more as that stage arrives. */
 .db-step.is-here .fx{animation:fx-arrive 1.1s ease-out .25s both}
+.db-step.is-here .msupsub .fx-bounds{animation:none}
 @keyframes fx-arrive{0%{background-color:transparent}35%{background-color:color-mix(in oklab,currentColor 20%,transparent)}100%{background-color:transparent}}
 
 /* ---- payoff --------------------------------------------------------- */

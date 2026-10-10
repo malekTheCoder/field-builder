@@ -117,9 +117,12 @@ export function buildStages(p: Problem): BuildStage[] {
   // does. The long captions are still there, beside the algebra, for reading at rest.
   const unbounded = geometry === 'infinite' || geometry === 'semi';
   const surface = geometry === 'disk' || geometry === 'sheet';
-  const ringed = surface ? (geometry === 'disk' ? 'disk' : 'sheet') : '';
   const lines = {
-    pieces: surface ? `Cut the ${ringed} into thin rings. Every bit of one ring is the same distance from P.`
+    // The sheet is cut at equal angles at P, not into thin rings: at five pieces its fourth ring runs
+    // from about four to nine metres out and its fifth never ends, so "every bit of one ring is the
+    // same distance from P" was false of it. The disk's rings are thin, and it is true of them.
+    pieces: geometry === 'sheet' ? 'Cut the sheet into rings that each take the same angle at P.'
+      : surface ? 'Cut the disk into thin rings. Every bit of one ring is the same distance from P.'
       : unbounded ? 'Cut the line into pieces that each take up the same angle at P.'
       : 'Cut the charge into small pieces, each small enough to treat as a point charge.',
     one: scalar ? (surface ? 'One thin ring adds its charge over its distance: every bit of it is equally far from P.'
@@ -145,8 +148,12 @@ export function buildStages(p: Problem): BuildStage[] {
     : 'Each piece makes a field at P along the line joining them. How big depends on how much charge it holds and how far away it is.';
   // A ring is not a point charge, and saying so is the honest start for a disk or a sheet: what
   // makes a ring easy is not that it is small, but that all of it is the same distance away.
-  const cut = surface
-    ? `Start by cutting the ${ringed} into thin rings. A ring is not a point charge, but every bit of it is the same distance from P — and that is all the next steps need.`
+  // The sheet's rings are not thin: what makes one easy is that it is thin in ANGLE, which puts all of
+  // its bits nearly the same distance from P -- the same bridge the unbounded lines' pieces take.
+  const cut = geometry === 'sheet'
+    ? 'Start by cutting the sheet into rings that each take the same small angle at P. A ring is not a point charge, but made thin enough in angle, all of its bits are nearly the same distance from P — which is what lets a whole ring be added up at once.'
+    : surface
+    ? 'Start by cutting the disk into thin rings. A ring is not a point charge, but every bit of it is the same distance from P — and that is all the next steps need.'
     // Not "each one is a point charge": at every N the outermost piece is infinitely long. What a
     // thin enough angle buys is that the piece's FIELD at P is a point charge's.
     : unbounded

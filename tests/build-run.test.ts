@@ -162,6 +162,24 @@ describe('what the captions claim is what the samplers do', () => {
   expect(buildStages(getProblem('sheet'))[1].line).toMatch(/^Cut at equal angles/);
   expect(buildStages(getProblem('sheet'))[2].caption).toMatch(/Cut at equal angles/);
  });
+ it('sheet: cut at equal angles, its rings are not thin -- only thin in angle, which is what the run says', () => {
+  // At five pieces the rings' edges are at about 0, 0.97, 2.18, 4.13 and 9.23 m with P 3 m up, and
+  // the fifth never ends: "cut into thin rings, every bit of one ring the same distance from P" was
+  // false of the outer ones. What holds is the bridge the unbounded lines take, made thin in ANGLE.
+  const P3 = {...P, distance: 3};
+  const edges = Array.from({length: n + 1}, (_, i) => 3 * Math.tan(Math.PI / 2 * i / n));
+  expect(edges[3] - edges[2], 'the fourth ring is not thin').toBeGreaterThan(1.9);
+  expect(sampleDistribution('sheet', P3, n).map(s => s.coordinate).at(-1)).toBeGreaterThan(edges[4]);
+  const [cut] = buildStages(getProblem('sheet'));
+  expect(cut.line).toBe('Cut the sheet into rings that each take the same angle at P.');
+  expect(cut.caption).toMatch(/same small angle at P/);
+  expect(cut.caption).toMatch(/thin enough in angle, all of its bits are nearly the same distance from P/);
+  for (const text of [cut.line, cut.caption]) expect(text).not.toMatch(/thin rings/);
+  // The disk's rings are thin, cut at equal widths, and it keeps its own words.
+  const [disk] = buildStages(getProblem('disk'));
+  expect(disk.line).toMatch(/^Cut the disk into thin rings\. Every bit of one ring is the same distance from P\./);
+  expect(disk.caption).toMatch(/cutting the disk into thin rings/);
+ });
  it('sheet: lifting P leaves the field unchanged, which the subtitle promises', () => {
   const at = (distance: number) => size(sampleDistribution('sheet', {...P, distance}, 4000).reduce(
    (sum, s) => ({x: sum.x + s.field.x, y: sum.y + s.field.y, z: sum.z + s.field.z}), {x: 0, y: 0, z: 0}));

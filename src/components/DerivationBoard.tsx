@@ -34,12 +34,16 @@ function Prose({text}: {text: string}) {
     if (!(i % 2)) { out.push(parts[i]); continue; }
     // KaTeX sets a symbol as inline blocks, and a browser will break a line before one even after
     // a no-break space -- so a sentence ended on a lone "P." on a line of its own. A word joined to
-    // its symbol that way is held to it, with the punctuation after, in one unbreakable run.
+    // its symbol that way is held to it, with the punctuation after, in one unbreakable run -- and
+    // with the rest of a hyphenated word, which broke after its hyphen: "the x-" ending one line and
+    // "axis." starting the next.
+    // And a symbol is never broken inside: KaTeX lets a line break after an "=", and "y = L/2" was
+    // set as "y =" at the end of one line and "L/2" at the start of the next.
     const before = typeof out.at(-1) === 'string' ? (out.at(-1) as string).match(/^([\s\S]*?)(\S+\u00a0)$/) : null;
-    if (!before) { out.push(<MathText key={i} tex={parts[i]} />); continue; }
-    const after = parts[i + 1]?.match(/^[.,;:]*/)?.[0] ?? '';
+    if (!before) { out.push(<MathText key={i} className="db-sym" tex={parts[i]} />); continue; }
+    const after = parts[i + 1]?.match(/^(?:-[A-Za-z]+)?[.,;:]*/)?.[0] ?? '';
     out[out.length - 1] = before[1];
-    out.push(<span key={i} className="db-held">{before[2]}<MathText tex={parts[i]} />{after}</span>);
+    out.push(<span key={i} className="db-held">{before[2]}<MathText className="db-sym" tex={parts[i]} />{after}</span>);
     if (after) parts[i + 1] = parts[i + 1].slice(after.length);
   }
   return out;
