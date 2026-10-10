@@ -129,3 +129,23 @@ describe('the limit plots speak in symbols, not numerals',()=>{
   for(const text of shown)expect(text,`${problem.id}/${limit.id}`).not.toMatch(/[0-9]/);
  });
 });
+// A potential with no limit was drawn as V over its growth law: a curve that fell and flattened onto
+// one, which a student read as V levelling off -- the opposite of the tab's point. It is now drawn as
+// what it is, V and the growth law themselves, rising together.
+describe('a potential that grows without end is drawn growing',()=>{
+ for(const id of ['v-rod-bisector','v-disk'])it(`${id}: V and its growth law both rise across the whole sweep`,()=>{
+  const problem=getProblem(id),limit=problem.limits.find(l=>l.mode==='infinite')!,plot=limitPlot(problem,limit);
+  expect(plot.kind).toBe('growth');
+  expect(plot.caption).toBe('Both keep growing without end, in step: V has no limit to settle on.');
+  // The sweep the panel draws: seventy points, logarithmic, as Assessment samples it.
+  const s=Array.from({length:70},(_,i)=>sampleLimit(problem,p,limit,30**(i/69)));
+  for(let i=1;i<s.length;i++){
+   expect(s[i].actual,`${id} V at sample ${i}`).toBeGreaterThan(s[i-1].actual);
+   expect(s[i].target,`${id} growth law at sample ${i}`).toBeGreaterThan(s[i-1].target);
+  }
+  // Neither curve levels off: the last stretch of the sweep still climbs a good part of the way.
+  const late=(k:'actual'|'target')=>(s[69][k]-s[52][k])/s[69][k];
+  expect(late('actual')).toBeGreaterThan(.2);
+  expect(late('target')).toBeGreaterThan(.2);
+ });
+});

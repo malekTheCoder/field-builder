@@ -64,6 +64,8 @@ describe('the words hold for either sign of charge, and speak of fields, not for
   expect(p.setup,`${p.id} setup`).not.toMatch(/positive (charge|rod|line|surface|uniform)|uniform positive|Positive uniform|Total positive/);
   for(const [where,text] of shown(p)){
    expect(text,`${p.id} ${where}`).not.toMatch(/\bpush/i);
+   // P is a point, not a charge: a piece makes a field there; it does not act on it.
+   expect(text,`${p.id} ${where}`).not.toMatch(/\bacts? on P\b|\bharder\b/);
    // A direction stated as a fact, with no sign attached, is wrong half the time.
    expect(text,`${p.id} ${where}`).not.toMatch(/45° (left|below)(?![^.]*positive)/);
   }

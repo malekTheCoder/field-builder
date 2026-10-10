@@ -20,8 +20,12 @@ export function numerical(id:ProblemId,p:Params,n=12000):Vec {if(!Number.isFinit
  *    not a formula plotted against itself.
  *  · `decay`: the reference is zero, so the exact value is drawn scaled to its largest and falls to
  *    the axis.
- *  · `peak`: the exact value over its analytic maximum, which it touches once. */
-export type LimitKind='ratio'|'constant'|'decay'|'peak';
+ *  · `peak`: the exact value over its analytic maximum, which it touches once.
+ *  · `growth`: a potential with no limit at all. The exact value and its growth law are drawn
+ *    themselves, as two curves, each divided by the same constant (the larger of their two end
+ *    values), so both climb the plot together. A ratio would fall and settle at one, and a curve
+ *    that settles reads as V levelling off -- the opposite of what the case is about. */
+export type LimitKind='ratio'|'constant'|'decay'|'peak'|'growth';
 /** One point on a limit's plot. `actual` and `target` are magnitudes (for the semi-infinite line's
  * direction, its two component magnitudes), so a negative charge never mirrors a curve below the
  * axis. `vector` is the field at P for that point, sign included: the thumbnail draws it. */
@@ -83,7 +87,7 @@ export function limitPlot(problem:Problem,limit:Limit):LimitPlot{
   case 'far':return{kind:'ratio',y:`${Q} ÷ point-charge ${qty}`,axis:`distance ${d}`,from:`${d} ∼ ${size}`,to:`${d} ≫ ${size}`,line:'point charge',caption:settles('a point charge’s',`${d} ≫ ${size}`)};
   case 'moment':return{kind:'ratio',y:'|Eᵧ| ÷ first-moment field',axis:'distance r',from:'r ∼ L',to:'r ≫ L',line:'first moment',caption:'On the dashed line the vertical field is the first-moment field, set by the centre of charge ȳ. The curve settles onto it as r\u00a0≫\u00a0L.'};
   case 'infinite':
-   if(scalar)return{kind:'ratio',y:'|V| ÷ its growth law',axis:g==='disk'?'disk radius R, with σ fixed':'rod length L, with λ fixed',from:g==='disk'?'R ∼ z':'L ∼ r',to:g==='disk'?'R ≫ z':'L ≫ r',line:'growth without end',caption:`The potential has no limit to settle on: it grows without end, ${g==='disk'?'in step with R':'as the logarithm of L'}. The curve meets the dashed line because V and that growth become the same thing.`};
+   if(scalar)return{kind:'growth',y:'|V| and its growth law, scaled',axis:g==='disk'?'disk radius R, with σ fixed':'rod length L, with λ fixed',from:g==='disk'?'R ∼ z':'L ∼ r',to:g==='disk'?'R ≫ z':'L ≫ r',line:'growth law',caption:'Both keep growing without end, in step: V has no limit to settle on.'};
    if(g==='disk'||g==='sheet')return{kind:'ratio',y:'|E| ÷ infinite-sheet field',axis:'disk radius R, with σ fixed',from:'R ∼ z',to:'R ≫ z',line:'infinite sheet',caption:settles('an infinite sheet’s','R ≫ z')};
    return{kind:'ratio',y:`|E| ÷ ${g==='endpoint'?'semi-infinite':'infinite'}-line field`,axis:'rod length L, with λ fixed',from:'L ∼ r',to:'L ≫ r',line:g==='endpoint'?'semi-infinite line':'infinite line',caption:settles(g==='endpoint'?'a semi-infinite line’s':'an infinite line’s','L ≫ r')};
   case 'center':return scalar
