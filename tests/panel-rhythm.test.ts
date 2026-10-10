@@ -1,7 +1,7 @@
 import {describe, expect, it} from 'vitest';
 import katex from 'katex';
 import {PROBLEMS} from '../src/problems/definitions';
-import {ARC_UNFOLD, AXIAL_UNFOLD, BISECTOR_UNFOLD, DISK_UNFOLD, ENDPOINT_UNFOLD, INFINITE_UNFOLD, SEMI_UNFOLD, resultLines} from '../src/workbench/derivation';
+import {ARC_UNFOLD, AXIAL_UNFOLD, BISECTOR_UNFOLD, DISK_UNFOLD, ENDPOINT_UNFOLD, INFINITE_UNFOLD, RAMP_UNFOLD, SEMI_UNFOLD, SHEET_UNFOLD, V_DISK_POWER, resultLines, spaced, workedSteps} from '../src/workbench/derivation';
 /* THE ANSWER'S ROWS ARE SET A GAP APART, NOT A TOWER OF FRACTIONS.
  *
  * Every result of more than one row is one aligned block, written with one \\[.45em] between rows. KaTeX
@@ -51,10 +51,28 @@ describe('the answer in one rhythm', () => {
   });
   it('the same in the panel’s own worked steps', () => {
     const bad: string[] = [];
-    for (const [name, steps] of Object.entries({BISECTOR_UNFOLD, ENDPOINT_UNFOLD, INFINITE_UNFOLD, SEMI_UNFOLD, DISK_UNFOLD, ARC_UNFOLD, AXIAL_UNFOLD}))
+    for (const [name, steps] of Object.entries({BISECTOR_UNFOLD, ENDPOINT_UNFOLD, INFINITE_UNFOLD, SEMI_UNFOLD, DISK_UNFOLD, ARC_UNFOLD, AXIAL_UNFOLD, SHEET_UNFOLD, RAMP_UNFOLD, V_DISK_POWER}))
       for (const s of steps.filter(x => aligned(x.tex))) for (const {row, white} of whites(s.tex))
         if (white < .55 || white > .85) bad.push(`${name}: ${white.toFixed(2)}em above "${row.slice(0, 40)}"`);
     expect(bad).toEqual([]);
+  });
+  it('and in every lesson’s Unfold, the steps it inherits from the lesson included', () => {
+    // The lessons' own steps kept bare breaks: nine on the rod's potential, five on the ramp, each new
+    // equality 2 to 5 px under the last. Each is now sized as the panel's own rows are; a row that only
+    // continues the one above keeps the line spacing.
+    const bad: string[] = [];
+    let seen = 0;
+    for (const p of PROBLEMS) for (const s of [...workedSteps(p).worked, ...workedSteps(p).back].filter(x => aligned(x.tex))) for (const {row, white} of whites(s.tex)) {
+      seen++;
+      const opens = /^[^&]*&(\\quad)?=/.test(row);
+      if (opens ? white < .55 || white > .85 : white < .2 || white > .5) bad.push(`${p.id}: ${white.toFixed(2)}em above "${row.slice(0, 40)}"`);
+    }
+    expect(seen).toBeGreaterThan(30);
+    expect(bad).toEqual([]);
+    // Without the sizing, the rod's potential's evaluation is the tower it was.
+    const bare = String.raw`\begin{aligned}V&=k\lambda\ln\frac{L/2+\sqrt{(L/2)^2+r^2}}{r}\\&=k\lambda\ln\frac{\sqrt{(L/2)^2+r^2}+L/2}{\sqrt{(L/2)^2+r^2}-L/2}\end{aligned}`;
+    expect(whites(bare)[0].white).toBeLessThan(.4);
+    expect(whites(spaced(bare))[0].white).toBeGreaterThan(.6);
   });
   it('the old single gap was the tower of fractions it is said to be', () => {
     // The bisector's two rows with \\[.45em]: the line spacing alone, under a third of an em.

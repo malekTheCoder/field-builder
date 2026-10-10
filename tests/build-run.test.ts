@@ -173,7 +173,8 @@ describe('what the captions claim is what the samplers do', () => {
   expect(sampleDistribution('sheet', P3, n).map(s => s.coordinate).at(-1)).toBeGreaterThan(edges[4]);
   const [cut] = buildStages(getProblem('sheet'));
   // The line goes on from the stage's name, "Cut it up.", rather than saying its verb again.
-  expect(cut.line).toBe('Rings that each take the same angle at P.');
+  // And why by angle at all: the sheet never ends, but seen from P its angles do.
+  expect(cut.line).toBe('Rings of equal angle at P: the sheet never ends, but its angles do.');
   expect(cut.caption).toMatch(/same small angle at P/);
   // Nor does a thin angle put its bits nearly one distance from P: the fourth ring's run from 0.77
   // to 1.47 times its middle distance. What holds, the outermost too, is that its FIELD is nearly a

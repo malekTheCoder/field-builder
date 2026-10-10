@@ -281,7 +281,9 @@ describe('the derivation board', () => {
     // "Hence the minus" points at the line that has it: the line above the sentence has none.
     for (const id of ['endpoint', 'ramp']) expect(say(id), id).toContain(String.raw`hence the minus in $\Delta E_y$ below`);
     // The infinite line says why its part along x is ΔE cos θ.
-    expect(say('infinite')).toMatch(/lies along \$r_i\$, so its part along \$x\$ is \$\\Delta E\\cos\\theta\$/);
+    // Along the line of sight, named as a line: r_i is a distance on this board.
+    expect(say('infinite')).toMatch(/lies along the line of sight to the piece, so its part along \$x\$ is \$\\Delta E\\cos\\theta\$/);
+    for (const id of ['bisector', 'endpoint', 'ramp', 'ring', 'disk', 'infinite', 'semi']) expect(say(id), id).not.toMatch(/between \$r_i\$ and|lies along \$r_i\$/);
     // A disk's ring adds up to its charge, ΔQ = Σδq, times one factor; the sheet's only nearly.
     expect(say('disk')).toContain(String.raw`$\Delta Q=\sum\delta q$`);
     expect(say('disk')).toContain(String.raw`$k\,\Delta Q\cos\alpha/r_i^2$`);
@@ -343,7 +345,12 @@ describe('the derivation board', () => {
       if (p.quantity === 'V') expect(one, p.id).toMatch(/divided by its distance, \$r_i\$\u00a0— not \$r_i\^2\$, as for the field\u00a0— and a potential has no direction/);
       else expect(one, p.id).toMatch(/Coulomb’s law/);
     }
-    for (const id of ['bisector', 'endpoint', 'ramp', 'semi', 'ring', 'infinite']) expect(step(id, 'one').say, id).toMatch(/\$r_i\$ is the hypotenuse/);
+    for (const id of ['bisector', 'endpoint', 'ramp', 'semi', 'ring', 'infinite', 'disk', 'sheet']) expect(step(id, 'one').say, id).toMatch(/\$r_i\$ is the hypotenuse/);
+    // The sheet's triangle joins the distance to Cut it up's name for it.
+    expect(step('sheet', 'one').say).toContain(String.raw`the $z\sec\alpha$ of Cut it up`);
+    // The disk says what r_i is, and what i numbers, before the triangle that gives it.
+    expect(step('disk', 'one').say!.indexOf('(the $i$ numbers the rings)')).toBeLessThan(step('disk', 'one').say!.indexOf('is the hypotenuse'));
+    expect(step('v-disk', 'one').say).toMatch(/^A ring is not a point, but if it is treated as thin/);
     expect(step('bisector', 'one').say).toMatch(/unit vector from the piece toward/);
     expect(step('disk', 'one').say).toMatch(/\$\\delta q\$ is one bit of the ring/);
     expect(step('v-disk', 'one').say).toMatch(/every bit of it is \$r_i\$ from/);
@@ -407,9 +414,11 @@ describe('the derivation board', () => {
     expect(Math.abs(Ex(5) / Ex(1000) - 1)).toBeGreaterThan(1e-3);
     // The integral of a term that never changes: it comes out, and the rest counts the whole charge.
     expect(step('ring', 'limit').say).toContain(String.raw`$\int_0^{2\pi}d\theta=2\pi$`);
-    expect(step('ring', 'limit').say).toContain(String.raw`$\lambda\,2\pi R=Q$`);
-    expect(step('ring', 'limit').finish).toContain(String.raw`(\lambda\,2\pi R)`);
-    expect(step('v-ring', 'limit').finish).toContain(String.raw`(\lambda\,2\pi R)`);
+    // Spelled as the lesson's own Unfold spells it, one click down: 2πRλ.
+    expect(step('ring', 'limit').say).toContain(String.raw`$2\pi R\lambda=Q$`);
+    expect(step('ring', 'limit').finish).toContain(String.raw`(2\pi R\lambda)`);
+    expect(step('v-ring', 'limit').finish).toContain(String.raw`(2\pi R\lambda)`);
+    for (const id of ['ring', 'v-ring']) expect(boardLines(lesson(id)).flatMap(l => [l.tex, l.finish, l.say]).join(' '), id).not.toContain(String.raw`\lambda\,2\pi R`);
     expect(step('v-arc', 'limit').say).toContain(String.raw`$\lambda R\varphi=Q$`);
     expect(step('v-arc', 'limit').say).not.toMatch(/stays\. So/);
     // A ring's bits are all at one angle, so its sum does not index α.

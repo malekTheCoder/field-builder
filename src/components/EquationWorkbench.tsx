@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { MathText, Prose } from './Math';
 import { DerivationBoard, type BoardState } from './DerivationBoard';
 import { equivalent, safeParse } from '../symbolic/equivalence';
-import { ARC_UNFOLD, AXIAL_UNFOLD, BISECTOR_UNFOLD, DISK_UNFOLD, ENDPOINT_UNFOLD, INFINITE_UNFOLD, SEMI_UNFOLD, boardLines, componentOf, exactSum, resultLines, type Term } from '../workbench/derivation';
+import { boardLines, componentOf, exactSum, partResult, resultLines, workedSteps, type Term } from '../workbench/derivation';
 import { buildStages } from '../explorer/buildRun';
 import type { Params, Problem } from '../problems/types';
 import './workbench.css';
@@ -126,11 +126,17 @@ export function EquationWorkbench({problem:p,derivationProblem,params,onModeChan
  // The board builds one component and says once, in What cancels, that ΔE_y survives too; the answer
  // then printed a whole E_y -- the ramp's with a logarithm -- under "Doing the integral gives this", with
  // nothing to tie it to that sentence. One pointer back, where the answer has a second component.
- const surviving=['endpoint','ramp','semi'].includes(p.id)?raw`$E_y$ is the surviving $\Delta E_y$ added up the same way.`:'';
+ //
+ // And the integral it is. The pointer said "added up the same way" and the answer printed E_y with no
+ // integral to show how -- while Shrink them had written only E_x's factors, so sin α = y/√(y² + r²) was
+ // never on the card at all. The lessons carry that integral, and the printed copy prints it; so does the
+ // panel now, with the one factor the board never wrote.
+ const secondary=q.secondaryIntegralTex&&['endpoint','ramp','semi'].includes(p.id)?q.secondaryIntegralTex:'';
+ const surviving=!secondary?'':p.id==='semi'?raw`$E_y$ is the surviving $\Delta E_y$ added up the same way, with $\cos\alpha=r/\sqrt{x^2+r^2}$:`:raw`$E_y$ is the surviving $\Delta E_y$ added up the same way, with $\sin\alpha=y/\sqrt{y^2+r^2}$:`;
  // WHERE THE ANSWER CAME FROM. On the ring and the two exact potentials Add ends "this sum is already
  // exact … The answer needs no integral", and the answer under it opened "Doing the integral gives this":
  // credit to the integral for what the card had just said the sum gave. There the integral agrees.
- const lead=exactSum(q)?'Adding up the pieces gives this, exactly, however many there are; the integral above agrees.':'Doing the integral gives this.';
+ const lead=exactSum(q)?'Adding up the pieces gives this, exactly, however many there are; the integral above agrees.':secondary?'Doing the integrals gives this.':'Doing the integral gives this.';
  // What the sign means, in words a first-year reader has: "signed field component" did not say that a
  // component can come out negative, or what that says. Two components are named as two.
  const both=['semi','endpoint','ramp'].includes(p.id);
@@ -142,34 +148,19 @@ export function EquationWorkbench({problem:p,derivationProblem,params,onModeChan
  // every other reader that part of a charge cannot be integrated to an answer, which is false: it is the
  // same integral between other ends. And "closed form" is a word a first-year reader does not have.
  const part=componentOf(q);
+ // On a lesson whose integral the board finishes in a bracket, the part's answer is that bracket between
+ // the handles' own ends -- written, as the whole charge's answer is, not promised in words.
+ const partTex=useMemo(()=>partResult(q,lower,upper),[q,lower,upper]);
  const partNote=exactSum(q)
   ?raw`The integral above now adds up only the bracketed part of the charge, and its last line already gives that part’s $${part}$: every piece in it is ${g==='arc'?'$R$ from $P$':'the same distance away'}${scalar?'':', at the same angle'}.${scalar?'':' Its part across the axis no longer cancels, so that part’s field leans off the axis.'}`
-  :raw`The integral above now adds up only the bracketed part of the charge. Done between these ends, the same integral gives that part’s $${part}$. The answer for the whole distribution comes back when the brackets are at the ends again.`;
- const algebra=derivationProblem??p;const original=algebra.steps.find(s=>s.kind==='integrate')?.worked??[];
- // The bisector's angle is α on the board and on the figure, so it is α here too -- it was u, a
- // second name for the same angle, under a word ("Jacobian") the course has not taught yet.
- //
- // The rod level with one end does the same integral between 0 and L, and its own first step said the
- // four in one sentence of plain text; the infinite line's opened on a y-integral its board never wrote.
- // Each now starts from its board's last line and goes on into the lesson's own steps.
- //
- // The disk, the arc and the rod on its axis skipped the steps a weak-calculus reader cannot supply --
- // a constant coming out, the power rule, du = −dx turning the ends round, sin(−φ/2) = −sin(φ/2) -- and
- // the semi-infinite line went α to x to α. Each now starts from its board's last line too. The disk's
- // last step is the lesson's own with its terms in the board's order, R² + z², as the answer above has.
- const integration=scalar?original
-  :g==='bisector'?[...BISECTOR_UNFOLD,...original.slice(1)]
-  :g==='endpoint'?[...ENDPOINT_UNFOLD,...original.slice(1)]
-  :algebra.id==='infinite'&&algebra.variable!=='y'?[...INFINITE_UNFOLD,...original.slice(2)]
-  :g==='semi'?[...SEMI_UNFOLD,...original.slice(-1)]
-  :g==='disk'?[...DISK_UNFOLD,...original.slice(1).map(s=>({...s,tex:s.tex.replace(/z\^2\+R\^2/g,'R^2+z^2')}))]
-  :g==='arc'?[...ARC_UNFOLD,...original.slice(2)]
-  :g==='axial'?[...AXIAL_UNFOLD,...original.slice(2)]
-  :original;
- // A potential lesson promises the field "falls out of one derivative", and its lesson carries that
- // derivative worked out -- which this list used to stop short of. It follows the integration,
- // under its own heading, wherever the lesson has one.
- const back=algebra.steps.find(s=>s.kind==='gradient')?.worked??[];
+  :raw`The integral above now adds up only the bracketed part of the charge. Done between these ends, it comes to that part’s $${part}$:`;
+ const partBack='The answer for the whole distribution comes back when the brackets are at the ends again.';
+ const algebra=derivationProblem??q;
+ // ONE LIST, FOR THE PAGE AND THE HANDOUT. Each lesson's Unfold starts from its board's last line --
+ // the constant coming out, the substitution, the power rule, the bracket -- and goes on into the
+ // lesson's own steps in the panel's rhythm and the answer's order; a potential's then differentiates
+ // back. It was assembled here, and again in the printed copy, which fell behind on four lessons.
+ const{worked:integration,back}=useMemo(()=>workedSteps(q,algebra),[q,algebra]);
  const steps=[...integration,...back];
  const workedRef=useRef<HTMLDivElement>(null);
  // The answer arrived under the integral with no word that it is that integral done, and the steps
@@ -193,8 +184,8 @@ export function EquationWorkbench({problem:p,derivationProblem,params,onModeChan
   <DerivationBoard lines={lines} names={names} state={state} lit={LIGHTS[highlight]??''} onStep={playStep} onPoint={point}/>
  </div>
  {allBounds
-  ?<div className={'ew-result'+(settled?' is-shown':'')} aria-hidden={settled?undefined:true}><span className="ew-result-label">The whole distribution</span><p className="ew-result-lead">{lead} {surviving&&<><Prose text={surviving}/> </>}<button type="button" className="ew-result-unfold" onClick={unfold}>Show every step</button></p>{results.map(t=><MathText key={t} tex={t} block/>)}{withK}<p><Prose text={sign}/></p></div>
-  :<div className="ew-result is-shown is-partial"><span className="ew-result-label">Part of the distribution</span><p><Prose text={partNote}/></p></div>}
+  ?<div className={'ew-result'+(settled?' is-shown':'')} aria-hidden={settled?undefined:true}><span className="ew-result-label">The whole distribution</span>{secondary&&<><p className="ew-result-lead"><Prose text={surviving}/></p><MathText className="ew-result-integral" tex={secondary} block/></>}<p className="ew-result-lead">{lead} <button type="button" className="ew-result-unfold" onClick={unfold}>Show every step</button></p>{results.map(t=><MathText key={t} tex={t} block/>)}{withK}<p><Prose text={sign}/></p></div>
+  :<div className="ew-result is-shown is-partial"><span className="ew-result-label">Part of the distribution</span><p><Prose text={partNote}/></p>{partTex&&<><MathText className="ew-result-part" tex={partTex} block/><p>{partBack}</p></>}</div>}
  {/* THE SHELF: what a reader opens afterwards. The interval, the algebra worked out, and where
      the model comes from -- all closed until asked for, so the derivation stays the subject. */}
  <div className="ew-reference">

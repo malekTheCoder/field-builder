@@ -63,13 +63,15 @@ export type BuildStage = {
  * Nor do they say a piece "acts on P" or pushes it "harder": P is a point, not a charge, and
  * nothing there is pushed. A piece MAKES A FIELD at P, and a bigger or smaller one. */
 const CANCELS: Record<string, string> = {
-  bisector: 'Now its mirror piece, the same distance from P on the other side of the x-axis. Its part along the rod is equal and opposite to the first piece’s, so those two cancel\u00a0— and what is left of both points the same way, perpendicular to the rod.',
+  // Of the pieces and their mirrors, as the run's lines are (see `CANCEL_LINES`): a reader can choose the
+  // run's piece, and at an odd N the middle one is its own mirror, with nothing drawn opposite it.
+  bisector: 'Now the mirror pieces, each the same distance from P as its partner, on the other side of the x-axis. A piece’s part along the rod is equal and opposite to its mirror’s, so those two cancel\u00a0— and what is left of both points the same way, perpendicular to the rod.',
   // Not "the piece": at an odd N -- the default five among them -- no piece's middle is half a turn
   // from another's, and the figure draws an arc of the piece's length centred straight across. That
   // length of ring is what cancels the piece's part, at any N.
   ring: 'Now the same length of ring straight across from it. Its part across the axis is equal and opposite, so the two cancel\u00a0— and what is left of both points along the axis.',
-  arc: 'Now the piece at the mirror angle. Its part across the axis is equal and opposite, so those two cancel\u00a0— and what is left of both points along the axis.',
-  infinite: 'Now the mirror piece on the other side of the perpendicular from P. Its part along the line is equal and opposite, so those cancel\u00a0— and what is left of both points perpendicular to the line.',
+  arc: 'Now the mirror pieces, at the mirror angles. A piece’s part across the axis is equal and opposite to its mirror’s, so those two cancel\u00a0— and what is left of both points along the axis.',
+  infinite: 'Now the mirror pieces, on the other side of the perpendicular from P. A piece’s part along the line is equal and opposite to its mirror’s, so those cancel\u00a0— and what is left of both points perpendicular to the line.',
   // The board says how a ring cancels -- each bit's part across the axis undone by the bit straight
   // across -- so the note under it says what that leaves, rather than the same sentence again.
   disk: 'A disk is rings, and each ring has already cancelled its own sideways parts. Nothing sideways is left: each ring’s field at P points straight along the axis.',
@@ -163,14 +165,23 @@ export function buildStages(p: Problem): BuildStage[] {
     // The sheet is cut at equal angles at P, not into thin rings: at five pieces its fourth ring runs
     // from about four to nine metres out and its fifth never ends, so "every bit of one ring is the
     // same distance from P" was false of it. The disk's rings are thin, and it is true of them.
-    pieces: geometry === 'sheet' ? `Rings that each take the same angle at${P}.`
+    //
+    // And why by angle, which is the method's whole point and was said nowhere: an endless charge has no
+    // last piece of equal width, but seen from P its angles stop.
+    pieces: geometry === 'sheet' ? `Rings of equal angle at${P}: the sheet never ends, but its angles do.`
       : surface ? `Thin rings: every bit of one ring is the same distance from${P}.`
-      : unbounded ? `Pieces that each take up the same angle at${P}.`
+      : unbounded ? `Pieces of equal angle at${P}: the line never ends, but its angles do.`
       // A ring's or an arc's pieces need not be small: every bit of one is as far from P as every bit
       // of another (for the ring's field, at the same angle too), so a piece's share is exactly a
       // point charge's at any size. The run opened these by saying smallness was what made a piece a
       // point charge, then said the sum was exact however it was cut.
-      : exact ? (geometry === 'arc' ? `Pieces of any size: every bit of every piece is $R$ from${P}.` : `Pieces of any size: every bit of every piece is the same distance from${P}.`)
+      //
+      // For the ring's field the distance is not enough -- the arc's line below says so of the same
+      // premise -- and what makes a piece's axial part exact is the angle too. Its caption said so; the
+      // line, the one sentence a sighted reader sees, did not.
+      : exact ? (geometry === 'arc' ? `Pieces of any size: every bit of every piece is $R$ from${P}.`
+        : scalar ? `Pieces of any size: every bit of every piece is the same distance from${P}.`
+        : `Pieces of any size: all of a piece is equally far from${P}, at one angle to the axis.`)
       // The arc's field: every bit IS R from P, so "small enough to be a point charge" left a reader
       // asking what goes wrong with a big piece. Direction does: the field turns along a piece.
       : geometry === 'arc' ? `Short pieces: every bit is $R$ from${P}, but the field’s direction turns along a piece.`
@@ -183,7 +194,9 @@ export function buildStages(p: Problem): BuildStage[] {
       : unbounded ? `Every equal-angle piece contributes exactly as much at${P}: the far ones hold more charge.`
       // Only cut at equal angles: cut into rings of equal width, a sheet's rings peak at s = z/√2.
       : geometry === 'sheet' ? `Cut at equal angles, each farther ring is so much bigger that it makes a bigger $\\Delta E$ at${P}.`
-      : geometry === 'disk' ? `A thin ring: every bit of it is the same distance from${P}, at the same angle to the axis.`
+      // Its own idea, not Cut it up's again ("every bit of one ring is the same distance from P"): the
+      // bits are point charges, and a thin ring's are all one distance and one angle away.
+      : geometry === 'disk' ? `Its bits are point charges, all one distance and one angle from${P}: the ring adds up at once.`
       // The ring's Cut it up says a piece's part along the axis is exactly a point charge's at any size;
       // "a piece's field lies along the line joining them" holds only of a small piece, so the two read
       // as one claim and contradicted each other. At three pieces a piece is a third of the ring, and its
@@ -246,8 +259,14 @@ export function buildStages(p: Problem): BuildStage[] {
   // The chain is the arrows themselves, not their surviving parts: it is the sideways parts
   // undoing each other along the way that makes it bend back, where the geometry is symmetric.
   const stops = `where it stops is the sum of the N ${unit}s: the field at P once they shrink.`;
-  // A ring is made thinner, not smaller.
-  const shrink = surface ? 'rings thinner' : 'pieces smaller';
+  // WHY THE LIMIT IS THE ANSWER, IN THE CAPTION TOO. The line was changed to name each lesson's own
+  // approximation, the one that shrinking makes exact; the caption read to a screen reader still ended
+  // "the answer stops depending on how finely we chose to cut", the reason the line had dropped. And it
+  // said "smaller" where the board's rule and the line say "thinner".
+  const exactNow = geometry === 'arc' ? 'taking cos θ at each piece’s middle, which was only nearly right, becomes exact, since cos θ stops changing across a piece'
+    : geometry === 'sheet' ? 'treating each ring as a thin ring, which was only nearly right, becomes exact'
+    : surface ? 'counting each ring’s charge at one radius, which was only nearly right, becomes exact'
+    : 'treating each piece as a point charge, which was only nearly right, becomes exact';
   const adds = exact
     ? 'Now add every piece’s arrow, tip to tail. The sideways parts undo each other along the way, so the chain bends back to the axis, and it ends exactly at the field at P: every piece is the same distance away at the same angle, so cutting finer changes nothing.'
     : geometry === 'axial' || surface
@@ -285,11 +304,11 @@ export function buildStages(p: Problem): BuildStage[] {
       moves: .7, pace: 'ease', term: 'bounds', line: plain(lines.limit), prose: lines.limit,
       caption: exact
         ? scalar
-          ? 'Finally, make the pieces smaller without end. Each segment of the column gets too thin to see and the sum becomes the integral, but the height does not move: every piece was already the same distance from P, so the sum was exact all along.'
-          : 'Finally, make the pieces smaller without end. Each piece’s arrow shrinks to nothing while there are ever more of them, and the sum becomes the integral. The answer does not move: every piece was already the same distance from P at the same angle, so the sum was exact all along.'
+          ? 'Finally, make the pieces thinner without end. Each segment of the column gets too thin to see and the sum becomes the integral, but the height does not move: every piece was already the same distance from P, so the sum was exact all along.'
+          : 'Finally, make the pieces thinner without end. Each piece’s arrow shrinks to nothing while there are ever more of them, and the sum becomes the integral. The answer does not move: every piece was already the same distance from P at the same angle, so the sum was exact all along.'
         : scalar
-        ? `Finally, make the ${shrink} without end. Each segment of the column gets too thin to see, the sum becomes the integral, and the height stops depending on how finely we chose to cut.`
-        : `Finally, make the ${shrink} without end. Each ${unit}’s arrow shrinks to nothing while there are ever more of them, the sum becomes the integral, and the answer stops depending on how finely we chose to cut.`},
+        ? `Finally, make the ${unit}s thinner without end. Each segment of the column gets too thin to see, and the sum becomes the integral: ${exactNow}.`
+        : `Finally, make the ${unit}s thinner without end. Each ${unit}’s arrow shrinks to nothing while there are ever more of them, and the sum becomes the integral: ${exactNow}.`},
   ];
 }
 /** How far a stage's motion has got, `local` of the way through the stage: the moving share

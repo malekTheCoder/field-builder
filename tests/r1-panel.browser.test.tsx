@@ -3,6 +3,7 @@ import {afterEach, describe, expect, it, vi} from 'vitest';
 import {EquationWorkbench} from '../src/components/EquationWorkbench';
 import {PROBLEMS, getProblem} from '../src/problems/definitions';
 import {DEFAULT_PARAMS, type ProblemId} from '../src/problems/types';
+import {workedSteps} from '../src/workbench/derivation';
 
 afterEach(cleanup);
 /* THE PANEL SAYS WHAT IT PROMISES, IN THE NAMES THE FIGURE USES.
@@ -42,15 +43,19 @@ describe('a potential lesson takes the derivative it promises', () => {
     // After the integration, not before it: the heading follows the integral's own last line.
     const steps = [...body.querySelectorAll('.ew-worked-step, .ew-worked-sub')];
     const heading = steps.findIndex(s => s.classList.contains('ew-worked-sub'));
-    expect(heading).toBe(getProblem('v-disk').steps.find(s => s.kind === 'integrate')!.worked!.length);
+    // The panel's own integration -- the constant out, the substitution, the power rule, the bracket --
+    // then the lesson's own steps: the heading follows all of them.
+    expect(heading).toBe(workedSteps(getProblem('v-disk')).worked.length);
   });
   it('every potential lesson that carries a derivative shows it, and the arc, which has none, is unchanged', () => {
     for (const p of PROBLEMS.filter(q => q.quantity === 'V')) {
       const has = p.steps.some(s => s.kind === 'gradient');
       const {body} = unfold(panel(p.id));
       expect(body.querySelector('.ew-worked-sub') !== null, p.id).toBe(has);
-      const worked = p.steps.filter(s => s.kind === 'integrate' || s.kind === 'gradient').flatMap(s => s.worked ?? []);
-      expect(body.querySelectorAll('.ew-worked-step').length, p.id).toBe(worked.length);
+      // Every step of the one list the page and the handout share, the differentiation included.
+      const {worked, back} = workedSteps(p);
+      expect(body.querySelectorAll('.ew-worked-step').length, p.id).toBe(worked.length + back.length);
+      expect(back.length, p.id).toBe(p.steps.find(s => s.kind === 'gradient')?.worked?.length ?? 0);
       cleanup();
     }
     expect(PROBLEMS.find(p => p.id === 'v-arc')!.steps.some(s => s.kind === 'gradient')).toBe(false);
@@ -81,9 +86,11 @@ describe('the board writes the cancellation and says what its symbols mean', () 
   it('every lesson’s first line says in words how much charge a piece holds', () => {
     for (const p of PROBLEMS) {
       const view = panel(p.id);
-      const say = view.container.querySelector<HTMLElement>('.db-step[data-step="pieces"] .db-say');
-      expect(say, p.id).not.toBeNull();
-      expect(say!.textContent, p.id).toMatch(/charge per unit (length|area)/);
+      // In whichever of its paragraphs: the endless charges first say why they are cut by angle.
+      const says = [...view.container.querySelectorAll<HTMLElement>('.db-step[data-step="pieces"] .db-say')];
+      expect(says.length, p.id).toBeGreaterThan(0);
+      const say = says.find(s => /charge per unit (length|area)/.test(s.textContent ?? ''));
+      expect(say, p.id).toBeDefined();
       // Its symbols are set as math, like the line above them, not as stray Greek in the prose font.
       expect(say!.querySelector('.katex'), p.id).not.toBeNull();
       // And the limits are explained where they first appear: where each piece is, and where they run.

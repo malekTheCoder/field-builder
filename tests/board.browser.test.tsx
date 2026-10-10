@@ -112,19 +112,21 @@ describe('every new symbol is said in words beside the line that brings it in', 
       const where = [...body.children].find(c => c.classList.contains('db-where') && !c.classList.contains('db-say') && !c.classList.contains('db-cancels'))!;
       const say = where.nextElementSibling as HTMLElement;
       expect(say.classList.contains('db-say'), id).toBe(true);
-      if (id === 'bisector' || id === 'ring') expect(read(say), id).toMatch(/^α is the angle at P between ri and the/);
+      // The line to the piece, of length r_i: r_i is a distance on this board, never a line.
+      if (id === 'bisector' || id === 'ring') expect(read(say), id).toMatch(/^α is the angle at P between the line to the piece \(length ri\) and the/);
       expect(read(say), id).toMatch(/lies along/);
       cleanup();
     }
   });
   it('the last line says what shrinking is, then the rule: what changes from piece to piece, in terms of the variable', () => {
     const view = panel('bisector');
-    const say = view.container.querySelector<HTMLElement>('.db-step[data-step="limit"] .db-say')!;
+    const says = [...view.container.querySelectorAll<HTMLElement>('.db-step[data-step="limit"] .db-say')];
     // The limit first -- N → ∞, Δy → dy -- then written, not only named: what r_i² and cos α_i become in y.
-    // And last, why the sum's ≈ is now an =: the approximation Add named is the one shrinking removes.
-    expect(read(say)).toBe('Make the pieces thinner without end, N→∞: each Δy becomes dy, and the sum over pieces becomes an integral over y. For that, what changes from piece to piece is written in terms of y: ri2=y2+r2 and cosαi=r/y2+r2. The ≈ becomes = here: the thinner a piece, the more nearly it is a point charge, and in the limit it is one.');
+    // And last, in a paragraph of its own, why the sum's ≈ is now an =: the approximation Add named is
+    // the one shrinking removes.
+    expect(says.map(read)).toEqual(['Make the pieces thinner without end, N→∞: each Δy becomes dy, and the sum over pieces becomes an integral over y. For that, what changes from piece to piece is written in terms of y: ri2=y2+r2 and cosαi=r/y2+r2.', 'The ≈ becomes = here: the thinner a piece, the more nearly it is a point charge, and in the limit it is one.']);
     // Its symbols are the board's, set as math.
-    expect(say.querySelectorAll('.katex').length).toBe(9);
+    expect(says.reduce((n, s) => n + s.querySelectorAll('.katex').length, 0)).toBe(9);
   });
 });
 

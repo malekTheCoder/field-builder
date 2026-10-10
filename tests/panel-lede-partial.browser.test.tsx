@@ -54,7 +54,11 @@ describe('a bracket’s card says what its integral is', () => {
       expect(text, id).not.toMatch(/closed form/);
       expect(text, id).toMatch(/adds up only the bracketed part of the charge/);
       if (['ring', 'v-ring', 'v-arc'].includes(id)) expect(text, id).toMatch(/its last line already gives that part’s/);
-      else expect(text, id).toMatch(/the same integral gives that part’s/);
+      // Not a promise of a value but the value: the lesson's bracket between the handles' own ends.
+      else {
+        expect(text, id).toMatch(/Done between these ends, it comes to that part’s/);
+        expect(view.container.querySelector('.ew-result.is-partial .ew-result-part annotation')?.textContent, id).toMatch(/\\(right|Bigr)\]_\{/);
+      }
       // Only a field leans: a potential has no part across the axis.
       if (id === 'ring') expect(text).toMatch(/part across the axis no longer cancels/);
       if (id === 'v-ring' || id === 'v-arc') expect(text, id).not.toMatch(/across the axis/);
@@ -66,9 +70,14 @@ describe('a bracket’s card says what its integral is', () => {
 describe('the answer points back at the board', () => {
   it('a second component is the surviving ΔE_y added up', () => {
     for (const id of ['endpoint', 'ramp', 'semi'] as const) {
-      const lead = panel(id).container.querySelector('.ew-result-lead')!;
-      expect(lead.textContent, id).toMatch(/is the surviving .* added up the same way\./);
-      expect(lead.querySelectorAll('.katex').length, id).toBeGreaterThanOrEqual(2);
+      const view = panel(id), lead = view.container.querySelector('.ew-result-lead')!;
+      // With the factor the board never wrote for it, and then its integral, before the answer.
+      expect(lead.textContent, id).toMatch(/is the surviving .* added up the same way, with .*:$/);
+      expect(lead.querySelectorAll('.katex').length, id).toBeGreaterThanOrEqual(3);
+      const integral = lead.nextElementSibling!;
+      expect(integral.classList.contains('ew-result-integral'), id).toBe(true);
+      expect(integral.querySelector('annotation')!.textContent, id).toMatch(/^E_y=.*\\int_0/);
+      expect(integral.nextElementSibling!.textContent, id).toMatch(/^Doing the integrals gives this\./);
       cleanup();
     }
     expect(panel('bisector').container.querySelector('.ew-result-lead')!.textContent).not.toMatch(/surviving/);

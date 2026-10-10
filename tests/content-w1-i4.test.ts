@@ -243,7 +243,11 @@ describe('the offline copy carries the working, set as mathematics',()=>{
  it('the bisector’s working is the Unfold’s: the substitution in full, then the lesson’s own steps',()=>{
   const {worked}=lessonWorking(getProblem('bisector'));
   expect(worked.slice(0,BISECTOR_UNFOLD.length)).toEqual(BISECTOR_UNFOLD);
-  expect(worked.at(-1)).toEqual(getProblem('bisector').steps.find(s=>s.kind==='integrate')!.worked!.at(-1));
+  // The lesson's own last step, in the panel's rhythm and the answer's order: (L/2)² + r², a gap between rows.
+  const last=getProblem('bisector').steps.find(s=>s.kind==='integrate')!.worked!.at(-1)!;
+  expect(worked.at(-1)!.text).toBe(last.text);
+  expect(worked.at(-1)!.tex).toContain('(L/2)^2+r^2');
+  expect(worked.at(-1)!.tex).not.toContain('r^2+(L/2)^2');
   expect(copy('bisector')).toContain('<h2>Working</h2>');
  });
  it('a potential lesson prints its whole differentiation, not only the last line',()=>{

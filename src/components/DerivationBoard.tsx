@@ -1,7 +1,7 @@
 'use client';
 import {memo, useId, type PointerEvent} from 'react';
 import {MathText, Prose} from './Math';
-import type {BoardLine, Term} from '../workbench/derivation';
+import {BREAK, type BoardLine, type Term} from '../workbench/derivation';
 /** THE INTEGRAL, ONE LINE PER STAGE OF THE RUN.
  *
  * This replaces a row of blanks under the sentence "Every factor is already drawn. Click it in
@@ -55,8 +55,10 @@ export const DerivationBoard = memo(function DerivationBoard({lines, names, stat
   return <ol className={'db' + (open ? ' is-running' : '') + (open ? '' : litHere)} onPointerOver={point} onPointerLeave={() => onPoint?.('')}>
     {lines.map((line, i) => {
       const stage = !open ? 'rest' : i < index ? 'done' : i === index ? 'here' : 'next';
-      // The finished integral is the last thing the run arrives at, so it waits for it.
-      const finished = !open || i < index || (i === index && settled);
+      // The finished integral is the last thing the run arrives at, so it waits for it. An earlier
+      // step's second half -- an exact sum taking its shared factor out, at Add them up -- is that step's
+      // own conclusion, and arrives with it: "settled" is said only of the last stage.
+      const finished = !open || i < index || (i === index && (i < lines.length - 1 || settled));
       // The whole step is one button: the name, the line and its gloss. A reader reaches for the
       // equation, not the label above it, so that is where the target has to be. The name is what
       // the button is called; the line itself is read as its description.
@@ -88,7 +90,9 @@ export const DerivationBoard = memo(function DerivationBoard({lines, names, stat
               {line.merged && <span className={'db-then' + (finished ? ' is-shown' : '')}><span className="db-then-in">
                 <MathText className="db-where db-merged" tex={line.merged} trusted />
               </span></span>}
-              {line.say && <span className="db-where db-say"><Prose text={line.say} /></span>}
+              {/* A remark moves from one idea to the next in paragraphs (`BREAK`): set as one block, the
+                  longest ran to sixteen lines under a lede that promises "each adding one idea". */}
+              {line.say?.split(BREAK).map((para, j) => <span key={j} className="db-where db-say"><Prose text={para} /></span>)}
               {/* The other component, then in words that it lives on: said in a sentence, which
                   wraps, rather than in a \text{} glued to the equation, which cannot. */}
               {line.also && <span className="db-where db-say db-also"><MathText tex={line.also} trusted /> survives too.</span>}

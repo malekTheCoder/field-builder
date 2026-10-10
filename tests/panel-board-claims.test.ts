@@ -36,8 +36,9 @@ describe('a bracket off the middle', () => {
     expect(over.nothing).toMatch(/not every piece’s mirror is inside it/);
     expect(over.say).not.toMatch(/mirror/);
     // The ring: half of it or less leaves the ring across every piece outside.
-    expect(step('ring', 'cancel', ['0', '\\pi'], {oneSided: true}).nothing).toMatch(/the ring straight across every piece lies outside it/);
-    expect(step('ring', 'cancel', ['0', '3\\pi/2'], {oneSided: false}).nothing).toMatch(/the ring straight across some pieces lies outside it/);
+    // "The ring straight across every piece" read as one ring that is straight across.
+    expect(step('ring', 'cancel', ['0', '\\pi'], {oneSided: true}).nothing).toMatch(/the length of ring straight across from each piece lies outside it/);
+    expect(step('ring', 'cancel', ['0', '3\\pi/2'], {oneSided: false}).nothing).toMatch(/the length of ring straight across from some pieces lies outside it/);
   });
   it('the bisector’s survivor −k ΔQ sin α / r_i² takes its sign from y, and the card says so', () => {
     const cancel = step('bisector', 'cancel', ['-L/2', '0']);
@@ -108,7 +109,11 @@ describe('the sheet sets its one ΔE one way', () => {
   it('the endless sheet of ever-bigger rings adds to a finite field, and Add says why', () => {
     const add = step('sheet', 'add').say!;
     expect(add).toContain(String.raw`$2\pi k\sigma\sin\alpha_i\,\Delta\alpha$`);
-    expect(add).toMatch(/never more than \$2\\pi k\\sigma\\,\\Delta\\alpha\$, and the angles stop at a right angle/);
+    // N terms, none more than 2πkσΔα: finite. That the angles stop at a right angle is Cut it up's opening
+    // reason for cutting by angle at all, and is not said a second time here.
+    expect(add).toMatch(/never more than \$2\\pi k\\sigma\\,\\Delta\\alpha\$, and there are \$N\$ of them, so the endless sheet still adds to a finite field/);
+    expect(add).not.toMatch(/right angle/);
+    expect(step('sheet', 'pieces').say).toMatch(/^An endless sheet has no last ring of equal width, but seen from.*\$P\$ its angles stop at a right angle, so it is cut into \$N\$ rings of equal angle\./);
     // k ΔQ cos α / r_i² with ΔQ = σ 2π s z sec²α Δα, s = z tan α, r_i² = z² sec²α is 2πkσ sin α Δα.
     const k = 1.7, sigma = .9, dA = .01;
     for (const z of [.5, 3, 7]) for (const a of [.1, .7, 1.4]) {

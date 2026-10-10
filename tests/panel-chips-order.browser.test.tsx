@@ -78,7 +78,8 @@ describe('the cards read in order, and their headline is in ink', () => {
     const body = panel('bisector').container.querySelector('.db-step[data-step="limit"] .db-body')!;
     const order = [...body.querySelectorAll('.db-tex, .db-then-tex, .db-where')].map(el =>
       el.classList.contains('db-tex') ? 'line' : el.classList.contains('db-then-tex') ? 'finish' : el.classList.contains('db-merged') ? 'merged' : el.classList.contains('db-say') ? 'rule' : 'where');
-    expect(order).toEqual(['line', 'finish', 'where', 'merged', 'rule']);
+    // The rule is two paragraphs: what shrinking does, then why the ≈ is now an =.
+    expect(order).toEqual(['line', 'finish', 'where', 'merged', 'rule', 'rule']);
   });
   it('the answer’s k is the one One piece defines, set the same way', () => {
     const view = panel('bisector');

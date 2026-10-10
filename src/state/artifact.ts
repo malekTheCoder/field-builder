@@ -2,7 +2,7 @@ import katex from 'katex';
 import {snapshotLayer} from '../diagrams/snapshot';
 import {PLOT} from '../diagrams/vectorfield';
 import type {Problem} from '../problems/types';
-import {ARC_UNFOLD,AXIAL_UNFOLD,BISECTOR_UNFOLD,DISK_UNFOLD,ENDPOINT_UNFOLD,INFINITE_UNFOLD,SEMI_UNFOLD} from '../workbench/derivation';
+import {workedSteps} from '../workbench/derivation';
 
 /** One step of worked algebra: a sentence with its symbols written $…$, and the line it arrives at. */
 export type WorkedStep = {text: string; tex: string};
@@ -54,21 +54,10 @@ export type LessonArtifact = {
  * semi-infinite line's E_x by u = x² + r² and its E_y by x = r tan α -- the α to x to α route the panel
  * had dropped -- printed "Sine is odd" where the arc's panel writes sin(−φ/2) = −sin(φ/2), and gave the
  * disk three steps to the panel's six. A lecturer projecting the page and handing out the copy gave a
- * class two routes. This is the one list; the panel is to read it rather than keep its own. */
+ * class two routes. There is now one list, `workedSteps`, built beside the board it continues; the
+ * panel and the copy both read it. */
 export function lessonWorking(p: Problem, algebra: Problem = p): {worked: WorkedStep[]; back: WorkedStep[]} {
-  const original = algebra.steps.find(s => s.kind === 'integrate')?.worked ?? [];
-  const g = p.geometry, scalar = p.quantity === 'V';
-  const worked = scalar ? original
-    : g === 'bisector' ? [...BISECTOR_UNFOLD, ...original.slice(1)]
-    : g === 'endpoint' ? [...ENDPOINT_UNFOLD, ...original.slice(1)]
-    : algebra.id === 'infinite' && algebra.variable !== 'y' ? [...INFINITE_UNFOLD, ...original.slice(2)]
-    : g === 'semi' ? [...SEMI_UNFOLD, ...original.slice(-1)]
-    // The lesson's last steps with their terms in the board's order, R² + z², as the answer has them.
-    : g === 'disk' ? [...DISK_UNFOLD, ...original.slice(1).map(s => ({...s, tex: s.tex.replace(/z\^2\+R\^2/g, 'R^2+z^2')}))]
-    : g === 'arc' ? [...ARC_UNFOLD, ...original.slice(2)]
-    : g === 'axial' ? [...AXIAL_UNFOLD, ...original.slice(2)]
-    : original;
-  return {worked, back: algebra.steps.find(s => s.kind === 'gradient')?.worked ?? []};
+  return workedSteps(p, algebra);
 }
 
 /** Everything the offline copy prints about a lesson, but its figure. The result is the lesson's own

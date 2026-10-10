@@ -10,7 +10,8 @@ import '../app/globals.css';
 import '../src/static-fonts.css';
 import '../src/components/workbench.css';
 import {MathText} from '../src/components/Math';
-import {BISECTOR_UNFOLD} from '../src/workbench/derivation';
+import {PROBLEMS} from '../src/problems/definitions';
+import {BISECTOR_UNFOLD, workedSteps} from '../src/workbench/derivation';
 /* THE BISECTOR'S WORKED SUBSTITUTION FITS THE PANEL.
  *
  * Its lines are the panel's own, not a lesson's, so the content lane's sweep of every lesson's worked
@@ -28,5 +29,22 @@ it('every line of the bisector’s worked substitution fits 272px', async () => 
     const math = step.querySelector<HTMLElement>('.math')!;
     if (math.scrollWidth > math.clientWidth + 1) bad.push(`line ${step.dataset.where}: ${math.scrollWidth}px in ${math.clientWidth}px`);
   }
+  expect(bad).toEqual([]);
+}, 30000);
+/* And every lesson's: the panel's own steps for the sheet, the ramp, the rod level with an end and the
+ * three potentials are new, the inherited rows now carry gaps, and the ramp's last step gained a row --
+ * any of which could push a line past the 272px the panel is beside the figure. */
+it('every line of every lesson’s Unfold fits 272px', async () => {
+  const steps = PROBLEMS.flatMap(p => {const {worked, back} = workedSteps(p); return [...worked, ...back].map((s, i) => ({id: `${p.id} ${i + 1}`, tex: s.tex}));});
+  const view = render(<div className="ew-worked-body" style={{width: 272}}>{steps.map(s =>
+    <div className="ew-worked-step" key={s.id} data-where={s.id}><div><MathText tex={s.tex} block /></div></div>)}</div>);
+  await document.fonts.ready;
+  await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+  const bad: string[] = [];
+  for (const step of view.container.querySelectorAll<HTMLElement>('.ew-worked-step')) {
+    const math = step.querySelector<HTMLElement>('.math')!;
+    if (math.scrollWidth > math.clientWidth + 1) bad.push(`${step.dataset.where}: ${math.scrollWidth}px in ${math.clientWidth}px`);
+  }
+  expect(steps.length).toBeGreaterThan(60);
   expect(bad).toEqual([]);
 }, 30000);

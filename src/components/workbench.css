@@ -51,7 +51,9 @@
 .ew-next-step{font-size:var(--type-meta)!important}
 .ew-worked-done{font-size:var(--type-meta)}
 .ew-references,.ew-references summary,.ew-references a{font-size:var(--type-meta)}
-.ew-references p{line-height:1.5}
+.ew-references p{line-height:1.5;text-wrap:pretty}
+/* A model note's last word is a symbol more often than not -- "at P.", "density fixed." -- and set greedily
+   it stood alone on the last line; balanced, as every other block of prose on the panel is, it does not. */
 /* ---- Onboarding: same language as the page it introduces ------------ */
 
 .fb-onboarding[data-slot=dialog-content]{max-width:min(600px,calc(100vw - 28px))!important;padding:30px 30px 26px!important;
@@ -190,6 +192,9 @@
    piece adds the same; nothing cancels." sat serif directly on top of the sans note under it. Its
    symbols are still KaTeX, set by Prose, so the λ in the sentence is the λ in the equation. */
 .db-say{font-family:var(--font-geist-sans),Arial,sans-serif;font-size:var(--db-gloss);text-wrap:pretty}
+/* A remark's next idea starts a paragraph of its own, a little apart, as a book sets one: the longest
+   remarks were sixteen lines in one block. Less than a line's gap, so it still reads as one remark. */
+.db-say+.db-say:not(.db-also){margin-top:.45em}
 .db-held,.db-sym{white-space:nowrap}
 /* KaTeX's letters are drawn smaller on the em than Geist's -- an x-height of about .43 against .53 --
    so a symbol set at the sentence's own size read a size down from the words around it. The page sets
@@ -276,8 +281,12 @@
 .ew-result{margin:20px 0 0;padding:14px 0 0;border:0;border-radius:0;background:none;container-type:inline-size;
  border-top:2px solid color-mix(in oklab,var(--field) 55%,transparent)}
 .ew-result:not(.is-shown){display:none}
+/* The answer fades in where it will stay. It used to rise 8px into place as well; but it arrives as the
+   board glides up to it, and an entrance that starts a frame late -- as it does on a busy machine, the
+   answer's own algebra laid out first -- set it down 8px below where the glide had just brought it: the
+   answer sank under the panel's foot on its way up. A fade moves nothing. */
 .ew-result.is-shown{animation:ew-result-in .7s cubic-bezier(.2,.8,.2,1) both}
-@keyframes ew-result-in{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@keyframes ew-result-in{from{opacity:0}to{opacity:1}}
 .ew-result-label{display:block;font-family:var(--serif);font-size:15px;line-height:20px;font-weight:600;color:var(--field);letter-spacing:-.003em}
 .ew-result>.math{font-size:16px;margin:6px 0 0}
 .ew-result .katex-display{margin:.2em 0;text-align:left}
@@ -331,3 +340,14 @@
 /* The potential lessons' last move, under its own heading after the integration: the field back
    out of V by one derivative. Set like a step's name on the board, so it reads as a new part. */
 .ew-worked-sub{margin:20px 0 0;font-family:var(--serif);font-size:15px;line-height:20px;font-weight:600;color:var(--foreground);letter-spacing:-.003em}
+/* THE SHELF'S SMALL TYPE. The bound fields were set in the mono face, whose slashed zero reads as ∅ in a
+   field that holds a limit, and whose fallback ∞ was a small glyph beside a full-height 0: they are set in
+   the page's sans, with its figures still tabular. And a reference whose title wraps left its ↗ at the end
+   of the title's first line ("…Gauss's law ↗ / and a charged plane"): the link is a run of text now, and
+   the arrow follows its last word. */
+.ew-bound-fields input{font-family:var(--font-geist-sans),Arial,sans-serif;font-variant-numeric:tabular-nums}
+.ew-references a{display:block}
+.ew-references a svg{display:inline;vertical-align:-1px;margin:0 0 0 4px}
+/* The part's integral, done between the bracket's ends, and the second component's integral before the
+   answer: set as the answer is, with the remark after it at the remark's spacing. */
+.ew-result>.ew-result-part,.ew-result>.ew-result-integral{margin:8px 0 4px}
