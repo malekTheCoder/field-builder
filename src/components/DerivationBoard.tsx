@@ -24,14 +24,12 @@ export type BoardState = {
   settled: boolean;
 };
 const TERMS: readonly Term[] = ['element', 'distance', 'projection', 'bounds'];
-/** A stage's note, with the point it names set in the math face. The note is the run's caption, also
- * read out to a screen reader, so it stays plain text; but its "P" sat in upright sans a few pixels
- * under the remark's italic P, one point in two typefaces. So a lone P -- or V, or N -- and an axis
- * letter before "-axis" are set as variables, in KaTeX's own italic, and the words are left alone:
- * the note reads exactly as the caption does. */
-function Note({text}: {text: string}) {
-  return text.split(/\b([PVN]|[xyz](?=-axis))\b/).map((part, i) => i % 2 ? <var key={i} className="db-var">{part}</var> : part);
-}
+/* THE BOARD HAS NO NOTE. A paused stage used to open the run's caption under its step, and once the
+ * step's own remark said everything, the caption said it again: paused on What cancels at the rod's
+ * end, "nothing cancels" stood in the transport, in the board's first sentence and in the note at
+ * once, and the extra lines pushed the answer at the end of the run out of an 800px window. The
+ * transport shows the stage's one line; the caption is read to a screen reader when the run holds;
+ * and the one thing a caption said that its step did not is now said by the step. */
 /** The factor under the pointer, from the class KaTeX carried through for it. */
 function termAt(target: EventTarget | null): Term | '' {
   const el = target instanceof Element ? target.closest('.fx') : null;
@@ -42,11 +40,11 @@ function termAt(target: EventTarget | null): Term | '' {
  * kept stable by the panel (the lines memoised, the state rebuilt only when one of its four fields
  * changes, the callbacks fixed for the panel's life) and a frame that moves nothing here costs
  * nothing here. */
-export const DerivationBoard = memo(function DerivationBoard({lines, names, notes, state, lit = '', onStep, onPoint}: {
-  lines: BoardLine[]; names: string[]; notes: string[]; state: BoardState; lit?: Term | '';
+export const DerivationBoard = memo(function DerivationBoard({lines, names, state, lit = '', onStep, onPoint}: {
+  lines: BoardLine[]; names: string[]; state: BoardState; lit?: Term | '';
   onStep?: (index: number) => void; onPoint?: (term: Term | '') => void;
 }) {
-  const {open, index, playing, settled} = state;
+  const {open, index, settled} = state;
   const uid = useId();
   const point = (ev: PointerEvent) => onPoint?.(termAt(ev.target));
   // At rest a lit factor is chipped wherever it appears, so a reader pointing at a slider finds it in
@@ -73,20 +71,27 @@ export const DerivationBoard = memo(function DerivationBoard({lines, names, note
                   for it, and with it fourth, under a paragraph, a reader scanning the step read "What
                   cancels: ΔE_x", the part that survives. The line after it is what is left. */}
               {line.cancels && <MathText className="db-where db-cancels" tex={line.cancels} trusted />}
+              {/* What the cancellation's symbols are, directly under it: ΔE_y used to be named only
+                  at the end of the paragraph four lines down. */}
+              {line.cancelsSay && <span className="db-where db-say db-pair"><Prose text={line.cancelsSay} /></span>}
               {line.nothing && <span className="db-where db-say db-cancels db-nothing"><Prose text={line.nothing} /></span>}
               <MathText className="db-tex" tex={line.tex} block trusted />
               {/* The second half of a chain of equalities follows the first directly, its "=" under
-                  the first one's; what the line's new symbols mean comes after the whole chain. */}
+                  the first one's; what the line's new symbols mean comes after the whole chain, in
+                  the order of the lines they explain: Σᵢ → ∫ for the first, then the three-halves
+                  power for the second. The second's gloss used to sit inside the chain's reveal, so it
+                  came before the first's. It arrives with its line. */}
               {line.finish && <span className={'db-then' + (finished ? ' is-shown' : '')}><span className="db-then-in">
                 <MathText className="db-then-tex" tex={line.finish} block trusted />
-                {line.merged && <MathText className="db-where db-merged" tex={line.merged} trusted />}
               </span></span>}
               {line.where && <MathText className="db-where" tex={line.where} trusted />}
+              {line.merged && <span className={'db-then' + (finished ? ' is-shown' : '')}><span className="db-then-in">
+                <MathText className="db-where db-merged" tex={line.merged} trusted />
+              </span></span>}
               {line.say && <span className="db-where db-say"><Prose text={line.say} /></span>}
               {/* The other component, then in words that it lives on: said in a sentence, which
                   wraps, rather than in a \text{} glued to the equation, which cannot. */}
               {line.also && <span className="db-where db-say db-also"><MathText tex={line.also} trusted /> survives too.</span>}
-              {stage === 'here' && !playing && <span className="db-note"><Note text={notes[i]} /></span>}
             </span>
           </span>
         </button>

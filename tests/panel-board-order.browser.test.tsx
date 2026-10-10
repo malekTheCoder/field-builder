@@ -9,7 +9,6 @@ import '../app/globals.css';
 import '../src/static-fonts.css';
 import {EquationWorkbench} from '../src/components/EquationWorkbench';
 import type {BoardState} from '../src/components/DerivationBoard';
-import {buildStages} from '../src/explorer/buildRun';
 import {getProblem} from '../src/problems/definitions';
 import {DEFAULT_PARAMS, type ProblemId} from '../src/problems/types';
 /* THE PANEL READS IN THE ORDER IT IS NAMED, AND SAYS ONLY WHAT IS TRUE OF THE BRACKET.
@@ -35,9 +34,11 @@ describe('What cancels opens on the cancellation, or on why nothing cancels', ()
   for (const id of ['bisector', 'ring', 'disk', 'endpoint', 'semi', 'axial', 'v-ring', 'v-rod-axial'] as const) {
     it(id, () => {
       const body = cancelBody(panel(id));
-      const order = [...body.children].map(c => c.classList.contains('db-cancels') ? 'cancels' : c.classList.contains('db-tex') ? 'tex' : '');
+      const order = [...body.children].map(c => c.classList.contains('db-cancels') ? 'cancels' : c.classList.contains('db-tex') ? 'tex' : c.classList.contains('db-pair') ? 'pair' : '');
       expect(order.indexOf('cancels'), id).toBe(0);
-      expect(order.indexOf('tex'), id).toBe(1);
+      // Then what its symbols are, where there is a pair; then the line that survives it.
+      expect(order.indexOf('tex'), id).toBe(order.includes('pair') ? 2 : 1);
+      if (order.includes('pair')) expect(order.indexOf('pair'), id).toBe(1);
     });
   }
   it('where nothing cancels, it says so in words, at rest', () => {
@@ -54,10 +55,10 @@ describe('while the run plays, the lit chip is in the step being played', () => 
     const range = view.container.querySelector<HTMLElement>('.db-step[data-step="add"] .db-where .fx-bounds')!;
     expect(getComputedStyle(range).backgroundColor).toBe('rgba(0, 0, 0, 0)');
   });
-  it('at What cancels, the current cos α lights and the finished One piece r̂ does not', () => {
-    const view = panel('bisector', {build: {open: true, index: 2, playing: false, settled: true}, highlight: 'projection'});
+  it('at What cancels, the current rᵢ² lights and the finished One piece rᵢ does not', () => {
+    const view = panel('bisector', {build: {open: true, index: 2, playing: false, settled: true}, highlight: 'distance'});
     const here = view.container.querySelector<HTMLElement>('.db-step.is-here .db-tex .fx-projection')!;
-    const done = view.container.querySelector<HTMLElement>('.db-step[data-step="one"] .fx-projection')!;
+    const done = view.container.querySelector<HTMLElement>('.db-step[data-step="one"] .fx-distance')!;
     expect(getComputedStyle(here).backgroundColor).not.toBe('rgba(0, 0, 0, 0)');
     expect(getComputedStyle(done).backgroundColor).toBe('rgba(0, 0, 0, 0)');
   });
@@ -69,16 +70,21 @@ describe('while the run plays, the lit chip is in the step being played', () => 
   });
 });
 
-describe('the note under a paused stage sets P in the remark’s face, and reads as the caption does', () => {
-  it('bisector, One piece', () => {
-    const view = panel('bisector', {build: {open: true, index: 1, playing: false, settled: true}});
-    const note = view.container.querySelector<HTMLElement>('.db-step.is-here .db-note')!;
-    expect(note.textContent).toBe(buildStages(getProblem('bisector'))[1].caption);
-    const p = note.querySelector<HTMLElement>('var.db-var')!;
-    expect(p.textContent).toBe('P');
-    expect(getComputedStyle(p).fontFamily).toMatch(/KaTeX_Math/);
-    // Its italic correction: "from P on" never reads "from Pon".
-    expect(parseFloat(getComputedStyle(p).paddingRight)).toBeGreaterThan(0);
+describe('a paused stage says each thing once', () => {
+  it('no note repeats the step’s remark, on any stage', () => {
+    for (let index = 0; index < 5; index++) {
+      const view = panel('bisector', {build: {open: true, index, playing: false, settled: true}});
+      expect(view.container.querySelector('.db-note'), `stage ${index}`).toBeNull();
+      cleanup();
+    }
+  });
+  it('the cancellation’s symbols are named directly under it', () => {
+    const body = cancelBody(panel('bisector'));
+    const kids = [...body.children];
+    const at = kids.findIndex(c => c.classList.contains('db-cancels'));
+    expect(kids[at + 1].classList.contains('db-pair')).toBe(true);
+    expect(kids[at + 1].textContent).toMatch(/^A piece’s part along the rod, /);
+    expect(kids[at + 1].querySelectorAll('.katex')).toHaveLength(2);
   });
 });
 
@@ -126,7 +132,9 @@ describe('the bracket', () => {
     expect(body.querySelector('.db-cancels:not(.db-nothing)')).toBeNull();
     expect(body.querySelector('.db-nothing')?.textContent).toMatch(/no longer cancels/);
     expect(body.querySelector('.db-also')?.textContent).toMatch(/survives too\.$/);
-    expect(view.container.querySelector('.ew-result.is-partial')?.textContent).toMatch(/no longer cancels/);
+    // Said once, on the board, in the lesson's words: the result block under it said it a third time,
+    // and called the part along the rod "the part across the axis".
+    expect(view.container.querySelector('.ew-result.is-partial')?.textContent).not.toMatch(/no longer cancels/);
     cleanup();
     // Centred, every partner is inside: the cancellation stands.
     const centred = panel('bisector', {boundRange: [25, 75]});
@@ -144,6 +152,13 @@ describe('the answer and the shelf speak as the board does', () => {
     expect(view.container.querySelector('.ew-worked-body')).toBeNull();
     fireEvent.click(view.getByRole('button', {name: 'Show every step'}));
     expect(view.container.querySelector('.ew-worked-body')).not.toBeNull();
+    cleanup();
+    // Every step, as the link says -- it opened one, behind a "Next transformation" button.
+    const bisector = panel('bisector');
+    fireEvent.click(bisector.getByRole('button', {name: 'Show every step'}));
+    expect(bisector.container.querySelectorAll('.ew-worked-step').length).toBeGreaterThan(4);
+    expect(bisector.queryByRole('button', {name: /Next transformation/})).toBeNull();
+    expect(bisector.container.querySelector('.ew-worked-done')).not.toBeNull();
   });
   it('a worked step’s symbols are set as math, and a model note never breaks inside a relation', () => {
     const view = panel('bisector');
@@ -154,7 +169,7 @@ describe('the answer and the shelf speak as the board does', () => {
     cleanup();
     const vdisk = panel('v-disk');
     expect(vdisk.container.querySelector('.ew-references-body p')!.textContent).toContain('z > 0');
-    // In the lessons' one spelling, British, as their own sentences now are.
-    expect(vdisk.container.querySelector('.ew-references-body')!.textContent).toMatch(/Geometry uses metres/);
+    // A page that shows no numbers says nothing about their units.
+    expect(vdisk.container.querySelector('.ew-references-body')!.textContent).not.toMatch(/Geometry uses/);
   });
 });

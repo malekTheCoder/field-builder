@@ -16,8 +16,10 @@ export function MathText({tex,block=false,className='',trusted=false}:{tex:strin
 return <span className={'math '+className} style={block?{display:'block'}:undefined} suppressHydrationWarning dangerouslySetInnerHTML={inner}/>}
 /** A relation in plain text -- "r > 0", "y = r tan α" -- held together, so a line never breaks
  * inside one: "where z >" ended a line of the shelf and "0, differentiate" began the next. Only for
- * text that is not yet marked up with $…$; marked-up text sets the relation as math. */
-const holdRelations=(text:string)=>text.replace(/ ([=<>→≈≤≥]) /g,' $1 ');
+ * text that is not yet marked up with $…$; marked-up text sets the relation as math. And an em dash is
+ * held to the word before it, as the board's remarks hold theirs: a model note at 390px began its
+ * second line "— a semicircle, a quarter-circle…", and a book never starts a line with a dash. */
+const holdRelations=(text:string)=>text.replace(/ ([=<>→≈≤≥]) /g,' $1 ').replace(/ — /g,' — ');
 /** A remark in words, with any symbol in it -- written $…$ -- set as math: the λ in the sentence is
  * then the λ in the equation above it, in the same face, rather than a Greek letter from whatever
  * font the browser found. The words still wrap; only a symbol is held together. Here rather than on

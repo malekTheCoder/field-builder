@@ -100,7 +100,8 @@ async function toTheEnd(view: View) {
   await waitFor(() => expect(view.container.querySelector('.db-step.is-here')?.getAttribute('data-step')).toBe('limit'));
   await waitFor(() => expect(view.container.querySelector('.ew-result.is-shown')).not.toBeNull());
   if (view.container.querySelector('.db-then')) expect(view.container.querySelector('.db-then.is-shown')).not.toBeNull();
-  expect(view.container.querySelector('.db-step.is-here .db-note')).not.toBeNull();
+  // The step's own remark is its explanation: nothing else opens under it when the run holds.
+  expect(view.container.querySelector('.db-step.is-here .db-note')).toBeNull();
 }
 
 /* A DRAGGED BRACKET. The handles snap to whole percents, and the board used to write the limits they

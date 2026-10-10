@@ -149,7 +149,9 @@
 .db-step.is-here .db-node{border-color:var(--field);background:var(--card);transform:scale(1.15);
  box-shadow:0 0 0 4px color-mix(in oklab,var(--field) 20%,transparent)}
 .db-step.is-here .db-title{color:var(--field)}
-.db-step.is-next .db-title{color:color-mix(in oklab,var(--muted-foreground) 70%,transparent);font-weight:500}
+/* A step still to come is quieter by its weight, not by fading its ink: at 70% the names measured
+   3.2:1 on the light card and 4.3:1 on the dark, under the 4.5:1 text needs at 15px. */
+.db-step.is-next .db-title{color:var(--muted-foreground);font-weight:500}
 
 /* A step still to come is its name only; it opens when the run reaches it. */
 .db-reveal{display:grid;grid-template-rows:1fr;opacity:1;transition:grid-template-rows .5s cubic-bezier(.2,.8,.2,1),opacity .4s ease .05s}
@@ -159,6 +161,13 @@
 .db-head:hover .db-body{background:color-mix(in oklab,var(--foreground) 3.5%,transparent)}
 .db-step.is-here .db-body{background:color-mix(in oklab,var(--field) 6%,transparent)}
 .db .math{max-width:100%}
+/* A line or a gloss can open on a coloured factor -- rᵢ = …, cos α = …, y: 0 → L, ΔQ = … -- whose chip
+   then started at the left edge of a box that clips (it scrolls sideways rather than overflow the
+   panel): the ring and the chip's rounded corner were cut away flat, and a fraction's numerator ran
+   through its top. So the box is given room round its ink and takes it back in its margin: nothing
+   moves, and the chip is drawn whole -- a chip round a fraction stands 2.5px proud of the type, and its
+   ring 2px more. The bottom keeps the 3px every math box already had. */
+.db .math.db-tex,.db .math.db-where{padding:5px 4px 6px;margin:-5px -4px -3px;max-width:calc(100% + 8px)}
 .db-tex{font-size:var(--db-math)}
 .db .katex-display{margin:.15em 0 .2em;text-align:left}
 .db .katex-display>.katex{text-align:left}
@@ -181,19 +190,18 @@
    with a little air before the line that is what survives it. */
 .db-also{margin-top:5px}
 .db-cancels{margin:2px 0 1px}
+.db .math.db-cancels{margin:-3px -4px -2px}
+/* The cancellation is what the step is named for, so it is set in ink, a size up from a gloss: in the
+   gloss's muted grey at the gloss's size, the answer to What cancels was the quietest math on its
+   card. "Nothing cancels" stays a remark, in the remark's face and colour. */
+.db-cancels:not(.db-nothing){color:var(--foreground);font-size:var(--db-math)}
+.db-cancels:not(.db-nothing) .katex{font-size:1.08em}
 .db-then{display:grid;grid-template-rows:0fr;opacity:0;transition:grid-template-rows .6s cubic-bezier(.2,.8,.2,1),opacity .5s ease}
 .db-then.is-shown{grid-template-rows:1fr;opacity:1}
 .db-then-in{display:block;min-height:0;overflow:hidden}
 .db-then-tex{font-size:var(--db-math)}
 .db-then .katex-display{margin-top:0}
-.db-merged{margin-bottom:2px}
-.db-note{display:block;margin:8px 0 2px;font-size:var(--type-meta);line-height:1.6;color:var(--muted-foreground);
- text-wrap:pretty;animation:ew-enter .35s ease-out}
-/* The point a note names, in the face the remark above it sets the same point in: KaTeX's italic, a
-   little up from the words as a remark's symbols are. */
-/* The italic letter leans past its own box, and the word space after it is narrower than the lean:
-   "from P on" read "from Pon". The correction KaTeX gives an italic letter, given here. */
-.db-var{font-family:KaTeX_Math,'Times New Roman',serif;font-style:italic;font-size:1.1em;line-height:1;padding-right:.12em}
+.db .math.db-merged{margin-bottom:-1px}
 /* The longest line is the last, every factor written out. Where the panel is narrow the board's
    type comes down a step at a time rather than letting a line scroll inside its box. Set on the
    steps, not the board: a container cannot answer a query about itself.
@@ -220,6 +228,10 @@
    the rᵢ under it both ran their chips across the bar. A chip holding a fraction is as tall as the
    fraction whatever this says, which is the point of the block. */
 .db .fx{display:inline-block;line-height:1;border-radius:4px;transition:background-color .2s ease,box-shadow .2s ease}
+/* Except that it was not: one em to the line, the block was shorter than the fraction it held, and lit,
+   cos α = r/√(y²+r²) had its r cross the chip's top edge. A chip holding a fraction is given the room
+   and takes it back in its margin, so it covers its ink and nothing moves. */
+.db .fx:has(.mfrac){padding-block:.18em;margin-block:-.18em}
 .db .fx-element{color:var(--term-element)}
 .db .fx-distance{color:var(--term-distance)}
 .db .fx-projection{color:var(--term-projection)}
@@ -282,6 +294,10 @@
 .ew-references>summary{display:flex;align-items:center;justify-content:space-between;width:100%;gap:10px;
  cursor:pointer;list-style:none;text-align:left}
 .ew-references>summary::-webkit-details-marker{display:none}
+/* The page's focus ring, which the global rule gives every button but a summary is not one: it showed
+   the browser's own thin blue ring, the one control on the panel that did. */
+.ew-references>summary:focus-visible{outline:3px solid var(--primary);outline-offset:2px;border-radius:4px;
+ box-shadow:0 0 0 6px color-mix(in srgb,var(--primary) 20%,transparent)}
 .ew-references[open]>summary>svg{transform:rotate(180deg)}
 .ew-references>summary>svg{flex:none;transition:transform .2s ease}
 .ew-references-body{padding-bottom:16px}

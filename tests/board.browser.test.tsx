@@ -69,13 +69,18 @@ describe('while the run plays, the derivation arrives with it', () => {
     // The answer waits for the end of the argument.
     expect(view.container.querySelector('.ew-result.is-shown')).toBeNull();
   });
-  it('pausing on a line opens its explanation; playing keeps it out of the way', () => {
-    const playing = panel('bisector', {open: true, index: 1, playing: true, settled: false});
-    expect(playing.container.querySelector('.db-note')).toBeNull();
-    cleanup();
-    const paused = panel('bisector', {open: true, index: 1, playing: false, settled: false});
-    const note = paused.container.querySelector('.db-step.is-here .db-note');
-    expect(note?.textContent).toBe(buildStages(getProblem('bisector'))[1].caption);
+  it('pausing on a line adds nothing under it: its own remark is the explanation, and the run’s caption is not said twice', () => {
+    // The caption used to open under a paused step. Once every remark was complete it restated it --
+    // paused on What cancels at the rod's end, "nothing cancels" stood on the screen four times.
+    for (const playing of [true, false]) {
+      const view = panel('endpoint', {open: true, index: 2, playing, settled: true});
+      expect(view.container.querySelector('.db-note')).toBeNull();
+      const caption = buildStages(getProblem('endpoint'))[2].caption;
+      expect(view.container.querySelector('.db')!.textContent).not.toContain(caption.slice(0, 40));
+      // What the caption added that the step did not, the step now says itself.
+      expect(view.container.querySelector('.db-step.is-here .db-nothing')?.textContent).toMatch(/Cancellation needs a symmetry this geometry lacks\.$/);
+      cleanup();
+    }
   });
   it('the last line finishes its algebra, and the answer appears, only once the pieces have shrunk away', () => {
     const shrinking = panel('bisector', {open: true, index: 4, playing: true, settled: false});
@@ -112,13 +117,13 @@ describe('every new symbol is said in words beside the line that brings it in', 
       cleanup();
     }
   });
-  it('the last line says the rule: what changes from piece to piece is written in the variable first', () => {
+  it('the last line says what shrinking is, then the rule: what changes from piece to piece, in terms of the variable', () => {
     const view = panel('bisector');
     const say = view.container.querySelector<HTMLElement>('.db-step[data-step="limit"] .db-say')!;
-    // Written, not only named: what r_i² and cos α_i become in y.
-    expect(read(say)).toBe('Write what changes from piece to piece in y: ri2=y2+r2 and cosαi=r/y2+r2. Then the sum over pieces becomes an integral over y.');
+    // The limit first -- N → ∞, Δy → dy -- then written, not only named: what r_i² and cos α_i become in y.
+    expect(read(say)).toBe('Make the pieces thinner without end, N→∞: each Δy becomes dy, and the sum over pieces becomes an integral over y. For that, what changes from piece to piece is written in terms of y: ri2=y2+r2 and cosαi=r/y2+r2.');
     // Its symbols are the board's, set as math.
-    expect(say.querySelectorAll('.katex').length).toBe(4);
+    expect(say.querySelectorAll('.katex').length).toBe(7);
   });
 });
 

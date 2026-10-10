@@ -211,8 +211,10 @@ describe('the transport says how long the run is and where it has got to', () =>
   expect(stage(view)).toBe('One piece');
   expect(fills(view)[1]).toBeGreaterThan(.99);
   expect(view.getByRole('button', {name: 'Play'})).toBeTruthy();
-  // And the line of the derivation it put in now explains itself, at the reader's own pace.
-  expect(view.container.querySelector('.db-step.is-here .db-note')?.textContent).toBe(buildStages(getProblem('bisector'))[1].caption);
+  // And the whole caption is read out now the run holds still; the board's step explains itself on
+  // the screen, so the caption is not printed under it a second time.
+  expect(view.container.querySelector('output.sr-only')?.textContent).toBe(buildStages(getProblem('bisector'))[1].caption);
+  expect(view.container.querySelector('.db-step.is-here .db-note')).toBeNull();
  }, 60000);
  it('the arrow keys step between stages from inside the transport, and only from there', async () => {
   const view = await openLesson('bisector');
