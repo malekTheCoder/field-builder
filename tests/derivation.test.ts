@@ -25,6 +25,14 @@ function points(n: number) {
       theta: rand(-1.4, 1.4), phi: rand(.2, 6.2)};
   });
 }
+/** What changes from piece to piece in each lesson's sum, written independently of the board. A
+ * ring's bits are all one distance away at one angle; an arc's pieces are all R away. */
+const VARIES: Record<string, string[]> = {
+  bisector: ['r_i', '\\cos\\alpha_i'], endpoint: ['r_i', '\\cos\\alpha_i'], ramp: ['\\lambda(y)', 'r_i', '\\cos\\alpha_i'],
+  axial: ['r_i'], infinite: ['r_i', '\\cos\\theta_i', '\\Delta y'], semi: ['r_i', '\\sin\\alpha_i'],
+  ring: [], disk: ['r_i', '\\cos\\alpha_i'], sheet: ['r_i', '\\cos\\alpha_i'], arc: ['\\cos\\theta_i'],
+  'v-ring': [], 'v-disk': ['r_i'], 'v-arc': [], 'v-rod-bisector': ['r_i'], 'v-rod-axial': ['r_i'],
+};
 const close = (got: number, want: number, what: string) =>
   expect(Math.abs(got - want), `${what}: ${got} vs ${want}`).toBeLessThanOrEqual(1e-10 * Math.max(1, Math.abs(want)));
 describe('the derivation board', () => {
@@ -53,8 +61,37 @@ describe('the derivation board', () => {
     it(`${p.id}: the first line says what the density is and how much charge a piece holds`, () => {
       const pieces = lines.find(l => l.key === 'pieces')!;
       expect(pieces.say, p.id).toMatch(/charge per unit (length|area)/);
-      // And where the limits come from, said once, where they first appear.
-      expect(lines.find(l => l.key === 'add')!.say, p.id).toMatch(/limits are where the charge starts and ends/);
+    });
+    it(`${p.id}: the limits are said where they first appear, as where the pieces are and where they run`, () => {
+      // "The limits are where the charge starts and ends in the variable you sum over" sat under a
+      // sum over i, not over y, and a reader looked for y under the Σ. The pieces are counted by i
+      // and placed by the variable: so the sentence names the variable and both ends in it.
+      const add = lines.find(l => l.key === 'add')!.say!;
+      const v = p.variableTex;
+      expect(add, p.id).toMatch(new RegExp(`^Each (piece|ring) sits at its own (angle |radius )?\\$${v.replace(/\\/g, '\\\\')}\\$`));
+      expect(add, p.id).toContain(`$${v}=${p.boundTex[0]}$`);
+      expect(add, p.id).toContain(p.boundTex[1] === '\\infty' ? 'on to $\\infty$' : `$${v}=${p.boundTex[1]}$`);
+      expect(add, p.id).toMatch(/counted once/);
+      expect(add, p.id).not.toMatch(/variable you sum over/);
+      // Dragging the brackets says which pieces are now counted, not the whole charge's ends.
+      const dragged = boardLines(p, ['a', 'b']).find(l => l.key === 'add')!.say!;
+      expect(dragged, p.id).toContain(`from $${v}=a$ to $${v}=b$`);
+      expect(dragged, p.id).toMatch(/bracketed/);
+    });
+    it(`${p.id}: the last line says the rule -- everything that changes from piece to piece is written in the variable`, () => {
+      // The one step a student has to make alone to set up the next integral, which the board made
+      // silently: r_i became √(y²+r²) and cos α_i became r/√(y²+r²), followable only by colour.
+      const limit = lines.find(l => l.key === 'limit')!.say!;
+      expect(limit, p.id).toContain(`integral over $${p.variableTex}$`);
+      const varies = VARIES[p.id];
+      for (const factor of varies) expect(limit, `${p.id}: ${factor}`).toContain(`$${factor}$`);
+      // The factors it names are the ones the sum above it indexes.
+      const sum = lines.find(l => l.key === 'add')!.tex;
+      for (const factor of varies.filter(f => f.endsWith('_i'))) expect(sum, `${p.id}: ${factor}`).toContain(factor);
+      if (varies.length) expect(limit, p.id).toMatch(/changes from piece to piece/);
+      else expect(limit, p.id).toMatch(/^Nothing changes from piece to piece/);
+      // An arc's pieces are all R away: the R stays.
+      if (p.geometry === 'arc') expect(limit, p.id).toMatch(/\$R\$ stays/);
     });
     it(`${p.id}: the factors multiply to the lesson's own integrand`, () => {
       for (const at of points(40)) {
@@ -110,6 +147,72 @@ describe('the derivation board', () => {
     expect(limit.where).toContain('dQ=\\lambda r\\sec^2\\theta\\,d\\theta');
     // The sec² before the limit only as what it is: the point charge whose field a thin piece nearly makes.
     expect(pieces.say).toMatch(/nearly the field at.*of a point charge \$\\lambda r\\sec\^2\\theta\\,\\Delta\\theta\$/);
+  });
+  it('the semi-infinite line and the sheet are cut at equal angles, and their first lines say so', () => {
+    // Both runs cut at equal angles at P, as the samplers do: at five pieces the semi-infinite line's
+    // fourth piece runs from about four to nine metres, as does the sheet's fourth ring, and each
+    // one's last never ends. "A piece Δx long holds λΔx" and "a thin ring's area is 2πsΔs" described
+    // pieces that were short and thin; these are not.
+    const pieces = (id: string) => boardLines(PROBLEMS.find(x => x.id === id)!).find(l => l.key === 'pieces')!;
+    expect(pieces('semi').where).toContain(String.raw`x=r\tan\alpha`);
+    expect(pieces('semi').say).toMatch(/^\$\\lambda\$ is the charge per unit length\. Thin in angle, each piece makes nearly the field at.*of a point charge \$\\lambda r\\sec\^2\\alpha\\,\\Delta\\alpha\$ — even the outermost/);
+    expect(pieces('sheet').where).toContain(String.raw`s=z\tan\alpha`);
+    expect(pieces('sheet').say).toMatch(/^\$\\sigma\$ is the charge per unit area\. Thin in angle, each ring makes nearly the field at.*of a thin ring of charge \$\\sigma\\,2\\pi s\\,z\\sec\^2\\alpha\\,\\Delta\\alpha\$ — even the outermost/);
+    // The piece's charge is still written as what it exactly is; only the limit brings in the angle.
+    expect(pieces('semi').tex).toContain(String.raw`\lambda\,\Delta x`);
+    expect(pieces('sheet').tex).toContain(String.raw`\sigma\,2\pi s\,\Delta s`);
+    // The disk IS cut into thin rings of equal width, and keeps saying so.
+    expect(pieces('disk').say).toMatch(/thin ring’s area/);
+  });
+  it('nothing the sheet says calls its rings thin, or every bit of one the same distance away, unqualified', () => {
+    const sheet = PROBLEMS.find(x => x.id === 'sheet')!;
+    const texts = [...boardLines(sheet).map(l => l.say ?? ''), ...buildStages(sheet).flatMap(s => [s.line, s.caption])];
+    for (const text of texts) {
+      expect(text, text).not.toMatch(/thin rings|thin ring’s/i);
+      expect(text, text).not.toMatch(/Every bit is \$r_i\$ away/);
+      // "The same distance" only ever as nearly so.
+      for (const m of text.matchAll(/same distance/g)) expect(text.slice(0, m.index), text).toMatch(/nearly (the )?$/);
+    }
+    expect(boardLines(sheet).find(l => l.key === 'one')!.say).toMatch(/In a ring thin in angle, every bit is nearly \$r_i\$ away\./);
+  });
+  it('a thin angle makes each piece’s field nearly the one the remark names -- the outermost too', () => {
+    // The first line's remark is a claim about numbers, checked against the exact field of each
+    // piece the figure draws: five of them, cut at equal angles from P, as the run cuts them.
+    const n = 5, dA = Math.PI / 2 / n;
+    for (let i = 0; i < n; i++) {
+      const a1 = i * dA, a2 = (i + 1) * dA, mid = (a1 + a2) / 2;
+      // A segment of a line seen from r away makes 2kλ sin(Δα/2)/r; the point charge λ r sec²α Δα,
+      // r sec α away, makes kλΔα/r. (k = λ = r = 1.)
+      expect(Math.abs(dA / (2 * Math.sin(dA / 2)) - 1), `piece ${i + 1}`).toBeLessThan(.005);
+      // An annulus of a sheet seen from z away on its axis makes 2πkσ(cos α₁ − cos α₂); the thin ring
+      // of charge σ 2πs z sec²α Δα at s = z tan α makes 2πkσ sin α Δα.
+      expect(Math.abs(Math.sin(mid) * dA / (Math.cos(a1) - Math.cos(a2)) - 1), `ring ${i + 1}`).toBeLessThan(.005);
+    }
+    // The outermost ring: 0.310 against the exact 0.309, in units of 2πkσ.
+    expect((Math.sin(9 * Math.PI / 20) * Math.PI / 10).toFixed(3)).toBe('0.310');
+    expect(Math.cos(2 * Math.PI / 5).toFixed(3)).toBe('0.309');
+  });
+  it('every angle the board uses is said in words where the cancellation line brings it in', () => {
+    // α arrived in What cancels with no word for it, and nothing said why the part along x is
+    // "times cos α"; the ring's ⊥ and θ+π had no words at all.
+    for (const p of PROBLEMS.filter(q => q.quantity === 'E' && q.id !== 'axial')) {
+      const cancel = boardLines(p).find(l => l.key === 'cancel')!;
+      const angle = p.id === 'infinite' || p.id === 'arc' ? String.raw`$\theta$` : String.raw`$\alpha$`;
+      expect(cancel.say, p.id).toBeTruthy();
+      expect(cancel.say!.startsWith(`${angle} is the`), `${p.id}: ${cancel.say}`).toBe(true);
+      // Which side of the triangle the component is, wherever the board writes the angle's ratio.
+      if (cancel.where) expect(cancel.say, p.id).toMatch(/lies along/);
+    }
+    const say = (id: string) => boardLines(PROBLEMS.find(x => x.id === id)!).find(l => l.key === 'cancel')!.say!;
+    expect(say('bisector')).toMatch(/the side next to/);
+    expect(say('endpoint')).toContain(String.raw`$\Delta E\sin\alpha$, is the side opposite`);
+    expect(say('semi')).toMatch(/perpendicular from.*to the line/);
+    expect(say('semi')).toContain(String.raw`$\Delta E\sin\alpha$, the side opposite`);
+    expect(say('ring')).toContain(String.raw`$\theta+\pi$`);
+    expect(say('ring')).toContain(String.raw`$\Delta\mathbf E_\perp$`);
+    for (const id of ['disk', 'sheet']) expect(say(id), id).toMatch(/cancel round each ring/);
+    // The rod seen end-on has no angle to name.
+    expect(say('axial')).toBe('Already along the axis.');
   });
   it('what cancels is written, not only what survives', () => {
     const at = (id: string) => boardLines(PROBLEMS.find(x => x.id === id)!).find(l => l.key === 'cancel')!;

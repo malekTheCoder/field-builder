@@ -88,6 +88,38 @@ describe('while the run plays, the derivation arrives with it', () => {
   });
 });
 
+/** What a remark reads as on the page: its words and its symbols as drawn -- without the MathML copy
+ * KaTeX keeps for screen readers, the zero-width spaces inside its subscripts, or the no-break
+ * spaces that hold a word to its symbol. */
+const read = (el: Element) => {
+  const copy = el.cloneNode(true) as Element;
+  for (const m of copy.querySelectorAll('.katex-mathml')) m.remove();
+  return (copy.textContent ?? '').replace(/\u200b/g, '').replace(/\u00a0/g, ' ');
+};
+describe('every new symbol is said in words beside the line that brings it in', () => {
+  it('the angle and the side of the triangle are said right under the ratio that uses them', () => {
+    // α arrived in What cancels as cos α = r/√(y²+r²) with no word for it. The sentence now follows
+    // that ratio directly, before the cancellation, so the two are read together.
+    for (const id of ['bisector', 'ring', 'semi', 'sheet'] as const) {
+      const view = panel(id);
+      const body = view.container.querySelector('.db-step[data-step="cancel"] .db-body')!;
+      const where = [...body.children].find(c => c.classList.contains('db-where') && !c.classList.contains('db-say'))!;
+      const say = where.nextElementSibling as HTMLElement;
+      expect(say.classList.contains('db-say'), id).toBe(true);
+      expect(read(say), id).toMatch(/^α is the angle at P between ri and the/);
+      expect(read(say), id).toMatch(/lies along/);
+      cleanup();
+    }
+  });
+  it('the last line says the rule: what changes from piece to piece is written in the variable first', () => {
+    const view = panel('bisector');
+    const say = view.container.querySelector<HTMLElement>('.db-step[data-step="limit"] .db-say')!;
+    expect(read(say)).toBe('Everything that changes from piece to piece — ri and cosαi — is written in y; then the sum over pieces becomes an integral over y.');
+    // Its symbols are the board's, set as math.
+    expect(say.querySelectorAll('.katex').length).toBe(4);
+  });
+});
+
 describe('the panel and the figure answer each other', () => {
   it('choosing a line plays that stage', () => {
     const onStep = vi.fn();
