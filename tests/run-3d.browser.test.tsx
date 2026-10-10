@@ -259,6 +259,23 @@ describe('the mirror piece in space is a whole contribution, and what it keeps i
   await waitFor(() => expect(plan(view, 'runArrows')?.split(' ')).toContain('partner-keep'));
   expect(plan(view, 'runPartnerStyle')).toBe('solid');
  }, HEAVY);
+ // Cut five ways, the bisector's middle piece is level with P and is its own mirror. The scene drew a
+ // lighter copy of its ΔE over its own and a second ΔE_x laid on the first: one piece counted twice.
+ // A reader gets there by picking the piece nearest P, which during the run becomes the run's piece.
+ it('a piece on P\'s own line has no mirror, and nothing is laid on its part twice', async () => {
+  const view = await openLesson('bisector');
+  await openRun(view);
+  jump(view, 3, 'What cancels');
+  await waitFor(() => expect(plan(view, 'runStage')).toBe('cancel'));
+  fireEvent.change(view.container.querySelector<HTMLInputElement>('input[aria-label="Selected charge element"]')!, {target: {value: '2'}});
+  scrub(view, 2, .97);
+  await waitFor(() => expect(plan(view, 'runTones')).toBe('ddldd'));
+  expect(plan(view, 'runPartner')).toBeUndefined();
+  const arrows = plan(view, 'runArrows')?.split(' ') ?? [];
+  expect(arrows).toContain('keep');
+  expect(arrows).not.toContain('partner');
+  expect(arrows).not.toContain('partner-keep');
+ }, HEAVY);
 });
 describe('the chain in space is drawn beside the net arrow by the lesson, not by its first link', () => {
  // With one link and no net arrow yet, any chain is collinear with itself: the ring's first link hung

@@ -1,5 +1,6 @@
 import type {ChargeSample} from '../../distributions/types';
 import {openingCamera} from '../camera';
+import {PLOT} from '../vectorfield';
 /** What the 3D layer needs to know about the shape it is drawing, worked out from the same
  * samples the physics sums. Pure, so the decisions can be tested without a GPU. */
 export type BodyKind='wire'|'disk'|'sheet';
@@ -96,6 +97,11 @@ export function fillFade(across:number,depth:number,wide:number,far:FarFade):num
  const m=Math.hypot(across/Math.max(1e-6,wide),depth/Math.max(1e-6,depth>0?far.outer:wide));
  return fadeOut(m,.55,1);
 }
+/** HOW STRONGLY THE SUMMED SHADING IS LAID, at its strongest: on the sheet, and a fifth more on the disk.
+ * In the dark it is barely more than half as strong. At the light theme's strength, lit and without a
+ * glow, it was the largest and brightest thing in the dark figure -- a grey-brown slab over the lower
+ * half of the picture, the field lines faint through it, brighter than the plane at rest. */
+export const fillAlpha=(dark:boolean)=>dark?.24:.42;
 /** The far fade for one part of something lying on the sheet: its face, or its outline. */
 export const pieceFade=(far:FarFade,part:'face'|'outline'):FarFade=>({...far,low:part==='face'?PIECE_FAR_LOW:OUTLINE_FAR_LOW});
 /** How far the axes and the ground grid run, in whole metres: past the field, past the frame,
@@ -238,3 +244,120 @@ export function sheetColumns(yaw:number,unit:number,from:number,to:number,near:n
  }
  return roots;
 }
+/** WHICH STROKE A PIECE OF A FIELD LINE IS DRAWN AS: `behind` is premixed with the paper and opaque,
+ * the rest is translucent ink laid over whatever the scene has already drawn there (see FieldStage).
+ *
+ * A surface splits each line at its plane (see `splitAtPlane`). A wire's lines are never premixed. They
+ * were, all of them, and a line passing in front of the tube or a cut piece repainted it in the colour
+ * of the paper: a white nick the width of a cut across the orange, so Cut it up showed the five gaps of
+ * a five-piece ring and four or five more that were not cuts, and in Shrink them a nick on the near side
+ * read as a cut that never closed. As ink, a line over the paper is the same colour the premix was, and
+ * over the tube it is a faint tint of the field's colour; a line behind the tube still fails the depth
+ * test the tube writes, so it is still hidden there. */
+export function strokeSide(kind:BodyKind,a:Point3,b:Point3):{a:Point3;b:Point3;behind:boolean}[]{
+ return kind==='wire'?[{a,b,behind:false}]:splitAtPlane([a,b]);
+}
+/** THE RADII A DISK'S SIGN MARKS ARE LAID ON. They were a ring or two at fixed fractions of R, and the
+ * chosen ring of the disk sat on one of them: its marks were drawn into the washer's walls and cut to a
+ * ⊥, and nothing at all was written on the disk outside it -- the outer part of a charged disk carried no
+ * sign. Now the marks are spread evenly over the parts of the disk the chosen ring does NOT cover, from a
+ * fifth of the radius out to nine tenths of it, `clear` metres (a mark's half-size) clear of either wall
+ * of `annulus`, the chosen ring. `unit` is viewBox units per metre: a ring of marks every sixty or so. */
+export function diskSignRadii(R:number,unit:number,annulus:{inner:number;outer:number}|null,clear:number):number[]{
+ const lo=.2*R,hi=.92*R,most=Math.max(2,Math.min(4,Math.round(R*unit/60)));
+ const cut=annulus?[annulus.inner-clear,annulus.outer+clear] as const:null;
+ // The free stretches of [lo, hi], and their total length.
+ const free:[number,number][]=cut?[[lo,Math.min(hi,cut[0])],[Math.max(lo,cut[1]),hi]]:[[lo,hi]];
+ const parts=free.filter(([a,b])=>b>a+1e-9),total=parts.reduce((s,[a,b])=>s+b-a,0);
+ if(!(total>0))return [];
+ // At equal steps of the free length, both ends included, so the outermost mark is out by the rim
+ // whenever the chosen ring leaves room there.
+ const at=(s:number)=>{for(const [a,b] of parts){if(s<=b-a+1e-9)return a+Math.min(s,b-a);s-=b-a;}return parts[parts.length-1][1];};
+ const count=Math.max(1,Math.min(most,Math.round(total*unit/30)+1));
+ return Array.from({length:count},(_,k)=>at(count>1?total*k/(count-1):total/2));
+}
+/** THE SHEET'S SIGN MARKS, LAID ON THE SHEET. They were laid on a lattice fixed to the screen -- a mark
+ * every ninety units across and sixty up, from the window's bottom edge -- and only then turned into the
+ * plane for the current view, so in a drag they stood still while the grid, the axes and the chosen ring
+ * turned under them, as a screen overlay does: not marks on the sheet. Now they are a sunflower over the
+ * plane (as `sheetRoots` lays the sheet's lines), which prints no rows from any yaw, spaced by `window`
+ * metres -- quantised by the caller, so they are laid again only when the zoom really changes. A view
+ * only decides how strongly each one is drawn. */
+export function sheetSignRoots(window:number):Point3[]{
+ const spacing=window/7.2,radius=window*1.1,count=Math.round(Math.PI*radius*radius/(spacing*spacing*1.15));
+ const golden=Math.PI*(3-Math.sqrt(5)),out:Point3[]=[];
+ for(let k=0;k<count;k++){const r=radius*Math.sqrt((k+.5)/count),a=k*golden+1.1;out.push({x:r*Math.cos(a),y:r*Math.sin(a),z:0});}
+ return out;
+}
+/** How strongly each of the sheet's marks is drawn in one view: none outside the window (thirty units
+ * clear of its sides, fourteen of its foot) or past where the plane starts to fade under P, and dimmed
+ * with the plane's far side (see `sheetFarFade`). None on the chosen ring while it is drawn solid; once
+ * it is only a wash, none on its two walls. `toScreen` puts a point in the figure's viewBox, `ahead` is
+ * the camera's far direction in the plane, `clear` a mark's half-size in metres. Every root is returned,
+ * hidden ones at alpha zero, so the positions are the roots whatever the view. */
+export function sheetSigns(roots:readonly Point3[],toScreen:(v:Point3)=>{x:number;y:number},ahead:{x:number;y:number},far:FarFade,band:{inner:number;outer:number}|null,frameWorld:number,clear:number):{at:Point3;alpha:number}[]{
+ const solid=!!band&&(band.outer-band.inner)/Math.max(1e-6,frameWorld*.5)<.3;
+ return roots.map(at=>{
+  const s=toScreen(at),depth=at.x*ahead.x+at.y*ahead.y,r=Math.hypot(at.x,at.y);
+  const shown=s.x>=PLOT.x+30&&s.x<=PLOT.x+PLOT.width-30&&s.y<=PLOT.y+PLOT.height-14&&s.y>=PLOT.y&&depth<=far.inner;
+  const onBand=!!band&&(solid?r>=band.inner-clear&&r<=band.outer+clear:Math.abs(r-band.inner)<=clear||Math.abs(r-band.outer)<=clear);
+  return {at,alpha:shown&&!onBand?farAlpha(depth,far)*.8:0};
+ });
+}
+type Flat={x:number;y:number};
+const segmentPoint=(p:Flat,a:Flat,b:Flat)=>{
+ const dx=b.x-a.x,dy=b.y-a.y,l=dx*dx+dy*dy,t=l>0?Math.max(0,Math.min(1,((p.x-a.x)*dx+(p.y-a.y)*dy)/l)):0;
+ return Math.hypot(p.x-a.x-dx*t,p.y-a.y-dy*t);
+};
+/** The least distance between two segments in the plane: zero where they cross. */
+export function segmentGap(a:Flat,b:Flat,c:Flat,d:Flat):number{
+ const cross=(o:Flat,p:Flat,q:Flat)=>(p.x-o.x)*(q.y-o.y)-(p.y-o.y)*(q.x-o.x);
+ const d1=cross(a,b,c),d2=cross(a,b,d),d3=cross(c,d,a),d4=cross(c,d,b);
+ if(((d1>0&&d2<0)||(d1<0&&d2>0))&&((d3>0&&d4<0)||(d3<0&&d4>0)))return 0;
+ return Math.min(segmentPoint(a,c,d),segmentPoint(b,c,d),segmentPoint(c,a,b),segmentPoint(d,a,b));
+}
+/** Room kept clear round P and its arrows on the SCREEN, in viewBox units; see `latticeClear`. */
+export const LATTICE_CLEAR={point:44,net:16,past:36,middle:14} as const;
+/** WHETHER ONE OF THE 3D ARROWS MAY BE DRAWN, judged where the collisions happen: on the screen.
+ *
+ * The arrows round P were hidden by distance in space, and an orthographic view throws depth away: an
+ * arrow a step behind P was drawn on P's name, ran into the E of ΣΔE and up the side of the height's
+ * letter, and one lay on the net arrowhead while the next, just past its tip on the axis, read as the net
+ * arrow going on. So an arrow, shaft and head, `tail` to `tip`, is hidden within `point` units of P on the
+ * screen, within `net` units of the net arrow carried `past` units beyond its tip, and within `middle`
+ * units of the middle of O to P, where the height is named. `right` and `up` are the screen's directions
+ * in the world and `unit` its viewBox units per metre. */
+export function latticeClear(tail:Point3,tip:Point3,point:Point3,net:Point3|null,screen:{right:Point3;up:Point3;unit:number},room:{point:number;net:number;past:number;middle:number}=LATTICE_CLEAR):boolean{
+ const {right:R,up:U,unit}=screen,at=(v:Point3):Flat=>({x:(v.x*R.x+v.y*R.y+v.z*R.z)*unit,y:-(v.x*U.x+v.y*U.y+v.z*U.z)*unit});
+ const a=at(tail),b=at(tip),P=at(point);
+ if(segmentPoint(P,a,b)<room.point)return false;
+ if(segmentPoint(at({x:point.x/2,y:point.y/2,z:point.z/2}),a,b)<room.middle)return false;
+ if(net){
+  const T=at({x:point.x+net.x,y:point.y+net.y,z:point.z+net.z}),l=Math.hypot(T.x-P.x,T.y-P.y);
+  const end=l>1e-9?{x:T.x+(T.x-P.x)/l*room.past,y:T.y+(T.y-P.y)/l*room.past}:T;
+  if(segmentGap(a,b,P,end)<room.net)return false;
+ }
+ return true;
+}
+/** THE ORDER THREE DRAWS IN, worked out the way its renderer does: a group's renderOrder is the group
+ * order of everything under it, a mesh's own renderOrder orders it only among things of the same group
+ * order, and an object straight under the scene has a group order of zero whatever its own renderOrder.
+ * The translucent front strokes and heads were put straight under the scene with renderOrders of 4 and 5
+ * so as to be drawn last; they were drawn FIRST, before the marks' group (order 2), and the chosen washer
+ * -- translucent, but writing depth -- then painted out every stroke in front of it: the field read as
+ * stopped by the chosen ring. Named objects only, each as [group order, renderOrder]. */
+export type OrderNode={name?:string;isGroup?:boolean;renderOrder:number;children:readonly OrderNode[]};
+export function drawOrder(root:OrderNode):Map<string,[number,number]>{
+ const out=new Map<string,[number,number]>();
+ const walk=(node:OrderNode,group:number)=>{
+  for(const child of node.children){
+   const g=child.isGroup?child.renderOrder:group;
+   if(child.name)out.set(child.name,[g,child.renderOrder]);
+   walk(child,g);
+  }
+ };
+ walk(root,0);
+ return out;
+}
+/** Whether something at draw order `a` is drawn after something at `b`, among the translucent things. */
+export const drawnAfter=(a:readonly [number,number],b:readonly [number,number])=>a[0]!==b[0]?a[0]>b[0]:a[1]>b[1];

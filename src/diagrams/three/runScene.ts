@@ -86,8 +86,9 @@ export type RunScene={
   * stage from EVERY piece's field (see `chainBeside`) -- not from the links laid so far. With one
   * link, or none of the net arrow shown yet, any chain is "collinear" with itself: the ring's first
   * link was drawn ten units off P on a tie, and the whole chain jumped back onto P when the second
-  * arrived. Decided by the pieces, a ring, an off-axis rod or an arc is never beside, and a disk, a
-  * sheet or the rod seen along its axis is beside from its first link. */
+  * arrived. Decided by the pieces (see `fieldsCollinear`), a ring, an off-axis rod or an arc is not
+  * beside at its default, and a disk, a sheet or the rod seen along its axis is beside from its first
+  * link -- as is a short rod seen from far away, whose chain would otherwise hide in the net arrow. */
  chainBeside:boolean;
 };
 export type RunSceneInput={
@@ -182,7 +183,14 @@ export function runScene(input:RunSceneInput):RunScene{
  // partway through a piece -- so the shading grows smoothly, the way the chain in front of P does.
  const through=summing?weights.reduce((s,w)=>s+Math.abs(w),0):0;
  const filled=surface&&summing&&through>0?Math.abs(at(Math.min(1,through/n)).x):null;
- const a=input.arrows;
+ // A PIECE ON P'S OWN LINE IS ITS OWN MIRROR, AND HAS NO PARTNER. Cut an odd number of ways, the middle
+ // piece of the bisector, the infinite line and the arc sits level with P, and the mirror rule hands it
+ // back itself. The body was already left out for it, but its arrows were not: the scene laid a second,
+ // lighter copy of ΔE over the piece's own and stacked a second ΔE_x on the first, tip to tail -- so the
+ // figure said one piece gives 2ΔE_x, when it has nothing to pair with and counts once. A reader gets
+ // there by picking the piece nearest P. So such a piece is drawn exactly as a piece without a partner.
+ const own=typeof input.partner==='number'&&input.partner===selected;
+ const a=input.arrows&&own?{...input.arrows,partner:null}:input.arrows;
  // Exactly the flat figure's choices. With a partner, the dropped parts are drawn in the pair, where
  // they are seen to shrink away, whether or not the stage splits the arrow into parts -- a second,
  // full-length copy of the sideways part used to outlive the cancellation it was showing. Without
@@ -213,12 +221,30 @@ export function runScene(input:RunSceneInput):RunScene{
  }
  return {stage,kind,closed,pieces,tones,selected,partner,open,split,seams,filled,arrows,chain,chainBeside:!!chain&&fieldsCollinear(input.chain!.fields)};
 }
-/** Whether every piece's field points along the sum of them all, within `degrees`: the chain of the
- * whole partition, laid head to tail, measured against the arrow it adds up to. */
-export function fieldsCollinear(fields:readonly Vec[],degrees=2):boolean{
- const whole:Vec[]=[{x:0,y:0,z:0}];
- for(const f of fields){const c=whole[whole.length-1];whole.push({x:c.x+f.x,y:c.y+f.y,z:c.z+f.z});}
- return chainBeside(whole,whole[whole.length-1],degrees);
+/** Whether the chain of the whole partition, laid head to tail, would be drawn inside the arrow it adds
+ * up to: every link pointing forward along the sum, and the whole chain never straying more than `stray`
+ * of the sum's length from the sum's line.
+ *
+ * DECIDED BY HOW FAR THE CHAIN STRAYS, NOT BY THE ANGLE OF ITS LINKS. It was every link within two
+ * degrees of the sum -- and a short rod seen from far off, a small ring from high above, a narrow arc or
+ * a short ramp have links three to twelve degrees off it, while the whole chain strays only two to four
+ * per cent of the net arrow's length from its line: two to four pixels on a hundred-pixel arrow, inside
+ * its shaft. Add them up then showed one arrow with bead nubs on it, and the stage's picture -- the
+ * pieces' arrows laid tip to tail -- was gone. A chain that strays further than five per cent is seen
+ * beside the net arrow where it is; the default rods, ring and arc stray seven to fifty. */
+export function fieldsCollinear(fields:readonly Vec[],stray=.05):boolean{
+ const sum=fields.reduce((a,f)=>({x:a.x+f.x,y:a.y+f.y,z:a.z+f.z}),{x:0,y:0,z:0}),n=Math.hypot(sum.x,sum.y,sum.z);
+ if(!(n>1e-12))return false;
+ let c={x:0,y:0,z:0},links=0;
+ for(const f of fields){
+  const l=Math.hypot(f.x,f.y,f.z);
+  if(l<1e-12*n)continue;
+  if(f.x*sum.x+f.y*sum.y+f.z*sum.z<=0)return false;
+  c={x:c.x+f.x,y:c.y+f.y,z:c.z+f.z};links++;
+  const off=Math.hypot(c.y*sum.z-c.z*sum.y,c.z*sum.x-c.x*sum.z,c.x*sum.y-c.y*sum.x)/n;
+  if(off>stray*n)return false;
+ }
+ return links>0;
 }
 /** Whether the chain runs along the arrow it adds up to, so that drawn where it is it would vanish
  * inside that arrow's shaft.

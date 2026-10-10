@@ -106,7 +106,7 @@ export function FieldCanvas({samples,project,frame,lines=15,mode='lines',reach=6
   // charge runs on far past the picture's reach is that sheet: its lines are straight normals, evenly
   // spaced across the whole window, as many to a metre as the traced ones were, and ordered by the
   // sign of the charge.
-  const endless=plane==='xz'&&layout==='surface'&&!!tracedFor&&chargeSpan>reach*3;
+  const endless=!!tracedFor&&endlessSheet(coarse,reach,plane,layout);
   const fresh=endless?sideSheet(coarse,lines,opts.seedLimit,tracedFor!)
    :plane==='xz'?meridianLines(coarse,layout,lines,{...opts,root:{},seedSpan}).map(line=>line.map(v=>({x:v.x,y:v.z}))):fieldLines(coarse,pool.count,{...opts,seedPool:pool.pool,root:bodyFoot(coarse,'wire')});
   TRACES.set(traceKey,fresh);
@@ -123,6 +123,8 @@ export function FieldCanvas({samples,project,frame,lines=15,mode='lines',reach=6
   // On the side view the lattice sits half a step off the axis and off the charge's plane, as it
   // always has: on either, a symmetric field is zero or points along the line an arrow would hide.
   const lattice=latticeArea(area??square,reach/7,plane==='xz'?.5:0),spacing=lattice.spacing;
+  // The sheet's side view is drawn from Gauss, as its lines are: see `sideSheetArrows`.
+  if(endlessSheet(coarse,reach,plane,layout))return sideSheetArrows(coarse,lattice.area,spacing).map(a=>({...a,spacing}));
   if(plane==='xz')return spaceGrid(coarse,reach,spacing,.12,'xz',layout,lattice.area).map(a=>({at:{x:a.at.x,y:a.at.z},dir:{x:a.dir.x,y:a.dir.z},magnitude:a.magnitude,weight:a.weight,spacing}));
   return vectorGrid(coarse,lattice.area,spacing).map(a=>({...a,spacing}));
  },[chargeKey,mode,reach,plane,layout,detail,areaKey]);
@@ -223,6 +225,32 @@ export function FieldCanvas({samples,project,frame,lines=15,mode='lines',reach=6
  return <div ref={box} className={`cd-field-canvas ${className}`} aria-hidden="true" data-field-samples={samples.length}><canvas ref={canvas}/></div>;
 }
 export type {Plane};
+/** Whether a side view is of the infinite sheet: a surface cut through its axis whose charge runs on
+ * far past the picture's reach. A zoomed-in disk is never mistaken for it. */
+export function endlessSheet(samples:readonly ChargeSample[],reach:number,plane:'xy'|'xz',layout:Layout):boolean{
+ if(plane!=='xz'||layout!=='surface'||!samples.length)return false;
+ return Math.max(...samples.map(s=>Math.hypot(s.position.x,s.position.y,s.position.z)),1)>reach*3;
+}
+/** THE SHEET'S SIDE-VIEW ARROWS, FROM GAUSS: every lattice point off the plane gets the same arrow,
+ * straight away from the sheet (into it for negative charge), at full weight.
+ *
+ * They were summed from the partition cut for integrating, whose annuli are half a metre apart by the
+ * time the row of arrows half a step off the plane meets them at a small height: there |E| ran from 0.83
+ * to 1.07 of sigma/2 epsilon_0, and the log weighting stretched that fifteen per cent to its full range --
+ * one arrow at the shortest length, the median a fifth short and fainter, ten near the edge leaning by six
+ * to seventeen degrees -- on the lesson whose one claim is that the field is the same everywhere. The
+ * lines were already drawn from Gauss (`sideSheet`). `area` is the window's lattice, x across and y as
+ * the cut's z; points within the arrows' own clearance of the plane are left out, as before. */
+export function sideSheetArrows(samples:readonly ChargeSample[],area:{x0:number;y0:number;x1:number;y1:number},spacing:number,exclude=.12):{at:Plane;dir:Plane;magnitude:number;weight:number}[]{
+ const sign=samples.reduce((q,s)=>q+s.dq,0)>=0?1:-1,out:{at:Plane;dir:Plane;magnitude:number;weight:number}[]=[];
+ const span=(lo:number,hi:number)=>Array.from({length:Math.max(0,Math.round((hi-lo)/spacing)+1)},(_,i)=>lo+i*spacing);
+ for(const x of span(area.x0,area.x1))for(const z of span(area.y0,area.y1)){
+  if(Math.abs(z)<exclude)continue;
+  // Uniform, so its size says nothing the weight does not: only the weight is drawn.
+  out.push({at:{x,y:z},dir:{x:0,y:sign*Math.sign(z)},magnitude:1,weight:1});
+ }
+ return out;
+}
 /** The infinite sheet's side view: straight lines square to the plane, one every `4 span / lines`
  * metres -- the spacing the traced side view had -- placed symmetrically about the axis, across the
  * whole of `window` and out past its top and bottom, each ordered along the field. In the cut y = 0's
