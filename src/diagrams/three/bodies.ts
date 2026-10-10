@@ -74,7 +74,7 @@ export function sheetFarFade(height:number,pitch:number,unit:number,opening=open
  * near, `fade.low` (by default SHEET_FAR_LOW) far. */
 export type FarFade={inner:number;outer:number;low?:number};
 export const farAlpha=(depth:number,fade:FarFade)=>{const low=fade.low??SHEET_FAR_LOW;return low+(1-low)*fadeOut(depth,fade.inner,fade.outer);};
-/** THE GAP THE CHARGE LEAVES ROUND P WHERE IT PASSES BEHIND IT, in CSS pixels from P on the screen -- the
+/** THE GAP THE CHARGE LEAVES ROUND P WHERE IT PASSES BEHIND IT, in units of the figure from P on the screen -- the
  * drafting gap a far line is given where it passes behind a near point.
  *
  * Tipping the view up brought the far side of the charge onto P in every lesson that stands P over it: the
@@ -84,16 +84,49 @@ export const farAlpha=(depth:number,fade:FarFade)=>{const low=fade.low??SHEET_FA
  * and all of it from `outer`, smoothly between; an opaque wire, which cannot be faded, is cut clean within
  * `hard`. Wide enough to clear P's halo and the root of the net arrow with paper round them; narrow enough
  * that the charge is plainly still there, going on behind. The scene's shader draws exactly this curve
- * (see FieldStage's `patch`); `behindGap` is it, for the tests. */
+ * (see FieldStage's `patch`); `behindGap` is it, for the tests.
+ *
+ * IN UNITS OF THE FIGURE, NOT CSS PIXELS. In pixels the gap was the same size on a phone, where the whole
+ * figure is drawn at half the scale, so there it ate twice as much of the charge: a ring tipped up lost a
+ * quarter of its far arc and read as an open C, and the disk's chosen washer lost its whole far half.
+ * Measured in the figure's own units it is the same share of the picture at any width (on a laptop a unit
+ * is about a CSS pixel, so it is what it was there).
+ *
+ * AND RAMPED IN DEPTH, NOT CUT. Whether a point was behind P was a yes or no at one depth, and on a flat
+ * surface the points at one depth lie on a straight line across the screen -- so the soft round gap had a
+ * ruled floor wherever P stood near the surface or the view was tipped: a half-disc window punched in the
+ * disk, the washer drawn as a U. Now the gap comes in over `depth` metres behind that depth (see
+ * `gapDepth`), the outer radius' worth, so it has no edge in any direction. */
 export const BEHIND_GAP={inner:22,outer:38,low:.08,hard:22} as const;
-export function behindGap(distance:number,behind:boolean,wire=false,gap:{inner:number;outer:number;low:number;hard:number}=BEHIND_GAP):number{
- if(!behind)return 1;
- if(wire)return distance<gap.hard?0:1;
- const t=Math.min(1,Math.max(0,(distance-gap.inner)/(gap.outer-gap.inner)));
- return gap.low+(1-gap.low)*t*t*(3-2*t);
+/** How much of the gap applies to a point `behind` metres further from the camera than the depth the gap
+ * starts at, over a ramp `depth` metres deep: none in front of it, all of it a ramp's depth behind. */
+export function gapDepth(behind:number,depth:number):number{
+ if(!(depth>0))return behind>0?1:0;
+ const t=Math.min(1,Math.max(0,behind/depth));
+ return t*t*(3-2*t);
+}
+/** How far behind P, in metres, the gap starts: twice the reach of P's halo (4.2 wire radii). Close under P
+ * the charge is NEAR P, not behind it -- the sheet's smallest ring with P half a metre up is right under P on
+ * the screen, and must stay. */
+export const gapStart=(wr:number)=>2*4.2*wr;
+/** How deep the gap's ramp in is, in metres, where `px` metres is one unit of the figure: the outer radius'
+ * worth, so the gap comes in as gently in depth as it does across the screen. */
+export const gapRamp=(px:number)=>BEHIND_GAP.outer*px;
+/** What is left of a point of the charge `distance` figure units from P on the screen, with `behind` the
+ * share of the gap its depth gives it (see `gapDepth`; true is all of it, false none). An opaque wire is
+ * cut once it is more than half behind; a translucent part keeps `low` of itself at the middle, or `keep`
+ * where it is the chosen piece (PIECE_FAR_LOW). */
+export function behindGap(distance:number,behind:boolean|number,wire=false,gap:{inner:number;outer:number;low:number;hard:number}=BEHIND_GAP,keep:number|null=null):number{
+ const k=behind===true?1:behind===false?0:Math.min(1,Math.max(0,behind));
+ if(!(k>0))return 1;
+ if(wire&&keep===null)return k>.5&&distance<gap.hard?0:1;
+ const t=Math.min(1,Math.max(0,(distance-gap.inner)/(gap.outer-gap.inner))),low=keep??gap.low;
+ return 1+(low+(1-low)*t*t*(3-2*t)-1)*k;
 }
 /** The chosen ring dims less than the plane under it: it is the piece being talked about, and its
- * far arc must still be plainly there -- only plainly behind P. */
+ * far arc must still be plainly there -- only plainly behind P. And the same in the gap behind P: the
+ * chosen piece, a wire's included, is dimmed to this there and never erased -- the disk's washer with P
+ * just above it was drawn as a U, the piece the stage is about with half of it cut away. */
 export const PIECE_FAR_LOW=.42;
 /** AN OUTLINE ON THE SHEET GOES ENTIRELY ONCE IT IS BEHIND P: the walls of the chosen ring and the
  * circles the sheet is cut along. A tint dimmed to a trace stays a tint, but a line dimmed to the same
@@ -359,6 +392,11 @@ export function apartOnScreen<T extends {at:Point3}>(marks:readonly T[],toScreen
 /** The least distance between two of the sheet's sign marks on the screen, in viewBox units: about the
  * spacing the opening view lays them at. See FieldStage's `laySigns`. */
 export const SHEET_SIGN_GAP=44;
+/** HOW MUCH PAPER A SIGN MARK KEEPS FROM A NAME, in units of the figure, beyond the name's own padded box
+ * (see `paintedLabels`) and the mark's half-size. With none, a mark could sit flush against a letter -- at
+ * R = 4 the disk read "+P", "z +" and "+ s", a sign glued to each name -- since the placer, which sets the
+ * names, cannot see the scene's marks. Six more units leave about ten between the ink of the two. */
+export const NAME_MARGIN=6;
 /** THE SHEET'S SIGN MARKS, LAID ON THE SHEET. They were laid on a lattice fixed to the screen -- a mark
  * every ninety units across and sixty up, from the window's bottom edge -- and only then turned into the
  * plane for the current view, so in a drag they stood still while the grid, the axes and the chosen ring

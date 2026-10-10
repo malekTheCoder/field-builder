@@ -146,6 +146,33 @@ export function localRadii(samples:readonly ChargeSample[],floor=ARRIVED):number
   return Math.max(floor,.55*(Number.isFinite(nearest)?nearest:0));
  });
 }
+/** THE PARTITION WITH ITS END PIECES CUT FINER: each of the `pieces` outermost samples at both ends of an open
+ * wire split into `into` equal parts along the stretch it stands for, each with its share of the charge. The
+ * field turns fastest round a rod's tip -- just off it, a line at angle phi from the rod's axis is heading at
+ * phi / 2 -- and a line finished on a partition a few centimetres apart came into the tip across the last
+ * gap on a curve fifteen to twenty degrees off it. Cut finer only there, the finish runs on in to within a
+ * centimetre or so. A closed wire, which has no ends, is returned as it is. */
+export function refineEnds(samples:readonly ChargeSample[],into=12,pieces=3):ChargeSample[]{
+ const n=samples.length;
+ if(n<2*pieces+2||into<2)return [...samples];
+ const at=(i:number)=>samples[i].position,gap=(i:number,j:number)=>Math.hypot(at(i).x-at(j).x,at(i).y-at(j).y,at(i).z-at(j).z);
+ const gaps=Array.from({length:n-1},(_,i)=>gap(i,i+1)).sort((a,b)=>a-b),typical=gaps[Math.floor(gaps.length/2)];
+ if(!(gap(0,n-1)>2.5*typical))return [...samples];
+ const mid=(a:{x:number;y:number;z:number},b:{x:number;y:number;z:number})=>({x:(a.x+b.x)/2,y:(a.y+b.y)/2,z:(a.z+b.z)/2});
+ // The stretch sample i stands for: halfway to each neighbour, the end ones mirrored past the end.
+ const lo=(i:number)=>i>0?mid(at(i-1),at(i)):{x:2*at(0).x-mid(at(0),at(1)).x,y:2*at(0).y-mid(at(0),at(1)).y,z:2*at(0).z-mid(at(0),at(1)).z};
+ const hi=(i:number)=>i<n-1?mid(at(i),at(i+1)):{x:2*at(n-1).x-mid(at(n-2),at(n-1)).x,y:2*at(n-1).y-mid(at(n-2),at(n-1)).y,z:2*at(n-1).z-mid(at(n-2),at(n-1)).z};
+ const out:ChargeSample[]=[];
+ samples.forEach((s,i)=>{
+  if(i>=pieces&&i<n-pieces){out.push(s);return;}
+  const a=lo(i),b=hi(i);
+  for(let j=0;j<into;j++){
+   const t=(j+.5)/into;
+   out.push({...s,position:{x:a.x+(b.x-a.x)*t,y:a.y+(b.y-a.y)*t,z:a.z+(b.z-a.z)*t},dq:s.dq/into});
+  }
+ });
+ return out;
+}
 /** One streamline, stepped by RK4 on the unit field direction so the arc length per step is
  * honest and the curve does not drift wide on tight bends the way Euler does. */
 export function traceLine(samples:readonly ChargeSample[],start:Plane,options:TraceOptions={}):Plane[]{
@@ -250,6 +277,49 @@ export function chargeSeeds(samples:readonly ChargeSample[],count:number,offset:
  }
  return seeds;
 }
+/** LINES OFF A STRAIGHT ROD'S ENDS, TOO. Every seed above is launched square to the rod, at its middle of an
+ * equal share of the charge, and in the plane of a rod a line launched square at the share whose middle is a
+ * fraction f along it ends at the far polar angle cos theta = 2f - 1: the last share, f = 15/16, ends 29
+ * degrees off the rod's axis. So a cone of 29 degrees about the axis was bare off both ends -- and the axial
+ * lesson stands P on that axis, where the field at its distance is the strongest, in the widest gap of the
+ * picture: the nearest line passed two and a half metres from P, three metres off the rod's end.
+ *
+ * So each end of a straight, open rod also launches a line to either side of its axis, from the tip, TIP_LAUNCH
+ * off the axis -- true field lines, traced and rooted like the rest, filling the cone; the equal-charge
+ * spacing along the rod is left as it was. Not at an end whose charge per metre is under half the rod's mean:
+ * the ramp's light end, where lambda falls to zero, stays as bare as its charge says. (Per metre over the last
+ * few pieces, not per piece: a partition coarsened unevenly has end pieces of half the others' charge on a
+ * uniform rod.) Only ends inside `limit` of O, so a line running past the picture has none. */
+export const TIP_LAUNCH=35*Math.PI/180;
+export function tipSeeds(samples:readonly ChargeSample[],offset:number,limit=Infinity):Plane[]{
+ const n=samples.length;
+ if(n<3)return [];
+ const a=samples[0].position,b=samples[n-1].position,dx=b.x-a.x,dy=b.y-a.y,length=Math.hypot(dx,dy);
+ if(!(length>1e-9))return [];
+ // Straight: every point on the line through the two ends.
+ if(samples.some(s=>Math.abs((s.position.x-a.x)*dy-(s.position.y-a.y)*dx)/length>1e-6*Math.max(1,length)||Math.abs(s.position.z)>1e-9))return [];
+ if(n<5)return [];
+ // Charge per metre over the last three pieces at an end, from the tip -- half a gap past the end piece -- to
+ // halfway between the third and the fourth; and over the whole rod, tip to tip.
+ const P=(i:number)=>samples[i].position,tipOf=(e:number,f:number)=>({x:P(e).x+(P(e).x-P(f).x)/2,y:P(e).y+(P(e).y-P(f).y)/2});
+ const tips=[tipOf(0,1),tipOf(n-1,n-2)],total=samples.reduce((q,s)=>q+Math.abs(s.dq),0);
+ const mean=total/Math.max(1e-12,Math.hypot(tips[1].x-tips[0].x,tips[1].y-tips[0].y));
+ const endDensity=(e:number,d:number)=>{
+  const q=Math.abs(samples[e].dq)+Math.abs(samples[e+d].dq)+Math.abs(samples[e+2*d].dq),edge={x:(P(e+2*d).x+P(e+3*d).x)/2,y:(P(e+2*d).y+P(e+3*d).y)/2},tip=e===0?tips[0]:tips[1];
+  return q/Math.max(1e-12,Math.hypot(edge.x-tip.x,edge.y-tip.y));
+ };
+ const seeds:Plane[]=[];
+ for(const [e,f] of [[0,1],[n-1,n-2]] as const){
+  const end=samples[e],next=samples[f];
+  if(endDensity(e,f-e)<.5*mean||Math.hypot(end.position.x,end.position.y)>limit)continue;
+  const ox=end.position.x-next.position.x,oy=end.position.y-next.position.y,l=Math.hypot(ox,oy);
+  if(!(l>1e-12))continue;
+  const ux=ox/l,uy=oy/l,tip={x:end.position.x+ox/2,y:end.position.y+oy/2};
+  const c=Math.cos(TIP_LAUNCH),s=Math.sin(TIP_LAUNCH);
+  for(const side of [1,-1])seeds.push({x:tip.x+offset*(c*ux-side*s*uy),y:tip.y+offset*(c*uy+side*s*ux)});
+ }
+ return seeds;
+}
 /** WHERE THE LINES OF AN ENDLESS CHARGE START: along all of it that the window shows.
  *
  * Lines are seeded from the charge within `span` of O -- the field's reach, a little under -- and on
@@ -267,7 +337,11 @@ export function chargeSeeds(samples:readonly ChargeSample[],count:number,offset:
  * exactly as it was. */
 export function seedPool(samples:readonly ChargeSample[],count:number,span:number,window:number,most=4):{count:number;pool:number}{
  const far=Math.max(0,...samples.map(s=>Math.hypot(s.position.x,s.position.y,s.position.z)));
- if(!(window>span)||!(far>window))return {count,pool:span};
+ // ALL OF A CHARGE THE PICTURE HOLDS. A bounded charge reaching a little past `span` -- the axial rod eight
+ // metres long, with the flat figure's span 7.6 -- had the last of its length, the end P stands beyond, start
+ // no line at all: forty degrees bare about the axis there. Only a charge running past the window is cut.
+ if(far<=Math.max(span,window))return {count,pool:Math.max(span,far*(1+1e-9))};
+ if(!(window>span))return {count,pool:span};
  const within=(r:number)=>samples.reduce((q,s)=>Math.hypot(s.position.x,s.position.y,s.position.z)<=r?q+Math.abs(s.dq):q,0);
  const before=within(span),after=within(window);
  const grown=before>0?count*after/before:count;
@@ -301,8 +375,11 @@ export function fieldLines(samples:readonly ChargeSample[],count:number,options:
  const stride=options.step??span*.05;
  const radii=localRadii(samples,Math.max(ARRIVED,stride*.9));
  const arrive=Math.min(...radii);
- const seeded=chargeSeeds(samples,count,Math.max(arrive*1.6,span*.05),options.seedPool??options.seedLimit??Infinity);
- const starts=seeded.length?seeded:seedRing(samples,count);
+ const offset=Math.max(arrive*1.6,span*.05),pool=options.seedPool??options.seedLimit??Infinity;
+ const seeded=chargeSeeds(samples,count,offset,pool);
+ // And off a straight rod's ends (see `tipSeeds`), only where the lines are rooted on the charge: that is the
+ // figure's drawing, where the bare cone off each end was the gap P stood in.
+ const starts=seeded.length?[...seeded,...(options.root?tipSeeds(samples,offset,pool):[])]:seedRing(samples,count);
  // About a drawn line width in world units. Both halves of one line are traced against the
  // grid as it stood BEFORE the line began, then added together: otherwise the second half
  // would stop against the first at the seed they share.
@@ -313,17 +390,25 @@ export function fieldLines(samples:readonly ChargeSample[],count:number,options:
  const lines:Plane[][]=[];
  // The last stretch of a half that arrived, traced again on the finer partition (see `finish`). Kept only
  // if it arrives too: a half that wanders off is joined as before.
- const finish=options.finish,fine=finish?finish.samples:null;
- const fineRadii=fine?fine.map((s,i)=>{
+ // Its ends cut finer still, where the field turns round a rod's tip (see `refineEnds`).
+ const finish=options.finish,fine=finish?refineEnds(finish.samples):null;
+ const fineRadii=(step:number)=>fine?fine.map((s,i)=>{
   let gap=Infinity;
   for(const j of [i-1,i+1]){const o=fine[j];if(o)gap=Math.min(gap,Math.hypot(s.position.x-o.position.x,s.position.y-o.position.y,s.position.z-o.position.z));}
-  return Math.max(finish!.step*.9,1.5*(Number.isFinite(gap)?gap:0));
+  return Math.max(step*.9,1.5*(Number.isFinite(gap)?gap:0));
  }):[];
+ // Twice: at the finish's step, and then on in at a quarter of it, where the end pieces are fine enough to
+ // be come close to -- a line cannot be brought nearer a charge than its own step resolves.
+ const passes=finish?[finish.step,finish.step/4,finish.step/16].map(step=>({step,radii:fineRadii(step)})):[];
  const finished=(half:{path:Plane[];arrived:boolean},sign:number)=>{
   if(!fine||!half.arrived||!half.path.length)return half;
-  const from=half.path[half.path.length-1],within=Math.max(...radii)*2+stride*2;
-  const more=trace(fine,from,{step:finish!.step,radii:fineRadii,maxSteps:Math.ceil(within/finish!.step)+12,outerLimit:options.outerLimit,sign});
-  return more.arrived&&more.path.length>1?{path:[...half.path,...more.path.slice(1)],arrived:true}:half;
+  let out=half,within=Math.max(...radii)*2+stride*2;
+  for(const pass of passes){
+   const more=trace(fine,out.path[out.path.length-1],{step:pass.step,radii:pass.radii,maxSteps:Math.ceil(within/pass.step)+12,outerLimit:options.outerLimit,sign});
+   if(!(more.arrived&&more.path.length>1))break;
+   out={path:[...out.path,...more.path.slice(1)],arrived:true};within=pass.step*8;
+  }
+  return out;
  };
  for(const seed of starts){
   const along=finished(trace(samples,seed,{...options,arrive,radii,crowd,drawn,sign:1}),1);
@@ -387,6 +472,10 @@ export type LineHead={segment:number;t:number;x:number;y:number;dx:number;dy:num
  * narrower than it is long, so it reads as a direction rather than as a dot on the line. The flat
  * canvas and the scene draw the same head. */
 export const LINE_HEAD={length:6.5,half:2.6} as const;
+/** How much room a head already laid keeps round itself against the next line's heads, as a square this many
+ * head lengths across (see FieldStage's `layLineHeads`): with the box's padding, no two heads closer than a
+ * head and a half, which is where two of them read as one doubled glyph. */
+export const HEAD_ROOM=2.2;
 export function lineHeads(screen:readonly {x:number;y:number}[],rect:{x:number;y:number;width:number;height:number},every=180,least=28,margin=6,keepOut:readonly Box[]=[]):LineHead[]{
  const x0=rect.x+margin,x1=rect.x+rect.width-margin,y0=rect.y+margin,y1=rect.y+rect.height-margin;
  // The part of each segment inside the window, as a range of t (Liang and Barsky): a straight line

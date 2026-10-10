@@ -283,20 +283,29 @@ export function chainBeside(chain:readonly Vec[]|null|undefined,net:Vec|null|und
  * its outer ends and so its length. The middle cut is the one the next doubling makes, growing
  * the way the flat figure grows its mid-cuts, so a piece about to split is drawn as two halves.
  *
- * Each side of a cut gives up half its width, and no piece gives up more than a fifth of its own
- * length at either end: on the unbounded lines the pieces differ in length by a factor of hundreds,
- * and one shared gap would cut the short ones away entirely. */
-export function cutPiece(path:readonly Vec[],head:number,tail:number,mid=0):Vec[][]{
+ * Each side of a cut gives up half its width, and no piece gives up more than `most` of its own
+ * length at either end -- a fifth, unless the caller says less: on the unbounded lines the pieces differ
+ * in length by a factor of hundreds, and one shared gap would cut the short ones away entirely. The cut
+ * in the middle gives up at most `midMost` of the whole piece each side, which the caller sets to what
+ * each half's end may give up once the piece has split, so the cut does not jump as it becomes a real
+ * one. See `cutShare`. */
+export function cutPiece(path:readonly Vec[],head:number,tail:number,mid=0,most=.2,midMost=most/2):Vec[][]{
  if(path.length<2)return [];
  const length=polylineLength(path);
- const side=(g:number)=>Math.min(Math.max(0,g)/2,length*.2);
+ const side=(g:number)=>Math.min(Math.max(0,g)/2,length*most);
  if(mid>1e-6&&path.length>=3&&path.length%2===1){
-  const m=(path.length-1)/2,inner=Math.min(mid/2,length*.1);
+  const m=(path.length-1)/2,inner=Math.min(mid/2,length*midMost);
   return [trim(path.slice(0,m+1),side(head),inner),trim(path.slice(m),inner,side(tail))].filter(p=>p.length>1);
  }
  const out=trim(path,side(head),side(tail));
  return out.length>1?[out]:[];
 }
+/** HOW MUCH OF ITS LENGTH A PIECE MAY GIVE UP AT EACH END, cut `n` ways. A fifth, until the pieces are many
+ * and closing: in Shrink them, with eighty to a hundred and sixty pieces, a fifth at each end left gaps forty
+ * to sixty per cent of a piece, and every short lit cylinder between them read as a turn of a coil spring
+ * rather than as a piece of a wire whose seams are closing. Past forty pieces each end gives up at most six
+ * hundredths, so the cuts are the hairline seams the flat figure draws while the pieces still multiply. */
+export const cutShare=(n:number)=>n>40?.06:.2;
 export function polylineLength(path:readonly Vec[]):number{
  let length=0;
  for(let i=1;i<path.length;i++)length+=Math.hypot(path[i].x-path[i-1].x,path[i].y-path[i-1].y,path[i].z-path[i-1].z);

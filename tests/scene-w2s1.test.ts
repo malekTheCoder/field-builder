@@ -300,6 +300,9 @@ describe('the flat lines meet a rod\'s ends without a corner', () => {
    for (let i = 0; i + 1 < ends.length; i++) {
     const a = ends[i], b = ends[i + 1], mid = {x: (a.x + b.x) / 2, y: (a.y + b.y) / 2};
     if (away(mid.x, mid.y, 0) > .33) break;
+    // Not within two of the reference's own millimetre gaps of the rod, where a 4000-lump sum is lumps: the
+    // lines off a rod's tips (see `tipSeeds`) are now finished to within a few millimetres of it.
+    if (away(mid.x, mid.y, 0) < 2 * p.size / 4000) continue;
     const e = spaceField(fine, {...mid, z: 0}), d = {x: b.x - a.x, y: b.y - a.y, z: 0};
     const angle = Math.min(deg(d, e), deg(d, {x: -e.x, y: -e.y, z: -e.z}));
     if (angle > 4) off.push(`${angle.toFixed(1)} at (${mid.x.toFixed(3)}, ${mid.y.toFixed(3)})`);

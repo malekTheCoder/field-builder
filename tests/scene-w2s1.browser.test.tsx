@@ -69,7 +69,7 @@ async function turn(view: View, key: string, times: number) {
 /** How much the scene has drawn at points round P, as alpha out of 255: the scene's own picture, taken
  * through the offline copy's snapshot, which draws it afresh and hands it back. `at` are offsets from P in
  * CSS pixels. */
-async function inkRound(view: View, at: readonly [number, number][]): Promise<number[]> {
+async function inkRound(view: View, at: readonly [number, number][], over = false): Promise<number[]> {
  const s = stage(view)!, [px, py] = s.dataset.sceneP!.split(' ').map(Number);
  const url = snapshotLayer(s);
  expect(url, 'the scene gave no picture').toBeTruthy();
@@ -80,38 +80,49 @@ async function inkRound(view: View, at: readonly [number, number][]): Promise<nu
  const ctx = canvas.getContext('2d')!;
  ctx.drawImage(img, 0, 0);
  const gl = s.querySelector<HTMLElement>('.cd-stage-gl')!, k = img.width / gl.clientWidth;
- return at.map(([dx, dy]) => ctx.getImageData(Math.round((px + dx) * k), Math.round((py + dy) * k), 1, 1).data[3]);
+ return at.map(([dx, dy]) => {
+  const [r, g, b, a] = ctx.getImageData(Math.round((px + dx) * k), Math.round((py + dy) * k), 1, 1).data;
+  if (!over) return a;
+  // How dark the scene is there, laid on white paper: alpha alone counts every translucent layer stacked on
+  // the next, however pale each one is.
+  const on = (c: number) => c * a / 255 + 255 * (1 - a / 255);
+  return 255 - (.299 * on(r) + .587 * on(g) + .114 * on(b));
+ });
 }
 /** Points on an arc below P, `radius` CSS pixels out: the middle value is what the surface is there, whatever
  * field line, axis or tick happens to cross one or two of them. */
 const arc = (radius: number): [number, number][] => Array.from({length: 15}, (_, i) => {const a = (20 + i * 10) * Math.PI / 180; return [radius * Math.cos(a), radius * Math.sin(a)];});
 const median = (v: number[]) => [...v].sort((a, b) => a - b)[Math.floor(v.length / 2)];
+/** CSS pixels to a unit of the figure's 720-unit viewBox, as the page is laid out now. */
+const unitPx = (view: View) => view.container.querySelector('svg.cd-svg')!.getBoundingClientRect().width / 720;
 /** The figure's names where they are painted now, in its viewBox, unpadded. */
 const names = (view: View): Box[] => paintedLabels(view.container.querySelector('svg.cd-svg'), 0);
 /** "x0,y0,x1,y1 x0,y0,x1,y1 ..." as segments. */
 const segments = (list?: string) => (list ?? '').split(' ').filter(Boolean).map(s => s.split(',').map(Number)).map(([x0, y0, x1, y1]) => ({a: {x: x0, y: y0}, b: {x: x1, y: y1}}));
 
 describe('the charge behind P leaves a gap round it', () => {
- it('the sheet tipped up: nothing of the ring or the plane is drawn just below P', async () => {
+ // THE CHOSEN RING IS DIMMED BEHIND P, NOT ERASED (wave 2, iteration 2): it keeps PIECE_FAR_LOW of itself in the
+ // gap, so a piece the stage is about is never cut away -- the disk's washer with P just above it was drawn as a
+ // U. So what is measured is how dark the scene is round P against the ring away from it, on paper: the plane
+ // and everything else under P still give way, and the ring there is plainly fainter than where it is whole.
+ it('the sheet tipped up: the ring is dimmed just below P, and the plane is gone there', async () => {
   const view = await openLesson('sheet');
   await inSpace(view);
   await turn(view, 'ArrowUp', 6);
-  const ink = await inkRound(view, arc(20));
-  expect(median(ink), `alpha round P: ${ink.join(' ')}`).toBeLessThan(40);
-  // Twenty-two pixels below P, where the foot of the sum and P's halo end, is paper, but for an axis or two.
-  const below = await inkRound(view, arc(22));
-  expect(median(below), below.join(' ')).toBeLessThan(30);
+  // The gap is measured in the figure's own units now (see BEHIND_GAP), so the arcs are too.
+  const k = unitPx(view), near = await inkRound(view, arc(18 * k), true), far = await inkRound(view, arc(60 * k), true);
+  expect(median(near), `darkness round P: ${near.map(v => v.toFixed(0)).join(' ')}; away: ${far.map(v => v.toFixed(0)).join(' ')}`).toBeLessThan(.6 * Math.max(...far));
   // Further from P the chosen ring is drawn as strongly as ever.
-  const far = await inkRound(view, arc(60));
-  expect(Math.max(...far), `alpha away from P: ${far.join(' ')}`).toBeGreaterThan(150);
+  const away = await inkRound(view, arc(60 * k));
+  expect(Math.max(...away), `alpha away from P: ${away.join(' ')}`).toBeGreaterThan(150);
  }, HEAVY);
- it('the sheet walked out to its third ring: its far rim passes behind P with a gap', async () => {
+ it('the sheet walked out to its third ring: its far rim passes behind P dimmed', async () => {
   const view = await openLesson('sheet');
   await openRun(view);
   scrub(view, 3, .55);
   await frames(8);
-  const ink = await inkRound(view, arc(20));
-  expect(median(ink), `alpha round P: ${ink.join(' ')}`).toBeLessThan(40);
+  const k = unitPx(view), near = await inkRound(view, arc(18 * k), true), far = await inkRound(view, arc(60 * k), true);
+  expect(median(near), `darkness round P: ${near.map(v => v.toFixed(0)).join(' ')}; away: ${far.map(v => v.toFixed(0)).join(' ')}`).toBeLessThan(.6 * Math.max(...far));
  }, HEAVY);
  it('the ring of the potential seen from above: its far arc is cut where it passes behind P', async () => {
   // The view the critic found it in: the far arc passed about seventeen pixels above P, on its halo.

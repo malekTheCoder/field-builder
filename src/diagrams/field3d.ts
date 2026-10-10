@@ -2,7 +2,7 @@ import {K} from '../distributions/constants';
 import type {ChargeSample} from '../distributions/types';
 import type {Vec} from '../symbolic/physics';
 import {bodyDistance,bodyFoot,logWeights} from './vectorfield';
-import {localRadii} from './fieldlines';
+import {localRadii,refineEnds} from './fieldlines';
 /** The field in space, for the 3D view.
  *
  * The flat view traces the field in the plane the planar lessons live in. In space there is
@@ -143,6 +143,12 @@ export type TraceOptions={step?:number;maxSteps?:number;outerLimit?:number;sign?
   * drawn with a radius, and a line that ran on to the axis inside it would be hidden in the last
   * stretch anyway. A surface is a plane with no thickness, so its lines run onto it. */
  root?:{inset?:number};
+ /** WHERE A WIRE'S HALF ARRIVED, ITS LAST STRETCH TRACED AGAIN, FINER, on `samples` -- the partition before it
+  * was coarsened -- at a quarter of the step, before it is joined to the tube (see `joinCurve3`), as the flat
+  * tracer's `finish` does. The coarse tracer stops a step and an element's spacing short, and the straight
+  * chord square to the tube across that gap turned a corner of twelve to twenty-six degrees where the field
+  * leans near a rod's ends. */
+ finish?:{samples:readonly ChargeSample[]};
  /** How far out along a surface a SIDE VIEW's lines may start, when that is not `seedLimit`: the
   * half-width of the window the side view shows. A disk's rings all lie inside it anyway; an
   * infinite sheet's go on past it, and its lines must fill the window its field fills -- seeded only
@@ -365,21 +371,76 @@ function throughSeeds(samples:readonly ChargeSample[],layout:Layout,seeds:readon
   if(!(d>inset+1e-9))return null;
   const k=inset/d;return {x:f.x+(q.x-f.x)*k,y:f.y+(q.y-f.y)*k,z:f.z+(q.z-f.z)*k};
  };
+ // A wire's arriving halves, traced on in on the finer partition (see TraceOptions.finish). Kept only if that
+ // arrives too, and only if it ends further from the tube than the tube's own radius, as a root would.
+ const given=layout==='wire'&&foot?options.finish?.samples??null:null,fine=given?refineEnds(given):null,fineStep=(options.step??.06)/4;
+ const fineRadii=(step:number)=>fine?fine.map((q,i)=>{
+  let gap=Infinity;
+  for(const j of [i-1,i+1]){const o=fine[j];if(o)gap=Math.min(gap,LEN({x:q.position.x-o.position.x,y:q.position.y-o.position.y,z:q.position.z-o.position.z}));}
+  return Math.max(step*.9,1.5*(Number.isFinite(gap)?gap:0));
+ }):[];
+ // Twice, as the flat finish is: at a quarter of the step, then a quarter of that, where the ends are cut fine.
+ const passes=fine?[fineStep,fineStep/4,fineStep/16].map(step=>({step,radii:fineRadii(step)})):[];
+ const outside=(q:Vec)=>{const f=foot!(q.x,q.y,q.z);return !f||LEN({x:q.x-f.x,y:q.y-f.y,z:q.z-f.z})>inset*1.05;};
+ const finished=(half:{path:Vec[];arrived:boolean},sign:number)=>{
+  if(!fine||!half.arrived||!half.path.length)return half;
+  let out=half,within=(options.step??.06)*2+Math.max(stops.arrive??ARRIVED,...(stops.radii??[]))*2;
+  for(const pass of passes){
+   const more=trace3(fine,out.path[out.path.length-1],{step:pass.step,radii:pass.radii,maxSteps:Math.ceil(within/pass.step)+12,outerLimit:options.outerLimit,sign});
+   // Never into the tube: the join is laid from the last point outside it.
+   const kept=more.path.slice(1),clear=kept.findIndex(q=>!outside(q)),taken=clear<0?kept:kept.slice(0,clear);
+   if(!more.arrived||!taken.length)break;
+   out={path:[...out.path,...taken],arrived:true};within=pass.step*8;
+   if(clear>=0)break;
+  }
+  return out;
+ };
  const lines:Vec[][]=[];
  for(const seed of seeds){
-  const along=trace3(samples,seed,{...options,...stops,crowd,drawn,sign:1});
-  const against=trace3(samples,seed,{...options,...stops,crowd,drawn,sign:-1});
+  const along=finished(trace3(samples,seed,{...options,...stops,crowd,drawn,sign:1}),1);
+  const against=finished(trace3(samples,seed,{...options,...stops,crowd,drawn,sign:-1}),-1);
   const line=[...against.path.slice(1).reverse(),...along.path];
   if(line.length<=3)continue;
   for(const q of line)drawn.add(q);
   if(foot){
-   const head=against.arrived?rootOf(line[0]):null,tail=along.arrived?rootOf(line[line.length-1]):null;
-   if(head)line.unshift(head);
-   if(tail)line.push(tail);
+   // A wire's line is curved into its tube (see `joinCurve3`); a surface's runs straight onto its face, where
+   // the field is square to it all the way down.
+   const join=(end:Vec,before:Vec)=>fine?joinCurve3(end,before,v=>foot(v.x,v.y,v.z),inset):[rootOf(end)].filter((v):v is Vec=>!!v);
+   const head=against.arrived?join(line[0],line[1]):[],tail=along.arrived?join(line[line.length-1],line[line.length-2]):[];
+   if(head.length)line.unshift(...head.reverse());
+   if(tail.length)line.push(...tail);
   }
   lines.push(line);
  }
  return lines;
+}
+/** THE LAST STRETCH OF A LINE INTO A WIRE, IN SPACE: the flat figure's `joinCurve` lifted out of the plane. A
+ * quadratic from `end`, where the trace stopped, leaving it the way the line was going (from `before`), whose
+ * middle control point is on that direction half as far from the wire as `end` is, and which ends on the
+ * tube's surface -- `inset` from the axis -- square under that control point, so the line meets the tube
+ * square, as a field line meets a line of charge close in. Cut into a few chords. A line running along the
+ * wire or away from it is joined straight, as the root always was. Empty where `end` is already within the
+ * tube. */
+export function joinCurve3(end:Vec,before:Vec,footOf:(q:Vec)=>Vec|null,inset=0,chords=6):Vec[]{
+ const f=footOf(end);
+ if(!f)return [];
+ const n={x:f.x-end.x,y:f.y-end.y,z:f.z-end.z},h=LEN(n);
+ if(!(h>inset+1e-9))return [];
+ const onTube=(foot:Vec,from:Vec)=>{const d={x:from.x-foot.x,y:from.y-foot.y,z:from.z-foot.z},l=LEN(d);return l>1e-12?add(foot,d,inset/l):foot;};
+ const straight=[onTube(f,end)];
+ const t=unit({x:end.x-before.x,y:end.y-before.y,z:end.z-before.z});
+ if(!t)return straight;
+ const into=(t.x*n.x+t.y*n.y+t.z*n.z)/h;
+ if(!(into>.2))return straight;
+ const c=add(end,t,(h-inset)/(2*into)),g0=footOf(c);
+ if(!g0)return straight;
+ if(!(LEN({x:c.x-g0.x,y:c.y-g0.y,z:c.z-g0.z})>inset+1e-9))return straight;
+ const g=onTube(g0,c),out:Vec[]=[];
+ for(let k=1;k<=chords;k++){
+  const s=k/chords,a=(1-s)*(1-s),b=2*(1-s)*s,d=s*s;
+  out.push(k===chords?g:{x:a*end.x+b*c.x+d*g.x,y:a*end.y+b*c.y+d*g.y,z:a*end.z+b*c.z+d*g.z});
+ }
+ return out;
 }
 /** Full streamlines through every seed, each ordered along the field whichever way it runs.
  *
@@ -397,9 +458,49 @@ export function spaceLines(samples:readonly ChargeSample[],layout:Layout,count:n
  // The offset comes from the PICTURE, like everything else here. Scaling it by the charge's own
  // extent launched the sheet's lines twenty-one metres above the plane -- its refined partition
  // reaches 355 m -- so every line began outside the frame and was discarded on its first step.
- const span=options.seedLimit??options.outerLimit??reach;
- const seeds=spaceSeeds(samples,layout,count,Math.max(arrive*1.6,span*.06),layout==='wire'?2:4,options.seedPool??options.seedLimit??options.outerLimit??Infinity,!!options.twist);
+ // But never more than the charge itself allows: see `seedOffset`.
+ const span=options.seedLimit??options.outerLimit??reach,pool=options.seedPool??options.seedLimit??options.outerLimit??Infinity;
+ const offset=seedOffset(samples,layout,Math.max(arrive*1.6,span*.06),arrive,stops.clearance??arrive,pool);
+ const seeds=spaceSeeds(samples,layout,count,offset,layout==='wire'?2:4,pool,!!options.twist);
  return throughSeeds(samples,layout,seeds,options,stops,options.crowd??span*.012);
+}
+/** HOW FAR OFF THE CHARGE A LINE IS STARTED: `offset`, the picture's own size for it, held down to what the
+ * CHARGE allows. A seed that far off is a point in space, and the line through it is not quite the line
+ * that leaves the charge where the seed stands -- nearly so on a big charge, not at all on a small one.
+ *  - A SURFACE: at most three hundredths of its outermost radius, and never closer than a little over the
+ *    `clearance` its lines stop at. Raised by the picture's six hundredths, the disk's lines were started
+ *    a fifth of a metre off its face, and the ones that should leave near the rim -- which carry the flux
+ *    sideways, out to nearly ninety degrees from the axis at equal flux -- were started above it instead and
+ *    rose: the default disk's lines reached only 71 degrees, a half-metre disk's 58, so a small disk, a point
+ *    charge from where P stands, was drawn as two jets, up and down, with nothing near its plane.
+ *  - A RING, or any closed wire: at most an eighth of its radius (RING_SEED). A seed a picture's six
+ *    hundredths off a half-metre ring stood four tenths of the radius in toward its axis, where the field
+ *    already turns up the axis, so five of its sixteen lines ended within thirty degrees of the axis,
+ *    against two at equal flux; held to an eighth, a small ring's lines end where a large one's do.
+ *  - AN OPEN WIRE: at most a tenth of its length, so a short rod's lines leave it square to it and spread
+ *    to the angles they really end at, rather than starting a fifth of the rod away and leaving a bare cone
+ *    about its axis -- where the axial lesson stands P.
+ * Never inside the radius a line stops at, or there would be no line. `limit` is how far from O the charge
+ * a line may start from runs. */
+export const RING_SEED=.12;
+export function seedOffset(samples:readonly ChargeSample[],layout:Layout,offset:number,arrive:number,clearance:number,limit=Infinity):number{
+ if(samples.length<2)return offset;
+ if(layout==='surface'){
+  const near=samples.filter(s=>Math.abs(s.coordinate)<=limit),pool=near.length?near:samples;
+  const rim=Math.max(...pool.map(s=>Math.abs(s.coordinate)));
+  return Math.min(offset,Math.max(1.2*clearance,.03*rim));
+ }
+ const at=samples.map(s=>s.position),gaps:number[]=[];
+ for(let i=1;i<at.length;i++)gaps.push(LEN({x:at[i].x-at[i-1].x,y:at[i].y-at[i-1].y,z:at[i].z-at[i-1].z}));
+ const along=gaps.reduce((a,b)=>a+b,0),typical=[...gaps].sort((a,b)=>a-b)[Math.floor(gaps.length/2)]??0;
+ const first=at[0],last=at[at.length-1],closing=LEN({x:last.x-first.x,y:last.y-first.y,z:last.z-first.z});
+ let most:number;
+ if(closing<2*typical+1e-9){
+  // Closed: its radius, as the mean distance of its points from their middle.
+  const mid=at.reduce((m,v)=>({x:m.x+v.x/at.length,y:m.y+v.y/at.length,z:m.z+v.z/at.length}),{x:0,y:0,z:0});
+  most=RING_SEED*at.reduce((r,v)=>r+LEN({x:v.x-mid.x,y:v.y-mid.y,z:v.z-mid.z}),0)/at.length;
+ }else most=.1*(along+typical);
+ return Math.max(Math.min(offset,1.25*arrive),Math.min(offset,most));
 }
 /** HOW FAR THE SCENE TRACES A LINE: until the drawing has faded it to nothing, 1.35 reaches from the
  * charge's body, where `lineStrength` reaches zero (see TraceOptions.far) -- with the sphere about O
@@ -420,6 +521,11 @@ export function meridianLines(samples:readonly ChargeSample[],layout:Layout,coun
  // every seed and every line outside the frame.
  const span=options.seedLimit??options.outerLimit??Math.max(...samples.map(s=>LEN(s.position)),.5);
  const offset=Math.max(arrive*1.6,span*.06);
+ // A surface's lines start as near its face as its own size calls for (see `seedOffset`): started the
+ // picture's six hundredths up, a small disk's side view was a V of lines, up and down, with nothing within
+ // forty-five degrees of its plane, and the two innermost radii were both raised to half the offset, so
+ // each pair of lines ran as one.
+ const lift=layout==='surface'?seedOffset(samples,layout,offset,arrive,stops.clearance??arrive,Math.max(span,options.seedSpan??span)):offset;
  const seeds:Vec[]=[];
  if(layout==='wire'){
   // Where the wire crosses the cut: the samples nearest y = 0 on each side of the axis.
@@ -443,8 +549,8 @@ export function meridianLines(samples:readonly ChargeSample[],layout:Layout,coun
   const reached=Math.max(...pool.map(s=>Math.abs(s.coordinate)));
   const wanted=Math.max(1,Math.round(count/4*Math.max(1,reached/span)));
   for(const r0 of sliceRadii(pool,wanted)){
-   const r=Math.max(r0,offset*.5);
-   for(const side of [1,-1])for(const sign of [1,-1])seeds.push({x:side*r,y:0,z:sign*offset});
+   const r=Math.max(r0,lift*.5);
+   for(const side of [1,-1])for(const sign of [1,-1])seeds.push({x:side*r,y:0,z:sign*lift});
   }
  }
  // A ring's side view is sixteen lines laid on purpose, which all meet at the wire: the crowding rule cut the
@@ -670,23 +776,36 @@ export function rayLines(ray:Ray,count:number,window:number,offset:number,inset:
  return lines;
 }
 /** THE INFINITE LINE'S FIELD IN SPACE, from Gauss, as the sheet's is: straight lines square to the wire,
- * from roots evenly spaced along the stretch of it the picture shows, each turned the golden angle on
- * from the last, ordered along the field -- out of positive charge, into negative.
+ * ordered along the field -- out of positive charge, into negative.
  *
  * Traced, they kinked. The line is cut at equal angles from P, so its far pieces are metres long, and a
  * line leaving the wire a third of a metre out took its first step toward the nearest lump: 10 to 37
  * degrees off radial about fifteen pixels from the wire, on the one charge whose field is exactly radial.
- * `inset` is where a line leaves the tube, `length` how far out it runs, both in metres from the axis;
- * each line is cut into `steps` so its fade with distance can be drawn along it. */
+ *
+ * IN WHEELS, AS THE TEXTBOOK DRAWS IT. Each line had a root of its own, turned the golden angle on from the
+ * last, so no two lines shared a cross-section: the picture was straight strokes at scattered angles
+ * crossing the rod and one another, and the one fact the lesson rests on -- the field is radial, and the
+ * same in every plane square to the wire -- could not be seen anywhere, where the flat view shows it at
+ * once. Now the lines stand in stations evenly spaced along the stretch the picture shows, each a wheel of
+ * RADIAL_SPOKES spokes evenly spaced round the wire, and each wheel turned half a spoke from the last, so
+ * between them the field leaves the wire every thirty degrees. As many lines as before, so the density
+ * still says the field's strength. `inset` is where a line leaves the tube, `length` how far out it runs,
+ * both in metres from the axis; each line is cut into `steps` so its fade with distance can be drawn. */
+export const RADIAL_SPOKES=6;
 export function radialLines(axis:{foot:Vec;dir:Vec;half:number},count:number,inset:number,length:number,sign:number,steps=24):Vec[][]{
  const {foot,dir,half}=axis;
  const reference:Vec=Math.abs(dir.z)<.9?{x:0,y:0,z:1}:{x:1,y:0,z:0};
  const n1=unit(cross(dir,reference))!,n2=unit(cross(dir,n1))!,lines:Vec[][]=[];
- for(let k=0;k<count;k++){
-  const root=add(foot,dir,-half+2*half*(k+.5)/count),a=k*GOLDEN+.3;
-  const n=add(scale(n1,Math.cos(a)),n2,Math.sin(a));
-  const line=Array.from({length:steps+1},(_,i)=>add(root,n,inset+(length-inset)*i/steps));
-  lines.push(sign>=0?line:line.reverse());
+ const stations=Math.max(1,Math.round(count/RADIAL_SPOKES));
+ for(let j=0;j<stations;j++){
+  const root=add(foot,dir,-half+2*half*(j+.5)/stations);
+  for(let k=0;k<RADIAL_SPOKES;k++){
+   // Off the plane of the grid by a little, so no spoke lies along an axis drawn through the wire.
+   const a=2*Math.PI*k/RADIAL_SPOKES+(j%2)*Math.PI/RADIAL_SPOKES+.3;
+   const n=add(scale(n1,Math.cos(a)),n2,Math.sin(a));
+   const line=Array.from({length:steps+1},(_,i)=>add(root,n,inset+(length-inset)*i/steps));
+   lines.push(sign>=0?line:line.reverse());
+  }
  }
  return lines;
 }

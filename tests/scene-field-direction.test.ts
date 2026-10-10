@@ -91,7 +91,9 @@ describe('a field line begins on the charge it comes from', () => {
   const roots = joined.map(l => l[0]).filter(v => on(v.x, v.y, v.z) < .5);
   expect(roots.length).toBeGreaterThan(8);
   for (const v of roots) expect(on(v.x, v.y, v.z)).toBeCloseTo(wr, 6);
-  for (const l of spaceLines(few, 'wire', 16, opts)) expect(on(l[0].x, l[0].y, l[0].z)).toBeGreaterThan(1.5 * wr);
+  // Unjoined, a line stops short of the tube. Its seeds now stand an eighth of the ring's radius off the wire
+  // (see `seedOffset`), not the picture's six hundredths, so it can come a little nearer -- never into it.
+  for (const l of spaceLines(few, 'wire', 16, opts)) expect(on(l[0].x, l[0].y, l[0].z)).toBeGreaterThan(1.2 * wr);
  });
  it('a ring cut into five is drawn with the field of the RING: every line rooted on it, none floating', () => {
   // ChargeDiagram traces from max(N, 96) pieces. From the reader's five, the lines are the field of
