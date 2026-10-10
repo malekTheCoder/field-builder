@@ -154,5 +154,7 @@ describe('the answer and the shelf speak as the board does', () => {
     cleanup();
     const vdisk = panel('v-disk');
     expect(vdisk.container.querySelector('.ew-references-body p')!.textContent).toContain('z > 0');
+    // In the lessons' one spelling, British, as their own sentences now are.
+    expect(vdisk.container.querySelector('.ew-references-body')!.textContent).toMatch(/Geometry uses metres/);
   });
 });
