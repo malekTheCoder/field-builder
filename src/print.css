@@ -46,7 +46,10 @@
   [data-slot='slider'],
   .exp-reset,
   .exp-parameters,
-  .ew-panel .lucide-chevron-down { display: none !important; }
+  .ew-panel .lucide-chevron-down,
+  /* An instruction for the screen ("choose one to watch it on the figure"), not for paper. */
+  .ew-lede,
+  .skip-link { display: none !important; }
   /* The derivation prints whole, wherever the run had got to: paper has no "still to come". */
   .db-reveal, .db-then { grid-template-rows: 1fr !important; opacity: 1 !important; }
   .db-step .db-title { color: #0e2333 !important; }

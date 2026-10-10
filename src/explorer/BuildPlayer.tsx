@@ -103,11 +103,22 @@ export const BuildPlayer = memo(function BuildPlayer({stages, clock, index, play
   // The arrow keys step between stages from anywhere in the transport, as they do in a media
   // player's chapter list. The figure keeps its own arrow keys: these only act while the focus is
   // here, on one of the run's own buttons.
+  // On a stage's own segment they step from THAT stage, and the focus goes with them, as in a list
+  // of tabs. They used to step from wherever the run was playing and leave the focus behind, so the
+  // focus ring sat on one stage while the run moved to another.
   const keys = (ev: KeyboardEvent<HTMLDivElement>) => {
     if (ev.key !== 'ArrowLeft' && ev.key !== 'ArrowRight') return;
     ev.preventDefault();
+    const from = segments.current.indexOf(ev.target as HTMLButtonElement);
+    if (from >= 0) {
+      const next = ev.key === 'ArrowRight' ? Math.min(stages.length - 1, from + 1) : Math.max(0, from - 1);
+      onStep(next);
+      segments.current[next]?.focus();
+      return;
+    }
     onStep(ev.key === 'ArrowRight' ? Math.min(stages.length - 1, index + 1) : at - starts[index] > .6 || index === 0 ? index : index - 1);
   };
+  const last = index === stages.length - 1;
   // A group of controls with a name, which is exactly what the role says; the tags the linter
   // offers instead (a fieldset, an address) would each claim to be something this is not.
   // oxlint-disable-next-line jsx-a11y/prefer-tag-over-role, jsx-a11y/no-noninteractive-element-interactions
@@ -133,11 +144,20 @@ export const BuildPlayer = memo(function BuildPlayer({stages, clock, index, play
       <button type="button" className="bp-icon" onClick={onClose} aria-label="Close"><X size={16} /></button>
     </div>
     <div className="bp-now">
-      {/* Re-keyed per stage so each new line arrives rather than being swapped in place. */}
-      <p key={stage.key} className="bp-line"><strong>{stage.name}.</strong> {stage.line}</p>
+      {/* EVERY STAGE'S LINE IS SET, AND ONLY THE CURRENT ONE SHOWS. They share one cell, so the
+          cell is always as tall as the longest of them: switching between three and four lines
+          moved everything under the transport at each stage. The current one is re-keyed per stage
+          so each new line arrives rather than being swapped in place. */}
+      <div className="bp-lines">
+        {stages.map((s, i) => i === index
+          ? <p key={s.key} className="bp-line"><strong>{s.name}.</strong> {s.line}</p>
+          : <p key={`held-${s.key}`} className="bp-line-held" aria-hidden="true"><strong>{s.name}.</strong> {s.line}</p>)}
+      </div>
       <span className="bp-steps">
         <button type="button" className="bp-icon" onClick={() => onStep(at - starts[index] > .6 || index === 0 ? index : index - 1)} aria-label="Previous stage"><ChevronLeft size={17} /></button>
-        <button type="button" className="bp-icon" onClick={() => onStep(Math.min(stages.length - 1, index + 1))} disabled={index === stages.length - 1} aria-label="Next stage"><ChevronRight size={17} /></button>
+        {/* Marked unavailable rather than disabled at the last stage: disabling the button that has
+            the focus -- which pressing it from the fourth stage did -- dropped the focus to the page. */}
+        <button type="button" className="bp-icon" onClick={() => { if (!last) onStep(index + 1); }} aria-disabled={last || undefined} aria-label="Next stage"><ChevronRight size={17} /></button>
       </span>
     </div>
     {mathBlock}

@@ -24,7 +24,9 @@ const serif = Source_Serif_4({
 
 export const metadata: Metadata = {
   title: 'Field Builder — Electric fields and potential, derived',
-  description: 'Build electric-field and electric-potential integrals one step at a time. An open visual workbench with 15 lessons, including electric potential, animated SVG, continuous integrals, and physical sanity checks.',
+  // What a link preview shows under a shared lesson -- in Google Classroom, in a chat -- so it is
+  // written for the student who will see it: no count (the page prints no numerals) and no jargon.
+  description: 'Build the electric field and potential of rods, rings, disks and sheets one step at a time: cut the charge into pieces, add their fields, and watch the sum become the integral.',
 };
 
 export default function RootLayout({

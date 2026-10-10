@@ -59,6 +59,9 @@ describe('print stylesheet and offline copy', () => {
     expect(title.checkVisibility()).toBe(true);
     expect(container.querySelector<HTMLElement>('.exp-diagram-heading .katex')!.checkVisibility()).toBe(true);
     expect(builderSlot.checkVisibility()).toBe(true);
+    // The board's lede is an instruction for the screen -- "choose one to watch it on the figure" --
+    // and on a handout it told the reader to click.
+    expect(container.querySelector<HTMLElement>('.ew-lede')!.checkVisibility()).toBe(false);
     await cdp().send('Emulation.setEmulatedMedia', {media: ''});
   });
 

@@ -1,4 +1,4 @@
-import {cleanup, fireEvent, render, waitFor} from '@testing-library/react';
+import {cleanup, fireEvent, render, waitFor, within} from '@testing-library/react';
 import {userEvent} from 'vitest/browser';
 import {useState} from 'react';
 import {afterEach, describe, expect, it} from 'vitest';
@@ -67,7 +67,7 @@ describe('keyboard and screen-reader path', () => {
     expect(live.textContent).toMatch(/Net field magnitude/i);
   });
 
-  it('names every library glyph, including potential, and says so in words', async () => {
+  it('names every library card, including potential, once, and says so in words', async () => {
     localStorage.setItem('field-builder:explorer:v1', JSON.stringify({id: 'bisector', seen: true, dark: false, sidebarOpen: true, params: {}}));
     const {findByRole, getByRole} = render(<Explorer />);
     expect(await findByRole('heading', {name: getProblem('bisector').title})).toBeTruthy();
@@ -76,11 +76,14 @@ describe('keyboard and screen-reader path', () => {
     // In words: the page prints no numerals, and the count was the one the library printed.
     expect(dialog.querySelector('[data-slot=dialog-description]')?.textContent).toBe('Every lesson, including electric potential.');
     expect(dialog.querySelector('[data-slot=dialog-description]')?.textContent).not.toMatch(/\d/);
-    expect(dialog.querySelector('svg[aria-label="Ring · potential"]')).toBeTruthy();
-    expect(dialog.querySelector('svg[aria-label="Disk · potential"]')).toBeTruthy();
-    expect(dialog.querySelector('svg[aria-label="Arc · potential"]')).toBeTruthy();
-    expect(dialog.querySelector('svg[aria-label="Line · potential"]')).toBeTruthy();
-    expect(dialog.querySelector('svg[aria-label="Axis · potential"]')).toBeTruthy();
+    // Each card is named by its lesson, once. The glyph used to be an image named the same as the
+    // printed name beside it, so every card read its name twice and then its whole subtitle; the
+    // glyph is now hidden, and the subtitle is the card's description rather than part of its name.
+    for (const name of ['Ring · potential', 'Disk · potential', 'Arc · potential', 'Line · potential', 'Axis · potential']) {
+      const card = within(dialog).getByRole('button', {name});
+      expect(card.querySelector('svg')?.getAttribute('aria-hidden'), name).toBe('true');
+      expect(document.getElementById(card.getAttribute('aria-describedby') ?? '')?.textContent, name).toBeTruthy();
+    }
   });
 
   it('lets the charge sliders reverse sign through zero', async () => {
