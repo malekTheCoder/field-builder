@@ -433,7 +433,9 @@ function claimOf(label:string,p:Problem,scope:Scope):number|null{
   return Math.hypot(ev(p.result,scope),p.secondaryResult?ev(p.secondaryResult,scope):0);
  if(label.startsWith('E_y'))return p.secondaryResult?ev(p.secondaryResult,scope):null;
  if(/^Q$/.test(label))return scope.Q;
- if(/^E_x\(\\pi\)$/.test(label))return ev(p.result,{...scope,phi:Math.PI});
+ // The arc holds Q fixed as it opens (its setup: λ = Q/(Rφ)), so the semicircle's λ is Q/(πR), not
+ // the λ of whatever opening the setting has: at φ = π the claim is −2kQ/(πR²).
+ if(/^E_x\(\\pi\)$/.test(label))return ev(p.result,{...scope,phi:Math.PI,...p.geometry==='arc'?{lambda:scope.Q/(scope.R*Math.PI)}:{}});
  if(/^V\(0\)$/.test(label))return ev(p.result,{...scope,z:0});
  if(/\\varphi\s*=\s*2?\s*\\pi/.test(label))return ev(p.result,{...scope,phi:/2\s*\\pi/.test(label)?2*Math.PI:Math.PI});
  if(/\\lim/.test(label))return ev(p.result,scope);

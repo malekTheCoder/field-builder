@@ -101,6 +101,10 @@ export function sampleLimit(problem:Problem,p:Params,limit:Limit,t:number):Limit
  * quantity, `axis` the swept one with `from`/`to` at its two ends, `line` the dashed reference,
  * `solid` the curve when it is not simply the exact value, `marks` landmarks at sweep position t, and
  * `caption` the one sentence that says how to read it. */
+/** Where the infinite line's law plot marks r doubling: t = 2, 4, 8, 16, from the sweep's start at
+ * t = 1. On its logarithmic axis they are equal steps, and the field halves across each. Unlabelled:
+ * "2r" and "4r" would put numerals on a page that shows none, so the caption names them instead. */
+export const DOUBLINGS=[2,4,8,16];
 export type LimitPlot={kind:LimitKind;y:string;axis:string;from:string;to:string;line:string;caption:string;solid?:string;second?:string;marks?:{t:number;label:string}[]};
 export function limitPlot(problem:Problem,limit:Limit):LimitPlot{
  const g=problem.geometry,scalar=problem.quantity==='V',rod=g==='bisector'||g==='axial'||g==='endpoint'||g==='ramp';
@@ -147,7 +151,10 @@ export function limitPlot(problem:Problem,limit:Limit):LimitPlot{
   case 'scale':return g==='sheet'
    ?{kind:'constant',y:'|E| ÷ sheet field',axis:'height z above the sheet',from:'z small',to:'z large',line:'sheet field',solid:'The sheet’s rings, added up',caption:'Flat: added up ring by ring, the field is the same at every height.'}
    :g==='infinite'
-   ?{kind:'law',y:'|E|, scaled',axis:'distance r from the line',from:'r small',to:'r large',line:'infinite line',solid:'The line’s pieces, added up',second:'A point charge’s fall',caption:'Added up piece by piece, the field falls along the dashed infinite-line curve: double r and it halves. The ghost curve, a point charge’s field from the same start, drops to a quarter.'}
-   :{kind:'constant',y:'|Eₓ| ÷ |Eᵧ|',axis:'distance r from the line’s end',from:'r small',to:'r large',line:'equal parts',solid:'Your field’s two components',caption:'Flat: the two components stay equal at every r, so the field never turns.'};
+   ?{kind:'law',y:'|E|, scaled',axis:'distance r from the line',from:'r small',to:'r large',line:'infinite line',solid:'The line’s pieces, added up',second:'A point charge’s fall',marks:DOUBLINGS.map(t=>({t,label:''})),caption:'Added up piece by piece, the field falls along the dashed infinite-line curve: double r and it halves. Each stem stands one more doubling of r out and is half as tall as the one before it, while the ghost, a point charge’s field from the same start, drops to a quarter.'}
+   // The semi-infinite line's curve is a ratio, the summed |Eₓ| over the summed |Eᵧ|: "your field’s two
+   // components" named two curves over the one drawn, and the halving the card promises is divided out
+   // of a ratio. It is the thumbnail's arrow that shortens, so the caption points there.
+   :{kind:'constant',y:'|Eₓ| ÷ |Eᵧ|',axis:'distance r from the line’s end',from:'r small',to:'r large',line:'equal parts',solid:'The line’s pieces, added up',caption:'Flat: added up piece by piece, the two parts stay equal at every r, so the field never turns, while the arrow at P shortens: double r and it halves.'};
  }
 }

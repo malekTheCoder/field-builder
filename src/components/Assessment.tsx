@@ -8,6 +8,7 @@ import {pretty,sampleLimit,limitPlot,halfPieces,type LimitPlot,type LimitSample,
 export {sampleLimit};
 import {MathText} from './Math';
 import {useRenderedWidth} from './useRenderedWidth';
+const NOWRAP={whiteSpace:'nowrap'} as const;
 const CHARGE={stroke:'var(--charge)',fill:'none',strokeLinecap:'round'} as const,RAIL={stroke:'var(--border)',strokeDasharray:'3 4',fill:'none'} as const;
 /** P, and the field it feels at this point of the sweep: the direction of the lesson's own field,
  *  sign included, on the silhouette's axes (x right and y up; z to the right for the axial views,
@@ -49,7 +50,9 @@ function LimitFigure({id,mode,t,vector,scale,arrow}:{id:ProblemId;mode:Limit['mo
  // On its own line: the rod's length L against the gap a. Far away the two share the frame's
  // length in the proportion a = tL; walking in, the rod keeps its length and the gap closes on it.
  if(id==='axial'){const w=mode==='near'?85:Math.max(4,170/(1+t)),x=mode==='near'?129+85/t:214;return <><path d={`M${44+w} 25H${x-8}`} {...RAIL}/><path d={`M44 25h${w}`} {...CHARGE} strokeWidth="7"/>{P(x,25)}</>}
- if(id==='semi'){const y=32-16*Math.min(1,(t-1)/29);return <><path d="M108 38H246" {...CHARGE} strokeWidth="7"/><path d="M238 31l9 7-9 7" {...CHARGE}/><path d={`M108 38V${y+6}`} {...RAIL}/>{P(108,y)}</>}
+ // The half line moving P away: P walks out along the plot's own logarithmic axis, as on the whole
+ // line, so P is where the dot on the curve is.
+ if(id==='semi'){const y=32-16*Math.log(t)/Math.log(30);return <><path d="M108 38H246" {...CHARGE} strokeWidth="7"/><path d="M238 31l9 7-9 7" {...CHARGE}/><path d={`M108 38V${y+6}`} {...RAIL}/>{P(108,y)}</>}
  if(id==='endpoint'||id==='ramp'){
   const {length,gap,unbounded}=rodScale(mode,t,32,94,24),h=Math.max(3,length);
   return <><path d={`M104 34H${104+gap-8}`} {...RAIL}/>
@@ -127,7 +130,11 @@ export function Assessment({problem,params,limit}:{problem:Problem;params:Params
  // A law is drawn on one too: doubling r is then one step of the same width wherever it is taken,
  // and each step halves the curve -- on a linear axis from one to thirty every halving after the
  // first crowded into the left tenth of the plot.
- const log=limit.mode==='far'||limit.mode==='moment'||limit.mode==='infinite'||limit.mode==='near'||(limit.mode==='half'&&!scalar)||plot.kind==='law';
+ // The half line's flat ratio is swept on one too, beside the whole line's law: its thumbnail's
+ // arrow shrinks as 1/r, and that shrinking is spread evenly along the slider instead of spent in its
+ // first tenth.
+ const semi=problem.geometry==='semi'&&limit.mode==='scale';
+ const log=limit.mode==='far'||limit.mode==='moment'||limit.mode==='infinite'||limit.mode==='near'||(limit.mode==='half'&&!scalar)||plot.kind==='law'||semi;
  const tAt=(i:number)=>log?30**(i/69):1+29*i/69,xAt=(u:number)=>X0+(log?Math.log(u)/Math.log(30):(u-1)/29)*(X1-X0);
  // The slider moves along the plot's own axis, so its thumb and the dot on the curve stay in step.
  const t=log?30**((s-1)/29):s;
@@ -168,14 +175,25 @@ export function Assessment({problem,params,limit}:{problem:Problem;params:Params
  // The thumbnail's arrow is the field: beside a potential that is the second curve; on a law, the
  // exact curve itself, shrinking as P walks out.
  const here=plotted(plot,val,largest),secondHere=second?(val.second??0)/largestSecond:0;
- const scale=second&&scalar?secondHere:plot.kind==='decay'||law?val.actual/largest:plot.kind==='peak'?val.actual/val.target:1;
+ // The half line's curve is a ratio, flat by design, but the field it is a ratio of halves as r
+ // doubles: the arrow carries that, or nothing on the card shrinks under "doubling r halves each".
+ const scale=second&&scalar?secondHere:plot.kind==='decay'||law||semi?val.actual/largest:plot.kind==='peak'?val.actual/val.target:1;
+ // Where r has doubled on a law's plot, a level tick on the curve: each one half the height of the last.
+ const atMarks=useMemo(()=>plot.kind==='law'?(plot.marks??[]).map(m=>sampleLimit(problem,params,limit,m.t).actual):[],[plot,problem,params,limit]),levels=atMarks.map(v=>v/largest);
+ // What the plot's two numbers are, for a screen reader: on the half line they are its two components.
+ const [exactName,referenceName]=semi?['|Eₓ|','|Eᵧ|']:[`Exact ${qty}`,growth?'growth law':'reference'];
  return <div className="assessment"><MathText tex={limit.formula} block/>
- <div className="comparison-labels"><span><i className="legend-dot field"/>{plot.solid??`Your exact ${qty}`}</span>{plot.second&&<span><i className="legend-dot" style={{background:'var(--ghost)'}}/>{plot.second}</span>}<span><i className="legend-dot"/>{/^[a-z]{2,}/.test(plot.line)?plot.line[0].toUpperCase()+plot.line.slice(1):plot.line}</span></div>
- <svg ref={svgRef} viewBox={`0 0 ${WIDTH} ${height}`} className="comparison-plot" role="img" data-kind={plot.kind} aria-label={`${scalar?'Electric potential':'Electric field'} comparison for ${limit.title}: ${plot.y}, against ${plot.axis} from ${plot.from} to ${plot.to}. Exact ${qty} ${pretty(val.actual)} ${units}, ${growth?'growth law':'reference'} ${pretty(val.target)}.`}>
+ {/* Whole items wrap: at phone width each wrapped inside itself, "added / up", and the last one's
+     dot was left alone on a line above its words. */}
+ <div className="comparison-labels" style={{flexWrap:'wrap',rowGap:4}}><span style={NOWRAP}><i className="legend-dot field"/>{plot.solid??`Your exact ${qty}`}</span>{plot.second&&<span style={NOWRAP}><i className="legend-dot" style={{background:'var(--ghost)'}}/>{plot.second}</span>}<span style={NOWRAP}><i className="legend-dot"/>{/^[a-z]{2,}/.test(plot.line)?plot.line[0].toUpperCase()+plot.line.slice(1):plot.line}</span></div>
+ <svg ref={svgRef} viewBox={`0 0 ${WIDTH} ${height}`} className="comparison-plot" role="img" data-kind={plot.kind} aria-label={`${scalar?'Electric potential':'Electric field'} comparison for ${limit.title}: ${plot.y}, against ${plot.axis} from ${plot.from} to ${plot.to}. ${exactName} ${pretty(val.actual)} ${units}, ${referenceName} ${pretty(val.target)}${semi?' '+units:''}.`}>
   <path d={`M${X0} ${TOP-8}V${BASE}H${X1+5}`} stroke="var(--ghost)" fill="none"/>
-  {(plot.marks??[]).map(m=><g key={m.label}><line x1={xAt(m.t)} x2={xAt(m.t)} y1={TOP} y2={BASE} stroke="var(--border)" strokeDasharray="2 4"/><text x={xAt(m.t)} y="179" textAnchor="middle" style={size(10.5)}>{m.label}</text></g>)}
+  {(plot.marks??[]).map(m=><g key={m.t} className="comparison-mark"><line x1={xAt(m.t)} x2={xAt(m.t)} y1={TOP} y2={BASE} stroke="var(--border)" strokeDasharray="2 4"/>{m.label&&<text x={xAt(m.t)} y="179" textAnchor="middle" style={size(10.5)}>{m.label}</text>}</g>)}
   <text x={lineLabel.x} y={lineLabel.y} textAnchor={lineLabel.anchor} className="comparison-line" style={size(10.5)}><Sym text={plot.line}/></text>
   <clipPath id={clip}><rect x={X0} y={TOP-6} width={X1-X0+6} height={BASE-TOP+8}/></clipPath>
+  {/* A stem from the axis up to the curve at each doubling: side by side, each is half the last. A
+      tick on the curve itself sat on a line of its own colour and read as a kink in it. */}
+  {levels.map((v,i)=><line key={i} className="comparison-level" x1={xAt(plot.marks![i].t)} x2={xAt(plot.marks![i].t)} y1={BASE} y2={yAt(v)} stroke="var(--field)" strokeOpacity=".45" strokeWidth="3"/>)}
   {second&&<path d={trace(second)} className="comparison-second" clipPath={`url(#${clip})`} stroke="var(--ghost)" strokeWidth="2.2" fill="none" strokeLinejoin="round"/>}
   <path d={path} clipPath={`url(#${clip})`} stroke="var(--field)" strokeWidth="2.7" fill="none" strokeLinejoin="round"/>
   {/* The reference, level line or growth law, is drawn over the exact curve: where the two run
@@ -192,7 +210,7 @@ export function Assessment({problem,params,limit}:{problem:Problem;params:Params
  {/* A table box sizes to its content whatever width it is given, so sr-only's one pixel did not hold
      it: it laid out five hundred pixels wide and a phone page scrolled sideways as soon as Limiting
      cases opened. The block around it does honour one pixel and hidden overflow, and clips it. */}
- <div className="sr-only"><table className="sr-only"><caption>{limit.title}: exact {qty} versus reference</caption><thead><tr><th scope="col">t</th><th scope="col">exact</th><th scope="col">reference</th></tr></thead><tbody>{samples.map((s,i)=><tr key={i}><td>{tAt(i)}</td><td>{s.actual}</td><td>{s.target}</td></tr>)}</tbody></table></div>
+ <div className="sr-only"><table className="sr-only"><caption>{limit.title}: {semi?'|Eₓ| versus |Eᵧ|':`exact ${qty} versus reference`}</caption><thead><tr><th scope="col">t</th><th scope="col">{semi?'|Eₓ|':'exact'}</th><th scope="col">{semi?'|Eᵧ|':'reference'}</th></tr></thead><tbody>{samples.map((s,i)=><tr key={i}><td>{tAt(i)}</td><td>{s.actual}</td><td>{s.target}</td></tr>)}</tbody></table></div>
  <div className="limit-mini" aria-hidden="true"><svg viewBox={`0 ${-pad[0]} 260 ${48+pad[0]+pad[1]}`} style={pad[0]+pad[1]?{height:`${(44+(pad[0]+pad[1])*200/260).toFixed(1)}px`}:undefined}><LimitFigure id={problem.geometry} mode={limit.mode} t={t} vector={val.vector} scale={scale} arrow={arrow}/></svg></div>
  {/* aria-label on the slider lands on its group, not on the range input a keyboard reaches: the
      input is named by pointing at a hidden label, as the page's own sliders are. */}

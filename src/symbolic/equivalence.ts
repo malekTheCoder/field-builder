@@ -143,6 +143,16 @@ export function confusionTex(input:string):string{
  let shown:string;
  try{const node=safeParse(input),bare=withoutLeadingMinus(node);shown=bare?'-'+texOf(bare):texOf(node);}
  catch{shown=String.raw`\text{Keep typing…}`;}
- return '\\displaystyle '+shown.replace(/\^\{\\frac\{(-?\d+)\}\{(\d+)\}\}/g,'^{$1/$2}');
+ return '\\displaystyle '+tight(shown).replace(/\^\{\\frac\{(-?\d+)\}\{(\d+)\}\}/g,'^{$1/$2}');
+}
+/** Factors set as a textbook sets them: side by side. texOf puts a thin space at every product, so the
+ * list printed "π s² ds", "2 π R ds" and "k R dQ" with a gap between each factor, beside a board and
+ * an Unfold that set 2πR ds and kR dQ -- the reference list looked typeset by a different hand. The
+ * thin space stays only where TeX writes one: before a differential (λ dy, k dQ, R dθ) and after a
+ * closing bracket. And rᵢ² is r_i^{2}, its power stacked over its subscript, not {r_i}^{2}, where the
+ * power waits until the subscript has finished. */
+function tight(tex:string):string{
+ return tex.replace(/\\,(?!d(?:[A-Za-z]|\\theta|\\ell))/g,(m:string,at:number)=>/\\right[)\]]$/.test(tex.slice(0,at))?m:' ')
+  .replace(/\{r_i\}\^/g,'r_i^');
 }
 export function feedback(input:string,field:import('../problems/types').Answer,p:Problem):{text:string;highlight:string}{for(const m of field.mistakes??[]){if(equivalent(input,m.expression,p).ok)return{text:m.message,highlight:m.highlight??'element'};}return{text:field.hint,highlight:field.id.includes('component')?'components':field.id==='distance'?'distance':'element'};}

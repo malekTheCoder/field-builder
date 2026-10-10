@@ -32,7 +32,7 @@ describe('the potential’s confusions give the true reason',()=>{
   }
  });
  it('the bisector potential’s half answer is half the rod, not one end',()=>{
-  const text=said('v-rod-bisector','result','k*lambda*log((L/2+sqrt(L^2/4+r^2))/r)');
+  const text=said('v-rod-bisector','result','k*lambda*log((L/2+sqrt((L/2)^2+r^2))/r)');
   expect(text).not.toMatch(/two ends contribute equally/);
   expect(text).toMatch(/potential of half the rod/);
   // And so it is: kλ ln((L/2 + √(L²/4 + r²))/r) is half the whole rod's potential, while the two

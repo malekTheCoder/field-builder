@@ -154,7 +154,8 @@ describe('the words name what the algebra does',()=>{
   expect(worked[1].tex).toMatch(/E_x/);expect(plain(worked[1].text)).toMatch(/weaker than a uniform rod/);
   const last=worked[worked.length-1];
   expect(last.tex).not.toMatch(/Q&=/);
-  expect(plain(last.text)).toBe(String.raw`Evaluate from $0$ to $L$; the lower end gives $\ln r$.`);
+  // The antiderivative is written with a ratio for its logarithm, so the lower end gives zero, not ln r.
+  expect(plain(last.text)).toMatch(/^Evaluate from \$0\$ to \$L\$\. .*the whole antiderivative is zero\.$/);
   expect(said('ramp','dq','lambda0*dy')).not.toMatch(/thinner/);
   expect(said('ramp','dq','lambda0*dy')).toMatch(/density is only λ\(y\)/);
  });

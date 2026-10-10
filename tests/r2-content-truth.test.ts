@@ -104,18 +104,20 @@ describe('the bisector potential’s unfold is first-year calculus, every formul
  });
  it('no formula in the plain text of the worked steps or the derivative',()=>{
   const plain=[...integrate.worked!.map(w=>w.text),...gradient.worked!.map(w=>w.text),gradient.text,gradient.hint];
-  for(const text of plain)expect(text).not.toMatch(/=/);
+  // A formula is set as TeX, $…$: what is left once those spans are taken out is words.
+  for(const text of plain)expect(text.replace(/\$[^$]*\$/g,'')).not.toMatch(/=/);
  });
  it('the evaluation at both ends and the difference of squares are their own lines',()=>{
   const tex=integrate.worked!.map(w=>w.tex);
-  expect(tex.some(t=>t.includes(String.raw`\ln\bigl(L/2+\sqrt{L^2/4+r^2}\bigr)`)&&t.includes(String.raw`\ln\bigl(-L/2+\sqrt{L^2/4+r^2}\bigr)`)),'top minus bottom').toBe(true);
-  expect(tex.some(t=>/\\times\\bigl\(\\sqrt\{L\^2\/4\+r\^2\}\+L\/2\\bigr\)=r\^2/.test(t)),'(√A − L/2)(√A + L/2) = r²').toBe(true);
-  expect(tex[tex.length-1]).toContain(String.raw`2k\lambda\ln\frac{L/2+\sqrt{L^2/4+r^2}}{r}`);
+  // In the field lesson's notation, (L/2)², and with every logarithm of a ratio of lengths.
+  expect(tex.some(t=>t.includes(String.raw`\ln\frac{L/2+\sqrt{(L/2)^2+r^2}}{r}`)&&t.includes(String.raw`\ln\frac{-L/2+\sqrt{(L/2)^2+r^2}}{r}`)),'top minus bottom').toBe(true);
+  expect(tex.some(t=>t.includes(String.raw`\times\bigl(\sqrt{(L/2)^2+r^2}+L/2\bigr)=r^2`)),'(√A − L/2)(√A + L/2) = r²').toBe(true);
+  expect(tex[tex.length-1]).toContain(String.raw`2k\lambda\ln\frac{L/2+\sqrt{(L/2)^2+r^2}}{r}`);
  });
  it('the derivative is taken of the logarithm and lands on the bisector field',()=>{
   const tex=gradient.worked!.map(w=>w.tex).join(' ');
   expect(tex).toContain(String.raw`\frac{dV}{dr}`);
-  expect(tex).toContain(String.raw`-\frac{k\lambda L}{r\sqrt{L^2/4+r^2}}`);
+  expect(tex).toContain(String.raw`-\frac{k\lambda L}{r\sqrt{(L/2)^2+r^2}}`);
  });
 });
 describe('the rod potentials’ subtitles say where P is',()=>{

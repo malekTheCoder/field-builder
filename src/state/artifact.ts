@@ -1,6 +1,11 @@
 import katex from 'katex';
 import {snapshotLayer} from '../diagrams/snapshot';
 import {PLOT} from '../diagrams/vectorfield';
+import type {Problem} from '../problems/types';
+import {BISECTOR_UNFOLD,ENDPOINT_UNFOLD,INFINITE_UNFOLD} from '../workbench/derivation';
+
+/** One step of worked algebra: a sentence with its symbols written $…$, and the line it arrives at. */
+export type WorkedStep = {text: string; tex: string};
 
 export type LessonArtifact = {
   title: string;
@@ -13,10 +18,48 @@ export type LessonArtifact = {
   secondaryIntegralTex?: string;
   /** Every line of the result, the built component first -- E_x and E_y where there are both. */
   results: string[];
+  /** The working between the integral and the result: the steps Unfold the integration shows. */
+  worked?: WorkedStep[];
   /** A potential lesson's field, differentiated back from V: the step its subtitle promises. */
   derived?: string[];
+  /** The same, with its working, where the lesson has it: printed in place of `derived`. */
+  back?: WorkedStep[];
   svg?: string;
 };
+
+/** The integration a lesson's Unfold shows, step by step, and the differentiation after it.
+ *
+ * THE HANDOUT WENT FROM THE INTEGRAL STRAIGHT TO THE ANSWER. A lecturer prints or hands round this
+ * copy; on the ramp, the rod level with an end and the rod's potential -- the lessons whose integrals
+ * a first-year student cannot guess -- it showed the integral and then the result with nothing
+ * between, while the page had every step behind "Unfold the integration".
+ *
+ * These are the steps the panel unfolds (EquationWorkbench builds the same list): on the bisector and
+ * the rod level with an end, the substitution written out in full from the board's last line, then
+ * the lesson's own steps from its evaluation; on the infinite line's angular route, kλ/r taken out
+ * and ∫cos θ dθ = sin θ, then the evaluation. `algebra` is the route the panel derives on -- the
+ * infinite line's finite-rod limit, when that is the route chosen. */
+export function lessonWorking(p: Problem, algebra: Problem = p): {worked: WorkedStep[]; back: WorkedStep[]} {
+  const original = algebra.steps.find(s => s.kind === 'integrate')?.worked ?? [];
+  const g = p.geometry, scalar = p.quantity === 'V';
+  const worked = scalar ? original
+    : g === 'bisector' ? [...BISECTOR_UNFOLD, ...original.slice(1)]
+    : g === 'endpoint' ? [...ENDPOINT_UNFOLD, ...original.slice(1)]
+    : algebra.id === 'infinite' && algebra.variable !== 'y' ? [...INFINITE_UNFOLD, ...original.slice(2)]
+    : original;
+  return {worked, back: algebra.steps.find(s => s.kind === 'gradient')?.worked ?? []};
+}
+
+/** Everything the offline copy prints about a lesson, but its figure. The result is the lesson's own
+ * one line per component: the panel splits the ramp's E_y and the disk's field over two rows to fit
+ * a column under three hundred pixels wide, and on a page of seven hundred the split bracket hung
+ * half its contents off to the right of the line above. */
+export function lessonArtifact(p: Problem, algebra: Problem = p): LessonArtifact {
+  const {worked, back} = lessonWorking(p, algebra);
+  return {title: p.title, subtitle: p.subtitle, setup: p.setup, coordinate: p.coordinate, integralTex: p.integralTex,
+    secondaryIntegralTex: p.secondaryIntegralTex, results: [p.resultTex, ...(p.secondaryResultTex ? [p.secondaryResultTex] : [])],
+    worked, back, derived: back.slice(-1).map(w => w.tex)};
+}
 
 /** Whether the TeX writes Coulomb's constant: once the macro names are gone, any k left is a symbol. */
 const usesK = (tex: string) => tex.replace(/\\[A-Za-z]+/g, '').includes('k');
@@ -35,7 +78,15 @@ export function mathml(tex: string, display = true) {
 /** A sentence with its symbols written $…$, as a lesson writes its setup: the words escaped, each
  * symbol set as inline MathML, so the λ in "so λ = Q/L" is the λ of the integral printed under it. */
 export function proseHtml(text: string) {
-  return text.split('$').map((part, i) => i % 2 ? mathml(part, false) : escapeHtml(part)).join('');
+  const parts = text.split('$');
+  // The punctuation after a symbol stays on its line: a browser may break between an inline <math>
+  // and the text after it, and the working printed "(sec α − cos α) dα" with its full stop starting
+  // the next line.
+  return parts.map((part, i) => {
+    if (i % 2 === 0) return escapeHtml(i > 0 ? part.replace(/^[.,;:!?)’]+/, '') : part);
+    const stop = /^[.,;:!?)’]+/.exec(parts[i + 1] ?? '')?.[0] ?? '';
+    return stop ? `<span class="nobr">${mathml(part, false)}${escapeHtml(stop)}</span>` : mathml(part, false);
+  }).join('');
 }
 
 /** The operator names a lesson writes: ln, sin, cos and their kin, upright, as KaTeX marks them up. */
@@ -48,11 +99,23 @@ const ORDINARY_BEFORE = new RegExp(String.raw`(</(?:mi|mn|msub|msup|msubsup|mfra
  * bracket is not: "ln(L/a)", but "sin θ". */
 const ORDINARY_AFTER = new RegExp(String.raw`(${OPERATOR}<mo>⁡</mo>)(?=<(?:mi|mn|mfrac|msub|msup|msubsup|msqrt)[ >])`, 'g');
 const THIN = '<mspace width="0.1667em"/>';
+/** A sign with nothing to its left to be the difference of: after a relation, an opening bracket, a
+ * separating comma or the start of a group. KaTeX writes it as a plain <mo>, and MathML Core spaces
+ * any <mo>− that is not first in its row as a binary operator -- so the copy printed "( − x, r)" and
+ * "E_x = −  kλ/r", in five of eight lessons. TeX's rule is that such a sign is unary and sits tight
+ * against what follows; it is written in, as zero space either side. */
+const UNARY = /(<mo>(?:=|&lt;|&gt;|<|>|≈|∼|→|≤|≥|≠|≪|≫|∝)<\/mo>|<mo(?: [^>]*)?>(?:\(|\[|\{|,)<\/mo>|<mrow>|<mtd>)<mo>([−+])<\/mo>/g;
+/** Bold upright letters by their Unicode code points. MathML Core ignores mathvariant="bold", so |𝐄|
+ * came out as a plain italic E, the same letter as the component E_x beside it. */
+const BOLD = /<mi mathvariant="bold">([A-Za-z])<\/mi>/g;
+const boldLetter = (c: string) => String.fromCodePoint((c <= 'Z' ? 0x1d400 : 0x1d41a) + c.charCodeAt(0) - (c <= 'Z' ? 65 : 97));
 /** TeX puts a thin space between an operator name and the ordinary atoms beside it. MathML Core does
  * not: it gives the invisible function application no width, so the copy printed "kλln" run
  * together and "cosα" -- maths that looks unset on a handout. The space is written in. */
 function spaceOperators(markup: string) {
-  return markup.replace(ORDINARY_BEFORE, `$1${THIN}$2`).replace(ORDINARY_AFTER, `$1${THIN}`);
+  return markup.replace(ORDINARY_BEFORE, `$1${THIN}$2`).replace(ORDINARY_AFTER, `$1${THIN}`)
+    .replace(UNARY, '$1<mo lspace="0em" rspace="0em">$2</mo>')
+    .replace(BOLD, (_, c: string) => `<mi mathvariant="normal">${boldLetter(c)}</mi>`);
 }
 
 /** A self-contained HTML copy a student can save offline and print later. No network, no app chrome.
@@ -68,12 +131,17 @@ export function artifactHtml(a: LessonArtifact) {
   const figure = a.svg
     ? `<figure>${a.svg}${a.coordinate ? `<figcaption>${mathml(a.coordinate, false)}</figcaption>` : ''}</figure>`
     : '';
-  // A potential lesson promises that "E falls out of one derivative"; the copy ended at V without it.
-  const derived = a.derived?.length
+  // A potential lesson promises that "E falls out of one derivative"; the copy ended at V without it,
+  // and then printed only the derivative's last line.
+  const steps = (list: WorkedStep[]) => list.map(w => `<div class="step"><p>${proseHtml(w.text)}</p>\n${mathml(w.tex)}</div>`).join('\n');
+  const derived = a.back?.length
+    ? `<h2>The field, by differentiating</h2>\n${steps(a.back)}\n`
+    : a.derived?.length
     ? `<h2>The field, by differentiating</h2>\n<div class="result">${a.derived.map(tex => mathml(tex)).join('\n')}</div>\n`
     : '';
+  const working = a.worked?.length ? `<h2>Working</h2>\n${steps(a.worked)}\n` : '';
   // The page writes "with k = 1/(4πε₀)" beside its result. The copy printed kQ/… with k never said.
-  const constant = [a.integralTex, a.secondaryIntegralTex ?? '', ...a.results, ...(a.derived ?? [])].some(usesK)
+  const constant = [a.integralTex, a.secondaryIntegralTex ?? '', ...a.results, ...(a.derived ?? []), ...[...(a.worked ?? []), ...(a.back ?? [])].map(w => w.tex)].some(usesK)
     ? `<p class="where">Throughout, ${mathml(String.raw`k=\dfrac{1}{4\pi\varepsilon_0}`, false)}.</p>\n`
     : '';
   // The maths names its faces. The generic `math` family did not reach one with a MATH table in
@@ -96,6 +164,16 @@ figcaption { margin-top: 4px; color:#4a6274; font-size: 15px; }
 math { font-family: "STIX Two Math", "Latin Modern Math", "Cambria Math", math; font-size: 1.12em; }
 math[display="block"] { margin: 10px 0 14px; }
 .result math[display="block"] { margin: 6px 0; }
+/* An aligned block is a two-column table: "E_x" | "= …". MathML Core reads neither KaTeX's
+   columnspacing="0em" nor its columnalign="right left": Chromium pads every cell 0.4em each side and
+   centres it, so "E_x   =" printed with a gap TeX never sets and each row's "=" sat at its own place.
+   Written here as the CSS it stands for. */
+mtable[columnalign^="right left"] > mtr > mtd { padding-left: 0; padding-right: 0; }
+mtable[columnalign^="right left"] > mtr > mtd:nth-child(odd) { text-align: right; }
+mtable[columnalign^="right left"] > mtr > mtd:nth-child(even) { text-align: left; }
+.step { break-inside: avoid; }
+.nobr { white-space: nowrap; }
+.step p { margin: 14px 0 2px; }
 .where { margin-top: 12px; }
 footer { margin-top: 36px; padding-top: 12px; border-top: 1px solid #d8e1e7; color: #4a6274; font-size: 12px; }
 </style></head>
@@ -108,7 +186,7 @@ ${figure}
 <p>${proseHtml(a.setup)}</p>
 <h2>${a.secondaryIntegralTex ? 'The integrals' : 'The integral'}</h2>
 ${mathml(a.integralTex)}
-${a.secondaryIntegralTex ? `${mathml(a.secondaryIntegralTex)}\n` : ''}<h2>The result</h2>
+${a.secondaryIntegralTex ? `${mathml(a.secondaryIntegralTex)}\n` : ''}${working}<h2>The result</h2>
 <div class="result">${a.results.map(tex => mathml(tex)).join('\n')}</div>
 ${derived}${constant}
 <footer>Saved from Field Builder. The equations are MathML, so this page needs no network to read or print.</footer>

@@ -152,7 +152,7 @@ describe('a grown object says what is held fixed',()=>{
   const l=limitOf('endpoint','infinite');
   expect(l.formula).toContain(String.raw`(\lambda\text{ fixed})`);
   expect(plain(l.explanation)).toMatch(/x and y trade places and the same field reads \(kλ\/r\)\(−x̂ \+ ŷ\) there/);
-  expect(plain(getProblem('semi').setup)).toContain('This is the rod of Line · level with an end, grown without end and laid along $x$');
+  expect(plain(getProblem('semi').setup)).toContain('This is the rod of the lesson Field level with the end of a rod, grown without end and laid along $x$');
   // The sidebar names the lesson it points at.
   expect(getProblem('endpoint').short).toBe('Line · level with an end');
   expect(getProblem('semi').sources[0].url).toMatch(/^https:\/\/openstax\.org\//);

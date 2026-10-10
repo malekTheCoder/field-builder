@@ -24,7 +24,7 @@ import {StartHere} from '../components/StartHere';
 import {isReady,SOON_NOTE} from '../problems/readiness';
 import {MathText} from '../components/Math';
 import {Assessment} from '../components/Assessment';
-import {artifactHtml,downloadArtifact,figureCopy,printLesson} from '../state/artifact';
+import {artifactHtml,downloadArtifact,figureCopy,lessonArtifact,printLesson} from '../state/artifact';
 import {Hint} from '../components/Hint';
 import './explorer.css';
 import '../print.css';
@@ -521,7 +521,7 @@ export default function Explorer(){
   if(wasDark)root.classList.remove('dark');
   try{const stage=document.querySelector('.explorer-app .cd-stage');figure=stage?figureCopy(stage):''}
   finally{if(wasDark)root.classList.add('dark')}
-  downloadArtifact(`field-builder-${id}.html`,artifactHtml({title:p.title,subtitle:p.subtitle,setup:p.setup,coordinate:p.coordinate,integralTex:p.integralTex,secondaryIntegralTex:p.secondaryIntegralTex,results:resultLines(p),derived:p.steps.find(s=>s.kind==='gradient')?.worked?.slice(-1).map(w=>w.tex),svg:figure}));
+  downloadArtifact(`field-builder-${id}.html`,artifactHtml({...lessonArtifact(p,derivationProblem),svg:figure}));
  }
  // THE PAGE'S STATES ARE CLASSES SET HERE, NOT SELECTORS THAT LOOK DOWN THE PAGE FOR THEM. The rules
  // for the open run were written as `.exp-workspace:has(.exp-walk.is-open)`, and with them Chromium

@@ -149,8 +149,9 @@ describe('the confusions are set to be read',()=>{
   expect(tex.startsWith('\\displaystyle ')).toBe(true);
   expect(tex).toContain('^{3/2}');
   expect(tex).not.toContain('^{\\frac');
-  // The fraction itself is still a fraction: only the exponent is slashed.
-  expect(tex).toContain('\\frac{k\\,z\\,dQ}');
+  // The fraction itself is still a fraction: only the exponent is slashed. Its factors sit side by
+  // side, with TeX's thin space only before the differential.
+  expect(tex).toContain('\\frac{k z\\,dQ}');
  });
  it('leaves preview() exactly as the bound labels read it',()=>{
   expect(preview('k*z*dQ/(s^2+z^2)^(3/2)')).toBe('\\frac{k\\,z\\,dQ}{{\\left({s}^{2}+{z}^{2}\\right)}^{\\frac{3}{2}}}');
@@ -162,13 +163,11 @@ describe('the confusions are set to be read',()=>{
  for(const p of PROBLEMS)it(`${p.id}: every confusion as displayed is still the expression it stands for`,()=>{
   for(const f of p.steps.flatMap(s=>s.fields??[]))for(const m of f.mistakes??[]){
    const tex=unslash(confusionTex(m.expression));
-   if(tex===preview(m.expression))continue;
-   expect(tex,m.expression).toMatch(/^-/);
    expect(equivalent(unbrace(tex),m.expression,p).ok,`${m.expression} shown as ${tex}`).toBe(true);
   }
  });
  it('a leading minus is set before the fraction, never inside its numerator',()=>{
-  expect(confusionTex('-k*lambda/r')).toBe('\\displaystyle -\\frac{k\\,\\lambda}{r}');
+  expect(confusionTex('-k*lambda/r')).toBe('\\displaystyle -\\frac{k \\lambda}{r}');
   expect(confusionTex('-dV/dz')).toBe('\\displaystyle -\\frac{dV}{dz}');
   expect(confusionTex('-sigma/(2*eps0)*(1-z/sqrt(z^2+R^2))')).toMatch(/^\\displaystyle -\\frac\{\\sigma\}/);
   for(const p of PROBLEMS)for(const f of p.steps.flatMap(s=>s.fields??[]))for(const m of f.mistakes??[])

@@ -14,11 +14,15 @@ import './laws.css';
 // distance from P; the endless lines into equal angles, the outermost of which never ends. Saying
 // every lesson starts from "one piece small enough to count as a point" was the old claim the run
 // itself now contradicts ("a ring is not a point charge").
-export const LAWS_LEDE='Every lesson here is the same three moves: Coulomb’s law gives the field of each piece of charge, a bit small enough to count as a point or a ring whose every bit is the same distance from P; superposition says the pieces add; shrinking the pieces turns that sum into an integral. Only the geometry changes.';
+//
+// Nor does every lesson start from Coulomb's field. The five potential lessons start from V = kQ/r,
+// the third row of this same page, and "every derivation starts by applying it" told their reader
+// that the law they were using was not the one their lesson began with.
+export const LAWS_LEDE='Every lesson here is the same three moves: a point charge’s law gives each piece of charge its field, or on the potential lessons its potential, a piece being a bit small enough to count as a point or a ring whose every bit is the same distance from P; superposition says the pieces add; shrinking the pieces turns that sum into an integral. Only the geometry changes.';
 type Law={id:string;name:string;tex:string;why:string;detail:string;more:string[]};
 const LAWS:Law[]=[
  {id:'coulomb',name:'Coulomb’s law',tex:String.raw`\mathbf E=\frac{kQ}{r^{2}}\,\hat{\mathbf r}`,
-  why:'The only field law in the app. Every derivation starts by applying it to pieces of the charge: a bit small enough to count as a point, or a ring whose every bit is the same distance from P.',
+  why:'The only field law in the app. Every field lesson starts by applying it to pieces of the charge: a bit small enough to count as a point, or a ring whose every bit is the same distance from P. The potential lessons start from its scalar partner, V = kQ/r.',
   detail:'A point charge Q fills the space around it with a field that falls off as the inverse square of the distance. The unit vector points from the charge out to the place you are asking about, so the field points away from a positive Q and back toward a negative one. Coulomb measured the force between two charges; dividing by the charge you would put at that place leaves the field, which depends on the source alone.',
   more:[String.raw`\mathbf F=\frac{k\,q_{1}q_{2}}{r^{2}}\,\hat{\mathbf r}`,String.raw`k=\frac{1}{4\pi\varepsilon_{0}}`]},
  {id:'superposition',name:'Superposition',tex:String.raw`\mathbf E=\sum_{i}\Delta\mathbf E_{i}\quad\longrightarrow\quad\mathbf E=\int d\mathbf E`,
