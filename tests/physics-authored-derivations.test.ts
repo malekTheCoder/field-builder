@@ -1077,9 +1077,9 @@ describe('the infinite lesson’s inherited finite path, and its inherited prose
  });
  it('the sanity-check step names the limit the lesson actually plots',()=>{
   const p=getProblem('infinite'),limits=p.steps.find(s=>s.kind==='limits')!;
-  expect(p.limits.map(l=>l.mode)).toEqual(['infinite']);
-  // The only comparison this lesson offers is L → ∞ at fixed λ against 2kλ/r, so the bisector's
-  // hint promises a far-field limit this lesson does not have. Compared against that inherited
+  expect(p.limits.map(l=>l.mode)).toEqual(['scale','infinite']);
+  // The comparisons this lesson offers are its own 1/r, and L → ∞ at fixed λ against 2kλ/r, so the
+  // bisector's hint promises a far-field limit this lesson does not have. Compared against that inherited
   // string, not against a keyword: a sentence may perfectly well use the word "negligible" to
   // say that nothing here IS negligible, and a test that bans the word would reject the fix.
   const inherited=getProblem('bisector').steps.find(s=>s.kind==='limits')!.hint;

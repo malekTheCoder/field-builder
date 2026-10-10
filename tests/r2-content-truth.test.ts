@@ -85,7 +85,7 @@ describe('far limits are written in each lesson’s own symbols',()=>{
   for(const text of [l.formula,l.explanation]){
    expect(text).not.toContain('\\text{size}');
    // kQ/d only where the lesson says what d is.
-   if(/kQ\/d(?![a-zA-Z])/.test(text))expect(l.explanation,`${p.id}/${l.id} uses d without defining it`).toMatch(/\bd = /);
+   if(/kQ\/d(?![a-zA-Z])/.test(text))expect(l.explanation,`${p.id}/${l.id} uses d without defining it`).toMatch(/\bd[ \u00a0]=[ \u00a0]/);
   }
  });
  it('the ring and the disk speak of z and R, the potentials of z or r',()=>{

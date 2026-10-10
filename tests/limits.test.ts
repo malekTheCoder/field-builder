@@ -38,7 +38,9 @@ describe('the limit panel uses the student’s own parameters', ()=>{
  });
  it('an infinite-line problem keeps interpreting its charge slider as lambda',()=>{
   const problem=getProblem('infinite');
-  expect(sampleLimit(problem,p,problem.limits[0],12).target).toBeCloseTo(2*K*p.charge*1e-9/p.distance,12);
+  expect(sampleLimit(problem,p,problem.limits.find(l=>l.mode==='infinite')!,12).target).toBeCloseTo(2*K*p.charge*1e-9/p.distance,12);
+  // Its own 1/r case reads the same slider as λ: at P = t metres the reference is 2kλ/t.
+  expect(sampleLimit(problem,p,problem.limits.find(l=>l.mode==='scale')!,12).target).toBeCloseTo(2*K*p.charge*1e-9/12,12);
  });
  it('a disk grown into a sheet holds the disk’s OWN surface density',()=>{
   const problem=PROBLEMS.find(x=>x.id==='disk')!,limit=problem.limits.find(l=>l.mode==='infinite')!;
@@ -78,7 +80,7 @@ describe('the reference curve matches the formula printed above it',()=>{
 // half ring's closed form against 2kQ/(πR²), the arc's kQ/R against kQ/R. A case whose point IS
 // that nothing changes says so (kind 'constant') and is computed as a point-charge sum instead.
 describe('no limit is a formula plotted against itself',()=>{
- const CONSTANT=['semi/scale','sheet/scale','v-arc/full','v-arc/half'];
+ const CONSTANT=['semi/scale','sheet/scale','infinite/scale','v-arc/full'];
  for(const problem of PROBLEMS)for(const limit of problem.limits)it(`${problem.id}/${limit.id}`,()=>{
   const kind=limitPlot(problem,limit).kind,s=sweep(problem,limit);
   if(kind==='constant'){expect(CONSTANT,`${problem.id}/${limit.id} calls itself a constancy demonstration`).toContain(`${problem.id}/${limit.id}`);return;}
@@ -87,12 +89,13 @@ describe('no limit is a formula plotted against itself',()=>{
   expect(apart,`${problem.id}/${limit.id} never leaves its reference`).toBeGreaterThan(1e-3);
  });
  it('the constancy demonstrations are point-charge sums, so they are flat only to quadrature accuracy',()=>{
-  const sheet=getProblem('sheet'),semi=getProblem('semi'),arc=getProblem('v-arc');
+  const sheet=getProblem('sheet'),semi=getProblem('semi'),arc=getProblem('v-arc'),line=getProblem('infinite');
   const ratio=(pr:typeof sheet,mode:string,t:number)=>{const x=sampleLimit(pr,p,pr.limits.find(l=>l.mode===mode)!,t);return x.actual/x.target;};
   // Midpoint sums: close to one, and not one to the last bit.
   expect(ratio(sheet,'scale',12)).toBeCloseTo(1,5);expect(ratio(sheet,'scale',12)).not.toBe(1);
   expect(ratio(semi,'scale',12)).toBeCloseTo(1,9);
-  expect(ratio(arc,'full',12)).toBeCloseTo(1,9);expect(ratio(arc,'half',30)).toBeCloseTo(1,9);
+  expect(ratio(arc,'full',12)).toBeCloseTo(1,9);
+  expect(ratio(line,'scale',12)).toBeCloseTo(1,5);expect(ratio(line,'scale',12)).not.toBe(1);
  });
  it('the half ring is built from point charges that settle onto 2kλ/R',()=>{
   const arc=getProblem('arc'),half=arc.limits.find(l=>l.mode==='half')!;

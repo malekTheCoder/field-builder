@@ -8,8 +8,10 @@ import type {Problem} from '../src/problems/types';
  * setup. None of it goes through KaTeX, so raw notation shows as typed, and none of it is checked by
  * the physics suites, which read the formulas, not the words around them. */
 const lessons=[...PROBLEMS,getProblem('infinite','limit')];
+/** The words as typed: short formulas are held together on the page by no-break spaces (prose.ts). */
+const plain=(s:string)=>s.replace(/\u00a0/g,' ');
 const fields=(p:Problem)=>p.steps.flatMap(s=>s.fields??[]);
-const messages=(p:Problem)=>fields(p).flatMap(f=>(f.mistakes??[]).map(m=>m.message));
+const messages=(p:Problem)=>fields(p).flatMap(f=>(f.mistakes??[]).map(m=>plain(m.message)));
 /** Everything a reader can see in words. */
 function shown(p:Problem):[string,string][]{
  const out:[string,string][]=[['subtitle',p.subtitle],['setup',p.setup]];
@@ -40,7 +42,7 @@ describe('the confusions list says what each expression would describe',()=>{
   expect(semi.steps.find(s=>s.kind==='variable')!.hint).not.toContain('entered above');
  });
  it('the diagnoses the critique named are specific',()=>{
-  const said=(id:string,expression:string)=>fields(getProblem(id)).flatMap(f=>f.mistakes??[]).find(m=>m.expression===expression)?.message??'';
+  const said=(id:string,expression:string)=>plain(fields(getProblem(id)).flatMap(f=>f.mistakes??[]).find(m=>m.expression===expression)?.message??'');
   expect(said('ring','R/sqrt(R^2+z^2)'),'the ring’s sin α').toMatch(/sin α/);
   expect(said('v-ring','k*Q/R'),'V at the centre').toMatch(/centre/);
   expect(said('v-rod-bisector','2*k*lambda/r'),'the infinite line’s field').toMatch(/field of an infinite line/);
@@ -50,10 +52,10 @@ describe('the confusions list says what each expression would describe',()=>{
 describe('the explanations are true',()=>{
  it('an element’s potential goes as 1/rᵢ; the logarithm comes from adding them along the rod',()=>{
   for(const p of PROBLEMS)for(const l of p.limits)expect(l.explanation,`${p.id}/${l.id}`).not.toMatch(/goes as ln/);
-  expect(getProblem('v-rod-axial').limits.find(l=>l.mode==='near')!.explanation).toMatch(/k dQ\/rᵢ/);
+  expect(plain(getProblem('v-rod-axial').limits.find(l=>l.mode==='near')!.explanation)).toMatch(/k dQ\/rᵢ/);
  });
  it('the semi-infinite line’s bracket is evaluated, not described as positive',()=>{
-  const first=getProblem('semi').steps.find(s=>s.kind==='integrate')!.worked![0].text;
+  const first=plain(getProblem('semi').steps.find(s=>s.kind==='integrate')!.worked![0].text);
   expect(first).not.toMatch(/comes out positive/);
   expect(first).toContain('kλ(0 − 1/r) = −kλ/r');
  });

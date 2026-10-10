@@ -293,8 +293,10 @@ const SET_OVER_TWO_LINES: Partial<Record<ProblemId, string[]>> = {
   ramp: [String.raw`E_x=\frac{k\lambda_0}{L}\left(1-\frac{r}{\sqrt{L^2+r^2}}\right)`,
     String.raw`\begin{aligned}E_y=-\frac{k\lambda_0}{L}\bigg[&\ln\frac{L+\sqrt{L^2+r^2}}{r}\\&-\frac{L}{\sqrt{L^2+r^2}}\bigg]\end{aligned}`],
   endpoint: [String.raw`E_x=\frac{kQ}{r\sqrt{r^2+L^2}}`, String.raw`E_y=-k\lambda\left(\frac1r-\frac1{\sqrt{r^2+L^2}}\right)`],
-  // The condition hangs under the right-hand side, after the "=", not under the "=" itself.
-  'v-disk': [String.raw`\begin{aligned}V&=\frac{\sigma}{2\varepsilon_0}\left(\sqrt{z^2+R^2}-z\right)\\&\phantom{{}={}}\text{for }z>0\end{aligned}`],
+  // The condition hangs under the right-hand side, after the "=", not under the "=" itself. The disk's
+  // field holds only above it, as its potential does; set on one line, "(z > 0)" ran out of the panel.
+  disk: [String.raw`\begin{aligned}E_z&=\frac{\sigma}{2\varepsilon_0}\left(1-\frac{z}{\sqrt{z^2+R^2}}\right)\\&\phantom{{}={}}\text{for }z>0\end{aligned}`],
+  'v-disk':[String.raw`\begin{aligned}V&=\frac{\sigma}{2\varepsilon_0}\left(\sqrt{z^2+R^2}-z\right)\\&\phantom{{}={}}\text{for }z>0\end{aligned}`],
 };
 /** What the integral comes to, the built component first. */
 export function resultLines(p: Problem): string[] {

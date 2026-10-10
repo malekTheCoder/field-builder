@@ -447,7 +447,7 @@ export default function Explorer(){
   if(wasDark)root.classList.remove('dark');
   try{const stage=document.querySelector('.explorer-app .cd-stage');figure=stage?figureCopy(stage):''}
   finally{if(wasDark)root.classList.add('dark')}
-  downloadArtifact(`field-builder-${id}.html`,artifactHtml({title:p.title,subtitle:p.subtitle,setup:p.setup,coordinate:p.coordinate,integralTex:p.integralTex,results:resultLines(p),svg:figure}));
+  downloadArtifact(`field-builder-${id}.html`,artifactHtml({title:p.title,subtitle:p.subtitle,setup:p.setup,coordinate:p.coordinate,integralTex:p.integralTex,results:resultLines(p),derived:p.steps.find(s=>s.kind==='gradient')?.worked?.slice(-1).map(w=>w.tex),svg:figure}));
  }
  return <div className={`explorer-app ${showNumbers?'with-numbers':'symbolic-view'}`}>{/* Twenty tab stops -- the header, all fifteen
      lessons, the list toggle and the library -- stood between a keyboard and the lesson's one button.

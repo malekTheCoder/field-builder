@@ -11,8 +11,13 @@ export type LessonArtifact = {
   integralTex: string;
   /** Every line of the result, the built component first -- E_x and E_y where there are both. */
   results: string[];
+  /** A potential lesson's field, differentiated back from V: the step its subtitle promises. */
+  derived?: string[];
   svg?: string;
 };
+
+/** Whether the TeX writes Coulomb's constant: once the macro names are gone, any k left is a symbol. */
+const usesK = (tex: string) => tex.replace(/\\[A-Za-z]+/g, '').includes('k');
 
 export function escapeHtml(s: string) {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -38,6 +43,14 @@ export function artifactHtml(a: LessonArtifact) {
   const figure = a.svg
     ? `<figure>${a.svg}${a.coordinate ? `<figcaption>${mathml(a.coordinate, false)}</figcaption>` : ''}</figure>`
     : '';
+  // A potential lesson promises that "E falls out of one derivative"; the copy ended at V without it.
+  const derived = a.derived?.length
+    ? `<h2>The field, by differentiating</h2>\n<div class="result">${a.derived.map(tex => mathml(tex)).join('\n')}</div>\n`
+    : '';
+  // The page writes "with k = 1/(4πε₀)" beside its result. The copy printed kQ/… with k never said.
+  const constant = [a.integralTex, ...a.results, ...(a.derived ?? [])].some(usesK)
+    ? `<p class="where">Throughout, ${mathml(String.raw`k=\dfrac{1}{4\pi\varepsilon_0}`, false)}.</p>\n`
+    : '';
   return `<!DOCTYPE html>
 <html lang="en"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/><title>${escapeHtml(a.title)} · Field Builder</title>
 <style>
@@ -55,6 +68,7 @@ figcaption { margin-top: 4px; color:#4a6274; font-size: 15px; }
 math { font-size: 1.12em; }
 math[display="block"] { margin: 10px 0 14px; }
 .result math[display="block"] { margin: 6px 0; }
+.where { margin-top: 12px; }
 footer { margin-top: 36px; padding-top: 12px; border-top: 1px solid #d8e1e7; color: #4a6274; font-size: 12px; }
 </style></head>
 <body><main>
@@ -68,6 +82,7 @@ ${figure}
 ${mathml(a.integralTex)}
 <h2>The result</h2>
 <div class="result">${a.results.map(tex => mathml(tex)).join('\n')}</div>
+${derived}${constant}
 <footer>Saved from Field Builder. The equations are MathML, so this page needs no network to read or print.</footer>
 </main></body></html>`;
 }
