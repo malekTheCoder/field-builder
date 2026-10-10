@@ -302,16 +302,13 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
   // null means "whatever this geometry is normally drawn as"; the toggle sets it explicitly.
   const inSpace = spatial ?? perspective;
   const view = inSpace ? camera : FLAT;
-  // Where the two parts that survive are laid TIP TO TAIL, adding: along a rod's or an arc's x, across the
-  // page, where the piece's arrow and the mirror's open wide enough round it to name the piece's part beside
-  // its middle. On the ring the three stand up from P in a narrow fan -- the piece's arrow, its part along
-  // the axis, the mirror's arrow -- with no room beside the middle at any size: its name went beside the
-  // mirror's survivor stacked above it, or the mirror's arrow. There the mirror's survivor stands BESIDE the
-  // piece's, from P, and the piece's part keeps its name past its tip.
-  // And on a phone, where the names are set half as large again and the fan round the rod's part has no room
-  // beside its middle either: ΔE_x went onto its own shaft. In space the scene lays the mirror's survivor as a
-  // body on the tip of the piece's, always; the flat figure follows it there, so its names keep off it.
-  const stackSurvivors = inSpace || (!perspective && labelScale < 1.2);
+  // Where the two parts that survive are laid TIP TO TAIL, adding, as What cancels ends -- on the rods, the
+  // arc and the ring alike, and in space as the scene lays them. On a phone, where the names are set half as
+  // large again, the fan round a rod's part has no room beside its middle for the name the stacked pair
+  // pushes there, and ΔE_x went onto its own shaft: there the mirror's survivor stands BESIDE the piece's,
+  // from P, and the piece's part keeps its name past its tip. (The ring's fan is narrower still, but beside
+  // it the mirror's copy took the spot past the tip and pushed ΔE_z up into the axis' letter.)
+  const stackSurvivors = inSpace || perspective || labelScale < 1.2;
   // How far out to draw the field, in world metres: past P and past the charge, capped so a
   // long rod does not shrink its own field to a smear.
   // How far out to draw the field is set by the CHARGE, never by where P happens to be.
@@ -670,8 +667,9 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
     for (const v of [f, mirror, ...parts(f), ...parts(mirror), ...stacked]) {
       const s = projectCamera(v, ref.yaw, ref.pitch), len = gain * Math.hypot(s.x, s.y);
       if (len < 1e-9) continue;
-      // The stacked pair carries no name of its own past its tip: room for its head is enough.
-      const margin = stacked.includes(v) ? 12 : 34 * labelScale;
+      // The stacked pair carries no name of its own past its tip: room for its head, and clear air under the
+      // axis' letter -- ending against it, it read as the axis' own arrowhead.
+      const margin = stacked.includes(v) ? 24 : 34 * labelScale;
       // The top of the plot less the vertical axis' own letter, which stands there: a part drawn up that
       // axis -- the ring's along its axis, the arc's across it -- put its name on the letter.
       const top = axisTop + .39 * SYM * labelScale + 4;
@@ -1812,7 +1810,10 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
   const FRAME_BOX: Box = { x: 0, y: 0, width: 720, height: 430 };
   const obstacleBoxes: Box[] = [];
   {
-    const seg = (a: Point, b: Point, w: number) => { segmentBoxes(a, b, w, FRAME_BOX, obstacleBoxes); };
+    // Squares as far apart as they are wide, so they abut: eight apart, a four-unit stroke left gaps half
+    // its length between its squares, and the corner of a name could stand in one with the line through it --
+    // P = O across the mirror's line to P, on a phone, with Linux's metrics.
+    const seg = (a: Point, b: Point, w: number) => { segmentBoxes(a, b, w, FRAME_BOX, obstacleBoxes, Math.max(2.5, Math.min(8, w))); };
     const line = (pts: Point[], w: number) => { for (let k = 1; k < pts.length; k++) seg(pts[k - 1], pts[k], w); };
     if (bodyPath) line(bodyPath.map(project), rodLike && !inSpace ? rodHalf * 2 + 2 : 12);
     else if (id === 'disk') line(circlePoints(R), 8);
@@ -2277,7 +2278,7 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
         </g>}
         {/* AND WHAT THE MIRROR PIECE KEEPS, laid on after the piece's own: once the sideways parts have gone,
             the two parts that survive are seen adding, tip to tail -- the "perpendicular parts survive",
-            plural, that the caption says -- or, on the ring, standing side by side (see `stackSurvivors`).
+            plural, that the caption says -- or, on a phone, standing side by side (see `stackSurvivors`).
             In the mirror's lighter tint, so the one named is the piece's. */}
         {/* The piece's own surviving part is then named beside its middle, on the side away from the mirror's
             whole arrow: past its tip it stood on the mirror's survivor, and on the mirror's side it was nearer
