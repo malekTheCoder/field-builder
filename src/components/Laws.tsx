@@ -4,8 +4,9 @@ import {BookOpen,ChevronDown} from 'lucide-react';
 import {Dialog,DialogContent,DialogTitle,DialogDescription} from '@/components/ui/dialog';
 import {MathText} from './Math';
 import './laws.css';
-/** The three statements every lesson in this app rests on. They are stated once, here, and
- * rendered wherever a student asks — the tour on first run, a lesson page later — so there is
+/** The three statements every lesson in this app rests on, and the relation that gives each piece its
+ * charge. They are stated once, here, and rendered wherever a student asks — the tour on first run, a
+ * lesson page later — so there is
  * exactly one account of the physics rather than a second one written for the reference panel.
  * `why` answers "what is this doing for me here" and is always visible; `detail` and `more`
  * answer "what does it actually say" and appear only when the row is opened. Nothing is marked,
@@ -35,16 +36,23 @@ const LAWS:Law[]=[
   why:'The only field law the lessons build from. Every field lesson starts by applying it to pieces of the charge: a bit thin enough, seen from P, to count as a point, or a ring whose every bit is the same distance from P. The potential lessons start from its scalar partner, V = kQ/r.',
   detail:'A point charge Q fills the space around it with a field that falls off as the inverse square of the distance. The unit vector points from the charge out to the place you are asking about, so the field points away from a positive Q and back toward a negative one. Coulomb measured the force between two charges; dividing by the charge you would put at that place leaves the field, which depends on the source alone.',
   more:[String.raw`\mathbf F=\frac{k\,q_{1}q_{2}}{r^{2}}\,\hat{\mathbf r}`,String.raw`k=\frac{1}{4\pi\varepsilon_{0}}`]},
- {id:'superposition',name:'Superposition',tex:String.raw`\mathbf E=\sum_{i}\Delta\mathbf E_{i}\quad\longrightarrow\quad\mathbf E=\int d\mathbf E`,
-  why:'The permission to add. It is what lets a rod be treated as a row of points, and it is why an integral — a sum of infinitely many small contributions — is the right tool.',
-  detail:'Each charge sets up its own field as though the others were not there, and at every point those fields add as vectors. In electrostatics this is exact, not an approximation. So cut the distribution into N pieces, add the N contributions, then let N grow while each piece shrinks: the sum becomes an integral, and that integral is the one each lesson builds.',
+ {id:'superposition',name:'Superposition',tex:String.raw`\mathbf E\approx\sum_{i}\Delta\mathbf E_{i}\quad\longrightarrow\quad\mathbf E=\int d\mathbf E`,
+  why:'The permission to add. It is what lets a rod be treated as a row of points, and it is why an integral — a sum of infinitely many small contributions — is the right tool. The sum is only ≈ because each piece’s field is taken to be a point charge’s; the adding itself is exact.',
+  detail:'Each charge sets up its own field as though the others were not there, and at every point those fields add as vectors. In electrostatics this is exact, not an approximation. So cut the distribution into N pieces and add the N contributions: that is nearly the field, since each piece is treated as a point charge. Then let N grow while each piece shrinks: the ≈ becomes =, the sum becomes an integral, and that integral is the one each lesson builds.',
   more:[String.raw`\Delta Q\to dQ\quad\text{as}\quad N\to\infty`]},
  {id:'potential',name:'Potential of a point charge',tex:String.raw`V=\frac{kQ}{r}`,
   why:'What the potential lessons add up. One number at each place instead of a vector, so the pieces add as plain numbers with no components to resolve.',
   detail:'The same point charge also sets a potential, measured from zero infinitely far away. It falls off as one over r — a power slower than the field — and carries the sign of Q rather than a direction. Because potential is a scalar, superposition here is ordinary addition. The field can be recovered afterwards by differentiating: it is the negative gradient of V, which on a symmetry axis, where E has only its part along the axis, is a single derivative.',
-  more:[String.raw`V=\int\frac{k\,dQ}{r_{i}}`,String.raw`\mathbf E=-\nabla V\qquad E_{z}=-\frac{dV}{dz}`]}];
+  more:[String.raw`V=\int\frac{k\,dQ}{r_{i}}`,String.raw`\mathbf E=-\nabla V\qquad E_{z}=-\frac{dV}{dz}`]},
+ // THE RELATION STUDENTS NEED MOST THAT WEEK. Every lesson's first step is a piece's charge -- λ Δy, λR Δθ,
+ // σ 2πs Δs, λ₀(y/L) Δy -- and that is where a class loses the most marks: Q dy, λ dθ, πs² ds, the very
+ // slips "Easy to confuse with" diagnoses. The page a student is sent to look things up in had no row for it.
+ {id:'density',name:'Charge density',tex:String.raw`dQ=\lambda\,d\ell=\sigma\,dA`,
+  why:'What turns a piece’s size into its charge. λ is charge per unit length and σ charge per unit area; each is the same everywhere only where the lesson says the charge is uniform.',
+  detail:'A piece’s charge is the density times the piece’s own length or area, measured in the variable the charge is cut by. A rod cut along y gives pieces dy long. A ring or an arc cut by angle gives pieces R dθ long: an angle is not a length. A disk cut into rings gives rings of area 2πs ds: circumference times width, growing with the radius. Where the density changes along the charge, as on the ramp, it is read at the piece’s own place.',
+  more:[String.raw`d\ell=dy\qquad d\ell=R\,d\theta\qquad dA=2\pi s\,ds`,String.raw`\lambda(y)=\lambda_{0}\,\frac{y}{L}`]}];
 /** The scalar law leads on a potential lesson, because that is the one being used there. */
-function ordered(quantity:'E'|'V'){return quantity==='V'?[LAWS[2],LAWS[1],LAWS[0]]:LAWS}
+function ordered(quantity:'E'|'V'){return quantity==='V'?[LAWS[2],LAWS[1],LAWS[0],LAWS[3]]:LAWS}
 export function Laws({quantity='E',lede=true}:{quantity?:'E'|'V';lede?:boolean}){
  const [open,setOpen]=useState('');const uid=useId();
  return <div className="laws">{lede&&<p className="laws-lede">{LAWS_LEDE}</p>}
