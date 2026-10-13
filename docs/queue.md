@@ -58,8 +58,9 @@ owner says they are urgent.
 11. **How to use this site** (owner, 2026-10-13): a guide to actually learning with it, not a feature tour.
    The plan goes to the owner first; build only once they approve. Best after the fourteen lessons land.
    Owner (2026-10-13): it must teach ACTIVE study, not rereading: quiz yourself, predict, recall.
-12. **Quizzes with personalized feedback** (owner's idea, 2026-10-13): quiz sections on the site, and
-   feedback that follows what the student gets wrong. Proposal sent to the owner; not started.
+12. **Quiz yourself** (owner, 2026-10-13): its own page, not inside the lessons. The student picks the
+   shapes, questions come from a bank, and personalized feedback follows. Plan:
+   [quiz-plan.md](quiz-plan.md), waiting for the owner's OK.
 
 ## Done
 - No em dashes on the site (owner, 2026-10-13): every visible sentence that used one now uses a comma,
