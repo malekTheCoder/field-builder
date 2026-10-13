@@ -164,7 +164,7 @@ describe('the laws are set as displayed equations', () => {
   it('every headline law is in display style', () => {
     const {container} = render(<Laws />);
     const tex = [...container.querySelectorAll('.law-tex annotation')].map(a => a.textContent ?? '');
-    expect(tex.length).toBe(3);
+    expect(tex.length).toBe(4); // the three laws and the charge density (content-w4-laws)
     for (const t of tex) expect(t).toMatch(/^\\displaystyle /);
   });
 });
