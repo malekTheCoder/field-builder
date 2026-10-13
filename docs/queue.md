@@ -13,6 +13,14 @@ owner says they are urgent.
 
 ## Next
 **Urgent: CI is red, so Pages is not deploying.** Since the w4 merge, run-perf's ring "every stage
+- **Lesson-to-lesson links feel broken** (e.g. "Take this rod to infinity" on the finite line). Clicking
+  swaps the page to the related lesson (Explorer.tsx `related`, `exp-related`) with no visible
+  sign: it jumps to the top, and the lesson list's highlight may be scrolled out of sight. Make it a
+  clear "Next: <lesson> →" card with its glyph at the end of the lesson. On click, the new lesson
+  visibly takes over: the lesson list scrolls to and highlights it, a short line says where you
+  came from and why ("From the finite rod: let it run to infinity"), and there is a way back. This
+  applies to every `link` in src/problems/*.ts (about a dozen). Start it after the CI run-perf fix
+  lands, because both touch Explorer.tsx.
 under budget" fails on CI only: Shrink them p95 153-205 ms against 146 (before the merge, 56-141 on
 CI). It does not reproduce on the Mac, even with SwiftShader and a 4x CPU throttle, where the merged
 ring's Shrink is now cheaper than before the merge. A clue: on CI the ring's run puts 135 frames in
