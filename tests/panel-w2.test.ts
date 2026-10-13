@@ -224,7 +224,7 @@ describe('the board says what it had left unsaid', () => {
 
 describe('the run says it the same way', () => {
   it('the ring’s field gives the angle as well as the distance; its potential needs only the distance', () => {
-    expect(buildStages(lesson('ring'))[0].line).toMatch(/at one angle to the axis/);
+    expect(buildStages(lesson('ring'))[0].line).toMatch(/one distance and one angle from P/);
     expect(buildStages(lesson('v-ring'))[0].line).not.toMatch(/angle/);
   });
   it('the disk’s One ring is its own idea, not Cut it up’s again', () => {

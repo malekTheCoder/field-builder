@@ -74,12 +74,14 @@ describe('the bracket’s angle is said to be negative only where it can be', ()
 describe('small beside what', () => {
   // The lessons whose pieces are cut evenly along the charge and whose sum is not already exact.
   const bounded = ['bisector', 'endpoint', 'ramp', 'axial', 'disk', 'v-disk', 'v-rod-bisector', 'v-rod-axial'];
-  it('the run’s Cut it up and the board’s Add say the pieces are small beside their distance from P', () => {
+  // "Compared with", not "beside", which read as "next to"; and the run's line says when a piece is nearly a
+  // point charge, not that the drawn pieces are: at r = ½ beside L = 8 they are five times their distance.
+  it('the run’s Cut it up and the board’s Add say the pieces are small compared with their distance from P', () => {
     for (const id of bounded) {
       const [cut] = buildStages(lesson(id));
       expect(cut.caption, id).toMatch(/distance from P/);
-      expect(step(id, 'add').say, id).toMatch(/(short|narrow) beside (its|that) distance/);
-      if (id !== 'disk' && id !== 'v-disk') expect(cut.line, id).toMatch(/small enough beside their distance from P/);
+      expect(step(id, 'add').say, id).toMatch(/(short|narrow) compared with (its|that) distance/);
+      if (id !== 'disk' && id !== 'v-disk') expect(cut.line, id).toMatch(/^A piece short compared with its distance from P is nearly a point charge\./);
     }
     expect(buildStages(lesson('arc'))[0].caption).toMatch(/short compared with their distance from P, which is R/);
   });
@@ -206,7 +208,7 @@ describe('the run', () => {
       for (const [i, tex] of s.prose.split('$').entries()) if (i % 2) expect(() => typeset(tex), tex).not.toThrow();
       // The plain line, for a title and a screen reader: the same words, with no TeX in it.
       expect(s.line, s.line).not.toMatch(/[$\\]/);
-      const plain = s.prose.replace(/ \$/g, ' $').replace(/\$([^$]*)\$/g, (_, t: string) => t.replace(/\\Delta\s*/g, 'Δ').replace(/\\cos\s*/g, 'cos ').replace(/\\theta/g, 'θ'));
+      const plain = s.prose.replace(/ \$/g, ' $').replace(/\$([^$]*)\$/g, (_, t: string) => t.replace(/\\Delta\s*/g, 'Δ').replace(/\\cos\s*/g, 'cos ').replace(/\\theta/g, 'θ').replace(/\\to\s*/g, '→').replace(/\\infty/g, '∞'));
       expect(s.line).toBe(plain);
     }
     expect(buildStages(lesson('sheet'))[1].prose).toContain(String.raw`$\Delta E$`);

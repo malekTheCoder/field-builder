@@ -191,7 +191,14 @@ const ARROW = String.raw`The arrow $\Delta\mathbf E$, of size $|\Delta E|$,`;
 // "Between r_i and the x-axis" and "lies along r_i" used r_i as a line, a sentence after One piece
 // defined it as the piece's distance from P -- the reading `BITS` already corrected for the disk. So the
 // line is named, and r_i is said to be its length.
-const ANGLE_ROD = String.raw`The angle $\alpha$ is the one at${NB}$P$ between the line to the piece (length $r_i$) and the${NB}$x$-axis. ${ARROW} lies along that line, so it makes the same angle with the axis: its part along $x$ is $\Delta E\cos\alpha$, the side next to${NB}$\alpha$.`;
+//
+// WHY THE ARROW'S ANGLE IS α. The figure marks α at P on the piece's side, between the line to the piece and
+// the axis pointing back at the rod, while a positive charge's arrow leaves P on the far side: "so it makes
+// the same angle with the axis … the side next to α" skipped the step a reader was missing, and the side
+// next to the drawn α is the r leg, not ΔE_x. The arrow is that same line carried on through P, so the angle
+// it makes there is the drawn α's opposite angle, and opposite angles are equal. Said of where a positive
+// charge's arrow points: a negative charge's points back along the line, inside the drawn α itself.
+const ANGLE_ROD = String.raw`The angle $\alpha$ is the one at${NB}$P$ between the line to the piece (length $r_i$) and the${NB}$x$-axis. ${ARROW} lies along that line, carried on through${NB}$P$: beyond${NB}$P$, where a positive charge’s arrow points, its angle with the axis is the one opposite $\alpha$, so equal to it. Its part along $x$ is $\Delta E\cos\alpha$, the side next to${NB}$\alpha$.`;
 // The partner's part, named as the figure names it, said under the cancellation that uses it: the
 // cancellation opens its step, and ΔE_y in it used to be named only at the paragraph's end.
 //
@@ -251,7 +258,11 @@ const ANGLE_RING = String.raw`The angle $\alpha$ is the one at${NB}$P$ between t
 // so its bits' parts along the axis add to exactly the point charge's; their parts across it point
 // different ways round the ring and add to less (sin(Δθ/2)/(Δθ/2) of it: 0.83 at three pieces). The
 // angle is said in words: α is defined in What cancels, the next step.
-const ANY_SIZE = String.raw`A piece need not be small: it is drawn as a point charge at its middle, and a long piece’s own field leans a little closer to the axis, but its part along the axis is exactly this one’s at any size, since all of it is $r_i$ away at the same angle to the axis. That part is the only one the sum keeps.`;
+//
+// The reason first, in its own sentences, and the drawing after it as an aside: as one sixty-word sentence
+// that opened on the drawing and the lean, a reader read it three times to find the simple reason -- all
+// of a piece is the same distance away at the same angle.
+const ANY_SIZE = String.raw`A piece need not be small. All of it is $r_i$ from${NB}$P$, at the same angle to the axis, so its part along the axis is exactly a point charge’s at any size, and that part is the only one the sum keeps.${BREAK}The figure draws the piece as a point charge at its middle; a long piece’s own field leans a little closer to the axis than that arrow.`;
 // Not "the piece half a turn round": the pieces' middles are at 2π(i + ½)/N, so at an odd N -- the
 // default five among them -- half a turn from one middle is the cut between two pieces, and the figure
 // draws there an arc of the piece's length centred straight across, lighting no whole piece. What
@@ -263,7 +274,10 @@ const PAIR_RING = String.raw`A piece’s part across the axis is $\Delta\mathbf 
 // ΔQ = Σδq, times one factor. The caption says each ring has already cancelled; this says how.
 // "Lies along its own r_i" read as each bit having a distance of its own, one sentence before "every
 // bit of the thin ring is the same r_i away": r_i is a distance on this board, so the line is named.
-const BITS = String.raw`Each bit’s field, of size $\delta E$, lies along the line from that bit to${NB}$P$, so its part along the axis is $\delta E\cos\alpha$.`;
+//
+// Signed, as the rods' ΔE is (`SIGNED`): "of size δE … its part along the axis is δE cos α" made the size
+// negative for a negative charge, or the part along the axis wrongly positive.
+const BITS = String.raw`Each bit’s field lies along the line from that bit to${NB}$P$. Written without its direction, $\delta E=k\,\delta q/r_i^2$ carries the sign of the bit’s charge, so its part along the axis is $\delta E\cos\alpha$.`;
 const ACROSS_RING = String.raw`A bit’s part across the axis is $\delta\mathbf E_\perp$; the bit straight across the ring makes $-\delta\mathbf E_\perp$, so round the whole ring they undo each other.`;
 const ADDS = (whose: string) => String.raw`Every bit of the thin ring is the same $r_i$ away at the same $\alpha$, so the parts along the axis add to $k\,\Delta Q\cos\alpha/r_i^2$, where $\Delta Q=\sum\delta q$ is the ${whose} charge.`;
 const ANGLE_RINGS = String.raw`The angle $\alpha$ is the one at${NB}$P$ between a line to the ring (length $r_i$) and the axis. ${BITS}${BREAK}${ADDS('whole ring’s')}`;
@@ -420,7 +434,10 @@ const PARTS: Record<ProblemId, Parts> = {
   // across the centre: minus the cosine of the piece's own angle. Where θ is measured from is said
   // in the first line now, where θ first appears.
   arc: {...ARC, sign: '-', dir: String.raw`\cos\theta`, dirOf: String.raw`\cos\theta`, simplify: true,
-    dirIs: String.raw`With $P$ at the centre, ${ARROW.replace('The', 'the')} lies along the radius, pointing for positive charge from the piece back through${NB}$P$: its part along $x$ is $-\Delta E\cos\theta$.`, mirrorSay: MIRROR(String.raw`\theta`),
+    // Why the angle is θ, which it never said: the radius to the piece makes θ with the x-axis, by θ's own
+    // definition, and the arrow is that radius carried on through P -- so it makes θ with the axis on the
+    // far side, pointing back, which is the minus.
+    dirIs: String.raw`With $P$ at the centre, the radius to a piece at angle $\theta$ makes the angle $\theta$ with the${NB}$x$-axis. ${ARROW} lies along that radius carried on through${NB}$P$, pointing for positive charge from the piece back through${NB}$P$: its part along $x$ is $-\Delta E\cos\theta$.`, mirrorSay: MIRROR(String.raw`\theta`),
     pairSay: PAIR('across the axis'), mirror: {across: String.raw`\sin\theta`, lost: 'across the axis'},
     // The arc's θ is signed already -- round from the x-axis, its line of symmetry -- so the sentence says
     // the part's sign with it, for the pieces the bracket holds: it said nothing of θ < 0 at all.
@@ -577,12 +594,12 @@ export function boardLines(p: Problem, bounds?: [string, string], opts: {keeps?:
   const range = fx('bounds', String.raw`${v}\colon{${lo}}\to{${hi}}`);
   const integral = String.raw`\int_{${fx('bounds', lo)}}^{${fx('bounds', hi)}}`;
   const element = fx('element', t.dq);
-  // kλ, as the finished row under it and the answer set it: a thin space after k only before a Δ or a δ,
-  // which open a symbol of their own. "k λ dy" over "kλr" spaced one product two ways in one chain.
-  const kTimes = /^\\(Delta|delta)/.test(t.dq) ? String.raw`k\,` : 'k';
+  // kλ, as the finished row under it and the answer set it: "k λ dy" over "kλr" spaced one product two ways
+  // in one chain. (The thin space the lines above set after k is before a ΔQ, a symbol of its own; this line's
+  // charge is the limit's, which always opens on its density, so it never takes one.)
   const substituted = scalar
-    ? String.raw`\frac{${kTimes}${element}}{${fx('distance', t.r)}}`
-    : String.raw`\frac{${kTimes}${element}}{${fx('distance', t.r2)}}${t.dirOf ? gap(t.dirOf) + fx('projection', t.dirOf) : ''}`;
+    ? String.raw`\frac{k${element}}{${fx('distance', t.r)}}`
+    : String.raw`\frac{k${element}}{${fx('distance', t.r2)}}${t.dirOf ? gap(t.dirOf) + fx('projection', t.dirOf) : ''}`;
   // The "=" hangs under the first line's: a phantom of the left side takes exactly its width, so
   // the two halves line up the way a chain of equalities is set in a book.
   const kernel = sign ? p.kernelTex.replace(/^-/, '') : p.kernelTex;
@@ -686,7 +703,8 @@ export function boardLines(p: Problem, bounds?: [string, string], opts: {keeps?:
   // round it: they still partly cancel, and only what is left leans the field. So the ring says that in
   // words, with its sine said where E_z's cosine is.
   const across = t.mirror && p.geometry !== 'ring' ? String.raw`\Delta E_y=-\frac{k\,${dQ}}{${ri2}}${fx('projection', t.mirror.across)}` : undefined;
-  const ringAcross = String.raw`Its part across the axis, of size $k\,\Delta Q\sin\alpha/r_i^2$ with $\sin\alpha=R/\sqrt{R^2+z^2}$, no longer meets its partner: across the bracket those parts only partly cancel, and the rest leans the field.`;
+  // A size is never negative: |ΔQ|, or a negative charge's part had a negative size.
+  const ringAcross = String.raw`Its part across the axis, of size $k\,|\Delta Q|\sin\alpha/r_i^2$ with $\sin\alpha=R/\sqrt{R^2+z^2}$, no longer meets its partner: across the bracket those parts only partly cancel, and the rest leans the field.`;
   // Which side of the middle the bracket reaches, for the survivor's sentence: on a bracket wholly above
   // it, "below the x-axis α is negative" explained a negative α that never occurs, and on one wholly
   // below it "down for a piece above the x-axis" described no piece the bracket holds.
@@ -759,6 +777,8 @@ export function boardLines(p: Problem, bounds?: [string, string], opts: {keeps?:
   // Where the charge has a mirror about P's axis, Watch it build adds its pieces in mirror pairs, and the sum is
   // an arrow along the axis rather than a chain (see `pairs.ts` in the diagrams).
   // Over a bracketed part there is no mirror to pair with, and the figure draws the chain.
+  // At an odd N -- the default five -- the figure's first step is the middle piece alone (`pairOrder`), under a
+  // remark that promised pairs: so the remark says why it needs no partner.
   const inPairs = whole && !scalar && (p.geometry === 'bisector' || p.geometry === 'infinite' || p.geometry === 'arc');
   // Why only ≈. The disk's pieces were called thin rings from the first line, so "each ring is still
   // treated as one thin ring" gave the approximation as its own reason. What is approximate is that a
@@ -771,11 +791,12 @@ export function boardLines(p: Problem, bounds?: [string, string], opts: {keeps?:
   // exact": what goes wrong is direction -- cos θ changes across a piece and the sum takes it at the
   // middle, too big by (Δθ/2)/sin(Δθ/2), 1.7% at the default five pieces and 4.7% at three.
   const equalAngle = p.geometry === 'infinite' || p.geometry === 'semi';
+  // "Short compared with", not "short beside": a reader took "beside" for "next to".
   const roughly = p.geometry === 'sheet' ? 'each ring is still treated as one thin ring'
-    : surface ? String.raw`each ring is $\Delta s$ wide, but all its charge is counted at one radius $s$, one distance $r_i$ from${NB}$P$, which is close only while a ring is narrow beside that distance`
+    : surface ? String.raw`each ring is $\Delta s$ wide, but all its charge is counted at one radius $s$, one distance $r_i$ from${NB}$P$, which is close only while a ring is narrow compared with that distance`
     : p.geometry === 'arc' ? String.raw`every bit of a piece is $R$ from${NB}$P$, but the bits’ fields point different ways: $\cos\theta$ changes across the piece, and the sum takes it at the piece’s middle`
     : equalAngle ? 'each piece is still treated as a point charge'
-    : String.raw`each piece is still treated as a point charge, which is close only while a piece is short beside its distance from${NB}$P$`;
+    : String.raw`each piece is still treated as a point charge, which is close only while a piece is short compared with its distance from${NB}$P$`;
   // What makes the ≈ an = in the limit, for the rule under the integral: the same approximation, gone.
   const sharper = surface ? p.geometry === 'sheet'
     ? 'the thinner a ring in angle, the more nearly its field is its thin ring’s, and in the limit it is'
@@ -810,7 +831,7 @@ export function boardLines(p: Problem, bounds?: [string, string], opts: {keeps?:
     : '';
   const sumIs = constant
     ? `${BREAK}Every piece is ${p.geometry === 'arc' ? '$R$ from' : 'the same distance from'}${NB}$P$${scalar ? '' : ' at the same angle'}, so this sum is already exact, however the ${p.geometry === 'arc' ? 'arc' : 'ring'} is cut: ${same ? `every $r_i$ is the same, $${t.r}$,${scalar ? '' : ' and every $\\alpha$ the same,'} so $${shared}$ comes out of the sum` : `$${shared}$ is the same in every term and comes out of the sum`}, and $\\sum_i\\Delta Q_i$ is ${whole ? 'the whole charge $Q$. The answer needs no integral' : 'the bracketed part’s charge'}.`
-    : `${BREAK}${scalar ? 'The column on the figure stacks these numbers, and its height is this sum.' : inPairs ? `The figure adds the whole arrows in mirror pairs, whose sideways parts cancel, so the sum it builds runs along ${along}, and how far it reaches is this sum.` : `The chain on the figure adds the whole arrows, and how far it reaches along ${along} is this sum.`}${reachY} It is only $\\approx$: ${roughly}.${finite}`;
+    : `${BREAK}${scalar ? 'The column on the figure stacks these numbers, and its height is this sum.' : inPairs ? `The figure adds the whole arrows in mirror pairs, whose sideways parts cancel (a lone middle piece, on the $x$-axis, has none), so the sum it builds runs along ${along}, and how far it reaches is this sum.` : `The chain on the figure adds the whole arrows, and how far it reaches along ${along} is this sum.`}${reachY} It is only $\\approx$: ${roughly}.${finite}`;
   // THE EXACT SUM, DONE. Add said in words that the shared factor leaves the sum and Σ ΔQ_i is Q, so
   // "the answer needs no integral" -- and the line under it was still E_z = Σ k ΔQ_i cos α / r_i². The
   // board then integrated anyway, while the answer credited the sum: the claim was never shown. So the
@@ -981,9 +1002,11 @@ export function rodUnfold(lo: string, hi: string): WorkedStep[] {
     // derivative sec²α, and 1 + tan²α = sec²α -- and never said this α is the figure's α at P, the one
     // whose cos α the board has just written as r/√(y² + r²): a weak student read a new, unrelated angle.
     // Named by what it is, not by a stage of the run: these steps are printed on the handout too.
-    {text: String.raw`Turn the changing distance into an angle: the angle $\alpha$ at${NB}$P$ between the line to the piece and the${NB}$x$-axis. On that triangle $\tan\alpha=y/r$, so $y=r\tan\alpha$ with $r$ fixed. As $\alpha$ changes, $dy=r\sec^2\alpha\,d\alpha$, since the derivative of $\tan\alpha$ is $\sec^2\alpha$, where $\sec\alpha=1/{\cos\alpha}$. Dividing $\sin^2\alpha+\cos^2\alpha=1$ by $\cos^2\alpha$ gives $1+\tan^2\alpha=\sec^2\alpha$, so the denominator becomes a power of $\sec\alpha$.`,
+    {text: String.raw`Turn the changing distance into an angle: the figure’s own angle $\alpha$, at${NB}$P$ between the line to the piece and the${NB}$x$-axis. On that triangle $\tan\alpha=y/r$, so $y=r\tan\alpha$ with $r$ fixed. As $\alpha$ changes, $dy=r\sec^2\alpha\,d\alpha$, since the derivative of $\tan\alpha$ is $\sec^2\alpha$, where $\sec\alpha=1/{\cos\alpha}$. Dividing $\sin^2\alpha+\cos^2\alpha=1$ by $\cos^2\alpha$ gives $1+\tan^2\alpha=\sec^2\alpha$, so the denominator becomes a power of $\sec\alpha$.`,
       tex: String.raw`y^2+r^2=r^2(\tan^2\alpha+1)=r^2\sec^2\alpha`},
-    {text: String.raw`The conversion factor, $r\sec^2\alpha$, supplies two powers of secant. One $\sec\alpha$ remains in the denominator: that is $\cos\alpha$ on top.`,
+    // The three-halves power said, not left to the eye -- (r² sec²α)^{3/2} is r³ sec³α -- and dy/dα named by
+    // what it is, not "the conversion factor", a name the page gives it nowhere else.
+    {text: String.raw`On top, $dy$ brings $r\sec^2\alpha$, two powers of $\sec\alpha$; below, $(r^2\sec^2\alpha)^{3/2}=r^3\sec^3\alpha$. One $\sec\alpha$ is left in the denominator: that is $\cos\alpha$ on top.`,
       tex: String.raw`\begin{aligned}\int\frac{r\,dy}{(y^2+r^2)^{3/2}}&=\int\frac{r\cdot r\sec^2\alpha}{r^3\sec^3\alpha}\,d\alpha${rowGap(1)}&=\frac1r\int\cos\alpha\,d\alpha\end{aligned}`},
     {text: String.raw`Integrate: $\int\cos\alpha\,d\alpha=\sin\alpha$. Then return to the triangle, where $\sin\alpha=y/\sqrt{y^2+r^2}$.`,
       tex: String.raw`\frac1r\int\cos\alpha\,d\alpha=\frac{\sin\alpha}{r}=\frac{y}{r\sqrt{y^2+r^2}}`},
