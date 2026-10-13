@@ -20,6 +20,8 @@ async function openLesson(id: string, seen = true) {
  await new Promise(r => setTimeout(r, 280));
  localStorage.setItem('field-builder:explorer:v1', JSON.stringify({id, seen, dark: false, sidebarOpen: true, params: {}}));
  const view = render(<Explorer />);
+ // A first visit opens on the tour; the cue waits for it to close.
+ if (!seen) fireEvent.click(await view.findByRole('button', {name: 'Skip intro'}));
  await view.findByRole('button', {name: 'Watch it build'});
  await waitFor(() => expect(view.container.querySelector('h1')?.textContent, 'opened the wrong lesson').toBe(getProblem(id as never).title));
  return view;
@@ -37,7 +39,7 @@ describe('the first screen', () => {
   expect(button.closest('.exp-diagram-heading')).toBeTruthy();
  }, 15000);
 
- it('points the first-visit cue at the button, not at the tour', async () => {
+ it('points the first-visit cue, after the tour, at the button, not at the tour', async () => {
   await page.viewport(1440, 800);
   const view = await openLesson('bisector', false);
   const button = view.getByRole('button', {name: 'Watch it build'});

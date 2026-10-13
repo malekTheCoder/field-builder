@@ -12,3 +12,13 @@
 .fb-onboarding.fb-onboarding[data-slot=dialog-content]{padding-bottom:0!important}
 .fb-onboarding .ob-footer{position:sticky;bottom:0;z-index:1;background:var(--card);padding-bottom:26px}
 @media(max-width:520px){.fb-onboarding .ob-footer{padding-bottom:20px}}
+
+/* "DON'T SHOW THIS AGAIN" -- the tour opens on every visit, so it carries the one control that stops
+   that. It is the footer's quiet second row, under the way on and never beside it: Continue stays the
+   thing the eye lands on, and the box reads as a setting, not a third button. */
+.fb-onboarding .ob-footer{flex-wrap:wrap;row-gap:12px}
+.fb-onboarding .ob-dismiss{flex-basis:100%;display:flex;flex-wrap:wrap;align-items:center;gap:6px 9px;font-size:var(--type-meta);
+ color:var(--muted-foreground);cursor:pointer;user-select:none;-webkit-user-select:none}
+.fb-onboarding .ob-dismiss:hover{color:var(--foreground)}
+.fb-onboarding .ob-dismiss-note{margin-left:auto;font-size:11px;opacity:.85}
+@media(max-width:520px){.fb-onboarding .ob-dismiss-note{flex-basis:100%;margin-left:25px}}

@@ -164,7 +164,7 @@ function useSteady<A extends unknown[],R>(fn:(...args:A)=>R):(...args:A)=>R{cons
 /** The board re-renders when what it shows changes, not whenever the page does. */
 const Workbench=memo(EquationWorkbench);
 export default function Explorer(){
- const [id,setId]=useState<ProblemId>('bisector');const [path,setPath]=useState('angular');const [mode,setMode]=useState<Mode>('divide');const [paramsMap,setParamsMap]=useState<Partial<Record<ProblemId,Params>>>({});const [dark,setDark]=useState(false);const [ready,setReady]=useState(false);const [storageOK,setStorageOK]=useState(true);const [onboarding,setOnboarding]=useState(false);const [seen,setSeen]=useState(false);const [library,setLibrary]=useState(false);const [sidebarOpen,setSidebarOpen]=useState(true);const [showNumbers,setShowNumbers]=useState(false);const [components,setComponents]=useState(false);const [pair,setPair]=useState(false);const [progress,setProgress]=useState(1);const [selected,setSelected]=useState<number|null>(null);const [bounds,setBounds]=useState<[number,number]>([0,100]);const [limitsOpen,setLimitsOpen]=useState(false);const [slipsOpen,setSlipsOpen]=useState(false);const [limitIndex,setLimitIndex]=useState(0);const [highlight,setHighlight]=useState('');const [status,setStatus]=useState('');const [building,setBuilding]=useState(false);const [runAt]=useState(runClock);const [buildIndex,setBuildIndex]=useState(0);const [buildShown,setBuildShown]=useState(false);const [runPiece,setRunPiece]=useState(.7);const [laws,setLaws]=useState(false);const toolsButton=useRef<HTMLButtonElement>(null);const build=useRef<{stop:()=>void}|null>(null);const clock=useRef({at:0,stopAt:0});const buildC=useRef(-1);const buildStep=useRef(-1);const reduced=useReducedMotion();const routeLabel=useId(),endnotesHeading=useId();const tourButton=useRef<HTMLButtonElement>(null),watchButton=useRef<HTMLButtonElement>(null),walk=useRef<HTMLDivElement>(null),reveal=useRef(false);
+ const [id,setId]=useState<ProblemId>('bisector');const [path,setPath]=useState('angular');const [mode,setMode]=useState<Mode>('divide');const [paramsMap,setParamsMap]=useState<Partial<Record<ProblemId,Params>>>({});const [dark,setDark]=useState(false);const [ready,setReady]=useState(false);const [storageOK,setStorageOK]=useState(true);const [onboarding,setOnboarding]=useState(false);const [hideTour,setHideTour]=useState(false);const [cued,setCued]=useState(false);const [library,setLibrary]=useState(false);const [sidebarOpen,setSidebarOpen]=useState(true);const [showNumbers,setShowNumbers]=useState(false);const [components,setComponents]=useState(false);const [pair,setPair]=useState(false);const [progress,setProgress]=useState(1);const [selected,setSelected]=useState<number|null>(null);const [bounds,setBounds]=useState<[number,number]>([0,100]);const [limitsOpen,setLimitsOpen]=useState(false);const [slipsOpen,setSlipsOpen]=useState(false);const [limitIndex,setLimitIndex]=useState(0);const [highlight,setHighlight]=useState('');const [status,setStatus]=useState('');const [building,setBuilding]=useState(false);const [runAt]=useState(runClock);const [buildIndex,setBuildIndex]=useState(0);const [buildShown,setBuildShown]=useState(false);const [runPiece,setRunPiece]=useState(.7);const [laws,setLaws]=useState(false);const toolsButton=useRef<HTMLButtonElement>(null);const build=useRef<{stop:()=>void}|null>(null);const clock=useRef({at:0,stopAt:0});const buildC=useRef(-1);const buildStep=useRef(-1);const reduced=useReducedMotion();const routeLabel=useId(),endnotesHeading=useId();const tourButton=useRef<HTMLButtonElement>(null),watchButton=useRef<HTMLButtonElement>(null),walk=useRef<HTMLDivElement>(null),reveal=useRef(false);
  // Held per lesson: `getProblem` builds the infinite line afresh on every call, and a new problem
  // object is a changed prop to everything memoised below.
  const p=useMemo(()=>getProblem(id,'angular'),[id]),derivationProblem=useMemo(()=>getProblem(id,path),[id,path]),params=paramsMap[id]??DEFAULT_PARAMS;const continuum=params.continuum;const count=partitionCount(params.slices,continuum);const geom=p.geometry,scalar=p.quantity==='V';const isInfinite=['infinite','semi','sheet'].includes(geom);const isRound=['ring','disk','arc'].includes(geom);const lim=p.limits[Math.min(limitIndex,p.limits.length-1)];
@@ -177,12 +177,22 @@ export default function Explorer(){
  // defaults the teacher saw. A reload is unchanged, since the address is rewritten from the state on
  // every settle. A link with values but no lesson is the first lesson's, which is the only one whose
  // address used to leave its name out (serializeAssignment).
- // A teacher's link no longer counts as having been here: the students it is sent to are exactly the
- // first-time readers the start-here cue is for. It used to hide the cue as well as the tour, back when
- // the tour opened by itself; the cue blocks nothing -- it is hidden from screen readers, cannot be
- // clicked, and goes at the first input.
+ // THE TOUR OPENS EVERY TIME THE SITE DOES, until the reader ticks "Don't show this again" inside it.
+ // Skipping, finishing or closing it is not that choice -- a reader who closed it to look at the page
+ // gets it again next visit -- and the Walkthrough button opens it whenever asked, with the box still
+ // there to untick. A saved `seen: true` is the old version of the same choice: it was written once a
+ // reader had closed the tour or had the start-here cue, so they are not ambushed by a dialog they had
+ // already dealt with.
+ // EXCEPT ON A TEACHER'S LINK. A student sent to a lesson -- the ring, the charge reversed, twelve pieces
+ // -- has come for that lesson, often in class with the projector on it; a four-page dialog in front of
+ // it is the first thing they would have to get rid of. The address is rewritten to name the lesson on
+ // every settle, though, so a reload, a bookmark or a restored tab carries a lesson too: a link is the
+ // reader's own when it names the lesson they last left, with the values they left it at, and then the
+ // tour opens as on any visit. The start-here cue still greets a teacher's link: the students it is
+ // sent to are exactly the first-time readers it is for, and it blocks nothing -- it is hidden from
+ // screen readers, cannot be clicked, and goes at the first input.
  // oxlint-disable-next-line react/react-compiler
- useEffect(()=>{try{const raw=localStorage.getItem(STORAGE);const parsed=raw?JSON.parse(raw):null;const saved=parsed&&typeof parsed==='object'&&!Array.isArray(parsed)?parsed:{};const pm:Partial<Record<ProblemId,Params>>={};for(const pr of PROBLEMS)if(saved.params?.[pr.id])pm[pr.id]=atRest(saved.params[pr.id]);const url=parseAssignment(typeof location==='undefined'?'':location.search);const linked=url.id??(url.params?'bisector':undefined);if(linked&&isReady(linked)){setId(linked);pm[linked]=atRest({...DEFAULT_PARAMS,...url.params})}else if(PROBLEMS.some(p=>p.id===saved.id)&&isReady(saved.id))setId(saved.id);setDark(saved.dark===true);setShowNumbers(saved.showNumbers===true);setSidebarOpen(saved.sidebarOpen!==false);setParamsMap(pm);if(url.mode)setMode(url.mode);if(url.pair)setPair(true);if(url.components)setComponents(true);setSeen(!!saved.seen);setOnboarding(false);}catch{setStorageOK(false);setOnboarding(true)}setReady(true);return()=>{build.current?.stop();build.current=null}},[]);
+ useEffect(()=>{try{const raw=localStorage.getItem(STORAGE);const parsed=raw?JSON.parse(raw):null;const saved=parsed&&typeof parsed==='object'&&!Array.isArray(parsed)?parsed:{};const pm:Partial<Record<ProblemId,Params>>={};for(const pr of PROBLEMS)if(saved.params?.[pr.id])pm[pr.id]=atRest(saved.params[pr.id]);const url=parseAssignment(typeof location==='undefined'?'':location.search);const linked=url.id??(url.params?'bisector':undefined);if(linked&&isReady(linked)){setId(linked);pm[linked]=atRest({...DEFAULT_PARAMS,...url.params})}else if(PROBLEMS.some(p=>p.id===saved.id)&&isReady(saved.id))setId(saved.id);setDark(saved.dark===true);setShowNumbers(saved.showNumbers===true);setSidebarOpen(saved.sidebarOpen!==false);setParamsMap(pm);if(url.mode)setMode(url.mode);if(url.pair)setPair(true);if(url.components)setComponents(true);const before=saved.seen===true,hide=typeof saved.hideTour==='boolean'?saved.hideTour:before;const own=typeof saved.id==='string'&&serializeAssignment({id:linked,params:{...url.params,continuum:0}})===serializeAssignment({id:saved.id,params:{...saved.params?.[saved.id],continuum:0}});setHideTour(hide);setCued(saved.cued===true||before);setOnboarding(!hide&&(!linked||own));}catch{setStorageOK(false);setOnboarding(true)}setReady(true);return()=>{build.current?.stop();build.current=null}},[]);
  // oxlint-disable-next-line react/react-compiler -- Synchronize persisted preferences; quota/security errors update the save indicator.
  // Not before the saved settings are read: the page's first commit has dark false, and toggling then took
  // off the dark class the document's head had already set from storage (index.html), flashing the light
@@ -212,7 +222,7 @@ export default function Explorer(){
  // saved continuum=1, and every later visit opened on a smooth rod "In the limit" with the board still
  // saying ΔQ. While the run is open, both write the lesson as closing the run puts it back -- and what
  // was saved or linked before that fix is read back with its cut (atRest).
- useEffect(()=>{if(!ready)return;const t=setTimeout(()=>{try{const saved=buildShown?{...paramsMap,[id]:{...params,continuum:0}}:paramsMap;localStorage.setItem(STORAGE,JSON.stringify({id,dark,params:saved,seen,showNumbers,sidebarOpen}))}catch{setStorageOK(false)}},SETTLE);return()=>clearTimeout(t)},[id,dark,paramsMap,params,ready,seen,showNumbers,sidebarOpen,buildShown]);
+ useEffect(()=>{if(!ready)return;const t=setTimeout(()=>{try{const saved=buildShown?{...paramsMap,[id]:{...params,continuum:0}}:paramsMap;localStorage.setItem(STORAGE,JSON.stringify({id,dark,params:saved,hideTour,cued,showNumbers,sidebarOpen}))}catch{setStorageOK(false)}},SETTLE);return()=>clearTimeout(t)},[id,dark,paramsMap,params,ready,hideTour,cued,showNumbers,sidebarOpen,buildShown]);
  // THE ADDRESS ALWAYS NAMES ITS LESSON. The first lesson at its defaults wrote no query at all, so a
  // teacher who shared the address bar for Finite line shared the bare home page, and every student who had
  // used the site before opened their own last lesson instead.
@@ -464,7 +474,6 @@ export default function Explorer(){
  // with no way to tell why it stopped being cut up.
  function endBuild(){build.current?.stop();build.current=null;setBuilding(false);setBuildShown(false);runAt.set(0);setBuildIndex(0);buildC.current=-1;buildStep.current=-1;setPair(false);setComponents(false);setMode('divide');setProgress(1);updateParams({continuum:0});}
  function chooseMode(next:Mode){setMode(next);if(next==='project'&&!scalar)setComponents(true);if(next==='integrate'){setProgress(1);stop()}}
- function closeTour(){setOnboarding(false);setSeen(true)}
  function skipToLesson(e:{preventDefault():void}){e.preventDefault();(watchButton.current??walk.current?.querySelector<HTMLElement>('.bp-play')??document.getElementById('lesson'))?.focus()}
  /** Where the page was last sent, and until when it may still be gliding there. */
  const glide=useRef({to:0,until:0});
@@ -717,7 +726,7 @@ export default function Explorer(){
  // moment, ran at twenty frames a second, and every stage boundary dropped frames. A class costs one
  // restyle when the run opens, settles or closes. (tests/page-styles.test.ts keeps :has out of the sheet.)
  const related=p.link&&isReady(p.link.id)?{...p.link,short:PROBLEMS.find(x=>x.id===p.link?.id)?.short??''}:null;
- const running=buildOpen?' is-running'+(settledRun?' is-settled':''):'',cueing=ready&&!seen&&!onboarding;
+ const running=buildOpen?' is-running'+(settledRun?' is-settled':''):'',cueing=ready&&!cued&&!onboarding;
  return <div className={`explorer-app ${showNumbers?'with-numbers':'symbolic-view'}${cueing?' is-cueing':''}`}>{/* Twenty tab stops -- the header, all fifteen
      lessons, the list toggle and the library -- stood between a keyboard and the lesson's one button.
      The first stop now goes straight to it (or to the run's play button, while the run is open). */}
@@ -804,7 +813,8 @@ export default function Explorer(){
   </a>}
  </section>
  <output className="sr-only" aria-live="polite">{status}</output></main></SidebarProvider>
- {/* The first-visit cue points at what the lesson is built around, not at the tour of it. */}{cueing&&<StartHere target={watchButton} onSettled={()=>setSeen(true)}/>}<Onboarding returnFocus={tourButton} open={onboarding} onClose={closeTour} onExplore={closeTour}/>{/* THE LAWS EVERY LESSON
+ {/* The first-visit cue points at what the lesson is built around, not at the tour of it -- and waits
+     for the tour to close, whose last page names the same button. */}{cueing&&<StartHere target={watchButton} onSettled={()=>setCued(true)}/>}<Onboarding returnFocus={tourButton} open={onboarding} onClose={()=>setOnboarding(false)} dontShow={hideTour} onDontShowChange={storageOK?setHideTour:undefined}/>{/* THE LAWS EVERY LESSON
      RESTS ON WERE WRITTEN ONCE AND SHOWN NOWHERE BUT THE TOUR'S SECOND PAGE. They are a reader's question in
      the middle of a lesson -- "which law is this again?" -- so they are under the formula the lesson list
      closes on, and, where the list is not drawn, in the lesson's tools. A potential lesson leads with V. */}<LawsDialog open={laws} onOpenChange={setLaws} quantity={p.quantity} returnFocus={toolsButton}/><Dialog open={library} onOpenChange={setLibrary}>{/* Opened on the lesson the reader is in, not on the first card: from the ring, the focus landed on

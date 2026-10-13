@@ -2,13 +2,13 @@
 import {useEffect, useRef, useState} from 'react';
 /** A hand-drawn arrow, once, pointing at the one control a first-time reader should press.
  *
- * The tour used to open itself on arrival. A dialog in front of a page nobody has seen yet asks
- * to be dismissed before it can be read, and dismissing is what most people do — so the tour was
- * least likely to be read exactly when it was most useful. This points at it instead and leaves
- * the page alone: the reader can take the walkthrough, or start moving sliders and come back.
+ * The tour opens on arrival (Explorer.tsx), and its last page names Watch it build; this is the
+ * hand-off from it, once the tour has closed, to the button on the lesson itself. On a teacher's
+ * link the tour does not open, and the arrow is the only welcome the page gives: it leaves the page
+ * alone, blocks nothing, and goes at the first input.
  *
- * It appears once. The flag is the same `seen` the tour has always set, so a reader who takes the
- * walkthrough never sees the arrow, and one who ignores it is not asked twice. */
+ * It appears once, ever. Its flag is `cued`, apart from the tour's "Don't show this again", since the
+ * tour comes back on every visit and the arrow should not; a saved `seen` from before counts as both. */
 export function StartHere({target, label = 'start here', onSettled}: {
   target: React.RefObject<HTMLElement | null>;
   label?: string;
