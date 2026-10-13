@@ -38,12 +38,12 @@ export const lesson: Lesson = {
       {tex: raw`V=2k\lambda\ln\frac{L/2+\sqrt{(L/2)^2+r^2}}{r}`},
     ]},
     {heading: 'What the answer says', body: [
-      raw`The logarithm’s argument is a ratio of lengths greater than one, so $V$ has the sign of $Q$. Far away, $r\gg L$, $V$ tends to $kQ/r$, a point charge’s potential, one power of distance softer than the field. Let the rod grow with $\lambda$ fixed and $V$ grows like $2k\lambda\ln(L/r)$, without bound: an infinite line has no potential measured from infinity, only differences between two distances.`,
+      raw`The logarithm’s argument is a ratio of lengths greater than one, so $V$ has the sign of $Q$. Far away, $r\gg L$, $V$ tends to $kQ/r$, a point charge’s potential, one power of distance softer than the field. Let the rod grow with $\lambda$ fixed and $V$ goes as $2k\lambda\ln(L/r)$, so $|V|$ grows without bound: an infinite line has no potential measured from infinity, only differences between two distances.`,
     ]},
     {heading: 'Differentiate back', body: [
       raw`On the bisector the field has only its $x$ part, and that part is minus the rate at which $V$ changes as $P$ moves out:`,
       {tex: raw`E_x=-\frac{dV}{dr}=\frac{kQ}{r\sqrt{(L/2)^2+r^2}}`},
-      raw`That is the bisector’s field, found without a single arrow. Knowing $V$ only along this line gives only this component; the part along the rod would need $V$ off the line too.`,
+      raw`That is the bisector’s field, found without a single arrow. It is the whole field only because symmetry has already made the part along the rod zero. $V$ known only on this line cannot show that: that part is how fast $V$ changes as $P$ moves parallel to the rod, off the line.`,
     ]},
   ],
   read: [

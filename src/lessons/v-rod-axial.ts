@@ -21,7 +21,7 @@ export const lesson: Lesson = {
       raw`So $\Delta V$ is a number with the sign of the piece’s charge, and there is no direction to keep track of.`,
     ]},
     {heading: 'Nothing cancels', body: [
-      raw`A number has no direction, and all of this charge has one sign, so no piece can undo another. Every piece adds to $V$ with the sign of $\lambda$, the near ones more than the far ones, and the page stacks them into a column that only grows.`,
+      raw`A number has no direction, and all of this charge has one sign, so no piece can undo another. Every piece adds to $V$ with the sign of $\lambda$, the near ones more than the far ones, and the page stacks them into a column that only grows one way.`,
     ]},
     {heading: 'Add them up', body: [
       raw`The column’s height, over the pieces from $x=0$ to $x=L$, is the potential, nearly:`,
@@ -35,10 +35,10 @@ export const lesson: Lesson = {
       {tex: raw`V=k\lambda\int_a^{L+a}\frac{du}{u}=k\lambda\ln\frac{L+a}{a}`},
     ]},
     {heading: 'What the answer says', body: [
-      raw`The logarithm’s argument is a ratio of lengths greater than one, so $V$ has the sign of $\lambda$. Far away, $a\gg L$, $\ln(1+L/a)$ is nearly $L/a$, and $V$ approaches $kQ/a$, a point charge’s potential. As $P$ walks onto the end, $a\to0$, $|V|$ grows without bound, but only as $\ln(L/a)$, far more slowly than the field’s $1/a$.`,
+      raw`The logarithm’s argument is a ratio of lengths greater than one, so $V$ has the sign of $\lambda$. Far away, $a\gg L$, $\ln(1+L/a)$ is nearly $L/a-L^2/(2a^2)$, and $V$ approaches $kQ/(a+L/2)$, the potential of a point charge at the rod’s centre. As $P$ walks onto the end, $a\to0$, $|V|$ grows without bound, but only as $\ln(L/a)$, far more slowly than the field’s $1/a$.`,
     ]},
     {heading: 'Differentiate back', body: [
-      raw`On the rod’s line the field points along it, and it is minus the rate at which $V$ changes as $P$ moves out. The logarithm of a quotient differentiates to $1/(L+a)-1/a$, so`,
+      raw`On the rod’s line every piece’s arrow points along it, so the field does, and it is minus the rate at which $V$ changes as $P$ moves out. The logarithm of a quotient differentiates to $1/(L+a)-1/a$, so`,
       {tex: raw`E_x=-\frac{dV}{da}=k\lambda\left(\frac1a-\frac1{L+a}\right)`},
       raw`which is the field beyond the end of this rod, found without a single arrow.`,
     ]},

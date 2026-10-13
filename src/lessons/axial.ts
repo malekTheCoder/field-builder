@@ -38,12 +38,12 @@ export const lesson: Lesson = {
     ]},
     {heading: 'What the answer says', body: [
       raw`The sign of $E_x$ is the sign of $Q$: the field points away from the rod for a positive charge and toward it for a negative one.`,
-      raw`Far away, $a\gg L$, the product $a(L+a)$ is nearly $a^2$ and $E_x$ approaches $kQ/a^2$: from far off the rod is a point charge. Close to the end, $a\ll L$, the term $k\lambda/a$ takes over, and the field grows only as $1/a$, not $1/a^2$: seen from right beside its end, the rod looks like a line that never stops.`,
+      raw`Far away, $a\gg L$, the product $a(L+a)$, which is $(a+L/2)^2-(L/2)^2$, is nearly $(a+L/2)^2$, and $E_x$ approaches $kQ/(a+L/2)^2$: from far off the rod is a point charge at its centre. Close to the end, $a\ll L$, the term $k\lambda/a$ takes over, and $|E_x|$ grows only as $1/a$, not $1/a^2$: seen from right beside its end, the rod looks like a line that never stops.`,
     ]},
   ],
   read: [
     {book: 'OpenStax, University Physics Volume 2', where: '§5.5, Calculating Electric Fields of Charge Distributions', url: 'https://openstax.org/books/university-physics-volume-2/pages/5-5-calculating-electric-fields-of-charge-distributions'},
     {book: 'Griffiths, Introduction to Electrodynamics', where: '§2.1, The Electric Field: continuous charge distributions'},
-    {book: 'Purcell and Morin, Electricity and Magnetism', where: 'Chapter 1, Electrostatics: charges and fields'},
+    {book: 'Purcell and Morin, Electricity and Magnetism', where: 'Chapter 1, Electrostatics'},
   ],
 };
