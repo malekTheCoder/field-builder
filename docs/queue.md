@@ -10,34 +10,17 @@ owner says they are urgent.
   the schematic moves with it, and words for each end. (agent)
 - **Home page.** A landing page at the site root; the logo and the root link go there; ?p= lesson
   links still open lessons directly. (agent)
-- **View cube and figure width.** Committed locally, not yet pushed: the tests were still running.
-- **Integrate the cloud round (w4).** The cloud session finished its round on GitHub branch
-  `claude/epic-cori-unu4i2` (f7403ec = 183f166 + 23 commits). Its notes are on branch
-  `handoff/round-w4-notes`: findings, TRIAGE.md and a styled harness. main has moved since then
-  (the cube, plus the three agents' pushes), so this is a MERGE, not a fast-forward. Do it after
-  the three local agents land.
-  - Run tsc, oxlint, the WHOLE suite and build:static. Known cloud-container-only failures to
-    compare against main: panel-board-order "current rᵢ² lights", and r2-figure-marks
-    bisector/endpoint stage 3.
-  - Fix the root causes, push main once, and check CI once.
-  - Then delete wip/w3-*, handoff/round-w4-notes and claude/epic-cori-unu4i2.
-  - Report to the owner and STOP.
-  - The branch already covers queue items 3 (mode=sum mirror pairs) and 6 (view cube ≥ 11 px),
-    and touches the cube, so expect overlap with the local cube work.
 
 ## Next
 1. **Gauss's law, "coming soon" on the site.** A Gauss's law section shown as coming soon on the
    home page, in the lesson list and in the library. Do this after the home page lands. The plan is
    in [gauss-law-plan.md](gauss-law-plan.md); the section itself is not started.
 2. **Ring, default 3D view, "Add them up".** The mirror-pair arrows come out small (~15–25 units).
-3. **Sum mode outside the run.** (Done on the cloud branch.) A teacher link with mode=sum still draws the old tip-to-tail
-   chain. Use mirror pairs there too.
 4. **Wide arc (φ ≈ 1.8π), What cancels.** The label placer hides ΔE and "r_i = R", and the ghost
    names crowd.
 5. **Ring's ΔE_z name** sits next to the stacked mirror survivor in a narrow fan (R small, z large,
    N large).
-6. **View cube on phones.** The face names are 8–10 px. (Done on the cloud branch: ≥ 11 px.)
-7. **Deferred by the cloud round.**
+7. **Deferred by the cloud round (w4).** Not done in the round; still to do.
    - New lessons: a non-uniform semicircle, a spherical shell, an annulus, an off-bisector rod.
    - Lay the semi-infinite line along y, like its parent rod.
    - Infinite line's angle θ → α.
@@ -54,6 +37,15 @@ owner says they are urgent.
    still to be confirmed.
 
 ## Done
+- The cloud round (w4) is merged (edb9c07): a sum link draws mirror pairs (was Next 3), the cube's face
+  names are 11 px or more, initials where a word won't fit (was Next 6), the placer keeps the names the
+  board is written in, and the round's panel, page, scene and content fixes. Its deferred and partial
+  items are Next 7. Merging it also fixed: the placer's frame stops at the footer band (the ring's R sat
+  on the divider on a phone), the projector layout's board is held to the window with a narrow margin
+  (the ring's One piece outgrew it at 853 by 533), and the half line's board gives its lean for either
+  sign. Its branches (claude/epic-cori-unu4i2, handoff/round-w4-notes, wip/w3-*) are deleted.
+- View cube on a phone no larger than before the CAD cube (66f49e9): the bigger cube had pushed the
+  ring's ΔE⊥ onto the y axis' letter at What cancels, and CI was red. The CAD cube itself is 2035537.
 - The walkthrough opens on every visit until "Don't show this again" is ticked. Teacher links
   don't auto-open it, and the header button always does. (d648022) An old saved `seen: true`
   counts as "don't show", so returning visitors won't see it unless the owner wants that changed.
