@@ -75,9 +75,10 @@ describe('the shelf’s small type', () => {
     const style = getComputedStyle(note) as CSSStyleDeclaration & {textWrapStyle?: string; textWrap?: string};
     expect(style.textWrapStyle ?? style.textWrap).toMatch(/pretty/);
   });
-  it('the shelf’s last disclosure names the problem it holds', () => {
+  // The problem is no longer in it: it opens the panel, where a student reads it (panel-w4-problem).
+  it('the shelf’s last disclosure names what it holds', () => {
     const view = panel('sheet');
-    expect(view.container.querySelector('.ew-references summary')!.textContent).toBe('The problem, model assumptions & references');
+    expect(view.container.querySelector('.ew-references summary')!.textContent).toBe('Model assumptions & references');
   });
 });
 
