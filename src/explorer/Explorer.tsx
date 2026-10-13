@@ -1,5 +1,5 @@
 'use client';
-import {memo,useCallback,useId,useInsertionEffect,useMemo,useState,useEffect,useRef,type CSSProperties} from 'react';
+import {memo,useCallback,useId,useInsertionEffect,useMemo,useState,useEffect,useRef,type CSSProperties,type ReactNode} from 'react';
 import {flushSync} from 'react-dom';
 import {useReducedMotion} from 'motion/react';
 import {BookOpen,ChevronLeft,ChevronRight,CircleHelp,Download,GitBranch,Link as LinkIcon,Play,Printer,RotateCcw,Sun,Moon,PanelLeft,MoreHorizontal} from 'lucide-react';
@@ -24,7 +24,8 @@ import {EquationWorkbench} from '../components/EquationWorkbench';
 import {Onboarding} from '../components/Onboarding';
 import {StartHere} from '../components/StartHere';
 import {isReady,SOON_NOTE} from '../problems/readiness';
-import {MathText} from '../components/Math';
+import {MathText,Prose} from '../components/Math';
+import {symbolic} from '../problems/prose';
 import {Assessment} from '../components/Assessment';
 import {artifactHtml,downloadArtifact,figureCopy,lessonArtifact,printLesson} from '../state/artifact';
 import {Hint} from '../components/Hint';
@@ -76,6 +77,18 @@ const atRest=(v:Partial<Params>):Params=>({...cleanParams(v),continuum:0});
  * another page as a button. They are links to the lesson's address now. A plain click still switches the
  * lesson in place, without reloading the page; a click meant for a new tab or window is the browser's. */
 const lessonHref=(id:ProblemId)=>`?p=${id}`;
+/** The board's strut for a conclusion, the left side its rows stand under (`\phantom{E_z}`), with the thick space
+ * a relation has after it; nothing where the board sets none. On a phone the conclusion goes under its line
+ * (explorer.css), and its rows stood at the margin, under E_z rather than under the "=" they continue: the
+ * ring's exact sum read as two equations with no left side. The transport sets the strut in front of them there,
+ * invisible, as the board's aligned block does, so every row opens under the line's own "=". */
+function strutOf(tex:string){
+ // Only one the conclusion opens on: a strut further in stands for something else (a bracket's opening).
+ const at=tex.match(/^\s*(?:\\begin\{aligned\})?\s*(\\phantom\{)/);if(!at)return undefined;
+ const from=at[0].length-at[1].length;
+ let depth=1,i=at[0].length;for(;i<tex.length&&depth>0;i++)depth+=tex[i]==='{'?1:tex[i]==='}'?-1:0;
+ return depth?undefined:tex.slice(from,i)+String.raw`\;`;
+}
 /** No lines: one value, so a run that has not settled hands the transport the same empty list. */
 const NONE:string[]=[];
 /** A board line's conclusion as rows, each opening on its "=": the board's alignment -- an aligned block's
@@ -91,6 +104,29 @@ function rows(tex:string){
  * and formulas all set the curly φ -- one symbol in two shapes, beside each other. Lower case is italic,
  * as KaTeX sets it; capitals stand upright, as Δ does in every formula on the page. */
 function greek(text:string){return text.split(/([\u0370-\u03ff\u1f00-\u1fff]+)/).map((part,i)=>i%2?<span key={i} className={'exp-greek'+(/^[\u0391-\u03a9]+$/.test(part)?' is-upright':'')}>{part}</span>:part)}
+/** A sentence of the limiting cases or the confusions, its symbols in the face of the formulas under it.
+ *
+ * ONE SYMBOL, ONE FACE. Only the Greek letters were set as math, so "holds λ dy, with λ = Q/L" put an italic
+ * serif λ beside an upright sans dy, Q and L, directly above a formula that sets all of them in KaTeX's italic:
+ * r in two faces on one line, which no textbook does. A sentence written with $…$ spans is set by Prose, as the
+ * setup and the unfolded integration are. One still written plain has its symbols found the way prose.ts holds
+ * them together (`symbolic`): the Latin letters of a symbol go into KaTeX's italic, a function's name and the
+ * digits stay upright, as KaTeX sets them. A lone "a", "A" or "I" is a word unless prose.ts held it to a symbol
+ * beside it ("a ≪ L"), since "a uniform rod" is English. Words of three letters or more are never touched. */
+function mathProse(text:string):ReactNode{
+ if(text.includes('$'))return <Prose text={text}/>;
+ let key=0;
+ const latin=(part:string)=>part.split(/([A-Za-z]+[₀-₉ᵢᵧₓ²³′]*)/).map((run,i)=>{
+  const letters=run.match(/^[A-Za-z]+/)?.[0]??'';
+  return i%2&&letters.length<=2&&!FUNCTIONS.has(letters)?<span key={key++} className={'exp-greek'+(/[A-Z]$/.test(run)?' is-capital':'')}>{run}</span>:<span key={key++}>{greek(run)}</span>});
+ // Held runs are joined by no-break spaces (prose.ts): a run of more than one piece is a formula.
+ return text.split(/( )/).map(token=>{
+  if(token===' ')return token;
+  const pieces=token.split(/(\u00a0)/),held=pieces.length>1;
+  return <span key={key++}>{pieces.map(p=>p==='\u00a0'?p:symbolic(p)&&(held||!/^[aAI]$/.test(p))?latin(p):<span key={key++}>{greek(p)}</span>)}</span>;
+ });
+}
+const FUNCTIONS=new Set(['sin','cos','tan','sec','ln','log','exp','sgn']);
 // Variable-first: every control is named by its symbol. The words are the
 // gloss, the number is the consequence — so the symbol is set large in the
 // display serif and the reading stays quiet and monospaced beside it.
@@ -212,7 +248,7 @@ export default function Explorer({welcome}:{welcome?:boolean}={}){
   const pm:Partial<Record<ProblemId,Params>>={};for(const pr of PROBLEMS)if(saved.params?.[pr.id]&&typeof saved.params[pr.id]==='object')pm[pr.id]=atRest(saved.params[pr.id]);
   const url=parseAssignment(typeof location==='undefined'?'':location.search);const linked=url.id??(url.params||url.stage?'bisector':undefined);
   if(linked&&isReady(linked)){setId(linked);pm[linked]=atRest({...DEFAULT_PARAMS,...url.params});if(url.stage)linkedStage.current=url.stage}else if(PROBLEMS.some(p=>p.id===saved.id)&&isReady(saved.id))setId(saved.id);
-  setDark(saved.dark===true);setLessonOpen(saved.lessonOpen===true);setShowNumbers(saved.showNumbers===true);setSidebarOpen(saved.sidebarOpen!==false);setParamsMap(pm);
+  setDark(saved.dark===true);setShowNumbers(saved.showNumbers===true);setSidebarOpen(saved.sidebarOpen!==false);setParamsMap(pm);
   if(url.mode)setMode(url.mode);if(url.pair)setPair(true);if(url.components)setComponents(true);
   // Only "Don't show this again" keeps the tour shut. An old `seen: true` is from before that box,
   // and from before this tour: a returning reader meets the new tour and the box to stop it. They have
@@ -282,7 +318,7 @@ export default function Explorer({welcome}:{welcome?:boolean}={}){
  // saved continuum=1, and every later visit opened on a smooth rod "In the limit" with the board still
  // saying ΔQ. While the run is open, both write the lesson as closing the run puts it back -- and what
  // was saved or linked before that fix is read back with its cut (atRest).
- useEffect(()=>{if(!ready)return;const t=setTimeout(()=>{try{const saved=buildShown?{...paramsMap,[id]:{...params,continuum:0}}:paramsMap;localStorage.setItem(STORAGE,JSON.stringify({id,dark,params:saved,hideTour,cued,showNumbers,sidebarOpen,lessonOpen}))}catch{setStorageOK(false)}},SETTLE);return()=>clearTimeout(t)},[id,dark,paramsMap,params,ready,hideTour,cued,showNumbers,sidebarOpen,lessonOpen,buildShown]);
+ useEffect(()=>{if(!ready)return;const t=setTimeout(()=>{try{const saved=buildShown?{...paramsMap,[id]:{...params,continuum:0}}:paramsMap;localStorage.setItem(STORAGE,JSON.stringify({id,dark,params:saved,hideTour,cued,showNumbers,sidebarOpen}))}catch{setStorageOK(false)}},SETTLE);return()=>clearTimeout(t)},[id,dark,paramsMap,params,ready,hideTour,cued,showNumbers,sidebarOpen,buildShown]);
  // THE ADDRESS ALWAYS NAMES ITS LESSON. The first lesson at its defaults wrote no query at all, so a
  // teacher who shared the address bar for Finite line shared the bare home page, and every student who had
  // used the site before opened their own last lesson instead.
@@ -389,7 +425,7 @@ export default function Explorer({welcome}:{welcome?:boolean}={}){
  // only at the very start of the line, so on the ring and its potential the transport ended Add them up on a
  // gap the width of E_z, and its rows stood under nothing. The rows go to the transport one by one (`rows`).
  // And under each line, what its new symbol stands for, as the board says it (BuildPlayer).
- const playerSteps=useMemo(()=>{const lines=boardLines(p);return lines.map((line,i)=>[...(line.cancels?[{cancels:line.cancels}]:[]),line.tex,...(line.finish&&i<lines.length-1?[{finish:rows(line.finish)}]:[]),...(line.where?[{where:line.where}]:[]),...(line.also?[{also:line.also}]:[])])},[p]);
+ const playerSteps=useMemo(()=>{const lines=boardLines(p);return lines.map((line,i)=>[...(line.cancels?[{cancels:line.cancels}]:[]),line.tex,...(line.finish&&i<lines.length-1?[{finish:rows(line.finish),strut:strutOf(line.finish)}]:[]),...(line.where?[{where:line.where}]:[]),...(line.also?[{also:line.also}]:[])])},[p]);
  // And once the pieces have shrunk away, how the integral comes out and its answer -- every line of
  // the answer, not the first: on the lessons whose answer has two components, the figure's arrow
  // labelled E leans, and an answer of E_x alone said it pointed along x. The answer is stated whether
@@ -608,7 +644,12 @@ export default function Explorer({welcome}:{welcome?:boolean}={}){
  // with no way to tell why it stopped being cut up.
  function endBuild(){build.current?.stop();build.current=null;setBuilding(false);setBuildShown(false);runAt.set(0);setBuildIndex(0);buildC.current=-1;buildStep.current=-1;setPair(false);setComponents(false);setMode('divide');setProgress(1);updateParams({continuum:0});}
  function chooseMode(next:Mode){setMode(next);if(next==='project'&&!scalar)setComponents(true);if(next==='integrate'){setProgress(1);stop()}}
- function skipToLesson(e:{preventDefault():void}){e.preventDefault();const to=watchButton.current??walk.current?.querySelector<HTMLElement>('.bp-play');if(to)to.focus();else focusLesson()}
+ /** The skip link's target. With a written lesson, its title: the lesson's lead and "Read the lesson" sit between
+  * the title and Watch it build, and the lead asks to be read before the build, so a skip straight to the button
+  * jumped a keyboard and a screen reader past the very text the lesson starts with. The next Tab is "Read the
+  * lesson", the one after it Watch it build. While the run is open, its play button, as before: the run is what
+  * the reader is in the middle of. A geometry with no lesson yet goes to Watch it build. */
+ function skipToLesson(e:{preventDefault():void}){e.preventDefault();const play=watchButton.current?null:walk.current?.querySelector<HTMLElement>('.bp-play');if(play)play.focus();else if(lesson||!watchButton.current)focusLesson();else watchButton.current.focus()}
  /** Put the focus on the lesson's title, without scrolling to it: where a jump to the lesson, or into another
   * lesson, leaves a keyboard and a screen reader.
   *
@@ -832,6 +873,12 @@ export default function Explorer({welcome}:{welcome?:boolean}={}){
  // the screen while the page was still gliding down to it. With the run already open, to the figure.
  const lesson=useMemo(()=>lessonFor(id),[id]);
  const toggleLesson=useSteady(()=>setLessonOpen(v=>!v));
+ // OPENING THE LESSON IS A DECISION ABOUT THIS LESSON, NOW. It was one flag for the whole site, kept in storage:
+ // a student who opened one lesson's text met every lesson open on every later visit, four phone screens of
+ // prose above the figure, and a teacher who read it once put it on the projector that way. The lead's whole
+ // design is that the figure keeps the first screen until a reader asks for more, so each lesson opens shut.
+ // oxlint-disable-next-line react/react-compiler -- Shuts the text when the lesson changes.
+ useEffect(()=>{setLessonOpen(false)},[id]);
  const toBuild=useSteady(()=>{const target=watchButton.current??document.querySelector<HTMLElement>('.exp-diagram-card');if(!target)return;target.scrollIntoView({block:'center',behavior:reduced?'auto':'smooth'});target.focus({preventScroll:true})});
  const play=useSteady(runBuild),seek=useSteady((at:number,dragging:boolean)=>seekBuild(at,dragging)),close=useSteady(()=>{refocus.current=true;endBuild()});
  // SPACE PAUSES THE RUN, AS IT DOES A VIDEO. A teacher presenting clicks the title or the blank beside the
@@ -974,7 +1021,7 @@ export default function Explorer({welcome}:{welcome?:boolean}={}){
      the trail is now just the way back out to the library -- which on a narrow screen, where
      the list is not there at all, is the only way to another lesson. Its chevron makes it look like a
      way back; it says that it opens a picker. */}
-<div className="exp-crumbs"><button type="button" className="exp-crumb-link" aria-haspopup="dialog" aria-expanded={library} onClick={()=>setLibrary(true)}><ChevronLeft size={13} aria-hidden="true"/>Charge library</button></div></div><div className={'exp-heading'+(lesson?' has-lesson':'')}><div><h1 id={LESSON_TITLE} tabIndex={-1}>{p.title}</h1><p>{p.subtitle}</p></div></div>
+<div className="exp-crumbs"><button type="button" className="exp-crumb-link" aria-haspopup="dialog" aria-expanded={library} onClick={()=>setLibrary(true)}><ChevronLeft size={13} aria-hidden="true"/>Charge library</button></div></div><div className={'exp-heading'+(lesson?' has-lesson':'')}><div><h1 id={LESSON_TITLE} tabIndex={-1}>{p.title}</h1>{/* With a written lesson its lead says what the page finds, a line below: the subtitle said it a third time, with the panel's problem, before the figure, and on a short laptop its line was room the drawing lost. */}{!lesson&&<p>{p.subtitle}</p>}</div></div>
  {lesson&&<LessonIntro lesson={lesson} open={lessonOpen} onToggle={toggleLesson} onBuild={toBuild}/>}
  <div className={'exp-workspace'+running}><div className="exp-visual-column"><section className={'exp-diagram-card mode-'+mode+' focus-'+highlight+running+(buildOpen&&scrubbing?' is-scrubbing':'')} aria-label="Interactive field visualization"><div className="exp-diagram-heading"><div><MathText tex={p.coordinate}/></div>
   {/* THE LESSON'S ONE BUTTON, AT THE TOP OF ITS FIGURE. It sat under the figure and its toolbar,
@@ -1026,18 +1073,18 @@ export default function Explorer({welcome}:{welcome?:boolean}={}){
    {limitsOpen&&<div className="exp-note-body">
     {/* On paper, every case under its own heading: tabs print as buttons nobody can press, over one panel. */}
     {printing&&p.limits.length>1
-     ?p.limits.map((x,i)=><section key={x.id} className="exp-limit-print"><h3 className="exp-note-heading">{x.title}</h3><p className="exp-limit-why">{greek(x.explanation)}</p><Assessment key={id+i} problem={p} params={boardParams} limit={x}/></section>)
+     ?p.limits.map((x,i)=><section key={x.id} className="exp-limit-print"><h3 className="exp-note-heading">{x.title}</h3><p className="exp-limit-why">{mathProse(x.explanation)}</p><Assessment key={id+i} problem={p} params={boardParams} limit={x}/></section>)
      :p.limits.length>1
      ?<Tabs value={String(limitIndex)} onValueChange={v=>setLimitIndex(Number(v))}><TabsList aria-label="Limiting cases" className="exp-limit-tabs">{p.limits.map((x,i)=><TabsTrigger value={String(i)} key={x.id}>{x.title}</TabsTrigger>)}</TabsList>
-      {p.limits.map((x,i)=><TabsContent key={x.id} value={String(i)} className="exp-limit-panel"><p className="exp-limit-why">{greek(x.explanation)}</p><Assessment key={id+i} problem={p} params={boardParams} limit={x}/></TabsContent>)}</Tabs>
-     :<><h3 className="exp-note-heading">{lim.title}</h3><p className="exp-limit-why">{greek(lim.explanation)}</p><Assessment key={id} problem={p} params={boardParams} limit={lim}/></>}
+      {p.limits.map((x,i)=><TabsContent key={x.id} value={String(i)} className="exp-limit-panel"><p className="exp-limit-why">{mathProse(x.explanation)}</p><Assessment key={id+i} problem={p} params={boardParams} limit={x}/></TabsContent>)}</Tabs>
+     :<><h3 className="exp-note-heading">{lim.title}</h3><p className="exp-limit-why">{mathProse(lim.explanation)}</p><Assessment key={id} problem={p} params={boardParams} limit={lim}/></>}
    </div>}
   </details>
   <details className="exp-note" open={slipsOpen} onToggle={e=>setSlipsOpen(e.currentTarget.open)}>
    <summary><span>Easy to confuse with</span><small>The expressions this geometry sits next to, and what each one would actually describe.</small></summary>
    {slipsOpen&&<div className="exp-note-body exp-slips">{confusions(p).map(g=><div className="exp-slip" key={g.key}>
     <span className="exp-slip-of">{g.label}</span>
-    {g.notes.map(n=><div className="exp-slip-note" key={n.message}><span className="exp-slip-math">{!g.symbol&&<span className="exp-slip-not">Not</span>}{n.expressions.map(x=><MathText key={x} tex={g.symbol?String.raw`\displaystyle ${g.symbol}\ne ${confusionTex(x).replace(/^\\displaystyle\s*/,'')}`:confusionTex(x)}/>)}</span><p>{greek(n.message)}</p></div>)}
+    {g.notes.map(n=><div className="exp-slip-note" key={n.message}><span className="exp-slip-math">{!g.symbol&&<span className="exp-slip-not">Not</span>}{n.expressions.map(x=><MathText key={x} tex={g.symbol?String.raw`\displaystyle ${g.symbol}\ne ${confusionTex(x).replace(/^\\displaystyle\s*/,'')}`:confusionTex(x)}/>)}</span><p>{mathProse(n.message)}</p></div>)}
    </div>)}</div>}
   </details>
   {/* WHERE THIS LESSON LEADS. Each lesson names its neighbour -- take this rod to infinity, build a disk

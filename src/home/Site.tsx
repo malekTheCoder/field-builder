@@ -35,12 +35,14 @@ export default function Site(){
  const [view,arrival]=(key?.split('|')??[null,null]) as [View|null,Arrival|null];
  // A move between the two starts the new page at its top, with the focus on it, as a page load would --
  // not part way down the old page's scroll, with the focus gone with the link that was pressed.
+ // On a lesson, its title (Explorer, `focusLesson`), not <main id="lesson">: <main> is not focusable there, on
+ // purpose, so the focus silently stayed on <body> and a screen reader said nothing after a lesson was chosen.
  const shown=useRef<View|null>(null);
  useEffect(()=>{
   const before=shown.current;shown.current=view;
   if(before===null||view===null||before===view)return;
   window.scrollTo({top:0,behavior:'auto'});
-  document.getElementById(view==='home'?'home':'lesson')?.focus({preventScroll:true});
+  document.getElementById(view==='home'?'home':'lesson-title')?.focus({preventScroll:true});
  },[view]);
  return view===null?null:view==='home'?<Home/>:<Explorer welcome={arrival==='address'?undefined:arrival==='first'}/>;
 }

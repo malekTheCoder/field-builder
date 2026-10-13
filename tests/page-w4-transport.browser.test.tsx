@@ -43,7 +43,7 @@ const stage = (view: View, i: number) => view.container.querySelectorAll('.bp-ma
 describe('Add them up ends on the board\'s own answer, however many rows it has', () => {
  for (const id of ['ring', 'v-ring', 'v-arc'] as const) it(id, async () => {
   const view = await openRun(id);
-  const rows = tex(stage(view, 3).querySelector('.bp-finish')!);
+  const rows = tex(stage(view, 3).querySelector('.bp-finish-rows')!);
   // Each row opens on its "=", with none of the board's alignment left in it.
   expect(rows.length).toBeGreaterThan(0);
   for (const row of rows) {
@@ -55,10 +55,12 @@ describe('Add them up ends on the board\'s own answer, however many rows it has'
   expect(board.replace(/\s/g, '')).toContain(rows.at(-1)!.replace(/\s/g, ''));
   expect(rows.at(-1)).toMatch(/kQ/);
  }, 20000);
- it('on a phone the ring\'s chain is one row under its line, not two', async () => {
-  const view = await openRun('ring');
+ it('on a wide phone the ring\'s chain is one row under its line, not two', async () => {
+  // Where both fit. At 390 they do not once each opens under the line's "=" (page-w5-lesson-top), and two rows
+  // that read as the board's beat one that starts under the line's left side.
+  const view = await openRun('ring', 560, 844);
   fireEvent.click(view.getByRole('button', {name: 'Stage 4: Add them up'}));
-  const rows = [...stage(view, 3).querySelectorAll<HTMLElement>('.bp-finish>.math')].map(r => r.getBoundingClientRect());
+  const rows = [...stage(view, 3).querySelectorAll<HTMLElement>('.bp-finish-rows>.math')].map(r => r.getBoundingClientRect());
   expect(rows.length, 'the board no longer writes this sum over two rows, so this checks nothing').toBe(2);
   // Stacked, they made the ring's cell -- every stage's -- a row taller than any other lesson's.
   expect(Math.abs(rows[1].top - rows[0].top)).toBeLessThan(4);

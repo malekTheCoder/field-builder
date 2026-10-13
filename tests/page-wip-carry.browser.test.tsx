@@ -133,8 +133,9 @@ describe('the transport\'s algebra', () => {
   expect(steps.length).toBe(5);
   const finish = steps[3].querySelector('.bp-finish');
   expect(finish, 'the exact sum\'s answer is missing').toBeTruthy();
-  // The board's alignment strut is the board's: here the line opens on its "=".
-  expect(finish!.querySelector('.katex-mathml annotation')?.textContent).toMatch(/^=/);
+  // The board's alignment strut is the board's: here the line opens on its "=" (the strut, drawn unseen in front
+  // of the rows on a phone, is a separate element: page-w5-lesson-top).
+  expect(finish!.querySelector('.bp-finish-rows .katex-mathml annotation')?.textContent).toMatch(/^=/);
   // The last stage's finish is the settled chain's, not a line of its own.
   expect(steps[4].querySelector('.bp-finish')).toBeNull();
  }, 20000);

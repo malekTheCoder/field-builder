@@ -41,7 +41,7 @@ export function runClock(): RunClock {
  * row by row, each `= …`, which follows it on the same row where the transport is wide enough (Explorer,
  * playerSteps) -- or what the line's new symbol stands for, set smaller beside it as the board sets it under
  * it -- or the cancellation that opens What cancels, on a row of its own. */
-export type PlayerLine = string | {also: string} | {finish: readonly string[]} | {where: string} | {cancels: string};
+export type PlayerLine = string | {also: string} | {finish: readonly string[]; strut?: string} | {where: string} | {cancels: string};
 type Props = {
   stages: readonly BuildStage[];
   /** Seconds into the run, as the store above: read here and nowhere else on the page. */
@@ -106,7 +106,11 @@ export const BuildPlayer = memo(function BuildPlayer({stages, clock, index, play
         {lines.map(line => typeof line === 'string'
           ? <MathText key={line} tex={line} block trusted />
           : 'finish' in line
-            ? <div key={`finish:${line.finish.join('|')}`} className="bp-finish">{line.finish.map(tex => <MathText key={tex} tex={tex} block trusted />)}</div>
+            ? <div key={`finish:${line.finish.join('|')}`} className={'bp-finish' + (line.strut ? ' has-strut' : '')}>
+              {/* The board's left side, unseen, drawn only where the conclusion goes under its line (explorer.css). */}
+              {line.strut && <span className="bp-strut" aria-hidden="true"><MathText tex={line.strut} block trusted /></span>}
+              <div className="bp-finish-rows">{line.finish.map(tex => <MathText key={tex} tex={tex} block trusted />)}</div>
+            </div>
             : 'where' in line
               ? <MathText key={`where:${line.where}`} className="bp-where" tex={line.where} trusted />
               : 'cancels' in line

@@ -129,3 +129,6 @@
 }
 @media(prefers-reduced-motion:reduce){.home-start,.home-start svg,.home-card,.home-continue,.home-continue svg{transition:none}.home-continue:hover{transform:none}.home-start:hover,.home-card:hover,.home-start:hover svg{transform:none}}
 @media print{.home-start,.home-continue,.home .exp-header-right{display:none}}
+/* In a contrast theme the background and the shadow go, and the site's main way in was a bare link, read as a
+   caption beside Continue and the cards, which keep their borders. An edge in the button's own colour keeps it a button. */
+@media(forced-colors:active){.home-start{border:2px solid ButtonText}}

@@ -12,6 +12,18 @@
 .fb-onboarding.fb-onboarding[data-slot=dialog-content]{padding-bottom:0!important}
 .fb-onboarding .ob-footer{position:sticky;bottom:0;z-index:1;background:var(--card);padding-bottom:26px}
 @media(max-width:520px){.fb-onboarding .ob-footer{padding-bottom:20px}}
+/* AND IT SAYS WHEN THERE IS MORE UNDER IT. Held over the page, the footer's rule cut the laws page's text
+   mid-line on a phone, 390 by 844, and nothing said a sentence went on underneath: a reader took the cut line
+   for the page's end. The text now fades into the footer while there is more of it below, and the fade goes as
+   the page reaches its end. Driven by the dialog's own scroll, so where the page fits there is no scroll, the
+   animation never runs and nothing fades (and a browser without scroll timelines draws none either, as before). */
+.fb-onboarding .ob-footer::before{content:'';position:absolute;left:0;right:0;bottom:100%;height:32px;pointer-events:none;opacity:0;
+ background:linear-gradient(to bottom,color-mix(in oklab,var(--card) 0%,transparent),var(--card))}
+@supports(animation-timeline:scroll()){
+ .fb-onboarding .ob-footer::before{animation:ob-more linear both;animation-timeline:scroll(nearest block)}
+}
+@keyframes ob-more{0%,92%{opacity:1}100%{opacity:0}}
+@media(forced-colors:active){.fb-onboarding .ob-footer::before{display:none}}
 
 /* "DON'T SHOW THIS AGAIN" -- the tour opens on every visit, so it carries the one control that stops
    that. It is the footer's quiet second row, under the way on and never beside it: Continue stays the

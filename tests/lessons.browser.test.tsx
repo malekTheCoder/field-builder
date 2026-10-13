@@ -8,7 +8,7 @@ import {lessonFor} from '../src/lessons';
 import {PROBLEMS, getProblem} from '../src/problems/definitions';
 /* THE LESSON AT THE TOP OF THE LESSON (LessonIntro.tsx). Its lead is always on the page, under the title and
  * above the figure; the teaching opens and shuts under one button, shut by default so the figure keeps the first
- * screen, and the reader's choice is remembered; on paper it prints whole and open whatever the button says. */
+ * screen, on every lesson and every visit; on paper it prints whole and open whatever the button says. */
 afterEach(async () => {
   cleanup();
   window.history.replaceState(null, '', '/');
@@ -23,6 +23,11 @@ async function openLesson(id: string, saved: Record<string, unknown> = {}) {
   const view = render(<Explorer />);
   await view.findByRole('button', {name: 'Watch it build'});
   await waitFor(() => expect(view.container.querySelector('h1')?.textContent, 'opened the wrong lesson').toBe(getProblem(id as never).title));
+  // Opened by its button: the page keeps no saved flag for it.
+  if (saved.lessonOpen) {
+    await userEvent.click(within(view.getByRole('region', {name: 'The lesson'})).getByRole('button', {name: 'Read the lesson'}));
+    await view.findAllByRole('button', {name: 'Hide the lesson'});
+  }
   return view;
 }
 const saved = () => JSON.parse(localStorage.getItem(STORAGE) ?? '{}');
@@ -45,7 +50,7 @@ describe('the lesson at the top', () => {
     expect(within(lesson).queryByRole('heading', {name: 'What cancels'})).toBeNull();
   });
 
-  it('opens and shuts from the keyboard, and remembers which', async () => {
+  it('opens and shuts from the keyboard', async () => {
     const view = await openLesson('bisector');
     const lesson = view.getByRole('region', {name: 'The lesson'});
     const toggle = within(lesson).getByRole('button', {name: 'Read the lesson'});
@@ -58,18 +63,12 @@ describe('the lesson at the top', () => {
     for (const s of lessonFor('bisector')!.sections) expect(within(lesson).getByRole('heading', {level: 3, name: s.heading}).checkVisibility()).toBe(true);
     expect(within(lesson).getByRole('heading', {level: 3, name: 'Read it in a textbook'})).toBeTruthy();
     expect(body.querySelectorAll('.exp-lesson-display .katex-display').length).toBeGreaterThanOrEqual(3);
-    // Remembered, in the Explorer's own saved settings.
-    await waitFor(() => expect(saved().lessonOpen).toBe(true), {timeout: 2000});
-    cleanup();
-    const again = render(<Explorer />);
-    await again.findByRole('button', {name: 'Watch it build'});
-    const reopened = again.getAllByRole('button', {name: 'Hide the lesson', expanded: true})[0];
-    expect(reopened.closest('.exp-lesson')).toBeTruthy();
-    // Shut with Space, and remembered shut.
-    reopened.focus();
+    // Shut with Space. Not remembered: each lesson opens shut, so the figure keeps the first screen on every
+    // visit (page-w5-lesson-top.browser.test.tsx).
+    toggle.focus();
     await userEvent.keyboard(' ');
-    await waitFor(() => expect(again.getByRole('button', {name: 'Read the lesson'}).getAttribute('aria-expanded')).toBe('false'));
-    await waitFor(() => expect(saved().lessonOpen).toBe(false), {timeout: 2000});
+    await waitFor(() => expect(view.getByRole('button', {name: 'Read the lesson'}).getAttribute('aria-expanded')).toBe('false'));
+    expect(saved()).not.toHaveProperty('lessonOpen');
   }, 15000);
 
   it('ends on the way to the build, and its foot hands the focus back to the top', async () => {

@@ -6,6 +6,7 @@ import '../app/globals.css';
 import Explorer from '../src/explorer/Explorer';
 import {getProblem} from '../src/problems/definitions';
 import {buildStages} from '../src/explorer/buildRun';
+import {lessonFor} from '../src/lessons';
 /* THE PAGE AROUND THE FIGURE, FOR A READER WHO DOES NOT USE A MOUSE OR DOES NOT SEE THE SCREEN.
  *
  * Every one of these was found by tabbing through the shipped page or reading it with a screen
@@ -155,7 +156,9 @@ describe('getting around the page', () => {
   await userEvent.tab();
   expect(document.activeElement?.textContent).toBe('Skip to the lesson');
   await userEvent.keyboard('{Enter}');
-  expect(document.activeElement).toBe(view.getByRole('button', {name: 'Watch it build'}));
+  // With a written lesson, to its title, so its lead is the next thing read (page-w5-lesson-top); without one,
+  // straight to the lesson's one button.
+  expect(document.activeElement).toBe(lessonFor('bisector') ? view.getByRole('heading', {level: 1}) : view.getByRole('button', {name: 'Watch it build'}));
  });
  it('names each lesson once, marks the open one, and is a navigation landmark of its own', async () => {
   const view = await openLesson('bisector');

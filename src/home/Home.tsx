@@ -40,7 +40,7 @@ const FAMILY_NOTE:Record<string,string>={
  'Straight rods':'One straight rod, with P in different places. Where P stands decides what cancels.',
  'Rings, disks and arcs':'Charge curved round P, and a disk built from rings.',
  'Charge with no end':'Lines and a sheet that never end, and still give a finite field at P.',
- 'The same shapes, as potential':'The shapes again, adding numbers instead of arrows, so nothing can cancel.'};
+ 'The same shapes, as potential':'The shapes again, adding numbers instead of arrows: with charge of one sign, nothing cancels.'};
 
 /** The argument every lesson makes, in the five steps of its run (explorer/buildRun.ts). */
 const STEPS:{name:string;text:string}[]=[
