@@ -350,7 +350,7 @@ describe('the derivation board', () => {
     for (const p of PROBLEMS) {
       const one = step(p.id, 'one').say!;
       expect(one, p.id).toContain(String.raw`$k=1/(4\pi\varepsilon_0)$`);
-      if (p.quantity === 'V') expect(one, p.id).toMatch(/divided by its distance, \$r_i\$\u00a0— not \$r_i\^2\$, as for the field\u00a0— and a potential has no direction/);
+      if (p.quantity === 'V') expect(one, p.id).toMatch(/divided by its distance, \$r_i\$ \(not \$r_i\^2\$, as for the field\), and a potential has no direction/);
       else expect(one, p.id).toMatch(/Coulomb’s law/);
     }
     for (const id of ['bisector', 'endpoint', 'ramp', 'semi', 'ring', 'infinite', 'disk', 'sheet']) expect(step(id, 'one').say, id).toMatch(/\$r_i\$ is the hypotenuse/);

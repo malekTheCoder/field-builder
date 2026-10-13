@@ -97,7 +97,7 @@ export default function Home(){
  const raw=useSyncExternalStore(subscribeStorage,readSaved,()=>null);
  const saved=useMemo(()=>parseSaved(raw),[raw]);
  const dark=useSyncExternalStore(subscribeTheme,isDark,()=>false);
- useEffect(()=>{document.title='Field Builder — Electric fields and potential, derived'},[]);
+ useEffect(()=>{document.title='Field Builder · Electric fields and potential, derived'},[]);
  const last=saved.id&&PROBLEMS.some(p=>p.id===saved.id)&&isReady(saved.id)?PROBLEMS.find(p=>p.id===saved.id):undefined;
  const open=(e:React.MouseEvent<HTMLAnchorElement>)=>{if(!inPlace(e))return;e.preventDefault();navigate(e.currentTarget.getAttribute('href')??'')};
  const start=PROBLEMS.find(p=>p.id==='bisector')??PROBLEMS[0];
@@ -111,7 +111,7 @@ export default function Home(){
     <div className="home-hero-text">
      <p className="home-kicker">Electric fields and potential, derived</p>
      <h1 id="home-title">One law, every geometry.</h1>
-     <p className="home-lede">Build the integral for the field and the potential of continuous charge — rods, rings, disks and sheets — by cutting the charge into pieces and adding up what each piece does at P.</p>
+     <p className="home-lede">Build the integral for the field and the potential of continuous charge, such as rods, rings, disks and sheets, by cutting the charge into pieces and adding up what each piece does at P.</p>
      <div className="home-actions">
       <a className="home-start" href={lessonAddress(start.id,saved)} onClick={open}>Start with the finite line<ArrowRight size={16} aria-hidden="true"/></a>
       {last&&<a className="home-continue" href={lessonAddress(last.id,saved)} onClick={open}><ShapeGlyph id={last.id} size={18}/><span className="home-continue-words"><span className="home-continue-kicker">Continue where you left off</span><span className="home-continue-to">{last.short}</span></span><ArrowRight size={15} aria-hidden="true"/></a>}

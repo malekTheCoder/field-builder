@@ -57,6 +57,8 @@ owner says they are urgent.
    limiting cases are already in them, kept simple.
 
 ## Done
+- No em dashes on the site (owner, 2026-10-13): every visible sentence that used one now uses a comma,
+  colon, brackets or a full stop; tests/no-em-dash.test.ts keeps them out. Comments may still use them.
 - CI green again, Pages deploying (d55dcb4, run 38389216435). The ring's run-perf failure was not a
   regression on CI's path: on the same runner the merged and pre-merge ring cost the same, and CI
   machines differ about fourfold. Most of each CI frame was React's dev build capturing an owner-stack

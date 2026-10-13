@@ -19,7 +19,7 @@ return <span className={'math '+className} style={block?{display:'block'}:undefi
  * text that is not yet marked up with $…$; marked-up text sets the relation as math. And an em dash is
  * held to the word before it, as the board's remarks hold theirs: a model note at 390px began its
  * second line "— a semicircle, a quarter-circle…", and a book never starts a line with a dash. */
-const holdRelations=(text:string)=>text.replace(/ ([=<>→≈≤≥]) /g,' $1 ').replace(/ — /g,' — ');
+const holdRelations=(text:string)=>text.replace(/ ([=<>→≈≤≥]) /g,' $1 ').replace(/ \u2014 /g,' \u2014 ');
 /** A remark in words, with any symbol in it -- written $…$ -- set as math: the λ in the sentence is
  * then the λ in the equation above it, in the same face, rather than a Greek letter from whatever
  * font the browser found. The words still wrap; only a symbol is held together. Here rather than on

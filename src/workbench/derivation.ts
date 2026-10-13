@@ -117,10 +117,6 @@ type Parts = {
 };
 /** Holds a word and the symbol after it on one line, so a remark never ends on a lone "P." */
 const NB = ' ';
-/** An em dash that never starts a line. Set with ordinary spaces either side, the browser broke
- * before it as readily as after, and a line began "— λ(y), r_i and cos α_i —"; a book never starts a
- * line with a dash. The space before it does not break, so the dash ends the line it is on. */
-const DASH = `${NB}— `;
 /** Where a remark moves on to its next idea: the board sets what follows as a paragraph of its own. */
 export const BREAK = '\n\n';
 /** A point charge's field, said once where the board first uses it: what the formula is, what k is
@@ -414,7 +410,7 @@ const PARTS: Record<ProblemId, Parts> = {
     equal: String.raw`Putting $x=r\tan\alpha$ makes $r_i^2=x^2+r^2=r^2\sec^2\alpha$, and the $\sec^2\alpha$ in $\Delta Q$ cancels: every piece’s $\Delta E$ is $k\lambda\,\Delta\alpha/r$. A far piece holds more charge, and is farther away by exactly enough.`,
     sign: '-', dir: String.raw`\sin\alpha`, dirOf: String.raw`\frac{x}{\sqrt{x^2+r^2}}`, simplify: true,
     also: (dQ, ri2) => String.raw`\Delta E_y=\frac{k\,${dQ}}{${ri2}}${fx('projection', String.raw`\cos\alpha`)}`,
-    nothing: String.raw`Nothing cancels: the line stops right below${NB}$P$, so no piece has a mirror partner, and both parts of each survive${DASH}which is why the field leans.`,
+    nothing: String.raw`Nothing cancels: the line stops right below${NB}$P$, so no piece has a mirror partner, and both parts of each survive, which is why the field leans.`,
     dirIs: String.raw`${ARROW} lies along the line of sight to the piece, so its part along the line is $\Delta E\sin\alpha$, the side opposite${NB}$\alpha$, and its part across the line is $\Delta E\cos\alpha$. For positive charge the part along the line points back past the end, toward $-x$: hence the minus; for negative charge, toward $+x$.`,
     tail: String.raw`; and in the charge, $r\sec^2\alpha\,\Delta\alpha$ becomes the length${NB}$dx$`,
     check: {dq: 'lambda', r: 'sqrt(x^2+r^2)', dir: '-x/sqrt(x^2+r^2)'}},
@@ -643,7 +639,7 @@ export function boardLines(p: Problem, bounds?: [string, string], opts: {keeps?:
   //
   // "Over its distance — over r_i, not r_i²" said "over" twice across a dash, and read as a false start.
   // So the distance is named once, and what it is not is said in a clause of its own.
-  const POTENTIAL = String.raw`divided by its distance, $r_i$${DASH}not $r_i^2$, as for the field${DASH}and a potential has no direction: $\Delta V$ is a number, with nothing to split into parts. Here $k=1/(4\pi\varepsilon_0)$, and ${numbers}.`;
+  const POTENTIAL = String.raw`divided by its distance, $r_i$ (not $r_i^2$, as for the field), and a potential has no direction: $\Delta V$ is a number, with nothing to split into parts. Here $k=1/(4\pi\varepsilon_0)$, and ${numbers}.`;
   // A ring's or an arc's potential is exact at any cut, and the run's first line says pieces of any
   // size -- while One piece said only "a point charge's potential", and Add then called the sum exact
   // with nothing on the card saying why a large piece is a point charge's here. Every bit of one is the
