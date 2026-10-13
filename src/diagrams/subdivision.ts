@@ -56,3 +56,13 @@ export function pieceKey(i: number, n: number): string {
  }
  return id || '0';
 }
+/** Move one integration handle (0 the lower, 1 the upper, in percent of the source
+ *  coordinate) without letting it reach or pass the other. A crossed pair made every piece
+ *  weigh −1 in the sum, so the figure drew ΣΔE as minus the field, pointing into a positive
+ *  rod, while the board refuses that interval outright ("Choose an increasing interval").
+ *  Equal handles drew no sum at all. The handle stops one step short of its partner instead,
+ *  which is what a ruler's two slides do. */
+export function orderedBounds(range: readonly [number, number], which: 0 | 1, value: number): [number, number] {
+ const v = Math.round(Math.max(0, Math.min(100, Number.isFinite(value) ? value : 0)));
+ return which === 0 ? [Math.max(0, Math.min(v, range[1] - 1)), range[1]] : [range[0], Math.min(100, Math.max(v, range[0] + 1))];
+}

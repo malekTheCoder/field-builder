@@ -624,8 +624,9 @@
 /* Thin and muted, so a leader reads as a leader: at the ghost colour's full strength two of them meeting at
    P read as two more strokes of the construction. */
 .cd-label-leaders line{stroke:var(--cd-muted);stroke-width:1;opacity:.5}
-/* Too narrow for prose inside the figure. */
-.cd-narrow .cd-triangle-note{display:none}
+/* Too narrow for prose inside the figure -- but not for two words. Without them a phone showed a second triangle in
+   the corner, lettered z, α, r_i and R, with nothing to say it was the one at P redrawn. Set at the footer's size. */
+.cd-narrow .cd-svg .cd-triangle .cd-triangle-note{font-size:calc(15px * var(--cd-k,1))}
 .cd-svg .cd-dimension .cd-extension{stroke-width:1;stroke-dasharray:2 2}
 .cd-point-leader{stroke:var(--cd-ink);stroke-width:1.1;opacity:.55;pointer-events:none}
 /* Dark mode: the ring's band, translucent orange on navy, came out a muddy brown, and its unlit pieces
@@ -683,3 +684,14 @@
 .cd-focus-distance .cd-triangle path[data-leg],.cd-focus-distance .cd-triangle[data-kind="schematic"] > path:not(.cd-angle-arc):not(.cd-right-angle),
 .cd-focus-distance .cd-svg .cd-triangle .cd-x-bar{stroke:var(--term-distance)}
 .cd-focus-projection .cd-triangle text:not(.cd-triangle-note):not(.cd-ri),.cd-focus-projection .cd-triangle[data-kind="schematic"] text.cd-ri{fill:var(--term-projection)}
+/* "Keyboard help" on a phone, which has no keyboard: a line under the figure offering Tab and arrow keys to a reader
+   holding a touch screen. Taken out of sight, not out of the page: a screen reader on that phone still reaches the
+   sliders it carries (the piece, the distance, the integration bounds), which are its only way to move them. */
+@media (any-pointer:coarse) and (max-width:759px){.cd-caption>.cd-controls:not([open]){position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);clip-path:inset(50%);white-space:nowrap;border:0}}
+/* DARK: THE PIECES NOT BEING TALKED ABOUT fade toward a muted orange, not toward black. At .16 over the navy ground
+   they were near-black blocks inside the glowing rod, read as gaps or as stretches with no charge on them. Mixed
+   into the ground at about a half, they stay charge, only quieter. The same for the ghosts of the parts that
+   cancelled: dark teal at .45 on navy all but vanished, on the stage whose subject they are, so their ink is
+   lifted toward white while the fade still says "gone". */
+.dark .cd-stage-one .cd-piece:not(.is-selected),.dark .cd-stage-cancel .cd-piece:not(.is-selected):not(.is-partner){opacity:1!important;fill:color-mix(in oklab,var(--charge,#b8460f) 52%,var(--diagram,#0f1d2a));stroke:color-mix(in oklab,var(--charge,#b8460f) 62%,var(--diagram,#0f1d2a))}
+.dark .cd-cancel-ghost .cd-vector{color:color-mix(in oklab,var(--contribution,#2f9089) 62%,#fff)!important}

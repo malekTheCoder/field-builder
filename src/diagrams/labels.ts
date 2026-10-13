@@ -68,13 +68,15 @@ export const overlaps=(a:Box,b:Box,pad:number,padY=pad)=>
 const shift=(b:Box,n:Nudge):Box=>({x:b.x+n.dx,y:b.y+n.dy,width:b.width,height:b.height});
 const grow=(b:Box,x:number,y:number):Box=>({x:b.x-x,y:b.y-y,width:b.width+2*x,height:b.height+2*y});
 const area=(a:Box,b:Box)=>Math.max(0,Math.min(a.x+a.width,b.x+b.width)-Math.max(a.x,b.x))*Math.max(0,Math.min(a.y+a.height,b.y+b.height)-Math.max(a.y,b.y));
-const inside=(b:Box,frame:{width:number;height:number})=>b.x>=0&&b.y>=0&&b.x+b.width<=frame.width&&b.y+b.height<=frame.height;
+/** A frame may start below the top of the picture: `top` is the first row a name may use. */
+type Frame={width:number;height:number;top?:number};
+const inside=(b:Box,frame:Frame)=>b.x>=0&&b.y>=(frame.top??0)&&b.x+b.width<=frame.width&&b.y+b.height<=frame.height;
 /** The nearest position that fits inside the frame. A label bigger than the frame is pinned
  * to the top left rather than centred, so at least its first characters are readable. */
-const clampInto=(b:Box,frame:{width:number;height:number}):Box=>({
+const clampInto=(b:Box,frame:Frame):Box=>({
  ...b,
  x:Math.max(0,Math.min(b.x,frame.width-b.width)),
- y:Math.max(0,Math.min(b.y,frame.height-b.height)),
+ y:Math.max(frame.top??0,Math.min(b.y,frame.height-b.height)),
 });
 /** Where to try, in order: stay put, then rings of eight directions at growing distance.
  * Staying put is always first, so a label that is already clear is never moved — the figure
@@ -104,7 +106,10 @@ export function reachCandidates(reach:number,rings=4):Nudge[]{
 }
 const reflect=(b:Box,m:{x:number;y:number}):Box=>({x:2*m.x-b.x-b.width,y:2*m.y-b.y-b.height,width:b.width,height:b.height});
 export type PlaceOptions={
- frame?:{width:number;height:number};
+ /** Where every name must stand. `top`, where given, is a band across the top no name may enter even with
+  * nowhere free: as an obstacle, the stage's title row was only one cost among others, and a kept limit was set
+  * in it, level with "Add them up", outside the plot it names a point of. */
+ frame?:Frame;
  /** Marks the labels must also avoid — the observation point, the charge itself. */
  obstacles?:readonly Box[];
  /** Clear space demanded around each label, so two do not merely fail to touch. */
@@ -126,6 +131,11 @@ export type PlaceOptions={
   * be set across even where nothing is free: the arc's P = O was set on a phone with the mirror's line to P
   * through it, its overlap with that thin line costing next to nothing. */
  lines?:readonly Segment[];
+ /** The axes: lines a name may stand beside, even touch with the tail of a letter, but never straddle. Squares along
+  * them made a spot across one cost no more than its overlap, and with nothing else free a name was set centred on
+  * the axis -- "y = 0" on the x axis, "s = R" struck through -- the knock under it cutting the axis in two, so the axis
+  * looked broken and the name crossed out. Only the middle seven tenths of a name's box are held to it. */
+ rules?:readonly Segment[];
  /** How much further than `maxShift` a label it must keep may go, as a multiple of it, when nothing
   * within reach is free. Its nudge then says it needs a leader. */
  leaderReach?:number;
@@ -269,7 +279,9 @@ export function placeLabels(labels:readonly Label[],options:PlaceOptions={}):Nud
   // Whether a segment touches a box: never where their bounding boxes are apart, which is most of them and costs four
   // comparisons; measured only where they meet.
   const touches=(b:Box,s:Segment)=>Math.min(s.a.x,s.b.x)<=b.x+b.width&&Math.max(s.a.x,s.b.x)>=b.x&&Math.min(s.a.y,s.b.y)<=b.y+b.height&&Math.max(s.a.y,s.b.y)>=b.y&&boxSegmentDistance(b,s)===0;
-  const crossesShaft=(b:Box)=>{const inner=grow(b,-1,-1);return inner.width>0&&inner.height>0&&nearStrokes.some(s=>touches(inner,s));};
+  const nearRules=(options.rules??[]).filter(reaches);
+  const straddles=(b:Box)=>{const core=grow(b,-.15*b.width,-.15*b.height);return core.width>0&&core.height>0&&nearRules.some(s=>touches(core,s));};
+  const crossesShaft=(b:Box)=>{const inner=grow(b,-1,-1);return (inner.width>0&&inner.height>0&&nearStrokes.some(s=>touches(inner,s)))||straddles(b);};
   // ...and whether it is some other arrow or line: across its own shaft a name still plainly names that arrow.
   const crossesOther=(b:Box)=>{const inner=grow(b,-1,-1);return inner.width>0&&inner.height>0&&nearOthers.some(s=>touches(inner,s));};
   // `freeOnly`: a search whose least-bad spot would be thrown away -- the far rings, tried for a kept name only to

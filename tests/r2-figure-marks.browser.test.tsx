@@ -168,7 +168,9 @@ describe('a line that never ends', () => {
  for (const at of ['rest', 'Shrink them'] as const) it(`keeps its ±∞, its y and the limits' arrows apart, and off the break marks: ${at}`, async () => {
   const view = await openLesson('infinite');
   if (at !== 'rest') await stage(view, 5);
-  const named = ['+∞', '−∞', 'y'].map(n => ({n, b: box(view, textNamed(view, n)!)}));
+  // The y letter stands at the axis' top as other lessons' do, and goes while θ's limits are named there (wave 5).
+  if (at !== 'rest') expect(textNamed(view, 'y'), 'y beside the named limits').toBeFalsy();
+  const named = (at === 'rest' ? ['+∞', '−∞', 'y'] : ['+∞', '−∞']).map(n => ({n, b: box(view, textNamed(view, n)!)}));
   const handles = [...svgOf(view).querySelectorAll<SVGPathElement>('.cd-bound.is-edge path')].map((h, i) => ({n: `limit ${i}`, b: box(view, h)}));
   if (at !== 'rest') expect(handles.length).toBe(2);
   const all = [...named, ...handles];
@@ -240,7 +242,10 @@ describe('on a phone the figure\'s small marks are still marks', () => {
   const faces = texts(ring, '.cd-cube-label');
   expect(faces.length).toBeGreaterThan(0);
   for (const f of faces) expect(parseFloat(getComputedStyle(f).fontSize) * k, f.textContent ?? '').toBeGreaterThanOrEqual(8);
-  const note = svgOf(ring).querySelector('.cd-triangle-note')!;
-  expect(getComputedStyle(note).display).toBe('none');
+  // Two words, not the desktop's prose: without them the corner's triangle had nothing to say it was the one at P.
+  const note = svgOf(ring).querySelector<SVGTextElement>('.cd-triangle-note')!;
+  expect(note.textContent).toBe('Same triangle');
+  expect(getComputedStyle(note).display).not.toBe('none');
+  expect(parseFloat(getComputedStyle(note).fontSize) * k).toBeGreaterThanOrEqual(8);
  }, 30000);
 });
