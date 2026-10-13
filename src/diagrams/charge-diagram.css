@@ -210,7 +210,7 @@
 .cd-focus-bounds .cd-bound rect{fill:var(--diagram,#fff);stroke:var(--term-bounds);stroke-width:3.8}
 .cd-focus-bounds .cd-bound text{fill:var(--term-bounds);font-weight:600}
 .cd-svg .cd-end{transition:fill .25s ease}
-.cd-focus-bounds .cd-svg .cd-end:not(.cd-density-end),.cd-focus-bounds .cd-end:not(.cd-density-end){fill:var(--term-bounds);font-weight:700}
+.cd-focus-bounds .cd-svg .cd-end:not(.cd-density-end):not(.cd-coordinate-end),.cd-focus-bounds .cd-end:not(.cd-density-end):not(.cd-coordinate-end){fill:var(--term-bounds);font-weight:700}
 /* How finely it is cut: the cuts themselves come forward, and the figure's own note of it. */
 .cd-focus-pieces .cd-seam line{stroke:var(--term-element);stroke-opacity:1;stroke-width:2.6}
 .cd-focus-pieces text[data-dim="pieces"]{fill:var(--term-element);font-weight:700}
@@ -363,9 +363,9 @@
    so it is set at the figure's own quiet size and given a thin halo of the diagram's ground
    instead, which lets a line pass under it without either one becoming unreadable. */
 /* Strong enough to read before it is pointed at: at .45 the legend -- the 3D view's only instructions -- stood at two
-   to one against the ground, and on a phone or a tablet nothing ever points at it. */
-.cd-help{opacity:.82;transition:opacity .25s ease;pointer-events:none}
-.charge-diagram:hover .cd-help,.cd-svg:focus-within .cd-help{opacity:.95}
+   to one against the ground, and on a phone or a tablet nothing ever points at it. At full strength: at .82 it was
+   still four to one, short of the four and a half type this small needs. It stays quiet by its size and weight. */
+.cd-help{opacity:1;transition:opacity .25s ease;pointer-events:none}
 .cd-svg .cd-help text{fill:var(--muted-foreground);font-size:calc(11px * var(--cd-k,1));font-weight:500;
  letter-spacing:.02em;paint-order:stroke;stroke:var(--diagram,#fff);stroke-width:4px;stroke-linejoin:round}
 /* On a phone or any touch screen the page scrolls under a finger, there are no arrow keys, and zoom is
@@ -606,7 +606,9 @@
 .cd-svg .cd-infinity text{paint-order:stroke;stroke:var(--diagram,#ffffff);stroke-width:5px;stroke-linejoin:round}
 /* While the arc's two sideways parts are drawn they lie along the y axis, dashed teal over solid grey:
    the axes step back so the parts can be seen. */
-.cd-arc-pair .cd-axes{opacity:.3}
+.cd-arc-pair:not(.cd-in-space) .cd-axes path{opacity:.3}
+/* ...their letters less: at .3 the x and y were under two to one against the ground, a name nobody could read. */
+.cd-arc-pair .cd-axes text{opacity:.55}
 /* A leader the label placer drew, for a name it had to take past its reach. */
 /* Thin and muted, so a leader reads as a leader: at the ghost colour's full strength two of them meeting at
    P read as two more strokes of the construction. */
@@ -643,6 +645,11 @@
 /* α and φ in the board's own face (see `setUpright`): the serif's italic α is an "a" with a tail, and its φ the
    stroked form beside the board's curly \varphi. */
 .cd-svg .cd-greek{font-family:KaTeX_Math,var(--font-display),Georgia,serif;font-style:italic}
+/* A whole vector's E, bold and upright as the board's \mathbf E: see `SymbolText`. */
+.cd-svg .cd-bold{font-style:normal;font-weight:800}
+/* The angle again, on the arrows' side of P: lighter than the triangle's own, which it repeats. */
+.cd-angle-twin .cd-angle-arc{opacity:.6}
+.cd-svg .cd-angle-twin .cd-angle{font-weight:500}
 /* Where the pairs' sum went before the far pairs brought it back: a ghost of the axis, as What cancels draws the parts
    that went, with the shares the sum went past marked on it. */
 .cd-pair-overshoot{pointer-events:none}

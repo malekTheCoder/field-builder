@@ -65,7 +65,10 @@ describe('the run\'s piece has an arrow worth reading, however far off it is', (
   const view = await openLesson('bisector', {distance: .5, size: 8});
   stage(view, 3);
   await waitFor(() => expect(length(named(view, 'ΔE', '.cd-grow'))).toBeGreaterThanOrEqual(60));
-  for (const s of ['ΔE_y', '−ΔE_y']) expect(length(named(view, s, '[data-cancel-transverse]')), s).toBeGreaterThanOrEqual(18);
+  expect(length(named(view, 'ΔE_y', '[data-cancel-transverse]')), 'ΔE_y').toBeGreaterThanOrEqual(18);
+  // The mirror's part is drawn as long; its name, which the board writes once as (−ΔE_y), is the one that gives way to
+  // the piece's own names when the fan has no room for it (see figure-names-w4-cancel).
+  expect(length(view.container.querySelector('[data-cancel-transverse="partner"] .cd-vector line')!), '−ΔE_y').toBeGreaterThanOrEqual(18);
  });
  it('disk, P half a metre over a disk eight wide: the ring\'s arrow along the axis is named', async () => {
   const view = await openLesson('disk', {distance: .5, size: 8});

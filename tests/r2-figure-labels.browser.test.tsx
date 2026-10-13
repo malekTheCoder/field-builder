@@ -104,7 +104,7 @@ function terms(id: string, n: 2 | 3, space = false): string[] {
 function flatTerms(id: string, n: 2 | 3): string[] {
  const p = getProblem(id as never), g = p.geometry, scalar = p.quantity === 'V';
  const surface = g === 'disk' || g === 'sheet', round = g === 'ring' || surface;
- const ri = g === 'arc' ? [] : g === 'axial' ? ['ri = L + a − x'] : ['ri'];
+ const ri = g === 'arc' ? (scalar ? [] : ['ri = R']) : g === 'axial' ? ['ri = L + a − x'] : ['ri'];
  if (scalar) {
   const pairs = ['bisector', 'ring', 'arc'].includes(g);
   return n === 2 ? ['ΔV', ...ri, ...(g === 'bisector' ? ['y'] : []), surface ? 'ring ΔQ' : 'ΔQ'] : [pairs ? 'ΔV + ΔV' : 'ΔV'];
@@ -113,9 +113,10 @@ function flatTerms(id: string, n: 2 | 3): string[] {
  const angle = g === 'infinite' || g === 'arc' ? 'θ' : 'α';
  if (g === 'axial') return ['ΔE', ...ri];
  if (surface) return ['ΔEz', angle, ...ri];
- const pairs = ['bisector', 'infinite', 'ring', 'arc'].includes(g);
+ // The piece's own whole arrow too, which What cancels' line says "lies along that line" -- and not the mirror's part
+ // that cancels it: the board writes that once, as (−ΔE_y), and it is the name that gives way to the piece's own.
  const keep = round ? 'ΔEz' : 'ΔEx', drop = round ? 'ΔE⊥' : 'ΔEy';
- return [keep, drop, ...(pairs ? ['−' + drop] : []), angle, ...ri];
+ return [keep, drop, 'ΔE', angle, ...ri];
 }
 function check(view: View, where: string, want: string[]) {
  const {svg, labels} = figure(view);

@@ -59,6 +59,9 @@ export const facesInFront = (view: CameraView) => {
 };
 export type ViewCubeProps = {
   view: CameraView; at: {x: number; y: number}; size?: number;
+  /** The least a face's name may be set at, in the drawing's units: eleven pixels on the screen, whatever the figure's
+   * scale. Floored in units, nine of them, it was eight pixels on a phone, where the figure is half size. */
+  minFont?: number;
   onPick: (next: CameraView, label: string) => void;
   /** A drag across the cube spins the scene, as it does in every CAD tool. */
   onSpin?: (dx: number, dy: number) => void;
@@ -66,7 +69,7 @@ export type ViewCubeProps = {
   /** The arrows around it, a notch at a time. */
   onStep?: (key: 'ArrowLeft' | 'ArrowRight' | 'ArrowUp' | 'ArrowDown') => void;
 };
-export function ViewCube({view, at, size = 22, onPick, onSpin, onSpinStart, onStep}: ViewCubeProps) {
+export function ViewCube({view, at, size = 22, minFont = 0, onPick, onSpin, onSpinStart, onStep}: ViewCubeProps) {
   const place = (p: readonly [number, number, number]) => {
     const s = projectCamera({x: p[0], y: p[1], z: p[2]}, view.yaw, view.pitch);
     return {x: at.x + s.x * size, y: at.y + s.y * size};
@@ -119,10 +122,14 @@ export function ViewCube({view, at, size = 22, onPick, onSpin, onSpinStart, onSt
       const xs = corners(f.normal).map(c => place(c).x), across = Math.max(...xs) - Math.min(...xs);
       // The caller scales `size` with the figure's labels on a phone, so the face -- and the name it
       // holds -- grows with them; scaling the type again on top of that would double it.
-      const fit = .88 * across / (.66 * f.label.length);
+      // Never under `minFont`: where the whole word will not fit its face at that size, the face is named by its
+      // initial -- F, T, R -- as a CAD cube is on a small screen; its full name is still its button's label. At the
+      // floor the word may take nineteen twentieths of its face rather than seven eighths: on a desktop FRONT fitted
+      // at a few hundredths of a pixel under eleven, and went to F beside a TOP spelled out.
+      const fits = (label: string) => .88 * across / (.66 * label.length), word = fits(f.label) * .95 / .88 >= minFont ? f.label : f.label[0];
       return <text key={f.key} className="cd-cube-label" x={centre.x.toFixed(2)} y={centre.y.toFixed(2)}
         textAnchor="middle" dominantBaseline="middle"
-        style={{fontSize: `${Math.min(fit, Math.max(9, size * .46)).toFixed(1)}px`}}>{f.label}</text>;
+        style={{fontSize: `${Math.max(minFont, Math.min(fits(word), Math.max(9, size * .46))).toFixed(1)}px`}}>{word}</text>;
     })}
     {onStep && steps.map(s => <g key={s.key} className="cd-cube-step" role="button" tabIndex={0} aria-label={s.title}
       transform={`translate(${(at.x + s.at.x).toFixed(1)} ${(at.y + s.at.y).toFixed(1)}) scale(${(size / 22).toFixed(3)})`}
