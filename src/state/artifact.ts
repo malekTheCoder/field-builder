@@ -1,8 +1,10 @@
 import katex from 'katex';
 import {snapshotLayer} from '../diagrams/snapshot';
 import {PLOT} from '../diagrams/vectorfield';
+import {buildStages} from '../explorer/buildRun';
+import {getProblem} from '../problems/definitions';
 import type {Problem} from '../problems/types';
-import {resultLines, workedSteps} from '../workbench/derivation';
+import {alongIntegralOf, boardLines, resultLines, workedSteps, type BoardLine} from '../workbench/derivation';
 
 /** One step of worked algebra: a sentence with its symbols written $…$, and the line it arrives at. */
 export type WorkedStep = {text: string; tex: string};
@@ -10,10 +12,22 @@ export type WorkedStep = {text: string; tex: string};
 /** One of a lesson's limiting cases, as the copy prints it: its title, its formula and why. */
 export type LessonCheck = {title: string; formula: string; explanation: string};
 
+/** One stage of Build the integral, as the copy prints it: the stage's name, the run's one sentence for
+ * it, and the line the board writes for it. */
+export type BuildingStage = {name: string; gloss: string; line: BoardLine};
+
 export type LessonArtifact = {
   title: string;
   subtitle: string;
+  /** The live lesson's address, with the values it was saved at: printed under the title, so a student
+   * holding the paper can open the same setup. */
+  address?: string;
   setup: string;
+  /** The five stages the board writes, from the cut to the integral. */
+  building?: BuildingStage[];
+  /** The other component's integral, where one survives, set as the panel's answer sets it under the
+   * board's last line: with the sentence that says where it comes from. */
+  along?: WorkedStep;
   /** Where P is, in the lesson's own symbols: the caption under the figure. */
   coordinate?: string;
   integralTex: string;
@@ -76,14 +90,36 @@ export function lessonWorking(p: Problem, algebra: Problem = p): {worked: Worked
  * route the copy said "use y = r tan θ to sweep the whole line" and printed the θ integral, and then
  * worked a rod of length L that neither had mentioned. The page's own references show the route's
  * setup too. And the copy carries the lesson's limiting cases and its sources, which a handout is
- * the place for: it had neither, so a student holding it could check nothing and look nothing up. */
-export function lessonArtifact(p: Problem, algebra: Problem = p): LessonArtifact {
+ * the place for: it had neither, so a student holding it could check nothing and look nothing up.
+ *
+ * THE COPY LEFT OUT THE METHOD. It went from the setup straight to the integral: on the ring no
+ * ΔQ = λR Δθ, no rᵢ = √(R² + z²), no cos α = z/rᵢ, nothing about the length of ring across that cancels
+ * the sideways part; on the bisector nothing said E_y = 0, or why. Those five steps are what the board
+ * writes, what the run is for, and what a problem set marks. So the copy prints them, from the board's
+ * own lines and the run's own stage names and sentences -- read here, not written again, so the paper
+ * says whatever the panel says -- and E_y's integral where it survives, as the panel's answer sets it.
+ * The board is always the lesson's own: the infinite line's is built in θ whichever route is unfolded.
+ *
+ * `address` is the live lesson's, values and all, as the page's own "Copy a link" writes it. */
+export function lessonArtifact(p: Problem, algebra: Problem = p, address?: string): LessonArtifact {
   const {worked, back} = lessonWorking(p, algebra);
-  return {title: p.title, subtitle: p.subtitle, setup: algebra.setup, coordinate: p.coordinate, integralTex: algebra.integralTex,
+  // Handed the infinite line's finite-rod route as the lesson itself, the board is still the angular one.
+  const q = p.id === 'infinite' && p.variable !== 'theta' ? getProblem('infinite') : p;
+  const stages = buildStages(q), lines = boardLines(q), along = alongIntegralOf(q);
+  return {title: p.title, subtitle: p.subtitle, ...(address ? {address} : {}), setup: algebra.setup,
+    building: lines.map((line, i) => ({name: stages[i].name, gloss: stages[i].prose, line})),
+    ...(along ? {along: {text: ALONG[q.id] ?? ALONG.rod, tex: along.tex}} : {}),
+    coordinate: p.coordinate, integralTex: algebra.integralTex,
     secondaryIntegralTex: algebra.secondaryIntegralTex, results: resultLines(algebra),
     worked, back, derived: back.slice(-1).map(w => w.tex),
     checks: p.limits.map(l => ({title: l.title, formula: l.formula, explanation: l.explanation})), sources: p.sources};
 }
+/** Where E_y's integral comes from, said as the panel says it over the same integral (EquationWorkbench's
+ * `surviving`): the factor the board never writes, the sine (the half line's cosine), named with it. */
+const ALONG: Record<string, string> = {
+  rod: String.raw`The other component, $E_y$, is the surviving $\Delta E_y$ added up the same way, with $\sin\alpha=y/\sqrt{y^2+r^2}$:`,
+  semi: String.raw`The other component, $E_y$, is the surviving $\Delta E_y$ added up the same way, with $\cos\alpha=r/\sqrt{x^2+r^2}$:`,
+};
 
 /** Two TeX strings that set the same display: braces and spaces are only grouping. */
 const sameTex = (a: string, b: string) => a.replace(/[{}\s]/g, '') === b.replace(/[{}\s]/g, '');
@@ -219,9 +255,10 @@ const THIN = '<mspace width="0.1667em"/>';
  * against what follows; it is written in, as zero space either side. */
 const UNARY = /(<mo>(?:=|&lt;|&gt;|<|>|≈|∼|→|≤|≥|≠|≪|≫|∝)<\/mo>|<mo(?: [^>]*)?>(?:\(|\[|\{|,)<\/mo>|<mrow>|<mtd>)<mo>([−+])<\/mo>/g;
 /** Bold upright letters by their Unicode code points. MathML Core ignores mathvariant="bold", so |𝐄|
- * came out as a plain italic E, the same letter as the component E_x beside it. */
-const BOLD = /<mi mathvariant="bold">([A-Za-z])<\/mi>/g;
-const boldLetter = (c: string) => String.fromCodePoint((c <= 'Z' ? 0x1d400 : 0x1d41a) + c.charCodeAt(0) - (c <= 'Z' ? 65 : 97));
+ * came out as a plain italic E, the same letter as the component E_x beside it. And the zero vector, the
+ * bold 0 the board's cancellations end on (E_⊥ = 0), which the copy now prints with them. */
+const BOLD = /<(mi|mn) mathvariant="bold">([A-Za-z0-9])<\/\1>/g;
+const boldLetter = (c: string) => String.fromCodePoint(c <= '9' ? 0x1d7ce + c.charCodeAt(0) - 48 : (c <= 'Z' ? 0x1d400 : 0x1d41a) + c.charCodeAt(0) - (c <= 'Z' ? 65 : 97));
 /** A unit vector's hat. KaTeX writes \hat x as <mover accent="true"><mi>x</mi><mo>^</mo></mover>, the
  * ASCII caret, which Chromium sets at the height of a letter: x̂ and ŷ printed as letters with a caret
  * struck through them, in the rod level with an end's E = E_x x̂ + E_y ŷ and the half line's
@@ -239,7 +276,7 @@ const COLON = /<mo>:<\/mo>/g;
 function spaceOperators(markup: string) {
   return markup.replace(ORDINARY_BEFORE, `$1${THIN}$2`).replace(ORDINARY_AFTER, `$1${THIN}`)
     .replace(UNARY, '$1<mo lspace="0em" rspace="0em">$2</mo>')
-    .replace(BOLD, (_, c: string) => `<mi mathvariant="normal">${boldLetter(c)}</mi>`)
+    .replace(BOLD, (_, tag: string, c: string) => `<${tag} mathvariant="normal">${boldLetter(c)}</${tag}>`)
     .replace(CARET, '<mo>\u02c6</mo>').replace(COLON, '<mo lspace="0em" rspace="0.1667em">:</mo>');
 }
 
@@ -271,6 +308,46 @@ export function displays(lines: string[]): string[] {
  * script the page reads as before, the gaps and all. */
 const FIT_ROOTS = `(function(){function fit(){var roots=document.querySelectorAll('msqrt');for(var i=0;i<roots.length;i++){var root=roots[i],right=-Infinity;root.style.marginInlineEnd='';for(var j=0;j<root.children.length;j++)right=Math.max(right,root.children[j].getBoundingClientRect().right);var gap=root.getBoundingClientRect().right-right;if(gap>0.5&&gap<20)root.style.marginInlineEnd=(-gap)+'px';}}if(document.fonts&&document.fonts.ready)document.fonts.ready.then(fit);else fit();})();`;
 
+/** The board's lines carry the classes that light a factor on the page, \htmlClass{fx fx-…}{…}. Paper has
+ * nothing to light, and KaTeX sets an untrusted \htmlClass as an error in red; the group stays a group.
+ * And a range's \colon is the bare colon the copy already sets as punctuation (COLON): KaTeX's own writes
+ * a space before it, and the bounds printed "y : −L/2 → L/2". */
+const plain = (tex: string) => tex.replace(/\\htmlClass\{[^{}]*\}/g, '').replace(/\\colon/g, ':');
+
+/** Where a line's first relation is, outside every brace: its "=", or the "≈" of a sum. */
+function relationAt(tex: string): number {
+  let depth = 0;
+  for (let i = 0; i < tex.length; i++) {
+    const c = tex[i];
+    if (c === '{') depth++;
+    else if (c === '}') depth--;
+    else if (c === '\\') {
+      const name = /^\\([A-Za-z]+|.)/.exec(tex.slice(i))![0];
+      if (depth === 0 && name === '\\approx') return i;
+      i += name.length - 1;
+    } else if (c === '=' && depth === 0) return i;
+  }
+  return -1;
+}
+
+/** A board line and its second half as one chain, each "=" under the first. The page sets the second half
+ * under the first behind a phantom of the left-hand side, \phantom{E_x}=…, so that its "=" lines up;
+ * printed as a display of its own, the phantom was a blank where the left-hand side should be. The exact
+ * sums' second half is already two rows; each row is a row of the chain. */
+export function chained(tex: string, finish?: string): string {
+  const at = relationAt(tex);
+  if (!finish || at <= 0) return tex;
+  const body = /^\\begin\{aligned\}([\s\S]*)\\end\{aligned\}$/.exec(finish.trim())?.[1] ?? finish;
+  const rows = body.split(/\\\\(?:\[[^\]]*\])?/).map(r => r.trim().replace(/^\\phantom\{[^{}]*\}/, '').replace(/^&/, '').trim()).filter(Boolean);
+  return String.raw`\begin{aligned}${tex.slice(0, at)}&${tex.slice(at)}${rows.map(r => String.raw`\\[0.75em]&${r}`).join('')}\end{aligned}`;
+}
+
+/** A heading and the first block under it, kept on one sheet. Printed to Letter, the bisector's copy ended
+ * its first sheet on "Working" with every step on the next, and its second on "Checks" with every check
+ * on the third. `break-after: avoid` on a heading is the rule for this, but an engine may honour it only
+ * between siblings; a heading inside one unbreakable block with what it heads holds in every engine. */
+const keep = (head: string, blocks: string[]) => blocks.length ? `<div class="keep">${head}\n${blocks[0]}</div>\n${blocks.slice(1).map(b => `${b}\n`).join('')}` : '';
+
 /** A self-contained HTML copy a student can save offline and print later. No network, no app chrome.
  *
  * IT WAS NOT FIT TO HAND OUT. The equations were TeX source in a monospaced box; the figure was the
@@ -279,18 +356,45 @@ const FIT_ROOTS = `(function(){function fit(){var roots=document.querySelectorAl
  * angle of 3.141592653589793 radians on a lesson about a rod; and the result stopped at E_x on the
  * lessons whose answer has an E_y too. Now: the figure as drawn, the setup, the integral and every
  * line of the result, set as mathematics. The numbers are gone with the parameter list -- the page
- * itself prints none, and the copy should not be where they come back. */
+ * itself prints none, and the copy should not be where they come back. Its one address is the live
+ * lesson's, under the title: a student holding the paper had no way back to the page it came from. */
 export function artifactHtml(a: LessonArtifact) {
   const figure = a.svg
     ? `<figure>${a.svg}${a.coordinate ? `<figcaption>${mathml(a.coordinate, false)}</figcaption>` : ''}</figure>`
     : '';
+  // The page writes "with k = 1/(4πε₀)" beside its result. The copy printed kQ/… with k never said --
+  // and then, once it did say it, said it after the result, a page below the integral where k is
+  // first used. It is said where the reader first meets it: in One piece, where the board first writes
+  // it, or under the integral in a copy that has no board.
+  const kNote = `<p class="where">Here ${mathml(String.raw`k=\dfrac{1}{4\pi\varepsilon_0}`, false)}.</p>`;
+  let kSaid = false;
+  // THE METHOD, STAGE BY STAGE (see `lessonArtifact`): each stage under its name, the run's one sentence
+  // for it, then the board's line as the board sets it -- the cancellation over what survives, the line's
+  // second half under its first, and what its new symbols mean under the line.
+  const stage = (s: BuildingStage, last: boolean) => {
+    const l = s.line, aside = (html: string) => `<p class="aside">${html}</p>`;
+    // Where nothing cancels the board says so in full, and the run's sentence is the same thing said
+    // shorter: printed one over the other, "Nothing cancels: every piece is above the x-axis" came twice.
+    const parts = [`<h3>${escapeHtml(s.name)}</h3>`, ...(l.nothing ? [] : [`<p class="gloss">${proseHtml(s.gloss)}</p>`])];
+    if (l.cancels) parts.push(mathml(plain(l.cancels)));
+    if (l.cancelsSay) parts.push(aside(proseHtml(l.cancelsSay)));
+    if (l.nothing) parts.push(aside(proseHtml(l.nothing)));
+    parts.push(mathml(chained(plain(l.tex), l.finish && plain(l.finish))));
+    // What the line's new symbols mean, centred under the line it explains, as a book sets a "where".
+    for (const gloss of [l.where, l.merged]) if (gloss) parts.push(`<p class="aside sym">${mathml(plain(gloss), false)}</p>`);
+    if (l.also) parts.push(aside(`${mathml(plain(l.also), false)} survives too.`));
+    if (last && a.along) parts.push(`<p>${proseHtml(a.along.text)}</p>`, mathml(a.along.tex));
+    if (!kSaid && [l.cancels, l.tex, l.finish, l.also].some(t => t && usesK(plain(t)))) { parts.push(kNote); kSaid = true; }
+    return `<div class="stage">${parts.join('\n')}</div>`;
+  };
+  const building = a.building?.length ? keep('<h2>Building the integral</h2>', a.building.map((s, i) => stage(s, i === a.building!.length - 1))) : '';
   // A potential lesson promises that "E falls out of one derivative"; the copy ended at V without it,
   // and then printed only the derivative's last line.
-  const steps = (list: WorkedStep[]) => list.map(w => `<div class="step"><p>${proseHtml(w.text)}</p>\n${mathml(w.tex)}</div>`).join('\n');
+  const steps = (list: WorkedStep[]) => list.map(w => `<div class="step"><p>${proseHtml(w.text)}</p>\n${mathml(w.tex)}</div>`);
   const derived = a.back?.length
-    ? `<h2>The field, by differentiating</h2>\n${steps(a.back)}\n`
+    ? keep('<h2>The field, by differentiating</h2>', steps(a.back))
     : a.derived?.length
-    ? `<h2>The field, by differentiating</h2>\n<div class="result">${a.derived.map(tex => mathml(tex)).join('\n')}</div>\n`
+    ? keep('<h2>The field, by differentiating</h2>', [`<div class="result">${a.derived.map(tex => mathml(tex)).join('\n')}</div>`])
     : '';
   // THE INTEGRAL WAS PRINTED TWICE. Most lessons' first worked step takes the constants outside, and
   // the integral the copy prints is already in that form: in eleven of sixteen copies the same display
@@ -311,23 +415,25 @@ export function artifactHtml(a: LessonArtifact) {
   // the one under "The result".
   const last = shown.at(-1), arrives = !!last && !!a.results.length && restates(a.results[0], last.tex);
   const working = shown.length
-    ? `<h2>Working</h2>\n${steps(arrives ? shown.slice(0, -1) : shown)}${arrives ? `\n<div class="step"><p>${proseHtml(last!.text)}</p></div>` : ''}\n`
+    ? keep('<h2>Working</h2>', [...steps(arrives ? shown.slice(0, -1) : shown), ...(arrives ? [`<div class="step"><p>${proseHtml(last!.text)}</p></div>`] : [])])
     : '';
-  // The page writes "with k = 1/(4πε₀)" beside its result. The copy printed kQ/… with k never said --
-  // and then, once it did say it, said it after the result, a page below the integral where k is
-  // first used. It is said where the reader first meets it, under the integral.
-  const constant = [a.integralTex, a.secondaryIntegralTex ?? '', ...a.results, ...(a.derived ?? []), ...[...(a.worked ?? []), ...(a.back ?? [])].map(w => w.tex), ...(a.checks ?? []).map(c => c.formula)].some(usesK)
-    ? `<p class="where">Here ${mathml(String.raw`k=\dfrac{1}{4\pi\varepsilon_0}`, false)}.</p>\n`
+  const constant = !kSaid && [a.integralTex, a.secondaryIntegralTex ?? '', ...a.results, ...(a.derived ?? []), ...[...(a.worked ?? []), ...(a.back ?? [])].map(w => w.tex), ...(a.checks ?? []).map(c => c.formula)].some(usesK)
+    ? `${kNote}\n`
     : '';
   // What the page checks the answer against, and where the physics is written up. A handout without
   // them gave a student nothing to test the result by and nowhere to read further.
   const checks = a.checks?.length
-    ? `<h2>Checks</h2>\n${a.checks.map(c => `<div class="check"><h3>${escapeHtml(c.title)}</h3>\n${mathml(c.formula)}\n<p>${greekHtml(c.explanation)}</p></div>`).join('\n')}\n`
+    ? keep('<h2>Checks</h2>', a.checks.map(c => `<div class="check"><h3>${escapeHtml(c.title)}</h3>\n${mathml(c.formula)}\n<p>${greekHtml(c.explanation)}</p></div>`))
     : '';
+  // The footer closes the copy with the sources it follows: printed on its own, it took the ring's
+  // whole third sheet.
+  const footer = '<footer>Saved from Field Builder. The equations are MathML, so this page needs no network to read or print.</footer>';
   // A printed link is only its words, so the address is printed under them.
   const sources = a.sources?.length
-    ? `<h2>Sources</h2>\n<ul class="sources">${a.sources.map(s => `<li><a href="${escapeHtml(s.url)}">${escapeHtml(s.title)}</a><span class="url">${escapeHtml(s.url)}</span></li>`).join('\n')}</ul>\n`
-    : '';
+    ? keep('<h2>Sources</h2>', [`<ul class="sources">${a.sources.map(s => `<li><a href="${escapeHtml(s.url)}">${escapeHtml(s.title)}</a><span class="url">${escapeHtml(s.url)}</span></li>`).join('\n')}</ul>\n${footer}`])
+    : `${footer}\n`;
+  // The live lesson's address, in full: on paper a link is only what is printed.
+  const address = a.address ? `<p class="address">The live lesson, as saved: <a href="${escapeHtml(a.address)}">${escapeHtml(a.address)}</a></p>\n` : '';
   // The maths names its faces. The generic `math` family did not reach one with a MATH table in
   // Chromium, so the display integral came out at text size and \left( \right) never grew: a
   // handout that looked unset. STIX Two ships with macOS, Latin Modern with TeX, Cambria with Windows.
@@ -340,8 +446,12 @@ main { max-width: 720px; margin: 0 auto; padding: 24px 18px 32px; }
 .kicker { margin: 0 0 18px; color:#4a6274; font-size: 12px; }
 h1 { font: 400 30px/1.15 Georgia, "Times New Roman", serif; margin: 0 0 8px; }
 h2 { font: 400 20px/1.2 Georgia, "Times New Roman", serif; margin: 28px 0 8px; }
+h2, h3 { break-after: avoid; }
+.keep { break-inside: avoid; }
 p { max-width: 62ch; margin: 0 0 10px; }
 .lede { color:#4a6274; font-size: 16px; }
+.address { color:#4a6274; font-size: 13px; overflow-wrap: anywhere; }
+.address a { color: #0e2333; }
 figure { margin: 22px 0 6px; break-inside: avoid; }
 figure svg { display:block; width: 100%; height: auto; max-height: 440px; }
 figcaption { margin-top: 4px; color:#4a6274; font-size: 15px; }
@@ -357,14 +467,19 @@ mtable[columnalign^="right left"] > mtr > mtd { padding-left: 0; padding-right: 
    column hung at the left with a gap before its "=" (E_x over E_x(π)). Its own -webkit-right moves it. */
 mtable[columnalign^="right left"] > mtr > mtd:nth-child(odd) { text-align: right; text-align: -webkit-right; }
 mtable[columnalign^="right left"] > mtr > mtd:nth-child(even) { text-align: left; text-align: -webkit-left; }
-.step { break-inside: avoid; }
+.step, .stage { break-inside: avoid; }
 .nobr { white-space: nowrap; }
 .step p { margin: 14px 0 2px; }
 .where { margin-top: 12px; }
 .note { margin: -4px 0 10px; }
+.stage .gloss { margin: 0 0 4px; color:#4a6274; }
+.stage .aside { margin: -6px 0 8px; }
+.stage .sym { max-width: none; text-align: center; }
+.stage .where { margin-top: 0; }
 .g { font-family: "STIX Two Math", "Latin Modern Math", "Cambria Math", serif; font-style: italic; }
 .g.up { font-style: normal; }
 h3 { font: 600 15px/1.3 system-ui, -apple-system, "Segoe UI", sans-serif; margin: 18px 0 2px; }
+.stage h3 { margin: 18px 0 4px; }
 .check { break-inside: avoid; }
 .check math[display="block"] { margin: 6px 0 8px; }
 .sources { margin: 0; padding-left: 20px; }
@@ -377,16 +492,8 @@ footer { margin-top: 36px; padding-top: 12px; border-top: 1px solid #d8e1e7; col
 <p class="kicker">Field Builder · saved copy</p>
 <h1>${escapeHtml(a.title)}</h1>
 <p class="lede">${escapeHtml(a.subtitle)}</p>
-${figure}
-<h2>Setup</h2>
-<p>${proseHtml(a.setup)}</p>
-<h2>${a.secondaryIntegralTex ? 'The integrals' : 'The integral'}</h2>
-${displays([a.integralTex, ...(a.secondaryIntegralTex ? [a.secondaryIntegralTex] : [])]).map(tex => mathml(tex)).join('\n')}
-${note}${constant}${working}<h2>The result</h2>
-<div class="result">${displays(a.results).map(tex => mathml(tex)).join('\n')}</div>
-${derived}${checks}${sources}
-<footer>Saved from Field Builder. The equations are MathML, so this page needs no network to read or print.</footer>
-</main>
+${address}${figure}
+${keep('<h2>Setup</h2>', [`<p>${proseHtml(a.setup)}</p>`])}${building}${keep(`<h2>${a.secondaryIntegralTex ? 'The integrals' : 'The integral'}</h2>`, [displays([a.integralTex, ...(a.secondaryIntegralTex ? [a.secondaryIntegralTex] : [])]).map(tex => mathml(tex)).join('\n')])}${note}${constant}${working}${keep('<h2>The result</h2>', [`<div class="result">${displays(a.results).map(tex => mathml(tex)).join('\n')}</div>`])}${derived}${checks}${sources}</main>
 <script>${FIT_ROOTS}</script>
 </body></html>`;
 }
@@ -404,6 +511,12 @@ const OWN: [string, string][] = [['opacity', '1'], ['stop-color', 'rgb(0, 0, 0)'
 /** The figure's own controls -- the view cube and the gesture legend -- which act only on a screen
  * and are left off the copy, as they are off the printed page. */
 const SCREEN_ONLY = '.cd-cube, .cd-help, [role=button]';
+/** The corner that says what scale the run's arrows are at -- "Cut into pieces", "The piece's arrow drawn
+ * larger", "In the limit" -- speaks to a stage of the run on the screen, and on paper it named nothing: a
+ * copy saved at rest printed "Cut into pieces" under a figure that was not being cut. Found by its place,
+ * and by its words should the place change. */
+const RUN_NOTE = '.cd-footer[data-dim="pieces"]';
+const isRunNote = (el: Element) => el.matches(RUN_NOTE) || (el.classList.contains('cd-footer') && /^(Cut into|In the limit)|drawn (larger|smaller)/.test(el.textContent ?? ''));
 
 /** The figure as it is drawn, for the offline copy: the SVG with every style it is drawn with
  * written onto it, and the field under it -- the canvas of the flat view, or the 3D scene -- laid in
@@ -423,7 +536,7 @@ export function figureCopy(stage: Element): string {
   originals.forEach((el, i) => {
     const clone = clones[i];
     // Hover text names the pieces by number ("Piece 2 of 5"), and nothing in a copy can be hovered.
-    if (el.tagName.toLowerCase() === 'title' || el.matches(SCREEN_ONLY)) { drop.push(clone); return; }
+    if (el.tagName.toLowerCase() === 'title' || el.matches(SCREEN_ONLY) || isRunNote(el)) { drop.push(clone); return; }
     const own = style(el);
     if (own.display === 'none') { drop.push(clone); return; }
     const parent = el === svg ? null : el.parentElement && style(el.parentElement);
