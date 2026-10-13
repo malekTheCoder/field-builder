@@ -937,7 +937,9 @@ export default function Explorer(){
   if(wasDark)root.classList.remove('dark');
   try{const stage=document.querySelector('.explorer-app .cd-stage');figure=stage?figureCopy(stage):''}
   finally{if(wasDark)root.classList.add('dark')}
-  downloadArtifact(`field-builder-${id}.html`,artifactHtml({...lessonArtifact(p,derivationProblem),svg:figure}));
+  // The paper names the live lesson it came from, values and all -- the same address "Copy a link" writes --
+  // so a student holding it can open the setup it describes rather than the lesson's defaults.
+  downloadArtifact(`field-builder-${id}.html`,artifactHtml({...lessonArtifact(p,derivationProblem,location.origin+location.pathname+address),svg:figure}));
  }
  // THE PAGE'S STATES ARE CLASSES SET HERE, NOT SELECTORS THAT LOOK DOWN THE PAGE FOR THEM. The rules
  // for the open run were written as `.exp-workspace:has(.exp-walk.is-open)`, and with them Chromium
