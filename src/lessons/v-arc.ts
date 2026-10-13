@@ -34,7 +34,7 @@ export const lesson: Lesson = {
       {tex: raw`V=\int_{-\varphi/2}^{\varphi/2}\frac{k\lambda R\,d\theta}{R}=k\lambda\varphi=\frac{kQ}{R}`},
     ]},
     {heading: 'What the answer says', body: [
-      raw`$V$ has the sign of $Q$, and $\varphi$ is nowhere in it. Bending the arc moves its charge round the circle but never nearer to $P$ or farther, so a short arc, a semicircle and a closed ring all give $kQ/R$. The field does change with $\varphi$: it is $E_x=-2kQ\sin(\varphi/2)/(R^2\varphi)$, and zero for the closed ring, where $V$ is still $kQ/R$.`,
+      raw`$V$ has the sign of $Q$, and with $Q$ held fixed $\varphi$ is nowhere in it. (Hold $\lambda$ fixed instead and $V=k\lambda\varphi$ grows with the arc, because the charge does.) Bending the arc moves its charge round the circle but never nearer to $P$ or farther, so a short arc, a semicircle and a closed ring all give $kQ/R$. The field does change with $\varphi$: it is $E_x=-2kQ\sin(\varphi/2)/(R^2\varphi)$, and zero for the closed ring, where $V$ is still $kQ/R$.`,
       raw`Nor can this $V$ be differentiated back into the field: it is known at one point only, and a field is how $V$ changes from point to point.`,
     ]},
   ],

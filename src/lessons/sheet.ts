@@ -32,6 +32,7 @@ export const lesson: Lesson = {
     {heading: 'Shrink them', body: [
       raw`Make the rings thinner in angle without end, and treating each as a thin ring becomes exact. The integral of $\sin\alpha$ is $-\cos\alpha$, which rises by exactly one from $\alpha=0$ to $\alpha=\pi/2$:`,
       {tex: raw`E_z=2\pi k\sigma\int_0^{\pi/2}\sin\alpha\,d\alpha=2\pi k\sigma=\frac{\sigma}{2\varepsilon_0}`},
+      raw`The board below writes the same integral first in $s$, from $0$ to $\infty$, the width $z\sec^2\alpha\,\Delta\alpha$ becoming $ds$; putting $s=z\tan\alpha$ back in turns it into this one.`,
     ]},
     {heading: 'What the answer says', body: [
       raw`There is no $z$ in it: the field is the same at every height above the sheet. Raise $P$ to twice the height and every equal-angle ring is the same ring with its size doubled, holding four times the charge at twice the distance, so its field at $P$ is exactly what it was. The sheet has no edge and no size to measure the height against, so nothing in it can make the field change with height.`,

@@ -31,7 +31,7 @@ export const lesson: Lesson = {
     {heading: 'Shrink them', body: [
       raw`Make the rings thinner without end. The sum becomes an integral over $s$, and counting each ring at one radius becomes exact:`,
       {tex: raw`E_z=\int_0^R\frac{k\,\sigma\,2\pi s\,ds}{s^2+z^2}\cdot\frac{z}{\sqrt{s^2+z^2}}`},
-      raw`The substitution $u=s^2+z^2$ turns $s\,ds$ into $du/2$, and the integral of $u^{-3/2}$ gives $-1/\sqrt{s^2+z^2}$. Evaluated at the two ends, with $2\pi k\sigma=\sigma/(2\varepsilon_0)$:`,
+      raw`The substitution $u=s^2+z^2$ turns $s\,ds$ into $du/2$, and the integral of $u^{-3/2}\,du/2$ is $-u^{-1/2}$, that is $-1/\sqrt{s^2+z^2}$. Evaluated at the two ends, with $2\pi k\sigma=\sigma/(2\varepsilon_0)$:`,
       {tex: raw`E_z=\frac{\sigma}{2\varepsilon_0}\left(1-\frac{z}{\sqrt{R^2+z^2}}\right)`},
     ]},
     {heading: 'What the answer says', body: [

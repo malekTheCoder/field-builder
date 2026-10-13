@@ -17,9 +17,9 @@ export const lesson: Lesson = {
       raw`On a rod the pieces had to be short, so that each was nearly a point charge. Here they need not be, for a reason the next step makes plain.`,
     ]},
     {heading: 'One piece', body: [
-      raw`Every piece is $R$ out from the axis and $P$ is $z$ up it, so the distance $r_i$ from the piece to $P$ is the hypotenuse of a right triangle. Coulomb’s law, with $k=1/(4\pi\varepsilon_0)$, gives the size of the field it makes at $P$:`,
+      raw`Every piece is $R$ out from the axis and $P$ is $z$ up it, so the distance $r_i$ from the piece to $P$ is the hypotenuse of a right triangle. Coulomb’s law, with $k=1/(4\pi\varepsilon_0)$, gives the field at $P$ of a point charge $\Delta Q$ at the piece, written without its direction, so with the sign of $\Delta Q$:`,
       {tex: raw`\Delta E=\frac{k\,\Delta Q}{r_i^2},\qquad r_i=\sqrt{R^2+z^2}`},
-      raw`The field points away from the piece for a positive charge and toward it for a negative one, at the angle $\alpha$ to the $z$-axis, where $\cos\alpha=z/\sqrt{R^2+z^2}$. Every bit of a piece, however long, is this same $r_i$ from $P$ at this same $\alpha$, so the piece’s part along the axis, $\Delta E\cos\alpha$, is exactly a point charge’s.`,
+      raw`It points away from the piece for a positive charge and toward it for a negative one, at the angle $\alpha$ to the $z$-axis, where $\cos\alpha=z/\sqrt{R^2+z^2}$. A long piece is not a point charge: its own field is a little weaker and leans closer to the axis. But every bit of it, however long, is this same $r_i$ from $P$ at this same $\alpha$, so the piece’s part along the axis, $\Delta E\cos\alpha$, is exactly a point charge’s.`,
     ]},
     {heading: 'What cancels', body: [
       raw`Each piece’s field also has a sideways part, across the axis. The same length of ring half a turn round, at $\theta+\pi$, is just as far from $P$ and makes an equal sideways part pointing the opposite way, so the two cancel. Round the whole ring every sideways part is undone, and only the parts along the axis are left: the field at $P$ is $E_z$.`,
@@ -34,7 +34,7 @@ export const lesson: Lesson = {
       {tex: raw`E_z=\frac{kQz}{(R^2+z^2)^{3/2}}`},
     ]},
     {heading: 'What the answer says', body: [
-      raw`$E_z$ has the sign of $Q$: along the axis away from a positive ring, toward a negative one. At the centre, $z=0$, every piece’s field lies flat in the ring’s plane, where the ring half a turn round cancels it, and the field is zero. Far up the axis, $z\gg R$, it approaches $kQ/z^2$: from far away the ring is a point charge. In between, its size rises and falls, largest at $z=R/\sqrt2$. The disk and the sheet are built from rings like this one, and each of their rings makes exactly this field.`,
+      raw`$E_z$ has the sign of $Q$: along the axis away from a positive ring, toward a negative one. At the centre, $z=0$, every piece’s field lies flat in the ring’s plane, where the ring half a turn round cancels it, and the field is zero. Far up the axis, $z\gg R$, it approaches $kQ/z^2$: from far away the ring is a point charge. In between, its size rises and falls, largest at $z=R/\sqrt2$. The disk and the sheet are built from thin rings like this one, and each thin ring makes this field, with its own radius and charge.`,
     ]},
   ],
   read: [
