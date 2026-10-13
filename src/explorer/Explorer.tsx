@@ -135,7 +135,21 @@ function splitSymbol(label:string):[string,string]{const parts=label.split(' ');
 // the neighbouring expressions and what each of them would actually describe.
 // Deduplicated by message on purpose: a lesson often gives four distractors one diagnosis,
 // and printing that sentence four times reads as noise instead of as one idea.
-function confusions(p:Problem){return p.steps.flatMap((s,i)=>(s.fields??[]).map(f=>{const by=new Map<string,string[]>();for(const m of f.mistakes??[])by.set(m.message,[...(by.get(m.message)??[]),m.expression]);return {key:`${i}:${f.id}`,label:f.label,notes:[...by].map(([message,expressions])=>({message,expressions}))}})).filter(g=>g.notes.length>0)}
+function confusions(p:Problem){return p.steps.flatMap((s,i)=>(s.fields??[]).map(f=>{const by=new Map<string,string[]>();for(const m of f.mistakes??[])by.set(m.message,[...(by.get(m.message)??[]),m.expression]);return {key:`${i}:${f.id}`,label:f.label,symbol:slipSymbol(f.label),notes:[...by].map(([message,expressions])=>({message,expressions}))}})).filter(g=>g.notes.length>0)}
+// THE WRONG EXPRESSIONS READ AS THE ANSWERS. Each row set the quantity's name, then an expression in the prose's
+// full ink -- "y-component dEᵧ" over a bold 0, "Total potential V" over σ/(2ε₀) -- with nothing on the row saying
+// it was wrong but a summary two screens up, and a student skimming for their notes copied "dEᵧ = 0", the very
+// slip the sentence beside it warns against. Each is now a relation to the quantity it is mistaken for, dEᵧ ≠ 0,
+// in the muted ink, and where a quantity's name has no symbol of its own, under a "Not".
+const SLIP_SUB:Record<string,string>={'ₓ':'_x','ᵧ':'_y','ᵢ':'_i','₀':'_0'},SLIP_GREEK:Record<string,string>={'α':String.raw`\alpha `,'θ':String.raw`\theta `,'φ':String.raw`\varphi `};
+/** The quantity's own symbol, as TeX, where its name ends in one -- "Charge element dQ", "x-component integrand
+ * dEₓ/dx", "Projection factor cos α" -- and not where the name ends in what it is a part of ("Axial component
+ * of dE" is not dE). */
+function slipSymbol(label:string){
+ const m=label.match(/(?:^|\s)((?:cos|sin) [αθφ]|d?[A-Z][ₓᵧᵢ₀]?(?:\/d[a-zαθφ])?|rᵢ|d[a-z]\/d[αθφ])$/u);
+ if(!m||/\sof\s+\S+$/.test(label))return null;
+ return m[1].replace(/^(cos|sin) /,'\\$1').replace(/[ₓᵧᵢ₀]/g,c=>SLIP_SUB[c]).replace(/[αθφ]/g,c=>SLIP_GREEK[c]).trim();
+}
 // `describe` names the thing on the figure this slider moves. Pointing at the control -- hover,
 // or tab to it -- lights that thing up, and the pairing is learned by looking. It matters more
 // than it sounds: with the numbers stripped off, a slider labelled "r" says nothing at all to a
@@ -155,7 +169,7 @@ const DEGREES:Intl.NumberFormatOptions={style:'unit',unit:'degree',unitDisplay:'
 // their own, in the units the model is written in (symbolic/physics.ts): one and many.
 type Spoken=readonly [one:string,many:string];
 const NANOCOULOMBS:Spoken=['nanocoulomb','nanocoulombs'],PER_METER:Spoken=['nanocoulomb per meter','nanocoulombs per meter'],PER_SQUARE_METER:Spoken=['nanocoulomb per square meter','nanocoulombs per square meter'];
-function Range({label,value,min,max,step=1,onChange,describe,onDescribe,format,unit}:{label:string;value:number;min:number;max:number;step?:number;onChange:(n:number,reason?:string)=>void;describe?:string;onDescribe?:(k:string)=>void;format?:Intl.NumberFormatOptions;unit?:Spoken}){const id=useId();const [symbol,name]=splitSymbol(label);const point=(on:boolean)=>{if(describe)onDescribe?.(on?describe:'')};const spoken=useMemo(()=>unit?(text:string,n:number)=>`${text} ${unit[Math.abs(n)===1?0:1]}`:undefined,[unit]);return <div className="exp-range" onPointerEnter={()=>point(true)} onPointerLeave={()=>point(false)} onFocusCapture={()=>point(true)} onBlurCapture={()=>point(false)}><div><span>{symbol&&<i className="exp-sym">{symbol}</i>}<span className="exp-name">{name}</span></span></div><span id={id} className="sr-only">{label}</span><Slider aria-label={label} aria-labelledby={id} format={format} getAriaValueText={spoken} value={[value]} min={min} max={max} step={step} onValueChange={(v,details)=>onChange(Array.isArray(v)?v[0]:v,details?.reason)}/></div>}
+function Range({label,value,min,max,step=1,onChange,describe,onDescribe,format,unit}:{label:string;value:number;min:number;max:number;step?:number;onChange:(n:number,reason?:string)=>void;describe?:string;onDescribe?:(k:string)=>void;format?:Intl.NumberFormatOptions;unit?:Spoken}){const id=useId();const [symbol,name]=splitSymbol(label);const point=(on:boolean)=>{if(describe)onDescribe?.(on?describe:'')};const spoken=useMemo(()=>unit?(text:string,n:number)=>`${text} ${unit[Math.abs(n)===1?0:1]}`:undefined,[unit]);return <div className="exp-range" onPointerEnter={()=>point(true)} onPointerLeave={()=>point(false)} onFocusCapture={()=>point(true)} onBlurCapture={()=>point(false)}><div><span>{symbol&&<i className="exp-sym">{greek(symbol)}</i>}<span className="exp-name">{name}</span></span></div><span id={id} className="sr-only">{label}</span><Slider aria-label={label} aria-labelledby={id} format={format} getAriaValueText={spoken} value={[value]} min={min} max={max} step={step} onValueChange={(v,details)=>onChange(Array.isArray(v)?v[0]:v,details?.reason)}/></div>}
 /** NO CHARGE IS NOT A LESSON. The charge slider runs through zero, and at zero every sentence the
  * run says -- this charge all has one sign, its mirror piece acts just as hard -- is about nothing,
  * over a figure with no field in it. So the slider steps over zero rather than stopping on it:
@@ -204,6 +218,8 @@ export default function Explorer(){
  // over the teacher's link, and the catch opened the tour on every load, since "seen" could never be saved.
  // Storage is read on its own now, and what it cannot give is simply not there; the link is the lesson
  // whatever storage does. The tour never opens by itself: the start-here cue is what a first visit gets.
+ /** A stage of the run the address names, waiting for the lesson it names to be the one on screen. */
+ const linkedStage=useRef(0);
  /* oxlint-disable react/react-compiler -- Reads storage and the address once, after hydration. */
  useEffect(()=>{
   let raw:string|null=null;
@@ -212,8 +228,8 @@ export default function Explorer(){
   const parsed=(()=>{try{return raw?JSON.parse(raw):null}catch{return null}})();
   const saved=parsed&&typeof parsed==='object'&&!Array.isArray(parsed)?parsed:{};
   const pm:Partial<Record<ProblemId,Params>>={};for(const pr of PROBLEMS)if(saved.params?.[pr.id]&&typeof saved.params[pr.id]==='object')pm[pr.id]=atRest(saved.params[pr.id]);
-  const url=parseAssignment(typeof location==='undefined'?'':location.search);const linked=url.id??(url.params?'bisector':undefined);
-  if(linked&&isReady(linked)){setId(linked);pm[linked]=atRest({...DEFAULT_PARAMS,...url.params})}else if(PROBLEMS.some(p=>p.id===saved.id)&&isReady(saved.id))setId(saved.id);
+  const url=parseAssignment(typeof location==='undefined'?'':location.search);const linked=url.id??(url.params||url.stage?'bisector':undefined);
+  if(linked&&isReady(linked)){setId(linked);pm[linked]=atRest({...DEFAULT_PARAMS,...url.params});if(url.stage)linkedStage.current=url.stage}else if(PROBLEMS.some(p=>p.id===saved.id)&&isReady(saved.id))setId(saved.id);
   setDark(saved.dark===true);setShowNumbers(saved.showNumbers===true);setSidebarOpen(saved.sidebarOpen!==false);setParamsMap(pm);
   if(url.mode)setMode(url.mode);if(url.pair)setPair(true);if(url.components)setComponents(true);setSeen(!!saved.seen);setOnboarding(false);
   setReady(true);return()=>{build.current?.stop();build.current=null}},[]);
@@ -290,7 +306,12 @@ export default function Explorer(){
  //
  // Worked out with the page rather than in the timer, so a frame of the run -- which writes the cut into the
  // values, and which the address leaves out -- no longer restarts the timer: only a change the address shows.
- const address=`?${serializeAssignment(buildShown?{id,params:{...params,continuum:0}}:{id,mode,params:{...params,continuum:0},pair,components})||`p=${id}`}`;
+ //
+ // AND WHILE THE RUN IS OPEN, THE STAGE IT IS ON. The one link a teacher wants to send -- "open the ring held at What
+ // cancels" -- could not be made: the address carried nothing of the run, so pausing there and copying it shared the
+ // lesson at rest. It names the stage now (stage=3), never a frame of it, and a link with one opens the run held on
+ // that stage's finished frame (`linkedStage`, below). Closing the run takes it away again.
+ const address=`?${serializeAssignment(buildShown?{id,params:{...params,continuum:0},stage:buildIndex+1}:{id,mode,params:{...params,continuum:0},pair,components})||`p=${id}`}`;
  useEffect(()=>{if(!ready||typeof history==='undefined')return;
   const t=setTimeout(()=>{
    // Still guarded: a throw here would reach the error boundary and blank the lesson.
@@ -312,7 +333,7 @@ export default function Explorer(){
    try{const t=document.createElement('textarea');t.value=url;t.setAttribute('readonly','');t.style.cssText='position:fixed;top:0;left:0;opacity:0';document.body.appendChild(t);t.select();ok=document.execCommand('copy');t.remove()}catch{ok=false}
    back?.focus({preventScroll:true});
   }
-  const said=ok?'Link to this lesson copied.':'The link to this lesson is in the address bar.';
+  const said=ok?buildShown?`Link to this lesson, held at ${buildNow.name}, copied.`:'Link to this lesson copied.':'The link to this lesson is in the address bar.';
   setCopied(said);setStatus(said);
  }
  // Back and Forward return to the lesson the entry names, as it was then: the entry holds every value that
@@ -322,7 +343,7 @@ export default function Explorer(){
   if(!to||!isReady(to))return;
   if(to!==id)changeDistribution(to);
   setParamsMap(old=>({...old,[to]:atRest({...DEFAULT_PARAMS,...url.params})}));
-  if(url.mode)setMode(url.mode);if(url.pair)setPair(true);if(url.components)setComponents(true);
+  if(url.mode)setMode(url.mode);if(url.pair)setPair(true);if(url.components)setComponents(true);if(url.stage){if(to===id)openLinked(url.stage);else linkedStage.current=url.stage}
  });
  useEffect(()=>{window.addEventListener('popstate',revisit);return()=>window.removeEventListener('popstate',revisit)},[revisit]);
  // Each lesson names its own tab, so history, the tab strip and a screen reader's window title can
@@ -586,6 +607,11 @@ export default function Explorer(){
   * and nothing on screen saying the playback had changed from the run to a step. A board line still plays
   * its one step: it says so. */
  function moveTo(i:number){if(building)playBuild(stageStart(stages,i),totalSeconds(stages));else stepBuild(i)}
+ /** A link's stage: the run opened and held on the stage's finished frame -- where a stage played through stops
+  * (stepBuild), and for the last, the answer arrived -- once the lesson the link names is the one on screen, as
+  * a click on the stage and a drag to its end would leave it. Held, not playing: the teacher talks over it. */
+ const openLinked=useSteady((n:number)=>{const i=Math.max(0,Math.min(stages.length,n)-1);seekBuild(i===stages.length-1?totalSeconds(stages):stageStart(stages,i)+stages[i].seconds-.001)});
+ useEffect(()=>{const n=linkedStage.current;if(!ready||!n)return;linkedStage.current=0;openLinked(n)},[ready,stages,openLinked]);
  // Closing puts the figure back where the run found it, the partition included: a reader who
  // watched the pieces shrink away and then closed should not be left looking at a smooth rod
  // with no way to tell why it stopped being cut up.
@@ -900,7 +926,9 @@ export default function Explorer(){
  const {distance,size,charge,phi,slices}=params;
  const parameterGrid=useMemo(()=><div className="parameter-grid">{geom!=='arc'&&<Range describe="distance" onDescribe={setHighlight} label={['ring','disk','sheet'].includes(geom)?'Height z':geom==='axial'?'End distance a':'Distance r'} format={METERS} value={distance} min={.5} max={6} step={.05} onChange={distance=>updateParams({distance})}/>} {!isInfinite&&<Range describe="size" onDescribe={setHighlight} label={isRound?'Radius R':'Length L'} format={METERS} value={isRound?size/2:size} min={isRound?.5:1} max={isRound?4:8} step={.05} onChange={v=>updateParams({size:isRound?v*2:v})}/>}<Range describe="charge" onDescribe={setHighlight} label={geom==='sheet'?'Surface density σ':geom==='ramp'?'Peak density λ₀':['infinite','semi'].includes(geom)?'Line density λ':'Total charge Q'} unit={geom==='sheet'?PER_SQUARE_METER:geom==='ramp'||['infinite','semi'].includes(geom)?PER_METER:NANOCOULOMBS} value={charge} min={-5} max={5} step={.1} onChange={(next,reason)=>updateParams({charge:snapCharge(next,charge,reason)})}/>{/* In degrees, on the same grid as before (a tenth of π to 2π in hundredths of π): run in
      units of π, the slider read "1.5" to a screen reader, which meant 1.5π and said nothing of it. */}{geom==='arc'&&<Range describe="angle" onDescribe={setHighlight} label="Arc angle φ" format={DEGREES} value={phi*180/Math.PI} min={18} max={360} step={1.8} onChange={v=>updateParams({phi:v*Math.PI/180})}/>}{/* How finely the charge is cut. It used to live inside one step of the walkthrough, so the
-     one control that shows the sum closing in on the integral was three clicks deep. */}<Range describe="pieces" onDescribe={setHighlight} label="Pieces N" value={slices} min={3} max={30} onChange={recut}/><button onClick={resetGeometry} className="text-button exp-reset" aria-label="Reset geometry" title="Reset geometry"><RotateCcw size={13}/></button></div>,[geom,isInfinite,isRound,distance,size,charge,phi,slices,updateParams,recut,resetGeometry]);
+     one control that shows the sum closing in on the integral was three clicks deep. Named by what the run cuts:
+     the disk, the sheet and the disk's potential are cut into rings -- the stage is "One ring", the board says
+     "the N rings" -- and the slider under them alone said Pieces. */}<Range describe="pieces" onDescribe={setHighlight} label={geom==='disk'||geom==='sheet'?'Rings N':'Pieces N'} value={slices} min={3} max={30} onChange={recut}/><button onClick={resetGeometry} className="text-button exp-reset" aria-label="Reset geometry" title="Reset geometry"><RotateCcw size={13}/></button></div>,[geom,isInfinite,isRound,distance,size,charge,phi,slices,updateParams,recut,resetGeometry]);
  /** The offline copy, made in the light theme whatever the screen is in -- it is for paper, as the
   * print sheet is -- and put back the moment the figure has been read. */
  function saveCopy(){
@@ -1001,7 +1029,7 @@ export default function Explorer(){
    <summary><span>Easy to confuse with</span><small>The expressions this geometry sits next to, and what each one would actually describe.</small></summary>
    {slipsOpen&&<div className="exp-note-body exp-slips">{confusions(p).map(g=><div className="exp-slip" key={g.key}>
     <span className="exp-slip-of">{g.label}</span>
-    {g.notes.map(n=><div className="exp-slip-note" key={n.message}><span className="exp-slip-math">{n.expressions.map(x=><MathText key={x} tex={confusionTex(x)}/>)}</span><p>{greek(n.message)}</p></div>)}
+    {g.notes.map(n=><div className="exp-slip-note" key={n.message}><span className="exp-slip-math">{!g.symbol&&<span className="exp-slip-not">Not</span>}{n.expressions.map(x=><MathText key={x} tex={g.symbol?String.raw`\displaystyle ${g.symbol}\ne ${confusionTex(x).replace(/^\\displaystyle\s*/,'')}`:confusionTex(x)}/>)}</span><p>{greek(n.message)}</p></div>)}
    </div>)}</div>}
   </details>
   {/* WHERE THIS LESSON LEADS. Each lesson names its neighbour -- take this rod to infinity, build a disk

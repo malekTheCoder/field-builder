@@ -137,7 +137,7 @@ describe('the flat field lines run to the edge of the window', () => {
  }, HEAVY);
 });
 describe('easy to confuse with', () => {
- it('sets its expressions at the size of the prose beside them, in the same ink', async () => {
+ it('sets its expressions at the size of the prose beside them, in the muted ink of what they are not', async () => {
   const restore = tokens(':root{--foreground:#102a3a;--muted-foreground:#8a99a3;--type-body:15px;--type-meta:13px}');
   try {
    const view = await openLesson('sheet');
@@ -162,8 +162,9 @@ describe('easy to confuse with', () => {
    expect(small, `fraction parts set smaller than the ${body}px prose`).toEqual([]);
    // Fractional powers are written with a slash: no fraction stacked inside an exponent.
    expect(view.container.querySelectorAll('.exp-slip-math .msupsub .mfrac').length).toBe(0);
+   // Not the prose's full ink: under the quantity's name, a wrong expression in it read as the answer.
    const math = view.container.querySelector('.exp-slip-math')!;
-   expect(getComputedStyle(math).color).toBe(getComputedStyle(prose).color);
+   expect(getComputedStyle(math).color).toBe('rgb(138, 153, 163)');
   } finally { restore(); }
  }, HEAVY);
 });
