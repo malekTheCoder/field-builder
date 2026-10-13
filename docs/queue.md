@@ -51,6 +51,7 @@ owner says they are urgent.
    figure stays on the first screen. Also in the printout and the offline handout. Plan: one agent
    builds the frame and the finite line's lesson; two agents write the other fourteen; two physics
    reviewers check them.
+   Frame and the finite line's lesson done (0deeff0); the other fourteen wait on the owner's look.
 10. **Walkthrough (owner's answer, 2026-10-13).** An old `seen` no longer hides it: returning readers
    get the new tour, with "Don't show this again" and "Skip intro" on every page. Handouts: the
    limiting cases are already in them, kept simple.
