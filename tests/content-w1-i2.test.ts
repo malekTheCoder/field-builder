@@ -132,7 +132,7 @@ describe('a line with no total charge is never promised a Q',()=>{
   expect(said('semi','field','k*Q/ri^2')).toMatch(/An endless line has no finite total charge/);
   expect(said('semi','field','k*Q/ri^2')).toMatch(/dQ = λ dx/);
   // The finite lessons keep the old diagnosis: there, Q does appear once every element is added.
-  expect(said('ring','field','k*Q/ri^2')).toMatch(/Q appears once every element has been added up/);
+  expect(said('ring','field','k*Q/ri^2')).toMatch(/Q appears once every piece has been added up/);
  });
 });
 describe('a grown object says what is held fixed',()=>{

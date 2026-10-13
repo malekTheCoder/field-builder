@@ -131,7 +131,7 @@ describe('the semi-infinite line’s α is where the figure draws it',()=>{
  const setup=plain(getProblem('semi').setup);
  it('at P, from the perpendicular down to the line’s end, and the same α at +y for the field',()=>{
   expect(setup).not.toMatch(/measured from \$\+y\$ toward \$-x\$/);
-  expect(setup).toMatch(/The angle \$\\alpha\$ is at \$P\$, between the perpendicular down to the line’s end and the line to an element/);
+  expect(setup).toMatch(/The angle \$\\alpha\$ is at \$P\$, between the perpendicular down to the line’s end and the line to a piece/);
   expect(setup).toContain(String.raw`$x=r\tan\alpha$`);
   expect(setup).not.toMatch(/Line · level with an end/);
   // And it is so: the element at x = r tan α, seen from P = (0, r).

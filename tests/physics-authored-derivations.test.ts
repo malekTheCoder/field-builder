@@ -288,7 +288,7 @@ describe('the kernel factorises into the Answer strings the student is asked for
   expect(need(p,'projection').expected).toBe('r/sqrt(x^2+r^2)');
   expect(equivalent(`k*lambda*(${need(p,'projection').expected})/(x^2+r^2)`,p.kernel,p).ok,
    'the graded projection does NOT factorise the graded kernel of its own step').toBe(false);
-  expect(need(p,'projection').label,'only the label says so').toContain('y-projection');
+  expect(need(p,'projection').label,'only the label says so').toMatch(/\by factor\b/);
  });
 });
 

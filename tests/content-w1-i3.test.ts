@@ -48,7 +48,7 @@ describe('the potential’s confusions give the true reason',()=>{
 describe('one claim per factor',()=>{
  it('the arc’s projection heading and its diagnosis agree on cos θ',()=>{
   const projection=fields(getProblem('arc')).find(f=>f.id==='projection')!;
-  expect(projection.label).toBe('Projection factor cos θ');
+  expect(projection.label).toBe('The factor cos θ');
   expect(said('arc','projection','sin(theta)')).toMatch(/uses cos θ, and with a minus sign: the direction from the piece to the centre is −\(cos θ, sin θ\)\./);
  });
  it('the ramp’s far E_y is vertical, along the rod, not “transverse”',()=>{
@@ -102,8 +102,8 @@ describe('“tends to” and “behaves like” are two arrows',()=>{
 describe('the sidebar says which line and where P is',()=>{
  it('the endpoint and the two rod potentials',()=>{
   expect(getProblem('endpoint').short).toBe('Line · level with an end');
-  expect(getProblem('v-rod-bisector').short).toBe('Finite line · potential');
-  expect(getProblem('v-rod-axial').short).toBe('Line on axis · potential');
+  expect(getProblem('v-rod-bisector').short).toBe('Line · beside its middle · potential');
+  expect(getProblem('v-rod-axial').short).toBe('Line · on axis · potential');
   for(const p of lessons)expect(p.short,p.id).not.toMatch(/off the end|^Axis/);
  });
 });

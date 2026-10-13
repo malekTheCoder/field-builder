@@ -79,7 +79,7 @@ describe('keyboard and screen-reader path', () => {
     // Each card is named by its lesson, once. The glyph used to be an image named the same as the
     // printed name beside it, so every card read its name twice and then its whole subtitle; the
     // glyph is now hidden, and the subtitle is the card's description rather than part of its name.
-    for (const name of ['Ring · potential', 'Disk · potential', 'Arc · potential', 'Finite line · potential', 'Line on axis · potential']) {
+    for (const name of ['Ring · potential', 'Disk · potential', 'Arc · potential', 'Line · beside its middle · potential', 'Line · on axis · potential']) {
       // A link to the lesson's address, which a teacher can open in a tab of its own.
       const card = within(dialog).getByRole('link', {name});
       expect(card.getAttribute('href'), name).toMatch(/^\?p=v-/);

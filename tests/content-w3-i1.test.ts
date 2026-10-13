@@ -80,16 +80,16 @@ describe('every far check says why the object looks like a point, and how good t
 describe('“Easy to confuse with” names each quantity once, its symbol last, and describes',()=>{
  it('one name for each kind of quantity',()=>{
   for(const p of lessons)for(const f of shown(p)){
-   if(f.id==='projection')expect(f.label,p.id).toMatch(/^(?:y-p|P)rojection factor cos [αθ]$/);
+   if(f.id==='projection')expect(f.label,p.id).toMatch(/^The (?:y )?factor cos [αθ]$/);
    if(f.id==='kernel'&&p.quantity==='E')expect(f.label,p.id).toMatch(/^(?:x-component integrand dEₓ\/d[xyθs]|z-component integrand)$/);
    if(f.id==='kernel2')expect(f.label,p.id).toMatch(/^y-component integrand dEᵧ\/d[xy]$/);
    if(f.id==='kernel'&&p.quantity==='V')expect(f.label,p.id).toMatch(/^Integrand dV\/d[xyθs]$/);
    if(f.id==='result'&&p.quantity==='E')expect(f.label,p.id).toMatch(/^Total (?:x-component Eₓ|z-component)$/);
    if(f.id==='result2')expect(f.label,p.id).toBe('Total y-component Eᵧ');
   }
-  expect(label('bisector','projection')).toBe('Projection factor cos α');
-  expect(label('infinite','projection')).toBe('Projection factor cos θ');
-  expect(fields(getProblem('infinite','linear')).find(f=>f.id==='projection')!.label).toBe('Projection factor cos θ');
+  expect(label('bisector','projection')).toBe('The factor cos α');
+  expect(label('infinite','projection')).toBe('The factor cos θ');
+  expect(fields(getProblem('infinite','linear')).find(f=>f.id==='projection')!.label).toBe('The factor cos θ');
   expect(label('infinite','kernel')).toBe('x-component integrand dEₓ/dθ');
   expect(label('v-rod-bisector','kernel')).toBe('Integrand dV/dy');
  });
@@ -97,7 +97,7 @@ describe('“Easy to confuse with” names each quantity once, its symbol last, 
   const IMPERATIVE=/(?:^|[.:;] )(?:Use|Multiply|Drop|Carry|Include|Divide|Keep|Remember|Add|Take|Put)\b/;
   for(const p of lessons)for(const f of shown(p))for(const m of f.mistakes!)expect(plain(m.message),`${p.id}/${f.id} ${m.expression}`).not.toMatch(IMPERATIVE);
   const said=(id:string,field:string,expression:string)=>plain(fields(getProblem(id)).find(f=>f.id===field&&f.mistakes?.some(m=>m.expression===expression))!.mistakes!.find(m=>m.expression===expression)!.message);
-  expect(said('bisector','dq','Q*dy')).toMatch(/^Q dy would put the whole rod’s charge in one slice/);
+  expect(said('bisector','dq','Q*dy')).toMatch(/^Q dy would put the whole rod’s charge in one piece/);
   expect(said('bisector','component','dE')).toBe('dE is the whole slanted arrow. Only dE cos α of it lies along x.');
   expect(said('arc','dq','lambda*dtheta')).toMatch(/^λ dθ is a charge per length times an angle, which is not a charge/);
  });

@@ -129,7 +129,7 @@ describe('the rod potentials’ subtitles say where P is',()=>{
  });
  it('the bisector potential says what it is the bisector of',()=>{
   expect(getProblem('v-rod-bisector').title).toBe('Potential on the bisector of a rod');
-  expect(getProblem('v-rod-bisector').short,'the sidebar name pairs with its field twin').toBe('Finite line · potential');
+  expect(getProblem('v-rod-bisector').short,'the sidebar name pairs with its field twin').toBe('Line · beside its middle · potential');
  });
 });
 describe('“Differentiate back” says why −dV is the whole field, and only there',()=>{

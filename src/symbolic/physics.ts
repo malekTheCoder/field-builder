@@ -147,7 +147,7 @@ export function limitPlot(problem:Problem,limit:Limit):LimitPlot{
    ?{kind:'ratio',y:'|V| ÷ centre value',axis:'P coming down the axis to the centre',from:'z ≈ R',to:'the centre',line:'centre value',caption:g==='disk'
     ?'On the dashed line the exact potential equals its value at the centre. The curve arrives there finite and still sloping: just above a charged disk the field, minus V’s slope, is not zero.'
     :'On the dashed line the exact potential equals its value at the centre. The curve arrives there finite and level: its slope is minus the field along the axis, which is zero at the centre.'}
-   :{kind:'decay',y:'|E|, scaled',axis:'P coming down the axis to the centre',from:'the peak',to:'the centre',line:'zero',caption:'From its peak the field falls to zero as P reaches the centre, where every element’s field lies in the ring’s plane and its partner opposite cancels it.'};
+   :{kind:'decay',y:'|E|, scaled',axis:'P coming down the axis to the centre',from:'the peak',to:'the centre',line:'zero',caption:'From its peak the field falls to zero as P reaches the centre, where every piece’s field lies in the ring’s plane and its partner opposite cancels it.'};
   // V and its logarithm, not their ratio: ln(L/a) is zero at a = L, so the ratio came in from off the
   // top of the plot there, where nothing is singular, and settled on one as V ran off to infinity.
   // Drawn as themselves they both climb, and close up: V − kλ ln(L/a) = kλ ln((L + a)/L) → 0.

@@ -128,7 +128,7 @@ describe('v-ring’s confusions diagnose the expression, for either sign',()=>{
 describe('the words name what the algebra does',()=>{
  it('dE is one element’s field, signed with dQ, not a magnitude',()=>{
   for(const p of lessons)for(const f of fields(p))expect(f.label,p.id).not.toMatch(/Magnitude/);
-  expect(fields(getProblem('bisector')).find(f=>f.id==='field')!.label).toBe('One element’s field dE');
+  expect(fields(getProblem('bisector')).find(f=>f.id==='field')!.label).toBe('One piece’s field dE');
  });
  it('a disk is concentric rings in one plane, not a stack along the axis',()=>{
   expect(getProblem('disk').subtitle).toMatch(/concentric rings/);
