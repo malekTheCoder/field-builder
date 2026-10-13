@@ -1598,7 +1598,7 @@ export function FieldStage(props:FieldStageProps){
    const snapshot=(ev:Event)=>{
     if(disposed)return;
     apply(latest.current);
-    try{(ev as CustomEvent<SnapshotDetail>).detail.url=renderer.domElement.toDataURL('image/png');}catch{/* a lost context: the copy goes without the scene */}
+    const asked=(ev as CustomEvent<SnapshotDetail>).detail;asked.drawn=true;if(!asked.drawOnly)try{asked.url=renderer.domElement.toDataURL('image/png');}catch{/* a lost context: the copy goes without the scene */}
     requestAnimationFrame(()=>{if(!disposed)apply(latest.current);});
    };
    root?.addEventListener(SNAPSHOT_EVENT,snapshot);

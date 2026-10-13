@@ -70,7 +70,9 @@
   .is-print-snapped canvas:not(.cd-print-snap) { visibility: hidden !important; }
   .cd-print-snap { display: block !important; }
   .exp-limit-print, .exp-note-body .assessment { break-inside: avoid; }
-  .exp-limit-print + .exp-limit-print { margin-top: 14px; }
+  /* A case's heading starts a section: fourteen pixels under the case before -- closer than its own explanation
+     sits under it -- it read as the last line of the plot above. */
+  .exp-limit-print + .exp-limit-print { margin-top: 34px; }
   /* The held board's fade (explorer.css) is for a board that scrolls; on paper it is all there. */
   .exp-workspace > .ew-panel { -webkit-mask-image: none !important; mask-image: none !important; }
   /* The derivation prints whole, wherever the run had got to: paper has no "still to come". */

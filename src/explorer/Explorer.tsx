@@ -16,7 +16,7 @@ import {activeIntervalIndex} from '../diagrams/sampling';
 import {partitionCount} from '../diagrams/subdivision';
 import {cleanParams,parseAssignment,serializeAssignment,type ExploreMode} from '../state/assignment';
 import {ChargeDiagram} from '../diagrams/ChargeDiagram';
-import {snapshotLayer} from '../diagrams/snapshot';
+import {redrawLayer} from '../diagrams/snapshot';
 import {boardLines,exactSum,resultLines} from '../workbench/derivation';
 import {buildStages,motionAt,stageAt,stageStart,totalSeconds} from './buildRun';
 import {BuildPlayer,drawingOnScreen,runClock} from './BuildPlayer';
@@ -265,7 +265,7 @@ export default function Explorer(){
    // decoded later, and the page may already have gone to the printer by then.
    for(const layer of document.querySelectorAll<HTMLElement>('.explorer-app .cd-field-stage, .explorer-app .cd-field-canvas')){
     const from=layer.querySelector('canvas');
-    if(!snapshotLayer(layer)||!from?.width||!from.height)continue;
+    if(!redrawLayer(layer)||!from?.width||!from.height)continue;
     const copy=document.createElement('canvas');copy.className='cd-print-snap';copy.setAttribute('aria-hidden','true');copy.width=from.width;copy.height=from.height;
     try{copy.getContext('2d')?.drawImage(from,0,0)}catch{continue}
     layer.appendChild(copy);layer.classList.add('is-print-snapped');
