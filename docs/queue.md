@@ -6,8 +6,6 @@ then to **Done**, with the commit. Newest requests are added at the bottom of **
 owner says they are urgent.
 
 ## In progress
-- **The other fourteen lessons** (Next 9): two agents, rods and lines / rings, disks, arcs and the sheet;
-  two physics reviewers after.
 - **Critique round, wave 5** (owner, 2026-10-13: "both in parallel"): one round, five lanes with two
   critics each, one publish at the end. Usage cap: weekly 40%, 5-hour 90%.
 
@@ -63,6 +61,10 @@ owner says they are urgent.
    [quiz-plan.md](quiz-plan.md), waiting for the owner's OK.
 
 ## Done
+- All fifteen lessons are written and physics-reviewed (601aac8, 3cf1fb6, 26c3a11; reviews 5286115,
+  6adbdb2, 0f272b0). The reviewers fixed: a ring piece called a point charge, a factor of two in the disk's
+  integral, the arc potential's φ claim, the rod-on-axis far fields measured from the end, the bisector's
+  lone middle piece, sign-dependent "grows", and Purcell's chapter title.
 - No em dashes on the site (owner, 2026-10-13): every visible sentence that used one now uses a comma,
   colon, brackets or a full stop; tests/no-em-dash.test.ts keeps them out. Comments may still use them.
 - CI green again, Pages deploying (d55dcb4, run 38389216435). The ring's run-perf failure was not a
