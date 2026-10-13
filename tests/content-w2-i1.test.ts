@@ -5,6 +5,7 @@ import type {Problem} from '../src/problems/types';
 import {limitPlot} from '../src/symbolic/physics';
 import {confusionTex} from '../src/symbolic/equivalence';
 import {artifactHtml,lessonArtifact,lessonWorking} from '../src/state/artifact';
+import {lessonFor} from '../src/lessons';
 import {ARC_UNFOLD,AXIAL_UNFOLD,DISK_UNFOLD,SEMI_UNFOLD} from '../src/workbench/derivation';
 /* WAVE 2, FIRST PASS · CONTENT: ONE DERIVATION, ON THE PAGE AND ON PAPER, WITH EVERY STEP WRITTEN.
  *
@@ -55,6 +56,8 @@ describe('the offline copy prints the derivation the panel unfolds',()=>{
    const at=(s:string)=>html.indexOf(s);
    expect(at('<h2>Checks</h2>'),p.id).toBeGreaterThan(at('<h2>The result</h2>'));
    for(const l of p.limits)expect(html,`${p.id}/${l.id}`).toContain(`<h3>${l.title.replace(/&/g,'&amp;').replace(/</g,'&lt;')}</h3>`);
+   // A copy led by a lesson lists its sources with the lesson's books (content-w5-copy).
+   if(lessonFor(p.id)){for(const s of p.sources)expect(html,`${p.id} ${s.title}`).toContain(`href="${s.url}"`);continue;}
    expect(at('<h2>Sources</h2>'),p.id).toBeGreaterThan(at('<h2>Checks</h2>'));
    for(const s of p.sources)expect(html,`${p.id} ${s.title}`).toContain(`href="${s.url}"`);
    // Said where the reader first meets k: the copy now builds the integral before printing it, and
@@ -129,8 +132,10 @@ describe('the plots and checks say what they draw',()=>{
   const far=limitOf('ramp','far'),moment=limitOf('ramp','moment');
   expect(far.formula).toContain(String.raw`|\mathbf E|\sim\frac{k|Q|}{r^2}`);
   expect(limitPlot(getProblem('ramp'),far).y).toMatch(/^\|E\|/);
-  expect(plain(far.explanation)).toContain('Q = ∫₀ᴸ λ₀y/L dy');
-  expect(plain(moment.explanation)).toContain('ȳ = ∫₀ᴸ yλ dy / ∫₀ᴸ λ dy');
+  // In words: an integral quotient set in the sans face was illegible beside the KaTeX under it.
+  expect(plain(far.explanation)).toContain('Q = λ₀L/2, not λ₀L');
+  expect(plain(moment.explanation)).toContain('ȳ = 2L/3 is the centre of charge, the charge-weighted average height');
+  for(const l of getProblem('ramp').limits)expect(l.explanation).not.toMatch(/∫/);
   expect(plain(moment.explanation)).not.toMatch(/falls to/);
   const m=fields(getProblem('ramp')).flatMap(f=>f.mistakes??[]).find(x=>x.expression==='Q*y/L*dy')!;
   expect(plain(m.message)).toMatch(/coulomb-metres/);

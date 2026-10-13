@@ -151,7 +151,7 @@ describe('the working says each step in the lesson’s own terms',()=>{
    expect(plain(w.text),p.id).not.toMatch(/\bsigned\b/);
    expect(w.tex,p.id).not.toMatch(/E_[xyz]\s*[<>]\s*0/);
   }
-  expect(plain(lessonWorking(getProblem('ring')).worked.at(-1)!.text)).toMatch(/^\$E_z\$ can come out negative: reversing \$z\$ or \$Q\$ reverses it\./);
+  expect(plain(lessonWorking(getProblem('ring')).worked.at(-1)!.text)).toMatch(/^The component \$E_z\$ can come out negative: reversing \$z\$ or \$Q\$ reverses it\./);
  });
  // The page and the copy now show the panel's SHEET_UNFOLD, in the sheet's own angle; the lesson's own
  // steps are still the integrate step's hint and what the derivation checks read, and stand on their own.

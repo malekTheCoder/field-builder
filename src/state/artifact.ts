@@ -48,6 +48,9 @@ export type LessonArtifact = {
   checks?: LessonCheck[];
   /** Where the lesson's physics is written up: a textbook section, a problem it is set as. */
   sources?: {title: string; url: string}[];
+  /** Where the integral and its working take another route from the build above them -- the infinite
+   * line's finite-rod limit, after a build by angle -- the sentence that says so. */
+  route?: string;
   svg?: string;
 };
 
@@ -116,8 +119,14 @@ export function lessonArtifact(p: Problem, algebra: Problem = p, address?: strin
     coordinate: p.coordinate, integralTex: algebra.integralTex,
     secondaryIntegralTex: algebra.secondaryIntegralTex, results: resultLines(algebra),
     worked, back, derived: back.slice(-1).map(w => w.tex),
-    checks: p.limits.map(l => ({title: l.title, formula: l.formula, explanation: l.explanation})), sources: p.sources};
+    checks: p.limits.map(l => ({title: l.title, formula: l.formula, explanation: l.explanation})), sources: p.sources,
+    ...(algebra.variable !== q.variable ? {route: ROUTE} : {})};
 }
+/** TWO ROUTES, SAID TO BE TWO. On the infinite line's finite-rod route the copy built the integral by angle,
+ * ending on ∫(kλ/r) cos θ dθ, and the next heading printed lim_{L→∞} kλ∫ r dy/(y² + r²)^{3/2} with working in
+ * L, and nothing between them. The page says it is an alternate derivation; on paper that sentence was
+ * missing, and the second integral read as a different problem or a printing error. */
+const ROUTE = String.raw`This is the finite-line route: start with a rod of length $L$, then let $L$ grow at fixed $\lambda$. Above, the field is built by angle instead; both routes arrive at the same field.`;
 /** Where E_y's integral comes from, said as the panel says it over the same integral (EquationWorkbench's
  * `surviving`): the factor the board never writes, the sine (the half line's cosine), named with it. */
 const ALONG: Record<string, string> = {
@@ -166,6 +175,8 @@ export function greekHtml(text: string) {
   return escapeHtml(text).replace(/[Ͱ-Ͽ]+/g, run => run.split('').map(c => `<span class="g${c === c.toLowerCase() ? '' : ' up'}">${c}</span>`).join(''));
 }
 
+/** Whether a lesson's sentence or display says what k is: k = 1/(4πε₀), in either way of writing the fraction. */
+const K_SAID = /k\s*=\s*(?:\\[dt]?frac\{?1\}?\{4\\pi\s*\\varepsilon_0\}|1\/\(4\\pi\s*\\varepsilon_0\))/;
 /** Whether the TeX writes Coulomb's constant: once the macro names are gone, any k left is a symbol. */
 const usesK = (tex: string) => tex.replace(/\\[A-Za-z]+/g, '').includes('k');
 
@@ -245,8 +256,11 @@ const OPERATOR = String.raw`<mi(?: mathvariant="normal")?>(?:ln|log|exp|sin|cos|
  * bracket or a sign the operator follows on directly, as it does in TeX.
  * A squared operator is the same operator: KaTeX writes r sec²α as <mi>r</mi><msup><mrow><mi>sec</mi>…,
  * the operator one level down inside its script, and the copy printed "rsec²α" and "r³sec³α" run
- * together in five lessons' working. */
-const ORDINARY_BEFORE = new RegExp(String.raw`(</(?:mi|mn|msub|msup|msubsup|mfrac|msqrt|mover|mrow)>)((?:<msup><mrow>)?${OPERATOR})`, 'g');
+ * together in five lessons' working.
+ * And an operator opening a group is the same operator: the board lights cos α as one factor,
+ * \htmlClass{…}{\cos\alpha}, which KaTeX writes as <mrow><mi>cos</mi>…, and in the copy's One piece and
+ * Add them up "cos" touched the end of the fraction bar before it. */
+const ORDINARY_BEFORE = new RegExp(String.raw`(</(?:mi|mn|msub|msup|msubsup|mfrac|msqrt|mover|mrow)>)((?:<msup><mrow>|<mrow>)?${OPERATOR})`, 'g');
 /** After the operator's invisible function application, a symbol or a fraction is set off too; a
  * bracket is not: "ln(L/a)", but "sin θ". After a squared operator the application sits inside the
  * script, and the space goes after the whole of it: "sec²α", not "sec²α" run on. */
@@ -371,7 +385,9 @@ export function artifactHtml(a: LessonArtifact) {
   // first used. It is said where the reader first meets it: in One piece, where the board first writes
   // it, or under the integral in a copy that has no board.
   const kNote = `<p class="where">Here ${mathml(String.raw`k=\dfrac{1}{4\pi\varepsilon_0}`, false)}.</p>`;
-  let kSaid = false;
+  // A lesson that says it already (the bisector's One piece: "Coulomb's law, with k = 1/(4πε₀)") is where
+  // the reader met it; a second "Here k = …" under the integral, two sheets on, said it again.
+  let kSaid = !!a.lesson?.sections.some(s => s.body.some(b => K_SAID.test(typeof b === 'string' ? b : b.tex)));
   // THE METHOD, STAGE BY STAGE (see `lessonArtifact`): each stage under its name, the run's one sentence
   // for it, then the board's line as the board sets it -- the cancellation over what survives, the line's
   // second half under its first, and what its new symbols mean under the line.
@@ -391,7 +407,15 @@ export function artifactHtml(a: LessonArtifact) {
     if (!kSaid && [l.cancels, l.tex, l.finish, l.also].some(t => t && usesK(plain(t)))) { parts.push(kNote); kSaid = true; }
     return `<div class="stage">${parts.join('\n')}</div>`;
   };
-  const building = a.building?.length ? keep('<h2>Building the integral</h2>', a.building.map((s, i) => stage(s, i === a.building!.length - 1))) : '';
+  // WITH A LESSON, THE COPY TEACHES THE METHOD ONCE. The lesson at the top already goes through the setup and
+  // the five stages under the same names, and the copy then printed Setup again and Building the integral
+  // with the same five headings, the same step written a second time in the board's convention (ΔE as a
+  // vector with r̂ᵢ, after the lesson's magnitude), and OpenStax listed twice: a student read the second
+  // pass as a second method, or a printing error, and the bisector ran to five sheets. Where a lesson leads,
+  // the build and the Setup heading go; the problem itself stays, as one boxed statement, so the copy still
+  // says what is asked; and the sources join the lesson's books. Without a lesson the copy is as it was.
+  const taughtFirst = !!a.lesson;
+  const building = !taughtFirst && a.building?.length ? keep('<h2>Building the integral</h2>', a.building.map((s, i) => stage(s, i === a.building!.length - 1))) : '';
   // A potential lesson promises that "E falls out of one derivative"; the copy ended at V without it,
   // and then printed only the derivative's last line.
   const steps = (list: WorkedStep[]) => list.map(w => `<div class="step"><p>${proseHtml(w.text)}</p>\n${mathml(w.tex)}</div>`);
@@ -433,7 +457,11 @@ export function artifactHtml(a: LessonArtifact) {
   // whole third sheet.
   const footer = '<footer>Saved from Field Builder. The equations are MathML, so this page needs no network to read or print.</footer>';
   // A printed link is only its words, so the address is printed under them.
-  const sources = a.sources?.length
+  const readUrls = new Set((a.lesson?.read ?? []).map(r => r.url).filter(Boolean));
+  const moreReading = taughtFirst ? (a.sources ?? []).filter(s => !readUrls.has(s.url)) : [];
+  const sources = taughtFirst
+    ? `${footer}\n`
+    : a.sources?.length
     ? keep('<h2>Sources</h2>', [`<ul class="sources">${a.sources.map(s => `<li><a href="${escapeHtml(s.url)}">${escapeHtml(s.title)}</a><span class="url">${escapeHtml(s.url)}</span></li>`).join('\n')}</ul>\n${footer}`])
     : `${footer}\n`;
   // THE LESSON LEADS THE COPY, as it leads the page and the page's print: the lead, the teaching under its
@@ -443,7 +471,8 @@ export function artifactHtml(a: LessonArtifact) {
   const taught = a.lesson
     ? `<section class="lesson">\n${keep('<h2>The lesson</h2>', [`<p class="lead">${proseHtml(a.lesson.lead)}</p>`,
       ...a.lesson.sections.map(s => `<div class="keep"><h3 class="taught">${escapeHtml(s.heading)}</h3>\n${s.body.map(b => typeof b === 'string' ? `<p>${proseHtml(b)}</p>` : mathml(b.tex)).join('\n')}</div>`),
-      ...(a.lesson.read.length ? [`<div class="keep"><h3 class="taught">Read it in a textbook</h3>\n<ul class="sources">${a.lesson.read.map(r => `<li>${r.url ? `<a href="${escapeHtml(r.url)}"><cite>${escapeHtml(r.book)}</cite></a>` : `<cite>${escapeHtml(r.book)}</cite>`}, ${escapeHtml(r.where)}${r.url ? `<span class="url">${escapeHtml(r.url)}</span>` : ''}</li>`).join('\n')}</ul></div>`] : [])])}</section>\n`
+      ...(a.lesson.read.length || moreReading.length ? [`<div class="keep"><h3 class="taught">Read it in a textbook</h3>\n<ul class="sources">${[...a.lesson.read.map(r => `<li>${r.url ? `<a href="${escapeHtml(r.url)}"><cite>${escapeHtml(r.book)}</cite></a>` : `<cite>${escapeHtml(r.book)}</cite>`}, ${escapeHtml(r.where)}${r.url ? `<span class="url">${escapeHtml(r.url)}</span>` : ''}</li>`),
+        ...moreReading.map(s => `<li><a href="${escapeHtml(s.url)}">${escapeHtml(s.title)}</a><span class="url">${escapeHtml(s.url)}</span></li>`)].join('\n')}</ul></div>`] : [])])}</section>\n`
     : '';
   // The live lesson's address, in full: on paper a link is only what is printed.
   const address = a.address ? `<p class="address">The live lesson, as saved: <a href="${escapeHtml(a.address)}">${escapeHtml(a.address)}</a></p>\n` : '';
@@ -485,6 +514,8 @@ mtable[columnalign^="right left"] > mtr > mtd:nth-child(even) { text-align: left
 .step p { margin: 14px 0 2px; }
 .where { margin-top: 12px; }
 .note { margin: -4px 0 10px; }
+.problem { max-width: none; margin: 18px 0 6px; padding: 10px 14px; border: 1px solid #d8e1e7; border-radius: 6px; }
+.route { color:#4a6274; }
 .stage .gloss { margin: 0 0 4px; color:#4a6274; }
 .stage .aside { margin: -6px 0 8px; }
 .stage .sym { max-width: none; text-align: center; }
@@ -510,7 +541,7 @@ footer { margin-top: 36px; padding-top: 12px; border-top: 1px solid #d8e1e7; col
 <h1>${escapeHtml(a.title)}</h1>
 <p class="lede">${escapeHtml(a.subtitle)}</p>
 ${address}${taught}${figure}
-${keep('<h2>Setup</h2>', [`<p>${proseHtml(a.setup)}</p>`])}${building}${keep(`<h2>${a.secondaryIntegralTex ? 'The integrals' : 'The integral'}</h2>`, [displays([a.integralTex, ...(a.secondaryIntegralTex ? [a.secondaryIntegralTex] : [])]).map(tex => mathml(tex)).join('\n')])}${note}${constant}${working}${keep('<h2>The result</h2>', [`<div class="result">${displays(a.results).map(tex => mathml(tex)).join('\n')}</div>`])}${derived}${checks}${sources}</main>
+${taughtFirst ? `<p class="problem">${proseHtml(a.setup)}</p>\n` : keep('<h2>Setup</h2>', [`<p>${proseHtml(a.setup)}</p>`])}${building}${keep(`<h2>${a.secondaryIntegralTex ? 'The integrals' : 'The integral'}</h2>`, [displays([a.integralTex, ...(a.secondaryIntegralTex ? [a.secondaryIntegralTex] : [])]).map(tex => mathml(tex)).join('\n') + (a.route ? `\n<p class="note route">${proseHtml(a.route)}</p>` : '')])}${note}${constant}${working}${keep('<h2>The result</h2>', [`<div class="result">${displays(a.results).map(tex => mathml(tex)).join('\n')}</div>`])}${derived}${checks}${sources}</main>
 <script>${FIT_ROOTS}</script>
 </body></html>`;
 }

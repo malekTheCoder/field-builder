@@ -68,7 +68,7 @@ describe('the lessons', () => {
   it('leads the offline copy: the lead, the sections, their equations and the books, before the setup', () => {
     const l = lessonFor('bisector')!, html = artifactHtml(lessonArtifact(getProblem('bisector'))), at = (t: string) => html.indexOf(t);
     expect(at('<h2>The lesson</h2>')).toBeGreaterThan(at('<p class="lede">'));
-    expect(at('<h2>The lesson</h2>')).toBeLessThan(at('<h2>Setup</h2>'));
+    expect(at('<h2>The lesson</h2>')).toBeLessThan(at('<p class="problem">'));
     for (const s of l.sections) expect(html).toContain(`<h3 class="taught">${s.heading}</h3>`);
     for (const r of l.read) expect(html).toContain(escapeHtml(r.where));
     // Every display, set as MathML with its TeX riding along.

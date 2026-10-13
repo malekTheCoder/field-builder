@@ -30,6 +30,7 @@ describe('the laws', () => {
     const t = tex(row.querySelector('.law-tex')!);
     expect(t).toMatch(/\\mathbf E\\approx\\sum_\{i\}\\Delta\\mathbf E_\{i\}/);
     expect(t).toContain(String.raw`\mathbf E=\int d\mathbf E`);
-    expect(row.querySelector('.law-why')!.textContent).toMatch(/only ≈ because each piece’s field is taken to be a point charge’s/);
+    // The laws' prose is held (content-w5-tour), so its spaces may be no-break ones.
+    expect(row.querySelector('.law-why')!.textContent!.replace(/\u00a0/g, ' ')).toMatch(/only ≈ because each piece’s field is taken to be a point charge’s/);
   });
 });

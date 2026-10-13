@@ -2,6 +2,7 @@ import {describe, expect, it} from 'vitest';
 import {buildStages} from '../src/explorer/buildRun';
 import {PROBLEMS, getProblem} from '../src/problems/definitions';
 import {artifactHtml, chained, lessonArtifact} from '../src/state/artifact';
+import {lessonFor} from '../src/lessons';
 import {alongIntegralOf, boardLines} from '../src/workbench/derivation';
 /* THE OFFLINE COPY CARRIES THE METHOD, AND A WAY BACK.
  *
@@ -13,7 +14,9 @@ import {alongIntegralOf, boardLines} from '../src/workbench/derivation';
 const tex = (html: string) => [...html.matchAll(/<annotation encoding="application\/x-tex">([\s\S]*?)<\/annotation>/g)].map(m => m[1].replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>'));
 const plain = (t: string) => t.replace(/\\htmlClass\{[^{}]*\}/g, '').replace(/\\colon/g, ':');
 const between = (html: string, from: string, to: string) => html.slice(html.indexOf(from), html.indexOf(to));
-const lessons = [...PROBLEMS, getProblem('infinite', 'limit')];
+// A copy led by a lesson teaches the stages there, once (content-w5-copy): the build below is for the rest.
+const lessons = [...PROBLEMS, getProblem('infinite', 'limit')].filter(p => !lessonFor(p.id));
+const unled = PROBLEMS.filter(p => !lessonFor(p.id));
 
 describe('the copy builds the integral as the board does', () => {
   it('a section between the setup and the integral, one heading per stage of the run, in order', () => {
@@ -27,7 +30,7 @@ describe('the copy builds the integral as the board does', () => {
     }
   });
   it('each stage prints the board’s own lines, its cancellation and its glosses, with nothing left to light', () => {
-    for (const p of PROBLEMS) {
+    for (const p of unled) {
       const html = artifactHtml(lessonArtifact(p)), section = between(html, '<h2>Building the integral</h2>', '<h2>The integral');
       const shown = tex(section).join('\n');
       for (const line of boardLines(p)) {
@@ -50,7 +53,7 @@ describe('the copy builds the integral as the board does', () => {
     expect(chained(String.raw`E_x\approx\sum_i A`)).toBe(String.raw`E_x\approx\sum_i A`);
   });
   it('E_y’s integral, where it survives, as the panel’s answer sets it, after the board’s last line', () => {
-    for (const id of ['endpoint', 'ramp', 'semi'] as const) {
+    for (const id of (['endpoint', 'ramp', 'semi'] as const).filter(id => !lessonFor(id))) {
       const p = getProblem(id), html = artifactHtml(lessonArtifact(p)), section = between(html, '<h3>Shrink them</h3>', '<h2>The integral');
       expect(tex(section), id).toContain(alongIntegralOf(p)!.tex);
       expect(section, id).toMatch(/The other component, /);
@@ -58,10 +61,9 @@ describe('the copy builds the integral as the board does', () => {
     for (const id of ['bisector', 'ring', 'arc', 'disk']) expect(artifactHtml(lessonArtifact(getProblem(id))), id).not.toMatch(/The other component, /);
   });
   it('the run’s sentence leads each stage, except where the board already says in full that nothing cancels', () => {
-    const p = getProblem('bisector'), html = artifactHtml(lessonArtifact(p));
-    for (const s of buildStages(p)) expect(html, s.key).toContain(`<h3>${s.name}</h3>\n<p class="gloss">`);
-    const end = artifactHtml(lessonArtifact(getProblem('endpoint')));
-    expect(end).toMatch(/<h3>What cancels<\/h3>\n<p class="aside">Nothing cancels/);
+    const p = unled.find(q => ['bisector', 'ring', 'arc', 'disk'].includes(q.id));
+    if (p) { const html = artifactHtml(lessonArtifact(p)); for (const s of buildStages(p)) expect(html, s.key).toContain(`<h3>${s.name}</h3>\n<p class="gloss">`); }
+    if (!lessonFor('endpoint')) expect(artifactHtml(lessonArtifact(getProblem('endpoint')))).toMatch(/<h3>What cancels<\/h3>\n<p class="aside">Nothing cancels/);
   });
 });
 describe('the copy prints as a handout', () => {
@@ -69,7 +71,8 @@ describe('the copy prints as a handout', () => {
     for (const p of PROBLEMS) {
       const html = artifactHtml(lessonArtifact(p));
       for (const h2 of html.matchAll(/<h2>([^<]*)<\/h2>/g)) expect(html.slice(h2.index - 18, h2.index), `${p.id}: ${h2[1]}`).toBe('<div class="keep">');
-      expect(html, p.id).toMatch(/<div class="keep"><h2>Sources<\/h2>\n<ul class="sources">[\s\S]*?<\/ul>\n<footer>[^<]*<\/footer><\/div>/);
+      if (lessonFor(p.id)) expect(html, p.id).toMatch(/<footer>[^<]*<\/footer>\n<\/main>/);
+      else expect(html, p.id).toMatch(/<div class="keep"><h2>Sources<\/h2>\n<ul class="sources">[\s\S]*?<\/ul>\n<footer>[^<]*<\/footer><\/div>/);
       expect(html, p.id).toMatch(/\.keep \{ break-inside: avoid; \}/);
     }
   });
@@ -79,7 +82,7 @@ describe('the copy prints as a handout', () => {
     const address = /<p class="address">([\s\S]*?)<\/p>/.exec(html)![1];
     expect(address).toContain(`<a href="https://field.malekswilam.dev/?p=arc&amp;phi=90deg&amp;Q=-2">https://field.malekswilam.dev/?p=arc&amp;phi=90deg&amp;Q=-2</a>`);
     expect(html.indexOf('<p class="address">')).toBeGreaterThan(html.indexOf('<p class="lede">'));
-    expect(html.indexOf('<p class="address">')).toBeLessThan(html.indexOf('<h2>Setup</h2>'));
+    expect(html.indexOf('<p class="address">')).toBeLessThan(html.search(/<h2>Setup<\/h2>|<p class="problem">/));
     expect(artifactHtml(lessonArtifact(p))).not.toMatch(/class="address"/);
   });
 });

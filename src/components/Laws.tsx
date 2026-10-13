@@ -3,6 +3,7 @@ import {useId,useRef,useState,type RefObject} from 'react';
 import {BookOpen,ChevronDown} from 'lucide-react';
 import {Dialog,DialogContent,DialogTitle,DialogDescription} from '@/components/ui/dialog';
 import {MathText} from './Math';
+import {hold} from '../problems/prose';
 import './laws.css';
 /** The three statements every lesson in this app rests on, and the relation that gives each piece its
  * charge. They are stated once, here, and rendered wherever a student asks — the tour on first run, a
@@ -31,7 +32,9 @@ import './laws.css';
 // sources include Gauss's law and a charged plane.
 export const LAWS_LEDE='Every lesson makes the same three moves. Cut the charge into pieces, each thin enough, seen from P, to count as a point, or a ring whose every bit is the same distance from P. A point charge’s law gives each piece its field (on the potential lessons, its potential), and superposition adds the pieces. Shrinking them turns the sum into an integral. Only the geometry changes.';
 type Law={id:string;name:string;tex:string;why:string;detail:string;more:string[]};
-const LAWS:Law[]=[
+// THE LAWS' PROSE IS HELD AS THE LESSONS' IS (prose.ts), and so is the lede where it is shown. At a
+// phone's width "V" ended one line and "= kQ/r." began the next, on the tour's page and in the dialog.
+const LAWS:Law[]=([
  {id:'coulomb',name:'Coulomb’s law',tex:String.raw`\mathbf E=\frac{kQ}{r^{2}}\,\hat{\mathbf r}`,
   why:'The only field law the lessons build from. Every field lesson starts by applying it to pieces of the charge: a bit thin enough, seen from P, to count as a point, or a ring whose every bit is the same distance from P. The potential lessons start from its scalar partner, V = kQ/r.',
   detail:'A point charge Q fills the space around it with a field that falls off as the inverse square of the distance. The unit vector points from the charge out to the place you are asking about, so the field points away from a positive Q and back toward a negative one. Coulomb measured the force between two charges; dividing by the charge you would put at that place leaves the field, which depends on the source alone.',
@@ -50,13 +53,22 @@ const LAWS:Law[]=[
  {id:'density',name:'Charge density',tex:String.raw`dQ=\lambda\,d\ell=\sigma\,dA`,
   why:'What turns a piece’s size into its charge. λ is charge per unit length and σ charge per unit area; each is the same everywhere only where the lesson says the charge is uniform.',
   detail:'A piece’s charge is the density times the piece’s own length or area, measured in the variable the charge is cut by. A rod cut along y gives pieces dy long. A ring or an arc cut by angle gives pieces R dθ long: an angle is not a length. A disk cut into rings gives rings of area 2πs ds: circumference times width, growing with the radius. Where the density changes along the charge, as on the ramp, it is read at the piece’s own place.',
-  more:[String.raw`d\ell=dy\qquad d\ell=R\,d\theta\qquad dA=2\pi s\,ds`,String.raw`\lambda(y)=\lambda_{0}\,\frac{y}{L}`]}];
+  more:[String.raw`d\ell=dy\qquad d\ell=R\,d\theta\qquad dA=2\pi s\,ds`,String.raw`\lambda(y)=\lambda_{0}\,\frac{y}{L}`]}] as Law[]).map(l=>({...l,why:hold(l.why),detail:hold(l.detail)}));
 /** The scalar law leads on a potential lesson, because that is the one being used there. */
+/** Each law's name as it reads inside a sentence. */
+const IN_PROSE:Record<string,string>={coulomb:'Coulomb’s law',superposition:'superposition',potential:'a point charge’s potential',density:'charge density'};
 function ordered(quantity:'E'|'V'){return quantity==='V'?[LAWS[2],LAWS[1],LAWS[0],LAWS[3]]:LAWS}
-export function Laws({quantity='E',lede=true}:{quantity?:'E'|'V';lede?:boolean}){
+/** `only` keeps the named rows, in their usual order, and says where the rest are. The tour's page is
+ * titled "Start from Coulomb's law" and its sentence names superposition: shown all four rows, a laptop
+ * and a phone saw those two and nothing said the potential and the density sat below the fold of a
+ * dialog. The tour shows the two it names; the other two are a click away on every lesson. */
+export function Laws({quantity='E',lede=true,only}:{quantity?:'E'|'V';lede?:boolean;only?:string[]}){
  const [open,setOpen]=useState('');const uid=useId();
- return <div className="laws">{lede&&<p className="laws-lede">{LAWS_LEDE}</p>}
-  <ul className="laws-list">{ordered(quantity).map(l=>{const shown=open===l.id;return <li className="law" key={l.id} data-open={shown}>
+ const rows=ordered(quantity).filter(l=>!only||only.includes(l.id)),rest=only?LAWS.filter(l=>!only.includes(l.id)):[];
+ return <div className="laws">{lede&&<p className="laws-lede">{hold(LAWS_LEDE)}</p>}
+  {/* Above the rows, not under them: under them it was the line below the fold. */}
+  {rest.length>0&&<p className="laws-more">{`${rest.length===1?'One more':rest.length===2?'Two more':'More'}, ${rest.map(l=>IN_PROSE[l.id]).join(' and ')}, ${rest.length===1?'is':'are'} under “The laws behind every lesson”, in the ⋯ menu at the top of each lesson.`}</p>}
+  <ul className="laws-list">{rows.map(l=>{const shown=open===l.id;return <li className="law" key={l.id} data-open={shown}>
    <button type="button" onClick={()=>setOpen(shown?'':l.id)} aria-expanded={shown} aria-controls={shown?`${uid}-${l.id}`:undefined}>
     <span className="law-name">{l.name}</span><ChevronDown size={15} aria-hidden="true"/>
     {/* In display style: set inline, kQ over r² was a text-style fraction, its numerator at twelve
@@ -68,7 +80,7 @@ export function Laws({quantity='E',lede=true}:{quantity?:'E'|'V';lede?:boolean})
 export function LawsDialog({open,onOpenChange,quantity='E',returnFocus}:{open:boolean;onOpenChange:(value:boolean)=>void;quantity?:'E'|'V';returnFocus?:RefObject<HTMLElement|null>}){
  return <Dialog open={open} onOpenChange={onOpenChange}><DialogContent className="laws-dialog" finalFocus={returnFocus}>
   <DialogTitle className="laws-title">The laws behind every lesson</DialogTitle>
-  <DialogDescription className="laws-lede">{LAWS_LEDE}</DialogDescription>
+  <DialogDescription className="laws-lede">{hold(LAWS_LEDE)}</DialogDescription>
   <Laws quantity={quantity} lede={false}/></DialogContent></Dialog>;
 }
 /** The whole second entry point in one element: a quiet trigger that owns its dialog and hands

@@ -70,7 +70,8 @@ describe('the tour introduces the laws before the method', () => {
     const {baseElement, getByRole} = render(<Onboarding open onClose={() => {}} />);
     await press(getByRole('button', {name: /Continue/}));
     expect(baseElement.querySelector('.ob-title')!.textContent).toMatch(/Coulomb/);
-    expect(rows(baseElement).length).toBe(4);
+    // The two laws the page's title names; the other two are a line away (content-w5-tour).
+    expect(rows(baseElement).length).toBe(2);
     // A reason, not a recital: superposition is presented as the permission to add.
     expect(baseElement.querySelector('.laws')!.textContent).toMatch(/integral/i);
     expect(judged(baseElement.textContent ?? '')).toBe('');

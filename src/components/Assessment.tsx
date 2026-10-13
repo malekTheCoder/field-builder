@@ -252,13 +252,13 @@ export function limitNow(problem:Problem,limit:Limit,plot:LimitPlot,here:number,
     'Opening the arc moves no piece nearer or farther: the potential holds while the field falls.',
     'Closing towards a full circle: the potential is still kQ/R, while the field at the centre falls towards zero.']);
    return pick(converged,[
-    'A narrow arc’s pieces’ fields point much the same way, so they mostly add.',
+    'On a narrow arc the pieces’ fields point much the same way, so they mostly add.',
     'Opening the arc spreads its pieces’ fields in direction: more and more of them cancel.',
     'Closed into a full circle, every piece is cancelled by the one opposite: the field at the centre is zero.']);
   case 'half':return pick(converged,[
-   `Few pieces: their sum is ${cmp('the integral')}.`,
-   'More pieces: the sum is closing on the integral.',
-   'Many pieces: the sum lies on the integral.']);
+   `Few pieces: their field at P is ${here<1?'weaker':'stronger'} than the semicircle’s, the dashed line.`,
+   'More pieces: their sum is closing on the semicircle’s field.',
+   'Many pieces: their sum lies on the semicircle’s field, the integral.']);
   case 'scale':
    if(g==='sheet')return pick(along,[
     'Close to the sheet, the field is the sheet field.',

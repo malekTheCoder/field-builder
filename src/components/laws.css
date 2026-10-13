@@ -26,3 +26,11 @@
 @media(max-width:520px){.laws-dialog[data-slot=dialog-content]{padding:22px 20px!important;border-radius:14px}
  .law-name{font-size:var(--type-body)}.law>button{padding:13px 0}}
 @media(prefers-reduced-motion:reduce){.law>button>svg{transition:none}}
+/* Where the tour shows only some of the laws, one quiet line says where the others are. */
+.laws-more{margin:0 0 6px;font-size:var(--type-meta);line-height:1.7;color:var(--muted-foreground);max-width:58ch}
+/* And the tour's page says there is more below. Its footer holds at the dialog's foot over the page
+   scrolling under it (onboarding.css), so on a phone the second law's sentence was cut mid-line by a
+   solid edge with nothing to say the page went on. A fade above the footer, on this page only. */
+.fb-onboarding:has(.laws) .ob-footer::before{content:'';position:absolute;left:0;right:0;top:-28px;height:28px;pointer-events:none;
+ background:linear-gradient(to bottom,transparent,var(--card))}
+.fb-onboarding .laws-more{padding-top:8px}
