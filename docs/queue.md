@@ -12,7 +12,6 @@ owner says they are urgent.
   links still open lessons directly. (agent)
 
 ## Next
-**Urgent: CI is red, so Pages is not deploying.** Since the w4 merge, run-perf's ring "every stage
 - **Lesson-to-lesson links feel broken** (e.g. "Take this rod to infinity" on the finite line). Clicking
   swaps the page to the related lesson (Explorer.tsx `related`, `exp-related`) with no visible
   sign: it jumps to the top, and the lesson list's highlight may be scrolled out of sight. Make it a
@@ -21,11 +20,6 @@ owner says they are urgent.
   came from and why ("From the finite rod: let it run to infinity"), and there is a way back. This
   applies to every `link` in src/problems/*.ts (about a dozen). Start it after the CI run-perf fix
   lands, because both touch Explorer.tsx.
-under budget" fails on CI only: Shrink them p95 153-205 ms against 146 (before the merge, 56-141 on
-CI). It does not reproduce on the Mac, even with SwiftShader and a 4x CPU throttle, where the merged
-ring's Shrink is now cheaper than before the merge. A clue: on CI the ring's run puts 135 frames in
-Shrink them and 101 in Cut it up; here it is 124 and 112, so CI runs a different timeline. Next step:
-reproduce in a Linux container (the Playwright image) and profile Shrink there.
 
 1. **Gauss's law, "coming soon" on the site.** A Gauss's law section shown as coming soon on the
    home page, in the lesson list and in the library. Do this after the home page lands. The plan is
@@ -52,6 +46,19 @@ reproduce in a Linux container (the Playwright image) and profile Shrink there.
    still to be confirmed.
 
 ## Done
+- CI green again, Pages deploying (d55dcb4, run 38389216435). The ring's run-perf failure was not a
+  regression on CI's path: on the same runner the merged and pre-merge ring cost the same, and CI
+  machines differ about fourfold. Most of each CI frame was React's dev build capturing an owner-stack
+  Error and console task per element -- only for the first 10k elements per wall-clock second, so a
+  slow runner pays it on far more elements and the cost grows faster than the machine slows (the
+  "different timeline" was a lesson difference: ring/infinite are 101/135 frames, rod/disk 112/124,
+  on CI and here alike). The test now turns owner stacks off for the frames it times and measures each
+  stage's p95 against a render-and-layout workload timed in the same page (budget 8 units; the worst
+  stage measures 3.4-5 on the Mac, throttled 2x/4x, a Linux container and CI); the counts stay as the
+  regression guards. Profiling also found real waste, fixed: in space the ring rebuilt its hidden flat
+  pieces, cuts and growing cuts on every frame; the cuts are no longer built there and the pieces
+  (still the click targets) are kept between frames (ChargeDiagram `RingHits`; it landed inside
+  9bb3672, another session's commit from the shared checkout).
 - The home cover shows the cancelling (776fe44): both mirror pieces, their two ΔE arrows at P, the parts
   across the axis struck through as "cancel", and the parts along it laid end to end as E.
 - The cloud round (w4) is merged (edb9c07): a sum link draws mirror pairs (was Next 3), the cube's face
