@@ -410,6 +410,9 @@ export default function Explorer({welcome}:{welcome?:boolean}={}){
  // millisecond each on a laptop and some four times that on a Chromebook, in the two stages that move most.
  // It reads the values only to check a bound typed against the charge's size, so they reach it without the cut.
  const {distance:bd,size:bs,charge:bq,phi:bp,slices:bn,element:be}=params;
+ // And the limiting cases, open with the page now, take the same: handed the run's cut, the open card summed its
+ // seventy samples again on every frame of Shrink them -- a fifth of a frame's cost there on a slow machine -- for a
+ // sweep that reads none of it.
  const boardParams=useMemo(()=>({distance:bd,size:bs,charge:bq,phi:bp,slices:bn,element:be,continuum:0}),[bd,bs,bq,bp,bn,be]);
  const updateParams=useCallback((partial:Partial<Params>)=>{setParamsMap(old=>({...old,[id]:{...(old[id]??DEFAULT_PARAMS),...partial}}));},[id]);
  /** Whether the run came to rest by itself -- played to the end of what it was asked to play -- rather
@@ -1004,11 +1007,11 @@ export default function Explorer({welcome}:{welcome?:boolean}={}){
    {limitsOpen&&<div className="exp-note-body">
     {/* On paper, every case under its own heading: tabs print as buttons nobody can press, over one panel. */}
     {printing&&p.limits.length>1
-     ?p.limits.map((x,i)=><section key={x.id} className="exp-limit-print"><h3 className="exp-note-heading">{x.title}</h3><p className="exp-limit-why">{greek(x.explanation)}</p><Assessment key={id+i} problem={p} params={params} limit={x}/></section>)
+     ?p.limits.map((x,i)=><section key={x.id} className="exp-limit-print"><h3 className="exp-note-heading">{x.title}</h3><p className="exp-limit-why">{greek(x.explanation)}</p><Assessment key={id+i} problem={p} params={boardParams} limit={x}/></section>)
      :p.limits.length>1
      ?<Tabs value={String(limitIndex)} onValueChange={v=>setLimitIndex(Number(v))}><TabsList aria-label="Limiting cases" className="exp-limit-tabs">{p.limits.map((x,i)=><TabsTrigger value={String(i)} key={x.id}>{x.title}</TabsTrigger>)}</TabsList>
-      {p.limits.map((x,i)=><TabsContent key={x.id} value={String(i)} className="exp-limit-panel"><p className="exp-limit-why">{greek(x.explanation)}</p><Assessment key={id+i} problem={p} params={params} limit={x}/></TabsContent>)}</Tabs>
-     :<><h3 className="exp-note-heading">{lim.title}</h3><p className="exp-limit-why">{greek(lim.explanation)}</p><Assessment key={id} problem={p} params={params} limit={lim}/></>}
+      {p.limits.map((x,i)=><TabsContent key={x.id} value={String(i)} className="exp-limit-panel"><p className="exp-limit-why">{greek(x.explanation)}</p><Assessment key={id+i} problem={p} params={boardParams} limit={x}/></TabsContent>)}</Tabs>
+     :<><h3 className="exp-note-heading">{lim.title}</h3><p className="exp-limit-why">{greek(lim.explanation)}</p><Assessment key={id} problem={p} params={boardParams} limit={lim}/></>}
    </div>}
   </details>
   <details className="exp-note" open={slipsOpen} onToggle={e=>setSlipsOpen(e.currentTarget.open)}>
