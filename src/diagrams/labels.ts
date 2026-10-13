@@ -193,7 +193,10 @@ export function placeLabels(labels:readonly Label[],options:PlaceOptions={}):Nud
  const out:Nudge[]=[];
  for(const label of labels){
   if(label.fixed){out.push({dx:0,dy:0});continue;}
-  const own=label.shaft,others=own?[...shafts,...(label.amongLines?lines:[])].filter(s=>!partOf(s,own)):[];
+  const own=label.shaft,allOthers=own?[...shafts,...(label.amongLines?lines:[])].filter(s=>!partOf(s,own)):[];
+  // Narrowed below, once the region every spot it tries lies in is known, to the arrows and lines that can be nearer
+  // than its own to some spot in it: the rest can never make a spot dishonest.
+  let others=allOthers;
   // A spot is honest if it is nearer its own arrow than any other, and on its own side of the lines
   // it must not cross.
   // How far a spot is from honest: nothing where it is nearer its own arrow than any other, by how much
@@ -205,7 +208,14 @@ export function placeLabels(labels:readonly Label[],options:PlaceOptions={}):Nud
    const mine=boxSegmentDistance(b,own);
    // Not merely no nearer: plainly further, or the name reads as belonging to either.
    let worst=0;
-   for(const s of others)worst=Math.max(worst,mine+3-boxSegmentDistance(b,s));
+   // The gap between the box and a segment's own bounding box is never more than the true distance, so a segment
+   // that gap alone shows cannot beat the worst so far is not measured: asked of every line for a line's letter,
+   // the measuring was most of what the placer cost.
+   for(const s of others){
+    const gx=Math.max(Math.min(s.a.x,s.b.x)-(b.x+b.width),b.x-Math.max(s.a.x,s.b.x),0),gy=Math.max(Math.min(s.a.y,s.b.y)-(b.y+b.height),b.y-Math.max(s.a.y,s.b.y),0);
+    if(mine+3-Math.hypot(gx,gy)<=worst)continue;
+    worst=Math.max(worst,mine+3-boxSegmentDistance(b,s));
+   }
    return worst;
   };
   const honest=(b:Box)=>dishonesty(b)<=0;
@@ -224,6 +234,14 @@ export function placeLabels(labels:readonly Label[],options:PlaceOptions={}):Nud
   const x0=Math.min(...span.map(h=>h.x))-reach,x1=Math.max(...span.map(h=>h.x+h.width))+reach;
   const y0=Math.min(...span.map(h=>h.y))-reach,y1=Math.max(...span.map(h=>h.y+h.height))+reach;
   const near=taken.filter(t=>t.box.x<=x1&&t.box.x+t.box.width>=x0&&t.box.y<=y1&&t.box.y+t.box.height>=y0);
+  // A spot is at most as far from its own arrow as the region's furthest corner (distance to a segment is convex), and
+  // at least as far from another as the region is: one further than the first plus the three units of `dishonesty`
+  // cannot make any spot here dishonest.
+  if(own&&allOthers.length){
+   const region={x:x0,y:y0,width:x1-x0,height:y1-y0},corner=(x:number,y:number)=>boxSegmentDistance({x,y,width:0,height:0},own);
+   const furthest=Math.max(corner(x0,y0),corner(x1,y0),corner(x0,y1),corner(x1,y1));
+   others=allOthers.filter(s=>boxSegmentDistance(region,s)<furthest+3);
+  }
   let best:Nudge={dx:homes[0].x-label.box.x,dy:homes[0].y-label.box.y},bestCost=Infinity,placed=false,leader=false;
   // Near before far across EVERY place the label may stand, not one place at a time: a name that fits
   // as it is on the far side of its arrow, or past its tip, is better than one pushed a long way off
@@ -244,10 +262,20 @@ export function placeLabels(labels:readonly Label[],options:PlaceOptions={}):Nud
   };
   // Whether a box -- a unit in from its edge, so a name merely touching an arrowhead is not counted --
   // has any arrow's shaft running through it.
-  const crossesShaft=(b:Box)=>{const inner=grow(b,-1,-1);return inner.width>0&&inner.height>0&&(shafts.some(s=>boxSegmentDistance(inner,s)===0)||lines.some(s=>boxSegmentDistance(inner,s)===0));};
+  // Asked of every spot tried, so asked only of the strokes that reach the region the spots are tried in: one that
+  // does not cannot run through any of them. Asked of all of them, these two tripled the placer's cost a frame.
+  const reaches=(s:Segment)=>Math.min(s.a.x,s.b.x)<=x1&&Math.max(s.a.x,s.b.x)>=x0&&Math.min(s.a.y,s.b.y)<=y1&&Math.max(s.a.y,s.b.y)>=y0;
+  const nearStrokes=[...shafts,...lines].filter(reaches),nearOthers=[...(own?others:shafts),...lines.filter(s=>!own||!partOf(s,own))].filter(reaches);
+  // Whether a segment touches a box: never where their bounding boxes are apart, which is most of them and costs four
+  // comparisons; measured only where they meet.
+  const touches=(b:Box,s:Segment)=>Math.min(s.a.x,s.b.x)<=b.x+b.width&&Math.max(s.a.x,s.b.x)>=b.x&&Math.min(s.a.y,s.b.y)<=b.y+b.height&&Math.max(s.a.y,s.b.y)>=b.y&&boxSegmentDistance(b,s)===0;
+  const crossesShaft=(b:Box)=>{const inner=grow(b,-1,-1);return inner.width>0&&inner.height>0&&nearStrokes.some(s=>touches(inner,s));};
   // ...and whether it is some other arrow or line: across its own shaft a name still plainly names that arrow.
-  const crossesOther=(b:Box)=>{const inner=grow(b,-1,-1);return inner.width>0&&inner.height>0&&[...(own?others:shafts),...lines.filter(s=>!own||!partOf(s,own))].some(s=>boxSegmentDistance(inner,s)===0);};
-  const search=(rings:Nudge[],from:Box[],onLeader=false)=>{
+  const crossesOther=(b:Box)=>{const inner=grow(b,-1,-1);return inner.width>0&&inner.height>0&&nearOthers.some(s=>touches(inner,s));};
+  // `freeOnly`: a search whose least-bad spot would be thrown away -- the far rings, tried for a kept name only to
+  // find it a free spot on a leader -- need not cost the spots that are not free. Costed, the far rings of the two
+  // names a ring in space keeps, z and R, which have no free spot, cost the run's frames as much as all the rest.
+  const search=(rings:Nudge[],from:Box[],onLeader=false,freeOnly=false)=>{
    for(const ring of byDistance(rings))for(const home of from){
     for(const nudge of ring){
      const moved=shift(home,nudge);
@@ -257,6 +285,7 @@ export function placeLabels(labels:readonly Label[],options:PlaceOptions={}):Nud
      // Nor is a spot free that an arrow or a line runs through, however clear of the boxes: a stroke is squares in
      // `near` only where the caller cut it into them, and ΔE_x took a spot with its own shaft and the axis through it.
      if(ok&&!crossesShaft(moved)&&free(moved,near)){best=at;return true;}
+     if(freeOnly)continue;
      // Remember the least-bad option in case nothing is free: a label half over another is
      // still better than one dropped off the edge of the picture. A spot by the wrong arrow is
      // worse than any overlap.
@@ -300,7 +329,7 @@ export function placeLabels(labels:readonly Label[],options:PlaceOptions={}):Nud
   }
   if(!placed)placed=search(tries,homes);
   // A label it must keep, with nowhere free within reach: further out, on a leader back to it.
-  if(!placed&&capped&&label.keep&&far.length){const keepBest=best,keepCost=bestCost;placed=search(far,homes.slice(0,1),true);if(placed)leader=true;else{best=keepBest;bestCost=keepCost;}}
+  if(!placed&&capped&&label.keep&&far.length){const keepBest=best,keepCost=bestCost;placed=search(far,homes.slice(0,1),true,true);if(placed)leader=true;else{best=keepBest;bestCost=keepCost;}}
   if(!placed&&capped&&!label.keep){out.push({dx:0,dy:0,hidden:true});continue;}
   out.push(leader?{...best,leader:true}:best);
   const at=shift(label.box,best);
