@@ -109,9 +109,10 @@ describe('the shelf answers for the route and the reader', () => {
     view.rerender(ui('semi', {boundRange: [0, 50], onBoundRangeChange: changed}));
     expect(upper()).toBe('r');
   });
-  it('the finite-line route’s model note is its own, not the angular route’s', () => {
+  it('the finite-line route’s problem is its own, not the angular route’s', () => {
     const view = panel('infinite', {path: 'limit'});
-    const note = view.container.querySelector('.ew-references-body p')!.textContent!;
+    // The problem now opens the panel, out of the closed disclosure it used to hide in.
+    const note = view.container.querySelector('.ew-problem-text')!.textContent!;
     expect(note).toMatch(/Start with a rod of length L/);
     expect(note).not.toMatch(/r tan θ/);
   });

@@ -53,7 +53,28 @@
   .ew-result-unfold,
   /* Where the lesson leads, and the laws link: buttons, for the screen. */
   .exp-related,
-  .skip-link { display: none !important; }
+  .skip-link,
+  /* Instructions for the screen: how to use an endnote ("push the geometry to an extreme and watch"), the
+     Unfold's "every step accounted for", and its Next step button. Not the Unfold's opening line: on the
+     infinite line it says which derivation the steps are -- a finite rod, let grow -- as paper needs to. */
+  .exp-note > summary small,
+  .ew-worked-done,
+  .ew-next-step,
+  /* The integration interval is a disclosure, and its interval is printed in Add them up: it took a fourth
+     sheet of its own on three lessons. */
+  .ew-bounds,
+  /* The limiting cases' tabs: on paper every case is printed as a section of its own (Explorer.tsx). */
+  .exp-limit-tabs { display: none !important; }
+  /* A field layer prints as the picture taken of it as printing began (Explorer.tsx): a WebGL buffer is empty
+     by then, and the ring, the disk and the sheet printed as letters over nothing. */
+  .is-print-snapped canvas:not(.cd-print-snap) { visibility: hidden !important; }
+  .cd-print-snap { display: block !important; }
+  .exp-limit-print, .exp-note-body .assessment { break-inside: avoid; }
+  /* A case's heading starts a section: fourteen pixels under the case before -- closer than its own explanation
+     sits under it -- it read as the last line of the plot above. */
+  .exp-limit-print + .exp-limit-print { margin-top: 34px; }
+  /* The held board's fade (explorer.css) is for a board that scrolls; on paper it is all there. */
+  .exp-workspace > .ew-panel { -webkit-mask-image: none !important; mask-image: none !important; }
   /* The derivation prints whole, wherever the run had got to: paper has no "still to come". */
   .db-reveal, .db-then { grid-template-rows: 1fr !important; opacity: 1 !important; }
   .db-step .db-title { color: #0e2333 !important; }
@@ -71,7 +92,11 @@
   .exp-workspace > .ew-panel { position: static !important; max-height: none !important; overflow: visible !important; }
   .exp-main, .main-work { padding: 0 !important; max-width: none !important; }
   .exp-header, .app-top { border: 0 !important; height: auto !important; padding: 0 0 8px !important; }
-  .exp-diagram-card, .charge-diagram, .ew-panel, .stage-card, .panel { break-inside: avoid; border: 0 !important; }
+  .exp-diagram-card, .charge-diagram, .stage-card, .panel { break-inside: avoid; border: 0 !important; }
+  /* The board may break between its steps, never inside one. Kept whole, it is taller than a page, so it went
+     to the second sheet and left the lower third of the first blank -- thirty wasted sheets for a class. */
+  .ew-panel { border: 0 !important; }
+  .db-step, .ew-result { break-inside: avoid; }
   .cd-svg { max-height: none !important; width: 100% !important; }
 }
 

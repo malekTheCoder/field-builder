@@ -91,7 +91,7 @@ describe('the shelf continues the board', () => {
   }, 30000);
   it('each lesson’s Unfold opens on the board’s last line and goes on into the lesson’s own steps', () => {
     for (const [id, first, later] of [
-      ['semi', /Take .* outside and put back/, /Combine the two components/],
+      ['semi', /outside, put .*the angle at/, /Combine the two components/],
       ['disk', /is the same for every ring/, /At the lower bound/],
       ['arc', /is the same for every piece, so it comes outside the integral/, /Using the total charge/],
       ['axial', /is the same for every piece, so it comes outside the integral/, /The nearer parts contribute more strongly/],

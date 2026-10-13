@@ -153,17 +153,26 @@ describe('ChargeDiagram in a real browser', () => {
     for (const key of coarse) expect(next).toContain(key);
     expect(next.length).toBe(8);
   });
-  it('grows a tip-to-tail chain in sum mode instead of drawing every arrow at once', () => {
-    const empty = mount('bisector', {}, {mode: 'sum', progress: 0});
+  // The chain is the sum of a charge with no mirror. A symmetric one's sum goes in by mirror pairs, at rest as in the
+  // run: the tip-to-tail arch this test used to ask of the bisector is the picture the owner took out of the lessons.
+  it('grows a tip-to-tail chain in sum mode where the charge has no mirror, and adds mirror pairs where it has', () => {
+    const empty = mount('axial', {}, {mode: 'sum', progress: 0});
     expect(empty.view.container.querySelector('[data-sum-chain]')).toBeNull();
     cleanup();
-    const partial = mount('bisector', {}, {mode: 'sum', progress: .4});
+    const partial = mount('axial', {}, {mode: 'sum', progress: .4});
     const n = Number(partial.view.container.querySelector('[data-sum-chain]')?.getAttribute('data-sum-chain'));
     expect(n).toBeGreaterThan(2);
     expect(n).toBeLessThan(9);
     cleanup();
-    const full = mount('bisector', {}, {mode: 'sum', progress: 1});
+    const full = mount('axial', {}, {mode: 'sum', progress: 1});
     expect(Number(full.view.container.querySelector('[data-sum-chain]')?.getAttribute('data-sum-chain'))).toBe(9);
+    cleanup();
+    const paired = mount('bisector', {}, {mode: 'sum', progress: 1});
+    expect(paired.view.container.querySelector('[data-sum-chain]'), 'no arch').toBeNull();
+    expect(Number(paired.view.container.querySelector('[data-pair-ticks]')?.getAttribute('data-pair-ticks')), 'a tick per pair').toBeGreaterThanOrEqual(2);
+    cleanup();
+    const part = mount('bisector', {}, {mode: 'sum', progress: 1, boundRange: [0, 50]});
+    expect(part.view.container.querySelector('[data-sum-chain]'), 'over part of the rod, the chain').toBeTruthy();
   });
   it('animates cancellation only where a symmetric partner exists', () => {
     const {view} = mount('bisector', {}, {pair: true, mode: 'project'});

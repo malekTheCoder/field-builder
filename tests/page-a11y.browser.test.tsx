@@ -161,14 +161,14 @@ describe('getting around the page', () => {
   const view = await openLesson('bisector');
   const lessons = view.getByRole('navigation', {name: 'Lessons'});
   // The glyph beside each name was an image with the same name: "Finite line Finite line".
-  expect(within(lessons).getByRole('link', {name: 'Finite line'}).getAttribute('aria-current')).toBe('page');
+  expect(within(lessons).getByRole('link', {name: 'Line · beside its middle'}).getAttribute('aria-current')).toBe('page');
   expect(within(lessons).getByRole('link', {name: 'Ring of charge'}).getAttribute('aria-current')).toBeNull();
   // The one link out to the library is not a breadcrumb trail.
   expect(view.queryByRole('navigation', {name: 'Breadcrumb'})).toBeNull();
   expect(document.title).toBe(`${getProblem('bisector').title} · Field Builder`);
   await userEvent.click(view.getByRole('button', {name: 'Charge library'}));
   const dialog = await view.findByRole('dialog');
-  expect(within(dialog).getByRole('link', {name: 'Finite line'}).getAttribute('aria-current')).toBe('page');
+  expect(within(dialog).getByRole('link', {name: 'Line · beside its middle'}).getAttribute('aria-current')).toBe('page');
   const ring = within(dialog).getByRole('link', {name: 'Ring of charge'});
   expect(document.getElementById(ring.getAttribute('aria-describedby') ?? '')?.textContent).toBe(getProblem('ring').subtitle);
  });

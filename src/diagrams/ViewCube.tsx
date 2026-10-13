@@ -91,6 +91,9 @@ function nameOf(target: V3): string {
 }
 export type ViewCubeProps = {
   view: CameraView; at: {x: number; y: number}; size?: number;
+  /** The least a face's name may be set at, in the drawing's units: eleven pixels on the screen, whatever the figure's
+   * scale. Floored in units, nine of them, it was eight pixels on a phone, where the figure is half size. */
+  minFont?: number;
   onPick: (next: CameraView, label: string) => void;
   /** A drag across the cube spins the scene, as it does in every CAD tool. */
   onSpin?: (dx: number, dy: number) => void;
@@ -100,7 +103,7 @@ export type ViewCubeProps = {
 };
 /** How far a press may travel and still be a click rather than the start of a drag. */
 const SLOP = 4;
-export function ViewCube({view, at, size = 22, onPick, onSpin, onSpinStart, onStep}: ViewCubeProps) {
+export function ViewCube({view, at, size = 22, minFont = 0, onPick, onSpin, onSpinStart, onStep}: ViewCubeProps) {
   const [hover, setHover] = useState('');
   // A press on the cube is a click if it lets go where it started, and a drag if it moves: the whole
   // cube is something to grab -- faces included -- not just the margin round it.
@@ -182,12 +185,19 @@ export function ViewCube({view, at, size = 22, onPick, onSpin, onSpinStart, onSt
         p[axis] = f.normal[axis]; p[u] = a; p[v] = b; return place(p).x;
       });
       const across = Math.max(...xs) - Math.min(...xs);
-      const fit = .84 * across / (.66 * f.label.length);
+      // The caller scales `size` with the figure's labels on a phone, so the face -- and the name it
+      // holds -- grows with them; scaling the type again on top of that would double it.
       // Up to .46 of the cube's size: at .44, on a phone, where the cube is no larger than it was before
       // the desktop's grew, TOP came out under eight pixels.
+      // Never under `minFont`: where the whole word will not fit its face at that size, the face is named by its
+      // initial -- F, T, R -- as a CAD cube is on a small screen; its full name is still its button's label. At the
+      // floor the word may take nineteen twentieths of its face rather than the .84 it is set in otherwise (the
+      // face's outline takes the rest): on a desktop FRONT fitted at a few hundredths of a pixel under eleven,
+      // and went to F beside a TOP spelled out.
+      const fits = (label: string) => .84 * across / (.66 * label.length), word = fits(f.label) * .95 / .84 >= minFont ? f.label : f.label[0];
       return <text key={f.key} className="cd-cube-label" x={centre.x.toFixed(2)} y={centre.y.toFixed(2)}
         textAnchor="middle" dominantBaseline="middle"
-        style={{fontSize: `${Math.min(fit, Math.max(9, size * .46)).toFixed(1)}px`}}>{f.label}</text>;
+        style={{fontSize: `${Math.max(minFont, Math.min(fits(word), Math.max(9, size * .46))).toFixed(1)}px`}}>{word}</text>;
     })}
     {/* Keyboard: the faces in view, by name, in a row a Tab walks; the pointer has every edge and
         corner as well. */}

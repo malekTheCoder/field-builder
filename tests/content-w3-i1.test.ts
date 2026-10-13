@@ -43,7 +43,8 @@ describe('an antiderivative’s limits are not the rod’s ends',()=>{
 describe('the Unfold the handout prints names no stage of the run',()=>{
  it('the semi-infinite line and the sheet put α back in their own words, and their algebra holds',()=>{
   for(const w of [...SEMI_UNFOLD,...SHEET_UNFOLD])expect(w.text).not.toMatch(/Cut it up|One piece|What cancels|Add them up|Shrink them/);
-  expect(SEMI_UNFOLD[0].text).toMatch(/where the setup places each element/);
+  // The panel's wording: the angle named by what it is, and the minus already outside said so.
+  expect(SEMI_UNFOLD[0].text).toMatch(/With \$-k\\lambda\$ outside, put .*the angle at.*from the perpendicular to the line/);
   expect(SHEET_UNFOLD[0].text).toMatch(/its angle \$\\alpha\$ at \$P\$, between the axis and the line to the ring/);
   // x dx/(x² + r²)^{3/2} with x = r tan α is sin α dα/r; z s ds/(s² + z²)^{3/2} with s = z tan α is sin α dα.
   for(const a of [.1,.6,1.3]){
@@ -79,16 +80,16 @@ describe('every far check says why the object looks like a point, and how good t
 describe('“Easy to confuse with” names each quantity once, its symbol last, and describes',()=>{
  it('one name for each kind of quantity',()=>{
   for(const p of lessons)for(const f of shown(p)){
-   if(f.id==='projection')expect(f.label,p.id).toMatch(/^(?:y-p|P)rojection factor cos [αθ]$/);
+   if(f.id==='projection')expect(f.label,p.id).toMatch(/^The (?:y )?factor cos [αθ]$/);
    if(f.id==='kernel'&&p.quantity==='E')expect(f.label,p.id).toMatch(/^(?:x-component integrand dEₓ\/d[xyθs]|z-component integrand)$/);
    if(f.id==='kernel2')expect(f.label,p.id).toMatch(/^y-component integrand dEᵧ\/d[xy]$/);
    if(f.id==='kernel'&&p.quantity==='V')expect(f.label,p.id).toMatch(/^Integrand dV\/d[xyθs]$/);
    if(f.id==='result'&&p.quantity==='E')expect(f.label,p.id).toMatch(/^Total (?:x-component Eₓ|z-component)$/);
    if(f.id==='result2')expect(f.label,p.id).toBe('Total y-component Eᵧ');
   }
-  expect(label('bisector','projection')).toBe('Projection factor cos α');
-  expect(label('infinite','projection')).toBe('Projection factor cos θ');
-  expect(fields(getProblem('infinite','linear')).find(f=>f.id==='projection')!.label).toBe('Projection factor cos θ');
+  expect(label('bisector','projection')).toBe('The factor cos α');
+  expect(label('infinite','projection')).toBe('The factor cos θ');
+  expect(fields(getProblem('infinite','linear')).find(f=>f.id==='projection')!.label).toBe('The factor cos θ');
   expect(label('infinite','kernel')).toBe('x-component integrand dEₓ/dθ');
   expect(label('v-rod-bisector','kernel')).toBe('Integrand dV/dy');
  });
@@ -96,7 +97,7 @@ describe('“Easy to confuse with” names each quantity once, its symbol last, 
   const IMPERATIVE=/(?:^|[.:;] )(?:Use|Multiply|Drop|Carry|Include|Divide|Keep|Remember|Add|Take|Put)\b/;
   for(const p of lessons)for(const f of shown(p))for(const m of f.mistakes!)expect(plain(m.message),`${p.id}/${f.id} ${m.expression}`).not.toMatch(IMPERATIVE);
   const said=(id:string,field:string,expression:string)=>plain(fields(getProblem(id)).find(f=>f.id===field&&f.mistakes?.some(m=>m.expression===expression))!.mistakes!.find(m=>m.expression===expression)!.message);
-  expect(said('bisector','dq','Q*dy')).toMatch(/^Q dy would put the whole rod’s charge in one slice/);
+  expect(said('bisector','dq','Q*dy')).toMatch(/^Q dy would put the whole rod’s charge in one piece/);
   expect(said('bisector','component','dE')).toBe('dE is the whole slanted arrow. Only dE cos α of it lies along x.');
   expect(said('arc','dq','lambda*dtheta')).toMatch(/^λ dθ is a charge per length times an angle, which is not a charge/);
  });
@@ -149,9 +150,12 @@ describe('the handout sets its maths as one piece',()=>{
    expect(last,id).not.toContain('display="block"');
    expect(last,id).toMatch(/<p>/);
   }
-  // The rod on its axis keeps its last display: kλL/(a(L + a)) is a step the answer's rows do not show.
-  const axial=artifactHtml(lessonArtifact(getProblem('axial')));
-  expect(axial.slice(axial.indexOf('<h2>Working</h2>'),axial.indexOf('<h2>The result</h2>')).split('<div class="step">').at(-1)).toContain('display="block"');
+  // The rod on its axis now shows kλL/(a(L + a)) among its answer's rows too (one change per "="), so its
+  // last display is the answer's and is printed once, under the result. The rod level with one end keeps
+  // its last display, E = E_x x̂ + E_y ŷ: a line the answer's rows do not show is never dropped.
+  const last=(id:string)=>{const html=artifactHtml(lessonArtifact(getProblem(id)));return html.slice(html.indexOf('<h2>Working</h2>'),html.indexOf('<h2>The result</h2>')).split('<div class="step">').at(-1)!;};
+  expect(last('axial')).not.toContain('display="block"');
+  expect(last('endpoint')).toContain('display="block"');
  });
  it('a sized bracket with limits closes inside the same row as it opens',()=>{
   const m=mathml(String.raw`E_x=-\frac{k\lambda}{r}\Bigl[-\cos\alpha\Bigr]_0^{\pi/2}`);

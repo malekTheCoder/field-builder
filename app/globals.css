@@ -70,3 +70,19 @@ h1,h2,.walkthrough-title,.ob-title[data-slot=dialog-title]{font-family:var(--ser
 .stage-header p{font-size:var(--type-body);margin:8px 0 20px}
 .walkthrough-title{font-size:var(--type-title)!important;font-weight:400!important}
 .solution-content h3,.stage-card>h3{font-size:var(--type-meta);letter-spacing:.08em}
+/* THE CRASH SCREEN (ErrorBoundary.tsx). Under Tailwind's reset its heading was body text and its two buttons had
+   no edge, fill or padding, so they read as the end of the paragraph and a student who met it saw no way out.
+   A page of its own: a heading, a sentence, and two buttons a finger can find, the first the one to try. */
+.fb-crash{max-width:620px;margin:10vh auto;padding:24px;color:var(--foreground)}
+.fb-crash h1{font-family:var(--serif);font-size:var(--type-sub);font-weight:400;line-height:1.25;letter-spacing:-.015em;margin:0 0 10px}
+.fb-crash h1:focus,.fb-crash h1:focus-visible{outline:none;box-shadow:none}
+.fb-crash>p{font-size:var(--type-body);line-height:1.55;color:var(--muted-foreground);margin:0 0 20px;max-width:60ch}
+.fb-crash-actions{display:flex;flex-wrap:wrap;gap:12px}
+.fb-crash-actions>button{min-height:44px;padding:0 18px;border:1px solid var(--border-strong);border-radius:999px;background:var(--card);color:var(--foreground);font-size:var(--type-body);font-weight:550}
+.fb-crash-actions>button:hover{background:var(--muted)}
+.fb-crash-actions>button.fb-crash-primary{background:var(--primary);border-color:var(--primary);color:var(--on-accent)}
+.fb-crash-actions>button.fb-crash-primary:hover{background:color-mix(in srgb,var(--primary) 88%,var(--foreground))}
+.fb-crash-detail{margin-top:22px;font-size:var(--type-meta);color:var(--muted-foreground)}
+.fb-crash-detail pre{white-space:pre-wrap;margin:8px 0 0}
+.fb-crash>[role=alert]{margin-top:18px;color:var(--foreground)}
+@media(forced-colors:active){.fb-crash-actions>button{border-color:ButtonText}}

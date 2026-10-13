@@ -30,7 +30,7 @@ describe('the laws a lesson rests on', () => {
   it('leads with the scalar law on a potential lesson', () => {
     const {container} = render(<Laws quantity="V" />);
     expect(rows(container)[0].querySelector('.law-name')!.textContent).toMatch(/Potential/);
-    expect(rows(container).length).toBe(3);
+    expect(rows(container).length).toBe(4); // the three laws and the charge density a piece’s charge comes from (content-w4-laws)
   });
   it('names Coulomb with the constant and the force it came from, once asked', async () => {
     const {container, getByRole} = render(<Laws />);
@@ -70,7 +70,7 @@ describe('the tour introduces the laws before the method', () => {
     const {baseElement, getByRole} = render(<Onboarding open onClose={() => {}} />);
     await press(getByRole('button', {name: /Continue/}));
     expect(baseElement.querySelector('.ob-title')!.textContent).toMatch(/Coulomb/);
-    expect(rows(baseElement).length).toBe(3);
+    expect(rows(baseElement).length).toBe(4);
     // A reason, not a recital: superposition is presented as the permission to add.
     expect(baseElement.querySelector('.laws')!.textContent).toMatch(/integral/i);
     expect(judged(baseElement.textContent ?? '')).toBe('');
@@ -92,12 +92,12 @@ describe('the tour introduces the laws before the method', () => {
 });
 
 describe('the laws stay reachable after the tour', () => {
-  it('opens the same three laws from a lesson and hands focus back', async () => {
+  it('opens the same laws from a lesson and hands focus back', async () => {
     const {getByRole, findByRole, queryByRole} = render(<LawsReference quantity="V" />);
     const trigger = getByRole('button', {name: /laws behind this/i});
     await userEvent.click(trigger);
     const dialog = await findByRole('dialog');
-    expect(rows(dialog).length).toBe(3);
+    expect(rows(dialog).length).toBe(4);
     expect(dialog.querySelector('.law-name')!.textContent).toMatch(/Potential/);
     await userEvent.keyboard('{Escape}');
     await waitFor(() => expect(queryByRole('dialog')).toBeNull());

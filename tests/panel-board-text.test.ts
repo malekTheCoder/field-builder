@@ -89,8 +89,9 @@ describe('the exact lessons never say the pieces must be small', () => {
       expect(cut.caption, p.id).toMatch(/need not even be small/);
       expect(cut.caption, p.id).toMatch(/exactly a point charge’s/);
     }
-    // Every other finite lesson still cuts small pieces.
-    expect(buildStages(lesson('bisector'))[0].line).toMatch(/small enough/);
+    // Every other finite lesson still wants short pieces -- said as when a piece is nearly a point charge,
+    // not as a fact of the drawn ones, which the sliders draw five times their distance from P.
+    expect(buildStages(lesson('bisector'))[0].line).toMatch(/short compared with its distance from P is nearly a point charge/);
   });
 });
 

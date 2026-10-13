@@ -27,7 +27,8 @@ describe('a device with no WebGL', () => {
   const view = render(<Explorer />);
   await waitFor(() => expect(view.container.querySelector('h1')?.textContent).toBe(getProblem('ring').title));
   await waitFor(() => expect(view.container.querySelector('.cd-stage-unavailable')?.textContent).toMatch(/3D view is not available/), {timeout: 15000});
-  expect(view.container.querySelector<HTMLElement>('.cd-field-stage')?.dataset.sceneFailed).toBe('true');
+  // And the figure has gone flat rather than staying in space over the empty stage (see scene-w4-flat-fallback).
+  expect(view.container.querySelector('.charge-diagram')?.classList.contains('cd-in-space')).toBe(false);
   // Said where a screen reader hears it, not inside the scene's hidden layer.
   const said = view.container.querySelector('.cd-stage-unavailable')!;
   // An <output>, whose role is status: announced when it appears.

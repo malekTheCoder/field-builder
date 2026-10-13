@@ -42,6 +42,9 @@ export type Label={
   * is not offered: a name beside the wrong arrow is read as that arrow's name, which is worse than
   * a name that had to move further. */
  shaft?:Segment;
+ /** Held to the construction's `lines` as well as the arrows' shafts: the name of a line, not an arrow -- a radius'
+  * letter -- moved to where the line from P to the piece was nearer than its own, and read as that line's name. */
+ amongLines?:boolean;
  /** Where the label's centre has to stay: the side of an axis its arrow lies on, say. A name moved
   * across the axis reads as naming whatever is on the other side of it. */
  within?:readonly HalfPlane[];
@@ -154,6 +157,10 @@ function byDistance(nudges:readonly Nudge[]):Nudge[][]{
  return groups;
 }
 const sameSegment=(s:Segment,t:Segment)=>Math.abs(s.a.x-t.a.x)<.6&&Math.abs(s.a.y-t.a.y)<.6&&Math.abs(s.b.x-t.b.x)<.6&&Math.abs(s.b.y-t.b.y)<.6;
+/** Whether `s` is a stretch of `t` itself: a leg drawn in two strokes, dashed to where r_i meets it and a hairline on
+ * past, is one line to the letter that names it, and a name beside the one stroke is not dishonest for being as near
+ * the other. */
+const partOf=(s:Segment,t:Segment)=>sameSegment(s,t)||[s.a,s.b].every(p=>boxSegmentDistance({x:p.x,y:p.y,width:0,height:0},t)<.6);
 /** One nudge per label, in the order given. Labels are placed in sequence, so an earlier
  * label holds its ground and a later one moves around it: pass them most-important first. */
 export function placeLabels(labels:readonly Label[],options:PlaceOptions={}):Nudge[]{
@@ -186,7 +193,7 @@ export function placeLabels(labels:readonly Label[],options:PlaceOptions={}):Nud
  const out:Nudge[]=[];
  for(const label of labels){
   if(label.fixed){out.push({dx:0,dy:0});continue;}
-  const own=label.shaft,others=own?shafts.filter(s=>!sameSegment(s,own)):[];
+  const own=label.shaft,others=own?[...shafts,...(label.amongLines?lines:[])].filter(s=>!partOf(s,own)):[];
   // A spot is honest if it is nearer its own arrow than any other, and on its own side of the lines
   // it must not cross.
   // How far a spot is from honest: nothing where it is nearer its own arrow than any other, by how much
@@ -238,6 +245,8 @@ export function placeLabels(labels:readonly Label[],options:PlaceOptions={}):Nud
   // Whether a box -- a unit in from its edge, so a name merely touching an arrowhead is not counted --
   // has any arrow's shaft running through it.
   const crossesShaft=(b:Box)=>{const inner=grow(b,-1,-1);return inner.width>0&&inner.height>0&&(shafts.some(s=>boxSegmentDistance(inner,s)===0)||lines.some(s=>boxSegmentDistance(inner,s)===0));};
+  // ...and whether it is some other arrow or line: across its own shaft a name still plainly names that arrow.
+  const crossesOther=(b:Box)=>{const inner=grow(b,-1,-1);return inner.width>0&&inner.height>0&&[...(own?others:shafts),...lines.filter(s=>!own||!partOf(s,own))].some(s=>boxSegmentDistance(inner,s)===0);};
   const search=(rings:Nudge[],from:Box[],onLeader=false)=>{
    for(const ring of byDistance(rings))for(const home of from){
     for(const nudge of ring){
@@ -245,7 +254,9 @@ export function placeLabels(labels:readonly Label[],options:PlaceOptions={}):Nud
      if(frame&&!inside(moved,frame))continue;
      const at={dx:moved.x-label.box.x,dy:moved.y-label.box.y};
      const ok=honest(moved)&&(!(onLeader||label.tethered)||leaderClear(moved));
-     if(ok&&free(moved,near)){best=at;return true;}
+     // Nor is a spot free that an arrow or a line runs through, however clear of the boxes: a stroke is squares in
+     // `near` only where the caller cut it into them, and ΔE_x took a spot with its own shaft and the axis through it.
+     if(ok&&!crossesShaft(moved)&&free(moved,near)){best=at;return true;}
      // Remember the least-bad option in case nothing is free: a label half over another is
      // still better than one dropped off the edge of the picture. A spot by the wrong arrow is
      // worse than any overlap.
@@ -258,21 +269,28 @@ export function placeLabels(labels:readonly Label[],options:PlaceOptions={}):Nud
      // overlap alone, a name set on a five-unit stroke cost almost nothing next to one near another name:
      // on a phone, with nothing free, ΔE_x was set on its own shaft, the shaft through the word and the
      // word's halo cutting the arrow in two.
-     const bad=!ok||crossesShaft(moved);
+     // Nor is one on another name's letters merely costly: kept, with nothing free, the sum's name was set on P's -- the
+     // cheapest spot by area, "P̄ΔE" -- where a spot across a faint stroke left both names legible.
+     const crossing=crossesShaft(moved),onName=near.some(t=>t.label&&area(moved,t.box)>0),bad=!ok||crossing||onName;
      if(bad&&bestCost<=1e6)continue;
+     // A name over a name is the worst of these, both words lost where a stroke through one leaves each legible: once a
+     // spot with a line through it stopped being free, ΔE_x went onto α's letter rather than across a faint arrow.
      let sum=0;
-     for(const t of near){sum+=t.label?area(grow(moved,labelPad,padY),t.box):area(moved,t.box);if(sum>=bestCost)break;}
+     for(const t of near){sum+=t.label?area(grow(moved,labelPad,padY),t.box)+9*area(moved,t.box):area(moved,t.box);if(sum>=bestCost)break;}
      if(sum>=bestCost)continue;
      // Among spots that are all bad, the one nearest to honest: a kept name with nowhere honest to go was
      // set beside the mirror's arrow when a spot hard by its own was there to take.
-     const cost=sum+Math.hypot(at.dx,at.dy)*.01+(bad?1e6+100*Math.min(1e3,Math.max(0,dishonesty(moved))):0);
+     // And across a stroke is worse than a little nearer another arrow than its own -- worst across another arrow,
+     // whose head it may hide and whose name it then reads as: in a ring's narrow fan, kept from passing its own tip,
+     // ΔE_z was set over ΔE's head when a spot across its own column was there to take.
+     const cost=sum+Math.hypot(at.dx,at.dy)*.01+(bad?1e6+100*Math.min(1e3,Math.max(0,dishonesty(moved)))+(crossing?1e3:0)+(crossing&&crossesOther(moved)?1e3:0):0);
      if(cost<bestCost){bestCost=cost;best=at;}
     }
    }
    return false;
   };
   // Its own spot first, if that is free; then wherever it stood last, if that still is.
-  const fits=(b:Box,onLeader:boolean)=>(!frame||inside(b,frame))&&honest(b)&&(!(onLeader||label.tethered)||leaderClear(b))&&free(b,near);
+  const fits=(b:Box,onLeader:boolean)=>(!frame||inside(b,frame))&&honest(b)&&(!(onLeader||label.tethered)||leaderClear(b))&&!crossesShaft(b)&&free(b,near);
   const pref=label.prefer;
   // Still within the reach it was placed by: a spot that needed no leader, near one of the label's own spots;
   // one that did, near its first.

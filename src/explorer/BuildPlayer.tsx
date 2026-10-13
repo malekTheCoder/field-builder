@@ -37,8 +37,11 @@ export function runClock(): RunClock {
  * both visible at a glance -- without a clock, on a page that prints no numbers. It is also how you
  * move around: click a stage to go to its start, or drag along the bar to scrub through the run. */
 /** A line of the transport's algebra: TeX, or a second component that survives beside the one being
- * built, which the board says in words ("… survives too") and so does this. */
-export type PlayerLine = string | {also: string};
+ * built, which the board says in words ("… survives too") and so does this -- or the line's own conclusion,
+ * row by row, each `= …`, which follows it on the same row where the transport is wide enough (Explorer,
+ * playerSteps) -- or what the line's new symbol stands for, set smaller beside it as the board sets it under
+ * it -- or the cancellation that opens What cancels, on a row of its own. */
+export type PlayerLine = string | {also: string} | {finish: readonly string[]} | {where: string} | {cancels: string};
 type Props = {
   stages: readonly BuildStage[];
   /** Seconds into the run, as the store above: read here and nowhere else on the page. */
@@ -61,6 +64,17 @@ type Props = {
   onClose: () => void;
 };
 const NO_MATH: readonly (readonly PlayerLine[])[] = [], NO_LINES: readonly string[] = [];
+/** Whether the drawing the run plays on is on screen -- its middle inside the window. Page Down and Page Up
+ * step the run only then. They used to step it always, and a reader who had scrolled down to read the board
+ * under the figure (a Chromebook in half its screen, a phone, a page zoomed to 200%) could not page: each
+ * press played the next stage on a figure a screen above the window, and the page stayed where it was.
+ * With no drawing to look at -- a transport mounted on its own -- the keys step, as they always did. */
+export function drawingOnScreen(card?: Element | null): boolean {
+  const stage = (card ?? document.querySelector('.explorer-app .exp-diagram-card'))?.querySelector('.cd-stage');
+  if (!stage) return true;
+  const d = stage.getBoundingClientRect();
+  return d.bottom > d.height / 2 && d.top < window.innerHeight - d.height / 2;
+}
 const INTEGRAL_DONE = 'Doing the integral gives this.';
 /** k as the panel defines it under its answer: the run's answer is written in it. */
 const K_IS = String.raw`k=1/(4\pi\varepsilon_0)`;
@@ -82,10 +96,22 @@ export const BuildPlayer = memo(function BuildPlayer({stages, clock, index, play
   // can keep the answer alone (explorer.css).
   const mathBlock = useMemo(() => math.length > 0 && <div className={'bp-math' + (answer.length > 0 ? ' is-settled' : '')}>
     <div className="bp-math-steps">
+      {/* A conclusion follows its line on the same row where there is room, wrapping under it where there is not:
+          stacked, it made the cell a line taller for every stage, and the algebra's foot went under the window
+          on a projector, where the drawing is sized to leave the cell its room. Its rows after the first hang
+          under the first, each opening on its "=", so a chain of two reads as the board's.
+          And what a new symbol stands for -- rᵢ = √(y² + r²), cos α = r/√(y² + r²) -- follows its line the same
+          way. Only the board said it, a scroll below on a phone, so the run there never said what α or rᵢ is. */}
       {math.map((lines, i) => <div key={i} className={'bp-math-step' + (i === index ? ' is-here' : '')} aria-hidden={i === index ? undefined : true}>
         {lines.map(line => typeof line === 'string'
           ? <MathText key={line} tex={line} block trusted />
-          : <p key={`also:${line.also}`} className="bp-say"><MathText tex={line.also} trusted /> survives too.</p>)}
+          : 'finish' in line
+            ? <div key={`finish:${line.finish.join('|')}`} className="bp-finish">{line.finish.map(tex => <MathText key={tex} tex={tex} block trusted />)}</div>
+            : 'where' in line
+              ? <MathText key={`where:${line.where}`} className="bp-where" tex={line.where} trusted />
+              : 'cancels' in line
+                ? <MathText key={`cancels:${line.cancels}`} className="bp-cancels" tex={line.cancels} block trusted />
+                : <p key={`also:${line.also}`} className="bp-say"><MathText tex={line.also} trusted /> survives too.</p>)}
       </div>)}
     </div>
     {chain.length > 0 && <div className="bp-chain">{chain.map(tex => <MathText key={tex} tex={tex} block trusted />)}</div>}
@@ -146,12 +172,21 @@ export const BuildPlayer = memo(function BuildPlayer({stages, clock, index, play
   // focus ring sat on one stage while the run moved to another.
   // A presenter's clicker sends Page Down and Page Up: they are the arrows here too, so a clicker pressed
   // after a click on Play steps the run rather than scrolling the figure off the projector.
+  // Only while the drawing is on screen, though (drawingOnScreen): below it they page, as they do anywhere.
+  //
+  // ONE PRESS PAST THE END DOES NOTHING. At the last stage "next" was the last stage again, so a presenter's
+  // clicker pressed once more at the climax -- or Arrow Right on Play -- replayed Shrink them from its start:
+  // the answer left the board and the figure went back to "Cut into pieces". Next is marked unavailable there,
+  // and the keys now agree with it; the focus stays where it is.
   const keys = (ev: KeyboardEvent<HTMLDivElement>) => {
     const forward = ev.key === 'ArrowRight' || ev.key === 'PageDown';
     if (!forward && ev.key !== 'ArrowLeft' && ev.key !== 'PageUp') return;
+    const paging = ev.key.startsWith('Page');
+    if (paging && !drawingOnScreen(ev.currentTarget.closest('.exp-diagram-card'))) return;
     ev.preventDefault();
-    if (ev.repeat && ev.key.startsWith('Page')) return;
+    if (ev.repeat && paging) return;
     const from = segments.current.indexOf(ev.target as HTMLButtonElement);
+    if (forward && (from >= 0 ? from : index) === stages.length - 1) return;
     if (from >= 0) {
       const next = forward ? Math.min(stages.length - 1, from + 1) : Math.max(0, from - 1);
       onStep(next);

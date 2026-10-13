@@ -99,15 +99,23 @@ const SUB_DROP = .3;
  * "sec", the ² stood a letter's width off it, "sec ²θ".
  *
  * And the capital Greek, Δ and Σ, upright as the board's KaTeX sets them: the figure's slanted ΔE beside
- * the board's upright one were two different glyphs for one symbol, side by side. */
-function setUpright(text: string) {
-  const parts = text.split(/(\b(?:sec|cos|sin|tan)\b²?|[ΔΣ])/);
-  return parts.length < 2 ? text : parts.map((t, i) => i % 2 ? <tspan key={i} fontStyle="normal">{t}</tspan> : t);
+ * the board's upright one were two different glyphs for one symbol, side by side.
+ *
+ * And α and φ in the board's own face. In the figure's serif, at its italic weight, α is a single-storey "a"
+ * with a tail -- the footer's "λr sec²α Δα" read "sec²a Δa" right above the board's "sin α", on the lesson
+ * whose axis has a real a -- and φ is the stroked form where the board's \varphi is the curly one: two glyphs
+ * for one angle on one screen. KaTeX_Math is the face the board sets them in, and the page has it loaded. */
+function setUpright(text: string, vector = false) {
+  const parts = text.split(vector ? /(\b(?:sec|cos|sin|tan)\b²?|[ΔΣ]|[αφ]|E)/ : /(\b(?:sec|cos|sin|tan)\b²?|[ΔΣ]|[αφ])/);
+  return parts.length < 2 ? text : parts.map((t, i) => !(i % 2) ? t : /^[αφ]$/.test(t) ? <tspan key={i} className="cd-greek">{t}</tspan> : t === 'E' ? <tspan key={i} className="cd-bold">{t}</tspan> : <tspan key={i} fontStyle="normal">{t}</tspan>);
 }
-function SymbolText({ symbol, tail }: { symbol: Sym; tail?: string }) {
+/** A symbol and what follows it. `vector`: the name of a whole arrow -- ΔE, ΔE⊥, Σ ΔE, E -- whose E is set bold and
+ * upright as the board's \mathbf sets it; a component, ΔE_x, stays a light italic, as the board's does. The board's
+ * bold ΔE beside the figure's light italic one were two symbols for one arrow, a few centimetres apart. */
+function SymbolText({ symbol, tail, vector = false }: { symbol: Sym; tail?: string; vector?: boolean }) {
   const cut = symbol.indexOf('_');
-  if (cut < 0) return <>{setUpright(symbol)}{tail}</>;
-  return <>{setUpright(symbol.slice(0, cut))}<tspan className="cd-sub" dy={`${SUB_DROP}em`} fontSize="72%">{symbol.slice(cut + 1)}</tspan>{tail !== undefined && <tspan dy={`${-SUB_DROP * .72}em`}>{tail}</tspan>}</>;
+  if (cut < 0) return <>{setUpright(symbol, vector)}{tail}</>;
+  return <>{setUpright(symbol.slice(0, cut), vector)}<tspan className="cd-sub" dy={`${SUB_DROP}em`} fontSize="72%">{symbol.slice(cut + 1)}</tspan>{tail !== undefined && <tspan dy={`${-SUB_DROP * .72}em`}>{tail}</tspan>}</>;
 }
 /** Where a label sits beside a point, a short way out in direction `dir`, anchored so that its
  * nearest edge -- not its middle -- is `gap` away. A label hung from its middle has half its own
@@ -151,8 +159,11 @@ const LabelScale = createContext(1);
  * arrows leaving P have spread apart. At the middle a name stood nearer the arrow's tail, among the
  * strokes round P -- and on a dimension bar's tick where one ended level with P. */
 const MID_AT = .6;
-/** The mirror piece's arrows: the piece's own colour, lighter, and solid -- a whole contribution. */
-const PARTNER_TINT = 'color-mix(in oklab, var(--contribution) 52%, var(--diagram))';
+/** The mirror piece's arrows: the piece's own colour, greyed, and solid -- a whole contribution. Told apart from the
+ * piece's by its colour's strength, not by its lightness: mixed half into the ground, the arrow that does the
+ * cancelling was the faintest stroke in the fan, under two to one against the page. Half grey, and a tenth ground, it
+ * keeps three to one on either theme. */
+const PARTNER_TINT = 'color-mix(in oklab, color-mix(in oklab, var(--contribution) 45%, var(--ghost)) 90%, var(--diagram))';
 /** One arrow, drawn from `from` to `to`, and named BESIDE ITS OWN SHAFT -- out to one side of its
  * middle -- rather than past its tip. A name at the tip was read as naming whatever arrow ended
  * nearest it: "ΔE" landed beside the part that survives and was taken for its name.
@@ -162,15 +173,23 @@ const PARTNER_TINT = 'color-mix(in oklab, var(--contribution) 52%, var(--diagram
  * `at: 'tip'` names it past its tip instead, for an arrow that sits INSIDE an angle -- the part
  * that survives, between a piece's arrow and its partner's -- where beside the shaft is the gap
  * between two other arrows. */
-function Vector({ from, to, color = 'var(--field)', width = 2.5, dashed = false, label, side, at = 'mid', reduced = false, ghost = false, dash = '6 4', keep = false, priority = 1, fade = 1, muted = false, clip }: { from: Point; to: Point; color?: string; width?: number; dashed?: boolean; label?: Sym; side?: number; at?: 'mid' | 'tip'; reduced?: boolean; ghost?: boolean; dash?: string;
+function Vector({ from, to, color = 'var(--field)', width = 2.5, dashed = false, label, side, at = 'mid', reduced = false, ghost = false, dash = '6 4', keep = false, priority = 1, fade = 1, muted = false, clip, alts, within, vector = false }: { from: Point; to: Point; color?: string; width?: number; dashed?: boolean; label?: Sym; side?: number; at?: 'mid' | 'tip'; reduced?: boolean; ghost?: boolean; dash?: string;
   /** A clip path for the stroke alone, never the name: the plot's window, as a last guard. */
   clip?: string;
+  /** Further places its name may stand, "x y anchor;…", tried after the two it always has. */
+  alts?: string;
+  /** Half-planes its name's centre must stay in, "x y nx ny;…": see `within` in labels.ts. */
+  within?: string;
+  /** Its name is a whole vector's, set bold: see `SymbolText`. */
+  vector?: boolean;
   /** The name is one of the terms the stage on screen is about: the placer must not hide it. */
   keep?: boolean; priority?: number;
   /** How strongly the stroke is drawn, and whether the name is muted: a ghost of a part that has gone. */
   fade?: number; muted?: boolean }) {
   const length = Math.hypot(to.x - from.x, to.y - from.y), angle = Math.atan2(to.y - from.y, to.x - from.x);
-  const head = Math.min(7.5, length * .34), a = { x: to.x - head * Math.cos(angle - .45), y: to.y - head * Math.sin(angle - .45) }, b = { x: to.x - head * Math.cos(angle + .45), y: to.y - head * Math.sin(angle + .45) };
+  // A third of the arrow, up to seven and a half units -- and never under six on an arrow long enough to carry one: a
+  // pair at thirty pieces is a dozen units, and at a third its heads were four-unit smudges, not arrowheads.
+  const head = length >= 12 ? Math.min(7.5, Math.max(6, length * .34)) : length * .34, a = { x: to.x - head * Math.cos(angle - .45), y: to.y - head * Math.sin(angle - .45) }, b = { x: to.x - head * Math.cos(angle + .45), y: to.y - head * Math.sin(angle + .45) };
   const u = length > 1e-6 ? { x: (to.x - from.x) / length, y: (to.y - from.y) / length } : { x: 1, y: 0 };
   // The default side: above a shaft lying across the page, right of one standing up.
   const s = side ?? (Math.abs(u.x) >= Math.abs(u.y) ? (u.x > 0 ? -1 : 1) : (u.y > 0 ? -1 : 1));
@@ -196,8 +215,11 @@ function Vector({ from, to, color = 'var(--field)', width = 2.5, dashed = false,
     <motion.line initial={false} animate={{ x1: from.x, y1: from.y, x2: to.x, y2: to.y }} transition={{ duration: reduced ? 0 : .13, ease: 'easeOut' }} stroke="currentColor" strokeWidth={width} strokeDasharray={dashed ? dash : undefined} />
     <motion.path initial={false} animate={{ d: `M${a.x},${a.y}L${to.x},${to.y}L${b.x},${b.y}` }} transition={{ duration: reduced ? 0 : .13 }} fill="none" stroke="currentColor" strokeWidth={width} />
     </g>
-    {label && length > 10 && <text x={spot.x} y={spot.y} textAnchor={spot.anchor} className={'cd-vector-label' + (muted ? ' is-muted' : '')} fill="currentColor" data-symbol={label}
-      data-mirror={`${pivot.x.toFixed(1)} ${pivot.y.toFixed(1)}`} data-alt={`${other.x.toFixed(1)} ${other.y.toFixed(1)} ${other.anchor}`} data-priority={priority} data-keep={keep ? 'true' : undefined} data-shaft={shaft}><SymbolText symbol={label} /></text>}
+    {/* Named down to a stub where the name is past the tip and is the stage's term: with P close to the end of
+        a long rod, What cancels' surviving ΔE_x is six pixels long, and it went unnamed beside a named ΔE_y in
+        the stage that says both parts survive. Beside its middle a name needs a shaft to stand beside. */}
+    {label && length > (at === 'tip' && keep ? 4 : 10) && <text x={spot.x} y={spot.y} textAnchor={spot.anchor} className={'cd-vector-label' + (muted ? ' is-muted' : '')} fill="currentColor" data-symbol={label}
+      data-mirror={`${pivot.x.toFixed(1)} ${pivot.y.toFixed(1)}`} data-alt={`${other.x.toFixed(1)} ${other.y.toFixed(1)} ${other.anchor}${alts ? ';' + alts : ''}`} data-priority={priority} data-keep={keep ? 'true' : undefined} data-shaft={shaft} data-within={within}><SymbolText symbol={label} vector={vector} /></text>}
   </g>;
 }
 function ViewHelp({ x, y }: { x: number; y: number }) {
@@ -319,6 +341,8 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
   const cubeSize = Math.max(27, 22 * cubeScale), cubeAt = cubeSize * 74 / 27;
   // Under about 480 pixels the figure has no room for prose inside it: the schematic's note goes.
   const [narrow, setNarrow] = useState(false);
+  // And how many pixels a unit of the drawing is, for what has to be a size on the screen: the cube's face names.
+  const [unitPx, setUnitPx] = useState(1);
   // Measured once before the first paint, so the figure is never drawn at one scale and then
   // redrawn at another, and watched after that for the window changing.
   useLayoutEffect(() => {
@@ -327,7 +351,7 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
     const fit = (width: number) => {
       if (width < 2) return;
       const k = Math.pow(720 / width, .72);
-      setLabelScale(Math.round(clamp(k, 1, 1.5) * 20) / 20); setCubeScale(Math.round(clamp(k, 1, 1.9) * 20) / 20); setNarrow(width < 480);
+      setLabelScale(Math.round(clamp(k, 1, 1.5) * 20) / 20); setCubeScale(Math.round(clamp(k, 1, 1.9) * 20) / 20); setNarrow(width < 480); setUnitPx(Math.round(width / 720 * 50) / 50);
     };
     fit(el.getBoundingClientRect().width);
     if (typeof ResizeObserver === 'undefined') return;
@@ -336,6 +360,12 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
     return () => watch.disconnect();
   }, []);
   const [spatial, setSpatial] = useState<boolean | null>(null);
+  // A DEVICE THAT CANNOT DRAW IN SPACE GETS THE FLAT FIGURE. The scene needs WebGL, which a blocklisted GPU or a
+  // policy can refuse; the stage then failed alone, and the figure above it stayed in space -- cube, axis letters,
+  // the piece's wedge and its name floating round a note in an empty plot, ring, disk and sheet opening that way.
+  // Once the stage says it cannot start (`onUnavailable`), the figure is drawn flat for good, with 3D turned off
+  // and a line under the toolbar saying why.
+  const [noScene, setNoScene] = useState(false);
   const ZOOM_MIN = .45, ZOOM_MAX = 3.2;
   const [zoomWanted, setZoom] = useState(1);
   const [fieldView, setFieldView] = useState<'lines' | 'vectors' | 'off'>('lines');
@@ -351,7 +381,7 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
   // either locked or free, rather than two to keep in step.
   const FLAT: CameraView = perspective ? { yaw: 0, pitch: .15 } : { yaw: 0, pitch: Math.PI / 2 };
   // null means "whatever this geometry is normally drawn as"; the toggle sets it explicitly.
-  const inSpace = spatial ?? perspective;
+  const inSpace = !noScene && (spatial ?? perspective);
   const view = inSpace ? camera : FLAT;
   // Where the two parts that survive are laid TIP TO TAIL, adding, as What cancels ends -- on the rods, the
   // arc and the ring alike, and in space as the scene lays them. On a phone, where the names are set half as
@@ -359,7 +389,10 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
   // pushes there, and ΔE_x went onto its own shaft: there the mirror's survivor stands BESIDE the piece's,
   // from P, and the piece's part keeps its name past its tip. (The ring's fan is narrower still, but beside
   // it the mirror's copy took the spot past the tip and pushed ΔE_z up into the axis' letter.)
-  const stackSurvivors = inSpace || perspective || labelScale < 1.2;
+  // And beside, too, on a flat wire whose charge is negative: there the parts that survive point AT the charge, and laid
+  // tip to tail they had to stop short of it at twice their length -- the bisector's What cancels at half the positive's
+  // size, its piece's arrow fifty pixels long on a laptop.
+  const stackSurvivors = inSpace || perspective || (labelScale < 1.2 && p.charge > 0);
   // How far out to draw the field, in world metres: past P and past the charge, capped so a
   // long rod does not shrink its own field to a smear.
   // How far out to draw the field is set by the CHARGE, never by where P happens to be.
@@ -394,14 +427,24 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
   // go, their parts along the axis go in, and the sum is an arrow along the axis at every moment. The ring
   // goes round from the run's own piece. Over part of the charge -- the brackets dragged in -- nothing is
   // paired, and the sum is the chain.
-  const pairedRun = !!build && supportsPair && boundRange[0] === 0 && boundRange[1] === 100 && (build.key === 'add' || build.key === 'limit');
+  //
+  // AND AT REST, IN THE SUM'S OWN VIEW. A teacher's link to the sum (`mode=sum`, with or without the pair) is the
+  // run's finished Add them up, and drew it as the chain: on these four lessons the arch the run no longer draws, the
+  // picture the owner took out. It is the same pairs there, all of them in: the sum along the axis, a tick per pair.
+  const pairedRun = supportsPair && boundRange[0] === 0 && boundRange[1] === 100 && (build ? build.key === 'add' || build.key === 'limit' : mode === 'sum');
   const pairStart = id === 'ring' && runPiece >= 0 ? runPiece : 0;
   const pairSlots = useMemo(() => pairedRun ? pairOrder(id, n, pairStart) : null, [pairedRun, id, n, pairStart]);
   const pairAt = pairSlots && handsOver && !handingOver ? pairStepAt(pairSlots.length, sumProgress) : null;
   const pairSlot = pairAt && pairSlots ? pairSlots[pairAt.k] : null;
   // The ring's last pair at an odd count is two half pieces: neither is a whole piece to light.
   const halfPair = pairSlot?.a.kind === 'half';
-  const selectedIndex = handingOver ? runPiece : pairSlot ? pairSlot.a.of : handsOver ? activeIntervalIndex(n, boundRange, sumProgress) : clamp(Math.round(selected), 0, n - 1);
+  // In Shrink them the piece the stage names dQ and brackets dy is a general one, well inside the charge. The run's
+  // piece -- three quarters of the way along, or the end piece on the bisector -- became, as the pieces thinned,
+  // the last sliver under the upper limit's handle: dQ and dy stood on "+L/2", and the general piece read as the
+  // limit.
+  const interior = (i: number) => clamp(i, Math.ceil(.15 * n), Math.max(Math.ceil(.15 * n), Math.floor(.85 * n) - 1));
+  const selectedIndex = handingOver ? runPiece : pairSlot ? pairSlot.a.of : handsOver ? activeIntervalIndex(n, boundRange, sumProgress)
+    : build?.key === 'limit' ? interior(clamp(Math.round(selected), 0, n - 1)) : clamp(Math.round(selected), 0, n - 1);
   const partnerIndex = id === 'ring' ? (selectedIndex + Math.floor(n / 2)) % n : n - 1 - selectedIndex;
   // A PIECE THAT IS ITS OWN MIRROR -- the middle one of an odd number, level with P -- has no partner: its
   // sideways part is nothing already. Paired with itself, it was drawn with a phantom mirror -- its ΔE twice,
@@ -455,9 +498,11 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
   const pairSteps = useMemo(() => pairSlots ? pairPlan(id, samples, pairStart) : null, [pairSlots, id, samples, pairStart]);
   const pairNow = pairSteps && pairAt ? { ...pairAt, ...pairPhase(pairAt.u), step: pairSteps[pairAt.k] } : null;
   const pairSoFar = pairNow && pairSteps ? pairSum(pairSteps, pairNow.k) : zero;
+  // At rest the pairs are in whole, as many as the sum's progress has taken: all of them, as the page leaves it.
+  const restPairs = pairSteps && !build ? Math.round(clamp(sumProgress, 0, 1) * pairSteps.length) : -1;
   const sample = samples[selectedIndex], total = sumSamples(samples);
-  const weights = pairNow && pairSteps ? pairShares(pairSteps, n, pairNow.k).map(s => s > .999 ? 1 : 0) : intervalWeights(n,boundRange,sumProgress);
-  const partial = pairNow && pairSteps ? pairSum(pairSteps, pairNow.k, pairNow.merge) : sumInterval(samples,boundRange,sumProgress);
+  const weights = pairNow && pairSteps ? pairShares(pairSteps, n, pairNow.k).map(s => s > .999 ? 1 : 0) : pairSteps && restPairs >= 0 ? pairShares(pairSteps, n, restPairs).map(s => s > .999 ? 1 : 0) : intervalWeights(n,boundRange,sumProgress);
+  const partial = pairNow && pairSteps ? pairSum(pairSteps, pairNow.k, pairNow.merge) : pairSteps && restPairs >= 0 ? pairSum(pairSteps, restPairs) : sumInterval(samples,boundRange,sumProgress);
   const wholeWeights = intervalWeights(n,boundRange,1);
   const full = boundRange[0]===0 && boundRange[1]===100;
   // The drawn arrow is the field itself only once every piece is in and the pieces are gone.
@@ -469,7 +514,13 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
   const zeroField = magnitude(displayed) < 1e-8 && full && (finished || progress >= .999 || !summing);
   const vExact = scalar ? potential(id, p) : 0;
   const vNow = scalar ? (continuum>=.999 && progress>=.999 && full ? vExact : sumPotential(samples, boundRange, progress)) : 0;
-  const vScale = Math.max(Math.abs(vExact), Math.abs(vNow), ...samples.map(s => Math.abs(s.potential)), 1e-12);
+  // While the run plays, one scale for the whole run, taken from its first cut as the field's is: read off the sum of
+  // the moment, the column was drawn at one height per volt while it filled and rescaled as the last block went in --
+  // every block below it shrinking by a few percent -- and back again as Shrink them began.
+  const runOpen = !!build;
+  const vRunCut = useMemo(() => runOpen && scalar ? sampleDistribution(id, shape, partitionCount(p.slices, 0)) : null, [runOpen, scalar, id, shape, p.slices]);
+  const vScale = vRunCut ? Math.max(Math.abs(vExact), Math.abs(sumPotential(vRunCut)), ...vRunCut.map(s => Math.abs(s.potential)), 1e-12)
+    : Math.max(Math.abs(vExact), Math.abs(vNow), ...samples.map(s => Math.abs(s.potential)), 1e-12);
   const dVmax = Math.max(...samples.map(s => Math.abs(s.potential)), 1e-20);
   const running = !!build;
   const [announcement,setAnnouncement] = useState(''), pending = useRef(''), timer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -496,7 +547,19 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
   // P's arrows run to.
   // Seen flat, the ring lies nearly edge-on, a dozen units deep, and can stand lower still.
   const lift = narrow ? (perspective ? (inSpace ? 20 : 40) : footed ? -15 : 0) : 0;
-  const originAt1: Point = perspective ? { x: 315, y: 296 + lift } : footed ? { x: 210, y: 250 + lift } : id === 'semi' ? { x: 300, y: 310 } : id === 'axial' ? { x: 130, y: 230 } : id === 'arc' ? { x: 375, y: 218 } : { x: 220, y: 216 };
+  // ROOM ABOVE P FOR THE ARROWS THE RING AND THE DISK ARE ABOUT. Their arrows rise from a P the resting picture
+  // stands high in the plot -- up to 125 units over O -- and the parts that survive are laid up the axis tip to tail,
+  // twice the piece's own part: so the ring's What cancels came out at a third of the rods' size, a 30-pixel star at
+  // P on a projector, its cancelling parts a dozen pixels on a phone. Wherever the piece is drawn at the run's size --
+  // the run, or a teacher's link to the parts -- P stands lower over a slightly smaller charge: no more than 95 units
+  // over O, and O as low as the near rim lets it go. Not for a negative charge, whose arrows point down at the charge:
+  // they want the drop from P, which standing lower only shortens.
+  const roomy = (id === 'ring' || id === 'disk') && !scalar && p.charge > 0 && (!!build || ((components || pair) && mode === 'project'));
+  const surfacePitch = (inSpace ? opening : FLAT).pitch, surfaceBelow = 371 - 10 - (296 + lift);
+  const surfaceFit = perspective ? surfaceUnit(p.distance, surfacePitch, id === 'sheet' ? 0 : R, surfaceBelow) : 0;
+  const surfaceRoomy = roomy ? Math.max(18, Math.min(surfaceFit, Math.floor(95 / Math.max(.5, p.distance * Math.cos(surfacePitch)) / 5) * 5)) : surfaceFit;
+  const surfaceDrop = roomy ? clamp(surfaceBelow - R * surfaceRoomy * Math.abs(Math.sin(surfacePitch)), 0, 24) : 0;
+  const originAt1: Point = perspective ? { x: 315, y: 296 + lift + surfaceDrop } : footed ? { x: 210, y: 250 + lift } : id === 'semi' ? { x: 300, y: 310 } : id === 'axial' ? { x: 130, y: 230 } : id === 'arc' ? { x: 375, y: 218 } : { x: 220, y: 216 };
   // Pixels per metre, times whatever the reader has zoomed to. The projection, the canvas
   // and the 3D frustum all read this, so one multiply zooms the whole figure and no layer
   // can disagree with another about scale.
@@ -513,7 +576,7 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
   const fit = (span: number, room: number, lo: number, hi: number) =>
     Math.max(lo, Math.min(hi, Math.round(room / Math.max(.5, span) / 5) * 5));
   // The ring, the disk and the sheet: see `surfaceUnit`.
-  const baseUnit = perspective ? surfaceUnit(p.distance, (inSpace ? opening : FLAT).pitch, id === 'sheet' ? 0 : R, 371 - 10 - originAt1.y)
+  const baseUnit = perspective ? surfaceRoomy
     : footed ? Math.min(45, 150 / p.size)
     : id === 'bisector' ? Math.min(45, 140 / R)
     : id === 'axial' ? fit(p.size + p.distance, 400, 20, 70)
@@ -522,6 +585,11 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
     // under the plot's top edge with its arrows squeezed into the corner and two thirds of the picture
     // empty. Fitted to P's height, as the ring, the disk and the sheet are.
     : id === 'semi' ? Math.min(35, Math.max(18, Math.floor(150 / Math.max(.5, p.distance) / 5) * 5))
+    // The endless line has no length but r, so its picture is the same at every r: while the run plays, P stands at
+    // least seventy units off it. At thirty-five per metre, P half a metre out stood seventeen units from the rod,
+    // with θ and Δθ set on the rod over its + marks and the r bar a four-unit "H". Not at rest, where P is dragged:
+    // a scale that followed P there would hold P still under the pointer while the drag ran away with r.
+    : id === 'infinite' && build ? clamp(Math.round(70 / Math.max(.5, p.distance) / 5) * 5, 35, 140)
     : 35;
   // Where P lives, and the line it is allowed to move along: from `pivot`, `axisDir` per unit of `distance`.
   const axisDir: Vec = id === 'arc' ? zero : id === 'axial' ? { x: 1, y: 0, z: 0 } : id === 'semi' ? { x: 0, y: 1, z: 0 } : perspective ? { x: 0, y: 0, z: 1 } : { x: 1, y: 0, z: 0 };
@@ -600,7 +668,10 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
   // below P in every view. Its point on the world x axis rose above P in space, at yaw -0.5, so the line
   // from P to a far ring of the sheet climbed to the frame's top while its tag sat on a wedge below: the
   // line and the tag named two different places.
-  const selectedPoint = project(surface ? scaleVec(across, Math.abs(sample.position.x)) : sample.position), visible = (v: Point) => v.x > 45 && v.x < 665 && v.y > 58 && v.y < 365;
+  // The ring's last pair at an odd count is two half pieces, and the line from P and the tag go to the lit half's own
+  // middle: to the whole piece's, they ended at the end of the lit half, while the arrows at the tip were the half's.
+  const halfMiddle = (span: { lo: number; hi: number }) => world((span.lo + span.hi) / 2);
+  const selectedPoint = project(surface ? scaleVec(across, Math.abs(sample.position.x)) : halfPair && pairSlot ? halfMiddle(pairSlot.a) : sample.position), visible = (v: Point) => v.x > 45 && v.x < 665 && v.y > 58 && v.y < 365;
   const selectedOnFrame = visible(selectedPoint);
   const clampToFrame = (v: Point): Point => ({ x: clamp(v.x, 52, 657), y: clamp(v.y, 62, 362) });
   // A common numeric scale applies to net and component arrows. The selected
@@ -646,8 +717,9 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
   // was buried in the rod or the disk and the placer hid the very name the stage ends on.
   /** How far along a world direction from P, in screen units of the view `ref`, the charge is first met:
    * a point of the wire within a stroke's width of the ray, the face of a disk or a sheet, or the
-   * centre a ring's arrows point at. Infinity where the ray meets nothing, or runs at the camera. */
-  const chargeAhead = (v: Vec, ref: CameraView): number => {
+   * centre a ring's arrows point at. Infinity where the ray meets nothing, or runs at the camera.
+   * `centre` false leaves the ring's empty middle out: see the stacked parts in `roomFor`. */
+  const chargeAhead = (v: Vec, ref: CameraView, centre = true): number => {
     const len = magnitude(v);
     if (len < 1e-30) return Infinity;
     const u: Vec = { x: v.x / len, y: v.y / len, z: v.z / len };
@@ -655,7 +727,7 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
     if (perMetre < 1e-6) return Infinity;
     const tolerance = (rodLike && !inSpace ? rodHalf + 4 : 8) / unit;
     let t = Infinity;
-    for (const q of [...(bodyPath ?? []), zero]) {
+    for (const q of [...(bodyPath ?? []), ...(centre ? [zero] : [])]) {
       const d = { x: q.x - pWorld.x, y: q.y - pWorld.y, z: q.z - pWorld.z }, along = d.x * u.x + d.y * u.y + d.z * u.z;
       if (along <= 1e-9 || along >= t) continue;
       if (Math.hypot(d.x - along * u.x, d.y - along * u.y, d.z - along * u.z) < tolerance) t = along;
@@ -714,7 +786,20 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
   // AT REST, the field's own size sets the arrow's length, on the lesson's fixed scale: see `restLength`. The
   // run keeps its own scale above, fitted to the frame, since there the arrows are the subject.
   const restRange = build || scalar ? null : lessonRange(id, 'E'), restNorm = magnitude(total);
-  const gain = restRange ? (restNorm > 0 ? restLength(restNorm, restRange) / restNorm : REST_SHORT / restRange[0]) : 100 / scaleValue * runScale;
+  // ...AND ONCE THE SUM IS ON SCREEN, THAT SCALE HOLDS. Refitted to every new P, size and charge, the run's scale moved
+  // under the arrow it measured: with the run held on E, drawing P out from half a metre to three made the bisector's
+  // field ten times weaker and its arrow half as long again, and lifting P off the sheet -- the lesson whose one claim
+  // is that lifting it changes nothing -- shrank the sheet's field to less than half. So the scale is fitted as the sum
+  // first comes on screen, in Add them up or Shrink them, and held while the run stays on those two: a slider moved
+  // there moves the arrows with the field. A new run, a step back to the stages before, a turn of the view or a new
+  // window size fits it again. Where the held scale takes the sum past the frame, it is cut there and marked: `netCut`.
+  const fittedGain = 100 / scaleValue * runScale;
+  const heldKey = !!build && !scalar && (build.key === 'add' || build.key === 'limit') ? `${id}|${inSpace}|${labelScale}` : '';
+  // Kept the way React keeps what an earlier render saw: set while rendering, when the key moves on, and read back.
+  const [heldScale, setHeldScale] = useState<{ key: string; gain: number } | null>(null);
+  if (heldKey ? heldScale?.key !== heldKey : heldScale !== null) setHeldScale(heldKey ? { key: heldKey, gain: fittedGain } : null);
+  const heldGain = !heldKey ? 0 : heldScale?.key === heldKey ? heldScale.gain : fittedGain;
+  const gain = restRange ? (restNorm > 0 ? restLength(restNorm, restRange) / restNorm : REST_SHORT / restRange[0]) : heldGain > 0 ? heldGain : fittedGain;
   const fieldScreen = (v: Vec, multiplier = 1): Point => { const k = gain * multiplier; const s = projectCamera(v, view.yaw, view.pitch); return { x: k * s.x, y: k * s.y }; };
   // One piece's arrow is magnified to a readable length: at rest so that whichever piece is clicked
   // can be read, and while the run plays so that One piece and What cancels always have an arrow to
@@ -737,8 +822,14 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
   // On a phone a little lower again: the letter's top stood two pixels under the stage's name, and the two
   // read as one phrase, "What cancels z".
   const axisTop = Math.max(66, 48 + .98 * SYM * labelScale + (narrow ? 6 : 0));
-  const roomFor = (f: Vec) => {
-    if (!build || scalar) return Infinity;
+  // The piece is drawn at the run's size while the run plays, and at rest wherever its parts or its mirror are asked
+  // for: at the 55 units the resting view drew them, a teacher's link to the parts put a fifteen-unit ΔE_y under P's
+  // halo, too short to carry its name.
+  const runSized = !scalar && (!!build || components || pair);
+  // At rest as in the run: the one map below sizes every piece, and the strongest has to stay in the picture there too.
+  // `alone` says the piece is its own mirror, with no partner drawn or laid on its part.
+  const roomFor = (f: Vec, alone = selfMirror) => {
+    if (scalar) return Infinity;
     const ref = inSpace ? opening : FLAT, at = projectCamera(pWorld, ref.yaw, ref.pitch), from = { x: O.x + unit * at.x, y: O.y + unit * at.y };
     const mirror = id === 'ring' ? { x: -f.x, y: -f.y, z: f.z } : { x: f.x, y: -f.y, z: f.z };
     // And the parts each is resolved into, which What cancels draws as arrows of their own and names
@@ -749,13 +840,18 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
     // P. Fitted one arrow at a time, the second ran past the plot's edge with its head cut off -- on the
     // ring's side view up the z axis into its letter, where it read as the axis' own arrowhead -- and for
     // a negative ring down through the ring and O.
-    const stacked: Vec[] = supportsPair && stackSurvivors && !selfMirror ? [scaleVec(parts(f)[0], 2)] : [];
+    const stacked: Vec[] = supportsPair && stackSurvivors && !alone ? [scaleVec(parts(f)[0], 2)] : [];
     let cap = Infinity;
+    // In space the ring's pair runs down its axis through the empty middle, as the scene draws it, in front of the ring:
+    // stopped short of the centre, a negative ring's arrows were capped at the drop from P to O, half the positive's.
     for (const v of stacked) {
-      const hit = chargeAhead(v, ref), s = projectCamera(v, ref.yaw, ref.pitch), len = gain * Math.hypot(s.x, s.y);
+      const hit = chargeAhead(v, ref, !(id === 'ring' && inSpace)), s = projectCamera(v, ref.yaw, ref.pitch), len = gain * Math.hypot(s.x, s.y);
       if (Number.isFinite(hit) && len > 1e-9) cap = Math.min(cap, Math.max(24, hit - 24) / len);
     }
-    for (const v of [f, ...(selfMirror ? [] : [mirror]), ...parts(f), ...(selfMirror ? [] : parts(mirror)), ...stacked]) {
+    // The mirror only where the lesson has one to draw: on a rod with a foot, the mirror of the piece by the foot pointed
+    // down into the footer's room and shrank every piece of the cut with it.
+    const partner = supportsPair && !alone;
+    for (const v of [f, ...(partner ? [mirror] : []), ...parts(f), ...(partner ? parts(mirror) : []), ...stacked]) {
       const s = projectCamera(v, ref.yaw, ref.pitch), len = gain * Math.hypot(s.x, s.y);
       if (len < 1e-9) continue;
       // The stacked pair carries no name of its own past its tip: room for its head, and clear air under the
@@ -766,17 +862,58 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
       const top = axisTop + .39 * SYM * labelScale + 4;
       const edge = rayToEdge(from, { x: gain * s.x / len, y: gain * s.y / len }, { x: 42, y: top, width: 626, height: 371 - top });
       cap = Math.min(cap, Math.max(40, Math.hypot(edge.x - from.x, edge.y - from.y) - margin) / len);
+      // ...and drawn flat, short of the charge an arrow points at -- a negative charge's, with its parts standing side
+      // by side -- where that still leaves a readable arrow; nearer than that it crosses the charge, painted over it.
+      // In space the scene draws the arrows in front of the charge, and they may cross its plane.
+      if (!inSpace && !stacked.includes(v)) { const hit = chargeAhead(v, ref); if (Number.isFinite(hit)) cap = Math.min(cap, Math.max(65, hit - 24) / len); }
     }
     return cap;
   };
-  /** The run's magnification for a piece whose field is `f`: its own arrow about 108 pixels long. */
-  // A little longer on a phone, where the names it carries are set larger against the same drawing.
-  // Never below its true length, unless even that would not fit: then as long as the room allows. A floor
+  // ONE MAGNIFICATION FOR THE FIGURE AS IT STANDS, NOT ONE PER PIECE. Each piece used to be magnified by its own field,
+  // to 108 units in the run and 55 at rest, so whichever piece was picked came out the same length -- the end of a long
+  // rod and the piece level with P, forty times stronger, alike -- under a stage that says "farther, smaller", and the
+  // ramp's whole point, the charge piling up toward its top, drawn flat. So the lengths are one map of the field's size,
+  // fitted once to the pieces of the cut on screen (the run's first cut while it plays): the weakest at the readable
+  // length -- 108 units, a little more on a phone where its names are set larger; 55 for the resting view's lone arrow --
+  // and the others in proportion where the picture has room for the strongest, and where it has not, as a power of
+  // their size below one: compressed, every stronger piece still the longer, so the order the stage talks about always
+  // shows. Never below a piece's true length, unless even that would not fit: then as long as the room allows. A floor
   // of one regardless drew the arc's piece, closed nearly into a ring, nine hundred pixels long.
-  const runGain = (f: Vec) => { const fit = roomFor(f); return clamp(108 * clamp(labelScale, 1, 1.35) / Math.max(1e-30, gain * magnitude(f)), Math.min(1, fit), Math.min(1000, fit)); };
-  const selectedGain = build && !scalar
-    ? runGain(sample.field)
-    : Math.max(1, Math.min(1000, 55 / Math.max(.001, Math.hypot(fieldScreen(sample.field).x, fieldScreen(sample.field).y))));
+  const pieceTarget = runSized ? 108 * clamp(labelScale, 1, 1.35) : 55;
+  const pieceMap = (() => {
+    // Fitted only where a piece's arrow is drawn: the stages that play every frame -- the cut, the sum, the limit -- draw none.
+    if (scalar || (build && !handingOver && build.key !== 'one' && build.key !== 'cancel')) return null;
+    const cut = build ? runSamples : samples, sizes = cut.map(s => magnitude(s.field)), lo = Math.min(...sizes.filter(s => s > 1e-30));
+    if (!Number.isFinite(lo)) return null;
+    // The room each piece's arrows have, as the length of its own arrow: the strongest pieces set the power, and where
+    // even the weakest has less than the target, the length it starts from. Never more than three times the target either:
+    // at rest a piece level with P, forty times the end piece, was drawn four hundred units long across the picture.
+    const room = cut.map((s, i) => sizes[i] > 1e-30 ? Math.min(roomFor(s.field, id !== 'ring' && i === cut.length - 1 - i) * gain * sizes[i], 3 * pieceTarget) : Infinity);
+    let power = 1;
+    for (let i = 0; i < cut.length; i++) if (sizes[i] > lo * 1.001) power = Math.min(power, room[i] > pieceTarget ? Math.log(room[i] / pieceTarget) / Math.log(sizes[i] / lo) : 0);
+    power = Math.max(power, .25);
+    let base = pieceTarget;
+    for (let i = 0; i < cut.length; i++) if (sizes[i] > 1e-30) base = Math.min(base, room[i] / Math.pow(sizes[i] / lo, power));
+    return { lo, power, base };
+  })();
+  /** The magnification for a piece whose field is `f`, from the one map above. */
+  // ...and wherever its parts are drawn -- What cancels, the piece it hands over to the sum, the resting view of the
+  // parts -- never so small that the SHORTER of the two parts is under sixteen units where the room allows: a part under
+  // ten went unnamed, so with P close to a long rod's end the ΔE_x the board writes, or with a ring of half a metre the
+  // two ΔE_⊥ that cancel, had no name. Not in One piece, where the piece is compared with the others and has no parts.
+  const partsShown = runSized && (build ? build.key === 'cancel' || handingOver : components || pair);
+  const runGain = (f: Vec) => {
+    const fit = roomFor(f), size = magnitude(f);
+    let want = pieceMap && size > 1e-30 ? pieceMap.base * Math.pow(size / pieceMap.lo, pieceMap.power) : pieceTarget;
+    if (partsShown && size > 1e-30) {
+      // On screen, in the view the figure opens in: in space a part across the ring's axis is foreshortened.
+      const ref = inSpace ? opening : FLAT, onScreen = (v: Vec) => { const s = projectCamera(v, ref.yaw, ref.pitch); return Math.hypot(s.x, s.y); };
+      const shorter = Math.min(onScreen(perspective ? { x: 0, y: 0, z: f.z } : { x: f.x, y: 0, z: 0 }), onScreen(perspective ? { x: f.x, y: f.y, z: 0 } : { x: 0, y: f.y, z: 0 })) / size;
+      if (shorter > .05) want = Math.max(want, 16 / shorter);
+    }
+    return clamp(want / Math.max(1e-30, gain * size), Math.min(1, fit), Math.min(1000, fit));
+  };
+  const selectedGain = scalar ? 1 : runGain(sample.field);
   // THE CHANGE OF SCALE, SEEN. The first stretch of Add them up draws the run's piece shrinking from
   // the length it had in the two stages before to its true length beside the chain; then it fades,
   // and the sum it is part of takes over. The sum's own arrow waits until it has gone, so no frame
@@ -787,7 +924,20 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
     return { field: f, multiplier, vector: fieldScreen(f, multiplier), opacity: clamp(1 - (progress - ADD_SHRINK) / ADD_FADE, 0, 1) };
   })() : null;
   const contribution = fieldScreen(sample.field, selectedGain);
-  const net = fieldScreen(displayed);
+  // THE SUM PAST THE FRAME, CUT THERE AND SAID SO. At the held scale a field made stronger -- P drawn in -- can run out
+  // of the picture: clipped by the window, it lost its head and read as a shorter arrow than the one before. So it
+  // stops a little inside the plot, its head on, with a break across its shaft near the head: longer than drawn.
+  const fullNet = fieldScreen(displayed);
+  const netCut = (() => {
+    // Never at a scale no larger than the one fitted now, which keeps the arrow in by construction.
+    if (!heldGain || heldGain <= fittedGain * 1.0001) return 1;
+    const len = Math.hypot(fullNet.x, fullNet.y);
+    if (len < 40) return 1;
+    // As far in from the plot's edge as the fitted scale may take it (see `runScale`).
+    const edge = rayToEdge(P, { x: fullNet.x / len, y: fullNet.y / len }, { x: 72, y: 84, width: 566, height: 257 }), room = Math.hypot(edge.x - P.x, edge.y - P.y);
+    return len > room ? Math.max(room, 40) / len : 1;
+  })();
+  const net = netCut < 1 ? scaleVec2(fullNet, netCut) : fullNet;
   // THE FIELD ITSELF, BESIDE THE PIECES' SUM, where the two plainly differ. At rest the arrow at P is the sum of
   // the reader's N pieces, drawn over field lines traced from the whole charge -- and with P close to a rod's end
   // and the rod cut in three, that sum points thirty degrees off the line through P, while a student is taught
@@ -846,9 +996,45 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
   // shrink to nothing toward each other, the mirror's part along the axis slides out to lie tip to tail on the
   // piece's, and the sum's arrow, drawn over them, grows along the axis to take both in. The whole arrows go as
   // their parts across do. The middle piece of an odd count lies on the axis: its arrow is all along it.
+  //
+  // DRAWN LARGER WHILE IT ARRIVES, where at the sum's own scale it would be a burst of arrowheads. Each pair is two Nths of
+  // the sum: on the ring, cut finely, or with a strong charge, its arrows came out one arrowhead long, and the parts across
+  // shrinking toward each other -- the whole of the stage's argument -- read as a star over P. So a pair shorter than about
+  // forty-four units is drawn at that length as it arrives and cancels, and eases to its true length as the sum takes it
+  // in, so what goes in is what the sum grows by; the corner says so while it is enlarged. Never past the plot's edge,
+  // nor up into the vertical axis' letter: on the ring the pair rises up the z axis, and a head ending on the z read as
+  // the axis' own arrowhead (see `roomFor`).
+  const pairGain = pairNow ? (() => {
+    const f = fieldScreen(pairNow.step.fa), own = Math.hypot(f.x, f.y);
+    if (own < 1e-6) return 1;
+    const from = plus(P, fieldScreen(pairSoFar)), top = axisTop + .39 * SYM * labelScale + 4;
+    let cap = Infinity;
+    // ...the parts along the axis too, which line up tip to tail as the parts across go: on the ring, twice the piece's
+    // part up the axis is longer than the piece's whole arrow.
+    // ...NOR OVER THE CHARGE. With the charge negative and P close in, the sum's arrow crosses the rod (see RUN_FLOOR), and
+    // the pair, enlarged at its tip, was drawn over the rod and the L bracket beside it, its sum's name on the rod. So
+    // drawn flat, the enlarged arrows stop short of where the charge is drawn -- the rod with its bracket, the endless
+    // line's band, a wire's own curve -- and a pair whose tip is already on it goes in at its true size.
+    const lBar = id === 'bisector' || footed ? O.x - 40 - (22 + 26 * (labelScale - 1)) : 0;
+    const ends = id === 'bisector' ? [O.y - R * unit, O.y + R * unit] : footed ? [O.y - p.size * unit, O.y] : [0, 0];
+    const wire = !inSpace && !lBar && id !== 'infinite' ? (bodyPath ?? []).map(project) : [];
+    const onCharge = (q: Point) => !inSpace && (lBar ? (Math.abs(q.x - O.x) <= rodHalf + 4 || Math.abs(q.x - lBar) <= 6) && q.y >= Math.min(...ends) - 6 && q.y <= Math.max(...ends) + 6
+      : id === 'infinite' ? Math.abs(q.x - O.x) <= rodHalf + 4 : wire.some(c => Math.hypot(c.x - q.x, c.y - q.y) < 8));
+    for (const v of [pairNow.step.fa, pairNow.step.fb ?? zero, pairNow.step.along, acrossAxis(id, pairNow.step.fa), acrossAxis(id, pairNow.step.fb ?? zero)]) {
+      const s = fieldScreen(v), len = Math.hypot(s.x, s.y);
+      if (len < 1e-6) continue;
+      const u = { x: s.x / len, y: s.y / len }, edge = rayToEdge(from, u, { x: 52, y: top, width: 606, height: 361 - top });
+      cap = Math.min(cap, Math.max(0, Math.hypot(edge.x - from.x, edge.y - from.y) - 12) / len);
+      const reach = Math.max(len, 44 * labelScale * len / own) + 10;
+      for (let t = 0; t <= reach; t += 2) if (onCharge({ x: from.x + u.x * t, y: from.y + u.y * t })) { cap = Math.min(cap, Math.max(0, t - 8) / len); break; }
+    }
+    return Math.max(1, Math.min(44 * labelScale / own, cap));
+  })() : 1;
+  const pairM = pairNow ? pairGain + (1 - pairGain) * pairNow.merge : 1;
   const pairDraw = pairNow ? (() => {
     const { step, grow, cancel, merge } = pairNow;
-    const from = plus(P, fieldScreen(pairSoFar)), g = (v: Vec, k = 1) => fieldScreen(v, grow * k);
+    const m = pairM;
+    const from = plus(P, fieldScreen(pairSoFar)), g = (v: Vec, k = 1) => fieldScreen(v, grow * k * m);
     const aKeep = g(alongAxis(id, step.fa)), bKeep = step.fb ? g(alongAxis(id, step.fb)) : null;
     const aDrop = g(acrossAxis(id, step.fa), 1 - cancel), bDrop = step.fb ? g(acrossAxis(id, step.fb), 1 - cancel) : null;
     const across = Math.hypot(fieldScreen(acrossAxis(id, step.fa)).x, fieldScreen(acrossAxis(id, step.fa)).y);
@@ -858,20 +1044,40 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
   // A TICK ACROSS THE SUM'S ARROW WHERE EACH PAIR'S SHARE ENDS: long steps for the near pairs, short for the far.
   // In Shrink them they crowd and fade as the pieces multiply, as the chain's links used to. Not at the arrow's
   // own tip, where its head is, nor closer than a few units to the last one drawn.
+  //
+  // ONLY WHERE THE ARROW IS. Past half a turn the arc's far pairs push back: the sum runs out and comes back, and
+  // its earlier ends were left as ticks on bare axis past the arrow's head -- at φ = 2π, beside "E = 0", ticks
+  // marking shares of an arrow that is not there. A share the sum went past and came back from is drawn as what
+  // it is, a part that has gone: a ghost of the axis out to the farthest the sum reached, dashed and faint as
+  // What cancels draws its ghosts, its ticks on it. And never closer than ten units, where a ring cut thirty ways
+  // packed seven across the arrow into a fishbone.
   const pairTicks = (() => {
-    if (!pairSteps) return '';
-    const ends = pairNow ? pairNow.k : build?.key === 'limit' ? pairSteps.length : 0;
+    const none = { d: '', ghost: '', ghostTicks: '' };
+    if (!pairSteps) return none;
+    const ends = pairNow ? pairNow.k : restPairs >= 0 ? restPairs : build?.key === 'limit' ? pairSteps.length : 0;
     const u = direction(fieldScreen(id === 'ring' ? { x: 0, y: 0, z: 1 } : { x: 1, y: 0, z: 0 }));
-    if (!u || ends < 1) return '';
-    const tip = plus(P, fieldScreen(displayed)), nrm = { x: -u.y, y: u.x };
-    let last = P, d = '';
-    for (let j = 1; j <= ends; j++) {
-      const c = plus(P, fieldScreen(pairSum(pairSteps, j)));
-      if (Math.hypot(c.x - last.x, c.y - last.y) < 4 || Math.hypot(c.x - tip.x, c.y - tip.y) < 9) continue;
-      d += `M${(c.x - nrm.x * 6).toFixed(1)} ${(c.y - nrm.y * 6).toFixed(1)}L${(c.x + nrm.x * 6).toFixed(1)} ${(c.y + nrm.y * 6).toFixed(1)}`;
-      last = c;
+    if (!u || ends < 1) return none;
+    const nrm = { x: -u.y, y: u.x }, tipV = net, tipA = tipV.x * u.x + tipV.y * u.y;
+    const at = (a: number) => ({ x: P.x + u.x * a, y: P.y + u.y * a });
+    const tick = (a: number) => { const c = at(a); return `M${(c.x - nrm.x * 6).toFixed(1)} ${(c.y - nrm.y * 6).toFixed(1)}L${(c.x + nrm.x * 6).toFixed(1)} ${(c.y + nrm.y * 6).toFixed(1)}`; };
+    const along = Array.from({ length: ends }, (_, j) => { const c = fieldScreen(pairSum(pairSteps, j + 1)); return c.x * u.x + c.y * u.y; });
+    // The way the arrow points, or with no arrow to speak of, the way the sum went.
+    const far = along.reduce((m, a) => Math.abs(a) > Math.abs(m) ? a : m, 0), sign = Math.abs(tipA) >= 9 ? Math.sign(tipA) : Math.sign(far) || 1;
+    const reach = Math.abs(tipA) >= 9 ? Math.abs(tipA) : 0;
+    let d = '', lastOn = 0, ghostTicks = '', lastOver = -Infinity;
+    for (const a of along) {
+      const s = a * sign;
+      if (s > 4 && s < reach - 9 && s - lastOn >= 10) { d += tick(s * sign); lastOn = s; }
     }
-    return d;
+    const farthest = Math.max(0, ...along.map(a => a * sign));
+    // A sum cut at the frame went on past it, not back from it: no ghost there.
+    if (farthest < reach + 9 || netCut < 1) return { d, ghost: '', ghostTicks: '' };
+    for (const a of [...along].sort((x, y) => x * sign - y * sign)) {
+      const s = a * sign;
+      if (s > reach + 6 && s - lastOver >= 10) { ghostTicks += tick(s * sign); lastOver = s; }
+    }
+    const g0 = at(sign * (reach + 3)), g1 = at(sign * farthest);
+    return { d, ghost: `M${g0.x.toFixed(1)} ${g0.y.toFixed(1)}L${g1.x.toFixed(1)} ${g1.y.toFixed(1)}`, ghostTicks };
   })();
   // Pointing at one piece's CHARGE lights the piece and names it; it does not need the arrow and
   // the construction lines, which belong to the distance and the direction. The run's first stage
@@ -959,6 +1165,12 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
   // piece subtends. The reader is pointed at something real and on screen, rather than told the
   // piece is "outside view", which named nothing and was the reason these lessons were held back.
   const selectedWedge = fan?.wedges.find(w => w.index === selectedIndex) ?? null;
+  // THE FAN'S RAYS AFTER CUT IT UP. Faint, they ran through θ, α, x, y and r_i in every stage after it, two to six
+  // crossings a frame. One piece and What cancels draw the piece's own triangle, whose angle the rays only cut across,
+  // so there they go; in Add them up the chosen wedge's own two stay, as lines no name is set across, to say which
+  // angle the tag names when its piece is off the page -- with them gone, ΔQ hung on the dashed line to P in empty space.
+  const chosenRays = new Set(fan ? [selectedIndex, selectedIndex + 1].flatMap(i => id === 'sheet' ? [seamKey(i / n) + ':r', seamKey(i / n) + ':l'] : [seamKey(i / n)]) : []);
+  const raysShown = fan ? fan.rays.filter(r => !build || build.key === 'pieces' || (build.key === 'add' && chosenRays.has(r.key))) : [];
   // Out along the middle of the angle, but never past the charge the angle ends at.
   const wedgeAnchor = selectedWedge?.middle ? (() => { const m = selectedWedge.middle, hit = fan?.line ? rayToLine(P, m, { x: 42, y: 54, width: 626, height: 317 }, fan.line) : null, reach = hit ? Math.min(92, .62 * Math.hypot(hit.x - P.x, hit.y - P.y)) : 92; return clampToFrame({ x: P.x + m.x * reach, y: P.y + m.y * reach }); })() : null;
   // Whether the sheet's chosen ring is drawn as an outline: only while its far edge stays clearly below P
@@ -983,6 +1195,19 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
   const hideAnswer = building === 'pieces' || building === 'one' || building === 'cancel' || (!build && mode === 'project' && components);
   // The sum's own arrow, once nothing is drawn that it could be mistaken for, or be shorter than.
   const netShown = !scalar && !hideAnswer && !handOver;
+  // E BESIDE THE SUM, where the two point the same way. Drawn from P along the sum's own line, the field's arrow lay
+  // inside the sum's shaft: shorter, its head sat halfway along the sum's arrow and its name was hidden -- one arrow
+  // with two heads -- and longer, its name stood beside the sum's and the two read as one label, "Σ ΔE E". So it is
+  // laid off ten units to the side, on the side away from the sum's name, with a short tick back to the line at each
+  // end, as the chain is laid beside the field it sums to.
+  const trueOffset = (() => {
+    if (!trueField || !netShown) return null;
+    const a = direction(net), b = direction(trueField);
+    if (!a || !b || a.x * b.x + a.y * b.y < Math.cos(6 * Math.PI / 180)) return null;
+    const s = awayFrom(net, toCharge) ?? (Math.abs(a.x) >= Math.abs(a.y) ? (a.x > 0 ? -1 : 1) : (a.y > 0 ? -1 : 1));
+    return { x: a.y * s * 10, y: -a.x * s * 10 };
+  })();
+  const trueFrom = trueOffset ? plus(P, trueOffset) : P;
   const cutAt = (t: number) => ({ '--t': t.toFixed(3) }) as CSSProperties;
   const elementSymbol = continuum>=.999 ? 'dQ' : 'ΔQ';
   const fieldSymbol = continuum>=.999 ? 'dE' : 'ΔE';
@@ -1014,15 +1239,26 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
   const cancelClock = build?.key === 'cancel' && build.clock && (build.seconds ?? 0) > 0 && supportsPair && pair ? build : null;
   // The time into the stage, for the cuts and the arrows' growth that the stylesheet draws: see `.cd-clocked`
   // in charge-diagram.css. Written straight to the root as the clock moves, never through a render.
+  //
+  // ONLY FOR AS LONG AS SOMETHING READS IT. A custom property on the root restyles every element under it, labels and
+  // footer included, and it was written on every tick of the clock in every stage -- one to three milliseconds of style
+  // a frame, the most of any single cost in One piece -- while the cuts are done in two and a half seconds and the
+  // arrows have grown in one. So the time is held at the end of what the stage's stylesheet animates, and written only
+  // when it changes.
   const runClock = build?.clock, stageStartsAt = build?.start ?? 0, runSeconds = build?.seconds ?? 0;
+  const clockedSpan = building === 'pieces' ? 2.6 : building === 'one' || building === 'cancel' ? 1 : 0;
   useLayoutEffect(() => {
     const el = root.current;
     if (!el) return;
     if (!runClock) { el.style.removeProperty('--cd-local'); return; }
-    const write = () => el.style.setProperty('--cd-local', `${clamp(runClock.get() - stageStartsAt, 0, runSeconds > 0 ? runSeconds : Infinity).toFixed(3)}s`);
+    let last = '';
+    const write = () => {
+      const t = `${clamp(runClock.get() - stageStartsAt, 0, Math.min(clockedSpan, runSeconds > 0 ? runSeconds : Infinity)).toFixed(3)}s`;
+      if (t !== last) { last = t; el.style.setProperty('--cd-local', t); }
+    };
     write();
     return runClock.subscribe(write);
-  }, [runClock, stageStartsAt, runSeconds]);
+  }, [runClock, stageStartsAt, runSeconds, clockedSpan]);
   const [clockT, setClockT] = useState(0);
   useLayoutEffect(() => {
     if (!cancelClock?.clock) return;
@@ -1056,7 +1292,9 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
   // The exact opposite element is used for odd partitions too: symmetry is a
   // property of the source, not an artifact of whether n happens to be even.
   const partnerField = id === 'ring' ? { x: -sample.field.x, y: -sample.field.y, z: sample.field.z } : { x: sample.field.x, y: -sample.field.y, z: sample.field.z };
-  const partnerPos = id === 'ring' ? project({ x: -sample.position.x, y: -sample.position.y, z: 0 }) : project(samples[partnerIndex].position);
+  const partnerPos = halfPair && pairSlot?.b ? project(halfMiddle(pairSlot.b)) : id === 'ring' ? project({ x: -sample.position.x, y: -sample.position.y, z: 0 }) : project(samples[partnerIndex].position);
+  // The pair going in has a line from each of its two to P -- the two half pieces of the ring's last pair as well.
+  const pairLines = pairLit || (halfPair && !!pairSlot?.b);
   const keep = perspective ? { x: 0, y: 0, z: sample.field.z } : { x: sample.field.x, y: 0, z: 0 };
   const drop = perspective ? { x: sample.field.x, y: sample.field.y, z: 0 } : { x: 0, y: sample.field.y, z: 0 };
   const partnerKeep = perspective ? { x: 0, y: 0, z: partnerField.z } : { x: partnerField.x, y: 0, z: 0 };
@@ -1091,9 +1329,17 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
     return { x: P.x + n.x * 6 * toward, y: P.y + n.y * 6 * toward };
   })();
   const keepNamedMid = partnerKeepShown && stackSurvivors;
-  // Where the piece's arrow is not resolved into parts -- a ring of a disk, the rod seen end on -- its
-  // own arrow is the part that survives, and its name is the stage's term.
-  const pieceTerm = stageOne || (stageCancel && !(components && hasDrop));
+  // ...and never past its own tip, where the mirror's survivor goes on from it: with nothing free in a narrow fan
+  // the ring's ΔE_z was set beside the mirror's, stacked on top of it, and read as that one's name.
+  const keepWithin = keepNamedMid ? (() => { const u = direction(keepScreen), tip = plus(P, keepScreen); return u ? `${tip.x.toFixed(1)} ${tip.y.toFixed(1)} ${(-u.x).toFixed(3)} ${(-u.y).toFixed(3)}` : undefined; })() : undefined;
+  // THE PARTS' NAMES are terms in What cancels -- and at rest wherever the parts are drawn, which is a teacher's
+  // link to What cancels' own picture with no stage to say so: there the survivor ΔE_x, the one part the answer is
+  // built from, was the name the placer hid among the five arrows round P, while the part that cancels kept its.
+  const partsTerm = stageCancel || (!build && components);
+  // And the piece's own arrow, resolved or not: What cancels' line says "the drawn arrow ΔE, of size ΔE, lies
+  // along that line", and resolved into parts its name was left to give way -- hidden in half the frames with a
+  // negative charge, where it lies on the line to the piece, and on the arc and the ring in most of the rest.
+  const pieceTerm = stageOne || partsTerm;
   // Fully drawn while they shrink, gone once they have met.
   const transverseOpacity = clamp((1 - cancelT) * 6, 0, 1);
   function eventPoint(ev: PointerEvent): Point {
@@ -1258,7 +1504,8 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
   // the page while the drawn legend went on promising they turned the view. Do not route the
   // figure's keyboard reach through anything that can be collapsed.
   const orbit = {
-    onPointerDown: (ev: PointerEvent<SVGSVGElement>) => { if (onControl(ev.target)) return; stopGlide(); ev.currentTarget.focus(); try { ev.currentTarget.setPointerCapture(ev.pointerId); } catch { /* no live pointer to capture: the drag still starts */ } dragging.current = 'orbit'; setActiveDrag(true); orbitFrom.current = { x: ev.clientX, y: ev.clientY }; spin.current = { yaw: 0, pitch: 0, at: performance.now() }; },
+    // Without scrolling: a press on a figure half under the window's edge scrolled the page under the drag.
+    onPointerDown: (ev: PointerEvent<SVGSVGElement>) => { if (onControl(ev.target)) return; stopGlide(); ev.currentTarget.focus({ preventScroll: true }); try { ev.currentTarget.setPointerCapture(ev.pointerId); } catch { /* no live pointer to capture: the drag still starts */ } dragging.current = 'orbit'; setActiveDrag(true); orbitFrom.current = { x: ev.clientX, y: ev.clientY }; spin.current = { yaw: 0, pitch: 0, at: performance.now() }; },
     onPointerMove: (ev: PointerEvent<SVGSVGElement>) => {
       if (dragging.current !== 'orbit') return;
       const t0 = performance.now();
@@ -1287,7 +1534,7 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
   /** An angle at a vertex: a short arc between its two sides, and its name on the line halving it,
    * so the label sits inside the angle it names whichever way that angle happens to open. Returns the
    * drawing and the arc's points, which the label placer keeps every other name off. */
-  const angleMark = (at: Point, alongA: Point, alongB: Point, name: string, term = false, sides?: { a?: number; b?: number; r0?: number; w?: number }) => {
+  const angleMark = (at: Point, alongA: Point, alongB: Point, name: string, term = false, sides?: { a?: number; b?: number; r0?: number; w?: number; avoid?: Box }) => {
     const a = direction(vsub(alongA, at)), b = direction(vsub(alongB, at));
     if (!a || !b) return null;
     const mid = direction({ x: a.x + b.x, y: a.y + b.y }) ?? a, sweep = a.x * b.y - a.y * b.x > 0 ? 1 : 0;
@@ -1339,10 +1586,18 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
     // side that runs toward the charge -- the other side is r_i, whose name stands beside it -- on a short
     // leader from the middle of the arc.
     const R = Math.min(R0, Math.max(16, shorter * .85)), arc = arcAt(R);
-    const away = sweep ? -1 : 1, off = { x: a.x * Math.cos(.38) - away * a.y * Math.sin(.38), y: a.y * Math.cos(.38) + away * a.x * Math.sin(.38) };
-    const reachOut = R + 5 + Math.abs(off.x) * w / 2 + Math.abs(off.y) * h / 2;
-    const c = { x: at.x + off.x * reachOut, y: at.y + off.y * reachOut }, from = { x: at.x + mid.x * R, y: at.y + mid.y * R };
-    const box = { x: c.x - w / 2, y: c.y - h / 2, width: w, height: h }, to = nearestOnBox({ x: box.x - 1, y: box.y - 1, width: box.width + 2, height: box.height + 2 }, from);
+    const away = sweep ? -1 : 1, turned = (u: Point, s: number) => ({ x: u.x * Math.cos(.38) - s * u.y * Math.sin(.38), y: u.y * Math.cos(.38) + s * u.x * Math.sin(.38) });
+    const outside = (off: Point) => {
+      const reachOut = R + 5 + Math.abs(off.x) * w / 2 + Math.abs(off.y) * h / 2, c = { x: at.x + off.x * reachOut, y: at.y + off.y * reachOut };
+      return { c, box: { x: c.x - w / 2, y: c.y - h / 2, width: w, height: h } };
+    };
+    // ...unless that side is so short that past it is the charge itself: with P half a metre from the rod the letter
+    // stood on the rod, among its + marks, or under its foot on the far side. Then past the other side, r_i, on its far
+    // side from the first.
+    const onCharge = (b: Box) => sides?.avoid ? Math.max(0, Math.min(b.x + b.width, sides.avoid.x + sides.avoid.width) - Math.max(b.x, sides.avoid.x)) * Math.max(0, Math.min(b.y + b.height, sides.avoid.y + sides.avoid.height) - Math.max(b.y, sides.avoid.y)) : 0;
+    const first = outside(turned(a, away)), second = outside(turned(b, -away));
+    const { c, box } = onCharge(first.box) > 0 && onCharge(second.box) < onCharge(first.box) ? second : first;
+    const from = { x: at.x + mid.x * R, y: at.y + mid.y * R }, to = nearestOnBox({ x: box.x - 1, y: box.y - 1, width: box.width + 2, height: box.height + 2 }, from);
     return { node: <>{arc.node}<line className="cd-angle-leader" x1={from.x.toFixed(1)} y1={from.y.toFixed(1)} x2={to.x.toFixed(1)} y2={to.y.toFixed(1)} /><text className="cd-angle" x={c.x.toFixed(1)} y={(c.y + .3 * size).toFixed(1)} textAnchor="middle" data-anchor="fixed" {...keep}>{setUpright(name)}</text></>, arc: arc.points, leader: [from, to] as [Point, Point], box };
   };
   const circlePoints = (radius: number, start = 0, end = Math.PI * 2) => Array.from({ length: 97 }, (_, i) => project({ x: radius * Math.cos(start + (end - start) * i / 96), y: radius * Math.sin(start + (end - start) * i / 96), z: 0 }));
@@ -1493,7 +1748,7 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
   // Which marks sit on a piece painted in the charge's own colour -- the chosen piece and its
   // mirror partner -- so they can be drawn in the ground colour there instead of vanishing into it.
   const spanOf = (i: number): [number, number] => { const a = along(project(world(i / n))), b = along(project(world((i + 1) / n))); return [Math.min(a, b), Math.max(a, b)]; };
-  const filledSpans = rodLike ? [spanOf(selectedIndex), ...(partnerLit && partnerIndex !== selectedIndex ? [spanOf(partnerIndex)] : [])] : [];
+  const filledSpans = rodLike && !ramp ? [spanOf(selectedIndex), ...(partnerLit && partnerIndex !== selectedIndex ? [spanOf(partnerIndex)] : [])] : [];
   const onFill = (v: number) => filledSpans.some(([a, b]) => v > a + 1 && v < b - 1);
   // Written as the derivation beside it writes it, in the lesson's own coordinate: a reader who
   // sees ΔQ = λΔy in the panel should not find ΔQ = λΔℓ under the figure and wonder what ℓ is.
@@ -1561,6 +1816,18 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
     const mid = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }, out = { x: nrm.x * side, y: nrm.y * side };
     return { key, dim, a, b, path: `M${a.x.toFixed(1)} ${a.y.toFixed(1)}L${b.x.toFixed(1)} ${b.y.toFixed(1)}${t(a)}${t(b)}`, name, label: besidePoint(mid, out, 7, SYM * labelScale) };
   };
+  // A DIMENSION'S LETTER NAMES ITS OWN LINE, as an arrow's name does its shaft: given the line as its shaft, the
+  // placer keeps it nearer that line than any arrow or line of the construction (see `amongLines` in labels.ts).
+  // Free to go anywhere within its reach, the ring's R settled by the line from P to the piece -- r_i's line -- and
+  // the disk's R at the disk's centre, by "s = 0".
+  const lineOf = (a: Point, b: Point) => `${a.x.toFixed(1)} ${a.y.toFixed(1)} ${b.x.toFixed(1)} ${b.y.toFixed(1)}`;
+  // ...and a radius' letter on its side away from P, whose lines and arrows are all on the other.
+  const awayFromP = (a: Point, b: Point) => {
+    const u = direction(vsub(b, a));
+    if (!u) return undefined;
+    const n = { x: -u.y, y: u.x }, s = n.x * (P.x - a.x) + n.y * (P.y - a.y) > 0 ? -1 : 1;
+    return `${a.x.toFixed(1)} ${a.y.toFixed(1)} ${(n.x * s).toFixed(3)} ${(n.y * s).toFixed(3)}`;
+  };
   // THE PIECE'S OWN LENGTH, Δy. The only y the figure drew was the leg from the piece to the axis, which is
   // the coordinate; the piece's length was never marked, so a student weak on calculus took y for Δy and
   // could not see where λΔy came from. A textbook brackets the element: a short dimension along the chosen
@@ -1581,20 +1848,25 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
   const pieceLength = (() => {
     if (!(building === 'pieces' || building === 'one' || shrinking || highlight === 'element')) return null;
     const size = SYM * labelScale, spot = (q: { x: number; y: number; anchor: string }) => `${q.x.toFixed(1)} ${q.y.toFixed(1)} ${q.anchor}`;
-    if (surface) {
+    // The axis lesson's in space too, on the rod as projected: its bracket, under the rod seen flat, is drawn by the flat
+    // view's fixed rows, and was simply left out once the view turned -- with the Δx the footer writes ΔQ in.
+    const projected = surface || (inSpace && id === 'axial');
+    if (projected) {
       if (id === 'sheet' && selectedIndex >= n - 1) return null;
-      let a = project({ x: Math.abs(world(selectedIndex / n).x), y: 0, z: 0 }), b = project({ x: Math.abs(world((selectedIndex + 1) / n).x), y: 0, z: 0 });
+      const end = (t: number) => project(surface ? { x: Math.abs(world(t).x), y: 0, z: 0 } : world(t));
+      let a = end(selectedIndex / n), b = end((selectedIndex + 1) / n);
       if (!visible(a) || !visible(b)) return null;
       const u = direction(vsub(b, a));
       if (!u) return null;
       const middle = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
       if (Math.hypot(b.x - a.x, b.y - a.y) < 12) { if (!shrinking) return null; a = { x: middle.x - u.x * 6, y: middle.y - u.y * 6 }; b = { x: middle.x + u.x * 6, y: middle.y + u.y * 6 }; }
       let nrm = { x: -u.y, y: u.x };
-      if (nrm.x * (P.x - middle.x) + nrm.y * (P.y - middle.y) > 0) nrm = { x: -nrm.x, y: -nrm.y };
+      // Away from P; on the rod, which P stands in line with, on its lower side, away from r_i's bracket.
+      if (surface ? nrm.x * (P.x - middle.x) + nrm.y * (P.y - middle.y) > 0 : nrm.y < 0) nrm = { x: -nrm.x, y: -nrm.y };
       const at = (q: Point, k = 9): Point => ({ x: q.x + nrm.x * k, y: q.y + nrm.y * k }), A = at(a), B = at(b), M = at(middle);
       const tick = (q: Point) => `M${(q.x - nrm.x * 4).toFixed(1)} ${(q.y - nrm.y * 4).toFixed(1)}l${(nrm.x * 8).toFixed(1)} ${(nrm.y * 8).toFixed(1)}`;
       const label = besidePoint(M, nrm, 5, size), ends = [direction({ x: nrm.x - u.x, y: nrm.y - u.y }) ?? nrm, direction({ x: nrm.x + u.x, y: nrm.y + u.y }) ?? nrm];
-      return { name: `${continuum >= .999 ? 'd' : '\u0394'}s`, path: `M${A.x.toFixed(1)} ${A.y.toFixed(1)}L${B.x.toFixed(1)} ${B.y.toFixed(1)}${tick(A)}${tick(B)}`, label, mirror: M, ends: [A, B] as [Point, Point],
+      return { name: `${continuum >= .999 ? 'd' : '\u0394'}${surface ? 's' : coordinate}`, path: `M${A.x.toFixed(1)} ${A.y.toFixed(1)}L${B.x.toFixed(1)} ${B.y.toFixed(1)}${tick(A)}${tick(B)}`, label, mirror: M, ends: [A, B] as [Point, Point],
         alt: [besidePoint(A, ends[0], 5, size), besidePoint(B, ends[1], 5, size)].map(spot).join(';'), within: `${at(middle, 4).x.toFixed(1)} ${at(middle, 4).y.toFixed(1)} ${nrm.x.toFixed(3)} ${nrm.y.toFixed(3)}` };
     }
     if (inSpace || !(upright || id === 'semi' || id === 'axial') || (shrinking && id === 'infinite')) return null;
@@ -1619,9 +1891,11 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
   // L's bracket stands further out while the piece's is drawn, so the two letters do not meet.
   // On a phone, where the letters are half as large again, by as much again: at 22 the Δy's middle spot did not fit
   // between the two brackets, and Δy jumped past the end of its bracket onto the next piece.
-  const lOut = pieceLength && upright ? 22 + 26 * (labelScale - 1) : 0;
+  // While the run is open they stand there in every stage, not only while the bracket is drawn: dimension lines that
+  // jumped twenty units at three stage changes read as lengths that changed.
+  const lOut = (pieceLength || build) && upright ? 22 + 26 * (labelScale - 1) : 0;
   // And the axis lesson's L and a bars stand lower, under the piece's bracket.
-  const barY = O.y + 34 + (pieceLength && id === 'axial' ? 20 + 18 * (labelScale - 1) : 0);
+  const barY = O.y + 34 + ((pieceLength || build) && id === 'axial' ? 20 + 18 * (labelScale - 1) : 0);
   // THE ROD'S ENDS, while the limits are the subject -- Add them up, which runs the sum from one end to the
   // other, and Shrink them, which turns the ends into the integral's limits. At no priority and with nowhere
   // else to go, a rod's end names were the first the placer dropped: with P close in, "x = L" was hidden in
@@ -1633,14 +1907,19 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
     const spot = (x: number, y: number, anchor: string) => `${x.toFixed(1)} ${y.toFixed(1)} ${anchor}`;
     if (id === 'axial') {
       const x = O.x + p.size * unit;
-      return { top: [spot(x, O.y - rodHalf - 10, 'middle'), spot(x + 10, barY + 8 + 1.9 * SYM * labelScale, 'middle')].join(';'), bottom: '' };
+      return { top: [spot(x, O.y - rodHalf - 10, 'middle'), spot(x + 10, barY + 8 + 1.9 * SYM * labelScale, 'middle')].join(';'), bottom: '', topWithin: undefined, bottomWithin: undefined };
     }
     const top = id === 'bisector' ? O.y - R * unit : O.y - p.size * unit, bottom = id === 'bisector' ? O.y + R * unit : O.y;
     const under = id === 'bisector' ? Math.min(bottom + 20, 366) : O.y - 9;
     return {
       // On P's side of the rod only: across it, an end's name stood by L's bracket and read as a second name for it.
-      top: [spot(O.x + 17, top - 28, 'start'), spot(O.x + 17, top + 20, 'start')].join(';'),
-      bottom: [spot(O.x + 17, Math.min(under + 22, 368), 'start'), spot(O.x + 17, id === 'bisector' ? bottom - 6 : O.y + 24, 'start')].join(';'),
+      // And past its own end, never beside the rod: the spot twenty units in from the top stood level with the first
+      // cut, beside the piece Cut it up lights, and "+L/2" read as that piece's lower edge, the piece running on past
+      // the rod's end. Further above, or out to the right, instead -- or with nowhere, hidden with the other end.
+      top: [spot(O.x + 17, top - 28, 'start'), spot(O.x + 60, top - 8, 'start'), spot(O.x + 17, top - 48, 'start')].join(';'),
+      bottom: [spot(O.x + 17, Math.min(under + 22, 368), 'start'), ...(id === 'bisector' ? [spot(O.x + 60, Math.min(bottom + 20, 366), 'start')] : [spot(O.x + 17, O.y + 24, 'start')])].join(';'),
+      topWithin: `${(O.x + rodHalf).toFixed(1)} 0 1 0;0 ${top.toFixed(1)} 0 -1`,
+      bottomWithin: `${(O.x + rodHalf).toFixed(1)} 0 1 0${id === 'bisector' ? `;0 ${bottom.toFixed(1)} 0 1` : ''}`,
     };
   })();
   const dims: Dim[] = [];
@@ -1738,7 +2017,9 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
   const gauge = scalar ? (() => {
     // Clear of the axis P sits on by more than the width of a label, so the column reads as standing
     // beside P rather than along the axis.
-    const w = 12, leftSide = id === 'arc', gap = 28, fine = n > 64;
+    // Scaled with the names: drawn at the drawing's size on a phone, where the names beside it are half as large again,
+    // the column -- the potential lessons' only picture of V -- was six pixels wide, half the width of "ΣΔV" beside it.
+    const w = 12 * labelScale, leftSide = id === 'arc', gap = 28 * labelScale, fine = n > 64;
     let x = leftSide ? P.x - gap - w : P.x + gap;
     // HOW TALL. At most 88 units, and ALWAYS the way the potential's sign points: the direction is the
     // column's only sign, since ΔV, ΣΔV and V carry none, and a column for a positive V that stood
@@ -1752,18 +2033,25 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
     // the disk the charge lies below P: sized by the frame alone, the column ran down through the disk's face,
     // across the chosen ring, onto the ring itself. Its floor is the top of the drawn ring or disk under it, a
     // little above; where that leaves too little to read, the column stands out past the rim instead.
+    //
+    // The NEAR half of it, and no lower than the charge's middle. The far rim lies behind P, and in space it rises on
+    // the screen to within a few dozen units of P: taken for the floor, it sent the column out past the rim at the
+    // default height -- a bar standing on the ring a hundred pixels from P, its name in the limit's "θ = 0, 2π". In
+    // front of the far rim, hanging down beside P, the column is the potential AT P, and it stops above the near rim
+    // and the level of the centre, so it never runs onto the ring or across the disk's near side.
     let floor = 371;
     if (natural < 0 && (id === 'ring' || id === 'disk')) {
       const rim = circlePoints(R), top = (x0: number) => {
-        let best = Infinity;
+        let best = O.y;
         for (let k = 1; k < rim.length; k++) {
           const a = rim[k - 1], b = rim[k];
+          if (Math.min(a.y, b.y) < O.y - .5) continue;
           for (const at of [x0 - 6, x0, x0 + w / 2, x0 + w, x0 + w + 6]) if ((a.x - at) * (b.x - at) <= 0 && Math.abs(b.x - a.x) > 1e-9) best = Math.min(best, a.y + (b.y - a.y) * (at - a.x) / (b.x - a.x));
         }
         return best;
       };
       floor = Math.min(371, top(x) - 8);
-      if (floor - P.y < 24 + labelRoom) { x = Math.max(x, Math.max(...rim.map(q => q.x)) + 12); floor = Math.min(371, top(x) - 8); }
+      if (floor - P.y < 24 + labelRoom) { x = Math.max(x, Math.max(...rim.map(q => q.x)) + 12); floor = 371; }
     }
     const roomNamed = natural > 0 ? P.y - 54 - labelRoom : floor - P.y - labelRoom;
     // Beside the far end, the name is centred on it: the column stops short of the plot's edge by half the
@@ -1775,16 +2063,24 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
     // growing without end near the rod, could not be seen. So its height grows with V on the lesson's fixed
     // log scale, as the field's arrow does (see `restLength`), from 24 units to 88, and the room only caps it.
     // Read off the exact V, which no stage of the run changes, so Add them up and Shrink them share one scale.
+    // Half as tall again on a phone too, with the names, the room still capping it.
     const room = Math.max(16, beside ? roomBare : roomNamed), [vLo, vHi] = lessonRange(id, 'V'), vRef = Math.abs(vExact);
-    const tall = 24 + 64 * clamp(Math.log(Math.max(vRef, 1e-30) / vLo) / Math.log(vHi / vLo), 0, 1);
-    const perVolt = Math.min(vRef > 1e-30 ? Math.min(tall, room) / vRef : Infinity, Math.min(88, room) / vScale);
+    const tall = (24 + 64 * clamp(Math.log(Math.max(vRef, 1e-30) / vLo) / Math.log(vHi / vLo), 0, 1)) * labelScale;
+    const perVolt = Math.min(vRef > 1e-30 ? Math.min(tall, room) / vRef : Infinity, Math.min(88 * labelScale, room) / vScale);
+    // EVERY PIECE'S BLOCK SEEN. The disk's innermost ring holds a sliver of its charge, and its block came out a pixel tall
+    // on a phone: the first ring of the sum went on the pile unseen. So no block is drawn shorter than three units -- the
+    // others giving up what it takes, so the column is still exactly as tall as the sum.
+    const least = 3 * labelScale, heights = samples.map(s => s.potential * perVolt);
+    const lifted = heights.reduce((a, h) => Math.abs(h) < least ? a + Math.sign(h) * least - h : a, 0), others = heights.reduce((a, h) => Math.abs(h) >= least ? a + h : a, 0);
+    const squeeze = !fine && lifted !== 0 && Math.abs(others) > 2 * Math.abs(lifted) ? (others - lifted) / others : 1;
+    const blockOf = (i: number) => squeeze === 1 ? heights[i] : Math.abs(heights[i]) < least ? Math.sign(heights[i]) * least : heights[i] * squeeze;
     let at = 0;
-    const slots = samples.map((s, i) => { const h = s.potential * perVolt; const slot = { i, lo: at, hi: at + h }; at += h; return slot; });
+    const slots = samples.map((s, i) => { const h = blockOf(i); const slot = { i, lo: at, hi: at + h }; at += h; return slot; });
     let got = 0;
     // At rest, outside the run, the column is the whole sum, filled: five near-empty slots with one faint
     // tint read as "the potential at P is about nothing". The run fills it piece by piece in Add them up.
     const filling = summing || !build;
-    const filled = filling ? samples.map((s, i) => { const h = s.potential * perVolt * (weights[i] ?? 0); const slot = { i, lo: got, hi: got + h }; got += h; return slot; }).filter(sl => Math.abs(sl.hi - sl.lo) > .02) : [];
+    const filled = filling ? samples.map((s, i) => { const h = blockOf(i) * (weights[i] ?? 0); const slot = { i, lo: got, hi: got + h }; got += h; return slot; }).filter(sl => Math.abs(sl.hi - sl.lo) > .02) : [];
     // The thin line of the ground between slots fades with the slot: at a hundred and sixty slots, mid-Shrink, every
     // slot kept its one-unit stroke and the answer's own column washed out, pale and striped, for a second before
     // snapping solid at the limit.
@@ -1826,15 +2122,26 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
     // the sum, then -- once the pieces are gone -- V.
     const name = finished ? 'V' : stacked ? (litRuns.length > 1 ? '\u0394V + \u0394V' : '\u0394V') : '\u03a3 \u0394V';
     const extent = stacked ? Math.abs(top) : Math.max(Math.abs(at), Math.abs(got));
-    return { w, x, leftSide, fine, slots, filled, filling, box, lit, litRuns, at, got, top, up: top >= 0, stacked, name, extent, beside };
+    // Named past its far end, or beside it where the room is short -- and a column hanging down beside P over a ring or a
+    // disk, beside its middle: its far end comes down by the far rim, where the limits' names stand in the last two
+    // stages, and "V" set there read into them, "V θ = 0, 2π".
+    const hang = natural < 0 && (id === 'ring' || id === 'disk') && !beside;
+    const nameY = beside ? P.y - top + .3 * SYM * labelScale : hang ? P.y - top / 2 + .3 * SYM * labelScale : top >= 0 ? P.y - Math.max(12, top) - 6 : P.y - Math.min(-12, top) + 16;
+    return { w, x, leftSide, fine, slots, filled, filling, box, lit, litRuns, at, got, top, up: top >= 0, stacked, name, extent, beside, nameY };
   })() : null;
   // WHAT SCALE THE FIGURE IS AT, said in its corner. In One piece and What cancels the run's piece is
   // drawn at its own scale -- on the bisector longer than the whole sum at rest -- and Add them up shrinks
   // it to its true length in under a second: a reader who paused or stepped never learned the first arrow
   // was enlarged. So the corner says so, in words, while it is.
+  // A disk, a sheet and their potential are cut into rings: the slider, the run and the board all say rings, and the
+  // corner alone said pieces.
+  const cutInto = surface ? 'Cut into rings' : 'Cut into pieces';
   const scaleNote = (() => {
     if (continuum >= .999) return 'In the limit';
-    if (handingOver) return 'Cut into pieces \u00b7 back to scale';
+    if (handingOver) return `${cutInto} \u00b7 back to scale`;
+    // For the whole of the pair's step, by the gain it arrives at: read off the easing, the corner went back to "Cut into
+    // pieces" for the last quarter of every pair and on again with the next -- ten times in the stage on a ring cut twenty ways.
+    if (pairNow && pairGain > 1.25) return 'This pair drawn larger';
     if (build && !scalar && (building === 'one' || building === 'cancel') && showContribution) {
       // Said of what changed -- the arrows, not the piece, which is the size it was -- and of both pieces where
       // What cancels draws the mirror's too; on the disk, the sheet and their potential the piece is a ring.
@@ -1842,7 +2149,11 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
       if (g > 1.25) return `${what} drawn larger`;
       if (g < .8) return `${what} drawn smaller`;
     }
-    return 'Cut into pieces';
+    // AT REST TOO, wherever the piece's arrow is drawn beside the sum: stretched to a readable length whatever its own,
+    // one piece of five came out as long as the whole field -- on the disk exactly as long, on the same line -- under a
+    // corner that said only "Cut into pieces". A teacher's link to the parts, or a hover on the board, shows it so.
+    if (!build && !scalar && showContribution && mode !== 'sum' && selectedGain > 1.25) return surface ? 'The ring\u2019s arrow drawn larger' : 'The piece\u2019s arrow drawn larger';
+    return cutInto;
   })();
   // WHERE P IS NAMED. Beside the dot, on whichever side nothing else at P is using: not toward the
   // charge, not along the field's arrow or a piece's, not along the construction line, and not along
@@ -1850,6 +2161,15 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
   // Among the directions left, the one furthest from all of those, leaning to the upper left.
   const haloR = building ? 9 : 16;
   const drawingPiece = showContribution && !scalar && mode !== 'sum' && building !== 'limit';
+  // A NEGATIVE CHARGE'S ARROWS LIE ON THEIR OWN CONSTRUCTION: the field at P points straight back along the line to
+  // the piece, and drawn over that line the arrow read as the line with a head on it -- r_i's blue through the teal,
+  // the mirror's dashes through its arrow. The line stops a little short of the arrow's point instead, so the arrow
+  // is a stroke of its own and the line still runs from the piece to it.
+  const stopAtArrow = (a: Point, arrow: Point): Point => {
+    const toA = vsub(a, P), u = direction(toA), length = Math.hypot(arrow.x, arrow.y);
+    if (!drawingPiece || !u || length < 4 || arrow.x * u.x + arrow.y * u.y < length * .995 || length + 8 > Math.hypot(toA.x, toA.y)) return P;
+    return { x: P.x + u.x * (length + 3), y: P.y + u.y * (length + 3) };
+  };
   const pDirections = (() => {
     const busy: Point[] = [];
     const add = (v: Point | null | undefined) => { const u = v ? direction(v) : null; if (u) busy.push(u); };
@@ -1861,7 +2181,7 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
       else if (components && hasDrop) add(dropScreen);
     }
     if (showContribution && building !== 'limit' && selectedOnFrame) add(vsub(selectedPoint, P));
-    if ((pairing && showContribution) || scalarPartner || pairLit) add(vsub(partnerPos, P));
+    if ((pairing && showContribution) || scalarPartner || pairLines) add(vsub(partnerPos, P));
     if (chainPoints.length > 1) { add(vsub(chainPoints[1], P)); add(vsub(chainPoints[chainPoints.length - 1], P)); }
     const through: Vec[] = id === 'arc' ? [{ x: 1, y: 0, z: 0 }, { x: 0, y: 1, z: 0 }] : [perspective ? { x: 0, y: 0, z: 1 } : id === 'semi' ? { x: 0, y: 1, z: 0 } : { x: 1, y: 0, z: 0 }];
     for (const v of through) { const d = vsub(project(v), project(zero)); add(d); add({ x: -d.x, y: -d.y }); }
@@ -1881,7 +2201,10 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
     const upper = perspective && inSpace;
     // A potential's arc has its column there instead, up from P on the left: P = O goes below it, not between
     // the column and its name.
-    const order = id === 'arc' ? (scalar ? [-135, -112.5, -157.5, -90, 135, 112.5, 157.5] : [-135, -112.5, -157.5, -90]) : upper ? [-135, -45, -112.5, -67.5, -157.5, -22.5, -90] : [-135, -45, 180, 0, 135, 45, -90, 90, -157.5, -112.5, -67.5, -22.5, 157.5, 112.5, 67.5, 22.5];
+    // While the pairs go in, the sum runs left from P and every pair arrives at its tip: the first clear spot up and to
+    // the left stood right over the pair's junction, and the pair arrived "at P = O" while the dot itself, fifty units
+    // on, had no name. Right of the axis too then, where the sum never goes.
+    const order = id === 'arc' ? (scalar ? [-135, -112.5, -157.5, -90, 135, 112.5, 157.5] : pairDraw ? [-67.5, -45, -22.5, -135, -112.5, -157.5, -90] : [-135, -112.5, -157.5, -90]) : upper ? [-135, -45, -112.5, -67.5, -157.5, -22.5, -90] : [-135, -45, 180, 0, 135, 45, -90, 90, -157.5, -112.5, -67.5, -22.5, 157.5, 112.5, 67.5, 22.5];
     const scored = order.map((deg, rank) => {
       const u = { x: Math.cos(deg * Math.PI / 180), y: Math.sin(deg * Math.PI / 180) };
       const clear = busy.reduce((m, b) => Math.min(m, Math.acos(clamp(u.x * b.x + u.y * b.y, -1, 1))), Math.PI);
@@ -1907,11 +2230,21 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
     return upright ? [`0 ${(c - band).toFixed(1)} 0 1`, `0 ${(c + band).toFixed(1)} 0 -1`] : [`${(c - band).toFixed(1)} 0 1 0`, `${(c + band).toFixed(1)} 0 -1 0`];
   })() : [])].join(';');
   // THE LIMITS' HANDLES, worked out here so the label placer knows where they are.
+  const handlesShown = mode === 'integrate' && !!onBoundRangeChange;
+  // Whether the stage asks for the triangle the distance and the angle are read off (see `triangle`): the limits'
+  // handles need to know, to keep off the schematic one in the corner.
+  const triangleWanted = showContribution && building !== 'add' && building !== 'limit' && (!scalar || building === 'one' || highlight === 'distance');
+  // AND IN ADD THEM UP, THE LIMITS' NAMES. The board says the sum runs "from θ = −φ/2 to θ = φ/2", "once round from
+  // θ = 0", "from y = 0 to y = L", and the figure named no end of the charge until the next stage: the walk plainly
+  // started at one end, and nothing said which. Named there as they will be in Shrink them, with no handle.
+  const rangeNamed = !handlesShown && building === 'add' && full;
   const boundNames = problem.boundTex.map(plainBound) as [string, string];
   const onPage = (q: Point) => q.x >= 57 && q.x <= 650 && q.y >= 66 && q.y <= 358;
   const bounds = (() => {
-    type Handle = { key: string; handle: string; at: Point; edge: string | null; name: string; label: { x: number; y: number; anchor: 'start' | 'middle' | 'end' }; alt?: string };
-    if (mode !== 'integrate' || !onBoundRangeChange) return [] as Handle[];
+    type Handle = { key: string; handle: string; at: Point; edge: string | null; name: string; label: { x: number; y: number; anchor: 'start' | 'middle' | 'end' }; alt?: string;
+      /** Whether its mark is drawn: in Add them up only its name is, and off-page ends lose their arrow in the run. */
+      mark: boolean };
+    if (!handlesShown && !rangeNamed) return [] as Handle[];
     const ends = [0, 1].map(i => ({ i, t: boundRange[i] / 100, raw: project(world(boundRange[i] / 100)), whole: boundRange[i] === (i ? 100 : 0) }));
     // Named only where nothing else already names that end: a rod's ends carry their own marks (±L/2,
     // y = L, x = L), a line's run off as ±∞, and the centre of a disk is O. A ring's and an arc's ends
@@ -1929,27 +2262,40 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
     // arrowhead, and as x → ∞.
     const naming = id === 'ring' || id === 'arc' || ramp || id === 'disk';
     const prefixed = ramp || id === 'arc' || id === 'disk', variable = plainBound(problem.variableTex);
+    // The half line's near end is its origin too, and was left out: its board integrates ∫₀^∞ dx, and its handle at O
+    // carried only O while the axis lesson's identical end read "x = 0". And the endless line's ends are where θ goes:
+    // its board's limits are −π/2 and π/2, and the figure lit two bare arrows and a ±∞ the board never writes. Named
+    // "θ → ±π/2", since no piece of the line is at either.
     const named = (i: number) => !ends[i].whole ? ''
       : id === 'sheet' ? (i === 0 ? `${variable} = 0` : inSpace ? `${variable} → ∞` : '')
-      : id === 'axial' ? (i === 0 ? `${variable} = 0` : '')
+      : id === 'axial' || id === 'semi' ? (i === 0 ? `${variable} = 0` : id === 'semi' && inSpace ? `${variable} → ∞` : '')
+      : id === 'infinite' ? `${variable} → ${boundNames[i]}`
       : naming ? (prefixed ? `${variable} = ${boundNames[i]}` : boundNames[i]) : '';
     // A closed ring at its full range: its two limits are one point, so one handle -- named for both
     // limits as values of the angle, "θ = 0, 2π". Written "0 = 2π" it read as an equation, and a false one.
     if (id === 'ring' && ends[0].whole && ends[1].whole) {
       const at = ends[1].raw, out = direction(vsub(at, O)) ?? { x: 0, y: 1 };
-      return [{ key: 'closed', handle: '1', at, edge: null, name: `${plainBound(problem.variableTex)} = ${boundNames[0]}, ${boundNames[1]}`, label: besidePoint(at, out, 14, SYM * labelScale) }];
+      return [{ key: 'closed', handle: '1', at, edge: null, name: `${plainBound(problem.variableTex)} = ${boundNames[0]}, ${boundNames[1]}`, label: besidePoint(at, out, 14, SYM * labelScale), mark: handlesShown }];
+    }
+    // The arc closed into a ring: its ends are one point too, and two handles were drawn on it, each named outward
+    // along its own end's tangent -- which, once the ends meet, put −φ/2 above the axis and φ/2 below it, the wrong
+    // way round for the θ the figure measures counter-clockwise. One handle, named for both.
+    if (id === 'arc' && p.phi >= 2 * Math.PI - 1e-6 && ends[0].whole && ends[1].whole) {
+      const at = ends[1].raw, out = direction(vsub(at, O)) ?? { x: -1, y: 0 };
+      return [{ key: 'closed', handle: '1', at, edge: null, name: `${variable} = ±${boundNames[1].replace(/^[+]/, '')}`, label: besidePoint(at, out, 14, SYM * labelScale), mark: handlesShown }];
     }
     const tangent = (t: number) => direction(vsub(project(world(clamp(t + .003, 0, 1))), project(world(clamp(t - .003, 0, 1))))) ?? { x: 1, y: 0 };
     const out: Handle[] = [];
     for (const e of ends) {
       if (onPage(e.raw)) {
         const tan = tangent(e.t), outward = e.i ? tan : { x: -tan.x, y: -tan.y };
-        const along = besidePoint(e.raw, outward, 13, SYM * labelScale);
+        // Set out past the handle's margin as the names grow (see where the handles are made obstacles).
+        const clear = 9 * labelScale + 4, along = besidePoint(e.raw, outward, clear, SYM * labelScale);
         // A rod standing on its foot has its ends' names to the side, out away from the axis: along the rod
         // they stood on the y axis' letter above the top and on the axis below O, the placer hid both, and
         // the stage that sets the limits left them unnamed.
-        const label = footed && !inSpace ? besidePoint(e.raw, { x: 1, y: 0 }, 13, SYM * labelScale) : along;
-        out.push({ key: e.i ? 'upper' : 'lower', handle: String(e.i), at: e.raw, edge: null, name: named(e.i), label, alt: label === along ? undefined : `${along.x.toFixed(1)} ${along.y.toFixed(1)} ${along.anchor}` });
+        const label = footed && !inSpace ? besidePoint(e.raw, { x: 1, y: 0 }, clear, SYM * labelScale) : along;
+        out.push({ key: e.i ? 'upper' : 'lower', handle: String(e.i), at: e.raw, edge: null, name: named(e.i), label, alt: label === along ? undefined : `${along.x.toFixed(1)} ${along.y.toFixed(1)} ${along.anchor}`, mark: handlesShown });
         continue;
       }
       // Off the page: walk in from the other limit to where the charge leaves the frame on its way
@@ -1970,11 +2316,39 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
       // The sheet's, seen flat, stands above its x axis and well in from the edge: on the axis, or just
       // over it beside the axis' letter, it read as the axis' own arrowhead.
       // In space too, off the projected axis it would otherwise end on.
-      const aside = id === 'infinite' ? { x: 22, y: 0 } : id === 'semi' ? { x: 0, y: 20 } : id === 'sheet' ? (inSpace ? { x: inward.x * 18, y: inward.y * 18 } : { x: -34, y: -18 }) : { x: 0, y: 0 };
-      tip.x += aside.x; tip.y += aside.y;
-      const base = { x: tip.x - dir.x * 12, y: tip.y - dir.y * 12 };
-      const edge = `M${tip.x.toFixed(1)} ${tip.y.toFixed(1)}L${(base.x + n.x * 6).toFixed(1)} ${(base.y + n.y * 6).toFixed(1)}L${(base.x - n.x * 6).toFixed(1)} ${(base.y - n.y * 6).toFixed(1)}Z`;
-      out.push({ key: e.i ? 'upper' : 'lower', handle: String(e.i), at: tip, edge, name: named(e.i), label: besidePoint({ x: tip.x - dir.x * 8, y: tip.y - dir.y * 8 }, inward, 12, SYM * labelScale) });
+      // WHILE THE RUN PLAYS no arrow is drawn where an end's own name already says it goes on -- the half line's ∞, the
+      // sheet's "s → ∞": beside the break, with no shaft and no name, it was an arrowhead floating in the air. Nobody drags
+      // a limit then. The sheet's name in space goes on its own axis at the frame's edge, not eighteen units off it in the
+      // sky, where it named nothing a reader could see. The endless line keeps its arrows, named for θ.
+      const quiet = !!build && (id === 'semi' || id === 'sheet');
+      // THE ENDLESS LINES' ARROWS IN SPACE STAY ON THEIR LINE. Their asides are the flat view's -- across a line that
+      // stands up the page, or lies along it -- and in space, with the line on a diagonal, they put each arrow some
+      // twenty units off the line, beside nothing. On the line, at the frame, the arrow is where the line goes on;
+      // and its head is drawn longer than it is wide there, where a head as wide as it is long read as "►" pointing
+      // across the line, not along it. (Seen flat, the lines are upright or level, and keep their asides.)
+      const onLine = inSpace && (id === 'infinite' || id === 'semi');
+      // AND THE SHEET'S KEEPS OUT OF THE SAME-TRIANGLE INSET. The sheet's x axis runs out under the top right corner, where
+      // the schematic triangle stands (see `triangle`), and its arrow, set aside toward the middle, and "s → ∞" were drawn
+      // inside it: by the inset's own s, as if the triangle's leg ran on to infinity, the arrow on its caption. Set aside
+      // to the axis' other side instead, and failing that walked back along it, until neither touches the inset's box --
+      // its legs, its letters and the caption under them.
+      const size = SYM * labelScale, k = labelScale, inset = id === 'sheet' && inSpace && !quiet && perspective && triangleWanted
+        ? { x: 619 - 111 * k, y: 56, width: 101 + 111 * k, height: 23 + 62 * k + 1.37 * size + (narrow ? 4 : 30) } : null;
+      const hits = (q: Point, w: number, h: number) => !!inset && q.x - w / 2 < inset.x + inset.width && inset.x < q.x + w / 2 && q.y - h / 2 < inset.y + inset.height && inset.y < q.y + h / 2;
+      const end = { ...tip };
+      let toward = inward;
+      const place = () => {
+        const aside = onLine ? { x: 0, y: 0 } : id === 'infinite' ? { x: 22, y: 0 } : id === 'semi' ? { x: 0, y: 20 } : id === 'sheet' ? (inSpace ? (quiet ? { x: 0, y: 0 } : { x: toward.x * 18, y: toward.y * 18 }) : { x: -34, y: -18 }) : { x: 0, y: 0 };
+        tip.x = end.x + aside.x; tip.y = end.y + aside.y;
+      };
+      const at = () => besidePoint({ x: tip.x - dir.x * 8, y: tip.y - dir.y * 8 }, toward, 12, size);
+      const clash = () => { const l = at(), w = 3.2 * size; return hits(tip, 18, 18) || hits({ x: l.anchor === 'start' ? l.x + w / 2 : l.anchor === 'end' ? l.x - w / 2 : l.x, y: l.y - .35 * size }, w, 1.4 * size); };
+      place();
+      if (clash()) { toward = { x: -inward.x, y: -inward.y }; place(); }
+      for (let step = 0; step < 120 && clash() && onPage({ x: end.x - dir.x * 4, y: end.y - dir.y * 4 }); step++) { end.x -= dir.x * 4; end.y -= dir.y * 4; place(); }
+      const headLength = onLine ? 14 : 12, headHalf = onLine ? 4 : 6, base = { x: tip.x - dir.x * headLength, y: tip.y - dir.y * headLength };
+      const edge = `M${tip.x.toFixed(1)} ${tip.y.toFixed(1)}L${(base.x + n.x * headHalf).toFixed(1)} ${(base.y + n.y * headHalf).toFixed(1)}L${(base.x - n.x * headHalf).toFixed(1)} ${(base.y - n.y * headHalf).toFixed(1)}Z`;
+      out.push({ key: e.i ? 'upper' : 'lower', handle: String(e.i), at: tip, edge, name: named(e.i), label: at(), mark: handlesShown && !quiet });
     }
     return out;
   })();
@@ -1991,10 +2365,13 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
   // A rod or a line turned into space keeps one thing of its triangle: the name of the distance, beside
   // the line from the piece to P. That line is a true segment in any view -- the middle of what is drawn
   // is the drawing of its middle -- where the right angle and the angle at P are only true seen flat.
-  // The rod seen along its axis has no such line (it lies along the rod), and the arc names no r_i.
-  const triangleShown = showContribution && building !== 'add' && building !== 'limit'
-    && (!scalar || building === 'one' || highlight === 'distance')
-    && (perspective || (selectedOnFrame && (!inSpace || (id !== 'axial' && id !== 'arc'))));
+  //
+  // AND THE ARC AND THE ROD SEEN ALONG ITS AXIS KEEP THEIRS. Turned into space they lost every term the board
+  // boxes for the stage -- θ and r_i = R, x and r_i = L + a − x -- on the grounds that the rod's line to P lies
+  // along the rod and the arc names no r_i; but the arc does name it, and both are drawn by true segments: the
+  // arc's θ lies between the x axis and the line to the piece, both drawn through the projection, and the rod's
+  // brackets run beside the rod as it is projected.
+  const triangleShown = triangleWanted && (perspective || selectedOnFrame);
   const termSize = SYM * labelScale;
   // The distance's name is the term while a stage is about it, and whenever the board points at it.
   const distanceTerm = stageOne || stageCancel || highlight === 'distance';
@@ -2022,7 +2399,7 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
       const riOnLine = lineOut && selectedOnFrame && Math.hypot(selectedPoint.x - P.x, selectedPoint.y - P.y) > 40 ? { spot: besidePoint(lineHyp, lineOut, 7, termSize, .52), hyp: lineHyp, side: Math.sign(lineOut.x) || 1 } : null;
       return { kind: 'schematic' as const, legs: [[top, corner], [corner, end], [top, end]] as [Point, Point][], arc: [] as Point[], zSpot, baseSpot, riSpot, top, corner, end, riOnLine };
     }
-    if (inSpace) {
+    if (inSpace && id !== 'arc' && id !== 'axial') {
       // Above the line to P, and below it if that side is taken: either side names the same segment.
       const hyp = { x: (source.x + P.x) / 2, y: (source.y + P.y) / 2 }, along = direction(vsub(P, source)) ?? { x: 1, y: 0 };
       const normal = along.x >= 0 ? { x: along.y, y: -along.x } : { x: -along.y, y: along.x };
@@ -2031,7 +2408,7 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
     // The arc's potential too: its board writes r_i = R and integrates over θ, and the figure drew the line to
     // the piece unnamed and no θ at all -- where the field's arc, on the same geometry, draws both.
     if (id === 'arc') {
-      const mark = angleMark(P, { x: Math.min(656, P.x + R * unit), y: P.y }, selectedPoint, 'θ', stageCancel);
+      const mark = angleMark(P, inSpace ? project({ x: R, y: 0, z: 0 }) : { x: Math.min(656, P.x + R * unit), y: P.y }, selectedPoint, 'θ', stageCancel);
       const hyp = { x: (P.x + selectedPoint.x) / 2, y: (P.y + selectedPoint.y) / 2 }, d = direction(vsub(selectedPoint, P));
       const away = d ? (-d.y < 0 ? { x: -d.y, y: d.x } : { x: d.y, y: -d.x }) : null;
       const riSpot = away ? besidePoint(hyp, away, 7, termSize, .52) : null;
@@ -2045,8 +2422,17 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
       // AND THE PIECE'S OWN x, ON THE SAME LINE, from O to the piece: the bar reads O —x— piece —(L + a − x)— P. The
       // piece's coordinate was drawn nowhere, and right under r_i = L + a − x stood "x = L", the rod's end: a
       // student substituted the only x in sight and found every piece a away.
-      const y = O.y - rodHalf - 14, a = { x: source.x, y }, b = { x: P.x, y }, o = { x: O.x, y };
-      return { kind: 'axial' as const, legs: (a.x - o.x > 14 ? [[a, b], [o, a]] : [[a, b]]) as [Point, Point][], arc: [] as Point[], a, b, o };
+      //
+      // In space both run beside the rod as it is projected, on its upper side on the screen, as they do seen flat.
+      const u = (inSpace ? direction(vsub(project({ x: 1, y: 0, z: 0 }), O)) : null) ?? { x: 1, y: 0 }, up = u.x >= 0 ? { x: u.y, y: -u.x } : { x: -u.y, y: u.x };
+      const k = (inSpace ? 4 : rodHalf) + 14, on = (q: Point) => { const t = (q.x - O.x) * u.x + (q.y - O.y) * u.y; return { x: O.x + u.x * t + up.x * k, y: O.y + u.y * t + up.y * k }; };
+      const a = on(source), b = on(P), o = on(O), xShown = (a.x - o.x) * u.x + (a.y - o.y) * u.y > 14;
+      // Ticks across each bar, and each letter beside its bar's middle, away from the rod: seen flat, straight up.
+      const f = (q: Point) => `${q.x.toFixed(1)} ${q.y.toFixed(1)}`, tick = (q: Point) => `M${f({ x: q.x + up.x * 4, y: q.y + up.y * 4 })}l${(-up.x * 8).toFixed(1)} ${(-up.y * 8).toFixed(1)}`;
+      const mid = (p: Point, q: Point) => ({ x: (p.x + q.x) / 2, y: (p.y + q.y) / 2 }), lift = inSpace ? 4 : rodHalf;
+      return { kind: 'axial' as const, legs: (xShown ? [[a, b], [o, a]] : [[a, b]]) as [Point, Point][], arc: [] as Point[], a, b, o, xShown,
+        xBar: `M${f(o)}L${f(a)}${tick(o)}`, riBar: `M${f(a)}L${f(b)}${tick(a)}${tick(b)}`, xName: besidePoint(mid(o, a), up, 8, termSize), riName: besidePoint(mid(a, b), up, 8, termSize),
+        xWithin: `${f({ x: O.x + up.x * lift, y: O.y + up.y * lift })} ${up.x.toFixed(3)} ${up.y.toFixed(3)}` };
     }
     // The rods and the lines. The right angle is at the foot of the perpendicular from P to the charge;
     // the angle the board takes the cosine or sine of is at P, between that perpendicular and the line
@@ -2101,7 +2487,12 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
     // the angle's letter could not stand inside it once P was within a metre or so, and went under the axis
     // on a leader beside O, where it read as an angle at O. With a positive charge nothing is drawn inside the
     // angle -- the arrows leave P the other way -- so its arc may stand closer in to P as well.
-    const mark = scalar ? null : angleMark(P, towardCharge, source, id === 'infinite' ? 'θ' : 'α', stageCancel, { a: reach, b: Math.hypot(met.x - P.x, met.y - P.y), r0: p.charge > 0 ? Math.max(16, Math.min(34, .4 * reach)) : 34 });
+    // The rod, and everything past its near edge from P: the angle's letter on the rod, or under its foot on the far
+    // side of it, read as the angle at O.
+    const edge = (flat ? O.y : O.x) + side * (rodHalf + 3), far = 1e4;
+    const beyond: Box = flat ? (side > 0 ? { x: -far, y: -far, width: 2 * far, height: far + edge } : { x: -far, y: edge, width: 2 * far, height: far })
+      : side > 0 ? { x: -far, y: -far, width: far + edge, height: 2 * far } : { x: edge, y: -far, width: far, height: 2 * far };
+    const mark = scalar ? null : angleMark(P, towardCharge, source, id === 'infinite' ? 'θ' : 'α', stageCancel, { a: reach, b: Math.hypot(met.x - P.x, met.y - P.y), r0: p.charge > 0 ? Math.max(16, Math.min(34, .4 * reach)) : 34, avoid: beyond });
     // r on the leg from the foot to P, below it -- the far side from the angle -- when it replaces the bar.
     // A little nearer the rod than the middle: nearer P, the mirror piece's line to P has closed in under
     // the leg, and the angle's letter stands over it.
@@ -2115,6 +2506,21 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
     const mirrorFrom = pairing ? offRod(partnerPos, P, partnerIndex) : null, mirrorDir = mirrorFrom ? direction(vsub(mirrorFrom, P)) : null;
     const rWithin = mirrorDir ? (() => { let m = { x: -mirrorDir.y, y: mirrorDir.x }; if (m.x * (baseMid.x - P.x) + m.y * (baseMid.y - P.y) < 0) m = { x: -m.x, y: -m.y }; return `${P.x.toFixed(1)} ${P.y.toFixed(1)} ${m.x.toFixed(3)} ${m.y.toFixed(3)}`; })() : undefined;
     return { kind: 'rod' as const, legs: (hasLeg ? [[met, foot], [foot, P], ...(Math.hypot(start.x - met.x, start.y - met.y) > 1 ? [[met, start]] : [])] : []) as [Point, Point][], arc: mark?.arc ?? [], mark, flat, foot, start, met, extension, square, riSpot, hyp, legMid, legSpot, legAlt, legWithin, legLength, hasLeg, baseMid, rSpot, rAlt, rWithin };
+  })();
+  // THE SAME ANGLE ON THE ARROWS' SIDE OF P. The board takes ΔE cos α as the part along the axis, "the side next to
+  // α" -- and α was drawn only in the triangle, on the far side of P from the arrows, where the side next to it is the
+  // r leg, not ΔE_x. The arrow carries the line to the piece on through P, so it makes the same angle with the axis on
+  // the other side: in What cancels that angle is marked too, lightly, between ΔE and its part along the axis, so the
+  // two read as opposite angles. Only where the arrows leave P away from the charge -- a negative charge's lie inside
+  // the triangle's own angle -- and only where its letter fits inside it: on a leader it would be one more line at P.
+  const twinAngle = (() => {
+    if (!triangle || (triangle.kind !== 'rod' && triangle.kind !== 'arc') || !triangle.mark || !stageCancel || !components || !hasDrop || p.charge <= 0 || !drawingPiece) return null;
+    // Its side along the axis: the part away from the charge -- along a rod's perpendicular, which on the half line,
+    // lying along x, is the y part.
+    const along = triangle.kind === 'rod' && triangle.flat ? dropScreen : keepScreen;
+    if (Math.hypot(along.x, along.y) < 30 || Math.hypot(contribution.x, contribution.y) < 30) return null;
+    const twin = angleMark(P, plus(P, along), plus(P, contribution), triangle.kind === 'arc' || id === 'infinite' ? 'θ' : 'α', false, { r0: 20, a: Math.hypot(along.x, along.y) * .7, b: Math.hypot(contribution.x, contribution.y) * .7 });
+    return twin && !twin.leader ? twin : null;
   })();
   // THE PIECE'S ANGLE, Δθ, where the lesson is cut by angle and the angle is what is integrated: across the
   // chosen wedge at P on the lines that never end, as Cut it up makes the cuts -- "one piece is one angle",
@@ -2132,7 +2538,8 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
   // across the screen, in either view: the rays from P are true segments in space as well.
   const pieceAngle = (() => {
     const sheetCut = id === 'sheet' && fanned && building === 'pieces';
-    if (inSpace && !sheetCut) return null;
+    // The arc's Δθ and dθ in space as well: its rays from P = O to the piece's ends are true segments in any view.
+    if (inSpace && !sheetCut && id !== 'arc') return null;
     const lines = (fanned && id !== 'sheet' && building === 'pieces' && !!selectedWedge) || (id === 'infinite' && shrinking) || sheetCut, arc = id === 'arc' && (building === 'pieces' || shrinking);
     if (!lines && !arc) return null;
     const onScreen = (t: number) => project(id === 'sheet' ? scaleVec(across, Math.abs(world(t).x)) : world(t));
@@ -2144,14 +2551,18 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
       // Widened about the piece's own middle direction, to six degrees.
       const mid = direction({ x: da.x + db.x, y: da.y + db.y }) ?? da, sweep = da.x * db.y - da.y * db.x >= 0 ? 1 : -1, h = least / 2;
       const turn = (u: Point, t: number) => ({ x: u.x * Math.cos(t) - u.y * Math.sin(t), y: u.x * Math.sin(t) + u.y * Math.cos(t) });
-      const reach = arc ? R * unit : Math.abs((O.x - P.x) / Math.max(1e-6, Math.abs(mid.x))) || 100;
+      const reach = arc ? (inSpace ? (Math.hypot(a.x - P.x, a.y - P.y) + Math.hypot(b.x - P.x, b.y - P.y)) / 2 : R * unit) : Math.abs((O.x - P.x) / Math.max(1e-6, Math.abs(mid.x))) || 100;
       a = plus(P, scaleVec2(turn(mid, -sweep * h), reach)); b = plus(P, scaleVec2(turn(mid, sweep * h), reach));
     }
     // On the endless line in the limit there is no fan: the angle's own sides are drawn, from P to the line.
     const toLine = (q: Point) => { const u = direction(vsub(q, P)); if (!u || Math.abs(u.x) < 1e-6) return q; const t = (O.x - P.x) / u.x; return t > 0 ? { x: P.x + u.x * t, y: P.y + u.y * t } : q; };
     const name = `${continuum >= .999 ? 'd' : '\u0394'}${id === 'semi' || id === 'sheet' ? 'α' : 'θ'}`;
-    const mark = angleMark(P, a, b, name, shrinking, { r0: arc ? Math.max(34, .45 * R * unit) : 58, w: 1.3 });
-    return mark ? { ...mark, rays: arc ? [a, b] : id === 'infinite' && shrinking ? [toLine(a), toLine(b)] : [] } : null;
+    // The sheet's from its outer side: too narrow to hold Δα, its letter goes past the side it starts from, and from the
+    // inner side that was across the z axis, beside the z bar's letter, with its arc on the other side of the axis.
+    const mark = id === 'sheet' ? angleMark(P, b, a, name, shrinking, { r0: 58, w: 1.3 }) : angleMark(P, a, b, name, shrinking, { r0: arc ? Math.max(34, .45 * R * unit) : 58, w: 1.3 });
+    // And its two sides drawn at the arc's own weight: among the fan's hairlines nothing said which angle Δα was.
+    const wedgeSides = fan ? fan.rays.filter(r => chosenRays.has(r.key) && (id !== 'sheet' || r.key.endsWith(':r'))).map(r => r.end) : [];
+    return mark ? { ...mark, rays: arc ? [a, b] : id === 'infinite' && shrinking ? [toLine(a), toLine(b)] : wedgeSides } : null;
   })();
   // THE RING'S Δθ, as Cut it up makes the cuts: the footer writes ΔQ = λR Δθ and the board calls θ a piece's angle
   // round the ring, and nothing on the figure was θ or Δθ. In the ring's own plane, so it is drawn through the
@@ -2175,6 +2586,7 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
   // bounding box, which for a ring is the whole inside of the ring and for a slanted arrow a quadrant.
   const FRAME_BOX: Box = { x: 0, y: 0, width: 720, height: 430 };
   const obstacleBoxes: Box[] = [];
+  let cubeBox: Box | null = null;
   // ...and the construction's lines as lines, for the rule that no name is set across one: see `lines` in
   // labels.ts.
   const constructionLines: Segment[] = [];
@@ -2188,6 +2600,12 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
     else if (id === 'disk') line(circlePoints(R), 8);
     // A surface's chosen ring, which the scene draws as a band right across the picture.
     if (surface && sceneElement.annulus) for (const r of [sceneElement.annulus.inner, sceneElement.annulus.outer]) if (r > .02) line(circlePoints(r), 5);
+    // ...and the band between them, which the scene fills: with only its two edges known, s and Δα were set on the band
+    // itself, dark ink on its brown or a white blot of halo. Circles no more than six units apart cover it.
+    if (surface && inSpace && sceneElement.annulus) {
+      const { inner, outer } = sceneElement.annulus, k = Math.min(12, Math.ceil((outer - inner) * unit / 6));
+      for (let j = 1; j < k; j++) line(circlePoints(Math.min(9, inner + (outer - inner) * j / k)), 6);
+    }
     const arrow = (from: Point, d: Point, w: number) => {
       if (Math.hypot(d.x, d.y) < 2) return;
       const to = plus(from, d);
@@ -2195,7 +2613,7 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
       obstacleBoxes.push({ x: to.x - 7, y: to.y - 7, width: 14, height: 14 });
     };
     if (netShown) arrow(P, net, 7);
-    if (netShown && trueField) arrow(P, trueField, 4);
+    if (netShown && trueField) arrow(trueFrom, trueField, 4);
     if (drawingPiece) {
       arrow(P, contribution, 5);
       if (pairing) { arrow(P, partnerScreen, 5); if (hasDrop && (transverseOpacity > 0 || cancelT > 0)) { arrow(P, cancelT > 0 ? dropScreen : liveDrop, 5); arrow(P, cancelT > 0 ? partnerDropScreen : livePartnerDrop, 5); } }
@@ -2212,8 +2630,11 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
     // A bar is a line no name may be set across, even with nowhere free: a kept −L/2 on the bisector's short
     // rod stood across the r bar's tick and read as where r is measured from.
     for (const d of dims) if (d.path) { seg(d.a, d.b, 6); constructionLines.push({ a: d.a, b: d.b }); }
-    // The limits' handles, which a name painted over hid: "s = 0" sat on its own handle at the disk's centre.
-    for (const b of bounds) if (!b.edge) obstacleBoxes.push({ x: b.at.x - 9, y: b.at.y - 9, width: 18, height: 18 });
+    // The limits' handles, which a name painted over hid: "s = 0" sat on its own handle at the disk's centre -- and
+    // on a phone still did, its name half as large again against a margin that was not.
+    for (const b of bounds) if (!b.edge && b.mark) { const h = 9 * labelScale; obstacleBoxes.push({ x: b.at.x - h, y: b.at.y - h, width: 2 * h, height: 2 * h }); }
+    // ...and the arrows at the frame's edge, where a limit is off the page: a name set on one hid it.
+    for (const b of bounds) if (b.edge && b.mark) obstacleBoxes.push({ x: b.at.x - 8, y: b.at.y - 8, width: 16, height: 16 });
     // And each bar's end ticks, with the air two names keep between them: a name set just off a tick read
     // as the bar's -- "ΔE" by r's top tick on the semi-infinite line, by z's on the ring seen flat.
     for (const d of dims) if (d.path) for (const q of [d.a, d.b]) obstacleBoxes.push({ x: q.x - 7, y: q.y - 7, width: 14, height: 14 });
@@ -2221,22 +2642,25 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
     // The construction: the dashed lines from the piece and its partner to P, the triangle's legs and
     // the arc of its angle. A name laid across a line it does not name reads as crossed out.
     if (showContribution && building !== 'limit' && id !== 'axial') { seg(selectedPoint, P, 4); constructionLines.push({ a: selectedPoint, b: P }); }
-    if (!surface && (pairing || scalarPartner || pairLit) && showContribution) { seg(partnerPos, P, 4); constructionLines.push({ a: partnerPos, b: P }); }
+    if (!surface && (pairing || scalarPartner || pairLines) && showContribution) { seg(partnerPos, P, 4); constructionLines.push({ a: partnerPos, b: P }); }
     if (triangle) {
       for (const [a, b] of triangle.legs) { seg(a, b, 4); constructionLines.push({ a, b }); }
       line(triangle.arc, 4);
       if ((triangle.kind === 'rod' || triangle.kind === 'arc') && triangle.mark?.leader) seg(triangle.mark.leader[0], triangle.mark.leader[1], 3);
+      if (twinAngle) line(twinAngle.arc, 4);
     }
     if (ringAngle) { line(ringAngle.arc, 4); for (const q of ringAngle.rays) seg(O, q, 3); }
     if (pieceAngle) { line(pieceAngle.arc, 4); if (pieceAngle.leader) seg(pieceAngle.leader[0], pieceAngle.leader[1], 3); for (const q of pieceAngle.rays) seg(P, q, 3); }
     for (const [a, b] of breaks) seg(a, b, 5);
+    // The chosen wedge's rays, once they are all of the fan that is drawn: see `raysShown`.
+    if (fan && build && building !== 'pieces') for (const r of raysShown) { seg(P, r.end, 3); constructionLines.push({ a: P, b: r.end }); }
     // The arc's angle and radius, and a ring's or a disk's radius: dimensions drawn outside `dims`.
-    if (id === 'arc' && !inSpace && arcLetters) { line(circlePoints(R * PHI_AT, -p.phi / 2, p.phi / 2), 4); seg(O, arcLetters.rTip, 4); constructionLines.push({ a: O, b: arcLetters.rTip }); }
+    if (id === 'arc' && !inSpace && arcLetters) { line(circlePoints(R * PHI_AT, -p.phi / 2, p.phi / 2), 4); if (!pairing) { seg(O, arcLetters.rTip, 4); constructionLines.push({ a: O, b: arcLetters.rTip }); } }
     if (perspective) seg(O, radiusTip, 4);
     if (rim) seg(O, rim.tip, 4);
     // The chosen ring of a disk or a sheet, in every view: the scene draws it in space, the flat view
     // as an outline, and a name on it reads as naming it.
-    if (surface && showContribution && ringOutlined) line(circlePoints(Math.max(.001, sample.position.x)), 5);
+    if (surface && (showContribution || building === 'pieces') && ringOutlined) line(circlePoints(Math.max(.001, sample.position.x)), 5);
     if (inSpace) { seg({ x: 2 * O.x - axisX.x, y: 2 * O.y - axisX.y }, axisX, 3); seg({ x: 2 * O.x - axisY.x, y: 2 * O.y - axisY.y }, axisY, 3); seg({ x: O.x, y: O.y + 27 }, { x: O.x, y: 60 }, 3); }
     // Not while the arc's two sideways parts lie along its y axis: the axes step back for them (see
     // `.cd-arc-pair`), and a faint axis under a name was what drove their names out onto leaders.
@@ -2249,7 +2673,7 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
     // "y = L  Shrink them".
     obstacleBoxes.push({ x: 0, y: 0, width: 720, height: TITLE_BAND });
     // The view cube and the four steps round it, which grow with the labels on a phone.
-    if (inSpace) { const c = cubeAt, r = (2.15 + 8.4 / 22) * cubeSize; obstacleBoxes.push({ x: c - r, y: c - r, width: 2 * r, height: 2 * r }); }
+    if (inSpace) { const c = cubeAt, r = (2.15 + 8.4 / 22) * cubeSize; obstacleBoxes.push(cubeBox = { x: c - r, y: c - r, width: 2 * r, height: 2 * r }); }
     if (gauge && building !== 'pieces') {
       const reach = Math.max(gauge.extent, 12);
       obstacleBoxes.push({ x: gauge.x - 6, y: gauge.up ? P.y - reach - 4 : P.y - 4, width: gauge.w + 12, height: reach + 8 });
@@ -2269,11 +2693,16 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
     const size = SYM * labelScale, w = .62 * size, h = 1.37 * size;
     const along = direction(vsub(tip, O)) ?? { x: 1, y: 0 }, across = { x: -along.y, y: along.x }, length = Math.hypot(tip.x - O.x, tip.y - O.y);
     const spots: Point[] = [];
-    for (const f of [1, 1.12, 1.25, 1.4, 1.55, 1.7, 1.85, 2, 2.2, 2.4, 2.6, .9, .8, .7, .62, .55]) for (const sgn of [1, -1]) spots.push({ x: O.x + along.x * length * f + across.x * sgn * 14, y: O.y + along.y * length * f + across.y * sgn * 14 });
+    for (const f of [1, 1.12, 1.25, 1.4, 1.55, 1.7, 1.85, 2, 2.2, 2.4, 2.6, .9, .8, .7, .62, .55, .48, .41, .35, .29]) for (const sgn of [1, -1]) spots.push({ x: O.x + along.x * length * f + across.x * sgn * 14, y: O.y + along.y * length * f + across.y * sgn * 14 });
     const inPlot = (c: Point) => c.x - w / 2 > 46 && c.x + w / 2 < 664 && c.y - h / 2 > 58 && c.y + h / 2 < 367;
     // A little air round it as well: just clear of an arrowhead, it still read as that arrow's name.
     const m = 5, clear = (c: Point) => !obstacleBoxes.some(b => c.x - w / 2 - m < b.x + b.width && b.x < c.x + w / 2 + m && c.y - h / 2 - m < b.y + b.height && b.y < c.y + h / 2 + m);
-    const c = spots.find(q => inPlot(q) && clear(q)) ?? spots.find(inPlot) ?? spots[0];
+    // AND NEVER UNDER THE VIEW CUBE. With nothing clear, it took the first spot in the plot whatever lay there: on a
+    // phone the rod on the x axis has its y axis running up under the cube, which is painted over it, and y was
+    // simply gone. Now it takes the spot that the fewest obstacles cover, and the cube, which hides what it covers,
+    // counts for more than the rest. Never the axis' other half: unlettered, that is the way y does not run.
+    const covered = (c: Point) => obstacleBoxes.reduce((sum, b) => sum + (b === cubeBox ? 4 : 1) * Math.max(0, Math.min(c.x + w / 2 + m, b.x + b.width) - Math.max(c.x - w / 2 - m, b.x)) * Math.max(0, Math.min(c.y + h / 2 + m, b.y + b.height) - Math.max(c.y - h / 2 - m, b.y)), 0);
+    const c = spots.find(q => inPlot(q) && clear(q)) ?? spots.filter(inPlot).reduce<Point | null>((best, q) => !best || covered(q) < covered(best) - 1e-6 ? q : best, null) ?? spots[0];
     return { x: c.x.toFixed(1), y: (c.y + .3 * size).toFixed(1), textAnchor: 'middle' as const };
   };
   const axisLetters = inSpace ? { x: axisLetter(axisX), y: axisLetter(axisY) } : null;
@@ -2286,19 +2715,36 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
   // place the angle's letter fits, which then went to the far side of the rod on a leader across it.
   const reserved: Box[] = [];
   if (triangle && (triangle.kind === 'rod' || triangle.kind === 'arc') && triangle.mark?.box) reserved.push(triangle.mark.box);
+  if (twinAngle?.box) reserved.push(twinAngle.box);
   if (pieceAngle?.box) reserved.push(pieceAngle.box);
   if (triangle?.kind === 'schematic' && triangle.riOnLine) { const q = triangle.riOnLine.spot, w = 1.1 * termSize; reserved.push({ x: q.x - (q.anchor === 'end' ? w : q.anchor === 'middle' ? w / 2 : 0), y: q.y - .98 * termSize, width: w, height: 1.5 * termSize }); }
   if (triangle && (triangle.kind === 'rod' || triangle.kind === 'slope' || (triangle.kind === 'arc' && triangle.riSpot))) {
-    const q = triangle.riSpot!, w = (triangle.kind === 'arc' ? 3 : 1.1) * termSize;
+    // "r_i = R" at its own width, about two and a half of its letters' height: reserved at three, with P keeping a word's
+    // space from it, the arc's P was pushed out onto a leader in What cancels.
+    const q = triangle.riSpot!, w = (triangle.kind === 'arc' ? 2.45 : 1.1) * termSize;
     reserved.push({ x: q.x - (q.anchor === 'end' ? w : q.anchor === 'middle' ? w / 2 : 0), y: q.y - .98 * termSize, width: w, height: 1.5 * termSize });
   }
+  // THE ARC'S P IS LETTERED PLAIN "P" IN WHAT CANCELS, AND WHILE THE PAIRS GO IN. Every way up and to the left of it is
+  // taken in What cancels -- the mirror's arrow, the ghost of the part that went -- and "P = O", three times the width,
+  // went out seventy units on a leader that ran into P beside the ghost's own leader: two thin lines and a dashed arrow
+  // converging on P, read as more arrows. While the pairs go in, the only room that wide was over the pair's junction at
+  // the sum's tip, and the pair arrived "at P = O". That P is O is said at rest and in the stages before.
+  const pPlain = id === 'arc' && (stageCancel || !!pairDraw);
+  // Where a pair arrives, while the pairs go in: P's name is nearer P than that, or it names the junction.
+  const junction = pairDraw && Math.hypot(pairDraw.from.x - P.x, pairDraw.from.y - P.y) > 4 ? pairDraw.from : null;
+  if (junction) reserved.push({ x: junction.x - haloR - 6, y: junction.y - haloR - 6, width: 2 * haloR + 12, height: 2 * haloR + 12 });
   const pLabel = (() => {
     const { scored, upper } = pDirections, size = SYM_P * labelScale;
-    const width = (id === 'arc' ? 2.45 : .72) * size;
+    const width = (id === 'arc' && !pPlain ? 2.45 : .72) * size;
     const boxAt = (spot: { x: number; y: number; anchor: string }): Box => ({ x: spot.x - (spot.anchor === 'end' ? width : spot.anchor === 'middle' ? width / 2 : 0), y: spot.y - .98 * size, width, height: 1.37 * size });
-    const clear = (b: Box) => b.x > 46 && b.y > 58 && b.x + b.width < 664 && b.y + b.height < 367
+    const nearerP = (b: Box) => { if (!junction) return true; const c = { x: b.x + b.width / 2, y: b.y + b.height / 2 }; return Math.hypot(c.x - P.x, c.y - P.y) + 4 < Math.hypot(c.x - junction.x, c.y - junction.y); };
+    // On P's own side of a rod: with P close in, a phone set P left of the rod, where it named the rod's far side.
+    const pSide = (b: Box) => !rodLike || inSpace || id === 'axial' ? true : id === 'semi' ? (P.y < O.y ? b.y + b.height < O.y - rodHalf : b.y > O.y + rodHalf) : P.x >= O.x ? b.x > O.x + rodHalf : b.x + b.width < O.x - rodHalf;
+    const clear = (b: Box) => b.x > 46 && b.y > 58 && b.x + b.width < 664 && b.y + b.height < 367 && nearerP(b) && pSide(b)
       && !obstacleBoxes.some(o => o.width !== 2 * haloR + 2 && b.x < o.x + o.width && o.x < b.x + b.width && b.y < o.y + o.height && o.y < b.y + b.height)
-      && !reserved.some(o => b.x < o.x + o.width + 4 && o.x - 4 < b.x + b.width && b.y < o.y + o.height + 2 && o.y - 2 < b.y + b.height);
+      // With the air the placer keeps between two names, not less: four units off r_i's spot, P left r_i too little
+      // room, and r_i, moved, went into the triangle onto y.
+      && !reserved.some(o => b.x < o.x + o.width + 8 * labelScale && o.x - 8 * labelScale < b.x + b.width && b.y < o.y + o.height + 4 * labelScale && o.y - 4 * labelScale < b.y + b.height);
     let best = { u: scored[0].u, gap: haloR + 3 }, bestCost = Infinity;
     scored.slice(0, 5).forEach((c, rank) => {
       for (let gap = haloR + 3; gap <= 84; gap += 3) {
@@ -2334,7 +2780,11 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
   const held = useRef(new Map<string, { ox: number; oy: number; leader?: boolean }>());
   useLayoutEffect(() => {
     const root = svg.current;
-    if (!root || moving) return;
+    if (!root) return;
+    // Emptied while anything moves, when the names hold their last places and the field under them does not.
+    const knock = root.querySelector<SVGGElement>('.cd-label-knock');
+    knock?.replaceChildren();
+    if (moving) return;
     const texts = [...root.querySelectorAll<SVGTextElement>('text')].filter(t => !t.closest('.cd-help'));
     // Measure with any previous nudge removed, so the desired position is what is measured and a
     // label does not creep further on every pass.
@@ -2357,7 +2807,7 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
     const gone = (t: SVGTextElement) => !t.textContent?.trim() || !!t.closest('.is-hidden,[opacity="0"]') || (inSpace && !perspective && !!t.closest('.cd-plus'));
     // An anchored mark that is not a word -- the charge's + signs, the cube's faces -- is avoided as a
     // mark; an anchored word -- an axis letter, the stage's name -- as a word, with a word's margin.
-    const fixedMarks: Box[] = [], fixedWords: Box[] = [];
+    const fixedMarks: Box[] = [], fixedWords: Box[] = [], knockWords: Box[] = [];
     const segment = (v?: string): Segment | undefined => {
       const n = v?.split(' ').map(Number);
       return n && n.length === 4 && n.every(Number.isFinite) ? { a: { x: n[0], y: n[1] }, b: { x: n[2], y: n[3] } } : undefined;
@@ -2374,8 +2824,18 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
       if (Math.abs(a.x - O.x) < 30 && Math.abs(b.x - O.x) > 6) out.push({ x: O.x, y: 0, nx: Math.sign(b.x - O.x), ny: 0 });
       return out;
     };
+    // AND THE SIDE OF EVERY DIMENSION'S BAR ITS ARROW IS ON: a name set across a bar from its arrow reads as the bar's.
+    // With a negative charge every arrow at P points back at the charge, the room round them is the triangle's, and
+    // the endless line's E was set under the r bar on a phone, beside r -- "E  r", the bar between E and its arrow.
+    const bars = inSpace ? [] : dims.filter(d => d.path).map(d => ({ a: d.a, b: d.b }));
+    const barSides = (shaft?: Segment): HalfPlane[] => !shaft ? [] : bars.flatMap(({ a, b }) => {
+      const u = direction(vsub(b, a));
+      if (!u) return [];
+      const side = (q: Point) => (q.x - a.x) * -u.y + (q.y - a.y) * u.x, s0 = side(shaft.a), s1 = side(shaft.b);
+      return s0 * s1 <= 0 || Math.min(Math.abs(s0), Math.abs(s1)) < 1 ? [] : [{ x: a.x, y: a.y, nx: -u.y * Math.sign(s0), ny: u.x * Math.sign(s0) }];
+    });
     const point = (v?: string) => { const m = v?.split(' ').map(Number); return m && m.length === 2 && m.every(Number.isFinite) ? { x: m[0], y: m[1] } : undefined; };
-    const movers: { t: SVGTextElement; box: Box; alternates: Box[]; mirror?: Point; keep: boolean; priority: number; order: number; shaft?: Segment; within?: HalfPlane[]; from?: Point; tethered: boolean }[] = [];
+    const movers: { t: SVGTextElement; box: Box; alternates: Box[]; mirror?: Point; keep: boolean; priority: number; order: number; shaft?: Segment; within?: HalfPlane[]; from?: Point; tethered: boolean; amongLines: boolean }[] = [];
     // A label's own box in the drawing's units, from its text alone. Not its client rect: while an
     // arrow grows out of P its name grows with it, and a name measured a tenth of its size on the
     // stage's first frame was placed as if it were a dot -- and nothing moves it again once the
@@ -2389,7 +2849,11 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
       if (gone(t)) return;
       const box = ownBox(t);
       if (!box) return;
-      if (anchored(t)) { (t.closest('.cd-plus, .cd-cube') ? fixedMarks : fixedWords).push(box); return; }
+      if (anchored(t)) {
+        (t.closest('.cd-plus, .cd-cube') ? fixedMarks : fixedWords).push(box);
+        if (!t.closest('.cd-plus, .cd-cube') && !t.classList.contains('cd-footer') && !t.classList.contains('cd-stage-label')) knockWords.push(box);
+        return;
+      }
       // Another place the label may stand, given as the x, y and anchor it would be drawn with there:
       // its box there is this one, re-anchored and moved by the change of baseline.
       const alternates: Box[] = [];
@@ -2403,8 +2867,12 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
       // A label may also carry its own sides to stay on, as "x y nx ny" half-planes: the piece's length on
       // the bracket's side of the rod, the leg's letter on the leg's.
       const own = (t.dataset.within ?? '').split(';').map(h => h.trim().split(' ').map(Number)).filter(h => h.length === 4 && h.every(Number.isFinite)).map(([x, y, nx, ny]) => ({ x, y, nx, ny }));
-      const within = [...(sides(shaft) ?? []), ...own];
-      movers.push({ t, box, alternates, mirror: point(t.dataset.mirror), keep: t.dataset.keep === 'true', priority: Number(t.dataset.priority ?? 0), order, shaft, within: within.length ? within : undefined, from: point(t.dataset.leaderFrom) ?? point(t.dataset.mirror), tethered: !!t.dataset.leader && !!t.dataset.leaderFrom });
+      // (An arrow's: a dimension's letter has its own line as its shaft, and its own sides.)
+      const arrow = !!t.closest('.cd-vector');
+      const within = [...((arrow ? sides(shaft) : undefined) ?? []), ...(arrow ? barSides(shaft) : []), ...own];
+      movers.push({ t, box, alternates, mirror: point(t.dataset.mirror), keep: t.dataset.keep === 'true', priority: Number(t.dataset.priority ?? 0), order, shaft, within: within.length ? within : undefined, from: point(t.dataset.leaderFrom) ?? point(t.dataset.mirror), tethered: !!t.dataset.leader && !!t.dataset.leaderFrom,
+        // The name of a line rather than an arrow -- a radius -- is held to the construction's lines as well.
+        amongLines: !!shaft && !t.closest('.cd-vector') });
     });
     // WHICH NAME IS WHICH, from one pass to the next: the group it is drawn in, the control it answers to, its
     // own class and text -- and, among names alike in all of those, its place in the drawing. Keyed by its
@@ -2433,8 +2901,13 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
     // drawing that is not, and a fixed 24 units -- a third of a letter there -- left nowhere to go, so
     // the placer hid the very names the board's line was written in.
     const reach = 24 * labelScale;
-    const placed = placeLabels([...fixedWords.map(box => ({ box, fixed: true })), ...movers.map(m => ({ box: m.box, mirror: m.mirror, alternates: m.alternates, keep: m.keep, shaft: m.shaft, within: m.within, from: m.from, tethered: m.tethered, prefer: prefer(m) }))],
-      { frame: { width: 720, height: 430 }, obstacles: [...fixedMarks, ...dom, ...obstacleBoxes], pad: 2, labelPad: 8, maxShift: reach, shafts, lines: constructionLines });
+    // And so does the air between them: eight units between two names thirteen pixels tall is four pixels on a phone,
+    // and "z s ring ΔQ" read as one phrase.
+    // The frame stops at the footer's band: a scene's name is never set there, kept or not. As an obstacle only, it
+    // was one cost among others, and once a kept name had nowhere free that no stroke ran through, the ring's R on a
+    // phone took the honest spot on the divider over a spot across a stroke, and read as the footer's first word.
+    const placed = placeLabels([...fixedWords.map(box => ({ box, fixed: true })), ...movers.map(m => ({ box: m.box, mirror: m.mirror, alternates: m.alternates, keep: m.keep, shaft: m.shaft, within: m.within, from: m.from, tethered: m.tethered, prefer: prefer(m), amongLines: m.amongLines }))],
+      { frame: { width: 720, height: FOOTER_BAND }, obstacles: [...fixedMarks, ...dom, ...obstacleBoxes], pad: 2 * labelScale, labelPad: 8 * labelScale, maxShift: reach, shafts, lines: constructionLines });
     const nudges = placed.slice(fixedWords.length);
     movers.forEach((m, k) => {
       const nudge = nudges[k], key = keyOf(m.t), a = anchorOf(m);
@@ -2465,10 +2938,30 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
     // A ROD'S TWO ENDS GO TOGETHER. Where one end's name had to go and the other stayed, the rod went from named
     // to half-named and back from stage to stage -- +L/2 gone in One piece while −L/2 stood -- and a lone −L/2
     // read as where the rod starts. Both or neither.
-    for (const g of root.querySelectorAll<SVGGElement>('.cd-dimension')) {
+    // The endless line's +∞ and −∞ too. Not a rod standing on its foot, whose foot is the lettered O: there the rule
+    // took y = L, or the ramp's λ = λ₀, down with a y = 0 that had run into P, and the ramp never said which end is
+    // densest -- the reason for the rule, a lone −L/2 read as where the rod starts, does not hold for a rod whose
+    // start is O.
+    for (const g of root.querySelectorAll<SVGGElement>('.cd-dimension, .cd-infinity')) {
+      if (footed && g.classList.contains('cd-dimension')) continue;
       const ends = [...g.querySelectorAll<SVGTextElement>(':scope > text.cd-end')];
       if (ends.length === 2 && ends.some(t => t.dataset.placerHidden) && ends.some(t => !t.dataset.placerHidden && t.dataset.keep !== 'true'))
         for (const t of ends) { t.style.opacity = '0'; t.dataset.placerHidden = 'true'; }
+    }
+    // A PATCH OF THE GROUND UNDER EVERY NAME, over the field lines. The canvas lies under the drawing and a name's halo
+    // follows only its own letters, so the lines ran on between and round them -- through Σ ΔE, through "λ = λ₀" twice,
+    // through P -- where a printed figure sets each name in a patch knocked out of the hatching. Under the drawing's own
+    // marks, which all still paint over it: it covers the canvas and nothing else. Flat views only, where the lines are
+    // the canvas; in space the scene is.
+    if (knock) {
+      const patch = (b: Box) => {
+        const r = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+        r.setAttribute('x', (b.x - 2).toFixed(1)); r.setAttribute('y', (b.y - 2).toFixed(1));
+        r.setAttribute('width', (b.width + 4).toFixed(1)); r.setAttribute('height', (b.height + 4).toFixed(1)); r.setAttribute('rx', '3');
+        knock.appendChild(r);
+      };
+      for (const b of knockWords) patch(b);
+      movers.forEach((m, k) => { if (!m.t.dataset.placerHidden && !m.t.closest('.cd-cube')) patch({ ...m.box, x: m.box.x + nudges[k].dx, y: m.box.y + nudges[k].dy }); });
     }
   });
   return <div ref={root} className={"charge-diagram cd-focus-"+highlight+(inSpace?" cd-in-space":"")+(perspective?" cd-surface-kind":" cd-wire-kind")+(building?" cd-building cd-stage-"+building:"")+(build?.paused?" cd-paused":"")+(build?.clock?" cd-clocked":"")+(hideAnswer?" cd-hide-total":"")+(narrow?" cd-narrow":"")+(id === 'arc' && pairing ? " cd-arc-pair" : "")}
@@ -2481,19 +2974,21 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
       plane={perspective ? 'xz' : 'xy'} layout={surface ? 'surface' : 'wire'} />}
     {inSpace && <FieldStage quiet={!!building} kind={id === 'disk' ? 'disk' : id === 'sheet' ? 'sheet' : 'wire'} closed={id === 'ring'} samples={UNBOUNDED.has(id) ? fieldSamples : samples} fieldSamples={fieldSamples} detail={UNBOUNDED.has(id) ? 144 : 48} selected={selectedIndex}
       radius={R} distance={p.distance} yaw={view.yaw} pitch={view.pitch} fieldView={scalar ? 'off' : fieldView} reach={fieldReach}
-      bodyPath={bodyPath} point={pWorld} element={sceneElement} net={netShown ? scaleVec(displayed, gain / unit) : null} contribution={handOver ? scaleVec(handOver.field, handOver.multiplier * gain / unit) : pairNow ? (pairNow.step.fb && pairNow.cancel < .6 ? scaleVec(pairNow.step.fa, pairNow.grow * gain / unit) : null) : scalar || !showContribution || mode === 'sum' || building === 'limit' ? null : scaleVec(sample.field, selectedGain * gain / unit)}
+      bodyPath={bodyPath} point={pWorld} element={sceneElement} net={netShown ? scaleVec(displayed, netCut * gain / unit) : null} contribution={handOver ? scaleVec(handOver.field, handOver.multiplier * gain / unit) : pairNow ? (pairNow.step.fb && pairNow.cancel < .6 ? scaleVec(pairNow.step.fa, pairNow.grow * pairM * gain / unit) : null) : scalar || !showContribution || mode === 'sum' || building === 'limit' ? null : scaleVec(sample.field, selectedGain * gain / unit)}
       contributionFrom={pairNow ? scaleVec(pairSoFar, gain / unit) : null}
       unit={unit} frame={{ width: 720, height: 430 }} origin={O} charge={p.charge} animating={moving}
-      getView={() => ({ yaw: yawMv.get(), pitch: pitchMv.get() })}
+      getView={() => ({ yaw: yawMv.get(), pitch: pitchMv.get() })} onUnavailable={() => setNoScene(true)}
       // The run, for the scene to draw as bodies: the same partition, partner, sum and arrows the
       // flat marks below are drawn from, at the same scale, so the two can never tell it differently.
       run={build ? runScene({ stage: building, kind: id === 'disk' ? 'disk' : id === 'sheet' ? 'sheet' : 'wire', closed: id === 'ring', n, selected: selectedIndex, at: world,
-        selectedSpan: halfPair && pairSlot ? [pairSlot.a.lo, pairSlot.a.hi] : null,
+        selectedSpan: halfPair && pairSlot ? [pairSlot.a.lo, pairSlot.a.hi] : null, mirrored: supportsPair,
         partner: partnerLit ? (mirrorArc ? 'across' : partnerIndex) : halfPair && pairSlot?.b ? { lo: pairSlot.b.lo, hi: pairSlot.b.hi } : null, weights, summing: mode === 'sum' || mode === 'integrate', continuum, split,
+        // The stretches the pairs before this one have put in: the ring cut an odd number of ways takes pieces in by halves.
+        added: pairNow && pairSteps ? pairSteps.slice(0, pairNow.k).flatMap(s => s.b ? [[s.a.lo, s.a.hi], [s.b.lo, s.b.hi]] as [number, number][] : [[s.a.lo, s.a.hi]] as [number, number][]) : null,
         // The pair going in, laid from the tip of the sum so far at the sum's own scale: see `pairDraw`.
-        arrows: pairNow ? { scale: pairNow.grow * gain / unit, field: pairNow.step.fa, keep: alongAxis(id, pairNow.step.fa), drop: acrossAxis(id, pairNow.step.fa), partner: pairNow.step.fb,
+        arrows: pairNow ? { scale: pairNow.grow * pairM * gain / unit, field: pairNow.step.fa, keep: alongAxis(id, pairNow.step.fa), drop: acrossAxis(id, pairNow.step.fa), partner: pairNow.step.fb,
             partnerKeep: pairNow.step.fb ? alongAxis(id, pairNow.step.fb) : zero, partnerDrop: pairNow.step.fb ? acrossAxis(id, pairNow.step.fb) : zero, components: true, cancelled: pairNow.cancel,
-            from: scaleVec(pairSoFar, gain / unit), whole: pairNow.cancel < .6, fade: 1 - pairNow.merge }
+            from: scaleVec(pairSoFar, gain / unit), fade: 1 - pairNow.merge }
           : !scalar && showContribution && mode !== 'sum' && building !== 'limit' ? { scale: selectedGain * gain / unit, field: sample.field, keep, drop, partner: pairing ? partnerField : null, partnerKeep, partnerDrop, components, cancelled: cancelT } : null,
         chain: chaining ? { scale: gain / unit, fields: samples.map(s => s.field), weights } : null }) : null} />}
     <LabelScale.Provider value={labelScale}>
@@ -2509,6 +3004,8 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
         <radialGradient id={`${uid}point`}><stop stopColor="var(--field)" stopOpacity=".2" /><stop offset="1" stopColor="var(--field)" stopOpacity="0" /></radialGradient>
       </defs>
       <rect className="cd-grid" x="20" y="48" width="680" height="336" rx="12" fill={`url(#${uid}grid)`} opacity=".55" />
+      {/* The names' patches over the field lines, filled by the placer: see its last pass. */}
+      {!inSpace && !scalar && fieldView !== 'off' && <g className="cd-label-knock" aria-hidden="true" />}
       <g className="cd-axes" clipPath={inSpace ? `url(#${uid}clip)` : undefined}>
         {/* Projected axes whenever the view can turn, so they rotate with what they measure;
             the flat pair is only right when the camera is locked. */}
@@ -2521,7 +3018,7 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
         {fan && <g className={'cd-fan' + (mode === 'divide' || mode === 'project' ? '' : ' is-quiet')}>
           {fan.wedges.map(w => <polygon key={w.key} data-wedge-key={w.key} className={'cd-wedge' + (w.index % 2 ? ' is-odd' : '') + (w.index === selectedIndex ? ' is-selected' : '')}
             points={w.points} onPointerDown={ev => { ev.stopPropagation(); onSelect(w.index); }}><title>{`Piece ${w.index + 1} of ${n}`}</title></polygon>)}
-          {fan.rays.map(r => <line key={r.key} className="cd-ray" x1={P.x} y1={P.y} x2={r.end.x.toFixed(1)} y2={r.end.y.toFixed(1)} style={{ opacity: 1 - continuum }} />)}
+          {raysShown.map(r => <line key={r.key} className={'cd-ray' + (chosenRays.has(r.key) ? ' is-chosen' : '')} x1={P.x} y1={P.y} x2={r.end.x.toFixed(1)} y2={r.end.y.toFixed(1)} style={{ opacity: 1 - continuum }} />)}
         </g>}
         {perspective && <g ref={plane} className="cd-orbit-plane" transform={planeMatrix(view.yaw, view.pitch, O, unit)}>
           {id === 'sheet' && <g opacity={inSpace ? 0 : 1}><motion.path layoutId="fb-source-surface" data-source-body="true" data-dim="charge" initial={false} animate={{ d: pathThrough(worldArc(7), true) }} transition={{ duration: still ? 0 : .45 }} className="cd-surface" /></g>}
@@ -2557,7 +3054,9 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
           </>}
         </g>}
         {id === 'sheet' && !inSpace && <path d={[sheetRim.left, sheetRim.right].map(q => `M${(q.x - 15).toFixed(1)} ${(q.y - 6).toFixed(1)}l12 12m6 -12 12 12`).join('')} className="cd-continuation" />}
-        {id === 'sheet' && showContribution && ringOutlined && <g className="cd-orbit-plane" transform={planeMatrix(view.yaw, view.pitch, O, unit)}><g className="cd-piece is-selected" data-piece-key={intervalKey(selectedIndex, n)} style={{ pointerEvents: 'none' }}><motion.path initial={false} animate={{ d: pathThrough(worldArc(Math.max(.001, sample.position.x))) }} transition={{ duration: still ? 0 : .18 }} fill="none" strokeWidth="4" /></g></g>}
+        {/* In Cut it up too, where the tag says "ring ΔQ" and the sentence speaks of rings: with no ring drawn the tag
+            named a point on the x axis. */}
+        {id === 'sheet' && (showContribution || building === 'pieces') && ringOutlined && <g className="cd-orbit-plane" transform={planeMatrix(view.yaw, view.pitch, O, unit)}><g className="cd-piece is-selected" data-piece-key={intervalKey(selectedIndex, n)} style={{ pointerEvents: 'none' }}><motion.path initial={false} animate={{ d: pathThrough(worldArc(Math.max(.001, sample.position.x))) }} transition={{ duration: still ? 0 : .18 }} fill="none" strokeWidth="4" /></g></g>}
         {!perspective && rodLike && <g opacity={inSpace ? 0 : 1}><motion.path layoutId={`fb-source-${family}`} data-source-body="true" data-dim="charge" className={ramp ? 'cd-source-rod is-ramp' : 'cd-source-rod'} initial={false} animate={{ d: rodPath() }} transition={{ duration: still ? 0 : .45 }} /></g>}
         {!perspective && id === 'arc' && <motion.path layoutId={`fb-source-${family}`} data-source-body="true" data-dim="charge" initial={false} animate={{ d: pathThrough(circlePoints(R, -p.phi / 2, p.phi / 2)) }} transition={{ duration: still ? 0 : .45 }} className="cd-charge-base" />}
         {!perspective && samples.map((s, i) => {
@@ -2586,10 +3085,12 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
             const extent = Math.max(1, hi - lo);
             if (hi < rodLow - 8 || lo > rodHigh + 8) return null;
             if (extent < 3) outline = 0;
-            const shade = ramp && !active ? { fillOpacity: .08 + .92 * s.position.y / p.size } : undefined;
+            // The chosen piece by its density like the rest, and marked by its outline: filled solid in the charge's colour,
+            // the second piece from the top read as the densest of all, darker than the λ₀ end above it.
+            const shade = ramp ? { fillOpacity: .08 + .92 * s.position.y / p.size } : undefined;
             shape = upright ? <rect x={pos.x - rodHalf} y={lo} width={rodHalf * 2} height={extent} clipPath={`url(#${uid}rod)`} {...shade} /> : <rect x={lo} y={pos.y - rodHalf} width={extent} height={rodHalf * 2} clipPath={`url(#${uid}rod)`} />;
           }
-          return <g key={identity} data-piece-key={identity} className={`cd-piece ${active ? 'is-selected' : ''}${partnerLit && i === partnerIndex && !active ? ' is-partner' : ''}${accumulated && !active ? ' is-added' : ''}`} style={{ opacity: opacity * heat, strokeOpacity: active ? 1 : outline, ...cutAt(i / n) }} onPointerDown={ev => { ev.stopPropagation(); onSelect(i); }}>{shape}</g>;
+          return <g key={identity} data-piece-key={identity} className={`cd-piece ${active ? 'is-selected' : ''}${ramp ? ' is-density' : ''}${partnerLit && i === partnerIndex && !active ? ' is-partner' : ''}${accumulated && !active ? ' is-added' : ''}`} style={{ opacity: opacity * heat, strokeOpacity: active ? 1 : outline, ...cutAt(i / n) }} onPointerDown={ev => { ev.stopPropagation(); onSelect(i); }}>{shape}</g>;
         })}
         {/* THE RAMP IN THE LIMIT. The pieces are its density while it is cut: each one shaded by its λ. As
             they shrink away their shading goes with them, and the climax of the run was an empty tube with
@@ -2603,20 +3104,26 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
           {seamFractions(n).map(t => { const mark = seamStroke(t, 1); return mark ? <g key={seamKey(t)} data-seam={seamKey(t)} className="cd-seam" style={cutAt(t)}>{mark}</g> : null; })}
           {split > .04 && split < .995 && splitFractions(n).map(t => { const mark = seamStroke(t, split); return mark ? <g key={seamKey(t)} data-seam={seamKey(t)} className="cd-seam is-growing" style={{ opacity: split }}>{mark}</g> : null; })}
         </g>}
-        {!surface && (pairing || scalarPartner || pairLit) && showContribution && (() => { const a = offRod(partnerPos, P, partnerIndex);
+        {!surface && (pairing || scalarPartner || pairLines) && showContribution && (() => { const a = offRod(partnerPos, P, partnerIndex);
           // A dashed ring round the mirror piece, on a field lesson, only blotted a piece already lit dark with
           // its own arrow at P: it is kept where nothing else at P says which piece is the mirror -- a
           // potential's, whose pieces have no arrows.
-          return <><line x1={a.x} y1={a.y} x2={P.x} y2={P.y} className="cd-construction cd-pair" />{scalar && <circle cx={partnerPos.x} cy={partnerPos.y} r="9" className="cd-partner" />}</>; })()}
+          const end = pairing ? stopAtArrow(a, partnerScreen) : P;
+          return <><line x1={a.x} y1={a.y} x2={end.x} y2={end.y} className="cd-construction cd-pair" />{scalar && <circle cx={partnerPos.x} cy={partnerPos.y} r="9" className="cd-partner" />}</>; })()}
         {/* Not on the rod seen along its axis, where it would lie along the rod itself: there the
             distance is a dimension above the rod, drawn with the triangle. */}
-        {showContribution && building !== 'limit' && id !== 'axial' && (() => { const a = triangle?.kind === 'rod' && triangle.hasLeg ? triangle.met : offRod(selectedPoint, P, selectedIndex); return <line x1={a.x} y1={a.y} x2={P.x} y2={P.y} className="cd-construction" data-ri="true" />; })()}
+        {showContribution && building !== 'limit' && id !== 'axial' && (() => { const a = triangle?.kind === 'rod' && triangle.hasLeg ? triangle.met : offRod(selectedPoint, P, selectedIndex), end = stopAtArrow(a, contribution); return <line x1={a.x} y1={a.y} x2={end.x} y2={end.y} className="cd-construction" data-ri="true" />; })()}
       </g>
       {/* Where a line that never ends leaves the frame: break marks across it, a little way in, and its
           end named beside them, hung off their left so the name and the marks never touch. */}
       {id === 'infinite' && <g className="cd-infinity">{breakGaps.map(g => <polygon key={g} className="cd-break-gap" points={g} />)}<path className="cd-break-under" d={breaks.map(([a, b]) => `M${a.x.toFixed(1)} ${a.y.toFixed(1)}L${b.x.toFixed(1)} ${b.y.toFixed(1)}`).join('')} /><path d={breaks.map(([a, b]) => `M${a.x.toFixed(1)} ${a.y.toFixed(1)}L${b.x.toFixed(1)} ${b.y.toFixed(1)}`).join('')} />
-        <text className="cd-end" x={O.x - 16} y={(80 + .3 * SYM * labelScale).toFixed(1)} textAnchor="end">+∞</text><text className="cd-end" x={O.x - 16} y={(348 + .3 * SYM * labelScale).toFixed(1)} textAnchor="end">−∞</text></g>}
-      {id === 'semi' && <g className="cd-infinity">{breakGaps.map(g => <polygon key={g} className="cd-break-gap" points={g} />)}<path className="cd-break-under" d={breaks.map(([a, b]) => `M${a.x.toFixed(1)} ${a.y.toFixed(1)}L${b.x.toFixed(1)} ${b.y.toFixed(1)}`).join('')} /><path d={breaks.map(([a, b]) => `M${a.x.toFixed(1)} ${a.y.toFixed(1)}L${b.x.toFixed(1)} ${b.y.toFixed(1)}`).join('')} /><text className="cd-end" x={rodHigh - 4} y={O.y - 17}>∞</text></g>}
+        {/* Kept while the limits are the subject, and hidden together or not at all:
+            on a phone +∞ gave way in What cancels and Shrink them while −∞ stood, and the line seemed to end at the top.
+            Never lit as the limits, though: they are y's ends, and the board's limits are θ's, −π/2 and π/2, which the
+            edge's arrows carry. Lit in the limits' colour as the board's θ: −π/2 → π/2 lit beside them, they read as
+            the integral's limits. */}
+        <text className="cd-end cd-coordinate-end" x={O.x - 16} y={(80 + .3 * SYM * labelScale).toFixed(1)} textAnchor="end" {...endAttrs}>+∞</text><text className="cd-end cd-coordinate-end" x={O.x - 16} y={(348 + .3 * SYM * labelScale).toFixed(1)} textAnchor="end" {...endAttrs}>−∞</text></g>}
+      {id === 'semi' && <g className="cd-infinity">{breakGaps.map(g => <polygon key={g} className="cd-break-gap" points={g} />)}<path className="cd-break-under" d={breaks.map(([a, b]) => `M${a.x.toFixed(1)} ${a.y.toFixed(1)}L${b.x.toFixed(1)} ${b.y.toFixed(1)}`).join('')} /><path d={breaks.map(([a, b]) => `M${a.x.toFixed(1)} ${a.y.toFixed(1)}L${b.x.toFixed(1)} ${b.y.toFixed(1)}`).join('')} /><text className="cd-end" x={rodHigh - 4} y={O.y - 17} {...endAttrs}>∞</text></g>}
       {id === 'sheet' && !inSpace && <text x={sheetRim.right.x} y={sheetRim.right.y + 24} textAnchor="end" className="cd-end" {...GIVEN}>s → ∞</text>}
       {/* DIMENSIONS, drawn as a draftsman draws them: a bar beside what it measures, a tick at each
           end, its letter beside the bar's middle -- and every one of them off the axes, the charge
@@ -2624,10 +3131,10 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
       {dims.map(d => <g key={d.key} data-dim={d.dim} className={`cd-dimension${inSpace && !perspective ? ' is-hidden' : ''}`}>
         <path d={d.path} />
         {d.extension && <line className="cd-extension" x1={d.extension[0].x} y1={d.extension[0].y} x2={d.extension[1].x} y2={d.extension[1].y} />}
-        {d.label && <text x={d.label.x} y={d.label.y} textAnchor={d.label.anchor} data-mirror={`${((d.a.x + d.b.x) / 2).toFixed(1)} ${((d.a.y + d.b.y) / 2).toFixed(1)}`} data-alt={d.alt} data-within={d.within} {...GIVEN}>{d.name}</text>}
+        {d.label && <text x={d.label.x} y={d.label.y} textAnchor={d.label.anchor} data-mirror={`${((d.a.x + d.b.x) / 2).toFixed(1)} ${((d.a.y + d.b.y) / 2).toFixed(1)}`} data-alt={d.alt} data-within={d.within} data-shaft={lineOf(d.a, d.b)} {...GIVEN}>{d.name}</text>}
       </g>)}
-      {id === 'bisector' && <g data-dim="size" className={`cd-dimension${inSpace && !perspective ? ' is-hidden' : ''}`}><text className="cd-end" x={O.x+17} y={O.y-R*unit-8} data-alt={rodEndAlt.top} data-within={`${(O.x + rodHalf).toFixed(1)} 0 1 0`} {...endAttrs}>+L/2</text><text className="cd-end" x={O.x+17} y={Math.min(O.y+R*unit+20, 366)} data-alt={rodEndAlt.bottom} data-within={`${(O.x + rodHalf).toFixed(1)} 0 1 0`} {...endAttrs}>−L/2</text></g>}
-      {footed && <g data-dim="size" className={`cd-dimension${inSpace && !perspective ? ' is-hidden' : ''}`}><text className={ramp ? 'cd-end cd-density-end' : 'cd-end'} x={O.x+17} y={O.y-p.size*unit-8} data-alt={rodEndAlt.top} data-within={`${(O.x + rodHalf).toFixed(1)} 0 1 0`} {...(ramp ? {} : endAttrs)}>{ramp ? <SymbolText symbol="λ = λ_0" /> : 'y = L'}</text><text className={ramp ? 'cd-end cd-density-end' : 'cd-end'} x={O.x+19} y={O.y-9} data-alt={rodEndAlt.bottom} data-within={`${(O.x + rodHalf).toFixed(1)} 0 1 0`} {...(ramp ? {} : endAttrs)}>{ramp ? 'λ = 0' : 'y = 0'}</text></g>}
+      {id === 'bisector' && <g data-dim="size" className={`cd-dimension${inSpace && !perspective ? ' is-hidden' : ''}`}><text className="cd-end" x={O.x+17} y={O.y-R*unit-8} data-alt={rodEndAlt.top} data-within={rodEndAlt.topWithin} {...endAttrs}>+L/2</text><text className="cd-end" x={O.x+17} y={Math.min(O.y+R*unit+20, 366)} data-alt={rodEndAlt.bottom} data-within={rodEndAlt.bottomWithin} {...endAttrs}>−L/2</text></g>}
+      {footed && <g data-dim="size" className={`cd-dimension${inSpace && !perspective ? ' is-hidden' : ''}`}><text className={ramp ? 'cd-end cd-density-end' : 'cd-end'} x={O.x+17} y={O.y-p.size*unit-8} data-alt={rodEndAlt.top} data-within={rodEndAlt.topWithin} {...(ramp ? {} : endAttrs)}>{ramp ? <SymbolText symbol="λ = λ_0" /> : 'y = L'}</text><text className={ramp ? 'cd-end cd-density-end' : 'cd-end'} x={O.x+19} y={O.y-9} data-alt={rodEndAlt.bottom} data-within={rodEndAlt.bottomWithin} {...(ramp ? {} : endAttrs)}>{ramp ? 'λ = 0' : 'y = 0'}</text></g>}
       {/* The rod's far end, by its coordinate: "L" here as well as under the bar was two L's. */}
       {/* Under the tick where the L and a bars meet, below the axis: above it, on the line the piece's
           ΔQ is written on, the two read as one phrase. */}
@@ -2635,11 +3142,16 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
       {/* The radius, named beside its middle -- or nearer either end, above or below it, where the middle
           is taken: flat, a sheet's chosen ring is an ellipse that hems the radius in at its middle. */}
       {rim && <g data-dim="size" data-rim="true" className="cd-dimension"><path d={`M${O.x.toFixed(1)} ${O.y.toFixed(1)}L${rim.tip.x.toFixed(1)} ${rim.tip.y.toFixed(1)}`} />
-        <text x={rim.spot.x.toFixed(1)} y={rim.spot.y.toFixed(1)} textAnchor={rim.spot.anchor} data-mirror={`${rim.mid.x.toFixed(1)} ${rim.mid.y.toFixed(1)}`} data-alt={rim.alt} {...GIVEN}>R</text></g>}
+        <text x={rim.spot.x.toFixed(1)} y={rim.spot.y.toFixed(1)} textAnchor={rim.spot.anchor} data-mirror={`${rim.mid.x.toFixed(1)} ${rim.mid.y.toFixed(1)}`} data-alt={rim.alt} data-shaft={lineOf(O, rim.tip)} data-within={awayFromP(O, rim.tip)} {...GIVEN}>R</text></g>}
       {perspective && <g data-dim={id === 'disk' ? undefined : 'size'} className={`cd-dimension${inSpace && !perspective ? ' is-hidden' : ''}`}><path d={`M${O.x} ${O.y}L${radiusTip.x} ${radiusTip.y}`} /><text x={O.x+(radiusTip.x-O.x)*.6} y={O.y+(radiusTip.y-O.y)*.6+19} data-mirror={`${(O.x+(radiusTip.x-O.x)*.6).toFixed(1)} ${(O.y+(radiusTip.y-O.y)*.6).toFixed(1)}`}
-        data-alt={[.35, .85].flatMap(f => [19, -8].map(dy => `${(O.x + (radiusTip.x - O.x) * f).toFixed(1)} ${(O.y + (radiusTip.y - O.y) * f + dy).toFixed(1)} start`)).join(';')} {...GIVEN}>{surface ? 's' : 'R'}</text></g>}
-      {id === 'arc' && <g className={`cd-dimension${inSpace && !perspective ? ' is-hidden' : ''}`}><g data-dim="angle"><path className="cd-phi-arc" d={pathThrough(circlePoints(R*PHI_AT, -p.phi/2, p.phi/2)) + (arcLetters?.phiHeads ?? '')} />{arcLetters && <text x={arcLetters.phi.x.toFixed(1)} y={arcLetters.phi.y.toFixed(1)} textAnchor="middle" data-alt={arcLetters.phiAlt} data-within={arcLetters.phiWithin} {...GIVEN}>φ</text>}</g>
-        {arcLetters && <g data-dim="size" data-arc-radius="true"><path d={arcLetters.rPath} /><text x={arcLetters.rSpot.x.toFixed(1)} y={arcLetters.rSpot.y.toFixed(1)} textAnchor={arcLetters.rSpot.anchor} data-mirror={`${((O.x + arcLetters.rTip.x) / 2).toFixed(1)} ${((O.y + arcLetters.rTip.y) / 2).toFixed(1)}`} data-alt={arcLetters.rAlt} {...GIVEN}>R</text></g>}</g>}
+        // Not past .85 of the way out on the flat sheet, where "s → ∞" stands under the axis' end: as the walk went out,
+        // s took that place right under it and the two read as one garbled name, "s / s → ∞".
+        data-alt={(id === 'sheet' && !inSpace ? [.35, .6] : [.35, .85]).flatMap(f => [19, -8].map(dy => `${(O.x + (radiusTip.x - O.x) * f).toFixed(1)} ${(O.y + (radiusTip.y - O.y) * f + dy).toFixed(1)} start`)).join(';')} data-shaft={lineOf(O, radiusTip)} data-within={awayFromP(O, radiusTip)} {...GIVEN}>{surface ? 's' : 'R'}</text></g>}
+      {id === 'arc' && <g className={`cd-dimension${inSpace && !perspective ? ' is-hidden' : ''}`}><g data-dim="angle"><path className="cd-phi-arc" d={pathThrough(circlePoints(R*PHI_AT, -p.phi/2, p.phi/2)) + (arcLetters?.phiHeads ?? '')} />{arcLetters && <text x={arcLetters.phi.x.toFixed(1)} y={arcLetters.phi.y.toFixed(1)} textAnchor="middle" data-alt={arcLetters.phiAlt} data-within={arcLetters.phiWithin} {...(stageCancel ? { 'data-priority': 0 } : GIVEN)}>{setUpright('φ')}</text>}</g>
+        {/* Not while the pair is drawn: the radius runs to the arc's lower end, on the y axis at the default φ, which is
+            the line the two sideways parts are drawn on -- R's letter stood beside ΔE_y's shaft and took ΔE_y's place,
+            and ΔE_y went out by the arc's end, read as the end's name. r_i = R names the radius in that stage. */}
+        {arcLetters && !pairing && <g data-dim="size" data-arc-radius="true"><path d={arcLetters.rPath} /><text x={arcLetters.rSpot.x.toFixed(1)} y={arcLetters.rSpot.y.toFixed(1)} textAnchor={arcLetters.rSpot.anchor} data-mirror={`${((O.x + arcLetters.rTip.x) / 2).toFixed(1)} ${((O.y + arcLetters.rTip.y) / 2).toFixed(1)}`} data-alt={arcLetters.rAlt} data-shaft={lineOf(O, arcLetters.rTip)} {...GIVEN}>R</text></g>}</g>}
       {pieceLength && <g className="cd-piece-length" data-piece-length={pieceLength.name}>
         <path d={pieceLength.path} />
         <text x={pieceLength.label.x.toFixed(1)} y={pieceLength.label.y.toFixed(1)} textAnchor={pieceLength.label.anchor} data-mirror={`${pieceLength.mirror.x.toFixed(1)} ${pieceLength.mirror.y.toFixed(1)}`} data-alt={pieceLength.alt} data-within={pieceLength.within} {...termAttrs(true)}>{setUpright(pieceLength.name)}</text>
@@ -2667,10 +3179,12 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
             {/* Named while whole. Once they start to go, the names stay where they were, on the ghosts
                 below, rather than riding the shrinking tips into P and piling up on it. */}
             <g data-cancel-transverse="piece" opacity={transverseOpacity}>
-              <Vector from={P} to={plus(P, liveDrop)} clip={plotClip} color="var(--contribution)" width={2.4} dashed label={cancelT > 0 ? undefined : dropSymbol} at="tip" reduced={still} keep={stageCancel} priority={2} />
+              <Vector from={P} to={plus(P, liveDrop)} clip={plotClip} color="var(--contribution)" width={2.4} dashed label={cancelT > 0 ? undefined : dropSymbol} vector={perspective} at="tip" reduced={still} keep={partsTerm} priority={2} />
             </g>
+            {/* The mirror's name is the one that gives way: the board writes it once, as (\u2212\u0394E_y), and kept as the
+                piece's are it took the room the piece's own \u0394E and r_i needed. */}
             <g data-cancel-transverse="partner" opacity={transverseOpacity}>
-              <Vector from={P} to={plus(P, livePartnerDrop)} clip={plotClip} color="var(--contribution)" width={2.4} dashed label={cancelT > 0 ? undefined : '\u2212' + dropSymbol} at="tip" reduced={still} keep={stageCancel} priority={2} />
+              <Vector from={P} to={plus(P, livePartnerDrop)} clip={plotClip} color="var(--contribution)" width={2.4} dashed label={cancelT > 0 ? undefined : '\u2212' + dropSymbol} vector={perspective} at="tip" reduced={still} />
             </g>
           </>}
         </g>}
@@ -2679,8 +3193,12 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
             two parts that cancelled, not only the one that survived them. Outside `.cd-grow-pair`, so
             in space, where the scene's own pair has shrunk to nothing, it is still drawn. */}
         {pairing && hasDrop && cancelT > 0 && <g className="cd-cancel-ghost" data-cancel-ghost={cancelT.toFixed(3)}>
-          <Vector from={P} to={plus(P, dropScreen)} clip={plotClip} color="var(--contribution)" width={2.4} dashed dash="3 3" label={dropSymbol} at="tip" reduced={still} keep={stageCancel} priority={2} fade={GHOST * cancelT} muted />
-          <Vector from={P} to={plus(P, partnerDropScreen)} clip={plotClip} color="var(--contribution)" width={2.4} dashed dash="3 3" label={'\u2212' + dropSymbol} at="tip" reduced={still} keep={stageCancel} priority={2} fade={GHOST * cancelT} muted />
+          <Vector from={P} to={plus(P, dropScreen)} clip={plotClip} color="var(--contribution)" width={2.4} dashed dash="3 3" label={dropSymbol} vector={perspective} at="tip" reduced={still} keep={partsTerm} priority={2} fade={GHOST * cancelT} muted />
+          {/* On the arc, a place right of its tip as well, inside the angle φ: every other place it had was up by P's
+              name, and it went out on a leader that ran into P beside P's own. And left of it, between the axis and the
+              mirror's whole arrow: the right is where r_i = R stands now that What cancels keeps it. */}
+          <Vector from={P} to={plus(P, partnerDropScreen)} clip={plotClip} color="var(--contribution)" width={2.4} dashed dash="3 3" label={'\u2212' + dropSymbol} vector={perspective} at="tip" reduced={still} fade={GHOST * cancelT} muted
+            alts={id === 'arc' ? [8, -8].map(dx => `${(P.x + partnerDropScreen.x + dx).toFixed(1)} ${(P.y + partnerDropScreen.y + 4 + .3 * SYM * labelScale).toFixed(1)} ${dx > 0 ? 'start' : 'end'}`).join(';') : undefined} />
         </g>}
         {/* The part that survives, solid and named with the component the derivation builds. Without
             a mirror piece the other part survives too, so it is drawn the same way, solid and named:
@@ -2688,8 +3206,10 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
             -- the rod seen along its axis, a ring of a disk -- the piece's own arrow already is the
             part that survives, and a second arrow on top of it would only be a second name. */}
         {components && hasDrop && <g className="cd-grow cd-grow-parts" style={{ transformOrigin: `${P.x}px ${P.y}px` }}>
-          <Vector from={P} to={plus(P, keepScreen)} clip={plotClip} color="var(--contribution)" width={2.4} label={keepSymbol} at={keepNamedMid ? 'mid' : 'tip'} side={keepNamedMid ? awayFrom(keepScreen, partnerScreen) : undefined} reduced={still} keep={stageCancel} priority={2} />
-          {!pairing && <Vector from={P} to={plus(P, dropScreen)} clip={plotClip} color="var(--contribution)" width={2.4} label={dropSymbol} at="tip" reduced={still} keep={stageCancel} priority={2} />}
+          <Vector from={P} to={plus(P, keepScreen)} clip={plotClip} color="var(--contribution)" width={2.4} label={keepSymbol} at={keepNamedMid ? 'mid' : 'tip'} side={keepNamedMid ? awayFrom(keepScreen, partnerScreen) : undefined} within={keepWithin} reduced={still} keep={partsTerm} priority={2} />
+          {/* Dashed where a mirror will cancel it, though the mirror is not drawn: solid is the site's mark for a part
+              that survives, and on the four symmetric lessons this one is exactly the part that does not. */}
+          {!pairing && <Vector from={P} to={plus(P, dropScreen)} clip={plotClip} color="var(--contribution)" width={2.4} dashed={supportsPair && full && !selfMirror} label={dropSymbol} vector={perspective} at="tip" reduced={still} keep={partsTerm} priority={2} />}
         </g>}
         {/* AND WHAT THE MIRROR PIECE KEEPS, laid on after the piece's own: once the sideways parts have gone,
             the two parts that survive are seen adding, tip to tail -- the "perpendicular parts survive",
@@ -2701,7 +3221,7 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
         {partnerKeepShown && <g className="cd-partner-keep" data-partner-keep="true" opacity={clamp((cancelT - .5) * 2, 0, 1)}>
           <Vector from={partnerKeepFrom} to={plus(partnerKeepFrom, partnerKeepScreen)} clip={plotClip} color={PARTNER_TINT} width={2.4} reduced={still} />
         </g>}
-        <g className="cd-grow" style={{ transformOrigin: `${P.x}px ${P.y}px` }}><Vector from={P} to={plus(P, contribution)} clip={plotClip} color="var(--contribution)" width={1.8} label={pieceSymbol} side={awayFrom(contribution, components && hasDrop ? keepScreen : net)} reduced={still} ghost={inSpace} keep={pieceTerm} priority={pieceTerm ? 2 : 1} /></g>
+        <g className="cd-grow" style={{ transformOrigin: `${P.x}px ${P.y}px` }}><Vector from={P} to={plus(P, contribution)} clip={plotClip} color="var(--contribution)" width={1.8} label={pieceSymbol} vector={!surface} side={awayFrom(contribution, components && hasDrop ? keepScreen : net)} reduced={still} ghost={inSpace} keep={pieceTerm} priority={pieceTerm ? 2 : 1} /></g>
       </>}
       {/* A chain laid beside the field's arrow goes as the pieces shrink: once it coincides with E it is a
           second bar alongside it, with a tick at each end -- a dimension, not a sum -- and E's name went beside
@@ -2713,7 +3233,7 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
           block the same way. */}
       {building === 'add' && !scalar && !handOver && newestLink && <g className="cd-sum-newest" data-sum-newest="true"><Vector from={newestLink[0]} to={newestLink[1]} color="var(--contribution)" width={3.6} reduced ghost={inSpace} clip={plotClip} /></g>}
       {!scalar && chainEnds && chainPoints.length > 1 && <path className="cd-sum-chain cd-sum-chain-ends" d={chainEnds} fill="none" clipPath={plotClip} style={{ opacity: clamp((1 - continuum) / .7, 0, 1) }} />}
-      {building === 'add' && !scalar && chainPoints.length > 1 && chainPoints.length <= 65 && chainPoints.slice(1).map((c, k) => Math.hypot(c.x - chainPoints[k].x, c.y - chainPoints[k].y) < 8 ? null : <circle key={k} className="cd-sum-joint" cx={c.x} cy={c.y} r="2.8" />)}
+      {building === 'add' && !scalar && chainPoints.length > 1 && chainPoints.length <= 65 && chainPoints.slice(1, -1).map((c, k) => Math.hypot(c.x - chainPoints[k].x, c.y - chainPoints[k].y) < 8 ? null : <circle key={k} className="cd-sum-joint" cx={c.x} cy={c.y} r="2.8" />)}
       {/* THE PAIR GOING IN, at the tip of the sum so far (see `pairDraw`): the mirror's whole arrow in its lighter
           tint under the piece's, their parts across dashed, and their parts along the axis -- the mirror's laid
           first, so the piece's is on top while the two coincide. In space the scene draws them as bodies. */}
@@ -2730,9 +3250,9 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
       {/* The run's piece, shrinking to its true length as the sum begins: the scale it was drawn at
           in the two stages before was its own, and this is where that is said, by showing it. */}
       {handOver && <g className="cd-hand-over" data-hand-over={handOver.multiplier.toFixed(3)} opacity={handOver.opacity}>
-        <Vector from={P} to={plus(P, handOver.vector)} clip={plotClip} color="var(--contribution)" width={2.4} label={handOver.opacity > .5 ? pieceSymbol : undefined} reduced ghost={inSpace} />
+        <Vector from={P} to={plus(P, handOver.vector)} clip={plotClip} color="var(--contribution)" width={2.4} label={handOver.opacity > .5 ? pieceSymbol : undefined} vector={!surface} reduced ghost={inSpace} />
       </g>}
-      {inSpace && <ViewCube view={view} at={{ x: cubeAt, y: cubeAt }} size={cubeSize}
+      {inSpace && <ViewCube view={view} at={{ x: cubeAt, y: cubeAt }} size={cubeSize} minFont={11 / Math.max(.2, unitPx)}
         onPick={(next, label) => { stopGlide(); setZoom(1); glideTo(next, .5); setAnnouncement(label); }}
         onSpinStart={() => { stopGlide(); setActiveDrag(true); }}
         onSpin={(dx, dy) => { const next = orbitCamera({ yaw: yawMv.get(), pitch: pitchMv.get() }, dx * 1.7, dy * 1.7); commitView(next); }}
@@ -2744,10 +3264,30 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
       {/* The sum the stage builds, and the field it ends on: named whenever they are the stage's result. */}
       {/* While the pairs go in, the sum is named once it is long enough to carry its name clear of P's: a first
           pair's share is a stub beside P, and its name stood on P's own. */}
-      {netShown && <g className="cd-sum-arrow" data-sum-arrow="true"><Vector from={P} to={plus(P, net)} width={3.5} label={finished ? 'E' : pairNow && Math.hypot(net.x, net.y) < 34 ? undefined : '\u03a3 \u0394E'} side={awayFrom(net, toCharge)} reduced={still} ghost={inSpace} keep={!building || building === 'add' || building === 'limit'} priority={building === 'add' || building === 'limit' ? 2 : 1} clip={plotClip} /></g>}
+      {/* By the name's own size: on a phone it is half as large again, and a sum just long enough at the desktop's
+          size centred its name back over P's. And while the pairs go in, on the side of the arrow away from P's name --
+          past its tip is where the pair arrives. */}
+      {/* Kept, but not while a pair is going in: then the sum is short, its name's spots are the pair's, and with nowhere
+          free it was set on P's own name. It is named as soon as there is room, and kept once the pairs are all in. */}
+      {netShown && <g className="cd-sum-arrow" data-sum-arrow="true"><Vector from={P} to={plus(P, net)} width={3.5} vector label={finished ? 'E' : pairNow && Math.hypot(net.x, net.y) < 34 * labelScale ? undefined : '\u03a3 \u0394E'} side={awayFrom(net, toCharge) ?? (pairNow ? awayFrom(net, { x: pLabel.dx, y: pLabel.dy }) : undefined)} reduced={still} ghost={inSpace} keep={!building || (building === 'add' && !pairNow) || building === 'limit'} priority={building === 'add' || building === 'limit' ? 2 : 1} clip={plotClip} /></g>}
+      {/* Where the held scale took the sum past the frame, a break across its shaft near the head, as a drawing marks
+          a length too long for its sheet: two slashes with the shaft gone between them (see `netCut`). */}
+      {netShown && netCut < 1 && (() => {
+        const len = Math.hypot(net.x, net.y), u = { x: net.x / len, y: net.y / len }, slant = { x: -u.y * .85 + u.x * .5, y: u.x * .85 + u.y * .5 };
+        // As large as the names on a phone, where the drawing is set at half the size against them.
+        const k = labelScale, at = (d: number, s: number) => `${(P.x + u.x * d + slant.x * s * k).toFixed(1)} ${(P.y + u.y * d + slant.y * s * k).toFixed(1)}`, d = len - 26 * k, g = 5 * k;
+        return <g className="cd-sum-cut" data-sum-cut={netCut.toFixed(3)} aria-hidden="true" clipPath={plotClip}>
+          <path d={`M${at(d, 6.5)}L${at(d, -6.5)}L${at(d - g, -6.5)}L${at(d - g, 6.5)}Z`} fill="var(--diagram)" />
+          <path d={`M${at(d, 7.5)}L${at(d, -7.5)}M${at(d - g, 7.5)}L${at(d - g, -7.5)}`} fill="none" stroke="var(--field)" strokeWidth={1.6 * k} strokeLinecap="round" /></g>;
+      })()}
       {/* Each pair's share of the sum, marked across its arrow. */}
-      {netShown && pairTicks && <path className="cd-pair-ticks" data-pair-ticks={String((pairTicks.match(/M/g) ?? []).length)} d={pairTicks} fill="none" clipPath={plotClip} style={build?.key === 'limit' ? { opacity: clamp((1 - continuum) / .7, 0, 1) } : undefined} />}
-      {netShown && trueField && <g className="cd-true-field" data-true-field="true"><Vector from={P} to={plus(P, trueField)} width={2.2} label="E" at="tip" reduced={still} fade={.8} clip={plotClip} /></g>}
+      {netShown && pairTicks.d && <path className="cd-pair-ticks" data-pair-ticks={String((pairTicks.d.match(/M/g) ?? []).length)} d={pairTicks.d} fill="none" clipPath={plotClip} style={build?.key === 'limit' ? { opacity: clamp((1 - continuum) / .7, 0, 1) } : undefined} />}
+      {/* Where the sum went before the far pairs brought it back: see `pairTicks`. */}
+      {netShown && pairTicks.ghost && <g className="cd-pair-overshoot" data-pair-overshoot={String((pairTicks.ghostTicks.match(/M/g) ?? []).length)} clipPath={plotClip} style={build?.key === 'limit' ? { opacity: clamp((1 - continuum) / .7, 0, 1) } : undefined}>
+        <path className="cd-pair-overshoot-line" d={pairTicks.ghost} fill="none" /><path className="cd-pair-overshoot-ticks" d={pairTicks.ghostTicks} fill="none" /></g>}
+      {netShown && trueField && <g className="cd-true-field" data-true-field="true">
+        {trueOffset && <path className="cd-true-field-ends" d={[P, plus(P, trueField)].map(q => `M${q.x.toFixed(1)} ${q.y.toFixed(1)}l${(trueOffset.x * 1.4).toFixed(1)} ${(trueOffset.y * 1.4).toFixed(1)}`).join('')} />}
+        <Vector from={trueFrom} to={plus(trueFrom, trueField)} width={2.2} vector label="E" at="tip" reduced={still} fade={.8} clip={plotClip} keep priority={2} /></g>}
       {/* "E = 0" only where the arrow it stands for is the field: the finished integral, or a sum of
           every piece. At the start of "Add them up" the sum is empty, and an empty sum is not a field
           of zero -- it printed "E = 0" beside P on every field lesson, where the field is not. */}
@@ -2781,7 +3321,7 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
             ? <rect className="cd-stack-fill" x={gauge.x} width={gauge.w} {...gauge.box(0, gauge.got)} />
             : gauge.filled.map(sl => <rect key={sl.i} className={'cd-stack-fill' + (gauge.lit.has(sl.i) ? ' is-lit' : '')} x={gauge.x} width={gauge.w} {...gauge.box(sl.lo, sl.hi)} />))}
           {!summing && showContribution && gauge.litRuns.map(run => <rect key={run.key} data-stack-lit={run.key} className="cd-stack-fill is-lit" x={gauge.x} width={gauge.w} {...gauge.box(run.lo, run.hi)} />)}
-          <text className={gauge.name === '\u03a3 \u0394V' ? 'is-sum' : undefined} x={gauge.leftSide ? gauge.x - 7 : gauge.x + gauge.w + 7} textAnchor={gauge.leftSide ? 'end' : 'start'} y={gauge.beside ? P.y - gauge.top + .3 * SYM * labelScale : gauge.up ? P.y - Math.max(12, gauge.top) - 6 : P.y - Math.min(-12, gauge.top) + 16}
+          <text className={gauge.name === '\u03a3 \u0394V' ? 'is-sum' : undefined} x={gauge.leftSide ? gauge.x - 7 : gauge.x + gauge.w + 7} textAnchor={gauge.leftSide ? 'end' : 'start'} y={gauge.nameY}
             data-gauge-name="true" data-within={`0 ${P.y.toFixed(1)} 0 ${gauge.up ? -1 : 1}`} {...(gauge.name === '\u03a3 \u0394V' && hideAnswer ? {} : { 'data-keep': 'true', 'data-priority': 2 })}>{setUpright(gauge.name)}</text>
         </g>}
       {/* Leaders for names the placer had to take past their reach: filled by the placer, never by React. */}
@@ -2794,9 +3334,9 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
             the ring. */}
         {pLabel.leader && <line className="cd-point-leader" x1={pLabel.leader.from.x.toFixed(1)} y1={pLabel.leader.from.y.toFixed(1)} x2={pLabel.leader.to.x.toFixed(1)} y2={pLabel.leader.to.y.toFixed(1)} />}
         <text data-orbit-p="true" data-dx={pLabel.dx.toFixed(2)} data-dy={pLabel.dy.toFixed(2)} x={P.x + pLabel.dx} y={P.y + pLabel.dy} textAnchor={pLabel.anchor} className="cd-point-label" data-leader={pLabel.leader ? 'true' : undefined} data-hold={`${P.x.toFixed(1)} ${P.y.toFixed(1)}`}
-          data-priority="3" data-keep="true" data-mirror={pLabel.mirror ? `${P.x.toFixed(1)} ${P.y.toFixed(1)}` : undefined} data-alt={pLabel.alternates || undefined}>{id === 'arc' ? <>P = <tspan className="cd-origin-o">O</tspan></> : 'P'}</text>
+          data-priority="3" data-keep="true" data-mirror={pLabel.mirror ? `${P.x.toFixed(1)} ${P.y.toFixed(1)}` : undefined} data-alt={pLabel.alternates || undefined}>{id === 'arc' && !pPlain ? <>P = <tspan className="cd-origin-o">O</tspan></> : 'P'}</text>
       </g>
-      {(showContribution || building === 'pieces' || highlight === 'element') && <g className="cd-source-tag"><line x1={source.x} y1={source.y} x2={source.x+(source.x>560?-22:22)} y2={source.y+(source.y<95?22:-20)} /><text data-leader="true" data-leader-from={`${source.x.toFixed(1)} ${source.y.toFixed(1)}`} data-within={tagWithin} x={source.x+(source.x>560?-27:27)} y={source.y+(source.y<95?27:-21)} textAnchor={source.x>560?'end':'start'} data-alt={tagAlternates} {...(stageCancel ? { 'data-priority': 1 } : termAttrs(building === 'pieces' || stageOne || building === 'add' || building === 'limit' || highlight === 'element'))}>{sourceVisible ? (surface ? <><tspan className="cd-word">ring </tspan><SymbolText symbol={elementSymbol} /></> : <SymbolText symbol={elementSymbol} />) : <><SymbolText symbol={elementSymbol} /><tspan className="cd-word"> outside view</tspan></>}</text></g>}
+      {(showContribution || building === 'pieces' || highlight === 'element') && <g className="cd-source-tag"><line x1={source.x} y1={source.y} x2={source.x+(source.x>560?-22:22)} y2={source.y+(source.y<95?22:-20)} /><text data-leader="true" data-leader-from={`${source.x.toFixed(1)} ${source.y.toFixed(1)}`} data-within={tagWithin} x={source.x+(source.x>560?-27:27)} y={source.y+(source.y<95?27:-21)} textAnchor={source.x>560?'end':'start'} data-alt={tagAlternates} {...(stageCancel ? termAttrs(true) : termAttrs(building === 'pieces' || stageOne || building === 'add' || building === 'limit' || highlight === 'element'))}>{sourceVisible ? (surface ? <><tspan className="cd-word">ring </tspan><SymbolText symbol={elementSymbol} /></> : <SymbolText symbol={elementSymbol} />) : <><SymbolText symbol={elementSymbol} /><tspan className="cd-word"> outside view</tspan></>}</text></g>}
       {/* THE LIMITS OF INTEGRATION, named as the lesson writes them -- -L/2 and L/2, 0 and 2pi -- and
           only while a handle sits on a limit: dragged in, it is wherever the reader put it, which has
           no name. They used to be "a" and "b" everywhere, which on the rod seen along its axis is
@@ -2813,7 +3353,7 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
         {pieceAngle.node}
       </g>}
       {/* The triangle the distance and the angle are read off: see `triangle` above. */}
-      {triangle && <g className="cd-triangle">
+      {triangle && <g className="cd-triangle" data-kind={triangle.kind}>
         {triangle.kind === 'schematic' && (() => { const { zSpot, baseSpot, riSpot, top, corner, end } = triangle;
           // The angle at the top, inside it, centred where the wedge is wide enough to hold it: the wedge
           // there opens at half the top angle, whose tangent is the foot over the height, 81 over 62.
@@ -2831,7 +3371,7 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
             <text x={zSpot.x.toFixed(1)} y={zSpot.y.toFixed(1)} textAnchor={zSpot.anchor} data-mirror={mid(top, corner)} data-within={`${corner.x.toFixed(1)} 0 -1 0`} {...GIVEN}>z</text>
             <text x={baseSpot.x.toFixed(1)} y={baseSpot.y.toFixed(1)} textAnchor={baseSpot.anchor} data-mirror={mid(corner, end)} data-within={`0 ${corner.y.toFixed(1)} 0 1`} {...GIVEN}>{surface ? 's' : 'R'}</text>
             <text x={riSpot.x.toFixed(1)} y={riSpot.y.toFixed(1)} textAnchor={riSpot.anchor} data-mirror={mid(top, end)} data-within={`${top.x.toFixed(1)} ${top.y.toFixed(1)} ${slope.x.toFixed(3)} ${slope.y.toFixed(3)}`} className="cd-ri" {...termAttrs(distanceTerm)}><SymbolText symbol="r_i" /></text>
-            {!scalar && <text className="cd-angle" x={alpha.x.toFixed(1)} y={alpha.y.toFixed(1)} textAnchor="middle" data-anchor="fixed" {...(stageCancel ? termAttrs(true) : GIVEN)}>α</text>}
+            {!scalar && <text className="cd-angle" x={alpha.x.toFixed(1)} y={alpha.y.toFixed(1)} textAnchor="middle" data-anchor="fixed" {...(stageCancel ? termAttrs(true) : GIVEN)}>{setUpright('α')}</text>}
             <text x={corner.x.toFixed(1)} y={(baseSpot.y + 18).toFixed(1)} className="cd-triangle-note">Same triangle · not to scale</text>
 
           </>; })()}
@@ -2839,13 +3379,14 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
         {triangle.kind === 'arc' && <><line x1={P.x} y1={P.y} x2={selectedPoint.x} y2={selectedPoint.y}/>{triangle.mark?.node}
           {/* The line from the piece to P is r_i, and on the arc every r_i is R: the board writes the field
               with r_i, and the figure drew the line unnamed. On the side of it away from θ. */}
-          {triangle.riSpot && <text x={triangle.riSpot.x.toFixed(1)} y={triangle.riSpot.y.toFixed(1)} textAnchor={triangle.riSpot.anchor} data-mirror={`${triangle.hyp.x.toFixed(1)} ${triangle.hyp.y.toFixed(1)}`} className="cd-ri" {...(stageOne ? termAttrs(true) : { 'data-priority': 1 })}><SymbolText symbol="r_i" tail=" = R" /></text>}</>}
+          {/* Kept in What cancels as well, whose line is written in r_i: it was hidden there at every setting. */}
+          {triangle.riSpot && <text x={triangle.riSpot.x.toFixed(1)} y={triangle.riSpot.y.toFixed(1)} textAnchor={triangle.riSpot.anchor} data-mirror={`${triangle.hyp.x.toFixed(1)} ${triangle.hyp.y.toFixed(1)}`} className="cd-ri" {...(stageOne || stageCancel ? termAttrs(true) : { 'data-priority': 1 })}><SymbolText symbol="r_i" tail=" = R" /></text>}</>}
         {triangle.kind === 'axial' && (() => { const { a, b, o } = triangle;
           return <>
-            {a.x - o.x > 14 && <g data-piece-coordinate="true"><path className="cd-x-bar" d={`M${o.x.toFixed(1)} ${o.y.toFixed(1)}L${a.x.toFixed(1)} ${a.y.toFixed(1)}M${o.x.toFixed(1)} ${(o.y - 4).toFixed(1)}v8`} />
-              <text x={((o.x + a.x) / 2).toFixed(1)} y={(a.y - 8 - .39 * termSize).toFixed(1)} textAnchor="middle" data-mirror={`${((o.x + a.x) / 2).toFixed(1)} ${a.y.toFixed(1)}`} data-within={`0 ${(O.y - rodHalf).toFixed(1)} 0 -1`} {...(stageOne ? termAttrs(true) : GIVEN)}>x</text></g>}
-            <path className="cd-ri-bar" d={`M${a.x.toFixed(1)} ${a.y.toFixed(1)}L${b.x.toFixed(1)} ${b.y.toFixed(1)}M${a.x.toFixed(1)} ${(a.y - 4).toFixed(1)}v8M${b.x.toFixed(1)} ${(b.y - 4).toFixed(1)}v8`} />
-            <text x={((a.x + b.x) / 2).toFixed(1)} y={(a.y - 8 - .39 * termSize).toFixed(1)} textAnchor="middle" data-mirror={`${((a.x + b.x) / 2).toFixed(1)} ${a.y.toFixed(1)}`} {...termAttrs(distanceTerm)}><SymbolText symbol="r_i" tail=" = L + a − x" /></text>
+            {triangle.xShown && <g data-piece-coordinate="true"><path className="cd-x-bar" d={triangle.xBar} />
+              <text x={triangle.xName.x.toFixed(1)} y={triangle.xName.y.toFixed(1)} textAnchor={triangle.xName.anchor} data-mirror={`${((o.x + a.x) / 2).toFixed(1)} ${((o.y + a.y) / 2).toFixed(1)}`} data-within={triangle.xWithin} {...(stageOne ? termAttrs(true) : GIVEN)}>x</text></g>}
+            <path className="cd-ri-bar" d={triangle.riBar} />
+            <text x={triangle.riName.x.toFixed(1)} y={triangle.riName.y.toFixed(1)} textAnchor={triangle.riName.anchor} data-mirror={`${((a.x + b.x) / 2).toFixed(1)} ${((a.y + b.y) / 2).toFixed(1)}`} {...termAttrs(distanceTerm)}><SymbolText symbol="r_i" tail=" = L + a − x" /></text>
           </>; })()}
         {triangle.kind === 'rod' && (() => { const { start, foot, met, extension, square, riSpot, hyp, legMid, legSpot, legAlt, legWithin, legLength, flat, mark, hasLeg, baseMid, rSpot, rAlt, rWithin } = triangle;
           return <>
@@ -2854,10 +3395,14 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
             {square && <path className="cd-right-angle" d={square} />}
             <text x={riSpot.x.toFixed(1)} y={riSpot.y.toFixed(1)} textAnchor={riSpot.anchor} data-mirror={`${hyp.x.toFixed(1)} ${hyp.y.toFixed(1)}`} data-within={legWithin} className="cd-ri" {...termAttrs(distanceTerm)}><SymbolText symbol="r_i" /></text>
             {legLength > 14 && <text x={legSpot.x.toFixed(1)} y={legSpot.y.toFixed(1)} textAnchor={legSpot.anchor} data-mirror={`${legMid.x.toFixed(1)} ${legMid.y.toFixed(1)}`}
-              data-alt={legAlt} data-within={legWithin} {...(distanceTerm ? termAttrs(true) : { 'data-priority': 1 })}>{flat ? 'x' : 'y'}</text>}
-            {rOnLeg && hasLeg && <text x={rSpot.x.toFixed(1)} y={rSpot.y.toFixed(1)} textAnchor={rSpot.anchor} data-dim="distance" data-mirror={`${baseMid.x.toFixed(1)} ${baseMid.y.toFixed(1)}`} data-alt={rAlt} data-within={rWithin} {...GIVEN}>r</text>}
+              data-alt={legAlt} data-within={legWithin} data-shaft={lineOf(start, foot)} {...(distanceTerm ? termAttrs(true) : { 'data-priority': 1 })}>{flat ? 'x' : 'y'}</text>}
+            {/* Each leg's letter held to its own leg, as a dimension's is to its bar: with P close in, the r leg is a few
+                units long, and r stood beside the y leg and y beside ΔE_y, each read as the other's name. */}
+            {rOnLeg && hasLeg && <text x={rSpot.x.toFixed(1)} y={rSpot.y.toFixed(1)} textAnchor={rSpot.anchor} data-dim="distance" data-mirror={`${baseMid.x.toFixed(1)} ${baseMid.y.toFixed(1)}`} data-alt={rAlt} data-within={rWithin} data-shaft={lineOf(foot, P)} {...GIVEN}>r</text>}
             {mark?.node}
           </>; })()}
+        {/* After the triangle's own, which is the angle's first mark: this one repeats it. */}
+        {twinAngle && <g className="cd-angle-twin" data-angle-twin="true">{twinAngle.node}</g>}
       </g>}
       {/* r_i on the line from P to the piece, in its own group: it is the scene's, not the schematic's. */}
       {triangle?.kind === 'schematic' && triangle.riOnLine && <g className="cd-ri-line">
@@ -2867,19 +3412,24 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
       {/* THE CHARGE'S OWN MARKS, painted over the construction and the triangle rather than under them,
           each with a thin ring of the ground colour: a dashed stroke laid through a + turned it into a
           minus sign. Their size goes with the labels', so on a phone they are still marks. */}
-      {rodLike && <g data-dim="charge" className="cd-plus" aria-hidden="true">{chargeMarks.map(v => <text key={v} className={onFill(v) ? 'is-on-fill' : undefined} x={upright ? O.x : v} y={(upright ? v : O.y) + 4.5 * labelScale} textAnchor="middle">{p.charge < 0 ? '\u2212' : '+'}</text>)}</g>}
+      {/* Not under a limit's handle: the last + at each end of the rod stood half under it. */}
+      {rodLike && <g data-dim="charge" className="cd-plus" aria-hidden="true">{chargeMarks.filter(v => !bounds.some(b => b.mark && !b.edge && Math.hypot((upright ? O.x : v) - b.at.x, (upright ? v : O.y) - b.at.y) < 13 * labelScale)).map(v => <text key={v} className={onFill(v) ? 'is-on-fill' : undefined} x={upright ? O.x : v} y={(upright ? v : O.y) + 4.5 * labelScale} textAnchor="middle">{p.charge < 0 ? '\u2212' : '+'}</text>)}</g>}
       {/* The arc's sign, as the rods carry theirs: one mark on each piece's middle, fewer where the pieces are too
           short to hold one each. It carried none, and on the arc's potential the column's direction -- up from P
           or down -- depends on a sign nothing on the figure gave. */}
       {arcMarks.length > 0 && <g data-dim="charge" className="cd-plus" aria-hidden="true">{arcMarks.map(m => <text key={m.key} className={m.lit ? 'is-on-fill' : undefined} x={m.at.x.toFixed(1)} y={(m.at.y + 4.5 * labelScale).toFixed(1)} textAnchor="middle">{p.charge < 0 ? '\u2212' : '+'}</text>)}</g>}
       {/* The limits' handles, painted over the charge's marks: a + printed on a handle read as a mark of
           the handle's. */}
-      {mode === 'integrate' && onBoundRangeChange && bounds.map(b => <g key={b.key} {...handle(b.handle)} className={'cd-bound' + (b.edge ? ' is-edge' : '')} data-bound={b.key}>
+      {handlesShown && bounds.map(b => <g key={b.key} {...handle(b.handle)} className={'cd-bound' + (b.edge && b.mark ? ' is-edge' : '')} data-bound={b.key}>
         <circle cx={b.at.x} cy={b.at.y} r="17" fill="transparent" />
-        {b.edge ? <path d={b.edge} /> : <rect x={b.at.x-7} y={b.at.y-7} width="14" height="14" rx="3.5" />}
+        {b.mark && (b.edge ? <path d={b.edge} /> : <rect x={b.at.x-7} y={b.at.y-7} width="14" height="14" rx="3.5" />)}
         {/* The stage that sets the limits keeps their names: the placer may move them, never drop them. */}
-        {b.name && <text x={b.label.x} y={b.label.y} textAnchor={b.label.anchor} data-alt={b.alt} {...(building === 'limit' ? { 'data-priority': 2, 'data-keep': 'true' } : { 'data-priority': 0 })} data-mirror={`${b.at.x.toFixed(1)} ${b.at.y.toFixed(1)}`}>{b.name}</text>}
+        {b.name && <text x={b.label.x} y={b.label.y} textAnchor={b.label.anchor} data-alt={b.alt} {...(building === 'limit' ? { 'data-priority': 2, 'data-keep': 'true' } : { 'data-priority': 0 })} data-mirror={`${b.at.x.toFixed(1)} ${b.at.y.toFixed(1)}`}>{setUpright(b.name)}</text>}
       </g>)}
+      {/* ...and in Add them up, the same names with no handle: see `rangeNamed`. */}
+      {rangeNamed && bounds.map(b => b.name ? <g key={b.key} className="cd-bound cd-bound-name" data-bound-name={b.key}>
+        <text x={b.label.x} y={b.label.y} textAnchor={b.label.anchor} data-alt={b.alt} data-priority={2} data-keep="true" data-mirror={`${b.at.x.toFixed(1)} ${b.at.y.toFixed(1)}`}>{setUpright(b.name)}</text>
+      </g> : null)}
       <line x1="30" y1="387" x2="690" y2="387" className="cd-divider" />
       <text x="30" y="409" className="cd-footer cd-footer-math"><SymbolText symbol={sourceLabel.symbol} tail={sourceLabel.tail} /></text>
       {build && <text key={build.key} data-anchor="fixed" data-build-stage={build.key} className="cd-stage-label" x="360" y="34" textAnchor="middle">{build.name}</text>}
@@ -2899,7 +3449,7 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
         stands between the reader and the charge any more. */}
     <div className="cd-toolbar">
     <div className="cd-view-modes" role="group" aria-label="How to view the figure">
-      {([['2D', false], ['3D', true]] as const).map(([label, wants]) => <button key={label} type="button" title={wants ? 'In space: drag, scroll or use the arrow keys to turn it' : 'Flat, looking straight down the axis'}
+      {([['2D', false], ['3D', true]] as const).map(([label, wants]) => <button key={label} type="button" disabled={wants && noScene} title={wants && noScene ? 'The 3D view is not available on this device' : wants ? 'In space: drag, scroll or use the arrow keys to turn it' : 'Flat, looking straight down the axis'}
         className={`cd-view-mode${inSpace === wants ? ' is-on' : ''}`} aria-pressed={inSpace === wants}
         onClick={() => {
           if (wants === inSpace) return;
@@ -2924,9 +3474,11 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
       <button type="button" className="cd-pad-key" title="Zoom in (plus key, or scroll)" aria-label="Zoom in" onKeyDown={viewKeys} onClick={() => zoomBy(1.18)} disabled={zoom >= zoomCeiling - 1e-6}>+</button>
       <button type="button" className="text-button cd-orbit-reset" onKeyDown={viewKeys} onClick={resetView} disabled={zoom === 1 && camera.yaw === opening.yaw && camera.pitch === opening.pitch}>Reset view</button>
     </div>
+    {/* An <output>: a status, announced as it appears. */}
+    {noScene && <output className="cd-stage-unavailable">The 3D view is not available on this device.</output>}
     </div>
     <div className="cd-caption"><span>{sourceText}</span>
-    <details className="cd-controls" open={!compact}><summary>Keyboard help</summary>{/* A footnote on the caption line, not a fourth section. It used to be called "Diagram controls", which promised a second control panel and delivered the sliders the page already carries -- so a reader who opened it found the distance slider twice and concluded one of them was a different thing. It is the keyboard and screen-reader path: name it that, and the duplicates read as what they are, the same controls reachable another way. The drawn legend says how to turn and zoom; this says what a drawing cannot -- what Tab reaches, what Home and End do -- and says it to a reader who cannot see the legend at all. */}<p id={`${uid}help`}>The same controls the figure and the page carry, reachable from the keyboard — not a second set. Tab moves between them; arrow keys adjust one, Home and End take it to its limits. P and the integration bounds also drag in the figure.{inSpace?' The figure takes focus too: arrow keys turn it, plus and minus zoom, Home puts it back.':''}</p>
+    <details className="cd-controls" open={!compact}><summary>Keyboard help</summary>{/* A footnote on the caption line, not a fourth section. It used to be called "Diagram controls", which promised a second control panel and delivered the sliders the page already carries -- so a reader who opened it found the distance slider twice and concluded one of them was a different thing. It is the keyboard and screen-reader path: name it that, and the duplicates read as what they are, the same controls reachable another way. The drawn legend says how to turn and zoom; this says what a drawing cannot -- what Tab reaches, what Home and End do -- and says it to a reader who cannot see the legend at all. */}<p id={`${uid}help`}>The same controls the figure and the page carry, reachable from the keyboard — not a second set. Tab moves between them; arrow keys adjust one, Home and End (Search with ← and → on a Chromebook) take it to its limits. P and the integration bounds also drag in the figure.{inSpace?' The figure takes focus too: arrow keys turn it, plus and minus zoom, Home puts it back.':''}</p>
     <div className="cd-control-grid">
       {inSpace&&<button ref={cameraControl} type="button" className="cd-camera-control" aria-describedby={`${uid}camera-help`} onKeyDown={ev=>{if(['+','=','-','_'].includes(ev.key)){ev.preventDefault();zoomBy(ev.key==='-'||ev.key==='_'?1/1.18:1.18);}else if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Home'].includes(ev.key)){ev.preventDefault();if(ev.key==='Home')setZoom(1);nudge(ev.key);}}} onClick={resetView}>Rotate view with arrow keys<span id={`${uid}camera-help`}>Left/right rotate; up/down tilt; Home or Enter resets.</span></button>}
       <label>Which piece is drawn<input type="range" aria-label="Selected charge element" min={0} max={n-1} step={1} value={selectedIndex} onChange={ev=>onSelect(Number(ev.target.value))}/></label>

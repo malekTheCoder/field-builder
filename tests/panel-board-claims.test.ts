@@ -80,7 +80,7 @@ describe('a potential with a mirror says why nothing cancels', () => {
   it('the same distance, the same sign, and a number has no sideways part', () => {
     for (const id of ['v-rod-bisector', 'v-ring', 'v-arc']) {
       const nothing = step(id, 'cancel').nothing!;
-      expect(nothing, id).toMatch(/just as far away and its charge has the same sign, so it adds the same \$\\Delta V\$: nothing cancels, since a number has no sideways part\.$/);
+      expect(nothing, id).toMatch(/just as far away and its charge has the same sign, so it adds the same \$\\Delta V\$: nothing cancels, since a number has no sideways part, and \$\\Delta V\$ stays as One (piece|ring) wrote it\.$/);
     }
   });
   it('k is defined after the "over r_i", so the dash never reads as k over r_i', () => {
@@ -150,7 +150,7 @@ describe('an exact sum needs no integral, and the board says why it gets one any
   it('the shared factor comes out of the sum; shrinking is Δθ → dθ, and ∫dθ gives what ΣΔθᵢ gave', () => {
     for (const p of PROBLEMS.filter(exactSum)) {
       const add = step(p.id, 'add').say!, limit = step(p.id, 'limit').say!;
-      expect(add, p.id).toMatch(/is the same in every term and comes out of the sum, and \$\\sum_i\\Delta Q_i\$ is the whole charge \$Q\$\. The answer needs no integral\./);
+      expect(add, p.id).toMatch(/(is the same in every term and comes out of the sum|every \$r_i\$ is the same, .* comes out of the sum), and \$\\sum_i\\Delta Q_i\$ is the whole charge \$Q\$\. The answer needs no integral\./);
       expect(limit, p.id).toMatch(/^Make the pieces thinner without end, \$N\\to\\infty\$: each \$\\Delta ?\\theta\$ becomes \$d\\theta\$/);
       expect(limit, p.id).toContain(String.raw`just as $\sum_i\Delta\theta_i$ did`);
       expect(limit, p.id).not.toMatch(/So the sum/);
@@ -186,7 +186,7 @@ describe('small things said once, and said right', () => {
   });
   it('every cancellation ends on what it means for the whole field, and its symbols are named in a sentence', () => {
     for (const id of ['ring', 'disk', 'sheet']) expect(step(id, 'cancel').cancels, id).toMatch(/\\Rightarrow\\;\\mathbf E_\\perp=\\mathbf 0$/);
-    for (const id of ['bisector', 'infinite', 'arc']) expect(step(id, 'cancel').cancelsSay, id).toMatch(/^\$\\Delta E_y\$ is a piece’s part .*; its mirror piece makes \$-\\Delta E_y\$\.$/);
+    for (const id of ['bisector', 'infinite', 'arc']) expect(step(id, 'cancel').cancelsSay, id).toMatch(/^A piece’s part .* is \$\\Delta E_y\$; its mirror piece makes \$-\\Delta E_y\$\.$/);
   });
 });
 

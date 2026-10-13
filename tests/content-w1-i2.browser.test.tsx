@@ -116,53 +116,8 @@ describe('the thumbnail keeps P’s arrow inside its frame', () => {
     }
   });
 });
-describe('the tour’s sum is a closed polygon at P', () => {
-  const sumPage = async () => {
-    const view = render(<Onboarding open onClose={() => {}} />);
-    (view.baseElement.querySelector('[aria-label="Introduction page 4"]') as HTMLElement).click();
-    await frame();
-    return view;
-  };
-  it('the contributions run head to tail out of P, and the sum closes the chain', async () => {
-    const view = await sumPage();
-    const steps = [...view.baseElement.querySelectorAll('g.ob-piece path.ob-step')].map(p => /^M([\d.]+) ([\d.]+)L([\d.]+) ([\d.]+)$/.exec(p.getAttribute('d')!)!.slice(1).map(Number));
-    expect(steps[0].slice(0, 2), 'the chain starts at P').toEqual([215, 112]);
-    const added = view.baseElement.querySelectorAll('g.ob-piece.is-added').length;
-    const sum = /^M([\d.]+) ([\d.]+)l(-?[\d.]+) (-?[\d.]+)$/.exec(view.baseElement.querySelector('path.ob-sum')!.getAttribute('d')!)!.slice(1).map(Number);
-    const head = steps[added - 1].slice(2);
-    expect(sum[0] + sum[2], 'the sum ends at the head of the pieces added so far').toBeCloseTo(head[0], 1);
-    expect(sum[1] + sum[3]).toBeCloseTo(head[1], 1);
-  });
-  // The pieces once sat in one row up and to the left of P: every contribution pointed the same way
-  // and the chain was a sliver lying on its own sum, with nothing to count. On a rod spanning P's
-  // level the contributions swing through the horizontal, so the chain dips and comes back.
-  it('the chain visibly bows: it dips below P’s level and returns to it, link by visible link', async () => {
-    const view = await sumPage();
-    const steps = [...view.baseElement.querySelectorAll('g.ob-piece path.ob-step')].map(p => /^M([\d.]+) ([\d.]+)L([\d.]+) ([\d.]+)$/.exec(p.getAttribute('d')!)!.slice(1).map(Number));
-    const ys = steps.map(s => s[3]), lowest = Math.max(...ys), head = steps[steps.length - 1];
-    expect(lowest - 112, 'the dip, in figure units').toBeGreaterThan(30);
-    expect(head[3], 'the up and down parts cancel: the head is back at P’s level').toBeCloseTo(112, 0);
-    expect(head[2] - 215, 'the closing side runs along +x').toBeGreaterThan(150);
-    // The first pieces push down and the last push up: the contributions swing through the horizontal.
-    expect(steps[0][3] - steps[0][1]).toBeGreaterThan(0);
-    expect(head[3] - head[1]).toBeLessThan(0);
-    // Every link ends on a joint, as the run's own chain does, so the links can be counted.
-    expect(view.baseElement.querySelectorAll('g.ob-piece circle.ob-joint').length).toBe(steps.length);
-    // And every piece is marked positive, as the description says its field is.
-    expect([...view.baseElement.querySelectorAll('g.ob-piece text.ob-plus')].map(t => t.textContent)).toEqual(Array(12).fill('+'));
-  });
-  it('each label sits clear of the chain and the sum', async () => {
-    const view = await sumPage();
-    const slider = view.getByRole('slider', {name: 'Preview accumulated contributions'});
-    slider.focus(); await userEvent.keyboard('{End}'); await frame();
-    const strokes = [...view.baseElement.querySelectorAll<SVGPathElement>('path.ob-step, path.ob-sum')];
-    for (const label of view.baseElement.querySelectorAll<SVGTextElement>('.ob-visual text.ob-label')) {
-      const b = label.getBBox();
-      for (let x = b.x; x <= b.x + b.width; x += 2) for (let y = b.y; y <= b.y + b.height; y += 2)
-        for (const s of strokes) expect(s.isPointInStroke(new DOMPoint(x, y)), `“${label.textContent}” overlaps a stroke at ${x.toFixed(0)}, ${y.toFixed(0)}`).toBe(false);
-    }
-  });
-});
+// The tour's sum page no longer lays its contributions head to tail: it adds them in mirror pairs, as
+// the lessons' run does. Its tests are in tests/content-w4-tour.browser.test.tsx.
 describe('the tour’s figure on a phone', () => {
   it('holds its labels and plus marks near ten pixels, apart and inside the figure', async () => {
     await page.viewport(390, 844);
@@ -209,7 +164,7 @@ describe('the laws are set as displayed equations', () => {
   it('every headline law is in display style', () => {
     const {container} = render(<Laws />);
     const tex = [...container.querySelectorAll('.law-tex annotation')].map(a => a.textContent ?? '');
-    expect(tex.length).toBe(3);
+    expect(tex.length).toBe(4); // the three laws and the charge density (content-w4-laws)
     for (const t of tex) expect(t).toMatch(/^\\displaystyle /);
   });
 });

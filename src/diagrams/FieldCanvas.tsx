@@ -236,7 +236,7 @@ export function FieldCanvas({samples,project,frame,lines=15,mode='lines',reach=6
   // The offline copy: drawn now, in whatever theme the page has just been put in, then put back.
   const snapshot=(ev:Event)=>{
    cancelAnimationFrame(frameId);draw();
-   try{(ev as CustomEvent<SnapshotDetail>).detail.url=el.toDataURL('image/png');}catch{/* a tainted or lost canvas: the copy goes without its field */}
+   const asked=(ev as CustomEvent<SnapshotDetail>).detail;asked.drawn=true;if(!asked.drawOnly)try{asked.url=el.toDataURL('image/png');}catch{/* a tainted or lost canvas: the copy goes without its field */}
    frameId=requestAnimationFrame(draw);
   };
   host.addEventListener(SNAPSHOT_EVENT,snapshot);

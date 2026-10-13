@@ -31,8 +31,9 @@ describe('the offline copy prints the derivation the panel unfolds',()=>{
   expect(steps('semi')).not.toMatch(/u=x\^2\+r\^2/);
   expect(steps('arc')).not.toMatch(/Sine is odd/);
   expect(steps('axial')).not.toMatch(/the two minus signs cancel/);
-  // The disk's six: the constant out, u, the power rule, the bracket, then the lesson's own two.
-  expect(lessonWorking(getProblem('disk')).worked.length).toBe(DISK_UNFOLD.length+2);
+  // The disk's seven: the constant out, u, the power rule, the bracket, the lesson's own two, then the
+  // row in Q its answer ends on (the panel's DISK_Q).
+  expect(lessonWorking(getProblem('disk')).worked.length).toBe(DISK_UNFOLD.length+3);
   expect(steps('disk')).toContain('R^2+z^2');
  });
  it('on the finite-rod route the copy’s setup and integral are the route’s',()=>{
@@ -56,8 +57,12 @@ describe('the offline copy prints the derivation the panel unfolds',()=>{
    for(const l of p.limits)expect(html,`${p.id}/${l.id}`).toContain(`<h3>${l.title.replace(/&/g,'&amp;').replace(/</g,'&lt;')}</h3>`);
    expect(at('<h2>Sources</h2>'),p.id).toBeGreaterThan(at('<h2>Checks</h2>'));
    for(const s of p.sources)expect(html,`${p.id} ${s.title}`).toContain(`href="${s.url}"`);
+   // Said where the reader first meets k: the copy now builds the integral before printing it, and
+   // its One piece is the board's first line with k in it (content-w4-handout).
    const k=at('<p class="where">Here ');
-   expect(k,p.id).toBeGreaterThan(at('<h2>The integral'));
+   expect(k,p.id).toBeGreaterThan(at('<h3>One '));
+   expect(k,p.id).toBeLessThan(at('<h3>What cancels</h3>'));
+   expect(html.split('<p class="where">Here ').length-1,`${p.id}: said once`).toBe(1);
    if(at('<h2>Working</h2>')>=0)expect(k,`${p.id}: k is said before the working uses it`).toBeLessThan(at('<h2>Working</h2>'));
    expect(k,p.id).toBeLessThan(at('<h2>The result</h2>'));
   }

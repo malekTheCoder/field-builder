@@ -127,6 +127,16 @@
 .ew-lede{margin:0 0 16px;font-size:var(--type-meta);line-height:1.55;color:var(--muted-foreground);max-width:34ch;text-wrap:pretty}
 /* A screen that cannot hover cannot point at a symbol: a tap on one plays its step. */
 @media (hover:none){.ew-lede-hover{display:none}}
+/* THE PROBLEM, as a book sets one before its working: its name in the serif of the steps' names, the
+   statement in the remarks' face and size but in ink -- it is what the reader is given, not a gloss on it --
+   and a hairline between it and the derivation it sets. Its symbols are set as the remarks' are: inline, at
+   the words' size and a little up, a symbol held to its word and never broken inside. */
+.ew-problem{margin:0 0 18px;padding:0 0 16px;border-bottom:1px solid var(--surface-rule)}
+.ew-problem-title{margin:0 0 5px;font-family:var(--serif);font-size:15px;line-height:20px;font-weight:600;letter-spacing:-.003em;color:var(--foreground)}
+.ew-problem-text{margin:0;font-family:var(--font-geist-sans),Arial,sans-serif;font-size:14px;line-height:1.5;color:var(--foreground);text-wrap:pretty}
+.ew-problem-text .math{font-size:inherit;margin:0;padding-bottom:0}
+.ew-problem-text .db-sym .katex{font-size:1.1em}
+.ew-problem-text .db-held,.ew-problem-text .db-sym{white-space:nowrap}
 
 /* ---- the board ------------------------------------------------------ */
 /* A rail down the left joins the steps, the way a derivation is read: top
@@ -355,3 +365,6 @@
 /* The part's integral, done between the bracket's ends, and the second component's integral before the
    answer: set as the answer is, with the remark after it at the remark's spacing. */
 .ew-result>.ew-result-part,.ew-result>.ew-result-integral{margin:8px 0 4px}
+/* Why a potential is differentiated, said under the heading before the first derivative: set as a
+   worked step's own sentence is. */
+.ew-worked-why{margin:8px 0 0;font-size:var(--type-meta);line-height:1.6;color:var(--muted-foreground);text-wrap:pretty}

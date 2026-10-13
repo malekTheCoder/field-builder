@@ -10,34 +10,41 @@ Fifteen lessons are in the library, **all live**: ten field geometries and five 
 
 Open the live site. The explorer is the whole product: a figure, the integral being assembled beside it, and controls under both. Nothing is graded and nothing is scored — the site teaches, it does not test. Preferences stay in that browser’s local storage. There is no class roster, no cloud save, and no tracking.
 
-Two things to point students at first. **Watch it build** plays the derivation as one run: cut the charge into pieces, look at one, meet its mirror partner and watch the sideways halves cancel, add what survives head to tail, then shrink the pieces into the integral. **Walk me through the integral** steps the same figure term by term at the reader's own pace.
+Point students at the one button above the figure, **Watch it build**. It plays the derivation as one run of five stages, and the board beside the figure writes one line of algebra per stage:
+
+1. **Cut it up** — the charge cut into N pieces, each nearly a point charge.
+2. **One piece** — one piece's field at P, ΔE = kΔQ/rᵢ², along the line from the piece to P.
+3. **What cancels** — the piece's mirror partner, where it has one, and the sideways parts the two undo between them.
+4. **Add them up** — on the symmetric lessons (the finite and infinite lines, the ring, the arc) the pieces go in as **mirror pairs**, so the cancellation is seen and the sum grows straight along the axis; elsewhere the pieces' arrows add as a chain.
+5. **Shrink them** — the pieces made thinner without end: the sum becomes the integral, ΔQ becomes dQ, ≈ becomes =, and the answer arrives.
+
+The run can be paused, scrubbed, and stepped a stage at a time from the bar under the figure, from the board's own lines, or with a presenter's clicker; on a phone the bar also carries each stage's algebra.
 
 ### Share a lesson
 
-The address bar is the assignment. Paste a link and every student opens the same geometry, process tab, and parameters.
+The address is the assignment: every student who opens a link sees the same lesson with the same values. **Lesson tools (…) → Copy a link to this lesson** copies it, so a projector in full screen or a phone without an address bar can still share one. While Watch it build is open the address names the stage it is on, so pausing the ring at What cancels and copying the link sends exactly that.
 
-Example: [https://field.malekswilam.dev/?p=ring&mode=sum&r=2](https://field.malekswilam.dev/?p=ring&mode=sum&r=2)
+Example: [https://field.malekswilam.dev/?p=ring&r=2&stage=3](https://field.malekswilam.dev/?p=ring&r=2&stage=3) opens the ring with P at height 2, Watch it build held at the end of What cancels.
 
 | query | meaning |
 | --- | --- |
 | `p` (`problem`, `id`) | Lesson id: `bisector`, `axial`, `infinite`, `ring`, `disk`, `semi`, `arc`, `sheet`, `endpoint`, `ramp`, `v-ring`, `v-disk`, `v-arc`, `v-rod-bisector`, `v-rod-axial` |
-| `mode` | Process tab: `divide`, `project`, `sum`, or `integrate` |
-| `r` | Observation distance (also `distance`) |
-| `L` | Length or 2R (also `size`) |
-| `Q` | Charge or density slider (also `charge`) |
-| `N` | Starting piece count (also `slices`) |
-| `c` | Discrete→continuous morph, 0–1 (also `continuum`) |
-| `phi` | Arc opening angle, radians |
-| `pair=1` | Show the symmetric partner (field lessons) |
-| `components=1` | Resolve field contributions into components |
+| `stage` | Open Watch it build held on a stage's finished frame: `1`–`5`, or `cut`, `piece`, `cancel`, `add`, `shrink`. `stage=5` opens on the answer. |
+| `r` | Where P is: its distance r, its height z, or the end distance a (also `distance`) |
+| `L` | Length, or 2R on the ring, disk and arc (also `size`) |
+| `Q` | Charge or density, Q, λ, σ or λ₀ (also `charge`); never zero |
+| `N` | Number of pieces, or rings on the disk and sheet (also `slices`) |
+| `phi` | Arc opening angle in degrees: `phi=90` or `phi=90deg`; `phi=0.5pi` or `phi=pi/2` in multiples of π. A bare number up to 2π is read as radians, as the page wrote it before, so older links open as they did. |
 
-Unknown keys and unparsable numbers are ignored, as is a `p` naming a lesson that is not ready — a link handed out earlier does not open a page we have since decided is not fit to read. Numbers are clamped to the live slider ranges. A link with `p=` skips the first-visit tour for that load. Copying from the address bar may show `distance=2` instead of `r=2`; both open the same lesson.
+Unknown keys and unparsable values are ignored, as is a `p` naming a lesson that is not ready — a link handed out earlier does not open a page we have since decided is not fit to read. Numbers are held to the sliders' ranges, and a charge of zero to the lesson's own. A link opens the lesson with the values it gives and the defaults for the rest, never mixed with what a student had saved. The page rewrites the address in its own spelling (`distance=2` for `r=2`, `phi=90deg`); both open the same lesson.
+
+Older links may also carry `mode` (`divide`, `project`, `sum`, `integrate`), `pair=1` and `components=1`, which draw one of the run's pictures at rest; they still work, but `stage` shows the same picture with the board and the run beside it.
 
 ### Print or send an offline copy
 
-Printer and download icons sit in the **top-right header** of the explorer.
+Both are in the **Lesson tools (…)** menu at the top right, with Copy a link and the laws behind every lesson.
 
-- **Print this lesson** opens the browser print dialog. Chrome is hidden; the figure, title, and equations stay. Paper size is US letter.
+- **Print this lesson** opens the browser print dialog. The controls are left off; the figure, title, board and equations stay, with Limiting cases open every case prints under its own heading, and the board breaks between its steps. Paper size is US letter.
 - **Save an offline copy of this lesson** downloads a self-contained HTML file (`field-builder-<lesson>.html`). Equations are TeX source so the file remains readable without a network. Students can Print → Save as PDF from there.
 
 That HTML file is a printable snapshot of the open lesson.
@@ -45,9 +52,9 @@ That HTML file is a printable snapshot of the open lesson.
 ### Keyboard
 
 - **Walkthrough:** Tab stays inside the dialog. Escape returns focus to the Walkthrough button.
-- **Watch it build:** each stage marker is a button (`Stage 3: What cancels`), so the run can be stepped through from the keyboard. Landing on a stage lands on its first frame; **Play** carries on from there.
+- **Watch it build:** each stage marker is a button (`Stage 3: What cancels`), and the arrow keys move between them. Landing on a stage lands on its first frame; **Play** carries on from there. While the run is open, Space plays and pauses it, and Page Down and Page Up — what a presenter's clicker sends — step to the next stage and back while the figure is on screen.
 - **Sliders:** focusing one lights the feature it moves in the figure, the same as pointing at it.
-- **Diagram:** open **Diagram controls and keyboard help**. Tab between native range inputs (selected element, observation distance, integration bounds). Arrow keys nudge the focused control; Home and End jump to its limits. Ring, disk, and sheet views also rotate with arrow keys; Home resets the camera.
+- **Diagram:** open **Keyboard help** under the figure. Tab between native range inputs (selected element, observation distance, integration bounds). Arrow keys nudge the focused control; Home and End jump to its limits. Ring, disk, and sheet views also rotate with arrow keys; Home resets the camera.
 
 Touch works on the figure: drag point P and the integration-bound handles. Verified at phone (390×844) and tablet (768×1024) widths.
 
@@ -55,9 +62,9 @@ In 3D, a CAD-style **view cube** sits in the figure's corner: click a named face
 
 ### What the sliders do
 
-Each slider is named by its symbol, and **pointing at one lights the thing it moves** in the figure: `r` lights the gap out to P, `L` or `R` the bracket across the charge, `Q` the marks along the body, `φ` the arc's opening angle. Hovering and keyboard focus both do it.
+Each slider is named by its symbol, and **pointing at one lights the thing it moves** in the figure: `r` lights the gap out to P, `L` or `R` the bracket across the charge, `Q` the marks along the body, `φ` the arc's opening angle, `N` the pieces (the rings, on the disk, the sheet and the disk's potential). Hovering and keyboard focus both do it. The page prints no numbers; a screen reader reads each value with its unit.
 
-Charge, λ, and σ sliders (Q, Line density λ, Surface density σ, Peak density λ₀) run through zero to negative. A negative rod draws minus marks instead of plus.
+The charge sliders (Q, Line density λ, Surface density σ, Peak density λ₀) run from positive to negative but step over zero: with no charge there is no field and nothing for the run to say. A negative charge draws minus marks instead of plus, and every arrow turns round.
 
 ### The limit plot
 
@@ -65,17 +72,14 @@ Charge, λ, and σ sliders (Q, Line density λ, Surface density σ, Peak density
 
 ### Potential is a shorter path
 
-Field lessons still walk coordinates → charge element → one contribution → **symmetry / projection** → substitution → bounds → integration → sanity check.
-
-Potential lessons (`v-ring`, `v-disk`, `v-arc`, `v-rod-bisector`, `v-rod-axial`) skip symmetry and projection. Every dV is a scalar; nothing cancels by pairing. The explorer’s second process tab is **dV**, not Project, and the partner/component switches are absent. Ring, disk, and both rod potentials end with an optional **E = −∇V** step that recovers the matching field lesson. The arc potential has no gradient step: V = kQ/R for every opening angle, while the field does depend on φ.
+Potential lessons (`v-ring`, `v-disk`, `v-arc`, `v-rod-bisector`, `v-rod-axial`) run the same five stages, but every ΔV is a number with no direction: What cancels says that nothing cancels, and Add them up stacks the pieces' ΔV into a column beside P whose height is the sum. Ring, disk, and both rod potentials end their **Unfold the integration** with a **Differentiate back** step, E = −dV/dz on the ring and disk, −dV/dx on the rods, that recovers the matching field lesson. The arc potential has none: V = kQ/R for every opening angle, while the field does depend on φ.
 
 ## The fifteen lessons
 
 On the three unbounded geometries a piece is drawn as **one angle at P**: the partition is equal
 steps in θ, so an outer piece's charge lies hundreds of metres away, but the wedge it subtends at
 P is always on screen and can be clicked. On a potential lesson the pieces' contributions are
-**stacked into a column** beside P, the same head-to-tail sum as the field's chain of arrows with
-one dimension taken away.
+**stacked into a column** beside P: numbers, which add with no direction to cancel.
 
 **Field**
 
@@ -135,7 +139,7 @@ Source references are embedded in the problem definitions and shown with the wor
 
 ## Tests
 
-`npm test` currently runs **1608 passing tests** across **44 files**. One is skipped by design: the check that a shared link to a held-back lesson is ignored, which has nothing to point at while every lesson is live. They cover:
+`npm test` runs the unit suite in Node and the browser suite in Chromium. One test is skipped by design: the check that a shared link to a held-back lesson is ignored, which has nothing to point at while every lesson is live. They cover:
 
 - every closed form against independent point-charge quadrature, including the five potentials and both charge polarities;
 - the limiting cases the app asserts — rod to point charge, rod to infinite line, disk to sheet, zero field at a ring's center with its axial maximum at z = R/√2, a closing arc cancelling to zero, distance-independence of the sheet, ramp far-field and first-moment;

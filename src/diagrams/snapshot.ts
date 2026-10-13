@@ -10,10 +10,20 @@
  * whatever the screen is -- so whatever is on screen may be the wrong colours. The layer puts
  * its own picture back on the next frame. */
 export const SNAPSHOT_EVENT='field-builder:snapshot';
-export type SnapshotDetail={url?:string};
+/** `drawOnly`: the caller copies the canvas itself, in this same task, and wants no PNG; the layer then says
+ * only that it has `drawn`. */
+export type SnapshotDetail={url?:string;drawOnly?:boolean;drawn?:boolean};
 /** Ask a layer for its picture. Synchronous: the listener runs inside the dispatch. */
 export function snapshotLayer(el:Element):string|undefined{
  const detail:SnapshotDetail={};
  el.dispatchEvent(new CustomEvent<SnapshotDetail>(SNAPSHOT_EVENT,{detail}));
  return detail.url;
+}
+/** Ask a layer to draw itself afresh, now, and say whether it did -- for a caller that copies the canvas in the
+ * same task (the page, as it goes to paper). Printing asked for the picture and copied the canvas instead, so
+ * every layer encoded a PNG of itself, a page-sized one in WebGL, for nobody, in the moment before the print. */
+export function redrawLayer(el:Element):boolean{
+ const detail:SnapshotDetail={drawOnly:true};
+ el.dispatchEvent(new CustomEvent<SnapshotDetail>(SNAPSHOT_EVENT,{detail}));
+ return !!detail.drawn;
 }

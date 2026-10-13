@@ -2,7 +2,7 @@ import {describe,it,expect} from 'vitest';
 import {PROBLEMS,getProblem} from '../src/problems/definitions';
 import type {Problem} from '../src/problems/types';
 import {artifactHtml,escapeHtml,lessonArtifact,mathml} from '../src/state/artifact';
-import {resultLines} from '../src/workbench/derivation';
+import {boardLines,resultLines} from '../src/workbench/derivation';
 /* WAVE 2, THIRD PASS · CONTENT: THE HANDOUT'S ANSWER IS THE PAGE'S, IN ONE ORDER.
  *
  * The copy's "The result" went a step back from its own working: on the rod on its axis and the arc the
@@ -102,8 +102,12 @@ describe('each lesson’s working says what it does',()=>{
   expect(plain(last.text)).not.toMatch(/perpendicular components/);
   expect(last.tex).toContain(String.raw`\frac{\sqrt2\,k|\lambda|}{r}`);
  });
- it('the half line’s setup gives the field’s lean for either sign of λ',()=>{
-  expect(plain(getProblem('semi').setup)).toMatch(/leaning toward \$-x\$ for positive \$\\lambda\$ \(the opposite way for negative \$\\lambda\$\)/);
+ it('the half line’s board gives the field’s lean for either sign of λ',()=>{
+  // Said now where the board says why ΔE_x carries a minus, not in the problem, which keeps to the given, the
+  // axes, the angle and the Find.
+  const say=plain(boardLines(getProblem('semi')).find(l=>l.key==='cancel')!.say??'');
+  expect(say).toMatch(/For positive charge the part along the line points back past the end, toward \$-x\$/);
+  expect(say).toMatch(/hence the minus; for negative charge, toward \$\+x\$/);
  });
  it('the rod’s potential approximates far away as its own Check does, from the rod’s centre',()=>{
   const p=getProblem('v-rod-axial'),last=integrate(p).at(-1)!;

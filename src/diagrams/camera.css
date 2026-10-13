@@ -7,3 +7,8 @@
 .cd-orbit-reset:focus-visible{outline:2px solid var(--field,#67ded4);outline-offset:2px}
 .cd-orbit-reset:disabled{opacity:.35;cursor:default}
 @media(prefers-reduced-motion:reduce){.cd-orbit-reset{transition:none}}
+/* No WebGL here: 3D is off, said so in a line of its own under the toolbar (see ChargeDiagram's `noScene`).
+   The segment keeps its place in the control, greyed, so the reader sees what is missing rather than a
+   control that has quietly lost a button. */
+.cd-toolbar .cd-view-mode:disabled,.cd-toolbar .cd-view-mode:disabled:hover{background:none;color:var(--muted-foreground);opacity:.5;cursor:not-allowed}
+.cd-toolbar .cd-stage-unavailable{display:block;flex:1 1 100%;margin:0;color:var(--muted-foreground);font-size:var(--type-meta,13px);line-height:1.45}

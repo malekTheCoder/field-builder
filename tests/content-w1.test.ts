@@ -128,7 +128,7 @@ describe('v-ring’s confusions diagnose the expression, for either sign',()=>{
 describe('the words name what the algebra does',()=>{
  it('dE is one element’s field, signed with dQ, not a magnitude',()=>{
   for(const p of lessons)for(const f of fields(p))expect(f.label,p.id).not.toMatch(/Magnitude/);
-  expect(fields(getProblem('bisector')).find(f=>f.id==='field')!.label).toBe('One element’s field dE');
+  expect(fields(getProblem('bisector')).find(f=>f.id==='field')!.label).toBe('One piece’s field dE');
  });
  it('a disk is concentric rings in one plane, not a stack along the axis',()=>{
   expect(getProblem('disk').subtitle).toMatch(/concentric rings/);
@@ -219,7 +219,8 @@ describe('the laws page and the offline copy',()=>{
   expect(laws.match(/a ring whose every bit is the same distance from P/g)?.length,'the lede and Coulomb’s row').toBe(2);
   expect(laws).not.toMatch(/one piece of charge small enough to count as a point/);
   // Symbols only: k is defined, not approximated.
-  expect(laws).not.toMatch(/8\.99|\\approx/);
+  // The superposition row writes E ≈ Σ ΔE_i for pieces treated as points; what may never be ≈ is k.
+  expect(laws).not.toMatch(/8\.99|k\s*\\approx/);
   expect(laws).toMatch(/on a symmetry axis, where E has only its part along the axis, is a single derivative/);
  });
  it('the offline copy defines k where its formulas use it, and a potential lesson carries its field',()=>{

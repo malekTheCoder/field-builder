@@ -83,7 +83,7 @@ describe('a paused stage says each thing once', () => {
     const kids = [...body.children];
     const at = kids.findIndex(c => c.classList.contains('db-cancels'));
     expect(kids[at + 1].classList.contains('db-pair')).toBe(true);
-    expect(kids[at + 1].textContent).toMatch(/is a piece’s part along the rod; its mirror piece makes /);
+    expect(kids[at + 1].textContent).toMatch(/A piece’s part along the rod is .*; its mirror piece makes /);
     expect(kids[at + 1].querySelectorAll('.katex')).toHaveLength(2);
   });
 });
@@ -168,8 +168,9 @@ describe('the answer and the shelf speak as the board does', () => {
     expect(first.textContent).not.toMatch(/\$/);
     cleanup();
     const vdisk = panel('v-disk');
-    // The model note's relations are set as math, which never breaks inside: z > 0 is one formula.
-    expect([...vdisk.container.querySelectorAll('.ew-references-body p annotation')].map(a => a.textContent)).toContain('z>0');
+    // The problem's relations are set as math, which never breaks inside: z > 0 is one formula. (The problem
+    // opens the panel now, out of the closed disclosure it shared with the model note.)
+    expect([...vdisk.container.querySelectorAll('.ew-problem-text annotation')].map(a => a.textContent)).toContain('z>0');
     // A page that shows no numbers says nothing about their units.
     expect(vdisk.container.querySelector('.ew-references-body')!.textContent).not.toMatch(/Geometry uses/);
   });

@@ -105,6 +105,21 @@ export function gapDepth(behind:number,depth:number):number{
  const t=Math.min(1,Math.max(0,behind/depth));
  return t*t*(3-2*t);
 }
+/** HOW MUCH OF THE GAP A SURFACE TAKES, from how far P stands off it: `height` is P's distance from the plane
+ * in units of the figure. None while P is within the gap's outer radius of the plane, all of it from twice
+ * that, smoothly between. Only a surface's: an opaque wire is cut as before.
+ *
+ * The gap is for P well off the charge with the charge's far side brought up onto it on the screen. With P
+ * half a metre over a disk, the face under P on the screen is a few figure units behind it -- and the nearest,
+ * strongest charge there is: the inner fifth of the disk gives half of E at P. The gap whitened a patch the
+ * size of P's halo in the middle of a uniformly charged disk and the washer's far wall faded into it, so the
+ * charge that matters most was drawn as missing. P hovering close over the face now leaves it whole, in every
+ * view; P at its default height keeps the whole gap, in every view, the view from straight above included.
+ * (P's height on the SCREEN would not do: from straight above it is nothing at any height.) */
+export function gapLift(height:number):number{
+ const t=Math.min(1,Math.max(0,height/BEHIND_GAP.outer-1));
+ return t*t*(3-2*t);
+}
 /** How far behind P, in metres, the gap starts: twice the reach of P's halo (4.2 wire radii). Close under P
  * the charge is NEAR P, not behind it -- the sheet's smallest ring with P half a metre up is right under P on
  * the screen, and must stay. */
@@ -189,12 +204,19 @@ export const wireRadius=(reach:number)=>.036+.008*Math.min(3,reach/2);
 export const writesDepth=(kind:BodyKind)=>kind==='wire';
 /** An arrowhead's length and half-width, in metres, for an arrow `length` long with a shaft `thick`
  * in radius, where `px` metres is one unit of the figure's viewBox. At least seven shaft radii and
- * nine units of the figure long, so it reads at any zoom; never more than .45 of its arrow; and at
- * least half again as long as it is wide. The heads were cones about as long as they were wide, and
- * an arrow lying in the plane, seen from above, ended in a dot. */
-export function arrowHead(length:number,thick:number,px:number):{length:number;half:number}{
+ * nine units of the figure long, so it reads at any zoom; never more than .45 of its arrow, but for the
+ * floor below; and at least half again as long as it is wide. The heads were cones about as long as they
+ * were wide, and an arrow lying in the plane, seen from above, ended in a dot. */
+export function arrowHead(length:number,thick:number,px:number,screen:number=px):{length:number;half:number}{
  const l=Math.min(length*.45,Math.max(thick*7,9*px));
- return {length:l,half:Math.min(thick*2.2,l*.32)};
+ // A FLOOR FOR SHORT ARROWS, ON THE SCREEN. A head a fixed share of its arrow went to a smudge with it: a mirror pair
+ // going into the sum at thirty pieces is a dozen pixels long, and its head was five long and three wide on a desk,
+ // half that on a phone -- the width of the shaft, so the arrow read as a stub. So an arrow twelve screen pixels
+ // long or more (`screen` metres a pixel) keeps a head at least six long, up to half the arrow, reaching two and a
+ // half pixels each side of the shaft's line where that leaves it half again as long as wide: the flat figure's floor.
+ if(!(length>=12*screen))return {length:l,half:Math.min(thick*2.2,l*.32)};
+ const floor=Math.max(l,Math.min(6*screen,length*.5));
+ return {length:floor,half:Math.max(Math.min(thick*2.2,floor*.32),Math.min(2.5*screen,floor/3))};
 }
 /** How strongly each point of a field line is drawn: full near the charge, fading out by a little
  * past the field's reach -- measured from the CHARGE, not from O. From O, the field of an infinite
@@ -230,9 +252,10 @@ type Point3={x:number;y:number;z:number};
  * shows, at the same spacing however far it runs; `step` is the spacing a uniform wire would have, in
  * metres. The flat figure writes its marks the same way (see ChargeDiagram's chargeMarks); in space
  * those are hidden, and nothing else in the scene said what sign the charge was. */
-export function signMarks(samples:readonly ChargeSample[],window:number,step:number,most=28):Point3[]{
+export type SignMark=Point3&{along:Point3};
+export function signMarks(samples:readonly ChargeSample[],window:number,step:number,most=28):SignMark[]{
  const pool=samples.filter(s=>Math.hypot(s.position.x,s.position.y,s.position.z)<=window);
- if(pool.length<2||!(step>0))return pool.map(s=>s.position);
+ if(pool.length<2||!(step>0))return pool.map(s=>({...s.position,along:{x:1,y:0,z:0}}));
  let length=0;
  for(let i=1;i<pool.length;i++){const a=pool[i-1].position,b=pool[i].position;length+=Math.hypot(b.x-a.x,b.y-a.y,b.z-a.z);}
  // As few as one: a wire shorter than a step and a half gets a single mark. It used to get two whatever
@@ -242,14 +265,72 @@ export function signMarks(samples:readonly ChargeSample[],window:number,step:num
  const weights=pool.map(s=>Math.abs(s.dq)),total=weights.reduce((a,b)=>a+b,0);
  if(!(total>0))return [];
  // Cumulative charge at each sample's middle, and a position interpolated between samples for each target.
- const marks:Point3[]=[];let i=0,before=weights[0]/2;
+ const marks:SignMark[]=[];let i=0,before=weights[0]/2;
  for(let k=0;k<count;k++){
   const target=total*(k+.5)/count;
   while(i<pool.length-2&&before+(weights[i]+weights[i+1])/2<target){before+=(weights[i]+weights[i+1])/2;i++;}
   const span=(weights[i]+weights[i+1])/2,t=span>0?Math.max(0,Math.min(1,(target-before)/span)):.5,a=pool[i].position,b=pool[i+1].position;
-  marks.push({x:a.x+(b.x-a.x)*t,y:a.y+(b.y-a.y)*t,z:a.z+(b.z-a.z)*t});
+  // And which way the wire runs there, for the mark to stand beside it (see `besideWire`).
+  const d=Math.hypot(b.x-a.x,b.y-a.y,b.z-a.z)||1;
+  marks.push({x:a.x+(b.x-a.x)*t,y:a.y+(b.y-a.y)*t,z:a.z+(b.z-a.z)*t,along:{x:(b.x-a.x)/d,y:(b.y-a.y)/d,z:(b.z-a.z)/d}});
  }
  return marks;
+}
+/** WHERE A WIRE'S SIGN MARK STANDS: BESIDE THE TUBE, NOT ON IT. The offset from its point on the wire, in
+ * metres, in the plane of the screen (`right` and `up` are the screen's directions in the world).
+ *
+ * A mark is wider than the tube, and centred on it the glyph's turn against the wire decided whether it read
+ * as a sign at all: where the ring ran up the screen a minus was a dark bar straight across it, so a negative
+ * ring or rod at rest looked banded, or cut, and the bisector a ladder of clamps; where it ran across, the minus
+ * lay along it as a seam. And the tube-coloured tile round each mark, lit flat, stuck out past the tube's own
+ * shading. A plus or minus set beside a charged line is how a textbook writes it, and leaves the tube whole.
+ *
+ * Square to the wire as it is seen, at its point; on the side away from `away` -- the middle of a ring or an
+ * arc, P for a straight rod -- and below it on the screen where neither side is away (a rod seen along the line
+ * through P). Far enough that the glyph with its paper ring, `a` by `b` half sizes (and the same turned, for a
+ * plus), clears a tube `clear` metres in radius, padding included. */
+export function besideWire(at:Point3,along:Point3,away:Point3,right:Point3,up:Point3,a:number,b:number,plus:boolean,clear:number):Point3{
+ const dot=(u:Point3,v:Point3)=>u.x*v.x+u.y*v.y+u.z*v.z,off={x:at.x-away.x,y:at.y-away.y,z:at.z-away.z};
+ const tR=dot(along,right),tU=dot(along,up),t=Math.hypot(tR,tU),dR=dot(off,right),dU=dot(off,up),d=Math.hypot(dR,dU);
+ let nR:number,nU:number;
+ if(t<1e-6){[nR,nU]=d>1e-9?[dR/d,dU/d]:[0,-1];}
+ else{
+  nR=-tU/t;nU=tR/t;
+  const side=nR*dR+nU*dU;
+  if(Math.abs(side)>.02*d){if(side<0){nR=-nR;nU=-nU;}}
+  else if(nU>1e-9||(Math.abs(nU)<=1e-9&&nR<0)){nR=-nR;nU=-nU;}
+ }
+ const reach=(p:number,q:number)=>Math.abs(nR)*p+Math.abs(nU)*q,k=clear+(plus?Math.max(reach(a,b),reach(b,a)):reach(a,b));
+ return {x:(nR*right.x+nU*up.x)*k,y:(nR*right.y+nU*up.y)*k,z:(nR*right.z+nU*up.z)*k};
+}
+/** WHETHER THE CHOSEN RING'S SLAB STANDS IN FRONT OF A SIGN MARK drawn at `o` (lifted, in metres), `mark` metres
+ * across its half: the washer from `band.inner` to `band.outer` and `half` metres either side of the plane, seen
+ * along `toward` (toward the camera); `right` and `up` the screen's directions. Nine points over the inner half of
+ * the mark are each followed toward the camera through the slab's thickness: the slab covers the mark where it
+ * meets the middle one or a row's worth of them -- the tip of an arm brushing the washer's edge is not a mark cut
+ * in half.
+ *
+ * Seen low, a mark just beyond the band's far edge is drawn over the raised washer, which is nearer the camera:
+ * depth-tested, its lower half was cut away and it stood on the washer's top edge as an upturned T; drawn over
+ * everything, it would sit on a piece it is behind. Such a mark is let go -- half a mark is worse than none. A
+ * mark in the washer's hole, with the slab beyond it, and one in front of the washer, are kept. */
+export function slabCovers(o:Point3,band:{inner:number;outer:number},half:number,toward:Point3,right:Point3,up:Point3,mark:number):boolean{
+ if(!(Math.abs(toward.z)>1e-3)||!(half>0))return false;
+ const meets=(sx:number,sy:number)=>{
+  const q={x:o.x+(right.x*sx+up.x*sy)*mark,y:o.y+(right.y*sx+up.y*sy)*mark,z:o.z+(right.z*sx+up.z*sy)*mark};
+  // How far toward the camera the ray from this point runs before it is past the slab's camera side.
+  const out=((toward.z>0?half:-half)-q.z)/toward.z;
+  if(!(out>0))return false;
+  for(let k=0;k<=12;k++){
+   const s=out*k/12,x=q.x+toward.x*s,y=q.y+toward.y*s,z=q.z+toward.z*s,r=Math.hypot(x,y);
+   if(Math.abs(z)<=half&&r>=band.inner&&r<=band.outer)return true;
+  }
+  return false;
+ };
+ if(meets(0,0))return true;
+ let count=0;
+ for(const sx of [-.6,0,.6])for(const sy of [-.45,0,.45])if((sx||sy)&&meets(sx,sy))count++;
+ return count>=3;
 }
 /** WHERE AN AXIS MAY NOT CARRY TICKS: the stretches of it, as ranges of its own coordinate, that P and
  * the arrows lying along it cover. P and its arrows sit on an axis in most lessons -- above a ring, a
@@ -354,26 +435,42 @@ export function diskSignRadii(R:number,unit:number,annulus:{inner:number;outer:n
  const count=Math.max(1,Math.min(most,Math.round(total*unit/30)+1));
  return Array.from({length:count},(_,k)=>at(count>1?total*k/(count-1):total/2));
 }
-/** WHERE THE DISK'S SIGN MARKS GO: round each of `diskSignRadii`, as many as fit. `half` is a mark's half
- * size with its paper ring, in metres; `unit` is viewBox units per metre.
+/** How far apart the disk's sign marks are laid on its face, in units of the figure: about the spacing a
+ * wire's marks are laid at along it (see `signMarks`). */
+export const DISK_SIGN_SPACING=28;
+/** How many of the disk's sign marks, at least, are laid on the part of its face free for them: see `diskSignMarks`. */
+export const DISK_SIGN_FREE=8;
+/** WHERE THE DISK'S SIGN MARKS GO: a sunflower over its face, as the sheet's are laid (see `sheetSignRoots`),
+ * one mark for every DISK_SIGN_SPACING-unit square of it, so they are as dense everywhere on the face as the
+ * charge is. `half` is a mark's half size with its paper ring, in metres; `unit` is viewBox units per metre.
  *
- * Every ring of marks used to get at least three, whatever its circumference on the screen, so on the
- * smallest disk the three marks of its inner ring were drawn on top of one another in its middle. Now a
- * ring carries a mark every fifty-six units round it, and never so many that two neighbours come within
- * 2.6 half-sizes -- a mark's width and a little paper between -- and a ring too small to go round a mark
- * with room to spare (its radius under 1.3 marks' widths) carries none. Rings are at least fifteen units
- * apart (see `diskSignRadii`). A disk too small for any ring gets one mark, off the chosen ring. */
+ * THEY WERE RINGS OF MARKS, as many round each ring as its circumference held -- and no ring stood for the
+ * band of the disk it was there for. At the default the disk's middle carried two marks and the thin band
+ * outside the chosen washer nine, over equal areas: four and a half times denser at the rim. On a wire the
+ * scene's marks ARE the charge's density (the ramp's crowd toward its heavy end), so the same convention said
+ * σ peaks at the rim -- a conductor's charge, not this lesson's uniform disk.
+ *
+ * None within a fifth of R of the middle, where the axis and P's foot are, nor past nine tenths of it, where
+ * the rim is; none on the chosen ring or within `half` of its walls; and none closer to another than a mark's
+ * width and a little paper (2.6 half sizes), so the smallest disk carries no pile. A disk too small for any
+ * gets one mark, off the chosen ring. */
 export function diskSignMarks(R:number,unit:number,annulus:{inner:number;outer:number}|null,half:number):Point3[]{
- const m=half*unit,out:Point3[]=[];
- diskSignRadii(R,unit,annulus,half).forEach((r,k)=>{
-  const across=r*unit;
-  if(across<1.3*2*m)return;
-  let most=1;
-  while(most<64&&2*across*Math.sin(Math.PI/(most+1))>=2.6*m)most++;
-  const count=Math.min(most,Math.max(1,Math.round(2*Math.PI*across/56)));
-  for(let j=0;j<count;j++){const a=2*Math.PI*(j+.5*(k%2))/count+.3;out.push({x:r*Math.cos(a),y:r*Math.sin(a),z:0});}
- });
- // Too small for a ring of marks: one, on the outermost free radius, off the chosen ring.
+ const lo=.2*R,hi=.92*R,cut=annulus?[annulus.inner-half,annulus.outer+half] as const:null;
+ // A SMALL DISK IS MARKED MORE FINELY, NOT LESS. On a phone the disk is a sixth smaller in the figure's units, and with
+ // the chosen washer across the middle of its radius -- five rings, the lesson's default -- the face round it held five
+ // places for a mark, and the names gathered round O took all but one: a disk with a single plus. So as many are laid
+ // as put at least DISK_SIGN_FREE on the face that is free for them, as evenly as ever, never closer than they may stand.
+ const m=half*unit,free=(hi*hi-lo*lo-(cut?Math.max(0,Math.min(hi,cut[1])**2-Math.max(lo,cut[0])**2):0))/(R*R);
+ const count=Math.max(1,Math.min(Math.round(Math.PI*(R*unit)**2/(2.6*m)**2),Math.max(Math.round(Math.PI*(R*unit)**2/DISK_SIGN_SPACING**2),free>0?Math.ceil(DISK_SIGN_FREE/free):0)));
+ const golden=Math.PI*(3-Math.sqrt(5)),out:Point3[]=[];
+ for(let k=0;k<count;k++){
+  const r=R*Math.sqrt((k+.5)/count),a=k*golden+.3;
+  if(r<lo||r>hi||(cut&&r>=cut[0]&&r<=cut[1]))continue;
+  const at={x:r*Math.cos(a),y:r*Math.sin(a),z:0};
+  if(out.some(o=>Math.hypot(o.x-at.x,o.y-at.y)*unit<2.6*m))continue;
+  out.push(at);
+ }
+ // Too small for any: one, on the outermost free radius, off the chosen ring.
  if(!out.length){const radii=diskSignRadii(R,unit,annulus,half),r=radii.length?radii[radii.length-1]:0;out.push({x:r*Math.cos(.3),y:r*Math.sin(.3),z:0});}
  return out;
 }
@@ -397,6 +494,9 @@ export const SHEET_SIGN_GAP=44;
  * R = 4 the disk read "+P", "z +" and "+ s", a sign glued to each name -- since the placer, which sets the
  * names, cannot see the scene's marks. Six more units leave about ten between the ink of the two. */
 export const NAME_MARGIN=6;
+/** HOW MUCH MORE PAPER A MINUS KEEPS FROM A NAME IT STANDS LEVEL WITH, in units of the figure: about a letter's width.
+ * See FieldStage's `laySigns`. */
+export const LEVEL_MARGIN=12;
 /** THE SHEET'S SIGN MARKS, LAID ON THE SHEET. They were laid on a lattice fixed to the screen -- a mark
  * every ninety units across and sixty up, from the window's bottom edge -- and only then turned into the
  * plane for the current view, so in a drag they stood still while the grid, the axes and the chosen ring

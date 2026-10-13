@@ -5,7 +5,7 @@ import {DEFAULT_PARAMS} from '../src/problems/types';
 import {K,limitPlot,potential,sampleLimit,DOUBLINGS} from '../src/symbolic/physics';
 import {confusionTex} from '../src/symbolic/equivalence';
 import {artifactHtml,escapeHtml,lessonArtifact,lessonWorking} from '../src/state/artifact';
-import {BISECTOR_UNFOLD,resultLines} from '../src/workbench/derivation';
+import {BISECTOR_UNFOLD,boardLines,resultLines} from '../src/workbench/derivation';
 import {readFileSync} from 'node:fs';
 /* WAVE 1, FOURTH PASS · CONTENT: THE WORKING SHOWN, THE HANDOUT COMPLETE, THE RULES KEPT.
  *
@@ -131,8 +131,12 @@ describe('the semi-infinite line’s α is where the figure draws it',()=>{
  const setup=plain(getProblem('semi').setup);
  it('at P, from the perpendicular down to the line’s end, and the same α at +y for the field',()=>{
   expect(setup).not.toMatch(/measured from \$\+y\$ toward \$-x\$/);
-  expect(setup).toMatch(/The angle \$\\alpha\$ is at \$P\$, between the perpendicular down to the line’s end and the line to an element/);
-  expect(setup).toContain(String.raw`$x=r\tan\alpha$`);
+  // The problem names the angle; where the piece then sits is said on the board, at the step that cuts
+  // the line by α (the problem was cut to the given, the axes, the angle and the Find, so Cut it up still
+  // starts on a laptop's first screen).
+  expect(setup).toMatch(/\$\\alpha\$ is the angle at \$P\$ between that perpendicular and the line to a piece/);
+  const board=boardLines(getProblem('semi')).flatMap(l=>[l.say,l.where,l.nothing,l.tex]).join(' ');
+  expect(board).toContain(String.raw`x=r\tan\alpha`);
   expect(setup).not.toMatch(/Line · level with an end/);
   // And it is so: the element at x = r tan α, seen from P = (0, r).
   const r=1.3;for(const a of [.3,.9,1.3]){

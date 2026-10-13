@@ -182,9 +182,11 @@ describe('what the captions claim is what the samplers do', () => {
   expect(cut.caption).toMatch(/nearly the field at P of a thin ring at its middle angle/);
   expect(cut.caption).not.toMatch(/bits are nearly the same distance/);
   for (const text of [cut.line, cut.caption]) expect(text).not.toMatch(/thin rings/);
-  // The disk's rings are thin, cut at equal widths, and it keeps its own words.
+  // The disk's rings are cut at equal widths, and it keeps its own words -- as the condition the limit
+  // meets, not as a fact of the drawn rings: at three rings of R = 4 with P half a unit up, the inner one's
+  // bits run from 0.5 to 1.42 from P.
   const [disk] = buildStages(getProblem('disk'));
-  expect(disk.line).toMatch(/^Thin rings: every bit of one ring is the same distance from P\./);
+  expect(disk.line).toMatch(/^The thinner a ring, the more nearly all of it is the same distance from P\./);
   expect(disk.caption).toMatch(/cutting the disk into thin rings/);
  });
  it('sheet: lifting P leaves the field unchanged, which the subtitle promises', () => {
@@ -229,7 +231,10 @@ describe('the captions say only what is true', () => {
    for (const text of [add.line, add.caption]) {
     expect(text, `${p.id}: "${text}"`).toMatch(/sum/);
     expect(text, `${p.id}: "${text}"`).not.toMatch(/is the (field|potential) at P/);
-    expect(text, `${p.id}: "${text}"`).toMatch(/once they shrink/);
+    // A line that names the field or the potential says it is reached only as the pieces shrink. The
+    // mirror-pair lines spend their ninety characters on the lone middle piece the figure adds first, and
+    // name neither: their caption, the board's "only ≈" and Shrink them's line say it.
+    if (text === add.caption || /field|potential/.test(text)) expect(text, `${p.id}: "${text}"`).toMatch(/(once|as) (they|the (piece|ring)s) shrink/);
    }
   }
  });
@@ -255,7 +260,9 @@ describe('the captions say only what is true', () => {
   // estimate's words.
   const arc = (n: number) => sampleDistribution('arc', P, n).reduce((t, s) => t + s.field.x, 0);
   expect(Math.abs(arc(5) / arc(2000) - 1)).toBeGreaterThan(1e-3);
-  expect(buildStages(getProblem('arc'))[3].line).toMatch(/once they shrink/);
+  const arcAdd = buildStages(getProblem('arc'))[3];
+  expect(arcAdd.caption).toMatch(/(once|as) (they|the pieces) shrink/);
+  expect(arcAdd.line).not.toMatch(/exact/);
  });
  it('a potential’s piece adds k times its charge over its distance, and goes on the column the next stage names', () => {
   for (const p of PROBLEMS.filter(q => q.quantity === 'V')) {

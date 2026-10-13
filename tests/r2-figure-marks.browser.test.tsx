@@ -146,8 +146,12 @@ describe('the arc\'s pair is seen against its axis, and P = O is clear of φ', (
  it('What cancels, as it opens', async () => {
   const view = await openLesson('arc');
   await stage(view, 3);
-  expect(Number(getComputedStyle(svgOf(view).querySelector('.cd-axes')!).opacity)).toBeLessThanOrEqual(.4);
-  const name = textNamed(view, 'P = O')!, phi = svgOf(view).querySelector<SVGGeometryElement>('[data-dim="angle"] path')!;
+  // The axes' lines step back; their letters less far, so they still read (see figure-names-w4-type).
+  expect(Number(getComputedStyle(svgOf(view).querySelector('.cd-axes path')!).opacity)).toBeLessThanOrEqual(.4);
+  // Lettered plain P here, where "P = O" had no room up by P and went out on a leader: P is O is said at rest.
+  const name = svgOf(view).querySelector<SVGTextElement>('text.cd-point-label')!, phi = svgOf(view).querySelector<SVGGeometryElement>('[data-dim="angle"] path')!;
+  expect(name.textContent).toBe('P');
+  expect(name.dataset.leader, 'P beside its dot, not on a leader').toBeUndefined();
   expect(crosses(box(view, name), [phi])).toBe(false);
  }, 20000);
 });

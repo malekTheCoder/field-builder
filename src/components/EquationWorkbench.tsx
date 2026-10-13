@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { MathText, Prose } from './Math';
 import { DerivationBoard, type BoardState } from './DerivationBoard';
 import { equivalent, safeParse } from '../symbolic/equivalence';
-import { boardLines, componentOf, exactSum, partResult, resultLines, workedSteps, type Term } from '../workbench/derivation';
+import { alongIntegralOf, backLead, boardLines, componentOf, exactSum, partHasAlso, partResult, resultLines, workedSteps, type Term } from '../workbench/derivation';
 import { buildStages } from '../explorer/buildRun';
 import type { Params, Problem } from '../problems/types';
 import './workbench.css';
@@ -106,7 +106,9 @@ export function EquationWorkbench({problem:p,derivationProblem,params,onModeChan
  const names=useMemo(()=>stages.map(s=>s.name),[stages]);
  // The limits in the last line follow the brackets in the figure: drag one and the integral is
  // rewritten over the part of the charge it now covers.
- const lines=useMemo(()=>boardLines(q,allBounds?undefined:[lower,upper],{keeps,span,oneSided,below}),[q,allBounds,lower,upper,keeps,span,oneSided,below]);
+ // And above it: wholly below the middle, every bracketed piece's surviving part points the other way.
+ const above=to>50+1e-6;
+ const lines=useMemo(()=>boardLines(q,allBounds?undefined:[lower,upper],{keeps,span,oneSided,below,above}),[q,allBounds,lower,upper,keeps,span,oneSided,below,above]);
  const results=useMemo(()=>resultLines(q),[q]);
  // The board's state is rebuilt only when one of its fields changes, not with every new object the
  // page passes down, and its callbacks are fixed for the panel's life and call whatever is current.
@@ -131,8 +133,13 @@ export function EquationWorkbench({problem:p,derivationProblem,params,onModeChan
  // integral to show how -- while Shrink them had written only E_x's factors, so sin α = y/√(y² + r²) was
  // never on the card at all. The lessons carry that integral, and the printed copy prints it; so does the
  // panel now, with the one factor the board never wrote.
- const secondary=q.secondaryIntegralTex&&['endpoint','ramp','semi'].includes(p.id)?q.secondaryIntegralTex:'';
- const surviving=!secondary?'':p.id==='semi'?raw`$E_y$ is the surviving $\Delta E_y$ added up the same way, with $\cos\alpha=r/\sqrt{x^2+r^2}$:`:raw`$E_y$ is the surviving $\Delta E_y$ added up the same way, with $\sin\alpha=y/\sqrt{y^2+r^2}$:`;
+ //
+ // Set as the board sets E_x's finished line, constants inside and the d last: the lesson's own form put
+ // the constant outside and dy in the numerator, so the two integrals "added up the same way" did not look
+ // it, one above the other.
+ const secondary=alongIntegralOf(q)?.tex??'';
+ // Leading with the noun, as the board's sentences now do: a sentence never opens on a bare symbol.
+ const surviving=!secondary?'':p.id==='semi'?raw`The other component, $E_y$, is the surviving $\Delta E_y$ added up the same way, with $\cos\alpha=r/\sqrt{x^2+r^2}$:`:raw`The other component, $E_y$, is the surviving $\Delta E_y$ added up the same way, with $\sin\alpha=y/\sqrt{y^2+r^2}$:`;
  // WHERE THE ANSWER CAME FROM. On the ring and the two exact potentials Add ends "this sum is already
  // exact … The answer needs no integral", and the answer under it opened "Doing the integral gives this":
  // credit to the integral for what the card had just said the sum gave. There the integral agrees.
@@ -140,9 +147,9 @@ export function EquationWorkbench({problem:p,derivationProblem,params,onModeChan
  // What the sign means, in words a first-year reader has: "signed field component" did not say that a
  // component can come out negative, or what that says. Two components are named as two.
  const both=['semi','endpoint','ramp'].includes(p.id);
- const sign=scalar?'$V$ can come out negative: reversing the charge reverses its sign, and there is no direction to keep track of.'
-  :both?'$E_x$ and $E_y$ can come out negative: each one’s sign says which way it points, and reversing the charge reverses both.'
-  :`$${componentOf(q)}$ can come out negative: its sign says which way it points, and reversing the charge reverses it.`;
+ const sign=scalar?'The potential $V$ can come out negative: reversing the charge reverses its sign, and there is no direction to keep track of.'
+  :both?'Both $E_x$ and $E_y$ can come out negative: each one’s sign says which way it points, and reversing the charge reverses both.'
+  :`The component $${componentOf(q)}$ can come out negative: its sign says which way it points, and reversing the charge reverses it.`;
  // WHAT A BRACKET'S INTEGRAL IS. "Choose the whole distribution to get the closed form back" sat under a
  // board that, on the ring and the two exact potentials, had just finished on a closed form -- and told
  // every other reader that part of a charge cannot be integrated to an answer, which is false: it is the
@@ -150,10 +157,14 @@ export function EquationWorkbench({problem:p,derivationProblem,params,onModeChan
  const part=componentOf(q);
  // On a lesson whose integral the board finishes in a bracket, the part's answer is that bracket between
  // the handles' own ends -- written, as the whole charge's answer is, not promised in words.
- const partTex=useMemo(()=>partResult(q,lower,upper),[q,lower,upper]);
+ // And E_y beside it wherever the board says ΔE_y survives: the part's answer used to be E_x alone.
+ const partTex=useMemo(()=>partResult(q,lower,upper,keeps),[q,lower,upper,keeps]);
+ const partBoth=partHasAlso(q,keeps);
+ // What a bracket's value is, in words: "[F] from lo to hi" is said only inside Unfold, and a reader
+ // who never opened it could not read the promised value off the block.
  const partNote=exactSum(q)
   ?raw`The integral above now adds up only the bracketed part of the charge, and its last line already gives that part’s $${part}$: every piece in it is ${g==='arc'?'$R$ from $P$':'the same distance away'}${scalar?'':', at the same angle'}.${scalar?'':' Its part across the axis no longer cancels, so that part’s field leans off the axis.'}`
-  :raw`The integral above now adds up only the bracketed part of the charge. Done between these ends, it comes to that part’s $${part}$:`;
+  :raw`The integral above now adds up only the bracketed part of the charge. Done between these ends, it comes to that part’s $${part}$${partBoth?' and $E_y$, each':','} the bracket’s value at the upper end minus its value at the lower end:`;
  const partBack='The answer for the whole distribution comes back when the brackets are at the ends again.';
  const algebra=derivationProblem??q;
  // ONE LIST, FOR THE PAGE AND THE HANDOUT. Each lesson's Unfold starts from its board's last line --
@@ -166,10 +177,21 @@ export function EquationWorkbench({problem:p,derivationProblem,params,onModeChan
  // The answer arrived under the integral with no word that it is that integral done, and the steps
  // sat under a muted disclosure further down that a reader who does not integrate never opened.
  // "Show every step" opened one step behind a "Next step" button; the bisector has eight.
- function unfold(){setWorked(true);setStepCount(steps.length);requestAnimationFrame(()=>workedRef.current?.scrollIntoView({block:'nearest',behavior:'smooth'}));}
+ // An explicit 'smooth' overrides the page's reduced-motion scroll-behavior, so Unfold glided for readers
+ // who had asked for none: the behaviour is chosen here.
+ function unfold(){setWorked(true);setStepCount(steps.length);const still=typeof matchMedia==='function'&&matchMedia('(prefers-reduced-motion: reduce)').matches;requestAnimationFrame(()=>workedRef.current?.scrollIntoView({block:'nearest',behavior:still?'auto':'smooth'}));}
+ // Why a potential is differentiated, said before it is: under the heading the first step talked of
+ // symmetry and differentiated, and that the field is minus the derivative came only in the second.
+ const why=backLead(q);
  function applyBounds(event:{preventDefault():void}){event.preventDefault();try{const a=boundPercent(p,bounds[0],params),b=boundPercent(p,bounds[1],params);if(a<-.000001||b>100.000001||a>=b)throw Error('Choose an increasing interval inside the distribution.');const range:[number,number]=[Math.max(0,a),Math.min(100,b)];setAsked(range);onBoundRangeChange(range);onModeChange('integrate');setFeedback(a===0&&b===100?'Whole distribution selected. Equivalent forms accepted.':'Interval applied. The integral and highlighted region now match.');}catch(e){setFeedback(e instanceof Error?e.message:'Check the expressions and try again.');}}
  function wholeBounds(){setAsked([0,100]);setBounds([shown(p.bounds[0]),shown(p.bounds[1])]);onBoundRangeChange([0,100]);setFeedback('Whole distribution selected.');}
  return <aside className="ew-panel" aria-label="Live equation workbench"><div className="ew-content">
+ {/* THE PROBLEM, FIRST. What is given, where the axes are, what is held fixed and what to find was said in
+     one place only, a closed disclosure at the panel's foot, so a student never read the arc's "Q is fixed
+     as φ changes" -- which decides what the slider does -- or where the rod lies and where P is. Every
+     problem a lecturer sets opens with that paragraph; so does the panel, above the derivation it sets. The
+     route's own, as the handout's: the infinite line's finite-rod route starts from a rod. */}
+ <section className="ew-problem" aria-labelledby={`${uid}-problem`}><h2 id={`${uid}-problem`} className="ew-problem-title">The problem</h2><p className="ew-problem-text"><Prose text={algebra.setup}/></p></section>
  {/* ONE SUBJECT. The panel used to open on a caption equation that changed with the figure's
      mode, then a template of blanks, then four rows of blanks under an instruction that did
      nothing. The derivation is now the panel's subject from its first line to the answer. */}
@@ -190,7 +212,7 @@ export function EquationWorkbench({problem:p,derivationProblem,params,onModeChan
      the model comes from -- all closed until asked for, so the derivation stays the subject. */}
  <div className="ew-reference">
  <div className="ew-bounds"><button className="ew-disclosure" onClick={()=>setBoundsOpen(!boundsOpen)} aria-expanded={boundsOpen} aria-controls={`${uid}-bounds`}><span>Integration interval</span><span><MathText tex={allBounds?raw`${p.variableTex}\colon{${p.boundTex[0]}}\to{${p.boundTex[1]}}`:raw`${p.variableTex}\colon{${lower}}\to{${upper}}`}/><ChevronDown size={14}/></span></button>{boundsOpen&&<form id={`${uid}-bounds`} className="ew-bound-form" onSubmit={applyBounds}><p>Use symbols such as <MathText tex={p.boundTex[0]}/> and <MathText tex={p.boundTex[1]}/>. Equivalent expressions work, too.</p><div className="ew-bound-fields"><label htmlFor={`${uid}-lower`}>Lower bound<input id={`${uid}-lower`} value={bounds[0]} onChange={e=>setBounds([e.target.value,bounds[1]])} autoComplete="off" spellCheck={false}/></label><label htmlFor={`${uid}-upper`}>Upper bound<input id={`${uid}-upper`} value={bounds[1]} onChange={e=>setBounds([bounds[0],e.target.value])} autoComplete="off" spellCheck={false}/></label></div><div className="ew-bound-actions"><Button type="submit" size="sm">Apply interval</Button><Button type="button" variant="ghost" size="sm" onClick={wholeBounds}>Whole distribution</Button></div>{feedback&&<output className="ew-bound-feedback">{feedback}</output>}</form>}</div>
- <div className="ew-worked" ref={workedRef}><button className="ew-disclosure" onClick={()=>setWorked(!worked)} aria-expanded={worked} aria-controls={`${uid}-worked`}><span>Unfold the integration</span><ChevronDown size={15}/></button>{worked&&<div id={`${uid}-worked`} className="ew-worked-body"><p className="ew-context">{algebra.id==='infinite'&&algebra.variable==='y'?'Alternate derivation: start with a finite rod of length L, then let L grow at fixed λ. The live model above remains the infinite line.':allBounds?'Follow the algebra for the whole distribution, one step at a time.':'These steps derive the whole-distribution result. Your selected partial interval remains above.'}</p>{steps.slice(0,stepCount).map((step,i)=><Fragment key={`${p.id}-${p.variable}-${i}`}>{back.length>0&&i===integration.length&&<h3 className="ew-worked-sub">Differentiate back</h3>}<div className="ew-worked-step"><div><p><Prose text={step.text}/></p><MathText tex={step.tex} block/></div></div></Fragment>)}{stepCount<steps.length?<Button className="ew-next-step" variant="outline" onClick={()=>setStepCount(stepCount+1)}>Next step<ArrowDown size={14}/></Button>:<p className="ew-worked-done"><Check size={13}/>Every step accounted for.</p>}</div>}</div>
- <details className="ew-references"><summary className="ew-disclosure"><span>Model assumptions &amp; references</span><ChevronDown size={15}/></summary><div className="ew-references-body"><p><Prose text={algebra.setup}/></p><p><Prose text={p.id==='ramp'?raw`Finite distributions use total charge, except this rod: its charge slider sets the peak density $\lambda_0$. Unbounded distributions hold charge density fixed.`:'Finite distributions use total charge; unbounded distributions hold charge density fixed.'}/></p>{p.sources.map(s=><a key={s.url} href={s.url} target="_blank" rel="noreferrer">{s.title}<ArrowUpRight size={12}/></a>)}</div></details></div>
+ <div className="ew-worked" ref={workedRef}><button className="ew-disclosure" onClick={()=>setWorked(!worked)} aria-expanded={worked} aria-controls={`${uid}-worked`}><span>Unfold the integration</span><ChevronDown size={15}/></button>{worked&&<div id={`${uid}-worked`} className="ew-worked-body"><p className="ew-context">{algebra.id==='infinite'&&algebra.variable==='y'?'Alternate derivation: start with a finite rod of length L, then let L grow at fixed λ. The live model above remains the infinite line.':allBounds?'Follow the algebra for the whole distribution, one step at a time.':'These steps derive the whole-distribution result. Your selected partial interval remains above.'}</p>{steps.slice(0,stepCount).map((step,i)=><Fragment key={`${p.id}-${p.variable}-${i}`}>{back.length>0&&i===integration.length&&<><h3 className="ew-worked-sub">Differentiate back</h3>{why&&<p className="ew-worked-why"><Prose text={why}/></p>}</>}<div className="ew-worked-step"><div><p><Prose text={step.text}/></p><MathText tex={step.tex} block/></div></div></Fragment>)}{stepCount<steps.length?<Button className="ew-next-step" variant="outline" onClick={()=>setStepCount(stepCount+1)}>Next step<ArrowDown size={14}/></Button>:<p className="ew-worked-done"><Check size={13}/>Every step accounted for.</p>}</div>}</div>
+ <details className="ew-references"><summary className="ew-disclosure"><span>Model assumptions &amp; references</span><ChevronDown size={15}/></summary><div className="ew-references-body"><p><Prose text={p.id==='ramp'?raw`Finite distributions use total charge, except this rod: its charge slider sets the peak density $\lambda_0$. Unbounded distributions hold charge density fixed.`:'Finite distributions use total charge; unbounded distributions hold charge density fixed.'}/></p>{p.sources.map(s=><a key={s.url} href={s.url} target="_blank" rel="noreferrer">{s.title}<ArrowUpRight size={12}/></a>)}</div></details></div>
  </div></aside>;
 }

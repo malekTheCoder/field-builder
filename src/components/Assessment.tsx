@@ -123,15 +123,35 @@ const X0=40,X1=452,TOP=34,BASE=165,WIDTH=480;
  * draws the exact value itself, over the one constant both of its curves share. */
 const twoCurves=(plot:LimitPlot)=>plot.kind==='growth'||plot.kind==='law';
 const plotted=(plot:LimitPlot,s:LimitSample,largest:number)=>plot.kind==='decay'||twoCurves(plot)?s.actual/largest:s.target>0?s.actual/s.target:Infinity;
-/** The vertical window. A ratio is drawn close up around its line at one -- the approach is the whole
- * story, and from zero it would be a few pixels of rise and then a flat line on top of the reference.
- * A start that runs off to infinity (a reference that is itself zero there) is cut at twice the line.
- * A level line drawn beside a field that falls to zero needs the whole height, down to the axis. */
+/** The vertical window. EVERY PLOT STANDS ON ZERO. A ratio was drawn close up around its line at one,
+ * from the smallest value on its sweep, with nothing to say the axis had been cut: the bisector's "far
+ * away" starts at 0.89 of a point charge's field and the disk potential's at 0.94, and both curves began
+ * on the bottom edge and climbed the whole height. With no numerals on the page the bottom edge reads as
+ * zero, so a student read "close up, a rod's field is a small fraction of a point charge's" -- the
+ * opposite of the caption's point. From zero the approach is still seen (0.89 to 1 is a tenth of the
+ * height, the infinite line's 0.45 to 1 half of it) and the start is where it is. A start that runs off
+ * to infinity (a reference that is itself zero there) is cut at twice the line. A level line drawn
+ * beside a field that falls to zero needs the whole height, down to the axis, as every plot now has. */
 function yWindow(plot:LimitPlot,values:number[]):[number,number]{
  if(plot.second||plot.kind==='decay'||plot.kind==='peak'||twoCurves(plot))return [0,1.08];
- if(plot.kind==='constant')return [.5,1.5];
- const finite=values.filter(Number.isFinite),lo=Math.min(1,...finite),hi=Math.min(2,Math.max(1,...finite)),pad=Math.max(hi-lo,.02)*.1;
- return [lo-pad,hi+pad];
+ if(plot.kind==='constant')return [0,1.5];
+ const finite=values.filter(Number.isFinite),hi=Math.min(2,Math.max(1,...finite));
+ return [0,hi*1.08];
+}
+/** What the limiting case's slider does, said beside it in the words of the plot's own sweep. A bare
+ * track sat under the thumbnail, half filled with nothing beside it, and read as a progress bar: a
+ * student found that it moved P only by accident. The hidden name, "Explore limiting case", stays for a
+ * screen reader, which reads this one beside it. */
+export function sweepName(problem:Problem,limit:Limit):string{
+ const g=problem.geometry,disk=g==='disk'||g==='sheet';
+ switch(limit.mode){
+  case 'infinite':return disk?'Grow the disk':'Grow the rod';
+  case 'center':return 'Bring P down';
+  case 'near':return 'Move P in';
+  case 'full':return 'Open the arc';
+  case 'half':return 'Add pieces';
+  default:return 'Move P out';
+ }
 }
 /** A label with its Greek letters set in the face the formulas use. The sans face draws U+03C6 as the
  * stroked ϕ, while KaTeX and the slider set the curly φ: two glyphs for one angle in one card.
@@ -263,6 +283,7 @@ export function Assessment({problem,params,limit}:{problem:Problem;params:Params
  {/* aria-label on the slider lands on its group, not on the range input a keyboard reaches: the
      input is named by pointing at a hidden label, as the page's own sliders are. */}
  <span id={sliderLabel} className="sr-only">Explore limiting case</span>
- <Slider aria-label="Explore limiting case" aria-labelledby={sliderLabel} min={1} max={30} step={.1} value={[s]} onValueChange={v=>setS((v as number[])[0])}/>
+ <div className="limit-slider" style={{display:'flex',alignItems:'center',gap:14}}><span className="limit-slider-name" style={{fontSize:'var(--type-meta, 12px)',color:'var(--muted-foreground)',whiteSpace:'nowrap'}}>{sweepName(problem,limit)}</span>
+ <Slider aria-label="Explore limiting case" aria-labelledby={sliderLabel} min={1} max={30} step={.1} value={[s]} onValueChange={v=>setS((v as number[])[0])}/></div>
  <p className="numerical-check"><SymText text={plot.caption}/></p></div>;
 }

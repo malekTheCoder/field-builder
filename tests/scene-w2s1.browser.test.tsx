@@ -256,7 +256,9 @@ describe('the field and the charge\'s marks give way to the names', () => {
   await waitFor(() => expect(stage(view)?.dataset.signScreen).toBeTruthy());
   await frames(8);
   const boxes = names(view), marks = (stage(view)!.dataset.signScreen ?? '').split(' ').filter(Boolean).map(m => m.split(',').map(Number));
-  expect(marks.length).toBeGreaterThan(4);
+  // Since wave 3 the marks are spread over the whole face at the charge's own density (see `diskSignMarks`), not
+  // crowded round the rim, and on a phone most of the small disk lies under its names: a few are left, not five.
+  expect(marks.length).toBeGreaterThan(0);
   for (const [x, y] of marks) expect(boxGap({x, y}, boxes), `${x},${y}`).toBeGreaterThanOrEqual(5.85);
  }, HEAVY);
 });
