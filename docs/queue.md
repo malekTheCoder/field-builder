@@ -55,6 +55,8 @@ owner says they are urgent.
 10. **Walkthrough (owner's answer, 2026-10-13).** An old `seen` no longer hides it: returning readers
    get the new tour, with "Don't show this again" and "Skip intro" on every page. Handouts: the
    limiting cases are already in them, kept simple.
+11. **How to use this site** (owner, 2026-10-13): a guide to actually learning with it, not a feature tour.
+   The plan goes to the owner first; build only once they approve. Best after the fourteen lessons land.
 
 ## Done
 - No em dashes on the site (owner, 2026-10-13): every visible sentence that used one now uses a comma,
