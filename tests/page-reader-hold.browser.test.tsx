@@ -164,7 +164,7 @@ describe('the run says what it does once', () => {
   const view = await openLesson('bisector', 1366, 768);
   fireEvent.click(view.getByRole('button', {name: 'Watch it build'}));
   await sleep(1200);
-  document.getElementById('lesson')!.focus();
+  document.getElementById('lesson-title')!.focus();
   const y = window.scrollY;
   await userEvent.keyboard(' ');
   await waitFor(() => expect(view.getByRole('button', {name: 'Play'})).toBeTruthy());
