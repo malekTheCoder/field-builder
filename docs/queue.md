@@ -6,8 +6,10 @@ then to **Done**, with the commit. Newest requests are added at the bottom of **
 owner says they are urgent.
 
 ## In progress
-- **Critique round, wave 5** (owner, 2026-10-13: "both in parallel"): one round, five lanes with two
-  critics each, one publish at the end. Usage cap: weekly 40%, 5-hour 90%.
+- **Critique round, wave 5: PAUSED** (owner went offline, 2026-10-13). Four lanes' fixes wait on the local
+  branch `swarm` (content, page, scene, figure); the panel's is on `paused/w5-panel`, not yet integrated.
+  To finish: integrate the panel, run the whole suite, publish swarm to main, check CI. Then the owner runs
+  one Codex round ([codex-round-prompt.md](codex-round-prompt.md)). Usage cap: weekly 40%, 5-hour 90%.
 
 ## Next
 - **Lesson-to-lesson links feel broken** (e.g. "Take this rod to infinity" on the finite line). Clicking
