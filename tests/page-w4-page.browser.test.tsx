@@ -47,8 +47,8 @@ describe('easy to confuse with reads as warnings', () => {
   const dEy = all.find(r => r.of === 'y-component dEᵧ')!;
   // "dEᵧ 0" under its name was copied down as dEᵧ = 0, the very slip the sentence beside it warns against.
   expect(dEy.tex).toContain(String.raw`\displaystyle dE_y\ne 0`);
-  expect(all.find(r => r.of === 'Charge element dQ')!.tex.every(t => t.startsWith(String.raw`\displaystyle dQ\ne `))).toBe(true);
-  expect(all.find(r => r.of === 'Projection factor cos α')!.tex.every(t => t.startsWith(String.raw`\displaystyle \cos\alpha\ne `))).toBe(true);
+  expect(all.find(r => r.of === 'A piece’s charge dQ')!.tex.every(t => t.startsWith(String.raw`\displaystyle dQ\ne `))).toBe(true);
+  expect(all.find(r => r.of === 'The factor cos α')!.tex.every(t => t.startsWith(String.raw`\displaystyle \cos\alpha\ne `))).toBe(true);
   expect(all.find(r => r.of === 'Total x-component Eₓ')!.tex.every(t => t.startsWith(String.raw`\displaystyle E_x\ne `))).toBe(true);
   // Every row of this lesson has a symbol to set it against.
   for (const r of all) { expect(r.not, r.of).toBe(0); for (const t of r.tex) expect(t, r.of).toMatch(/\\ne /); }
@@ -58,7 +58,7 @@ describe('easy to confuse with reads as warnings', () => {
  it('where the quantity\'s name has no symbol, its expressions follow a "Not"', async () => {
   const view = await slips('v-disk');
   const all = rows(view);
-  const area = all.find(r => r.of === 'Area element')!;
+  const area = all.find(r => r.of === 'A ring’s area')!;
   expect(area.not).toBeGreaterThan(0);
   for (const t of area.tex) expect(t).not.toMatch(/\\ne/);
   // "Recovered axial field" is the field, not any one symbol of it.
