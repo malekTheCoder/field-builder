@@ -177,7 +177,9 @@ function Vector({ from, to, color = 'var(--field)', width = 2.5, dashed = false,
   /** How strongly the stroke is drawn, and whether the name is muted: a ghost of a part that has gone. */
   fade?: number; muted?: boolean }) {
   const length = Math.hypot(to.x - from.x, to.y - from.y), angle = Math.atan2(to.y - from.y, to.x - from.x);
-  const head = Math.min(7.5, length * .34), a = { x: to.x - head * Math.cos(angle - .45), y: to.y - head * Math.sin(angle - .45) }, b = { x: to.x - head * Math.cos(angle + .45), y: to.y - head * Math.sin(angle + .45) };
+  // A third of the arrow, up to seven and a half units -- and never under six on an arrow long enough to carry one: a
+  // pair at thirty pieces is a dozen units, and at a third its heads were four-unit smudges, not arrowheads.
+  const head = length >= 12 ? Math.min(7.5, Math.max(6, length * .34)) : length * .34, a = { x: to.x - head * Math.cos(angle - .45), y: to.y - head * Math.sin(angle - .45) }, b = { x: to.x - head * Math.cos(angle + .45), y: to.y - head * Math.sin(angle + .45) };
   const u = length > 1e-6 ? { x: (to.x - from.x) / length, y: (to.y - from.y) / length } : { x: 1, y: 0 };
   // The default side: above a shaft lying across the page, right of one standing up.
   const s = side ?? (Math.abs(u.x) >= Math.abs(u.y) ? (u.x > 0 ? -1 : 1) : (u.y > 0 ? -1 : 1));
@@ -368,7 +370,10 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
   // pushes there, and ΔE_x went onto its own shaft: there the mirror's survivor stands BESIDE the piece's,
   // from P, and the piece's part keeps its name past its tip. (The ring's fan is narrower still, but beside
   // it the mirror's copy took the spot past the tip and pushed ΔE_z up into the axis' letter.)
-  const stackSurvivors = inSpace || perspective || labelScale < 1.2;
+  // And beside, too, on a flat wire whose charge is negative: there the parts that survive point AT the charge, and laid
+  // tip to tail they had to stop short of it at twice their length -- the bisector's What cancels at half the positive's
+  // size, its piece's arrow fifty pixels long on a laptop.
+  const stackSurvivors = inSpace || perspective || (labelScale < 1.2 && p.charge > 0);
   // How far out to draw the field, in world metres: past P and past the charge, capped so a
   // long rod does not shrink its own field to a smear.
   // How far out to draw the field is set by the CHARGE, never by where P happens to be.
@@ -403,7 +408,11 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
   // go, their parts along the axis go in, and the sum is an arrow along the axis at every moment. The ring
   // goes round from the run's own piece. Over part of the charge -- the brackets dragged in -- nothing is
   // paired, and the sum is the chain.
-  const pairedRun = !!build && supportsPair && boundRange[0] === 0 && boundRange[1] === 100 && (build.key === 'add' || build.key === 'limit');
+  //
+  // AND AT REST, IN THE SUM'S OWN VIEW. A teacher's link to the sum (`mode=sum`, with or without the pair) is the
+  // run's finished Add them up, and drew it as the chain: on these four lessons the arch the run no longer draws, the
+  // picture the owner took out. It is the same pairs there, all of them in: the sum along the axis, a tick per pair.
+  const pairedRun = supportsPair && boundRange[0] === 0 && boundRange[1] === 100 && (build ? build.key === 'add' || build.key === 'limit' : mode === 'sum');
   const pairStart = id === 'ring' && runPiece >= 0 ? runPiece : 0;
   const pairSlots = useMemo(() => pairedRun ? pairOrder(id, n, pairStart) : null, [pairedRun, id, n, pairStart]);
   const pairAt = pairSlots && handsOver && !handingOver ? pairStepAt(pairSlots.length, sumProgress) : null;
@@ -470,9 +479,11 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
   const pairSteps = useMemo(() => pairSlots ? pairPlan(id, samples, pairStart) : null, [pairSlots, id, samples, pairStart]);
   const pairNow = pairSteps && pairAt ? { ...pairAt, ...pairPhase(pairAt.u), step: pairSteps[pairAt.k] } : null;
   const pairSoFar = pairNow && pairSteps ? pairSum(pairSteps, pairNow.k) : zero;
+  // At rest the pairs are in whole, as many as the sum's progress has taken: all of them, as the page leaves it.
+  const restPairs = pairSteps && !build ? Math.round(clamp(sumProgress, 0, 1) * pairSteps.length) : -1;
   const sample = samples[selectedIndex], total = sumSamples(samples);
-  const weights = pairNow && pairSteps ? pairShares(pairSteps, n, pairNow.k).map(s => s > .999 ? 1 : 0) : intervalWeights(n,boundRange,sumProgress);
-  const partial = pairNow && pairSteps ? pairSum(pairSteps, pairNow.k, pairNow.merge) : sumInterval(samples,boundRange,sumProgress);
+  const weights = pairNow && pairSteps ? pairShares(pairSteps, n, pairNow.k).map(s => s > .999 ? 1 : 0) : pairSteps && restPairs >= 0 ? pairShares(pairSteps, n, restPairs).map(s => s > .999 ? 1 : 0) : intervalWeights(n,boundRange,sumProgress);
+  const partial = pairNow && pairSteps ? pairSum(pairSteps, pairNow.k, pairNow.merge) : pairSteps && restPairs >= 0 ? pairSum(pairSteps, restPairs) : sumInterval(samples,boundRange,sumProgress);
   const wholeWeights = intervalWeights(n,boundRange,1);
   const full = boundRange[0]===0 && boundRange[1]===100;
   // The drawn arrow is the field itself only once every piece is in and the pieces are gone.
@@ -517,7 +528,19 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
   // P's arrows run to.
   // Seen flat, the ring lies nearly edge-on, a dozen units deep, and can stand lower still.
   const lift = narrow ? (perspective ? (inSpace ? 20 : 40) : footed ? -15 : 0) : 0;
-  const originAt1: Point = perspective ? { x: 315, y: 296 + lift } : footed ? { x: 210, y: 250 + lift } : id === 'semi' ? { x: 300, y: 310 } : id === 'axial' ? { x: 130, y: 230 } : id === 'arc' ? { x: 375, y: 218 } : { x: 220, y: 216 };
+  // ROOM ABOVE P FOR THE ARROWS THE RING AND THE DISK ARE ABOUT. Their arrows rise from a P the resting picture
+  // stands high in the plot -- up to 125 units over O -- and the parts that survive are laid up the axis tip to tail,
+  // twice the piece's own part: so the ring's What cancels came out at a third of the rods' size, a 30-pixel star at
+  // P on a projector, its cancelling parts a dozen pixels on a phone. Wherever the piece is drawn at the run's size --
+  // the run, or a teacher's link to the parts -- P stands lower over a slightly smaller charge: no more than 95 units
+  // over O, and O as low as the near rim lets it go. Not for a negative charge, whose arrows point down at the charge:
+  // they want the drop from P, which standing lower only shortens.
+  const roomy = (id === 'ring' || id === 'disk') && !scalar && p.charge > 0 && (!!build || ((components || pair) && mode === 'project'));
+  const surfacePitch = (inSpace ? opening : FLAT).pitch, surfaceBelow = 371 - 10 - (296 + lift);
+  const surfaceFit = perspective ? surfaceUnit(p.distance, surfacePitch, id === 'sheet' ? 0 : R, surfaceBelow) : 0;
+  const surfaceRoomy = roomy ? Math.max(18, Math.min(surfaceFit, Math.floor(95 / Math.max(.5, p.distance * Math.cos(surfacePitch)) / 5) * 5)) : surfaceFit;
+  const surfaceDrop = roomy ? clamp(surfaceBelow - R * surfaceRoomy * Math.abs(Math.sin(surfacePitch)), 0, 24) : 0;
+  const originAt1: Point = perspective ? { x: 315, y: 296 + lift + surfaceDrop } : footed ? { x: 210, y: 250 + lift } : id === 'semi' ? { x: 300, y: 310 } : id === 'axial' ? { x: 130, y: 230 } : id === 'arc' ? { x: 375, y: 218 } : { x: 220, y: 216 };
   // Pixels per metre, times whatever the reader has zoomed to. The projection, the canvas
   // and the 3D frustum all read this, so one multiply zooms the whole figure and no layer
   // can disagree with another about scale.
@@ -534,7 +557,7 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
   const fit = (span: number, room: number, lo: number, hi: number) =>
     Math.max(lo, Math.min(hi, Math.round(room / Math.max(.5, span) / 5) * 5));
   // The ring, the disk and the sheet: see `surfaceUnit`.
-  const baseUnit = perspective ? surfaceUnit(p.distance, (inSpace ? opening : FLAT).pitch, id === 'sheet' ? 0 : R, 371 - 10 - originAt1.y)
+  const baseUnit = perspective ? surfaceRoomy
     : footed ? Math.min(45, 150 / p.size)
     : id === 'bisector' ? Math.min(45, 140 / R)
     : id === 'axial' ? fit(p.size + p.distance, 400, 20, 70)
@@ -675,8 +698,9 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
   // was buried in the rod or the disk and the placer hid the very name the stage ends on.
   /** How far along a world direction from P, in screen units of the view `ref`, the charge is first met:
    * a point of the wire within a stroke's width of the ray, the face of a disk or a sheet, or the
-   * centre a ring's arrows point at. Infinity where the ray meets nothing, or runs at the camera. */
-  const chargeAhead = (v: Vec, ref: CameraView): number => {
+   * centre a ring's arrows point at. Infinity where the ray meets nothing, or runs at the camera.
+   * `centre` false leaves the ring's empty middle out: see the stacked parts in `roomFor`. */
+  const chargeAhead = (v: Vec, ref: CameraView, centre = true): number => {
     const len = magnitude(v);
     if (len < 1e-30) return Infinity;
     const u: Vec = { x: v.x / len, y: v.y / len, z: v.z / len };
@@ -684,7 +708,7 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
     if (perMetre < 1e-6) return Infinity;
     const tolerance = (rodLike && !inSpace ? rodHalf + 4 : 8) / unit;
     let t = Infinity;
-    for (const q of [...(bodyPath ?? []), zero]) {
+    for (const q of [...(bodyPath ?? []), ...(centre ? [zero] : [])]) {
       const d = { x: q.x - pWorld.x, y: q.y - pWorld.y, z: q.z - pWorld.z }, along = d.x * u.x + d.y * u.y + d.z * u.z;
       if (along <= 1e-9 || along >= t) continue;
       if (Math.hypot(d.x - along * u.x, d.y - along * u.y, d.z - along * u.z) < tolerance) t = along;
@@ -743,7 +767,20 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
   // AT REST, the field's own size sets the arrow's length, on the lesson's fixed scale: see `restLength`. The
   // run keeps its own scale above, fitted to the frame, since there the arrows are the subject.
   const restRange = build || scalar ? null : lessonRange(id, 'E'), restNorm = magnitude(total);
-  const gain = restRange ? (restNorm > 0 ? restLength(restNorm, restRange) / restNorm : REST_SHORT / restRange[0]) : 100 / scaleValue * runScale;
+  // ...AND ONCE THE SUM IS ON SCREEN, THAT SCALE HOLDS. Refitted to every new P, size and charge, the run's scale moved
+  // under the arrow it measured: with the run held on E, drawing P out from half a metre to three made the bisector's
+  // field ten times weaker and its arrow half as long again, and lifting P off the sheet -- the lesson whose one claim
+  // is that lifting it changes nothing -- shrank the sheet's field to less than half. So the scale is fitted as the sum
+  // first comes on screen, in Add them up or Shrink them, and held while the run stays on those two: a slider moved
+  // there moves the arrows with the field. A new run, a step back to the stages before, a turn of the view or a new
+  // window size fits it again. Where the held scale takes the sum past the frame, it is cut there and marked: `netCut`.
+  const fittedGain = 100 / scaleValue * runScale;
+  const heldKey = !!build && !scalar && (build.key === 'add' || build.key === 'limit') ? `${id}|${inSpace}|${labelScale}` : '';
+  // Kept the way React keeps what an earlier render saw: set while rendering, when the key moves on, and read back.
+  const [heldScale, setHeldScale] = useState<{ key: string; gain: number } | null>(null);
+  if (heldKey ? heldScale?.key !== heldKey : heldScale !== null) setHeldScale(heldKey ? { key: heldKey, gain: fittedGain } : null);
+  const heldGain = !heldKey ? 0 : heldScale?.key === heldKey ? heldScale.gain : fittedGain;
+  const gain = restRange ? (restNorm > 0 ? restLength(restNorm, restRange) / restNorm : REST_SHORT / restRange[0]) : heldGain > 0 ? heldGain : fittedGain;
   const fieldScreen = (v: Vec, multiplier = 1): Point => { const k = gain * multiplier; const s = projectCamera(v, view.yaw, view.pitch); return { x: k * s.x, y: k * s.y }; };
   // One piece's arrow is magnified to a readable length: at rest so that whichever piece is clicked
   // can be read, and while the run plays so that One piece and What cancels always have an arrow to
@@ -766,8 +803,14 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
   // On a phone a little lower again: the letter's top stood two pixels under the stage's name, and the two
   // read as one phrase, "What cancels z".
   const axisTop = Math.max(66, 48 + .98 * SYM * labelScale + (narrow ? 6 : 0));
-  const roomFor = (f: Vec) => {
-    if (!build || scalar) return Infinity;
+  // The piece is drawn at the run's size while the run plays, and at rest wherever its parts or its mirror are asked
+  // for: at the 55 units the resting view drew them, a teacher's link to the parts put a fifteen-unit ΔE_y under P's
+  // halo, too short to carry its name.
+  const runSized = !scalar && (!!build || components || pair);
+  // At rest as in the run: the one map below sizes every piece, and the strongest has to stay in the picture there too.
+  // `alone` says the piece is its own mirror, with no partner drawn or laid on its part.
+  const roomFor = (f: Vec, alone = selfMirror) => {
+    if (scalar) return Infinity;
     const ref = inSpace ? opening : FLAT, at = projectCamera(pWorld, ref.yaw, ref.pitch), from = { x: O.x + unit * at.x, y: O.y + unit * at.y };
     const mirror = id === 'ring' ? { x: -f.x, y: -f.y, z: f.z } : { x: f.x, y: -f.y, z: f.z };
     // And the parts each is resolved into, which What cancels draws as arrows of their own and names
@@ -778,13 +821,18 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
     // P. Fitted one arrow at a time, the second ran past the plot's edge with its head cut off -- on the
     // ring's side view up the z axis into its letter, where it read as the axis' own arrowhead -- and for
     // a negative ring down through the ring and O.
-    const stacked: Vec[] = supportsPair && stackSurvivors && !selfMirror ? [scaleVec(parts(f)[0], 2)] : [];
+    const stacked: Vec[] = supportsPair && stackSurvivors && !alone ? [scaleVec(parts(f)[0], 2)] : [];
     let cap = Infinity;
+    // In space the ring's pair runs down its axis through the empty middle, as the scene draws it, in front of the ring:
+    // stopped short of the centre, a negative ring's arrows were capped at the drop from P to O, half the positive's.
     for (const v of stacked) {
-      const hit = chargeAhead(v, ref), s = projectCamera(v, ref.yaw, ref.pitch), len = gain * Math.hypot(s.x, s.y);
+      const hit = chargeAhead(v, ref, !(id === 'ring' && inSpace)), s = projectCamera(v, ref.yaw, ref.pitch), len = gain * Math.hypot(s.x, s.y);
       if (Number.isFinite(hit) && len > 1e-9) cap = Math.min(cap, Math.max(24, hit - 24) / len);
     }
-    for (const v of [f, ...(selfMirror ? [] : [mirror]), ...parts(f), ...(selfMirror ? [] : parts(mirror)), ...stacked]) {
+    // The mirror only where the lesson has one to draw: on a rod with a foot, the mirror of the piece by the foot pointed
+    // down into the footer's room and shrank every piece of the cut with it.
+    const partner = supportsPair && !alone;
+    for (const v of [f, ...(partner ? [mirror] : []), ...parts(f), ...(partner ? parts(mirror) : []), ...stacked]) {
       const s = projectCamera(v, ref.yaw, ref.pitch), len = gain * Math.hypot(s.x, s.y);
       if (len < 1e-9) continue;
       // The stacked pair carries no name of its own past its tip: room for its head, and clear air under the
@@ -795,17 +843,58 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
       const top = axisTop + .39 * SYM * labelScale + 4;
       const edge = rayToEdge(from, { x: gain * s.x / len, y: gain * s.y / len }, { x: 42, y: top, width: 626, height: 371 - top });
       cap = Math.min(cap, Math.max(40, Math.hypot(edge.x - from.x, edge.y - from.y) - margin) / len);
+      // ...and drawn flat, short of the charge an arrow points at -- a negative charge's, with its parts standing side
+      // by side -- where that still leaves a readable arrow; nearer than that it crosses the charge, painted over it.
+      // In space the scene draws the arrows in front of the charge, and they may cross its plane.
+      if (!inSpace && !stacked.includes(v)) { const hit = chargeAhead(v, ref); if (Number.isFinite(hit)) cap = Math.min(cap, Math.max(65, hit - 24) / len); }
     }
     return cap;
   };
-  /** The run's magnification for a piece whose field is `f`: its own arrow about 108 pixels long. */
-  // A little longer on a phone, where the names it carries are set larger against the same drawing.
-  // Never below its true length, unless even that would not fit: then as long as the room allows. A floor
+  // ONE MAGNIFICATION FOR THE FIGURE AS IT STANDS, NOT ONE PER PIECE. Each piece used to be magnified by its own field,
+  // to 108 units in the run and 55 at rest, so whichever piece was picked came out the same length -- the end of a long
+  // rod and the piece level with P, forty times stronger, alike -- under a stage that says "farther, smaller", and the
+  // ramp's whole point, the charge piling up toward its top, drawn flat. So the lengths are one map of the field's size,
+  // fitted once to the pieces of the cut on screen (the run's first cut while it plays): the weakest at the readable
+  // length -- 108 units, a little more on a phone where its names are set larger; 55 for the resting view's lone arrow --
+  // and the others in proportion where the picture has room for the strongest, and where it has not, as a power of
+  // their size below one: compressed, every stronger piece still the longer, so the order the stage talks about always
+  // shows. Never below a piece's true length, unless even that would not fit: then as long as the room allows. A floor
   // of one regardless drew the arc's piece, closed nearly into a ring, nine hundred pixels long.
-  const runGain = (f: Vec) => { const fit = roomFor(f); return clamp(108 * clamp(labelScale, 1, 1.35) / Math.max(1e-30, gain * magnitude(f)), Math.min(1, fit), Math.min(1000, fit)); };
-  const selectedGain = build && !scalar
-    ? runGain(sample.field)
-    : Math.max(1, Math.min(1000, 55 / Math.max(.001, Math.hypot(fieldScreen(sample.field).x, fieldScreen(sample.field).y))));
+  const pieceTarget = runSized ? 108 * clamp(labelScale, 1, 1.35) : 55;
+  const pieceMap = (() => {
+    // Fitted only where a piece's arrow is drawn: the stages that play every frame -- the cut, the sum, the limit -- draw none.
+    if (scalar || (build && !handingOver && build.key !== 'one' && build.key !== 'cancel')) return null;
+    const cut = build ? runSamples : samples, sizes = cut.map(s => magnitude(s.field)), lo = Math.min(...sizes.filter(s => s > 1e-30));
+    if (!Number.isFinite(lo)) return null;
+    // The room each piece's arrows have, as the length of its own arrow: the strongest pieces set the power, and where
+    // even the weakest has less than the target, the length it starts from. Never more than three times the target either:
+    // at rest a piece level with P, forty times the end piece, was drawn four hundred units long across the picture.
+    const room = cut.map((s, i) => sizes[i] > 1e-30 ? Math.min(roomFor(s.field, id !== 'ring' && i === cut.length - 1 - i) * gain * sizes[i], 3 * pieceTarget) : Infinity);
+    let power = 1;
+    for (let i = 0; i < cut.length; i++) if (sizes[i] > lo * 1.001) power = Math.min(power, room[i] > pieceTarget ? Math.log(room[i] / pieceTarget) / Math.log(sizes[i] / lo) : 0);
+    power = Math.max(power, .25);
+    let base = pieceTarget;
+    for (let i = 0; i < cut.length; i++) if (sizes[i] > 1e-30) base = Math.min(base, room[i] / Math.pow(sizes[i] / lo, power));
+    return { lo, power, base };
+  })();
+  /** The magnification for a piece whose field is `f`, from the one map above. */
+  // ...and wherever its parts are drawn -- What cancels, the piece it hands over to the sum, the resting view of the
+  // parts -- never so small that the SHORTER of the two parts is under sixteen units where the room allows: a part under
+  // ten went unnamed, so with P close to a long rod's end the ΔE_x the board writes, or with a ring of half a metre the
+  // two ΔE_⊥ that cancel, had no name. Not in One piece, where the piece is compared with the others and has no parts.
+  const partsShown = runSized && (build ? build.key === 'cancel' || handingOver : components || pair);
+  const runGain = (f: Vec) => {
+    const fit = roomFor(f), size = magnitude(f);
+    let want = pieceMap && size > 1e-30 ? pieceMap.base * Math.pow(size / pieceMap.lo, pieceMap.power) : pieceTarget;
+    if (partsShown && size > 1e-30) {
+      // On screen, in the view the figure opens in: in space a part across the ring's axis is foreshortened.
+      const ref = inSpace ? opening : FLAT, onScreen = (v: Vec) => { const s = projectCamera(v, ref.yaw, ref.pitch); return Math.hypot(s.x, s.y); };
+      const shorter = Math.min(onScreen(perspective ? { x: 0, y: 0, z: f.z } : { x: f.x, y: 0, z: 0 }), onScreen(perspective ? { x: f.x, y: f.y, z: 0 } : { x: 0, y: f.y, z: 0 })) / size;
+      if (shorter > .05) want = Math.max(want, 16 / shorter);
+    }
+    return clamp(want / Math.max(1e-30, gain * size), Math.min(1, fit), Math.min(1000, fit));
+  };
+  const selectedGain = scalar ? 1 : runGain(sample.field);
   // THE CHANGE OF SCALE, SEEN. The first stretch of Add them up draws the run's piece shrinking from
   // the length it had in the two stages before to its true length beside the chain; then it fades,
   // and the sum it is part of takes over. The sum's own arrow waits until it has gone, so no frame
@@ -816,7 +905,20 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
     return { field: f, multiplier, vector: fieldScreen(f, multiplier), opacity: clamp(1 - (progress - ADD_SHRINK) / ADD_FADE, 0, 1) };
   })() : null;
   const contribution = fieldScreen(sample.field, selectedGain);
-  const net = fieldScreen(displayed);
+  // THE SUM PAST THE FRAME, CUT THERE AND SAID SO. At the held scale a field made stronger -- P drawn in -- can run out
+  // of the picture: clipped by the window, it lost its head and read as a shorter arrow than the one before. So it
+  // stops a little inside the plot, its head on, with a break across its shaft near the head: longer than drawn.
+  const fullNet = fieldScreen(displayed);
+  const netCut = (() => {
+    // Never at a scale no larger than the one fitted now, which keeps the arrow in by construction.
+    if (!heldGain || heldGain <= fittedGain * 1.0001) return 1;
+    const len = Math.hypot(fullNet.x, fullNet.y);
+    if (len < 40) return 1;
+    // As far in from the plot's edge as the fitted scale may take it (see `runScale`).
+    const edge = rayToEdge(P, { x: fullNet.x / len, y: fullNet.y / len }, { x: 72, y: 84, width: 566, height: 257 }), room = Math.hypot(edge.x - P.x, edge.y - P.y);
+    return len > room ? Math.max(room, 40) / len : 1;
+  })();
+  const net = netCut < 1 ? scaleVec2(fullNet, netCut) : fullNet;
   // THE FIELD ITSELF, BESIDE THE PIECES' SUM, where the two plainly differ. At rest the arrow at P is the sum of
   // the reader's N pieces, drawn over field lines traced from the whole charge -- and with P close to a rod's end
   // and the rod cut in three, that sum points thirty degrees off the line through P, while a student is taught
@@ -890,11 +992,22 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
     let cap = Infinity;
     // ...the parts along the axis too, which line up tip to tail as the parts across go: on the ring, twice the piece's
     // part up the axis is longer than the piece's whole arrow.
-    for (const v of [pairNow.step.fa, pairNow.step.fb ?? zero, pairNow.step.along]) {
+    // ...NOR OVER THE CHARGE. With the charge negative and P close in, the sum's arrow crosses the rod (see RUN_FLOOR), and
+    // the pair, enlarged at its tip, was drawn over the rod and the L bracket beside it, its sum's name on the rod. So
+    // drawn flat, the enlarged arrows stop short of where the charge is drawn -- the rod with its bracket, the endless
+    // line's band, a wire's own curve -- and a pair whose tip is already on it goes in at its true size.
+    const lBar = id === 'bisector' || footed ? O.x - 40 - (22 + 26 * (labelScale - 1)) : 0;
+    const ends = id === 'bisector' ? [O.y - R * unit, O.y + R * unit] : footed ? [O.y - p.size * unit, O.y] : [0, 0];
+    const wire = !inSpace && !lBar && id !== 'infinite' ? (bodyPath ?? []).map(project) : [];
+    const onCharge = (q: Point) => !inSpace && (lBar ? (Math.abs(q.x - O.x) <= rodHalf + 4 || Math.abs(q.x - lBar) <= 6) && q.y >= Math.min(...ends) - 6 && q.y <= Math.max(...ends) + 6
+      : id === 'infinite' ? Math.abs(q.x - O.x) <= rodHalf + 4 : wire.some(c => Math.hypot(c.x - q.x, c.y - q.y) < 8));
+    for (const v of [pairNow.step.fa, pairNow.step.fb ?? zero, pairNow.step.along, acrossAxis(id, pairNow.step.fa), acrossAxis(id, pairNow.step.fb ?? zero)]) {
       const s = fieldScreen(v), len = Math.hypot(s.x, s.y);
       if (len < 1e-6) continue;
-      const edge = rayToEdge(from, { x: s.x / len, y: s.y / len }, { x: 52, y: top, width: 606, height: 361 - top });
+      const u = { x: s.x / len, y: s.y / len }, edge = rayToEdge(from, u, { x: 52, y: top, width: 606, height: 361 - top });
       cap = Math.min(cap, Math.max(0, Math.hypot(edge.x - from.x, edge.y - from.y) - 12) / len);
+      const reach = Math.max(len, 44 * labelScale * len / own) + 10;
+      for (let t = 0; t <= reach; t += 2) if (onCharge({ x: from.x + u.x * t, y: from.y + u.y * t })) { cap = Math.min(cap, Math.max(0, t - 8) / len); break; }
     }
     return Math.max(1, Math.min(44 * labelScale / own, cap));
   })() : 1;
@@ -922,10 +1035,10 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
   const pairTicks = (() => {
     const none = { d: '', ghost: '', ghostTicks: '' };
     if (!pairSteps) return none;
-    const ends = pairNow ? pairNow.k : build?.key === 'limit' ? pairSteps.length : 0;
+    const ends = pairNow ? pairNow.k : restPairs >= 0 ? restPairs : build?.key === 'limit' ? pairSteps.length : 0;
     const u = direction(fieldScreen(id === 'ring' ? { x: 0, y: 0, z: 1 } : { x: 1, y: 0, z: 0 }));
     if (!u || ends < 1) return none;
-    const nrm = { x: -u.y, y: u.x }, tipV = fieldScreen(displayed), tipA = tipV.x * u.x + tipV.y * u.y;
+    const nrm = { x: -u.y, y: u.x }, tipV = net, tipA = tipV.x * u.x + tipV.y * u.y;
     const at = (a: number) => ({ x: P.x + u.x * a, y: P.y + u.y * a });
     const tick = (a: number) => { const c = at(a); return `M${(c.x - nrm.x * 6).toFixed(1)} ${(c.y - nrm.y * 6).toFixed(1)}L${(c.x + nrm.x * 6).toFixed(1)} ${(c.y + nrm.y * 6).toFixed(1)}`; };
     const along = Array.from({ length: ends }, (_, j) => { const c = fieldScreen(pairSum(pairSteps, j + 1)); return c.x * u.x + c.y * u.y; });
@@ -938,7 +1051,8 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
       if (s > 4 && s < reach - 9 && s - lastOn >= 10) { d += tick(s * sign); lastOn = s; }
     }
     const farthest = Math.max(0, ...along.map(a => a * sign));
-    if (farthest < reach + 9) return { d, ghost: '', ghostTicks: '' };
+    // A sum cut at the frame went on past it, not back from it: no ghost there.
+    if (farthest < reach + 9 || netCut < 1) return { d, ghost: '', ghostTicks: '' };
     for (const a of [...along].sort((x, y) => x * sign - y * sign)) {
       const s = a * sign;
       if (s > reach + 6 && s - lastOver >= 10) { ghostTicks += tick(s * sign); lastOver = s; }
@@ -1856,7 +1970,9 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
   const gauge = scalar ? (() => {
     // Clear of the axis P sits on by more than the width of a label, so the column reads as standing
     // beside P rather than along the axis.
-    const w = 12, leftSide = id === 'arc', gap = 28, fine = n > 64;
+    // Scaled with the names: drawn at the drawing's size on a phone, where the names beside it are half as large again,
+    // the column -- the potential lessons' only picture of V -- was six pixels wide, half the width of "ΣΔV" beside it.
+    const w = 12 * labelScale, leftSide = id === 'arc', gap = 28 * labelScale, fine = n > 64;
     let x = leftSide ? P.x - gap - w : P.x + gap;
     // HOW TALL. At most 88 units, and ALWAYS the way the potential's sign points: the direction is the
     // column's only sign, since ΔV, ΣΔV and V carry none, and a column for a positive V that stood
@@ -1870,18 +1986,25 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
     // the disk the charge lies below P: sized by the frame alone, the column ran down through the disk's face,
     // across the chosen ring, onto the ring itself. Its floor is the top of the drawn ring or disk under it, a
     // little above; where that leaves too little to read, the column stands out past the rim instead.
+    //
+    // The NEAR half of it, and no lower than the charge's middle. The far rim lies behind P, and in space it rises on
+    // the screen to within a few dozen units of P: taken for the floor, it sent the column out past the rim at the
+    // default height -- a bar standing on the ring a hundred pixels from P, its name in the limit's "θ = 0, 2π". In
+    // front of the far rim, hanging down beside P, the column is the potential AT P, and it stops above the near rim
+    // and the level of the centre, so it never runs onto the ring or across the disk's near side.
     let floor = 371;
     if (natural < 0 && (id === 'ring' || id === 'disk')) {
       const rim = circlePoints(R), top = (x0: number) => {
-        let best = Infinity;
+        let best = O.y;
         for (let k = 1; k < rim.length; k++) {
           const a = rim[k - 1], b = rim[k];
+          if (Math.min(a.y, b.y) < O.y - .5) continue;
           for (const at of [x0 - 6, x0, x0 + w / 2, x0 + w, x0 + w + 6]) if ((a.x - at) * (b.x - at) <= 0 && Math.abs(b.x - a.x) > 1e-9) best = Math.min(best, a.y + (b.y - a.y) * (at - a.x) / (b.x - a.x));
         }
         return best;
       };
       floor = Math.min(371, top(x) - 8);
-      if (floor - P.y < 24 + labelRoom) { x = Math.max(x, Math.max(...rim.map(q => q.x)) + 12); floor = Math.min(371, top(x) - 8); }
+      if (floor - P.y < 24 + labelRoom) { x = Math.max(x, Math.max(...rim.map(q => q.x)) + 12); floor = 371; }
     }
     const roomNamed = natural > 0 ? P.y - 54 - labelRoom : floor - P.y - labelRoom;
     // Beside the far end, the name is centred on it: the column stops short of the plot's edge by half the
@@ -1893,16 +2016,24 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
     // growing without end near the rod, could not be seen. So its height grows with V on the lesson's fixed
     // log scale, as the field's arrow does (see `restLength`), from 24 units to 88, and the room only caps it.
     // Read off the exact V, which no stage of the run changes, so Add them up and Shrink them share one scale.
+    // Half as tall again on a phone too, with the names, the room still capping it.
     const room = Math.max(16, beside ? roomBare : roomNamed), [vLo, vHi] = lessonRange(id, 'V'), vRef = Math.abs(vExact);
-    const tall = 24 + 64 * clamp(Math.log(Math.max(vRef, 1e-30) / vLo) / Math.log(vHi / vLo), 0, 1);
-    const perVolt = Math.min(vRef > 1e-30 ? Math.min(tall, room) / vRef : Infinity, Math.min(88, room) / vScale);
+    const tall = (24 + 64 * clamp(Math.log(Math.max(vRef, 1e-30) / vLo) / Math.log(vHi / vLo), 0, 1)) * labelScale;
+    const perVolt = Math.min(vRef > 1e-30 ? Math.min(tall, room) / vRef : Infinity, Math.min(88 * labelScale, room) / vScale);
+    // EVERY PIECE'S BLOCK SEEN. The disk's innermost ring holds a sliver of its charge, and its block came out a pixel tall
+    // on a phone: the first ring of the sum went on the pile unseen. So no block is drawn shorter than three units -- the
+    // others giving up what it takes, so the column is still exactly as tall as the sum.
+    const least = 3 * labelScale, heights = samples.map(s => s.potential * perVolt);
+    const lifted = heights.reduce((a, h) => Math.abs(h) < least ? a + Math.sign(h) * least - h : a, 0), others = heights.reduce((a, h) => Math.abs(h) >= least ? a + h : a, 0);
+    const squeeze = !fine && lifted !== 0 && Math.abs(others) > 2 * Math.abs(lifted) ? (others - lifted) / others : 1;
+    const blockOf = (i: number) => squeeze === 1 ? heights[i] : Math.abs(heights[i]) < least ? Math.sign(heights[i]) * least : heights[i] * squeeze;
     let at = 0;
-    const slots = samples.map((s, i) => { const h = s.potential * perVolt; const slot = { i, lo: at, hi: at + h }; at += h; return slot; });
+    const slots = samples.map((s, i) => { const h = blockOf(i); const slot = { i, lo: at, hi: at + h }; at += h; return slot; });
     let got = 0;
     // At rest, outside the run, the column is the whole sum, filled: five near-empty slots with one faint
     // tint read as "the potential at P is about nothing". The run fills it piece by piece in Add them up.
     const filling = summing || !build;
-    const filled = filling ? samples.map((s, i) => { const h = s.potential * perVolt * (weights[i] ?? 0); const slot = { i, lo: got, hi: got + h }; got += h; return slot; }).filter(sl => Math.abs(sl.hi - sl.lo) > .02) : [];
+    const filled = filling ? samples.map((s, i) => { const h = blockOf(i) * (weights[i] ?? 0); const slot = { i, lo: got, hi: got + h }; got += h; return slot; }).filter(sl => Math.abs(sl.hi - sl.lo) > .02) : [];
     // The thin line of the ground between slots fades with the slot: at a hundred and sixty slots, mid-Shrink, every
     // slot kept its one-unit stroke and the answer's own column washed out, pale and striped, for a second before
     // snapping solid at the limit.
@@ -1944,7 +2075,12 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
     // the sum, then -- once the pieces are gone -- V.
     const name = finished ? 'V' : stacked ? (litRuns.length > 1 ? '\u0394V + \u0394V' : '\u0394V') : '\u03a3 \u0394V';
     const extent = stacked ? Math.abs(top) : Math.max(Math.abs(at), Math.abs(got));
-    return { w, x, leftSide, fine, slots, filled, filling, box, lit, litRuns, at, got, top, up: top >= 0, stacked, name, extent, beside };
+    // Named past its far end, or beside it where the room is short -- and a column hanging down beside P over a ring or a
+    // disk, beside its middle: its far end comes down by the far rim, where the limits' names stand in the last two
+    // stages, and "V" set there read into them, "V θ = 0, 2π".
+    const hang = natural < 0 && (id === 'ring' || id === 'disk') && !beside;
+    const nameY = beside ? P.y - top + .3 * SYM * labelScale : hang ? P.y - top / 2 + .3 * SYM * labelScale : top >= 0 ? P.y - Math.max(12, top) - 6 : P.y - Math.min(-12, top) + 16;
+    return { w, x, leftSide, fine, slots, filled, filling, box, lit, litRuns, at, got, top, up: top >= 0, stacked, name, extent, beside, nameY };
   })() : null;
   // WHAT SCALE THE FIGURE IS AT, said in its corner. In One piece and What cancels the run's piece is
   // drawn at its own scale -- on the bisector longer than the whole sum at rest -- and Add them up shrinks
@@ -2730,7 +2866,7 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
       plane={perspective ? 'xz' : 'xy'} layout={surface ? 'surface' : 'wire'} />}
     {inSpace && <FieldStage quiet={!!building} kind={id === 'disk' ? 'disk' : id === 'sheet' ? 'sheet' : 'wire'} closed={id === 'ring'} samples={UNBOUNDED.has(id) ? fieldSamples : samples} fieldSamples={fieldSamples} detail={UNBOUNDED.has(id) ? 144 : 48} selected={selectedIndex}
       radius={R} distance={p.distance} yaw={view.yaw} pitch={view.pitch} fieldView={scalar ? 'off' : fieldView} reach={fieldReach}
-      bodyPath={bodyPath} point={pWorld} element={sceneElement} net={netShown ? scaleVec(displayed, gain / unit) : null} contribution={handOver ? scaleVec(handOver.field, handOver.multiplier * gain / unit) : pairNow ? (pairNow.step.fb && pairNow.cancel < .6 ? scaleVec(pairNow.step.fa, pairNow.grow * pairM * gain / unit) : null) : scalar || !showContribution || mode === 'sum' || building === 'limit' ? null : scaleVec(sample.field, selectedGain * gain / unit)}
+      bodyPath={bodyPath} point={pWorld} element={sceneElement} net={netShown ? scaleVec(displayed, netCut * gain / unit) : null} contribution={handOver ? scaleVec(handOver.field, handOver.multiplier * gain / unit) : pairNow ? (pairNow.step.fb && pairNow.cancel < .6 ? scaleVec(pairNow.step.fa, pairNow.grow * pairM * gain / unit) : null) : scalar || !showContribution || mode === 'sum' || building === 'limit' ? null : scaleVec(sample.field, selectedGain * gain / unit)}
       contributionFrom={pairNow ? scaleVec(pairSoFar, gain / unit) : null}
       unit={unit} frame={{ width: 720, height: 430 }} origin={O} charge={p.charge} animating={moving}
       getView={() => ({ yaw: yawMv.get(), pitch: pitchMv.get() })} onUnavailable={() => setNoScene(true)}
@@ -3015,6 +3151,16 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
           size centred its name back over P's. And while the pairs go in, on the side of the arrow away from P's name --
           past its tip is where the pair arrives. */}
       {netShown && <g className="cd-sum-arrow" data-sum-arrow="true"><Vector from={P} to={plus(P, net)} width={3.5} label={finished ? 'E' : pairNow && Math.hypot(net.x, net.y) < 34 * labelScale ? undefined : '\u03a3 \u0394E'} side={awayFrom(net, toCharge) ?? (pairNow ? awayFrom(net, { x: pLabel.dx, y: pLabel.dy }) : undefined)} reduced={still} ghost={inSpace} keep={!building || building === 'add' || building === 'limit'} priority={building === 'add' || building === 'limit' ? 2 : 1} clip={plotClip} /></g>}
+      {/* Where the held scale took the sum past the frame, a break across its shaft near the head, as a drawing marks
+          a length too long for its sheet: two slashes with the shaft gone between them (see `netCut`). */}
+      {netShown && netCut < 1 && (() => {
+        const len = Math.hypot(net.x, net.y), u = { x: net.x / len, y: net.y / len }, slant = { x: -u.y * .85 + u.x * .5, y: u.x * .85 + u.y * .5 };
+        // As large as the names on a phone, where the drawing is set at half the size against them.
+        const k = labelScale, at = (d: number, s: number) => `${(P.x + u.x * d + slant.x * s * k).toFixed(1)} ${(P.y + u.y * d + slant.y * s * k).toFixed(1)}`, d = len - 26 * k, g = 5 * k;
+        return <g className="cd-sum-cut" data-sum-cut={netCut.toFixed(3)} aria-hidden="true" clipPath={plotClip}>
+          <path d={`M${at(d, 6.5)}L${at(d, -6.5)}L${at(d - g, -6.5)}L${at(d - g, 6.5)}Z`} fill="var(--diagram)" />
+          <path d={`M${at(d, 7.5)}L${at(d, -7.5)}M${at(d - g, 7.5)}L${at(d - g, -7.5)}`} fill="none" stroke="var(--field)" strokeWidth={1.6 * k} strokeLinecap="round" /></g>;
+      })()}
       {/* Each pair's share of the sum, marked across its arrow. */}
       {netShown && pairTicks.d && <path className="cd-pair-ticks" data-pair-ticks={String((pairTicks.d.match(/M/g) ?? []).length)} d={pairTicks.d} fill="none" clipPath={plotClip} style={build?.key === 'limit' ? { opacity: clamp((1 - continuum) / .7, 0, 1) } : undefined} />}
       {/* Where the sum went before the far pairs brought it back: see `pairTicks`. */}
@@ -3056,7 +3202,7 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
             ? <rect className="cd-stack-fill" x={gauge.x} width={gauge.w} {...gauge.box(0, gauge.got)} />
             : gauge.filled.map(sl => <rect key={sl.i} className={'cd-stack-fill' + (gauge.lit.has(sl.i) ? ' is-lit' : '')} x={gauge.x} width={gauge.w} {...gauge.box(sl.lo, sl.hi)} />))}
           {!summing && showContribution && gauge.litRuns.map(run => <rect key={run.key} data-stack-lit={run.key} className="cd-stack-fill is-lit" x={gauge.x} width={gauge.w} {...gauge.box(run.lo, run.hi)} />)}
-          <text className={gauge.name === '\u03a3 \u0394V' ? 'is-sum' : undefined} x={gauge.leftSide ? gauge.x - 7 : gauge.x + gauge.w + 7} textAnchor={gauge.leftSide ? 'end' : 'start'} y={gauge.beside ? P.y - gauge.top + .3 * SYM * labelScale : gauge.up ? P.y - Math.max(12, gauge.top) - 6 : P.y - Math.min(-12, gauge.top) + 16}
+          <text className={gauge.name === '\u03a3 \u0394V' ? 'is-sum' : undefined} x={gauge.leftSide ? gauge.x - 7 : gauge.x + gauge.w + 7} textAnchor={gauge.leftSide ? 'end' : 'start'} y={gauge.nameY}
             data-gauge-name="true" data-within={`0 ${P.y.toFixed(1)} 0 ${gauge.up ? -1 : 1}`} {...(gauge.name === '\u03a3 \u0394V' && hideAnswer ? {} : { 'data-keep': 'true', 'data-priority': 2 })}>{setUpright(gauge.name)}</text>
         </g>}
       {/* Leaders for names the placer had to take past their reach: filled by the placer, never by React. */}

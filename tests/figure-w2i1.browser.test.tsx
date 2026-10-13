@@ -233,10 +233,15 @@ describe('a negative potential is never drawn down through its own charge', () =
    const v = await openLesson(id, {charge, distance});
    if (view === '2D') await turn(v, '2D');
    const body = svgOf(v).querySelector<SVGGeometryElement>('[data-source-body]')!;
-   const rim = outline(v, body);
+   // The near half of the charge, and its centre's level: in space the far rim lies behind P and rises on the screen to
+   // within a few dozen units of it, and a foot held above THAT sent the column out past the rim, a hundred pixels from
+   // the P it is the potential of. Hanging beside P, in front of the far rim, it still never reaches the near half.
+   const oy = Number(svgOf(v).querySelector('.cd-origin')!.getAttribute('data-at')!.split(' ')[1]);
+   const all = outline(v, body), rim = all.filter(q => q.y >= oy - .5);
    for (const r of v.container.querySelectorAll<SVGRectElement>('.cd-gauge rect')) {
     const x0 = Number(r.getAttribute('x')), x1 = x0 + Number(r.getAttribute('width')), y1 = Number(r.getAttribute('y')) + Number(r.getAttribute('height'));
     const under = rim.filter(q => q.x >= x0 && q.x <= x1);
+    if (all.some(q => q.x >= x0 && q.x <= x1)) expect(y1, `${view}: over the charge, the column's foot stays above its centre`).toBeLessThanOrEqual(oy + .5);
     if (under.length) expect(y1, `${view}: the column's foot stays above the charge under it`).toBeLessThanOrEqual(Math.min(...under.map(q => q.y)) + .5);
    }
    cleanup(); window.history.replaceState(null, '', '/');
