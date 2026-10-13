@@ -98,6 +98,21 @@ export const farAlpha=(depth:number,fade:FarFade)=>{const low=fade.low??SHEET_FA
  * disk, the washer drawn as a U. Now the gap comes in over `depth` metres behind that depth (see
  * `gapDepth`), the outer radius' worth, so it has no edge in any direction. */
 export const BEHIND_GAP={inner:22,outer:38,low:.08,hard:22} as const;
+/** HOW MUCH OF ITS SIZE THE GAP ROUND P KEEPS ON A DISK SEEN FROM ABOVE, as a factor on its soft radii: all of
+ * it up to a pitch of .85, falling smoothly to two fifths by 1.25 and beyond, about the size of P's own halo. A
+ * wire keeps its gap whole, cut clean, and so does the sheet, whose rings' far rims run on far behind P from above
+ * as from the side: there the gap is still the notch that keeps P off a rim passing behind it.
+ *
+ * The gap is the drafting gap a far line is given where it passes behind a near point, sized for a view from the
+ * side, where it is a notch in a far rim. Tipped up over the disk, P stands over the face and the chosen washer, and
+ * the same thirty-eight units round it whitened a wide patch of both: the washer's far arc ran into a white glare,
+ * which read as a hole in the charge, or as a highlight that was not there. From above, the charge under P is not
+ * a line passing behind it but the ground it stands over, and only P's halo needs clearing. */
+export function gapShrink(pitch:number,kind:BodyKind):number{
+ if(kind!=='disk')return 1;
+ const t=Math.min(1,Math.max(0,(Math.abs(pitch)-.85)/.4));
+ return 1-.6*t*t*(3-2*t);
+}
 /** How much of the gap applies to a point `behind` metres further from the camera than the depth the gap
  * starts at, over a ramp `depth` metres deep: none in front of it, all of it a ramp's depth behind. */
 export function gapDepth(behind:number,depth:number):number{
@@ -163,6 +178,18 @@ export function fillFade(across:number,depth:number,wide:number,far:FarFade):num
  const m=Math.hypot(across/Math.max(1e-6,wide),depth/Math.max(1e-6,depth>0?far.outer:wide));
  return fadeOut(m,.55,1);
 }
+/** HOW STRONGLY THE WALL OF A RING DRAWN AS A WASH IS LAID ON THE SHEET, at a point `across` metres to the side of O
+ * and `depth` metres along the camera's far direction: never more than its face (`face`, the wash's own alpha), and
+ * dissolving with the same ellipse as the summed shading (see `fillFade`, out to `wide` metres to either side).
+ *
+ * At full strength the walls of a band wider than the picture were the only hard thing in it. Their near halves face
+ * away from the camera and are not drawn, their far halves are cut once they are behind P (OUTLINE_FAR_LOW), so in
+ * Add them up all that was left of the newest ring was two dark crescents at its sides, ending hard in mid-air over a
+ * soft wash: a smudge, not an edge. The circles the sheet is cut along mark the ring's edges in the run; its walls
+ * now fade as its face and the shading round it do, so nothing of it is stronger than the ring itself. */
+export function washWall(face:number,across:number,depth:number,wide:number,far:FarFade):number{
+ return face*fillFade(across,depth,wide,far);
+}
 /** HOW STRONGLY THE SUMMED SHADING IS LAID, at its strongest: on the sheet, and a fifth more on the disk.
  * In the dark it is barely more than half as strong. At the light theme's strength, lit and without a
  * glow, it was the largest and brightest thing in the dark figure -- a grey-brown slab over the lower
@@ -178,6 +205,15 @@ export const frameExtent=(reach:number,frameWorld:number)=>Math.ceil(Math.max(re
  * the construction lines behind it. A sheet is quieter still: it covers the whole picture,
  * so what would be a reasonable tint on a disk is a wash over everything here. */
 export const surfaceOpacity=(kind:BodyKind)=>kind==='sheet'?.22:.42;
+/** HOW THE SHEET IS INKED: its opacity, and whether it is drawn unlit, in exactly the charge colour.
+ *
+ * In the dark the sheet was lit orange at .22 alpha with a faint brown glow over a navy ground, and came out a
+ * neutral grey-brown: the scene's lights, strong enough for the light theme's paper, wash a lit plane to a pale tan
+ * (about rgb 224, 189, 131 before it is laid down), and a pale tan at a fifth over navy is grey. The charged plane
+ * lost its charge colour and looked like a shadow under the orange ring. A brown under-glow was tried before and
+ * made it a khaki slab. So in the dark it is drawn unlit, in the charge colour itself, a little stronger: rgb about
+ * 104, 81, 70 over the ground, the warm tint the disk's face has there, not grey. In the light it is as it was. */
+export const sheetInk=(dark:boolean)=>dark?{opacity:.36,unlit:true}:{opacity:surfaceOpacity('sheet'),unlit:false};
 /** The points a wire's body runs through: the sample positions, thinned so the tube stays
  * cheap when the partition is fine. The ends are always kept so the wire is never shortened. */
 export function wirePath(samples:readonly ChargeSample[],limit=160):{x:number;y:number;z:number}[]{
@@ -231,6 +267,11 @@ export function lineStrength(away:number,reach:number):number{
  * and then three tenths of its length, never more than `most`. See FieldStage's `layChain`. */
 export const CHAIN_ASIDE={from:30,most:10,share:.3} as const;
 export const chainAside=(shown:number)=>shown<CHAIN_ASIDE.from?0:Math.min(CHAIN_ASIDE.most,CHAIN_ASIDE.share*shown);
+/** HOW FAR BESIDE THE SUM A PAIR THAT TAKES AWAY FROM IT IS LAID, in units of the figure, for parts `shown` units
+ * long on the screen: three tenths of that, as the chain is, but never under six, the least at which two strokes
+ * a few pixels thick read as two, and never over ten, the chain's own most. See FieldStage's `layPart`. */
+export const KEEP_ASIDE={least:6,most:CHAIN_ASIDE.most,share:CHAIN_ASIDE.share} as const;
+export const keepAside=(shown:number)=>Math.min(KEEP_ASIDE.most,Math.max(KEEP_ASIDE.least,KEEP_ASIDE.share*shown));
 /** HOW FAR THE SCENE DRAWS A CHARGE'S FIELD: its reach, and never short of P. `reach` is the figure's own
  * (a charge's size, a little over), and both the trace and the fade (see `lineStrength`) were tied to it
  * alone -- so with a rod or a ring a metre or two across and P five or six metres off, every line had

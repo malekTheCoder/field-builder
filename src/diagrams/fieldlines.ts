@@ -578,6 +578,19 @@ export function paintedLabels(svg:Element|null|undefined,pad=4):Box[]{
  }
  return out;
 }
+/** THE VIEW CUBE, with its four turning buttons, as one box in the figure's viewBox units, `pad` units clear all
+ * round, or null where there is none (the flat view). It stands inside the window, at its top-left corner, and the
+ * scene draws under it: on the endless and semi-infinite lines the charge's + marks ran up the rod into that
+ * corner, one against the cube's edge and one on its right-turn button, where they read as part of the control.
+ * The placer keeps the names out of the same box (ChargeDiagram's `dom`); the scene's marks keep out of it too. */
+export function controlBox(svg:Element|null|undefined,pad=8):Box|null{
+ const cube=svg?.querySelector('.cd-cube');
+ if(!svg||!cube)return null;
+ const frame=svg.getBoundingClientRect(),r=cube.getBoundingClientRect();
+ if(!(frame.width>2&&frame.height>2&&r.width>.5&&r.height>.5))return null;
+ const view=(svg as SVGSVGElement).viewBox?.baseVal,sx=(view?.width||720)/frame.width,sy=(view?.height||430)/frame.height;
+ return {x:(r.left-frame.left)*sx-pad,y:(r.top-frame.top)*sy-pad,width:r.width*sx+2*pad,height:r.height*sy+2*pad};
+}
 /** Whether a mutation of the figure's SVG can have moved, shown or hidden one of its names: it touched a
  * text, or a group holding one. Everything else the run changes every frame -- arrows, pieces, brackets --
  * is not the field's business. */

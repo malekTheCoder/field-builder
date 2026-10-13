@@ -94,13 +94,25 @@ const lengthOf=(v:Vec)=>Math.hypot(v.x,v.y,v.z);
  *
  * The mirror's part slides out from under the piece's as the parts across cancel, as the flat figure's does
  * (from the start of the arrows, `cancelled` of the piece's part along); explaining one piece, What cancels
- * lays it on the piece's tip once the parts across are half gone, again as the flat figure does. */
-export function keptSpans(a:RunArrows|null|undefined):{piece:KeptSpan|null;partner:KeptSpan|null}{
+ * lays it on the piece's tip once the parts across are half gone, again as the flat figure does.
+ *
+ * TAKEN IN AS FAR AS THE SUM'S ARROW ACTUALLY REACHES, given `net` (the sum's arrow from P, as the scene draws it).
+ * The pair arrives drawn larger than the sum's scale (ChargeDiagram's `pairGain`, up to about nine times) and eases
+ * to its true size as it goes in, while the sum's arrow grows at its true scale. Counting `taken` of the drawn
+ * parts as gone therefore removed up to nine times what the sum had covered: on the ring cut thirty ways the parts
+ * left hung up to nineteen units past the sum's arrowhead, detached, as though the sum had already passed them.
+ * Measured from the sum's real tip, what is left starts exactly at its head at every enlargement, and is still gone
+ * when the merge is over, because the enlargement has eased back to one by then. Without `net` (a test of the plan
+ * alone, or no net arrow shown) the fraction taken stands in for it. */
+export function keptSpans(a:RunArrows|null|undefined,net?:Vec|null):{piece:KeptSpan|null;partner:KeptSpan|null}{
  if(!a?.keep)return {piece:null,partner:null};
  const keep=a.keep,mirror=a.partnerSurvivor,kl=lengthOf(keep),ml=mirror?lengthOf(mirror):0;
  const axis=kl>1e-12?keep:mirror&&ml>1e-12?mirror:null;
  if(!axis)return {piece:null,partner:null};
- const u=scaled(axis,1/lengthOf(axis)),taken=a.pair?Math.max(0,Math.min(1,a.taken)):0,consumed=taken*(kl+ml);
+ const u=scaled(axis,1/lengthOf(axis)),taken=a.pair?Math.max(0,Math.min(1,a.taken)):0;
+ const reach=a.pair&&net?(net.x-a.from.x)*u.x+(net.y-a.from.y)*u.y+(net.z-a.from.z)*u.z:null;
+ // Once the merge is over nothing is left, whatever the net arrow's own cut (see ChargeDiagram's `netCut`) says.
+ const consumed=taken>=1-1e-9?kl+ml:reach!==null?Math.max(0,Math.min(kl+ml,reach)):taken*(kl+ml);
  const pieceGone=Math.min(consumed,kl),mirrorGone=Math.max(0,Math.min(ml,consumed-kl));
  const piece=kl-pieceGone>1e-12?{from:plusV(a.from,scaled(u,pieceGone)),along:scaled(u,kl-pieceGone)}:null;
  const shown=a.pair?!!mirror:!!mirror&&a.cancelled>.5;

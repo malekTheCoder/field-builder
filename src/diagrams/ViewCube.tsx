@@ -189,15 +189,17 @@ export function ViewCube({view, at, size = 22, minFont = 0, onPick, onSpin, onSp
       // holds -- grows with them; scaling the type again on top of that would double it.
       // Up to .46 of the cube's size: at .44, on a phone, where the cube is no larger than it was before
       // the desktop's grew, TOP came out under eight pixels.
-      // Never under `minFont`: where the whole word will not fit its face at that size, the face is named by its
-      // initial -- F, T, R -- as a CAD cube is on a small screen; its full name is still its button's label. At the
-      // floor the word may take nineteen twentieths of its face rather than the .84 it is set in otherwise (the
-      // face's outline takes the rest): on a desktop FRONT fitted at a few hundredths of a pixel under eleven,
-      // and went to F beside a TOP spelled out.
-      const fits = (label: string) => .84 * across / (.66 * label.length), word = fits(f.label) * .95 / .84 >= minFont ? f.label : f.label[0];
+      // Never under `minFont`. A word that is a little too long for its face at that size is set narrower to fit
+      // (`textLength`), by up to a fifth; one that would need more is left off the face, whose full name is still its
+      // button's label. NEVER AN INITIAL: on this figure a bare F reads as force, R as the ring's radius and T as
+      // time, and at 125% and 150% zoom FRONT went to F. Measured at .72 of an em a letter, which is what these bold
+      // capitals take with their spacing: at .66 FRONT was set to run to its face's very edge at 1366 pixels wide.
+      const room = .9 * across, len = f.label.length;
+      const font = Math.max(minFont, Math.min(room / (.72 * len), Math.max(9, size * .46))), natural = .72 * len * font;
+      if (natural > room / .8) return null;
       return <text key={f.key} className="cd-cube-label" x={centre.x.toFixed(2)} y={centre.y.toFixed(2)}
-        textAnchor="middle" dominantBaseline="middle"
-        style={{fontSize: `${Math.max(minFont, Math.min(fits(word), Math.max(9, size * .46))).toFixed(1)}px`}}>{word}</text>;
+        textAnchor="middle" dominantBaseline="middle" {...natural > room ? {textLength: room.toFixed(2), lengthAdjust: 'spacingAndGlyphs'} : {}}
+        style={{fontSize: `${font.toFixed(1)}px`}}>{f.label}</text>;
     })}
     {/* Keyboard: the faces in view, by name, in a row a Tab walks; the pointer has every edge and
         corner as well. */}
