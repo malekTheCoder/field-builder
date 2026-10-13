@@ -75,6 +75,8 @@ export type RunArrows={
  pieceWhole:Vec|null;
  /** How much of the two parts along the axis the sum's arrow has taken in, 0 to 1. See `keptSpans`. */
  taken:number;
+ /** Whether the lesson has a mirror piece that cancels this part across, drawn or not. See `dropStyle`. */
+ mirrored:boolean;
 };
 /** One part along the axis as the scene lays it: from `from` (an offset from P) along `along`. */
 export type KeptSpan={from:Vec;along:Vec};
@@ -113,8 +115,14 @@ export function keptSpans(a:RunArrows|null|undefined):{piece:KeptSpan|null;partn
  * from beyond its end, the ramp, the semi-infinite line -- there is nothing to cancel the sideways
  * part, so it SURVIVES, and drawing it dashed told the reader the opposite of the stage's own line
  * ("both parts of each survive"). The flat figure draws it solid; so does the scene. One rule, read
- * by the scene to draw and by the stage's data to report, so the two cannot disagree. */
-export const dropStyle=(a:RunArrows|null|undefined):'solid'|'dashed'|null=>!a?.drop?null:a.partner?'dashed':'solid';
+ * by the scene to draw and by the stage's data to report, so the two cannot disagree.
+ *
+ * AND DASHED ON A LESSON WITH A MIRROR, WHETHER OR NOT THE MIRROR IS DRAWN. On the bisector, the endless line,
+ * the ring and the arc the sideways part is exactly the one the mirror piece removes; drawn solid wherever the
+ * parts were asked for without the partner, it wore the mark that means "survives" -- the very part What
+ * cancels says goes. The flat figure dashes it so (a teacher's link to the parts at rest), and the scene keeps
+ * the same rule. Only a piece that is its own mirror, on P's own line, has no partner and nothing sideways. */
+export const dropStyle=(a:RunArrows|null|undefined):'solid'|'dashed'|null=>!a?.drop?null:a.partner||a.mirrored?'dashed':'solid';
 export type RunScene={
  stage:string;
  kind:BodyKind; closed:boolean;
@@ -185,6 +193,9 @@ export type RunSceneInput={
    * to be taken into the sum (they go at nothing). `fade` is given only while a mirror pair goes into the sum,
    * and marks the arrows as that pair: how strongly its whole arrows are drawn follows from `cancelled`. */
   from?:Vec;fade?:number};
+ /** Whether the lesson has a mirror piece for every piece off P's line (bisector, endless line, ring, arc), shown
+  * or not: its sideways part is then one that cancels. See `dropStyle`. */
+ mirrored?:boolean;
  /** Every piece's field and the net arrow's scale, while the sum is being drawn. */
  chain:null|{scale:number;fields:readonly Vec[];weights:readonly number[]};
 };
@@ -292,6 +303,8 @@ export function runScene(input:RunSceneInput):RunScene{
   from,whole,pair,taken,
   // As the flat figure draws the pair: the piece's whole arrow only beside a mirror's.
   pieceWhole:pair&&a.partner&&whole>0?scaled(a.field,a.scale):null,
+  // A piece on P's own line is its own mirror: nothing cancels it, as nothing pairs with it (see `own`).
+  mirrored:!!input.mirrored&&!own,
  }:null;
  let chain:Vec[]|null=null;
  if(input.chain){

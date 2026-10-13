@@ -3,7 +3,7 @@ import {useEffect,useRef,useState} from 'react';
 import type {ChargeSample} from '../../distributions/types';
 import type {Vec} from '../../symbolic/physics';
 import {cameraBasis,cameraPosition,frameTarget,frustum,tickStep} from './orthoCamera';
-import {apartOnScreen,arrowHead,besideWire,slabCovers,BEHIND_GAP,gapDepth,gapLift,gapRamp,gapStart,NAME_MARGIN,PIECE_FAR_LOW,SHEET_SIGN_GAP,bodyReach,CHAIN_ASIDE,chainAside,diskSignMarks,drawOrder,fadeOut,farAlpha,fillAlpha,fillFade,frameExtent,latticeClear,lineReach,segmentGap,lineStrength,pieceFade,SHEET_FADE,sheetSignRoots,sheetSigns,signMarks,strokeSide,tickGaps,SHEET_UNDER,sheetColumns,sheetFarFade,surfaceOpacity,visibleRadii,washerHalf,wirePath,wireRadius,writesDepth,type BodyKind,type FarFade} from './bodies';
+import {apartOnScreen,arrowHead,besideWire,LEVEL_MARGIN,slabCovers,BEHIND_GAP,gapDepth,gapLift,gapRamp,gapStart,NAME_MARGIN,PIECE_FAR_LOW,SHEET_SIGN_GAP,bodyReach,CHAIN_ASIDE,chainAside,diskSignMarks,drawOrder,fadeOut,farAlpha,fillAlpha,fillFade,frameExtent,latticeClear,lineReach,segmentGap,lineStrength,pieceFade,SHEET_FADE,sheetSignRoots,sheetSigns,signMarks,strokeSide,tickGaps,SHEET_UNDER,sheetColumns,sheetFarFade,surfaceOpacity,visibleRadii,washerHalf,wirePath,wireRadius,writesDepth,type BodyKind,type FarFade} from './bodies';
 import {endlessAxis,endlessBody,endlessRay,latticeBody,latticeCore,latticeFrame,radialLines,rayField,rayLines,sheetLines,spaceLines,traceTo,type Layout} from '../field3d';
 import {boxGap,HEAD_ROOM,LINE_HEAD,lineHeads,meetsBoxes,paintedLabels,seedPool,touchesLabels,type Box} from '../fieldlines';
 import {coarsen} from '../sampling';
@@ -61,6 +61,9 @@ export type FieldStageProps={
  animating?:boolean; getView?:()=>{yaw:number;pitch:number};
  /** "Watch it build", while it is open: what the scene draws of each stage. See `runScene`. */
  run?:RunScene|null;
+ /** Told, once, that the scene cannot start here -- no WebGL context, or its chunk never arrived -- so the
+  * figure can draw itself flat instead. Without it the stage says so itself, over its empty layer. */
+ onUnavailable?:()=>void;
 };
 /** The cuts are made in order along the charge, at the same pace as the flat figure's
  * `.cd-stage-pieces .cd-seam` animation, so a reader who flips between 2D and 3D sees one run. */
@@ -107,6 +110,12 @@ export function FieldStage(props:FieldStageProps){
  // acceleration a policy has turned off. Nothing caught it, and the ring, the disk and the sheet -- which
  // open in space -- showed their labels floating over an empty figure, with an unhandled rejection and
  // no word of why. Now the figure says the 3D view is unavailable here and that 2D still works.
+ //
+ // AND THE FIGURE GOES FLAT. Saying so was not enough: the stage failed alone, so the figure above it went on
+ // drawing in space -- the view cube, a lone z, the chosen piece's wedge and its ΔQ round a note in an empty
+ // plot, and the run narrating pieces nobody could see. The figure is told (`onUnavailable`) and draws the
+ // flat view, which needs no WebGL and shows the same lesson; the note is then the figure's, under its
+ // toolbar. A stage with nobody to tell still says it here.
  const [failed,setFailed]=useState(false);
  useEffect(()=>{latest.current=props;live.current?.update(props);});
  useEffect(()=>{
@@ -330,7 +339,7 @@ export function FieldStage(props:FieldStageProps){
     head.scale.set(half*2,length,1);head.position.set(centre.x,centre.y,centre.z);
    };
    /** See `arrowHead`. */
-   const headSize=(length:number,thick:number)=>{const h=arrowHead(length,thick,px);return {l:h.length,half:h.half};};
+   const headSize=(length:number,thick:number)=>{const h=arrowHead(length,thick,px,cssPx);return {l:h.length,half:h.half};};
    /** Lay an arrow from `from` along `dir` for `length`, with a head that never outgrows it. */
    const layArrow=(a:ReturnType<typeof arrow>,from:Vec,dir:Vec,length:number,thick:number)=>{
     const l=Math.hypot(dir.x,dir.y,dir.z);
@@ -692,7 +701,9 @@ export function FieldStage(props:FieldStageProps){
     // Laid from the start of the arrows, which is the tip of the sum while a mirror pair goes into it.
     const o=a?.from??{x:0,y:0,z:0},s=a?.partnerSurvivor??{x:0,y:0,z:0};
     const kept=a?.keep?{x:o.x+a.keep.x+s.x,y:o.y+a.keep.y+s.y,z:o.z+a.keep.z+s.z}:null;
-    const arrows=[p.net,p.contribution,kept,a?.partner,end];
+    // Not the contribution while a mirror pair goes into the sum: the run draws that pair itself (see `wholeArrow`) and
+    // the contribution is not drawn, so its ticks were let go along a line from P it never lay on.
+    const arrows=[p.net,a?.pair?null:p.contribution,kept,a?.partner,end];
     const sig=(v:Vec|null|undefined)=>v?`${v.x.toFixed(3)},${v.y.toFixed(3)},${v.z.toFixed(3)}`:'-';
     const key=`${sig(p.point)}|${arrows.map(sig).join('|')}|${px.toFixed(5)}|${tickMeta.length}`;
     if(key===tickKey)return;
@@ -741,7 +752,7 @@ export function FieldStage(props:FieldStageProps){
    let signKey='';
    const laySigns=(p:FieldStageProps,frameWorld:number,far:FarFade|null,yaw:number,pitch:number,wr:number,positive:boolean,paper:InstanceType<typeof THREE.Color>,dark:boolean,target:Vec)=>{
     // `at` is where the mark is drawn; `foot` the point of the charge it stands for, which on a wire is beside it.
-    const centres:{at:Vec;foot:Vec;alpha:number}[]=[];
+    const centres:{at:Vec;foot:Vec;alpha:number;along?:Vec}[]=[];
     const h=4.6*px,t=1*px,ring=1.25*px;
     // The chosen ring of a disk or a sheet: no mark is written on it (see `diskSignMarks`, `sheetSigns`).
     const band=p.element&&'annulus' in p.element?p.element.annulus:null;
@@ -767,7 +778,7 @@ export function FieldStage(props:FieldStageProps){
      const away=curved?middle:p.point;
      const marks=signMarks(source,poolWindow(frameWorld),34/p.unit).map(m=>{
       const o=besideWire(m,m.along,away,R,U,h+ring,t+ring,positive,thick+1.5*cssPx);
-      return {at:{x:m.x+o.x,y:m.y+o.y,z:m.z+o.z},foot:{x:m.x,y:m.y,z:m.z},alpha:1};
+      return {at:{x:m.x+o.x,y:m.y+o.y,z:m.z+o.z},foot:{x:m.x,y:m.y,z:m.z},alpha:1,along:m.along};
      });
      // A mark every forty units of the figure, and the closed ring's every forty units round it.
      centres.push(...apartOnScreen(marks,toScreen,apart));
@@ -815,13 +826,26 @@ export function FieldStage(props:FieldStageProps){
     // with the axis through its upright where P's construction lines meet the plane -- an origin crosshair, not
     // one of the charge's signs.
     const O=toScreen({x:0,y:0,z:0});
-    for(let i=centres.length-1;i>=0;i--){
-     const c=toScreen(centres[i].at),foot=toScreen(centres[i].foot),fromP=Math.min(Math.hypot(c.x-P.x,c.y-P.y),Math.hypot(foot.x-P.x,foot.y-P.y));
-     const o={x:centres[i].at.x+toCamera.x*lift,y:centres[i].at.y+toCamera.y*lift,z:centres[i].at.z+toCamera.z*lift};
+    // AND A MINUS NEVER STANDS LEVEL WITH A NAME, close by. Beside a letter on its own line a minus is read as part of
+    // what is written: the bisector's mark beside O, with a negative charge, read "O −" -- a margin that parts a plus
+    // from a letter does not part a dash. Level with a name, it keeps a letter's width more clear of it -- moved a third
+    // of a step or so along its wire where that clears it, rather than leaving a gap in the wire's row of signs.
+    // Level: across the middle of the name's line, where a dash beside a letter reads as one more character.
+    const level=(c:{x:number;y:number})=>!positive&&names.some(b=>c.y>b.y+.2*b.height&&c.y<b.y+.8*b.height&&Math.max(b.x-c.x,c.x-(b.x+b.width))<mark+NAME_MARGIN+LEVEL_MARGIN);
+    const blocked=(at:Vec,footAt:Vec,levelToo:boolean)=>{
+     const c=toScreen(at),foot=toScreen(footAt),fromP=Math.min(Math.hypot(c.x-P.x,c.y-P.y),Math.hypot(foot.x-P.x,foot.y-P.y));
+     const o={x:at.x+toCamera.x*lift,y:at.y+toCamera.y*lift,z:at.z+toCamera.z*lift};
      // And a clear margin round every name, not only the name's own box: at R = 4 the disk's marks sat flush
      // against P, z, s and R, and the figure read "+P", "z +", "+ s".
-     if(boxGap(c,names)<mark+NAME_MARGIN||Math.hypot(c.x-P.x,c.y-P.y)<mark+halo||segmentGap(c,c,P,tip)<mark+3||(fromP<reach&&behindP(centres[i].foot)>.5)
-      ||(!wire&&segmentGap(c,c,O,P)<mark+7)||behindSlab(o))centres.splice(i,1);
+     return boxGap(c,names)<mark+NAME_MARGIN||(levelToo&&level(c))||Math.hypot(c.x-P.x,c.y-P.y)<mark+halo||segmentGap(c,c,P,tip)<mark+3||(fromP<reach&&behindP(footAt)>.5)
+      ||(!wire&&segmentGap(c,c,O,P)<mark+7)||behindSlab(o);
+    };
+    const slide=(v:Vec,u:Vec,d:number):Vec=>({x:v.x+u.x*d,y:v.y+u.y*d,z:v.z+u.z*d}),step=34/p.unit;
+    for(let i=centres.length-1;i>=0;i--){
+     const m=centres[i];
+     if(!blocked(m.at,m.foot,true))continue;
+     const u=m.along,moved=u&&!blocked(m.at,m.foot,false)?[.3,-.3,.45,-.45].map(d=>({at:slide(m.at,u,d*step),foot:slide(m.foot,u,d*step)})).find(q=>!blocked(q.at,q.foot,true)):undefined;
+     if(moved)centres[i]={...m,...moved};else centres.splice(i,1);
     }
     // How many marks are written, and where on the screen, for the tests; and the points of the charge they stand
     // for, which on a wire are beside them.
@@ -1651,6 +1675,7 @@ export function FieldStage(props:FieldStageProps){
    while(mount.firstChild)mount.removeChild(mount.firstChild);
    mount.parentElement?.setAttribute('data-scene-failed','true');
    setFailed(true);
+   latest.current.onUnavailable?.();
   });
   return ()=>{cancelled=true;live.current?.dispose();live.current=null;};
  },[]);
@@ -1662,7 +1687,7 @@ export function FieldStage(props:FieldStageProps){
   <div className="cd-field-stage" aria-hidden="true" style={{clipPath:STAGE_CLIP}} {...runData(props.run)}>
    <div ref={host} className="cd-stage-gl"/>
   </div>
-  {failed&&<output className="cd-stage-unavailable" style={{display:'block',position:'absolute',left:'50%',top:'50%',transform:'translate(-50%,-50%)',margin:0,padding:'.5em .9em',maxWidth:'80%',textAlign:'center',
+  {failed&&!props.onUnavailable&&<output className="cd-stage-unavailable" style={{display:'block',position:'absolute',left:'50%',top:'50%',transform:'translate(-50%,-50%)',margin:0,padding:'.5em .9em',maxWidth:'80%',textAlign:'center',
    font:'500 14px/1.4 var(--font-geist-sans),system-ui,sans-serif',color:'var(--muted-foreground,#4a6172)',background:'var(--diagram,#fff)',borderRadius:8,pointerEvents:'none',zIndex:2}}>
    The 3D view is not available on this device. The 2D view shows the same figure.
   </output>}

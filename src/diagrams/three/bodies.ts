@@ -204,12 +204,19 @@ export const wireRadius=(reach:number)=>.036+.008*Math.min(3,reach/2);
 export const writesDepth=(kind:BodyKind)=>kind==='wire';
 /** An arrowhead's length and half-width, in metres, for an arrow `length` long with a shaft `thick`
  * in radius, where `px` metres is one unit of the figure's viewBox. At least seven shaft radii and
- * nine units of the figure long, so it reads at any zoom; never more than .45 of its arrow; and at
- * least half again as long as it is wide. The heads were cones about as long as they were wide, and
- * an arrow lying in the plane, seen from above, ended in a dot. */
-export function arrowHead(length:number,thick:number,px:number):{length:number;half:number}{
+ * nine units of the figure long, so it reads at any zoom; never more than .45 of its arrow, but for the
+ * floor below; and at least half again as long as it is wide. The heads were cones about as long as they
+ * were wide, and an arrow lying in the plane, seen from above, ended in a dot. */
+export function arrowHead(length:number,thick:number,px:number,screen:number=px):{length:number;half:number}{
  const l=Math.min(length*.45,Math.max(thick*7,9*px));
- return {length:l,half:Math.min(thick*2.2,l*.32)};
+ // A FLOOR FOR SHORT ARROWS, ON THE SCREEN. A head a fixed share of its arrow went to a smudge with it: a mirror pair
+ // going into the sum at thirty pieces is a dozen pixels long, and its head was five long and three wide on a desk,
+ // half that on a phone -- the width of the shaft, so the arrow read as a stub. So an arrow twelve screen pixels
+ // long or more (`screen` metres a pixel) keeps a head at least six long, up to half the arrow, reaching two and a
+ // half pixels each side of the shaft's line where that leaves it half again as long as wide: the flat figure's floor.
+ if(!(length>=12*screen))return {length:l,half:Math.min(thick*2.2,l*.32)};
+ const floor=Math.max(l,Math.min(6*screen,length*.5));
+ return {length:floor,half:Math.max(Math.min(thick*2.2,floor*.32),Math.min(2.5*screen,floor/3))};
 }
 /** How strongly each point of a field line is drawn: full near the charge, fading out by a little
  * past the field's reach -- measured from the CHARGE, not from O. From O, the field of an infinite
@@ -431,6 +438,8 @@ export function diskSignRadii(R:number,unit:number,annulus:{inner:number;outer:n
 /** How far apart the disk's sign marks are laid on its face, in units of the figure: about the spacing a
  * wire's marks are laid at along it (see `signMarks`). */
 export const DISK_SIGN_SPACING=28;
+/** How many of the disk's sign marks, at least, are laid on the part of its face free for them: see `diskSignMarks`. */
+export const DISK_SIGN_FREE=8;
 /** WHERE THE DISK'S SIGN MARKS GO: a sunflower over its face, as the sheet's are laid (see `sheetSignRoots`),
  * one mark for every DISK_SIGN_SPACING-unit square of it, so they are as dense everywhere on the face as the
  * charge is. `half` is a mark's half size with its paper ring, in metres; `unit` is viewBox units per metre.
@@ -446,8 +455,13 @@ export const DISK_SIGN_SPACING=28;
  * width and a little paper (2.6 half sizes), so the smallest disk carries no pile. A disk too small for any
  * gets one mark, off the chosen ring. */
 export function diskSignMarks(R:number,unit:number,annulus:{inner:number;outer:number}|null,half:number):Point3[]{
- const m=half*unit,count=Math.max(1,Math.round(Math.PI*(R*unit)**2/DISK_SIGN_SPACING**2));
  const lo=.2*R,hi=.92*R,cut=annulus?[annulus.inner-half,annulus.outer+half] as const:null;
+ // A SMALL DISK IS MARKED MORE FINELY, NOT LESS. On a phone the disk is a sixth smaller in the figure's units, and with
+ // the chosen washer across the middle of its radius -- five rings, the lesson's default -- the face round it held five
+ // places for a mark, and the names gathered round O took all but one: a disk with a single plus. So as many are laid
+ // as put at least DISK_SIGN_FREE on the face that is free for them, as evenly as ever, never closer than they may stand.
+ const m=half*unit,free=(hi*hi-lo*lo-(cut?Math.max(0,Math.min(hi,cut[1])**2-Math.max(lo,cut[0])**2):0))/(R*R);
+ const count=Math.max(1,Math.min(Math.round(Math.PI*(R*unit)**2/(2.6*m)**2),Math.max(Math.round(Math.PI*(R*unit)**2/DISK_SIGN_SPACING**2),free>0?Math.ceil(DISK_SIGN_FREE/free):0)));
  const golden=Math.PI*(3-Math.sqrt(5)),out:Point3[]=[];
  for(let k=0;k<count;k++){
   const r=R*Math.sqrt((k+.5)/count),a=k*golden+.3;
@@ -480,6 +494,9 @@ export const SHEET_SIGN_GAP=44;
  * R = 4 the disk read "+P", "z +" and "+ s", a sign glued to each name -- since the placer, which sets the
  * names, cannot see the scene's marks. Six more units leave about ten between the ink of the two. */
 export const NAME_MARGIN=6;
+/** HOW MUCH MORE PAPER A MINUS KEEPS FROM A NAME IT STANDS LEVEL WITH, in units of the figure: about a letter's width.
+ * See FieldStage's `laySigns`. */
+export const LEVEL_MARGIN=12;
 /** THE SHEET'S SIGN MARKS, LAID ON THE SHEET. They were laid on a lattice fixed to the screen -- a mark
  * every ninety units across and sixty up, from the window's bottom edge -- and only then turned into the
  * plane for the current view, so in a drag they stood still while the grid, the axes and the chosen ring
