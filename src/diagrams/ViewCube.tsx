@@ -183,9 +183,11 @@ export function ViewCube({view, at, size = 22, onPick, onSpin, onSpinStart, onSt
       });
       const across = Math.max(...xs) - Math.min(...xs);
       const fit = .84 * across / (.66 * f.label.length);
+      // Up to .46 of the cube's size: at .44, on a phone, where the cube is no larger than it was before
+      // the desktop's grew, TOP came out under eight pixels.
       return <text key={f.key} className="cd-cube-label" x={centre.x.toFixed(2)} y={centre.y.toFixed(2)}
         textAnchor="middle" dominantBaseline="middle"
-        style={{fontSize: `${Math.min(fit, Math.max(9, size * .44)).toFixed(1)}px`}}>{f.label}</text>;
+        style={{fontSize: `${Math.min(fit, Math.max(9, size * .46)).toFixed(1)}px`}}>{f.label}</text>;
     })}
     {/* Keyboard: the faces in view, by name, in a row a Tab walks; the pointer has every edge and
         corner as well. */}

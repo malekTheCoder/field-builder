@@ -308,8 +308,15 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
   //
   // The view cube is the exception. Its face names are set to fit the face, so the cube itself has to
   // grow the whole way for "FRONT" to stay eight pixels tall; it sits in a corner of its own.
+  //
+  // But no further than it grew before it was made larger for a desktop. The larger cube scaled the whole
+  // way on a phone kept the top-left 232 units of a drawing 430 tall to itself, and that corner is where a
+  // ring seen in space puts its arrows: at What cancels ΔE⊥ had nowhere free and was set against the y
+  // axis' letter. So the cube is its larger desktop size, or its old size grown with the labels, whichever
+  // is more -- the same on a phone as it was, larger only where there is room for it.
   const stageBox = useRef<HTMLDivElement>(null);
   const [labelScale, setLabelScale] = useState(1), [cubeScale, setCubeScale] = useState(1);
+  const cubeSize = Math.max(27, 22 * cubeScale), cubeAt = cubeSize * 74 / 27;
   // Under about 480 pixels the figure has no room for prose inside it: the schematic's note goes.
   const [narrow, setNarrow] = useState(false);
   // Measured once before the first paint, so the figure is never drawn at one scale and then
@@ -2242,7 +2249,7 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
     // "y = L  Shrink them".
     obstacleBoxes.push({ x: 0, y: 0, width: 720, height: TITLE_BAND });
     // The view cube and the four steps round it, which grow with the labels on a phone.
-    if (inSpace) { const c = 74 * cubeScale, r = (2.15 * 27 + 8.4) * cubeScale; obstacleBoxes.push({ x: c - r, y: c - r, width: 2 * r, height: 2 * r }); }
+    if (inSpace) { const c = cubeAt, r = (2.15 + 8.4 / 22) * cubeSize; obstacleBoxes.push({ x: c - r, y: c - r, width: 2 * r, height: 2 * r }); }
     if (gauge && building !== 'pieces') {
       const reach = Math.max(gauge.extent, 12);
       obstacleBoxes.push({ x: gauge.x - 6, y: gauge.up ? P.y - reach - 4 : P.y - 4, width: gauge.w + 12, height: reach + 8 });
@@ -2725,7 +2732,7 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
       {handOver && <g className="cd-hand-over" data-hand-over={handOver.multiplier.toFixed(3)} opacity={handOver.opacity}>
         <Vector from={P} to={plus(P, handOver.vector)} clip={plotClip} color="var(--contribution)" width={2.4} label={handOver.opacity > .5 ? pieceSymbol : undefined} reduced ghost={inSpace} />
       </g>}
-      {inSpace && <ViewCube view={view} at={{ x: 74 * cubeScale, y: 74 * cubeScale }} size={27 * cubeScale}
+      {inSpace && <ViewCube view={view} at={{ x: cubeAt, y: cubeAt }} size={cubeSize}
         onPick={(next, label) => { stopGlide(); setZoom(1); glideTo(next, .5); setAnnouncement(label); }}
         onSpinStart={() => { stopGlide(); setActiveDrag(true); }}
         onSpin={(dx, dy) => { const next = orbitCamera({ yaw: yawMv.get(), pitch: pitchMv.get() }, dx * 1.7, dy * 1.7); commitView(next); }}
