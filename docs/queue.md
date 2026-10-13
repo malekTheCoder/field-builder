@@ -52,6 +52,8 @@ reproduce in a Linux container (the Playwright image) and profile Shrink there.
    still to be confirmed.
 
 ## Done
+- The home cover shows the cancelling (776fe44): both mirror pieces, their two ΔE arrows at P, the parts
+  across the axis struck through as "cancel", and the parts along it laid end to end as E.
 - The cloud round (w4) is merged (edb9c07): a sum link draws mirror pairs (was Next 3), the cube's face
   names are 11 px or more, initials where a word won't fit (was Next 6), the placer keeps the names the
   board is written in, and the round's panel, page, scene and content fixes. Its deferred and partial
