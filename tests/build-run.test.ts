@@ -229,7 +229,7 @@ describe('the captions say only what is true', () => {
    for (const text of [add.line, add.caption]) {
     expect(text, `${p.id}: "${text}"`).toMatch(/sum/);
     expect(text, `${p.id}: "${text}"`).not.toMatch(/is the (field|potential) at P/);
-    expect(text, `${p.id}: "${text}"`).toMatch(/once they shrink/);
+    expect(text, `${p.id}: "${text}"`).toMatch(/(once|as) (they|the (piece|ring)s) shrink/);
    }
   }
  });
@@ -255,7 +255,7 @@ describe('the captions say only what is true', () => {
   // estimate's words.
   const arc = (n: number) => sampleDistribution('arc', P, n).reduce((t, s) => t + s.field.x, 0);
   expect(Math.abs(arc(5) / arc(2000) - 1)).toBeGreaterThan(1e-3);
-  expect(buildStages(getProblem('arc'))[3].line).toMatch(/once they shrink/);
+  expect(buildStages(getProblem('arc'))[3].line).toMatch(/(once|as) (they|the pieces) shrink/);
  });
  it('a potential’s piece adds k times its charge over its distance, and goes on the column the next stage names', () => {
   for (const p of PROBLEMS.filter(q => q.quantity === 'V')) {

@@ -37,7 +37,7 @@ describe('the ring’s piece, of any size', () => {
     expect(say).toMatch(/at any size/);
     expect(say).toMatch(/leans a little closer to the axis/);
     // And What cancels names the arrow as the drawing it is.
-    expect(step('ring', 'cancel').say).toMatch(/^\$\\alpha\$ is the angle .* The drawn arrow/);
+    expect(step('ring', 'cancel').say).toMatch(/^The angle \$\\alpha\$ is the one .* The drawn arrow/);
     // A third of a ring, R = 2 and z = 3: every bit is r_i away at one angle, so the parts along the axis
     // add to the point charge's exactly, while the parts across add to sin(Δθ/2)/(Δθ/2) = 0.83 of it.
     const R = 2, z = 3, dTheta = 2 * Math.PI / 3, ri = Math.hypot(R, z);
@@ -63,7 +63,7 @@ describe('the ring’s piece, of any size', () => {
 describe('the bracket’s angle is said to be negative only where it can be', () => {
   it('wholly above the middle, no word about below it', () => {
     expect(step('bisector', 'cancel', ['0', 'L/2']).say).not.toMatch(/is negative/);
-    expect(step('bisector', 'cancel', ['-L/2', '0']).say).toMatch(/Below the.*\$x\$-axis \$\\alpha\$ is negative/);
+    expect(step('bisector', 'cancel', ['-L/2', '0']).say).toMatch(/below the.*\$x\$-axis, where \$\\alpha\$, like \$y\$, is negative/);
     expect(step('bisector', 'cancel', ['-L/4', 'L/2'], {keeps: false, oneSided: false}).say).toMatch(/is negative/);
     // A handle's name says nothing of where it is: the panel says, and without it the sentence stays.
     expect(step('bisector', 'cancel', ['y_1', 'L/2'], {below: false}).say).not.toMatch(/is negative/);

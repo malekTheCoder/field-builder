@@ -32,7 +32,7 @@ describe('a lopsided bracket says why its survivor is a sine, and why it has a m
       expect(step(id, 'cancel').say, id).not.toMatch(/hence the minus|Its part along \$y\$/);
     }
     // Off-centre over the middle, the angle's sign is said too.
-    expect(step('infinite', 'cancel', ['-\\pi/4', '\\pi/2'], {keeps: false, oneSided: false, below: true}).say).toMatch(/Below the.*\$x\$-axis \$\\theta\$ is negative/);
+    expect(step('infinite', 'cancel', ['-\\pi/4', '\\pi/2'], {keeps: false, oneSided: false, below: true}).say).toMatch(/below it, where \$\\theta\$, like \$y\$, is negative/);
   });
   it('and the minus is the geometry’s: a positive piece above the axis pushes P down', () => {
     // The bisector and the infinite line: a charge q at (0, y) makes E_y = −k q y / r_i³ at P = (r, 0).
@@ -52,7 +52,9 @@ describe('the part of the distribution is a formula, not a promise of one', () =
       const tex = partResult(p, 'y_1', 'y_2');
       if (exactSum(p)) { expect(tex, p.id).toBeUndefined(); continue; }
       expect(tex, p.id).toBeTruthy();
-      expect(tex!, p.id).toMatch(/\\(right|Bigr)\]_\{y_1\}\^\{y_2\}$/);
+      // One row, or -- where E_y survives -- an aligned block whose every row ends on the same ends.
+      expect(tex!, p.id).toMatch(/\\(right|Bigr|bigg)\]_\{y_1\}\^\{y_2\}(\\end\{aligned\})?$/);
+      for (const row of tex!.replace(/^\\begin\{aligned\}|\\end\{aligned\}$/g, '').split(/\\\\(?:\[[^\]]*\])?(?=[A-Z])/)) expect(row, p.id).toMatch(/\]_\{y_1\}\^\{y_2\}$/);
       expect(() => typeset(tex!), p.id).not.toThrow();
       // Every logarithm of a pure number, as the lessons write theirs.
       for (const m of tex!.matchAll(/\\ln\s*(.{5})/g)) expect(m[1], p.id).toMatch(/^\\frac/);
@@ -73,7 +75,8 @@ describe('an exact sum, done in symbols on the line that says it needs no integr
   it('the shared factor comes out and Σ ΔQ_i is Q; over part of the charge it stops at the part’s sum', () => {
     for (const p of PROBLEMS.filter(exactSum)) {
       const add = step(p.id, 'add');
-      expect(add.finish, p.id).toMatch(/\\sum_i\\htmlClass\{fx fx-element\}\{\\Delta Q_i\}=\\frac\{kQ/);
+      // On one row, or -- written in what every r_i is, too wide for one -- with its second "=" on the next.
+      expect(add.finish, p.id).toMatch(/\\sum_i\\htmlClass\{fx fx-element\}\{\\Delta Q_i\}(\\\\(\[[\d.]+em\])?\\phantom\{[EV_z]+\}&)?=\\frac\{kQ/);
       expect(() => typeset(add.finish!), p.id).not.toThrow();
       const part = boardLines(p, ['0', p.id === 'v-arc' ? '\\varphi/4' : '\\pi'], {span: '\\pi'}).find(l => l.key === 'add')!;
       expect(part.finish, p.id).toMatch(/\\sum_i\\htmlClass\{fx fx-element\}\{\\Delta Q_i\}$/);

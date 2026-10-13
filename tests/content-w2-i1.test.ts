@@ -31,8 +31,9 @@ describe('the offline copy prints the derivation the panel unfolds',()=>{
   expect(steps('semi')).not.toMatch(/u=x\^2\+r\^2/);
   expect(steps('arc')).not.toMatch(/Sine is odd/);
   expect(steps('axial')).not.toMatch(/the two minus signs cancel/);
-  // The disk's six: the constant out, u, the power rule, the bracket, then the lesson's own two.
-  expect(lessonWorking(getProblem('disk')).worked.length).toBe(DISK_UNFOLD.length+2);
+  // The disk's seven: the constant out, u, the power rule, the bracket, the lesson's own two, then the
+  // row in Q its answer ends on (the panel's DISK_Q).
+  expect(lessonWorking(getProblem('disk')).worked.length).toBe(DISK_UNFOLD.length+3);
   expect(steps('disk')).toContain('R^2+z^2');
  });
  it('on the finite-rod route the copy’s setup and integral are the route’s',()=>{

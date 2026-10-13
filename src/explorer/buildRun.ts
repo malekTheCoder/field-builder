@@ -93,15 +93,20 @@ const CANCELS: Record<string, string> = {
 // Said of the pieces and their mirrors, not of "its mirror piece": a reader can choose the run's piece,
 // and at an odd N the middle one is its own mirror, with no part along the rod to cancel. "Its mirror
 // piece contributes as much at P" was then about a piece the figure does not draw.
+//
+// EACH UNDER NINETY CHARACTERS. The transport sets every stage's line in one cell, as tall as the
+// tallest, so one line that wrapped to four on a phone made every stage of that lesson hold four lines
+// of text under the bar; several ended on a one-word runt ("survive.", "integral."). A line is one short
+// sentence for reading while the figure moves: `tests/panel-w3.test.ts` holds each to ninety.
 const CANCEL_LINES: Record<string, string> = {
-  bisector: 'Mirror pieces across the $x$-axis cancel each other’s parts along the rod; the perpendicular parts survive.',
-  ring: 'The same length of ring straight across cancels the part across the axis. Only the part along it survives.',
-  arc: 'Mirror pieces cancel each other’s parts across the axis. Only the parts along the axis survive.',
-  infinite: 'Mirror pieces cancel each other’s parts along the line. Only the perpendicular parts survive.',
-  disk: 'Each ring has already cancelled its own sideways parts. Only the part along the axis is left.',
-  sheet: 'Each ring has already cancelled its own sideways parts. Only the part along the axis is left.',
-  semi: 'Nothing cancels: no charge lies on the other side, so both parts survive and the field leans.',
-  axial: 'Every piece is on the axis, so every contribution already points along it. Nothing to cancel.',
+  bisector: 'Mirror pieces cancel each other’s parts along the rod; the perpendicular parts survive.',
+  ring: 'An equal length of ring opposite cancels the part across the axis; the axial part is left.',
+  arc: 'Mirror pieces cancel each other’s parts across the axis; the parts along it survive.',
+  infinite: 'Mirror pieces cancel each other’s parts along the line; the perpendicular parts survive.',
+  disk: 'Each ring’s sideways parts have already cancelled round it: only the axial part is left.',
+  sheet: 'Each ring’s sideways parts have already cancelled round it: only the axial part is left.',
+  semi: 'Nothing cancels: with no charge past the end, both parts survive and the field leans.',
+  axial: 'Every piece is on the axis, so every arrow already points along it: nothing to cancel.',
 };
 /* A scalar lesson must never borrow its field twin's cancellation story, even though it shares
  * the twin's geometry. V is a number; "the sideways parts cancel" is meaningless about it, and
@@ -126,14 +131,21 @@ const NO_CANCEL = 'Nothing cancels here. Every piece lies above the x-axis, the 
  * to the other. */
 const PAIRS = new Set(['bisector', 'infinite', 'ring', 'arc']);
 /** What a mirror pair does as it goes into the sum, in each lesson's own words for its two parts (see
- * `CANCEL_LINES`): true for either sign of charge, since it says which parts, not which way they point. */
-const PAIR_PARTS: Record<string, string> = {
-  bisector: 'the parts along the rod cancel, the perpendicular parts',
-  infinite: 'the parts along the line cancel, the perpendicular parts',
-  arc: 'the parts across the axis cancel, the parts along it',
+ * `CANCEL_LINES`): true for either sign of charge, since it says which parts, not which way they point.
+ * And which way the sum then runs, named: "straight along the axis" never said which axis on the rod and
+ * the line, which lie ON the y-axis and never define "the axis" -- heard by a screen reader, it could be
+ * the rod's own, the opposite of what happens. The arc's board defines its axis as its line of symmetry.
+ * Along it, not "out" along it: for a negative charge the sum runs in toward the rod. */
+const PAIR_PARTS: Record<string, {parts: string; runs: string}> = {
+  bisector: {parts: 'the parts along the rod cancel, the perpendicular parts', runs: 'straight along the x-axis, perpendicular to the rod'},
+  infinite: {parts: 'the parts along the line cancel, the perpendicular parts', runs: 'straight along the x-axis, perpendicular to the line'},
+  arc: {parts: 'the parts across the axis cancel, the parts along it', runs: 'straight along the axis'},
 };
 const SCALAR_PAIRS = new Set(['bisector', 'ring', 'arc']);
-const PARTNER_ADDS_V = 'Now its mirror piece. For the field, the sideways parts of these two would cancel, but nothing cancels in this potential: it has no direction, and all the charge has one sign. The mirror piece is the same distance from P, so it adds exactly the same amount, and both go on the column.';
+// Of the mirror pieces, as the field's captions are: at an odd N the run's piece can be the middle one,
+// its own mirror, with nothing drawn opposite it, and "Now its mirror piece" described a piece the
+// figure rightly leaves out.
+const PARTNER_ADDS_V = 'Now the mirror pieces. For the field, the sideways parts of a piece and its mirror would cancel, but nothing cancels in this potential: it has no direction, and all the charge has one sign. Each mirror piece is the same distance from P as its partner, so it adds exactly the same amount, and both go on the column.';
 // The ring's partner is a length of ring, not a piece (see CANCELS.ring): at an odd N it straddles two
 // of the column's pieces, so it is not said to go on the column as one.
 const PARTNER_ADDS_V_RING = 'Now the same length of ring straight across. For the field, the sideways parts of the two would cancel, but nothing cancels in this potential: it has no direction, and all the charge has one sign. It is the same distance from P, so it adds exactly as much to V.';
@@ -203,20 +215,20 @@ export function buildStages(p: Problem): BuildStage[] {
       : geometry === 'sheet' ? `Cut at equal angles, each farther ring is so much bigger that it makes a bigger $\\Delta E$ at${P}.`
       // Its own idea, not Cut it up's again ("every bit of one ring is the same distance from P"): the
       // bits are point charges, and a thin ring's are all one distance and one angle away.
-      : geometry === 'disk' ? `Its bits are point charges, all one distance and one angle from${P}: the ring adds up at once.`
+      : geometry === 'disk' ? `Its bits are point charges at one distance and one angle from${P}: the ring adds up at once.`
       // The ring's Cut it up says a piece's part along the axis is exactly a point charge's at any size;
       // "a piece's field lies along the line joining them" holds only of a small piece, so the two read
       // as one claim and contradicted each other. At three pieces a piece is a third of the ring, and its
       // own field leans in, 28.9° from the axis against the 33.7° drawn: what is exact is its part along
       // the axis, the only part the ring's sum keeps.
-      : exact ? `Drawn as a point charge’s, its field lies along the line to${P}. Its axial part is exact at any size.`
+      : exact ? `Drawn as a point charge’s field, along the line to${P}: its axial part is exact at any size.`
       // Every piece of the arc is R from P and holds λRΔθ: the two things the generic line points at --
       // more charge, farther away -- are the two that do not vary here. Only direction does, which is
       // why the answer is 2kλ sin(φ/2)/R.
       : geometry === 'arc' ? `Every piece is $R$ from${P} and holds the same charge: the arrows differ only in direction.`
-      : `A piece’s field at${P} lies along the line joining them: more charge, bigger; farther, smaller.`,
-    cancel: scalar ? (pairs ? geometry === 'ring' ? 'The same length of ring straight across is just as far away, so it adds exactly as much. Nothing cancels.'
-        : 'Each piece’s mirror is just as far away, so it adds exactly as much. Nothing here cancels.'
+      : `A piece’s field lies along the line to${P}: more charge, bigger; farther, smaller.`,
+    cancel: scalar ? (pairs ? geometry === 'ring' ? 'An equal length of ring opposite is just as far away and adds as much: nothing cancels.'
+        : 'Each piece’s mirror is just as far away and adds exactly as much: nothing cancels.'
       : 'A potential has no direction, and this charge has one sign. Nothing cancels.')
       : CANCEL_LINES[geometry] ?? `Nothing cancels: every piece is above the${NB}$x$-axis, so both parts of each survive.`,
     // At a finite N the chain is the N-piece estimate -- the figure labels it ΣΔE and the board writes
@@ -227,21 +239,25 @@ export function buildStages(p: Problem): BuildStage[] {
     // to tail in order instead, the endless line's arrows made a great arch whose cancelling was never seen.
     // In the board's own components -- ΔE_y and ΔE_x, a ring's ΔE_⊥ and ΔE_z -- and short: the transport sets
     // every stage's line in one cell, and a longer one here pushed it off a phone held on its side.
-    add: pairs && !scalar ? (exact ? `Pairs straight across: parts across the axis cancel, $z$ parts add, exactly to the field at${P}.`
-        : `Mirror pairs: their $y$ parts cancel, their $x$ parts add. The sum: the field at${P} once they shrink.`)
-      : exact ? (scalar ? `Stack every piece’s contribution. The column is exactly the potential at${P}: every piece is the same distance away.`
+    //
+    // Each one full sentence: "Mirror pairs: … The sum: the field at P once they shrink." had no verb in its
+    // second half and made "they" the pairs, and the ring's "z parts add, exactly to the field" read as adding
+    // TO the field. "Sum to" says what is meant.
+    add: pairs && !scalar ? (exact ? `Pairs straight across cancel across the axis; their $z$ parts sum to exactly the field at${P}.`
+        : `Mirror pairs’ $y$ parts cancel; the sum runs along $x$ to the field at${P} as the pieces shrink.`)
+      : exact ? (scalar ? `Stack every piece’s contribution. The column is exactly the potential at${P}.`
         : `Every piece’s arrow, tip to tail. The sum ends exactly at the field at${P}: every piece is equally far, at the same angle.`)
-      : scalar ? `Stack every ${unit}’s contribution. The column is their sum — the potential at${P} once they shrink.`
-      : `Every ${unit}’s arrow, tip to tail: the chain is their sum — the field at${P} once they shrink.`,
+      : scalar ? `Stack every ${unit}’s number: the column is their sum, the potential at${P} once they shrink.`
+      : `Every ${unit}’s arrow, tip to tail: the chain is their sum, the field at${P} once they shrink.`,
     // WHY THE SUM BECOMES THE ANSWER. "The field stops depending on the cut" was opaque ("the cut"?), and
     // said nothing of why: what Cut it up and Add them up called only nearly true -- a piece treated as a
     // point charge -- is what shrinking makes exact. Each lesson names its own approximation, as the
     // board's Add does.
-    limit: exact ? 'Without end: the sum becomes an integral, and the answer does not move. It was already exact.'
-      : geometry === 'arc' ? 'Without end: $\\cos\\theta$ stops changing across a piece, and the sum becomes the integral, exactly.'
-      : geometry === 'sheet' ? 'Without end: treating each ring as a thin ring becomes exact, and the sum becomes the integral.'
-      : surface ? 'Without end: counting each ring’s charge at one radius becomes exact, and the sum becomes the integral.'
-      : 'Without end: treating each piece as a point charge becomes exact, and the sum becomes the integral.',
+    limit: exact ? 'Without end, the sum becomes an integral, and the answer, already exact, does not move.'
+      : geometry === 'arc' ? 'Without end, $\\cos\\theta$ stops changing across a piece: the sum is the integral, exactly.'
+      : geometry === 'sheet' ? 'Without end, treating each ring as a thin ring becomes exact: the sum is the integral.'
+      : surface ? 'Without end, counting each ring at one radius becomes exact: the sum is the integral.'
+      : 'Without end, treating each piece as a point charge becomes exact: the sum is the integral.',
   };
   const piece = scalar ? `Each ${unit} adds its own number to the total: k times its charge over its distance. Direction does not come into it at all, which is what makes a potential so much easier to add up than a field.`
     : unbounded ? 'Each piece is cut to cover the same angle at P. That makes every one contribute exactly as much at P: the far pieces hold more charge, but they are farther away, and the two exactly offset.'
@@ -286,7 +302,7 @@ export function buildStages(p: Problem): BuildStage[] {
   const adds = pairs && exact
     ? 'Now add the pieces in pairs, each with the same length of ring straight across from it. In each pair the parts across the axis cancel and the parts along it add, so the sum grows straight along the axis and ends exactly at the field at P: every piece is the same distance away at the same angle, so cutting finer changes nothing.'
     : pairs
-    ? `Now add the pieces in mirror pairs, working out from the middle. In each pair ${PAIR_PARTS[geometry]} add, so the sum runs straight along the axis, pair by pair, and ${stops}`
+    ? `Now add the pieces in mirror pairs, working out from the middle. In each pair ${PAIR_PARTS[geometry].parts} add, so the sum runs ${PAIR_PARTS[geometry].runs}, pair by pair, and ${stops}`
     : exact
     ? 'Now add every piece’s arrow, tip to tail. The sideways parts undo each other along the way, so the chain bends back to the axis, and it ends exactly at the field at P: every piece is the same distance away at the same angle, so cutting finer changes nothing.'
     : geometry === 'axial' || surface

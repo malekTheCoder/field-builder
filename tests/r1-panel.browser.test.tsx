@@ -94,7 +94,7 @@ describe('the board writes the cancellation and says what its symbols mean', () 
       // Its symbols are set as math, like the line above them, not as stray Greek in the prose font.
       expect(say!.querySelector('.katex'), p.id).not.toBeNull();
       // And the limits are explained where they first appear: where each piece is, and where they run.
-      expect(view.container.querySelector('.db-step[data-step="add"] .db-say')?.textContent, p.id).toMatch(/sits at its own .*numbered by .* run /);
+      expect(view.container.querySelector('.db-step[data-step="add"] .db-say')?.textContent, p.id).toMatch(/numbered by .* sits at .*; they run /);
       cleanup();
     }
   });

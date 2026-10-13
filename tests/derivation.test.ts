@@ -29,25 +29,25 @@ function points(n: number) {
   });
 }
 /** What changes from piece to piece in each lesson's sum, and what the shrink line writes it as in
- * the lesson's variable: the TeX the board writes, and the same thing as an expression, checked
- * against the lesson's own distance or direction. A ring's bits are all one distance away at one
+ * where piece i sits, y_i: the TeX the board writes, and the same thing as an expression in the
+ * lesson's variable, checked against the lesson's own distance or direction. A ring's bits are all one distance away at one
  * angle and an arc's pieces all R away, and the infinite line's charge and cosine are already in θ:
  * there nothing more is written. */
 type Swap = [tex: string, expr: string, against: 'distance^2' | 'distance' | 'projection' | 'none'];
-const ROD_SWAPS: Swap[] = [[String.raw`r_i^2=y^2+r^2`, 'y^2+r^2', 'distance^2'], [String.raw`\cos\alpha_i=r/\sqrt{y^2+r^2}`, 'r/sqrt(y^2+r^2)', 'projection']];
-const RING_SWAPS: Swap[] = [[String.raw`r_i^2=s^2+z^2`, 's^2+z^2', 'distance^2'], [String.raw`\cos\alpha_i=z/\sqrt{s^2+z^2}`, 'z/sqrt(s^2+z^2)', 'projection']];
-const RING_CHARGE: Swap = [String.raw`\Delta Q_i=\sigma\,2\pi s\,\Delta s`, 'sigma*2*pi*s', 'none'];
+const ROD_SWAPS: Swap[] = [[String.raw`r_i^2=y_i^2+r^2`, 'y^2+r^2', 'distance^2'], [String.raw`\cos\alpha_i=r/\sqrt{y_i^2+r^2}`, 'r/sqrt(y^2+r^2)', 'projection']];
+const RING_SWAPS: Swap[] = [[String.raw`r_i^2=s_i^2+z^2`, 's^2+z^2', 'distance^2'], [String.raw`\cos\alpha_i=z/\sqrt{s_i^2+z^2}`, 'z/sqrt(s^2+z^2)', 'projection']];
+const RING_CHARGE: Swap = [String.raw`\Delta Q_i=\sigma\,2\pi s_i\,\Delta s`, 'sigma*2*pi*s', 'none'];
 const SWAPS: Record<string, Swap[]> = {
   bisector: ROD_SWAPS, endpoint: ROD_SWAPS,
-  ramp: [[String.raw`\lambda(y)=\lambda_0\,(y/L)`, 'lambda0*y/L', 'none'], ...ROD_SWAPS],
-  axial: [[String.raw`r_i^2=(L+a-x)^2`, '(L+a-x)^2', 'distance^2']],
-  infinite: [[String.raw`r_i^2=r^2\sec^2\theta`, 'r^2/cos(theta)^2', 'distance^2']],
-  semi: [[String.raw`r_i^2=x^2+r^2`, 'x^2+r^2', 'distance^2'], [String.raw`\sin\alpha_i=x/\sqrt{x^2+r^2}`, 'x/sqrt(x^2+r^2)', 'none']],
+  ramp: [[String.raw`\lambda(y_i)=\lambda_0\,(y_i/L)`, 'lambda0*y/L', 'none'], ...ROD_SWAPS],
+  axial: [[String.raw`r_i^2=(L+a-x_i)^2`, '(L+a-x)^2', 'distance^2']],
+  infinite: [[String.raw`r_i^2=r^2\sec^2\theta_i`, 'r^2/cos(theta)^2', 'distance^2']],
+  semi: [[String.raw`r_i^2=x_i^2+r^2`, 'x^2+r^2', 'distance^2'], [String.raw`\sin\alpha_i=x_i/\sqrt{x_i^2+r^2}`, 'x/sqrt(x^2+r^2)', 'none']],
   ring: [], arc: [], 'v-ring': [], 'v-arc': [],
   disk: [RING_CHARGE, ...RING_SWAPS], sheet: RING_SWAPS,
-  'v-disk': [RING_CHARGE, [String.raw`r_i=\sqrt{s^2+z^2}`, 'sqrt(s^2+z^2)', 'distance']],
-  'v-rod-bisector': [[String.raw`r_i=\sqrt{y^2+r^2}`, 'sqrt(y^2+r^2)', 'distance']],
-  'v-rod-axial': [[String.raw`r_i=L+a-x`, 'L+a-x', 'distance']],
+  'v-disk': [RING_CHARGE, [String.raw`r_i=\sqrt{s_i^2+z^2}`, 'sqrt(s^2+z^2)', 'distance']],
+  'v-rod-bisector': [[String.raw`r_i=\sqrt{y_i^2+r^2}`, 'sqrt(y^2+r^2)', 'distance']],
+  'v-rod-axial': [[String.raw`r_i=L+a-x_i`, 'L+a-x', 'distance']],
 };
 /** Every remark on a board, in words: its sentences and, where nothing cancels, that sentence. */
 const remarks = (l: {say?: string; nothing?: string}) => [l.say, l.nothing].filter((t): t is string => !!t);
@@ -96,11 +96,12 @@ describe('the derivation board', () => {
       // and placed by the variable: so the sentence names the variable and both ends in it.
       const add = lines.find(l => l.key === 'add')!.say!;
       const v = p.variableTex;
-      expect(add, p.id).toMatch(new RegExp(`^Each (piece|ring) sits at its own (angle |radius )?\\$${v.replace(/\\/g, '\\\\')}\\$`));
+      // Where piece i sits is indexed, y_i: Shrink them then says that y_i becomes the integral's y.
+      expect(add, p.id).toMatch(new RegExp(`(piece|ring) \\$i\\$ sits at (the angle |the radius )?\\$${v.replace(/\\/g, '\\\\')}_i\\$`));
       expect(add, p.id).toContain(`$${v}=${p.boundTex[0]}$`);
       expect(add, p.id).toContain(p.boundTex[1] === '\\infty' ? 'on to $\\infty$' : `$${v}=${p.boundTex[1]}$`);
       // How many there are is N, the Pieces slider, which Shrink them sends to infinity.
-      expect(add, p.id).toMatch(/the \$N\$ (piece|ring)s, numbered by \$i\$/);
+      expect(add, p.id).toMatch(/^The \$N\$ (piece|ring)s are numbered by \$i\$/);
       expect(add, p.id).not.toMatch(/variable you sum over/);
       // Dragging the brackets says which pieces are now counted, not the whole charge's ends.
       const dragged = boardLines(p, ['a', 'b']).find(l => l.key === 'add')!.say!;
@@ -133,7 +134,7 @@ describe('the derivation board', () => {
       const sum = lines.find(l => l.key === 'add')!.tex;
       for (const [tex] of swaps) {
         const name = tex.split('=')[0];
-        if (/_i/.test(name) && !name.startsWith('r_i')) expect(sum, `${p.id}: ${name}`).toContain(name);
+        if (name.endsWith('_i') && !name.startsWith('r_i')) expect(sum, `${p.id}: ${name}`).toContain(name);
       }
       // And each one is what it says: the lesson's own distance and direction.
       for (const at of points(10)) for (const [tex, expr, against] of swaps) {
@@ -217,7 +218,8 @@ describe('the derivation board', () => {
     for (const [id, tex, where, bracket] of [
       ['infinite', String.raw`\lambda r\sec^2\theta\,\Delta\theta`, String.raw`y=r\tan\theta`, String.raw`$\Delta y$`],
       ['semi', String.raw`\lambda r\sec^2\alpha\,\Delta\alpha`, String.raw`x=r\tan\alpha`, String.raw`$\Delta x$`],
-      ['sheet', String.raw`\sigma\,2\pi s\,z\sec^2\alpha\,\Delta\alpha`, String.raw`s=z\tan\alpha`, String.raw`$\Delta s$`],
+      // Grouped as its sentence says it: σ times the circumference, times the width.
+      ['sheet', String.raw`\sigma\,(2\pi s)(z\sec^2\alpha\,\Delta\alpha)`, String.raw`s=z\tan\alpha`, String.raw`$\Delta s$`],
     ] as const) {
       const pieces = step(id, 'pieces');
       expect(pieces.tex, id).toContain(tex);
@@ -227,8 +229,10 @@ describe('the derivation board', () => {
       // outermost's FIELD never ending.
       expect(pieces.say, id).toMatch(/\$\\Delta Q\$ stands for .* whose field at.*is nearly the (piece|ring)’s, even for the outermost (piece|ring), which never ends\./);
       // The figure brackets the piece in the lesson's own coordinate, and the board says how its
-      // r sec²θ Δθ relates to that bracket: nearly it, near P.
-      expect(pieces.say, id).toContain(`nearly the ${id === 'sheet' ? 'width' : 'length'} ${bracket} bracketed on the figure`);
+      // r sec²θ Δθ relates to it: nearly the piece's own length, near P -- of the piece, not "bracketed on
+      // the figure", where the run's bracketed piece is never one near P and at three pieces none is drawn.
+      expect(pieces.say, id).toContain(`is nearly its own ${id === 'sheet' ? 'width' : 'length'}, ${bracket}.`);
+      expect(pieces.say, id).not.toContain('bracketed on the figure');
     }
     // The figure's own pieces: the stand-in charge at each middle angle, to the last digit.
     const n = 5, P = DEFAULT_PARAMS, d = P.distance, q = P.charge * 1e-9;
@@ -260,7 +264,9 @@ describe('the derivation board', () => {
       const first = lines.findIndex(l => [l.tex, l.where, l.finish, l.cancels, l.also].some(uses));
       expect(first, p.id).toBeGreaterThan(-1);
       // Said in that line's remark, or in an earlier one's: the arc's θ is said on its first line now.
-      expect(lines.slice(0, first + 1).flatMap(remarks).join(' '), `${p.id}: ${lines[first].key}`).toContain(`$${angle}$ is `);
+      // Leading with the noun, as a sentence that defines a letter now does ("The angle α is the one at P",
+      // "A piece's angle round the ring is θ"): never opening on the bare symbol.
+      expect(lines.slice(0, first + 1).flatMap(remarks).join(' '), `${p.id}: ${lines[first].key}`).toMatch(new RegExp(`(angle \\$${angle.replace(/\\/g, '\\\\')}\\$ is |angle[^.]* is \\$${angle.replace(/\\/g, '\\\\')}\\$)`));
     }
     const say = (id: string) => step(id, 'cancel').say!;
     expect(say('bisector')).toMatch(/the side next to/);
@@ -272,13 +278,14 @@ describe('the derivation board', () => {
     expect(step('ring', 'cancel').cancelsSay).toContain(String.raw`$-\Delta\mathbf E_\perp$`);
     // The arc says where θ is measured from -- on its first line, where θ first appears -- and why its
     // part along x is minus the cosine.
-    expect(step('arc', 'pieces').say).toMatch(/^\$\\theta\$ is a piece’s angle round the arc from the.*\$x\$-axis, its line of symmetry/);
+    expect(step('arc', 'pieces').say).toMatch(/^A piece’s angle round the arc is \$\\theta\$, measured from the.*\$x\$-axis, its line of symmetry/);
     expect(say('arc')).toMatch(/back through/);
     // θ and φ on a ring's or an arc's first line, said there: on the potentials they were never said.
-    for (const id of ['ring', 'v-ring', 'arc', 'v-arc']) expect(step(id, 'pieces').say, id).toMatch(/^\$\\theta\$ is a piece’s angle round the (ring|arc)/);
-    for (const id of ['arc', 'v-arc']) expect(step(id, 'pieces').say, id).toContain(String.raw`$\varphi$ is the whole arc’s angle`);
-    // Bold is the arrow and plain its size, said where the plain one first appears.
-    for (const id of ['bisector', 'endpoint', 'ring', 'infinite', 'semi', 'arc']) expect(say(id), id).toMatch(/\$\\Delta\\mathbf E\$, of size \$\\Delta E\$/);
+    for (const id of ['ring', 'v-ring', 'arc', 'v-arc']) expect(step(id, 'pieces').say, id).toMatch(/^A piece’s angle round the (ring|arc) is \$\\theta\$/);
+    for (const id of ['arc', 'v-arc']) expect(step(id, 'pieces').say, id).toContain(String.raw`the whole arc’s angle is $\varphi$`);
+    // Bold is the arrow and plain its size, said where the plain one first appears -- the size |ΔE|, since
+    // ΔE itself carries the charge's sign (One piece says so).
+    for (const id of ['bisector', 'endpoint', 'ring', 'infinite', 'semi', 'arc']) expect(say(id), id).toMatch(/\$\\Delta\\mathbf E\$, of size \$\|\\Delta E\|\$/);
     // "Hence the minus" points at the line that has it: the line above the sentence has none.
     for (const id of ['endpoint', 'ramp']) expect(say(id), id).toContain(String.raw`hence the minus in $\Delta E_y$ below`);
     // The infinite line says why its part along x is ΔE cos θ.
@@ -301,7 +308,7 @@ describe('the derivation board', () => {
       expect(step(id, 'cancel').say, id).toMatch(/Its mirror piece, at \$-\\(alpha|theta)\$, makes the same \$\\Delta E_x\$\.$/);
       // ΔE_y is named directly under the cancellation that uses it, not at the paragraph's end -- in a
       // sentence with a verb, as the ring's and the disk's are.
-      expect(step(id, 'cancel').cancelsSay, id).toMatch(/^\$\\Delta E_y\$ is a piece’s part (along the rod|along the line|across the axis); its mirror piece makes \$-\\Delta E_y\$\.$/);
+      expect(step(id, 'cancel').cancelsSay, id).toMatch(/^A piece’s part (along the rod|along the line|across the axis) is \$\\Delta E_y\$; its mirror piece makes \$-\\Delta E_y\$\.$/);
     }
     expect(step('ring', 'cancel').cancels).toContain(String.raw`\Delta\mathbf E_\perp+(-\Delta\mathbf E_\perp)=\mathbf 0`);
     for (const id of ['disk', 'sheet']) expect(step(id, 'cancel').cancels, id).toContain(String.raw`\delta\mathbf E_\perp=\mathbf 0`);
@@ -353,7 +360,7 @@ describe('the derivation board', () => {
     expect(step('disk', 'one').say!.indexOf('(the $i$ numbers the rings)')).toBeLessThan(step('disk', 'one').say!.indexOf('is the hypotenuse'));
     expect(step('v-disk', 'one').say).toMatch(/^A ring is not a point, but if it is treated as thin/);
     expect(step('bisector', 'one').say).toMatch(/unit vector from the piece toward/);
-    expect(step('disk', 'one').say).toMatch(/\$\\delta q\$ is one bit of the ring/);
+    expect(step('disk', 'one').say).toMatch(/A bit of the ring holds \$\\delta q\$/);
     expect(step('v-disk', 'one').say).toMatch(/every bit of it is \$r_i\$ from/);
   });
   it('the sheet’s wide rings are never said to be thin, or all one distance away', () => {
@@ -370,7 +377,7 @@ describe('the derivation board', () => {
     // What holds of them, the outermost too, is that each makes nearly a thin ring's field -- and the
     // board's one-piece line says so with ≈, not =.
     const one = step('sheet', 'one');
-    expect(one.say).toMatch(/^\$\\delta q\$ is one bit of the thin ring that stands in for this one: its bits hold \$\\Delta Q\$ between them, all \$r_i\$ from/);
+    expect(one.say).toMatch(/^A bit of the thin ring that stands in for this one holds \$\\delta q\$: the bits hold \$\\Delta Q\$ between them, all \$r_i\$ from/);
     // ΔE is the thin ring's field, as on the lines it is the stand-in point charge's: "=", as there. Cut
     // it up says the stand-in's field is nearly the wide ring's, and Add keeps the one ≈.
     expect(one.tex).not.toContain('\\approx');
@@ -433,7 +440,8 @@ describe('the derivation board', () => {
     }
     for (const id of ['axial', 'arc']) expect(step(id, 'limit').merged, id).toBeUndefined();
     // The infinite line's second row cancels a sec²θ, the lesson's whole claim, and says so.
-    expect(step('infinite', 'limit').merged).toContain(String.raw`\frac{\lambda r\sec^2\theta}{r^2\sec^2\theta}=\frac{\lambda}{r}`);
+    // Inline, as every other gloss is: stacked, it was jammed between the gloss above and the rule below.
+    expect(step('infinite', 'limit').merged).toContain(String.raw`\lambda r\sec^2\theta/(r^2\sec^2\theta)=\lambda/r`);
   });
   it('every answer contains the k its definition defines, and says it in k before ε₀', () => {
     for (const p of PROBLEMS) expect(resultLines(p).join(' '), p.id).toMatch(/k/);

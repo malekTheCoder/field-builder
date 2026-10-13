@@ -67,12 +67,36 @@ describe('the shelf’s small type', () => {
   });
   it('a reference’s ↗ follows its last word, and a model note’s last line is balanced', () => {
     const view = panel('sheet');
-    fireEvent.click(view.getByText(/Model assumptions/));
+    fireEvent.click(view.getByText(/model assumptions/i));
     const link = view.container.querySelector<HTMLElement>('.ew-references a')!;
     expect(getComputedStyle(link).display).toBe('block');
     expect(getComputedStyle(link.querySelector('svg')!).display).toBe('inline');
     const note = view.container.querySelector<HTMLElement>('.ew-references-body p')!;
     const style = getComputedStyle(note) as CSSStyleDeclaration & {textWrapStyle?: string; textWrap?: string};
     expect(style.textWrapStyle ?? style.textWrap).toMatch(/pretty/);
+  });
+  it('the shelf’s last disclosure names the problem it holds', () => {
+    const view = panel('sheet');
+    expect(view.container.querySelector('.ew-references summary')!.textContent).toBe('The problem, model assumptions & references');
+  });
+});
+
+describe('Unfold, wave three', () => {
+  it('jumps rather than glides for a reader who asked for less motion, and says why a potential is differentiated first', async () => {
+    // An explicit 'smooth' overrides the page's own reduced-motion scroll-behavior, so the panel chooses.
+    const scrolled: unknown[] = [];
+    const scroll = vi.spyOn(Element.prototype, 'scrollIntoView').mockImplementation(o => { scrolled.push(o); });
+    const media = vi.spyOn(window, 'matchMedia').mockImplementation(q => ({matches: /reduce/.test(q), media: q, onchange: null,
+      addEventListener() {}, removeEventListener() {}, dispatchEvent: () => false}) as unknown as MediaQueryList);
+    try {
+      const view = panel('v-ring');
+      fireEvent.click(view.getByRole('button', {name: 'Show every step'}));
+      await new Promise(r => requestAnimationFrame(r));
+      expect(scrolled.at(-1)).toEqual({block: 'nearest', behavior: 'auto'});
+      // Under "Differentiate back", the reason comes before the first derivative: E_z = −dV/dz.
+      const sub = view.container.querySelector('.ew-worked-sub')!;
+      expect(sub.nextElementSibling!.classList.contains('ew-worked-why')).toBe(true);
+      expect(sub.nextElementSibling!.textContent).toMatch(/^The field along the axis is minus the rate .* so differentiating .* gives the field back\.$/);
+    } finally { scroll.mockRestore(); media.mockRestore(); }
   });
 });

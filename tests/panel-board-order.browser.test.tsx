@@ -83,7 +83,7 @@ describe('a paused stage says each thing once', () => {
     const kids = [...body.children];
     const at = kids.findIndex(c => c.classList.contains('db-cancels'));
     expect(kids[at + 1].classList.contains('db-pair')).toBe(true);
-    expect(kids[at + 1].textContent).toMatch(/is a piece’s part along the rod; its mirror piece makes /);
+    expect(kids[at + 1].textContent).toMatch(/A piece’s part along the rod is .*; its mirror piece makes /);
     expect(kids[at + 1].querySelectorAll('.katex')).toHaveLength(2);
   });
 });
