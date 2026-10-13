@@ -59,8 +59,11 @@ function sumArrow(v: View) {
  if (!line) return null;
  return {a: {x: Number(line.getAttribute('x1')), y: Number(line.getAttribute('y1'))}, b: {x: Number(line.getAttribute('x2')), y: Number(line.getAttribute('y2'))}};
 }
-const ticks = (v: View) => [...(v.container.querySelector('.cd-pair-ticks')?.getAttribute('d') ?? '').matchAll(/M([-\d.]+) ([-\d.]+)L([-\d.]+) ([-\d.]+)/g)]
+const tickMarks = (d: string | null | undefined) => [...(d ?? '').matchAll(/M([-\d.]+) ([-\d.]+)L([-\d.]+) ([-\d.]+)/g)]
  .map(m => ({x: (Number(m[1]) + Number(m[3])) / 2, y: (Number(m[2]) + Number(m[4])) / 2}));
+const ticks = (v: View) => tickMarks(v.container.querySelector('.cd-pair-ticks')?.getAttribute('d'));
+/** The ticks on the ghost of the axis where the sum had been before the far pairs brought it back. */
+const overshoot = (v: View) => tickMarks(v.container.querySelector('.cd-pair-overshoot-ticks')?.getAttribute('d'));
 /** How far a point lies off the axis through P: the screen's vertical for the ring seen flat, its horizontal otherwise. */
 const off = (id: string, p0: {x: number; y: number}, q: {x: number; y: number}) => id === 'ring' ? Math.abs(q.x - p0.x) : Math.abs(q.y - p0.y);
 describe('the paired lessons add in mirror pairs: the sum is an arrow along the axis at every moment', () => {
@@ -83,7 +86,7 @@ describe('the paired lessons add in mirror pairs: the sum is an arrow along the 
     const [x, y] = step.dataset.pairFrom!.split(' ').map(Number);
     expect(off(id, p0, {x, y}), `${f}: the pair goes in at the tip of the sum, on the axis`).toBeLessThan(1);
    }
-   for (const t of ticks(v)) expect(off(id, p0, t), `${f}: each pair's share ends on the axis`).toBeLessThan(1);
+   for (const t of [...ticks(v), ...overshoot(v)]) expect(off(id, p0, t), `${f}: each pair's share ends on the axis`).toBeLessThan(1);
   }
   // Checked, not skipped: the sum was drawn at most of those moments, and a pair was going in at most.
   expect(sums).toBeGreaterThanOrEqual(5);
@@ -123,7 +126,7 @@ describe('the sum ends on the sum of the pieces, and each pair takes its own sha
  for (const [id, params] of [['bisector', {}], ['infinite', {}], ['arc', {}], ['infinite', {slices: 8}], ['arc', {phi: 1.8 * Math.PI}]] as const) it(`${id} ${JSON.stringify(params)}`, async () => {
   const v = await openLesson(id, params);
   await hold(v, 4, .97);
-  const end = sumArrow(v)!, marks = ticks(v);
+  const end = sumArrow(v)!, marks = ticks(v), past = overshoot(v);
   // The first frame of Shrink them draws the sum of the pieces as the chain's lessons always have.
   await hold(v, 5, 0);
   const next = sumArrow(v)!;
@@ -133,8 +136,12 @@ describe('the sum ends on the sum of the pieces, and each pair takes its own sha
   const whole = pairSum(plan, plan.length).x, length = end.b.x - end.a.x;
   const want = plan.slice(0, -1).map((_, j) => pairSum(plan, j + 1).x / whole * length + end.a.x)
    .filter(x => Math.abs(x - end.b.x) >= 9);
-  for (const t of marks) expect(Math.min(...want.map(x => Math.abs(x - t.x))), `tick at ${t.x.toFixed(1)}`).toBeLessThan(1.2);
-  expect(marks.length).toBeGreaterThan(0);
+  // On the arrow, and -- where the far pairs bring the sum back, the wide arc -- on the ghost of where it had been.
+  for (const t of [...marks, ...past]) expect(Math.min(...want.map(x => Math.abs(x - t.x))), `tick at ${t.x.toFixed(1)}`).toBeLessThan(1.2);
+  const s = Math.sign(end.b.x - end.a.x), reach = Math.abs(end.b.x - end.a.x);
+  for (const t of marks) expect((t.x - end.a.x) * s, `a tick on the arrow, not on the bare axis past its head`).toBeLessThan(reach);
+  for (const t of past) expect((t.x - end.a.x) * s, `a share the sum went past, past the arrow's head`).toBeGreaterThan(reach);
+  expect(marks.length + past.length).toBeGreaterThan(0);
   expect(magnitude(samples[0].field)).toBeGreaterThan(0);
  }, 30000);
 });
