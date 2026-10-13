@@ -8,7 +8,6 @@ owner says they are urgent.
 ## In progress
 - **Limiting cases: open by default and interactive.** Drag the dot along the curve, scrub the plot,
   the schematic moves with it, and words for each end. (agent)
-- **Walkthrough on every visit, with "Don't show this again".** (agent)
 - **Home page.** A landing page at the site root; the logo and the root link go there; ?p= lesson
   links still open lessons directly. (agent)
 - **View cube and figure width.** Committed locally, not yet pushed: the tests were still running.
@@ -55,6 +54,9 @@ owner says they are urgent.
    still to be confirmed.
 
 ## Done
+- The walkthrough opens on every visit until "Don't show this again" is ticked. Teacher links
+  don't auto-open it, and the header button always does. (d648022) An old saved `seen: true`
+  counts as "don't show", so returning visitors won't see it unless the owner wants that changed.
 - View cube like a CAD tool's: drag anywhere on it to turn the view; faces, edges and corners are
   all targets; hover shows the target; picks glide.
 - The figure fills its card, instead of leaving empty bands either side.
