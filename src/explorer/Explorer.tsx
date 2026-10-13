@@ -112,6 +112,14 @@ const lessonHref=(id:ProblemId)=>`?p=${id}`;
 const inPlace=(e:React.MouseEvent)=>e.button===0&&!(e.metaKey||e.ctrlKey||e.shiftKey||e.altKey);
 /** No lines: one value, so a run that has not settled hands the transport the same empty list. */
 const NONE:string[]=[];
+/** A board line's conclusion as rows, each opening on its "=": the board's alignment -- an aligned block's
+ * `&` and `\\`, and the strut before each "=" that stands for the line's left side -- is the board's, set
+ * under its own line. Braces counted, not matched by pattern, so a strut with braces inside it goes whole. */
+function rows(tex:string){
+ const strut=(row:string)=>{const at=row.match(/^\s*&?\s*\\phantom\{/);if(!at)return row.replace(/^\s*&/,'');let depth=1,i=at[0].length;for(;i<row.length&&depth>0;i++)depth+=row[i]==='{'?1:row[i]==='}'?-1:0;return row.slice(i).replace(/^\s*&/,'')};
+ const block=tex.trim().match(/^\\begin\{aligned\}([\s\S]*)\\end\{aligned\}$/);
+ return (block?block[1].split(/\\\\(?:\[[^\]]*\])?/):[tex]).map(row=>strut(row).trim()).filter(row=>row.length>0);
+}
 /** A Greek letter in a sentence of the page's sans, set in the face the formulas use. Geist draws φ as
  * the stroked ϕ, so the limiting cases and the confusions wrote "every ϕ" in a line whose plot, slider
  * and formulas all set the curly φ -- one symbol in two shapes, beside each other. Lower case is italic,
@@ -367,7 +375,12 @@ export default function Explorer(){
  // = (k/R)ΣΔQ_i = kQ/R, and the board writes it; the phone's transport said "the column is exactly the
  // potential at P" over the bare sum and never showed why. The last stage's finish is the settled chain's.
  // Without the board's alignment strut (\phantom{V}): it follows its line on the same row (BuildPlayer).
- const playerSteps=useMemo(()=>{const lines=boardLines(p);return lines.map((line,i)=>[...(line.cancels?[line.cancels]:[]),line.tex,...(line.finish&&i<lines.length-1?[{finish:line.finish.replace(/^\\phantom\{[^{}]*\}/,'')}]:[]),...(line.also?[{also:line.also}]:[])])},[p]);
+ // AND HOWEVER MANY ROWS IT HAS. Written in what every rᵢ is, the ring's exact sum is too wide for one row, and
+ // the board sets it over two, an aligned block whose rows each open behind the strut; the strut was looked for
+ // only at the very start of the line, so on the ring and its potential the transport ended Add them up on a
+ // gap the width of E_z, and its rows stood under nothing. The rows go to the transport one by one (`rows`).
+ // And under each line, what its new symbol stands for, as the board says it (BuildPlayer).
+ const playerSteps=useMemo(()=>{const lines=boardLines(p);return lines.map((line,i)=>[...(line.cancels?[{cancels:line.cancels}]:[]),line.tex,...(line.finish&&i<lines.length-1?[{finish:rows(line.finish)}]:[]),...(line.where?[{where:line.where}]:[]),...(line.also?[{also:line.also}]:[])])},[p]);
  // And once the pieces have shrunk away, how the integral comes out and its answer -- every line of
  // the answer, not the first: on the lessons whose answer has two components, the figure's arrow
  // labelled E leans, and an answer of E_x alone said it pointed along x. The answer is stated whether

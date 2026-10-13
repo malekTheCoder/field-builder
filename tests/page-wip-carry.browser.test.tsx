@@ -1,5 +1,5 @@
 import {act, cleanup, fireEvent, render, waitFor} from '@testing-library/react';
-import {afterEach, describe, expect, it, vi} from 'vitest';
+import {afterEach, describe, expect, it, onTestFinished, vi} from 'vitest';
 import {cdp, page, userEvent} from 'vitest/browser';
 // Measured with the page's own type and sheet: the crash screen, the sliders' row and the short windows'
 // transport are laid out by app/globals.css as much as by the component's own sheet.
@@ -30,7 +30,6 @@ afterEach(async () => {
  window.scrollTo(0, 0);
  document.documentElement.classList.remove('dark');
  try { await cdp().send('Emulation.setEmulatedMedia', {media: '', features: []}); } catch { /* not emulating */ }
- try { await cdp().send('Emulation.setTouchEmulationEnabled', {enabled: false}); } catch { /* not emulating */ }
  await page.viewport(1280, 800);
 });
 const STORE = 'field-builder:explorer:v1';
@@ -416,11 +415,25 @@ describe('in a Windows contrast theme', () => {
  }, 20000);
 });
 
+/** The sheet's rules for a coarse pointer, laid on as if one were there. Not by emulating a touch screen: once
+ * Chromium's touch emulation has been on, the page answers (hover: none) whatever it is told after -- switching
+ * it off does not bring hover back, nor does any other reset the protocol offers -- and the files after this
+ * one ran as a phone: "a screen that can hover is told to point" (panel-lede-partial) failed in the full run. */
+function asIfCoarse() {
+ const rules = [...document.styleSheets].flatMap(sheet => { try { return [...sheet.cssRules]; } catch { return []; } })
+  .filter((r): r is CSSMediaRule => r instanceof CSSMediaRule && /any-pointer:\s*coarse/.test(r.conditionText))
+  .flatMap(r => [...r.cssRules].map(x => x.cssText));
+ const style = document.createElement('style');
+ style.textContent = rules.join('\n');
+ document.head.appendChild(style);
+ return {rules: rules.length, done: () => { style.remove(); }};
+}
 describe('on a touch screen', () => {
  it('the header\'s buttons and the geometry reset have a finger\'s margin, not overlapping each other', async () => {
   const view = await openLesson('bisector', 390, 844);
-  await cdp().send('Emulation.setTouchEmulationEnabled', {enabled: true, maxTouchPoints: 5});
-  expect(matchMedia('(any-pointer: coarse)').matches, 'emulated a touch screen').toBe(true);
+  const coarse = asIfCoarse();
+  onTestFinished(coarse.done);
+  expect(coarse.rules, 'no rules for a coarse pointer').toBeGreaterThan(0);
   const buttons = [view.getByRole('button', {name: 'Walkthrough'}), view.getByRole('button', {name: 'Switch to dark theme'}), view.getByRole('button', {name: 'Lesson tools'})];
   const pads = buttons.map(b => { const box = b.getBoundingClientRect(), s = getComputedStyle(b, '::before'); expect(s.content).not.toBe('none'); return {left: box.left + parseFloat(s.left), right: box.right - parseFloat(s.right), height: box.height - parseFloat(s.top) - parseFloat(s.bottom)}; });
   for (const p of pads) expect(p.height).toBeGreaterThanOrEqual(40);

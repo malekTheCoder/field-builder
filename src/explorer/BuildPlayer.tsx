@@ -38,8 +38,10 @@ export function runClock(): RunClock {
  * move around: click a stage to go to its start, or drag along the bar to scrub through the run. */
 /** A line of the transport's algebra: TeX, or a second component that survives beside the one being
  * built, which the board says in words ("… survives too") and so does this -- or the line's own conclusion,
- * `= …`, which follows it on the same row where the transport is wide enough (Explorer, playerSteps). */
-export type PlayerLine = string | {also: string} | {finish: string};
+ * row by row, each `= …`, which follows it on the same row where the transport is wide enough (Explorer,
+ * playerSteps) -- or what the line's new symbol stands for, set smaller beside it as the board sets it under
+ * it -- or the cancellation that opens What cancels, on a row of its own. */
+export type PlayerLine = string | {also: string} | {finish: readonly string[]} | {where: string} | {cancels: string};
 type Props = {
   stages: readonly BuildStage[];
   /** Seconds into the run, as the store above: read here and nowhere else on the page. */
@@ -96,13 +98,20 @@ export const BuildPlayer = memo(function BuildPlayer({stages, clock, index, play
     <div className="bp-math-steps">
       {/* A conclusion follows its line on the same row where there is room, wrapping under it where there is not:
           stacked, it made the cell a line taller for every stage, and the algebra's foot went under the window
-          on a projector, where the drawing is sized to leave the cell its room. */}
-      {math.map((lines, i) => <div key={i} className={'bp-math-step' + (i === index ? ' is-here' : '') + (lines.some(line => typeof line !== 'string' && 'finish' in line) ? ' has-finish' : '')} aria-hidden={i === index ? undefined : true}>
+          on a projector, where the drawing is sized to leave the cell its room. Its rows after the first hang
+          under the first, each opening on its "=", so a chain of two reads as the board's.
+          And what a new symbol stands for -- rᵢ = √(y² + r²), cos α = r/√(y² + r²) -- follows its line the same
+          way. Only the board said it, a scroll below on a phone, so the run there never said what α or rᵢ is. */}
+      {math.map((lines, i) => <div key={i} className={'bp-math-step' + (i === index ? ' is-here' : '')} aria-hidden={i === index ? undefined : true}>
         {lines.map(line => typeof line === 'string'
           ? <MathText key={line} tex={line} block trusted />
           : 'finish' in line
-            ? <div key={`finish:${line.finish}`} className="bp-finish"><MathText tex={line.finish} block trusted /></div>
-            : <p key={`also:${line.also}`} className="bp-say"><MathText tex={line.also} trusted /> survives too.</p>)}
+            ? <div key={`finish:${line.finish.join('|')}`} className="bp-finish">{line.finish.map(tex => <MathText key={tex} tex={tex} block trusted />)}</div>
+            : 'where' in line
+              ? <MathText key={`where:${line.where}`} className="bp-where" tex={line.where} trusted />
+              : 'cancels' in line
+                ? <MathText key={`cancels:${line.cancels}`} className="bp-cancels" tex={line.cancels} block trusted />
+                : <p key={`also:${line.also}`} className="bp-say"><MathText tex={line.also} trusted /> survives too.</p>)}
       </div>)}
     </div>
     {chain.length > 0 && <div className="bp-chain">{chain.map(tex => <MathText key={tex} tex={tex} block trusted />)}</div>}

@@ -834,6 +834,21 @@
  .exp-header .icon-button::before,.exp-header .tour-button::before,.exp-parameters .exp-reset::before,
  .exp-library-dialog [data-slot=dialog-close]::before{content:'';position:absolute;inset:-6px -4px}
 }
-/* A line's own conclusion (BuildPlayer, .bp-finish) on the line's row, wrapping under it only where it must. */
-.bp-math-step.has-finish{display:flex;flex-wrap:wrap;align-items:center;column-gap:.45em}
-.bp-math-step.has-finish>*{min-width:0;max-width:100%}
+/* A line's own conclusion (BuildPlayer, .bp-finish) on the line's row, wrapping under it only where it must --
+   and its rows the same: the ring's exact sum is two rows on the board, and stacked here as well they made the
+   ring's cell a row taller than any other lesson's, at every stage, since every stage shares the cell. On their
+   baselines, so each "=" is read on from what it follows. */
+.bp-math-step,.bp-finish{display:flex;flex-wrap:wrap;align-items:baseline;column-gap:.45em}
+.bp-math-step>*,.bp-finish>*{min-width:0;max-width:100%}
+/* What the line's new symbol stands for, after it, as the board sets it under its line: a size down, in the
+   muted ink, set a little apart so it reads as a gloss and not as the next link of the chain. Not once the run
+   has settled: the finished integral and the answer then follow the last line directly, as one chain. The
+   cancellation, and a component that survives too, are rows of their own. */
+.bp-math .bp-where{display:block;margin-left:1.25em;font-size:14px;color:var(--muted-foreground)}
+.bp-math .bp-where .katex{font-size:1.1em}
+.bp-math.is-settled .bp-where{display:none}
+.bp-math-step>.bp-cancels,.bp-math-step>.bp-say{flex-basis:100%}
+/* On a phone the conclusion never fits beside its line, and after it the gloss took a row of its own: the gloss
+   goes up beside the line, and the conclusion under both -- never between them, where "θ: 0 → 2π = …" would
+   read as one relation. (Read in the board's order all the same: only the picture moves.) */
+@media(max-width:600px){.bp-math-step>.bp-finish{order:1;flex-basis:100%}}
