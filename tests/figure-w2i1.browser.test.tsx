@@ -33,7 +33,7 @@ afterAll(async () => { quiet.remove(); await page.viewport(1280, 800); });
 afterEach(async () => { cleanup(); window.history.replaceState(null, '', '/'); await page.viewport(1440, 900); });
 async function openLesson(id: string, params: Record<string, number> = {}, search = '') {
  await new Promise(r => setTimeout(r, 280));
- localStorage.setItem('field-builder:explorer:v1', JSON.stringify({id, seen: true, dark: false, sidebarOpen: true,
+ localStorage.setItem('field-builder:explorer:v1', JSON.stringify({id, hideTour: true, cued: true, dark: false, sidebarOpen: true,
   params: Object.keys(params).length ? {[id]: {...DEFAULT_PARAMS, ...params}} : {}}));
  if (search) window.history.replaceState(null, '', '/' + search);
  const view = render(<Explorer />);

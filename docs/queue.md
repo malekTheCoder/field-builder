@@ -44,6 +44,16 @@ owner says they are urgent.
 8. **Usage guard (set).** Check plan usage (the get_usage tool) before each round and at each wake-up. Stop at weekly ≥ 30% or 5-hour ≥ 80%.
    Pause the agents once the 5-hour window passes the owner's chosen percent; the threshold is
    still to be confirmed.
+9. **A lesson at the top of every lesson** (owner, 2026-10-13). Before the figure, teach the concept the
+   way a textbook does, then the page shows it. Original prose (no copied textbook text), with
+   "read more" pointers to textbook sections (OpenStax University Physics is free; Griffiths,
+   Purcell). On the site: a lead that is always shown, and "Read the lesson" opens the whole of it, so the
+   figure stays on the first screen. Also in the printout and the offline handout. Plan: one agent
+   builds the frame and the finite line's lesson; two agents write the other fourteen; two physics
+   reviewers check them.
+10. **Walkthrough (owner's answer, 2026-10-13).** An old `seen` no longer hides it: returning readers
+   get the new tour, with "Don't show this again" and "Skip intro" on every page. Handouts: the
+   limiting cases are already in them, kept simple.
 
 ## Done
 - CI green again, Pages deploying (d55dcb4, run 38389216435). The ring's run-perf failure was not a

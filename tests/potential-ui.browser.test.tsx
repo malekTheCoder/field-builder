@@ -30,9 +30,9 @@ describe('potential lessons in the live UI', () => {
  // which is the whole reason the unfinished ones are listed rather than deleted -- so this checks
  // the names are on the page whether or not they can be opened yet.
  it('the explorer library lists the potential lessons', async () => {
-  localStorage.setItem('field-builder:explorer:v1', JSON.stringify({id: 'ring', seen: true, dark: false, sidebarOpen: true, showNumbers: true, params: {}}));
+  localStorage.setItem('field-builder:explorer:v1', JSON.stringify({id: 'ring', hideTour: true, cued: true, dark: false, sidebarOpen: true, showNumbers: true, params: {}}));
   const {findAllByText, queryByText} = render(<Explorer />);
-  // Dismiss the tour if hydration still opens it; the saved `seen` flag should already skip it.
+  // Dismiss the tour if hydration still opens it; the saved `hideTour` flag should already skip it.
   const tour = queryByText("Let’s start") ?? queryByText("Let’s build a field") ?? queryByText('Skip');
   if (tour) tour.click();
   expect((await findAllByText('Ring · potential')).length).toBeGreaterThan(0);

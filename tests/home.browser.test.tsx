@@ -8,7 +8,7 @@ import {DEFAULT_PARAMS} from '../src/problems/types';
 /* THE SITE HAS A FRONT PAGE. The bare address is the home page; an address that names a lesson opens it;
  * the name in the corner and Back both come home. */
 const STORE = 'field-builder:explorer:v1';
-const seen = (extra: object = {}) => localStorage.setItem(STORE, JSON.stringify({id: 'bisector', seen: true, dark: false, sidebarOpen: true, params: {}, ...extra}));
+const seen = (extra: object = {}) => localStorage.setItem(STORE, JSON.stringify({id: 'bisector', hideTour: true, cued: true, dark: false, sidebarOpen: true, params: {}, ...extra}));
 
 // Each test is a visit of its own, as a page load is.
 beforeEach(() => newVisit());

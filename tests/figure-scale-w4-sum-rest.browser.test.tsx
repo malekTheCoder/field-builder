@@ -16,7 +16,7 @@ afterAll(async () => { quiet.remove(); await page.viewport(1280, 800); });
 afterEach(() => { cleanup(); window.history.replaceState(null, '', '/'); });
 async function openLesson(id: string, search = '') {
  await new Promise(r => setTimeout(r, 280));
- localStorage.setItem('field-builder:explorer:v1', JSON.stringify({id, seen: true, dark: false, sidebarOpen: true, params: {}}));
+ localStorage.setItem('field-builder:explorer:v1', JSON.stringify({id, hideTour: true, cued: true, dark: false, sidebarOpen: true, params: {}}));
  window.history.replaceState(null, '', '/' + search);
  const view = render(<Explorer />);
  await view.findByRole('button', {name: 'Watch it build'});
@@ -52,7 +52,7 @@ describe('a link to the sum on a lesson with a mirror draws the pairs, not the c
 describe('the chain\'s joints', () => {
  it('Add them up on the rod with a foot: no joint on the sum\'s arrowhead', async () => {
   await new Promise(r => setTimeout(r, 280));
-  localStorage.setItem('field-builder:explorer:v1', JSON.stringify({id: 'endpoint', seen: true, dark: false, sidebarOpen: true, params: {endpoint: {...DEFAULT_PARAMS}}}));
+  localStorage.setItem('field-builder:explorer:v1', JSON.stringify({id: 'endpoint', hideTour: true, cued: true, dark: false, sidebarOpen: true, params: {endpoint: {...DEFAULT_PARAMS}}}));
   const v = render(<Explorer />);
   await v.findByRole('button', {name: 'Watch it build'});
   fireEvent.click(v.getByRole('button', {name: 'Watch it build'}));

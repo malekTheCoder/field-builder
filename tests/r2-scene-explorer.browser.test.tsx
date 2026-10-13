@@ -31,7 +31,7 @@ afterEach(async () => {
 async function openLesson(id: string, extra: Record<string, unknown> = {}) {
  // The previous test's pending save must not land on top of this one's lesson; see build-ui.
  await new Promise(r => setTimeout(r, 280));
- localStorage.setItem('field-builder:explorer:v1', JSON.stringify({id, seen: true, dark: false, sidebarOpen: true, params: {[id]: {...DEFAULT_PARAMS}}, ...extra}));
+ localStorage.setItem('field-builder:explorer:v1', JSON.stringify({id, hideTour: true, cued: true, dark: false, sidebarOpen: true, params: {[id]: {...DEFAULT_PARAMS}}, ...extra}));
  const view = render(<Explorer />);
  await view.findByRole('button', {name: 'Watch it build'});
  await waitFor(() => expect(view.container.querySelector('h1')?.textContent, 'opened the wrong lesson').toBe(getProblem(id as never).title));

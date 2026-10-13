@@ -31,7 +31,7 @@ async function openLesson(id: string, width = 1280, height = 800, params: Record
  await page.viewport(width, height);
  // The previous test's debounced save must land before this one writes its own lesson.
  await new Promise(r => setTimeout(r, 280));
- localStorage.setItem(STORE, JSON.stringify({id, seen: true, dark: false, sidebarOpen: true, params}));
+ localStorage.setItem(STORE, JSON.stringify({id, hideTour: true, cued: true, dark: false, sidebarOpen: true, params}));
  const view = render(<Explorer />);
  await view.findByRole('button', {name: 'Watch it build'});
  await waitFor(() => expect(view.container.querySelector('h1')?.textContent, 'opened the wrong lesson').toBe(getProblem(id as never).title));

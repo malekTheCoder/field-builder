@@ -20,7 +20,7 @@ function inside(dialog: Element, node: Element | null) {
 
 describe('keyboard and screen-reader path', () => {
   it('traps tab inside the tour and returns focus to Walkthrough on Skip', async () => {
-    localStorage.setItem('field-builder:explorer:v1', JSON.stringify({id: 'bisector', seen: true, dark: false, sidebarOpen: true, params: {}}));
+    localStorage.setItem('field-builder:explorer:v1', JSON.stringify({id: 'bisector', hideTour: true, cued: true, dark: false, sidebarOpen: true, params: {}}));
     const {findByRole, getByRole} = render(<Explorer />);
     expect(await findByRole('heading', {name: getProblem('bisector').title})).toBeTruthy();
     const tour = getByRole('button', {name: /Walkthrough/});
@@ -68,7 +68,7 @@ describe('keyboard and screen-reader path', () => {
   });
 
   it('names every library card, including potential, once, and says so in words', async () => {
-    localStorage.setItem('field-builder:explorer:v1', JSON.stringify({id: 'bisector', seen: true, dark: false, sidebarOpen: true, params: {}}));
+    localStorage.setItem('field-builder:explorer:v1', JSON.stringify({id: 'bisector', hideTour: true, cued: true, dark: false, sidebarOpen: true, params: {}}));
     const {findByRole, getByRole} = render(<Explorer />);
     expect(await findByRole('heading', {name: getProblem('bisector').title})).toBeTruthy();
     await userEvent.click(getByRole('button', {name: 'Charge library'}));
@@ -89,7 +89,7 @@ describe('keyboard and screen-reader path', () => {
   });
 
   it('lets the charge sliders reverse sign through zero', async () => {
-    localStorage.setItem('field-builder:explorer:v1', JSON.stringify({id: 'bisector', seen: true, dark: false, sidebarOpen: true, params: {}}));
+    localStorage.setItem('field-builder:explorer:v1', JSON.stringify({id: 'bisector', hideTour: true, cued: true, dark: false, sidebarOpen: true, params: {}}));
     const explorer = render(<Explorer />);
     expect(await explorer.findByRole('heading', {name: getProblem('bisector').title})).toBeTruthy();
     const exploreNow:number[]=[];

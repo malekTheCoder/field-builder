@@ -26,7 +26,7 @@ async function openLesson(id: string) {
  // top of it, and then it is quietly running against the wrong geometry -- which is how the
  // check below first "failed": it opened the rod-on-axis lesson and got the bisector.
  await new Promise(r => setTimeout(r, 280));
- localStorage.setItem('field-builder:explorer:v1', JSON.stringify({id, seen: true, dark: false, sidebarOpen: true, params: {}}));
+ localStorage.setItem('field-builder:explorer:v1', JSON.stringify({id, hideTour: true, cued: true, dark: false, sidebarOpen: true, params: {}}));
  const view = render(<Explorer />);
  await view.findByRole('button', {name: 'Watch it build'});
  // And say so plainly if it ever happens again, rather than asserting about a figure that is
@@ -388,7 +388,7 @@ describe('the figure tells the truth at every stage', () => {
  // something a student could copy down wrong.
  async function openWith(id: string, params: Record<string, number>) {
   await new Promise(r => setTimeout(r, 280));
-  localStorage.setItem('field-builder:explorer:v1', JSON.stringify({id, seen: true, dark: false, sidebarOpen: true, params: {[id]: {...DEFAULT_PARAMS, ...params}}}));
+  localStorage.setItem('field-builder:explorer:v1', JSON.stringify({id, hideTour: true, cued: true, dark: false, sidebarOpen: true, params: {[id]: {...DEFAULT_PARAMS, ...params}}}));
   const view = render(<Explorer />);
   await view.findByRole('button', {name: 'Watch it build'});
   await waitFor(() => expect(view.container.querySelector('h1')?.textContent).toBe(getProblem(id as never).title));

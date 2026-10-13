@@ -44,7 +44,7 @@ async function open(id: string) {
   // then open on the bisector and move to the lesson the way a reader does, through the library.
   await new Promise(r => setTimeout(r, 280));
   await page.viewport(1440, 900);
-  localStorage.setItem('field-builder:explorer:v1', JSON.stringify({id: 'bisector', seen: true, dark: false, sidebarOpen: true, params: {}}));
+  localStorage.setItem('field-builder:explorer:v1', JSON.stringify({id: 'bisector', hideTour: true, cued: true, dark: false, sidebarOpen: true, params: {}}));
   const view = render(<Explorer />);
   await view.findByRole('button', {name: 'Watch it build'});
   await waitFor(() => expect(view.container.querySelector('h1')?.textContent).toBe(getProblem('bisector').title));

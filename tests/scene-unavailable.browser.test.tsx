@@ -23,7 +23,7 @@ describe('a device with no WebGL', () => {
    return (realGetContext as (...a: unknown[]) => unknown).call(this, kind, ...rest);
   } as typeof HTMLCanvasElement.prototype.getContext;
   await new Promise(r => setTimeout(r, 280));
-  localStorage.setItem('field-builder:explorer:v1', JSON.stringify({id: 'ring', seen: true, dark: false, sidebarOpen: true, params: {ring: {...DEFAULT_PARAMS}}}));
+  localStorage.setItem('field-builder:explorer:v1', JSON.stringify({id: 'ring', hideTour: true, cued: true, dark: false, sidebarOpen: true, params: {ring: {...DEFAULT_PARAMS}}}));
   const view = render(<Explorer />);
   await waitFor(() => expect(view.container.querySelector('h1')?.textContent).toBe(getProblem('ring').title));
   await waitFor(() => expect(view.container.querySelector('.cd-stage-unavailable')?.textContent).toMatch(/3D view is not available/), {timeout: 15000});

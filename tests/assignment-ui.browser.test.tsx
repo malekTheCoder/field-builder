@@ -12,7 +12,7 @@ afterEach(() => {
 
 describe('assignable URL state', () => {
  it('opens a teacher assignment from the query string and keeps other saved params', async () => {
-  localStorage.setItem('field-builder:explorer:v1', JSON.stringify({id: 'axial', seen: true, dark: false, sidebarOpen: true, showNumbers: true, params: {axial: {...DEFAULT_PARAMS, distance: 5}}}));
+  localStorage.setItem('field-builder:explorer:v1', JSON.stringify({id: 'axial', hideTour: true, cued: true, dark: false, sidebarOpen: true, showNumbers: true, params: {axial: {...DEFAULT_PARAMS, distance: 5}}}));
   window.history.replaceState(null, '', '/?p=ring&mode=sum&r=2');
   const {findByRole, container} = render(<Explorer />);
   expect(await findByRole('heading', {name: /Field on the axis of a ring/})).toBeTruthy();
@@ -30,13 +30,13 @@ describe('assignable URL state', () => {
  // lesson was still held. It skips only when nothing is held back at all.
  const held = [...COMING_SOON][0];
  it.skipIf(!held)('ignores an assignment pointing at a lesson that is not ready', async () => {
-  localStorage.setItem('field-builder:explorer:v1', JSON.stringify({id: 'bisector', seen: true, dark: false, sidebarOpen: true, params: {}}));
+  localStorage.setItem('field-builder:explorer:v1', JSON.stringify({id: 'bisector', hideTour: true, cued: true, dark: false, sidebarOpen: true, params: {}}));
   window.history.replaceState(null, '', `/?p=${held}&mode=sum`);
   const {findByRole} = render(<Explorer />);
   expect(await findByRole('heading', {name: getProblem('bisector').title})).toBeTruthy();
  });
  it('ignores a malformed problem id and still clamps numbers', async () => {
-  localStorage.setItem('field-builder:explorer:v1', JSON.stringify({id: 'bisector', seen: true, dark: false, sidebarOpen: true, params: {}}));
+  localStorage.setItem('field-builder:explorer:v1', JSON.stringify({id: 'bisector', hideTour: true, cued: true, dark: false, sidebarOpen: true, params: {}}));
   window.history.replaceState(null, '', '/?p=not-a-lesson&mode=explode&distance=99');
   const {findByRole} = render(<Explorer />);
   expect(await findByRole('heading', {name: getProblem('bisector').title})).toBeTruthy();

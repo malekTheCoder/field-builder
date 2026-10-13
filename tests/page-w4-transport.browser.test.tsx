@@ -27,7 +27,7 @@ const STORE = 'field-builder:explorer:v1';
 async function openRun(id: string, width = 390, height = 844) {
  await page.viewport(width, height);
  await new Promise(r => setTimeout(r, 280));
- localStorage.setItem(STORE, JSON.stringify({id, seen: true, dark: false, sidebarOpen: true, params: {}}));
+ localStorage.setItem(STORE, JSON.stringify({id, hideTour: true, cued: true, dark: false, sidebarOpen: true, params: {}}));
  const view = render(<Explorer />);
  await view.findByRole('button', {name: 'Watch it build'});
  await waitFor(() => expect(view.container.querySelector('h1')?.textContent).toBe(getProblem(id as never).title));

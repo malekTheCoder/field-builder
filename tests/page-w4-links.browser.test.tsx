@@ -20,7 +20,7 @@ const STORE = 'field-builder:explorer:v1';
 async function openLink(search: string, id: string) {
  await page.viewport(1280, 800);
  await new Promise(r => setTimeout(r, 280));
- localStorage.setItem(STORE, JSON.stringify({id: 'bisector', seen: true, dark: false, sidebarOpen: true, params: {}}));
+ localStorage.setItem(STORE, JSON.stringify({id: 'bisector', hideTour: true, cued: true, dark: false, sidebarOpen: true, params: {}}));
  window.history.replaceState(null, '', '/' + search);
  const view = render(<Explorer />);
  await waitFor(() => expect(view.container.querySelector('h1')?.textContent).toBe(getProblem(id as never).title));

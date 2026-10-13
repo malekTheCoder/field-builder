@@ -109,7 +109,7 @@ describe('the shelf continues the board', () => {
 describe('the run’s line sets its symbols as the board does', () => {
   it('P in the transport is KaTeX’s italic P, not the page’s sans', async () => {
     await new Promise(r => setTimeout(r, 280));
-    localStorage.setItem('field-builder:explorer:v1', JSON.stringify({id: 'bisector', seen: true, dark: false, sidebarOpen: true, params: {}}));
+    localStorage.setItem('field-builder:explorer:v1', JSON.stringify({id: 'bisector', hideTour: true, cued: true, dark: false, sidebarOpen: true, params: {}}));
     const view = render(<Explorer />);
     await view.findByRole('button', {name: 'Watch it build'});
     await waitFor(() => expect(view.container.querySelector('h1')?.textContent).toBe(getProblem('bisector').title));

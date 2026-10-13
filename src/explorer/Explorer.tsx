@@ -212,8 +212,10 @@ export default function Explorer({welcome}:{welcome?:boolean}={}){
   if(linked&&isReady(linked)){setId(linked);pm[linked]=atRest({...DEFAULT_PARAMS,...url.params});if(url.stage)linkedStage.current=url.stage}else if(PROBLEMS.some(p=>p.id===saved.id)&&isReady(saved.id))setId(saved.id);
   setDark(saved.dark===true);setShowNumbers(saved.showNumbers===true);setSidebarOpen(saved.sidebarOpen!==false);setParamsMap(pm);
   if(url.mode)setMode(url.mode);if(url.pair)setPair(true);if(url.components)setComponents(true);
-  // The old `seen: true` stands for "Don't show this again" (see above); the tour opens unless that is set.
-  const before=saved.seen===true,hide=typeof saved.hideTour==='boolean'?saved.hideTour:before;
+  // Only "Don't show this again" keeps the tour shut. An old `seen: true` is from before that box,
+  // and from before this tour: a returning reader meets the new tour and the box to stop it. They have
+  // been here, though, so the start-here arrow is not drawn for them.
+  const before=saved.seen===true,hide=saved.hideTour===true;
   const own=typeof saved.id==='string'&&serializeAssignment({id:linked,params:{...url.params,continuum:0}})===serializeAssignment({id:saved.id,params:{...saved.params?.[saved.id],continuum:0}});
   setHideTour(hide);setCued(saved.cued===true||before);setOnboarding(!hide&&(welcomed.current??(!linked||own)));
   setReady(true);return()=>{build.current?.stop();build.current=null}},[]);

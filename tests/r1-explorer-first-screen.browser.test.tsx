@@ -18,7 +18,7 @@ afterEach(async () => {
 async function openLesson(id: string, seen = true) {
  // The previous test's debounced save must land before this one writes its own lesson.
  await new Promise(r => setTimeout(r, 280));
- localStorage.setItem('field-builder:explorer:v1', JSON.stringify({id, seen, dark: false, sidebarOpen: true, params: {}}));
+ localStorage.setItem('field-builder:explorer:v1', JSON.stringify({id, hideTour: seen, cued: seen, dark: false, sidebarOpen: true, params: {}}));
  const view = render(<Explorer />);
  // A first visit opens on the tour; the cue waits for it to close.
  if (!seen) fireEvent.click(await view.findByRole('button', {name: 'Skip intro'}));

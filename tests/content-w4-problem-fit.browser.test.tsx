@@ -29,7 +29,7 @@ describe('the problem leaves the first step on the first screen', () => {
   it('every lesson at 1280×720: Cut it up starts above the fold', async () => {
     for (const p of PROBLEMS) {
       await new Promise(r => setTimeout(r, 280));
-      localStorage.setItem('field-builder:explorer:v1', JSON.stringify({id: p.id, seen: true, dark: false, sidebarOpen: true, params: {}}));
+      localStorage.setItem('field-builder:explorer:v1', JSON.stringify({id: p.id, hideTour: true, cued: true, dark: false, sidebarOpen: true, params: {}}));
       const view = render(<Explorer />);
       await view.findByRole('button', {name: 'Watch it build'});
       await waitFor(() => expect(view.container.querySelector('h1')?.textContent, 'opened the wrong lesson').toBe(getProblem(p.id).title));

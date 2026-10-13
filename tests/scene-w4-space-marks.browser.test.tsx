@@ -21,7 +21,7 @@ afterEach(async () => {
 type Id = 'arc' | 'axial' | 'v-rod-axial' | 'infinite' | 'semi' | 'sheet' | 'disk' | 'bisector';
 async function openLesson(id: Id, search?: string, params: Partial<Params> = {}) {
  await new Promise(r => setTimeout(r, 280));
- localStorage.setItem('field-builder:explorer:v1', JSON.stringify({id, seen: true, dark: false, sidebarOpen: true, params: {[id]: {...DEFAULT_PARAMS, ...params}}}));
+ localStorage.setItem('field-builder:explorer:v1', JSON.stringify({id, hideTour: true, cued: true, dark: false, sidebarOpen: true, params: {[id]: {...DEFAULT_PARAMS, ...params}}}));
  if (search) window.history.replaceState(null, '', '/' + search);
  const view = render(<Explorer />);
  await waitFor(() => expect(view.container.querySelector('h1')?.textContent).toBe(getProblem(id).title));

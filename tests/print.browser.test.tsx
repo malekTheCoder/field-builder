@@ -25,7 +25,7 @@ function cssText() {
 
 describe('print stylesheet and offline copy', () => {
   it('declares letter paper and hides chrome while keeping the figure', async () => {
-    localStorage.setItem('field-builder:explorer:v1', JSON.stringify({id: 'bisector', seen: true, dark: false, sidebarOpen: true, params: {}}));
+    localStorage.setItem('field-builder:explorer:v1', JSON.stringify({id: 'bisector', hideTour: true, cued: true, dark: false, sidebarOpen: true, params: {}}));
     // The limit card's data table is hidden by the app's sr-only rule, which this project does not
     // build; unclipped, its seventy rows of figures ran the page thousands of pixels wide.
     const srOnly = document.createElement('style');
@@ -80,7 +80,7 @@ describe('print stylesheet and offline copy', () => {
   });
 
   it('prints in the light theme when the screen is dark, and returns to dark after', async () => {
-    localStorage.setItem('field-builder:explorer:v1', JSON.stringify({id: 'bisector', seen: true, dark: true, sidebarOpen: true, params: {}}));
+    localStorage.setItem('field-builder:explorer:v1', JSON.stringify({id: 'bisector', hideTour: true, cued: true, dark: true, sidebarOpen: true, params: {}}));
     const {findByRole, unmount} = render(<Explorer />);
     expect(await findByRole('heading', {name: getProblem('bisector').title})).toBeTruthy();
     const root = document.documentElement;
@@ -94,7 +94,7 @@ describe('print stylesheet and offline copy', () => {
   });
 
   it('downloads a self-contained HTML copy of the open lesson', async () => {
-    localStorage.setItem('field-builder:explorer:v1', JSON.stringify({id: 'ring', seen: true, dark: false, sidebarOpen: true, params: {}}));
+    localStorage.setItem('field-builder:explorer:v1', JSON.stringify({id: 'ring', hideTour: true, cued: true, dark: false, sidebarOpen: true, params: {}}));
     const {findByRole, getByRole} = render(<Explorer />);
     expect(await findByRole('heading', {name: getProblem('ring').title})).toBeTruthy();
     const create = vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:field-builder-copy');

@@ -67,16 +67,16 @@ describe('the tour on arrival', () => {
   await waitFor(() => expect(tour()).toBeTruthy());
  }, 40000);
 
- it('reads a saved `seen` from before as "Don\'t show this again"', async () => {
+ it('opens the new tour for a reader whose old `seen` is from before it', async () => {
   localStorage.setItem(STORAGE, JSON.stringify({id: 'bisector', seen: true, dark: false, sidebarOpen: true, params: {}}));
   const view = await visit();
-  await settle();
-  expect(tour()).toBeNull();
-  // Nor is the start-here arrow drawn for a reader who has been here before.
-  expect(document.querySelector('.start-here')).toBeNull();
-  await userEvent.click(view.getByRole('button', {name: 'Walkthrough'}));
   await waitFor(() => expect(tour()).toBeTruthy());
-  expect(view.getByRole('checkbox', {name: /Don.t show this again/}).getAttribute('aria-checked')).toBe('true');
+  expect(view.getByRole('checkbox', {name: /Don.t show this again/}).getAttribute('aria-checked')).toBe('false');
+  // They have been here before, so the start-here arrow is not drawn for them.
+  await userEvent.click(view.getByRole('button', {name: 'Skip intro'}));
+  await settle();
+  expect(document.querySelector('.start-here')).toBeNull();
+  expect(saved().hideTour).toBe(false);
  }, 40000);
 
  it('does not open on a teacher\'s link, but does on the reader\'s own address for the lesson they left', async () => {

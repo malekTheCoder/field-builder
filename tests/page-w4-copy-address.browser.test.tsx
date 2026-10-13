@@ -19,7 +19,7 @@ afterEach(() => {
 describe('the downloaded copy carries the live lesson’s address', () => {
   it('names the lesson and its values, as Copy a link does', async () => {
     window.history.replaceState(null, '', '/?p=arc&phi=90deg&Q=-2');
-    localStorage.setItem('field-builder:explorer:v1', JSON.stringify({id: 'arc', seen: true, dark: false, sidebarOpen: true, params: {}}));
+    localStorage.setItem('field-builder:explorer:v1', JSON.stringify({id: 'arc', hideTour: true, cued: true, dark: false, sidebarOpen: true, params: {}}));
     const {findByRole, getByRole} = render(<Explorer />);
     expect(await findByRole('heading', {name: getProblem('arc').title})).toBeTruthy();
     const create = vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:field-builder-copy');
