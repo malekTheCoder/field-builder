@@ -144,7 +144,7 @@ describe('the words name what the algebra does',()=>{
  it('the semi-infinite line and the ramp say where P is, on their own page',()=>{
   const semi=getProblem('semi'),ramp=getProblem('ramp');
   expect(semi.title).toBe('Field above the end of a semi-infinite line');
-  expect(plain(semi.subtitle)).toMatch(/P sits on the perpendicular through the line’s end/);
+  expect(plain(semi.subtitle)).toMatch(/P sits beside the end; nothing beyond it cancels the part along the line/);
   expect(plain(semi.setup)).toContain(String.raw`A uniform line charge, density $\lambda$, lies on the $x$-axis`);
   expect(ramp.subtitle).not.toMatch(/same/);
   expect(plain(ramp.subtitle)).toMatch(/P is level with the rod’s empty end/);
