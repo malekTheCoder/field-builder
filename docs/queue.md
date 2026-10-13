@@ -12,6 +12,13 @@ owner says they are urgent.
   links still open lessons directly. (agent)
 
 ## Next
+**Urgent: CI is red, so Pages is not deploying.** Since the w4 merge, run-perf's ring "every stage
+under budget" fails on CI only: Shrink them p95 153-205 ms against 146 (before the merge, 56-141 on
+CI). It does not reproduce on the Mac, even with SwiftShader and a 4x CPU throttle, where the merged
+ring's Shrink is now cheaper than before the merge. A clue: on CI the ring's run puts 135 frames in
+Shrink them and 101 in Cut it up; here it is 124 and 112, so CI runs a different timeline. Next step:
+reproduce in a Linux container (the Playwright image) and profile Shrink there.
+
 1. **Gauss's law, "coming soon" on the site.** A Gauss's law section shown as coming soon on the
    home page, in the lesson list and in the library. Do this after the home page lands. The plan is
    in [gauss-law-plan.md](gauss-law-plan.md); the section itself is not started.
@@ -44,6 +51,9 @@ owner says they are urgent.
   on the divider on a phone), the projector layout's board is held to the window with a narrow margin
   (the ring's One piece outgrew it at 853 by 533), and the half line's board gives its lean for either
   sign. Its branches (claude/epic-cori-unu4i2, handoff/round-w4-notes, wip/w3-*) are deleted.
+  Follow-ups for CI's ring run-perf budget: the placer asks only the strokes a spot can reach (bd3f48a;
+  the round's stricter placer had tripled its cost), and the open limits card no longer re-sums its
+  plot on every frame of Shrink them (2413d86).
 - View cube on a phone no larger than before the CAD cube (66f49e9): the bigger cube had pushed the
   ring's ΔE⊥ onto the y axis' letter at What cancels, and CI was red. The CAD cube itself is 2035537.
 - The walkthrough opens on every visit until "Don't show this again" is ticked. Teacher links
