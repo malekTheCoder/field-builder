@@ -23,6 +23,16 @@ export type RunPiece={path:Vec[]}|{annulus:{inner:number;outer:number}};
  * by the scene's own element body; `added` is already in the sum; `idle` is waiting for nothing in
  * particular; `dim` has stepped back so the lit pieces can be read. */
 export type RunTone='lit'|'added'|'idle'|'dim';
+/** ONE STRETCH OF A PIECE IN A TONE OF ITS OWN: `lo` to `hi` along the charge (as `at`'s parameter), the
+ * points along it, and whether it starts at the piece's start or ends at its end -- the only places it is
+ * cut, since a piece split by tone is still one piece.
+ *
+ * A RING CUT AN ODD NUMBER OF WAYS GOES INTO THE SUM HALF A PIECE AT A TIME: each piece's mirror is the same
+ * length of ring straight across, which is the last half of one piece and the first half of the next (see
+ * `pairs.ts`). A piece was toned by whether all of it was in, so a piece half in was drawn as a pale ghost --
+ * through the last pair and the stage's held final frame, while the sum's arrow already stood at the full E --
+ * and the ring the lesson opens on (cut five ways) ended its sum saying a fifth of it was never added. */
+export type RunPart={lo:number;hi:number;path:Vec[];tone:RunTone;head:boolean;tail:boolean};
 export type RunArrows={
  /** The part of the chosen piece's arrow that survives the symmetry, from P. */
  keep:Vec|null;
@@ -48,10 +58,54 @@ export type RunArrows={
  /** Where the arrows start, as an offset from P: P itself, except while Add them up takes a mirror pair
   * into the sum, when the pair is laid from the tip of the sum so far (see `pairs.ts`). */
  from:Vec;
- /** Whether the partner's whole arrow is drawn: the pair going into the sum lets the whole arrows go as
-  * their parts across do, leaving the parts along the axis to be taken in. */
- whole:boolean;
+ /** How strongly the pair's whole arrows are drawn, 0 to 1: the pair going into the sum lets them go as
+  * their parts across do, at the flat figure's rate, leaving the parts along the axis to be taken in.
+  *
+  * IT WAS A YES OR NO, at six tenths of the way through the cancellation, so in space both whole arrows
+  * vanished on one frame while the flat figure's were still at a quarter strength: the two views told one
+  * cancellation with two timings. */
+ whole:number;
+ /** WHETHER THIS IS A MIRROR PAIR GOING INTO THE SUM (Add them up), rather than one piece being explained.
+  * The pair's mirror slides its part along the axis out from under the piece's, as the flat figure's
+  * does, and the sum's arrow takes the two parts in as it grows over them. */
+ pair:boolean;
+ /** The piece's own whole arrow from `from`, while a pair with a mirror goes into the sum: the scene draws
+  * it, fading with `whole`, in place of the figure's contribution arrow, which stopped at a fixed point of
+  * the cancellation and could not fade. Null otherwise. */
+ pieceWhole:Vec|null;
+ /** How much of the two parts along the axis the sum's arrow has taken in, 0 to 1. See `keptSpans`. */
+ taken:number;
 };
+/** One part along the axis as the scene lays it: from `from` (an offset from P) along `along`. */
+export type KeptSpan={from:Vec;along:Vec};
+const plusV=(a:Vec,b:Vec):Vec=>({x:a.x+b.x,y:a.y+b.y,z:a.z+b.z});
+const lengthOf=(v:Vec)=>Math.hypot(v.x,v.y,v.z);
+/** WHAT IS LEFT OF THE TWO PARTS ALONG THE AXIS, laid where the scene lays them: the piece's from the start of
+ * the arrows, the mirror's on its tip.
+ *
+ * WHILE A PAIR GOES INTO THE SUM, THE SUM'S ARROW TAKES THEM IN. It grows from P to the tip of the sum so far
+ * plus `taken` of the two parts, so its tip runs up through them -- and they used to be drawn whole until the
+ * merge was over and then dropped at once: the piece's flat head, wider than the sum's shaft, stood on it as a
+ * chevron a third of the way up, and the mirror's pale head sat on the sum's own, so the sum read as more than
+ * one arrow. The flat figure fades them as they go in. Here each is laid only over the stretch the sum has not
+ * reached yet, so the three arrows meet tip to tail and never overlap.
+ *
+ * The mirror's part slides out from under the piece's as the parts across cancel, as the flat figure's does
+ * (from the start of the arrows, `cancelled` of the piece's part along); explaining one piece, What cancels
+ * lays it on the piece's tip once the parts across are half gone, again as the flat figure does. */
+export function keptSpans(a:RunArrows|null|undefined):{piece:KeptSpan|null;partner:KeptSpan|null}{
+ if(!a?.keep)return {piece:null,partner:null};
+ const keep=a.keep,mirror=a.partnerSurvivor,kl=lengthOf(keep),ml=mirror?lengthOf(mirror):0;
+ const axis=kl>1e-12?keep:mirror&&ml>1e-12?mirror:null;
+ if(!axis)return {piece:null,partner:null};
+ const u=scaled(axis,1/lengthOf(axis)),taken=a.pair?Math.max(0,Math.min(1,a.taken)):0,consumed=taken*(kl+ml);
+ const pieceGone=Math.min(consumed,kl),mirrorGone=Math.max(0,Math.min(ml,consumed-kl));
+ const piece=kl-pieceGone>1e-12?{from:plusV(a.from,scaled(u,pieceGone)),along:scaled(u,kl-pieceGone)}:null;
+ const shown=a.pair?!!mirror:!!mirror&&a.cancelled>.5;
+ const base=plusV(a.from,a.pair?scaled(keep,Math.max(0,Math.min(1,a.cancelled))):keep);
+ const partner=shown&&ml-mirrorGone>1e-12?{from:plusV(base,scaled(u,mirrorGone)),along:scaled(u,ml-mirrorGone)}:null;
+ return {piece,partner};
+}
 /** How the dropped part of the chosen piece's arrow is drawn: dashed where a partner's part is
  * cancelling it, solid where nothing does.
  *
@@ -66,6 +120,12 @@ export type RunScene={
  kind:BodyKind; closed:boolean;
  pieces:RunPiece[];
  tones:RunTone[];
+ /** A wire piece drawn in more than one tone, as its stretches, or null where it is drawn whole in its tone.
+  * See `RunPart`. */
+ parts:(RunPart[]|null)[];
+ /** How much of the charge is drawn as already in the sum, and as lit (the chosen stretch and its partner),
+  * each as a share of the whole of it: for the tests, which read the plan, not the pixels. */
+ spans:{added:number;lit:number};
  selected:number;
  /** The chosen stretch where it is not a whole piece -- the half piece a ring cut an odd number of ways
   * puts into its last mirror pair -- or null. */
@@ -112,15 +172,19 @@ export type RunSceneInput={
   * (the ring's half piece straight across another), or none. */
  partner:number|'across'|{lo:number;hi:number}|null;
  weights:readonly number[];
+ /** The stretches of a wire already in the sum, as ranges of `at`'s parameter, where the sum takes pieces in
+  * by halves (the ring's mirror pairs); `weights` then say only which pieces are in whole. */
+ added?:readonly (readonly [number,number])[]|null;
  summing:boolean;
  continuum:number; split:number;
  /** One piece's field, its partner's, and the two split into parts, in newtons per coulomb;
   * `scale` turns them into world metres at the figure's own magnification. Null when the stage
   * draws no single piece's arrow. */
  arrows:null|{scale:number;field:Vec;keep:Vec;drop:Vec;partner:Vec|null;partnerKeep:Vec;partnerDrop:Vec;components:boolean;cancelled:number;
-  /** Where they start, as an offset from P in world metres; whether the partner's whole arrow is drawn;
-   * and how much of the parts along the axis is still to be taken into the sum (they go at nothing). */
-  from?:Vec;whole?:boolean;fade?:number};
+  /** Where they start, as an offset from P in world metres; and how much of the parts along the axis is still
+   * to be taken into the sum (they go at nothing). `fade` is given only while a mirror pair goes into the sum,
+   * and marks the arrows as that pair: how strongly its whole arrows are drawn follows from `cancelled`. */
+  from?:Vec;fade?:number};
  /** Every piece's field and the net arrow's scale, while the sum is being drawn. */
  chain:null|{scale:number;fields:readonly Vec[];weights:readonly number[]};
 };
@@ -211,17 +275,23 @@ export function runScene(input:RunSceneInput):RunScene{
  // they are seen to shrink away, whether or not the stage splits the arrow into parts -- a second,
  // full-length copy of the sideways part used to outlive the cancellation it was showing. Without
  // one, the dropped part is drawn only when the stage asks for the parts.
- const from=a?.from??ORIGIN,taken=a?.fade!==undefined&&a.fade<=1e-3;
+ // A mirror pair going into the sum carries how much of it is still to be taken in; the merge is kept as a
+ // fraction (see `keptSpans`), where it used to be cut to a yes or no at its very end.
+ const from=a?.from??ORIGIN,pair=a?.fade!==undefined,taken=pair?Math.max(0,Math.min(1,1-(a!.fade??1))):0,gone=taken>=1-1e-3;
+ // The pair's whole arrows go as their parts across do, at the flat figure's rate (see ChargeDiagram's `pairDraw`).
+ const whole=a&&pair?Math.max(0,Math.min(1,1-1.25*(a.partner?a.cancelled:0))):1;
  const arrows:RunArrows|null=a&&!tiny(a.field)?{
-  keep:a.components&&!taken?scaled(a.keep,a.scale):null,
+  keep:a.components&&!gone?scaled(a.keep,a.scale):null,
   dropFrom:from,
   drop:a.partner?scaled(a.drop,a.scale*(1-a.cancelled)):a.components?scaled(a.drop,a.scale):null,
   partner:a.partner?scaled(a.partner,a.scale):null,
   partnerFrom:a.partner?from:null,
-  partnerSurvivor:a.partner&&a.components&&!taken?scaled(a.partnerKeep,a.scale):null,
+  partnerSurvivor:a.partner&&a.components&&!gone?scaled(a.partnerKeep,a.scale):null,
   partnerDrop:a.partner?scaled(a.partnerDrop,a.scale*(1-a.cancelled)):null,
   cancelled:a.partner?a.cancelled:0,
-  from,whole:a.whole??true,
+  from,whole,pair,taken,
+  // As the flat figure draws the pair: the piece's whole arrow only beside a mirror's.
+  pieceWhole:pair&&a.partner&&whole>0?scaled(a.field,a.scale):null,
  }:null;
  let chain:Vec[]|null=null;
  if(input.chain){
@@ -238,7 +308,44 @@ export function runScene(input:RunSceneInput):RunScene{
   else if(stage==='limit')chain=resample(chain,LIMIT_CHAIN);
  }
  const selectedPath=input.selectedSpan&&!surface?stretch(at,input.selectedSpan[0],input.selectedSpan[1],n):null;
- return {stage,kind,closed,pieces,tones,selected,selectedPath,partner,open,split,seams,filled,arrows,chain,chainBeside:!!chain&&fieldsCollinear(input.chain!.fields)};
+ const parts=surface?pieces.map(()=>null):pieceParts(input,n,selected,tones);
+ // What is drawn as in the sum and as lit, as shares of the charge.
+ let added=0;
+ tones.forEach((tone,i)=>{const own=parts[i];added+=own?own.filter(q=>q.tone==='added').reduce((s,q)=>s+q.hi-q.lo,0):tone==='added'?1/n:0;});
+ const sel=input.selectedSpan&&!surface?Math.abs(input.selectedSpan[1]-input.selectedSpan[0]):1/n;
+ const lit=sel+(partnerIndex!==null||across?1/n:span?Math.abs(span.hi-span.lo):0);
+ return {stage,kind,closed,pieces,tones,parts,spans:{added,lit},selected,selectedPath,partner,open,split,seams,filled,arrows,chain,chainBeside:!!chain&&fieldsCollinear(input.chain!.fields)};
+}
+/** Each wire piece's stretches by tone, where it has more than one (see `RunPart`): the chosen stretch, where
+ * it is not the whole chosen piece, is lit; whatever lies in a stretch already summed is coloured as added; the
+ * rest keeps the tone a piece not chosen would have. */
+function pieceParts(input:RunSceneInput,n:number,selected:number,tones:readonly RunTone[]):(RunPart[]|null)[]{
+ const sums=input.added?.length?input.added:null,own=input.selectedSpan??null;
+ if(!sums&&!own)return tones.map(()=>null);
+ // A closed wire runs once round per unit of the parameter, and a stretch straight across can run past 1.
+ const shifts=input.closed?[-1,0,1]:[0];
+ const ranges=(list:readonly (readonly [number,number])[])=>list.flatMap(([lo,hi])=>shifts.map(k=>[Math.min(lo,hi)+k,Math.max(lo,hi)+k] as const));
+ const summed=sums?ranges(sums):[],chosen=own?ranges([own]):[];
+ const inside=(t:number,list:readonly (readonly [number,number])[])=>list.some(([lo,hi])=>t>lo&&t<hi);
+ const plain=(i:number):RunTone=>input.stage==='add'?input.summing&&Math.abs(input.weights[i]??0)>0?'added':'dim':input.stage==='one'||input.stage==='cancel'?'dim':'idle';
+ return tones.map((tone,i)=>{
+  const lo=i/n,hi=(i+1)/n,mine=own&&i===selected;
+  // A lit piece the run names whole (the chosen piece, the partner) is drawn whole.
+  if(tone==='lit'&&!mine)return null;
+  const cuts=new Set([lo,hi]);
+  for(const [a,b] of [...summed,...(mine?chosen:[])])for(const c of [a,b])if(c>lo+1e-9&&c<hi-1e-9)cuts.add(c);
+  const edges=[...cuts].sort((x,y)=>x-y),out:RunPart[]=[];
+  for(let k=0;k+1<edges.length;k++){
+   const a=edges[k],b=edges[k+1],mid=(a+b)/2;
+   const t:RunTone=mine&&inside(mid,chosen)?'lit':inside(mid,summed)?'added':mine?plain(i):tone;
+   const last=out[out.length-1];
+   if(last&&last.tone===t){last.hi=b;continue;}
+   out.push({lo:a,hi:b,path:[],tone:t,head:false,tail:false});
+  }
+  if(out.length===1&&out[0].tone===tone)return null;
+  for(const q of out){q.path=stretch(input.at,q.lo,q.hi,n);q.head=Math.abs(q.lo-lo)<1e-9;q.tail=Math.abs(q.hi-hi)<1e-9;}
+  return out;
+ });
 }
 /** Whether the chain of the whole partition, laid head to tail, would be drawn inside the arrow it adds
  * up to: every link pointing forward along the sum, and the whole chain never straying more than `stray`

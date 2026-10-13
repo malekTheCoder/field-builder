@@ -108,7 +108,11 @@ describe('the gap behind P is the figure\'s size, on a phone too', () => {
   await inSpace(view);
   await frames(10);
   const [px, py] = sceneP(view), k = unitPx(view), column: [number, number][] = [];
-  for (let dy = 0; dy <= 40; dy++) column.push([px - 25 * k, py + dy]);
+  // Not through a sign mark: since wave 3 the disk's marks are a sunflower over its whole face, and one standing in
+  // the column is a dozen units of opaque paper and ink, which is the mark, not the face.
+  const marks = (stage(view)!.dataset.signScreen ?? '').split(' ').filter(Boolean).map(s => s.split(',').map(Number));
+  for (let dy = 0; dy <= 40; dy++) if (!marks.some(([x, y]) => Math.abs(x * k - (px - 25 * k)) < 8 * k && Math.abs(y * k - (py + dy)) < 8 * k)) column.push([px - 25 * k, py + dy]);
+  expect(column.length).toBeGreaterThan(20);
   const ink = await pixels(view, column), alpha = ink.map(p => p[3]);
   // Its lower envelope over seven rows, so a field line or an axis crossing the column, a few pixels wide and only
   // ever adding ink, is not taken for the face: a ruled floor is a step that stays.
@@ -118,17 +122,18 @@ describe('the gap behind P is the figure\'s size, on a phone too', () => {
  }, HEAVY);
 });
 
-describe('a sign mark on a wire is printed on the tube, not cut into it', () => {
- it('ring at rest: the marks are ringed with the tube, and no paper is laid round them', async () => {
+describe('a sign mark on a wire is not cut into the tube', () => {
+ // Wave 3: the marks stand beside the tube, ringed with the paper there (see `besideWire`), so it is the tube under
+ // the point each mark stands for that must carry no paper band.
+ it('ring at rest: no paper is laid on the tube where the marks are', async () => {
   await page.viewport(1440, 900);
   const view = await openLesson('ring');
   await inSpace(view);
   await frames(10);
-  expect(stage(view)!.dataset.signRing).toBe('tube');
-  const k = unitPx(view), marks = (stage(view)!.dataset.signScreen ?? '').split(' ').filter(Boolean).map(s => s.split(',').map(Number));
+  const k = unitPx(view), marks = (stage(view)!.dataset.signFeet ?? '').split(' ').filter(Boolean).map(s => s.split(',').map(Number));
   expect(marks.length).toBeGreaterThan(5);
   const around: [number, number][] = [];
-  for (const [x, y] of marks) for (let dy = -6; dy <= 6; dy++) for (let dx = -6; dx <= 6; dx++) around.push([(x + dx) * k, (y + dy) * k]);
+  for (const [x, y] of marks) for (let dy = -2; dy <= 2; dy++) for (let dx = -2; dx <= 2; dx++) around.push([(x + dx) * k, (y + dy) * k]);
   const ink = await pixels(view, around);
   // Opaque and nearly white is the paper ring that cut the tube; the tube and the ink are orange and brown.
   const paper = ink.filter(p => p[3] > 200 && p[0] > 232 && p[1] > 232 && p[2] > 232).length;

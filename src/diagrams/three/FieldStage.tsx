@@ -3,13 +3,13 @@ import {useEffect,useRef,useState} from 'react';
 import type {ChargeSample} from '../../distributions/types';
 import type {Vec} from '../../symbolic/physics';
 import {cameraBasis,cameraPosition,frameTarget,frustum,tickStep} from './orthoCamera';
-import {apartOnScreen,arrowHead,BEHIND_GAP,gapDepth,gapRamp,gapStart,NAME_MARGIN,PIECE_FAR_LOW,SHEET_SIGN_GAP,bodyReach,CHAIN_ASIDE,chainAside,diskSignMarks,drawOrder,fadeOut,farAlpha,fillAlpha,fillFade,frameExtent,latticeClear,lineReach,segmentGap,lineStrength,pieceFade,SHEET_FADE,sheetSignRoots,sheetSigns,signMarks,strokeSide,tickGaps,SHEET_UNDER,sheetColumns,sheetFarFade,surfaceOpacity,visibleRadii,washerHalf,wirePath,wireRadius,writesDepth,type BodyKind,type FarFade} from './bodies';
+import {apartOnScreen,arrowHead,besideWire,slabCovers,BEHIND_GAP,gapDepth,gapLift,gapRamp,gapStart,NAME_MARGIN,PIECE_FAR_LOW,SHEET_SIGN_GAP,bodyReach,CHAIN_ASIDE,chainAside,diskSignMarks,drawOrder,fadeOut,farAlpha,fillAlpha,fillFade,frameExtent,latticeClear,lineReach,segmentGap,lineStrength,pieceFade,SHEET_FADE,sheetSignRoots,sheetSigns,signMarks,strokeSide,tickGaps,SHEET_UNDER,sheetColumns,sheetFarFade,surfaceOpacity,visibleRadii,washerHalf,wirePath,wireRadius,writesDepth,type BodyKind,type FarFade} from './bodies';
 import {endlessAxis,endlessBody,endlessRay,latticeBody,latticeCore,latticeFrame,radialLines,rayField,rayLines,sheetLines,spaceLines,traceTo,type Layout} from '../field3d';
 import {boxGap,HEAD_ROOM,LINE_HEAD,lineHeads,meetsBoxes,paintedLabels,seedPool,touchesLabels,type Box} from '../fieldlines';
 import {coarsen} from '../sampling';
 import {arrowLength,bodyDistance,PLOT} from '../vectorfield';
 import {SNAPSHOT_EVENT,type SnapshotDetail} from '../snapshot';
-import {cutPiece,cutShare,dropStyle,type RunScene} from './runScene';
+import {cutPiece,cutShare,dropStyle,keptSpans,type RunScene,type RunTone} from './runScene';
 /** The 3D half of the figure: the charge as a real body with depth, and the field around it
  * in space, under the SVG that carries every label and every control.
  *
@@ -74,10 +74,6 @@ const CUT={spread:1.5,delay:.2,each:.42};
  * every field line carries an arrowhead now, out of a positive charge and into a negative one.
  * The body, the line work (cuts, rings, the chosen piece), the pieces already added, and the glow. */
 export const CHARGE={body:0xf0975c,line:0xc2703a,added:0xd9834b,glow:0x3a1c08} as const;
-/** A sign mark's ink where it is printed on a wire's tube: deeper than the flat figure's charge colour,
- * which is too near the tube's own orange to read on it, and in the dark a deep brown rather than the
- * light orange the dark theme writes on paper. See `signRings`. */
-export const WIRE_SIGN_INK={light:0x8f330a,dark:0x4a1804} as const;
 const CUT_MS=(CUT.spread+CUT.delay+CUT.each)*1000+60;
 type Live={dispose:()=>void;update:(p:FieldStageProps)=>void};
 const sampleKey=(p:FieldStageProps)=>{
@@ -453,9 +449,9 @@ export function FieldStage(props:FieldStageProps){
    // strength left inside it, and the hard cut's radius, in drawing-buffer pixels sized from the figure's own
    // units (see BEHIND_GAP); `uGapOn` is 1 for a surface and 2 for a wire. `uGapKeep`, each material's own, is
    // what the chosen piece keeps of itself in the gap (PIECE_FAR_LOW), and below zero for everything else.
-   const gap={uGapP:{value:new THREE.Vector3(0,0,2)},uGapOn:{value:0},uGapDepth:{value:1e-3},uGapRamp:{value:new THREE.Vector4(BEHIND_GAP.inner,BEHIND_GAP.outer,BEHIND_GAP.low,BEHIND_GAP.hard)}};
+   const gap={uGapP:{value:new THREE.Vector3(0,0,2)},uGapOn:{value:0},uGapLift:{value:1},uGapDepth:{value:1e-3},uGapRamp:{value:new THREE.Vector4(BEHIND_GAP.inner,BEHIND_GAP.outer,BEHIND_GAP.low,BEHIND_GAP.hard)}};
    const EDGE_GLSL='if(uEdgeOn>.5){vec2 fc=gl_FragCoord.xy;float e=clamp(min(min(fc.x-uEdgeRect.x,uEdgeRect.z-fc.x),min(fc.y-uEdgeRect.y,uEdgeRect.w-fc.y))/uEdgeFeather,0.,1.);gl_FragColor.a*=e*e*(3.-2.*e);}';
-   const GAP_GLSL='if(uGapOn>.5){float k=smoothstep(uGapP.z,uGapP.z+uGapDepth,gl_FragCoord.z);if(k>0.){float d=distance(gl_FragCoord.xy,uGapP.xy);'
+   const GAP_GLSL='if(uGapOn>.5){float k=smoothstep(uGapP.z,uGapP.z+uGapDepth,gl_FragCoord.z)*uGapLift;if(k>0.){float d=distance(gl_FragCoord.xy,uGapP.xy);'
     +'if(uGapOn>1.5&&uGapKeep<0.){if(k>.5&&d<uGapRamp.w)discard;}else gl_FragColor.a*=mix(1.,mix(uGapKeep<0.?uGapRamp.z:uGapKeep,1.,smoothstep(uGapRamp.x,uGapRamp.y,d)),k);}}';
    /** Patch a material's fragment shader with the window's edge fade and the gap round P, or only the gap,
     * and what it keeps of itself there (`keep`, below zero for all but the chosen piece). Named in the
@@ -465,7 +461,7 @@ export function FieldStage(props:FieldStageProps){
     const own={uGapKeep:{value:keep}};
     m.onBeforeCompile=shader=>{
      Object.assign(shader.uniforms,gap,own,edgeFade?edge:{});
-     shader.fragmentShader=shader.fragmentShader.replace('void main() {',`${edgeFade?'uniform vec4 uEdgeRect;\nuniform float uEdgeFeather;\nuniform float uEdgeOn;\n':''}uniform vec3 uGapP;\nuniform float uGapOn;\nuniform float uGapDepth;\nuniform float uGapKeep;\nuniform vec4 uGapRamp;\nvoid main() {`)
+     shader.fragmentShader=shader.fragmentShader.replace('void main() {',`${edgeFade?'uniform vec4 uEdgeRect;\nuniform float uEdgeFeather;\nuniform float uEdgeOn;\n':''}uniform vec3 uGapP;\nuniform float uGapOn;\nuniform float uGapLift;\nuniform float uGapDepth;\nuniform float uGapKeep;\nuniform vec4 uGapRamp;\nvoid main() {`)
       .replace('#include <opaque_fragment>',`#include <opaque_fragment>\n${edgeFade?EDGE_GLSL:''}\n${GAP_GLSL}`);
     };
     m.customProgramCacheKey=()=>`field-stage:${edgeFade?'edge+gap':'gap'}:${keep<0?'cut':'keep'}`;
@@ -504,7 +500,12 @@ export function FieldStage(props:FieldStageProps){
    // it (the contribution colour 52% of the way from the paper), and once the sideways parts have gone
    // its own surviving part is laid on the piece's, tip to tail, fading in as the flat one does.
    const fadeMaterial=new THREE.MeshBasicMaterial({transparent:true,depthWrite:false});
-   const partnerMaterial=new THREE.MeshBasicMaterial(),partnerKeepMaterial=new THREE.MeshBasicMaterial({transparent:true,depthWrite:false});
+   // The pair's two whole arrows fade as their parts across cancel (see `RunArrows.whole`), so the mirror's is
+   // see-through, at full strength everywhere else; and the piece's own whole arrow, while a pair goes into the
+   // sum, is drawn by the run in a fading copy of the part colour. The same program as the other see-through
+   // unlit marks, so nothing new is compiled when the run reaches them.
+   const partnerMaterial=new THREE.MeshBasicMaterial({transparent:true}),partnerKeepMaterial=new THREE.MeshBasicMaterial({transparent:true,depthWrite:false});
+   const wholeMaterial=new THREE.MeshBasicMaterial({transparent:true});
    const DASHES=64,dashGeometry=new THREE.CylinderGeometry(1,1,1,8,1);
    const dashed=(material:InstanceType<typeof THREE.Material>)=>{
     const dashes=new THREE.InstancedMesh(dashGeometry,material,DASHES),head=new THREE.Mesh(flatHead,material),group=new THREE.Group();
@@ -515,7 +516,7 @@ export function FieldStage(props:FieldStageProps){
    };
    // The dropped part with nothing to cancel it survives, and is drawn as the survivor it is: a
    // second solid arrow, as thick as the kept part, in the same ink. See `dropStyle`.
-   const keepArrow=arrow(partMaterial),dropArrow=arrow(partMaterial),pairDropArrow=dashed(fadeMaterial),partnerArrow=arrow(partnerMaterial),partnerKeepArrow=arrow(partnerKeepMaterial),partnerDropArrow=dashed(fadeMaterial);
+   const keepArrow=arrow(partMaterial),dropArrow=arrow(partMaterial),pairDropArrow=dashed(fadeMaterial),partnerArrow=arrow(partnerMaterial),partnerKeepArrow=arrow(partnerKeepMaterial),partnerDropArrow=dashed(fadeMaterial),wholeArrow=arrow(wholeMaterial);wholeArrow.group.visible=false;
    const dashM=new THREE.Matrix4(),dashP=new THREE.Vector3(),dashS=new THREE.Vector3();
    /** A dashed arrow: dashes along the shaft and a solid head, so it is plainly an arrow and
     * plainly not one of the solid ones. */
@@ -545,7 +546,7 @@ export function FieldStage(props:FieldStageProps){
    // this is the chain, and every link was the same teal: nothing matched "this piece", lit on the charge, to
    // "this arrow", and the chain read as a growing wiggle.
    const newestMaterial=new THREE.MeshBasicMaterial(),newestArrow=arrow(newestMaterial);newestArrow.group.visible=false;
-   marks.add(partnerBody,keepArrow.group,dropArrow.group,pairDropArrow.group,partnerArrow.group,partnerKeepArrow.group,partnerDropArrow.group,chainLinks,chainJoints,newestArrow.group);
+   marks.add(partnerBody,keepArrow.group,dropArrow.group,pairDropArrow.group,partnerArrow.group,partnerKeepArrow.group,partnerDropArrow.group,wholeArrow.group,chainLinks,chainJoints,newestArrow.group);
    const linkA=new THREE.Vector3(),linkQ=new THREE.Quaternion(),one=new THREE.Vector3(1,1,1),aside=new THREE.Vector3(),across=new THREE.Vector3(),screenRight=new THREE.Vector3(1,0,0);
    /** One straight link of the chain, from a to b (offsets from P), drawn as a rod. */
    const link=(from:Vec,a:Vec,b:Vec,thick:number,at:number)=>{
@@ -688,7 +689,9 @@ export function FieldStage(props:FieldStageProps){
     * arrow, one piece's arrow, the part of it that survives with the mirror's laid on, and the chain. */
    const clearTicks=(p:FieldStageProps)=>{
     const a=p.run?.arrows,end=p.run?.chain?.at(-1)??null;
-    const kept=a?.keep&&a.partnerSurvivor?{x:a.keep.x+a.partnerSurvivor.x,y:a.keep.y+a.partnerSurvivor.y,z:a.keep.z+a.partnerSurvivor.z}:a?.keep??null;
+    // Laid from the start of the arrows, which is the tip of the sum while a mirror pair goes into it.
+    const o=a?.from??{x:0,y:0,z:0},s=a?.partnerSurvivor??{x:0,y:0,z:0};
+    const kept=a?.keep?{x:o.x+a.keep.x+s.x,y:o.y+a.keep.y+s.y,z:o.z+a.keep.z+s.z}:null;
     const arrows=[p.net,p.contribution,kept,a?.partner,end];
     const sig=(v:Vec|null|undefined)=>v?`${v.x.toFixed(3)},${v.y.toFixed(3)},${v.z.toFixed(3)}`:'-';
     const key=`${sig(p.point)}|${arrows.map(sig).join('|')}|${px.toFixed(5)}|${tickMeta.length}`;
@@ -723,38 +726,54 @@ export function FieldStage(props:FieldStageProps){
     namesDirty=false;names=paintedLabels(labelLayer());
     namesKey=names.map(b=>`${b.x.toFixed(0)},${b.y.toFixed(0)},${b.width.toFixed(0)},${b.height.toFixed(0)}`).join(';');
    };
-   const signMaterial=new THREE.MeshBasicMaterial({vertexColors:true,side:THREE.DoubleSide,transparent:true,depthWrite:false});
    // Last of all, in the overlay: they are the charge's label, and are ringed with the paper to be read over
-   // whatever they lie on, the chosen piece and the field lines included.
+   // whatever they lie on, the chosen piece and the field lines included. On a wire they stand beside the tube
+   // (see `besideWire`), ringed with the paper as a surface's are: centred on it, a mark was wider than the tube,
+   // and a minus across it read as a cut.
+   //
+   // NOT DEPTH-TESTED. Beside the tube a mark stands in open space, where field lines pass in front of it, and a
+   // line nearer the camera cut a minus into two dashes -- the scene's own "− −". A label is read over what lies
+   // in front of it as well as behind; where something must hide a mark -- P, its arrow, the gap behind P, the
+   // chosen washer's slab -- the mark is let go instead (see `laySigns`).
+   const signMaterial=new THREE.MeshBasicMaterial({vertexColors:true,side:THREE.DoubleSide,transparent:true,depthWrite:false,depthTest:false});
    const signs=new THREE.Mesh(new THREE.BufferGeometry(),signMaterial);signs.frustumCulled=false;signs.renderOrder=4;signs.name='signs';
-   // ON A WIRE THE RING IS THE TUBE ITSELF, NOT THE PAPER. The tube is narrower than a plus, so a paper ring
-   // round the upright cut a white band across it on both sides of every mark: at rest the ring showed fifteen
-   // breaks with five pieces -- each just like one of Cut it up's real gaps, so the charge read as already cut,
-   // and into the wrong number of pieces. The ring is drawn in the tube's own material, facing the camera as the
-   // front of the tube does, so it is lit exactly as the tube is in either theme and reads as the tube carrying
-   // the mark, and the mark is a deeper ink on it. (The tube's material, not a copy: a material of its own is a
-   // GPU program of its own, built on the frame the lesson opens -- a sixth of a second more on a slow machine.)
-   // A surface's marks keep the paper ring: they stand off the face and its lines.
-   const signRings=new THREE.Mesh(new THREE.BufferGeometry(),bodyMaterial);signRings.frustumCulled=false;signRings.renderOrder=3;signRings.name='sign-rings';
-   overlay.add(signRings,signs);
+   overlay.add(signs);
    let signKey='';
    const laySigns=(p:FieldStageProps,frameWorld:number,far:FarFade|null,yaw:number,pitch:number,wr:number,positive:boolean,paper:InstanceType<typeof THREE.Color>,dark:boolean,target:Vec)=>{
-    const centres:{at:Vec;alpha:number}[]=[];
+    // `at` is where the mark is drawn; `foot` the point of the charge it stands for, which on a wire is beside it.
+    const centres:{at:Vec;foot:Vec;alpha:number}[]=[];
     const h=4.6*px,t=1*px,ring=1.25*px;
-    // The chosen ring of a disk or a sheet: no mark is written on it (see `diskSignRadii`, `sheetSigns`).
+    // The chosen ring of a disk or a sheet: no mark is written on it (see `diskSignMarks`, `sheetSigns`).
     const band=p.element&&'annulus' in p.element?p.element.annulus:null;
     const R=screenRight,U=screenUp,toScreen=(v:Vec)=>{const dx=v.x-target.x,dy=v.y-target.y,dz=v.z-target.z;return {x:360+(dx*R.x+dy*R.y+dz*R.z)*p.unit,y:215-(dx*U.x+dy*U.y+dz*U.z)*p.unit};};
     // No two marks within a mark's width and a little paper of each other ON THE SCREEN, whatever the
     // view: a wire turned end on, or one short beside a mark, stacked its marks into a blot over the
     // charge they label (see `apartOnScreen`). In viewBox units, as `h` and `ring` are in metres.
     const apart=2.6*(h+ring)*p.unit;
+    const thick=Math.max(wr*1.5,wr+1.25*cssPx);
     if(p.kind==='wire'){
      const source=p.fieldSamples??p.samples;
+     // Beside the tube, on the side away from the middle of a curved wire, or from P beside a straight one; far
+     // enough to clear the chosen piece's thicker sleeve with a pixel and a half of paper (see `besideWire`).
+     const points=source.map(s=>s.position),first=points[0],last=points[points.length-1];
+     const chord=first&&last?Math.hypot(last.x-first.x,last.y-first.y,last.z-first.z):0;
+     let bow=0;
+     if(chord>1e-9){
+      const ux=(last.x-first.x)/chord,uy=(last.y-first.y)/chord,uz=(last.z-first.z)/chord;
+      for(const q of points){const dx=q.x-first.x,dy=q.y-first.y,dz=q.z-first.z,along=dx*ux+dy*uy+dz*uz;bow=Math.max(bow,Math.hypot(dx-ux*along,dy-uy*along,dz-uz*along));}
+     }
+     const curved=!(chord>1e-9)||bow>.02*chord;
+     const middle=points.reduce((m,q)=>({x:m.x+q.x/points.length,y:m.y+q.y/points.length,z:m.z+q.z/points.length}),{x:0,y:0,z:0});
+     const away=curved?middle:p.point;
+     const marks=signMarks(source,poolWindow(frameWorld),34/p.unit).map(m=>{
+      const o=besideWire(m,m.along,away,R,U,h+ring,t+ring,positive,thick+1.5*cssPx);
+      return {at:{x:m.x+o.x,y:m.y+o.y,z:m.z+o.z},foot:{x:m.x,y:m.y,z:m.z},alpha:1};
+     });
      // A mark every forty units of the figure, and the closed ring's every forty units round it.
-     centres.push(...apartOnScreen(signMarks(source,poolWindow(frameWorld),34/p.unit).map(at=>({at,alpha:1})),toScreen,apart));
+     centres.push(...apartOnScreen(marks,toScreen,apart));
     }else if(p.kind==='disk'){
-     // As many round each ring as fit (see `diskSignMarks`): the smallest disk carried three marks in a pile.
-     centres.push(...apartOnScreen(diskSignMarks(Math.max(.01,p.radius),p.unit,band,h+ring).map(at=>({at,alpha:1})),toScreen,apart));
+     // A sunflower over the face, as dense everywhere as the charge is (see `diskSignMarks`).
+     centres.push(...apartOnScreen(diskSignMarks(Math.max(.01,p.radius),p.unit,band,h+ring).map(at=>({at,foot:at,alpha:1})),toScreen,apart));
     }else if(far){
      // On the sheet: a sunflower laid on the plane itself, so the marks turn and tilt with it; a view
      // decides only which of them are drawn, and how strongly.
@@ -765,7 +784,7 @@ export function FieldStage(props:FieldStageProps){
      // twenty-two, about forty-eight apart. The sunflower runs outward from O, so the marks kept are the
      // ones nearest the middle of the picture.
      const shown=sheetSigns(sheetSignRoots(poolWindow(frameWorld)),toScreen,{x:-Math.sin(yaw),y:Math.cos(yaw)},far,band,frameWorld,h+ring).filter(c=>c.alpha>.02);
-     centres.push(...apartOnScreen(shown,toScreen,SHEET_SIGN_GAP));
+     centres.push(...apartOnScreen(shown.map(c=>({...c,foot:c.at})),toScreen,SHEET_SIGN_GAP));
     }
     // AND NONE ON A NAME, ON P OR ON THE NET ARROW: a mark within its own half-size of a name's padded box,
     // of P's halo or of the arrow's shaft is let go. The marks are laid over everything else in the scene,
@@ -776,55 +795,62 @@ export function FieldStage(props:FieldStageProps){
     // NOR WHERE THE GAP BEHIND P HAS TAKEN THE CHARGE AWAY (see BEHIND_GAP). The marks are the overlay's, which
     // the gap does not reach, so a ring tipped up kept a plus standing alone in the air in the stretch cut out
     // beside P -- a sign with no charge under it, which reads as a point charge. One more than half behind P,
-    // by the shader's own depth ramp, and within the gap's outer radius and its own half-size, is let go.
+    // by the shader's own depth ramp, and within the gap's outer radius and its own half-size, is let go: by
+    // the point of the charge it stands for, or by where it is drawn beside it.
     const startBehind=gapStart(wr),ramp=gapRamp(px),reach=BEHIND_GAP.outer+mark/2;
-    const behindP=(v:Vec)=>gapDepth((p.point.x-v.x)*toCamera.x+(p.point.y-v.y)*toCamera.y+(p.point.z-v.z)*toCamera.z-startBehind,ramp);
-    for(let i=centres.length-1;i>=0;i--){
-     const c=toScreen(centres[i].at),fromP=Math.hypot(c.x-P.x,c.y-P.y);
-     // And a clear margin round every name, not only the name's own box: at R = 4 the disk's marks sat flush
-     // against P, z, s and R, and the figure read "+P", "z +", "+ s".
-     if(boxGap(c,names)<mark+NAME_MARGIN||fromP<mark+halo||segmentGap(c,c,P,tip)<mark+3||(fromP<reach&&behindP(centres[i].at)>.5))centres.splice(i,1);
-    }
-    // How many marks are written, and where on the screen, for the tests.
-    mount.parentElement?.setAttribute('data-sign-marks',String(centres.filter(c=>c.alpha>.02).length));
-    mount.parentElement?.setAttribute('data-sign-screen',centres.filter(c=>c.alpha>.02).map(c=>{const q=toScreen(c.at);return `${q.x.toFixed(1)},${q.y.toFixed(1)}`;}).join(' '));
-    // The flat figure's marks: the charge's deep orange, ringed with the paper so they read over the
-    // orange tube as well as off it -- the size of the flat figure's thirteen-pixel plus.
-    //
+    const behindP=(v:Vec)=>gap.uGapLift.value*gapDepth((p.point.x-v.x)*toCamera.x+(p.point.y-v.y)*toCamera.y+(p.point.z-v.z)*toCamera.z-startBehind,ramp);
     // Lifted toward the camera, which in this orthographic view moves a mark on the screen not at all and
     // decides only what it is in front of: on a wire, clear of the chosen piece's thicker tube (half again
-    // the wire's radius), where at 1.6 radii only the upright of each plus poked out of it; on a surface,
-    // clear of the chosen ring's slab, which stands .93 of a radius off the plane and is met along the
-    // line of sight that much further up the slope.
-    const wire=p.kind==='wire',positions:number[]=[],colours:number[]=[],ringPositions:number[]=[],ringColours:number[]=[],ringNormals:number[]=[];
-    // On a wire the mark sits on the tube's lit orange (see `signRings`), so its ink is deeper there.
-    const ink=new THREE.Color(wire?(dark?WIRE_SIGN_INK.dark:WIRE_SIGN_INK.light):dark?0xf0a070:0xb8460f),white=new THREE.Color(1,1,1);
-    const lift=wire?wr*2.1:Math.max(wr*1.3,wr*1.2/Math.max(.15,Math.abs(toCamera.z)));
-    const quad=(into:number[],tint:number[],o:Vec,a:number,b:number,c:InstanceType<typeof THREE.Color>,alpha:number,normals?:number[])=>{
+    // the wire's radius); on a surface, clear of the chosen ring's slab, which stands .93 of a radius off the
+    // plane and is met along the line of sight that much further up the slope.
+    const wire=p.kind==='wire',lift=wire?wr*2.1:Math.max(wr*1.3,wr*1.2/Math.max(.15,Math.abs(toCamera.z)));
+    // NOR WHERE THE CHOSEN RING'S SLAB STANDS IN FRONT OF IT. Seen low, a mark just beyond the band's far edge is
+    // drawn over the raised washer, which is nearer the camera, and the depth test cut its lower half away: it
+    // stood on the washer's top edge as an upturned T. Nine points over the mark are each followed toward the
+    // camera through the slab's thickness; a mark any of them meets the slab from is let go -- half a mark is
+    // worse than none. A mark in the washer's hole, with the slab behind it, is kept.
+    const slab=band&&!wire?washerHalf(thick,band.inner,band.outer,px):0;
+    const behindSlab=(o:Vec)=>!!band&&!wire&&slabCovers(o,band,slab,toCamera,R,U,mark/2/p.unit);
+    // NOR, ON A SURFACE, ON O OR ON THE LINE FROM O UP TO P: the first of the sheet's sunflower sat at O, under P,
+    // with the axis through its upright where P's construction lines meet the plane -- an origin crosshair, not
+    // one of the charge's signs.
+    const O=toScreen({x:0,y:0,z:0});
+    for(let i=centres.length-1;i>=0;i--){
+     const c=toScreen(centres[i].at),foot=toScreen(centres[i].foot),fromP=Math.min(Math.hypot(c.x-P.x,c.y-P.y),Math.hypot(foot.x-P.x,foot.y-P.y));
+     const o={x:centres[i].at.x+toCamera.x*lift,y:centres[i].at.y+toCamera.y*lift,z:centres[i].at.z+toCamera.z*lift};
+     // And a clear margin round every name, not only the name's own box: at R = 4 the disk's marks sat flush
+     // against P, z, s and R, and the figure read "+P", "z +", "+ s".
+     if(boxGap(c,names)<mark+NAME_MARGIN||Math.hypot(c.x-P.x,c.y-P.y)<mark+halo||segmentGap(c,c,P,tip)<mark+3||(fromP<reach&&behindP(centres[i].foot)>.5)
+      ||(!wire&&segmentGap(c,c,O,P)<mark+7)||behindSlab(o))centres.splice(i,1);
+    }
+    // How many marks are written, and where on the screen, for the tests; and the points of the charge they stand
+    // for, which on a wire are beside them.
+    const shown=centres.filter(c=>c.alpha>.02);
+    mount.parentElement?.setAttribute('data-sign-marks',String(shown.length));
+    mount.parentElement?.setAttribute('data-sign-screen',shown.map(c=>{const q=toScreen(c.at);return `${q.x.toFixed(1)},${q.y.toFixed(1)}`;}).join(' '));
+    mount.parentElement?.setAttribute('data-sign-feet',shown.map(c=>{const q=toScreen(c.foot);return `${q.x.toFixed(1)},${q.y.toFixed(1)}`;}).join(' '));
+    // The flat figure's marks: the charge's deep orange, ringed with the paper so they read over whatever they
+    // lie on -- the size of the flat figure's thirteen-pixel plus.
+    const positions:number[]=[],colours:number[]=[];
+    const ink=new THREE.Color(dark?0xf0a070:0xb8460f);
+    const quad=(o:Vec,a:number,b:number,c:InstanceType<typeof THREE.Color>,alpha:number)=>{
      const ux=screenRight,uy=screenUp,corner=(sx:number,sy:number)=>[o.x+ux.x*a*sx+uy.x*b*sy,o.y+ux.y*a*sx+uy.y*b*sy,o.z+ux.z*a*sx+uy.z*b*sy];
      const [p0,p1,p2,p3]=[corner(-1,-1),corner(1,-1),corner(1,1),corner(-1,1)];
-     into.push(...p0,...p1,...p2,...p0,...p2,...p3);
-     for(let n=0;n<6;n++){tint.push(c.r,c.g,c.b,alpha);normals?.push(toCamera.x,toCamera.y,toCamera.z);}
+     positions.push(...p0,...p1,...p2,...p0,...p2,...p3);
+     for(let n=0;n<6;n++)colours.push(c.r,c.g,c.b,alpha);
     };
-    for(const {at,alpha} of centres){
-     if(!(alpha>.02))continue;
+    for(const {at,alpha} of shown){
      const o={x:at.x+toCamera.x*lift,y:at.y+toCamera.y*lift,z:at.z+toCamera.z*lift};
      // The ring first, then the mark over it: drawn in order, at one depth.
-     if(wire){
-      quad(ringPositions,ringColours,o,h+ring,t+ring,white,alpha,ringNormals);
-      if(positive)quad(ringPositions,ringColours,o,t+ring,h+ring,white,alpha,ringNormals);
-     }else{
-      quad(positions,colours,o,h+ring,t+ring,paper,alpha);
-      if(positive)quad(positions,colours,o,t+ring,h+ring,paper,alpha);
-     }
-     quad(positions,colours,o,h,t,ink,alpha);
-     if(positive)quad(positions,colours,o,t,h,ink,alpha);
+     quad(o,h+ring,t+ring,paper,alpha);
+     if(positive)quad(o,t+ring,h+ring,paper,alpha);
+     quad(o,h,t,ink,alpha);
+     if(positive)quad(o,t,h,ink,alpha);
     }
-    signs.geometry.dispose();signRings.geometry.dispose();
+    signs.geometry.dispose();
     signs.geometry=new THREE.BufferGeometry().setAttribute('position',new THREE.Float32BufferAttribute(positions,3)).setAttribute('color',new THREE.Float32BufferAttribute(colours,4));
-    signRings.geometry=new THREE.BufferGeometry().setAttribute('position',new THREE.Float32BufferAttribute(ringPositions,3)).setAttribute('normal',new THREE.Float32BufferAttribute(ringNormals,3)).setAttribute('color',new THREE.Float32BufferAttribute(ringColours,4));
-    // What the marks are ringed with, for the tests: the tube on a wire, the paper on a surface.
-    mount.parentElement?.setAttribute('data-sign-ring',wire?'tube':'paper');
+    // What the marks are ringed with, for the tests: the paper, on a wire as on a surface.
+    mount.parentElement?.setAttribute('data-sign-ring','paper');
    };
    let themeKey='\u0000',themeTint=new THREE.Color(),themePaper=new THREE.Color(),themePart=new THREE.Color();
    let bodyKey='',fieldKey='',sliceKey='',tracedFrom='',sheetFarKey='',disposed=false,farFrom='',chargeFar=0;
@@ -1197,15 +1223,20 @@ export function FieldStage(props:FieldStageProps){
     // A cut wire is drawn as its pieces, not as one body with marks on it.
     body.visible=!opened;
     const signature=(v:Vec|undefined)=>v?`${v.x.toFixed(3)},${v.y.toFixed(3)},${v.z.toFixed(3)}`:'-';
-    const nextPieces=opened?`${n}:${run!.tones.join('')}:${Array.from({length:n},(_,i)=>{const e=ends(i);return `${(e.head/step).toFixed(0)},${(e.tail/step).toFixed(0)}`;}).join(';')}:${(midWidth/step).toFixed(0)}:${signature(pieceOf(0)?.[0])}:${signature(pieceOf(n-1)?.at(-1))}:${wr.toFixed(4)}:${positive}`:'';
+    const partsKey=run?.parts.map((q,i)=>q?`${i}${q.map(s=>`${s.tone[0]}${s.lo.toFixed(4)}-${s.hi.toFixed(4)}`).join(',')}`:'').join('')??'';
+    const nextPieces=opened?`${n}:${run!.tones.join('')}:${partsKey}:${Array.from({length:n},(_,i)=>{const e=ends(i);return `${(e.head/step).toFixed(0)},${(e.tail/step).toFixed(0)}`;}).join(';')}:${(midWidth/step).toFixed(0)}:${signature(pieceOf(0)?.[0])}:${signature(pieceOf(n-1)?.at(-1))}:${wr.toFixed(4)}:${positive}`:'';
     if(nextPieces!==piecesKey){
      piecesKey=nextPieces;
      const solid:{points:Vec[];rgba:number[]}[]=[],ghost:{points:Vec[];rgba:number[]}[]=[];
+     const lay=(tone:RunTone,list:Vec[][])=>{const c=toneColour(tone),rgba=[c.r,c.g,c.b,tone==='dim'?.26:1];for(const points of list)(tone==='dim'?ghost:solid).push({points,rgba});};
      if(opened)run!.tones.forEach((tone,i)=>{
       const path=pieceOf(i);
       if(!path)return;
-      const c=toneColour(tone),rgba=[c.r,c.g,c.b,tone==='dim'?.26:1];
-      for(const points of cutOf(i,path))(tone==='dim'?ghost:solid).push({points,rgba});
+      // A piece in more than one tone (see `RunPart`) is drawn as its stretches, cut only at its own two ends: the
+      // place one tone meets the next is not a cut. Each end gives up what the whole piece's would.
+      const own=run!.parts[i];
+      if(own){const e=ends(i);for(const q of own)lay(q.tone,cutPiece(q.path,q.head?e.head:0,q.tail?e.tail:0,0,cutShare(n)/(n*Math.max(1e-6,q.hi-q.lo))));return;}
+      lay(tone,cutOf(i,path));
      });
      pieceSolid.geometry.dispose();pieceGhost.geometry.dispose();
      // Past forty pieces the cuts are closing toward the continuum: see `tubes`.
@@ -1280,8 +1311,18 @@ export function FieldStage(props:FieldStageProps){
     // The arrows at P, all at the figure's own scale.
     const arrows=run?.arrows??null,P=p.point,plus=(a:Vec,b:Vec):Vec=>({x:a.x+b.x,y:a.y+b.y,z:a.z+b.z});
     // From P -- or, while a mirror pair goes into the sum, from the tip of the sum so far.
-    const at=plus(P,arrows?.from??{x:0,y:0,z:0});
-    if(arrows?.keep)layArrow(keepArrow,at,arrows.keep,Math.hypot(arrows.keep.x,arrows.keep.y,arrows.keep.z),wr*.62);else keepArrow.group.visible=false;
+    const at=plus(P,arrows?.from??{x:0,y:0,z:0}),size=(v:Vec)=>Math.hypot(v.x,v.y,v.z);
+    // The parts along the axis, laid over only what the sum's arrow has not reached yet (see `keptSpans`), and let
+    // go once what is left of one is shorter than its own head: a sliver of shaft under a full head is a chevron.
+    // `back` sets one behind the other along the line of sight, which moves it nowhere on the screen: the
+    // mirror's part slides out from UNDER the piece's, as the flat figure lays it, rather than over it.
+    const spans=keptSpans(arrows);
+    const layPart=(a:ReturnType<typeof arrow>,span:{from:Vec;along:Vec}|null,full:number,thickness:number,back=0)=>{
+     const l=span?size(span.along):0;
+     if(!span||!(l>1e-6)||(arrows?.pair&&l<headSize(full,thickness).l)){a.group.visible=false;return;}
+     layArrow(a,{x:P.x+span.from.x-toCamera.x*back,y:P.y+span.from.y-toCamera.y*back,z:P.z+span.from.z-toCamera.z*back},span.along,l,thickness);
+    };
+    layPart(keepArrow,spans.piece,arrows?.keep?size(arrows.keep):0,wr*.62);
     // The dropped part: solid where it survives, dashed and fading where a partner cancels it.
     const drop=dropStyle(arrows);
     if(drop==='solid'&&arrows?.drop)layArrow(dropArrow,plus(P,arrows.dropFrom),arrows.drop,Math.hypot(arrows.drop.x,arrows.drop.y,arrows.drop.z),wr*.62);else dropArrow.group.visible=false;
@@ -1289,12 +1330,17 @@ export function FieldStage(props:FieldStageProps){
     // metres shrink with the figure, and the dashed pair came out a faint pixel wide over the grid.
     const pair=Math.max(wr*.3,.9*cssPx);
     layDashed(pairDropArrow,plus(P,arrows?.dropFrom??P),drop==='dashed'?arrows!.drop:null,pair);
-    if(arrows?.partner&&arrows.whole!==false)layArrow(partnerArrow,at,arrows.partner,Math.hypot(arrows.partner.x,arrows.partner.y,arrows.partner.z),Math.max(wr*.45,.8*cssPx));else partnerArrow.group.visible=false;
+    // The pair's whole arrows, going as their parts across do (see `RunArrows.whole`): the mirror's, and while a
+    // pair goes into the sum the piece's own, drawn here in place of the figure's contribution arrow.
+    const whole=arrows?.whole??1,slim=Math.max(wr*.45,.8*cssPx);
+    if(arrows?.partner&&whole>.01)layArrow(partnerArrow,at,arrows.partner,size(arrows.partner),slim);else partnerArrow.group.visible=false;
+    if(arrows?.pieceWhole&&whole>.01)layArrow(wholeArrow,at,arrows.pieceWhole,size(arrows.pieceWhole),slim);else wholeArrow.group.visible=false;
+    partnerMaterial.opacity=whole;wholeMaterial.opacity=whole;
     layDashed(partnerDropArrow,plus(P,arrows?.partnerFrom??P),arrows?.partnerDrop??null,pair);
-    // What the mirror keeps, from the tip of what the piece keeps, once the sideways parts are going.
-    const kept=arrows?.keep&&arrows.partnerSurvivor&&arrows.cancelled>.5?arrows.partnerSurvivor:null;
-    if(kept)layArrow(partnerKeepArrow,plus(at,arrows!.keep!),kept,Math.hypot(kept.x,kept.y,kept.z),wr*.62);else partnerKeepArrow.group.visible=false;
-    partnerKeepMaterial.opacity=Math.min(1,Math.max(0,((arrows?.cancelled??0)-.5)*2));
+    // What the mirror keeps: on the tip of what the piece keeps once the sideways parts are half gone, fading in,
+    // while one piece is explained; sliding out from under the piece's while a pair goes into the sum.
+    layPart(partnerKeepArrow,spans.partner,arrows?.partnerSurvivor?size(arrows.partnerSurvivor):0,wr*.62,arrows?.pair?wr*2.4:0);
+    partnerKeepMaterial.opacity=arrows?.pair?1:Math.min(1,Math.max(0,((arrows?.cancelled??0)-.5)*2));
     // The pair that cancels fades as it shrinks, never quite to nothing until it is gone.
     fadeMaterial.opacity=Math.max(.12,1-(arrows?.cancelled??0));
     layChain(P,run?.chain??null,wr*.6,p.net,!!run?.chainBeside,run?.stage==='limit'?run.open:1,run?.stage==='add');
@@ -1449,7 +1495,8 @@ export function FieldStage(props:FieldStageProps){
     }else element.visible=false;
     if(p.net)layArrow(netArrow,p.point,p.net,Math.hypot(p.net.x,p.net.y,p.net.z),wr*.75);else netArrow.group.visible=false;
     // One element's contribution is the field AT P due to that element, so it is laid from P.
-    if(p.contribution)layArrow(partArrow,p.contributionFrom?{x:p.point.x+p.contributionFrom.x,y:p.point.y+p.contributionFrom.y,z:p.point.z+p.contributionFrom.z}:p.point,p.contribution,Math.hypot(p.contribution.x,p.contribution.y,p.contribution.z),wr*.55);else partArrow.group.visible=false;
+    // While a mirror pair goes into the sum the run draws the piece's whole arrow itself, fading (see `wholeArrow`).
+    if(p.contribution&&!p.run?.arrows?.pair)layArrow(partArrow,p.contributionFrom?{x:p.point.x+p.contributionFrom.x,y:p.point.y+p.contributionFrom.y,z:p.point.z+p.contributionFrom.z}:p.point,p.contribution,Math.hypot(p.contribution.x,p.contribution.y,p.contribution.z),wr*.55);else partArrow.group.visible=false;
     for(const m of [bodyMaterial,sheetMaterial]){
      m.color.set(CHARGE.body);
      m.emissive.set(CHARGE.glow);
@@ -1482,14 +1529,24 @@ export function FieldStage(props:FieldStageProps){
     gap.uGapDepth.value=gapRamp(px)/depthSpan;
     gap.uGapRamp.value.set(BEHIND_GAP.inner*sx,BEHIND_GAP.outer*sx,BEHIND_GAP.low,BEHIND_GAP.hard*sx);
     gap.uGapOn.value=p.kind==='wire'?2:1;
+    // A surface leaves no gap while P hovers close over it (see `gapLift`).
+    gap.uGapLift.value=p.kind==='wire'?1:gapLift(Math.abs(p.point.z)*p.unit);
+    mount.parentElement?.setAttribute('data-gap-lift',gap.uGapLift.value.toFixed(3));
     edge.uEdgeOn.value=p.kind==='sheet'?1:0;
     mount.parentElement?.setAttribute('data-edge-fade',String(edge.uEdgeOn.value));
+    // And O, in the same CSS pixels, for the tests that keep the marks off the line from O up to P.
+    const o=gapAt.set(0,0,0).project(camera);
+    mount.parentElement?.setAttribute('data-scene-o',`${((o.x+1)/2*w).toFixed(1)} ${((1-o.y)/2*h).toFixed(1)}`);
+    // `ndc` is `gapAt` itself, so P goes back into it before it is read again below.
+    gapAt.set(p.point.x,p.point.y,p.point.z).project(camera);
+    // And the net arrow from P in metres, for the tests that check nothing else is laid along it.
+    if(p.net)mount.parentElement?.setAttribute('data-scene-net',`${p.net.x} ${p.net.y} ${p.net.z}`);else mount.parentElement?.removeAttribute('data-scene-net');
     mount.parentElement?.setAttribute('data-scene-p',`${((ndc.x+1)/2*w).toFixed(1)} ${((1-ndc.y)/2*h).toFixed(1)}`);
     // The charge's colour, where a test can read it: the same for both signs (see CHARGE).
     mount.parentElement?.setAttribute('data-charge-colour',`#${bodyMaterial.color.getHexString()}`);
     // And its sign, which the scene now writes on it (see `laySigns`).
     mount.parentElement?.setAttribute('data-charge-sign',positive?'+':'\u2212');
-    signs.visible=!p.run;signRings.visible=signs.visible;
+    signs.visible=!p.run;
     const nextSigns=signs.visible?`${paper.getHexString()}:${dark}:${shape}:${chargeKey(p)}:${positive}:${view.yaw.toFixed(4)}:${view.pitch.toFixed(4)}:${p.unit.toFixed(3)}:${p.origin.x.toFixed(1)},${p.origin.y.toFixed(1)}:${frameWorld.toFixed(2)}:${p.radius.toFixed(3)}:${far?far.inner.toFixed(2):''}:${p.element&&'annulus' in p.element?`${p.element.annulus.inner.toFixed(3)},${p.element.annulus.outer.toFixed(3)}`:''}:${namesKey}:${p.point.x.toFixed(3)},${p.point.y.toFixed(3)},${p.point.z.toFixed(3)}:${p.net?`${p.net.x.toFixed(3)},${p.net.y.toFixed(3)},${p.net.z.toFixed(3)}`:'-'}`:'';
     if(signs.visible&&nextSigns!==signKey){laySigns(p,frameWorld,far,view.yaw,view.pitch,wr,positive,paper,dark,target);signKey=nextSigns;}
     pointMaterial.color.copy(tint);pointMaterial.emissive.copy(tint);pointMaterial.emissiveIntensity=dark?.7:.3;
@@ -1501,7 +1558,7 @@ export function FieldStage(props:FieldStageProps){
     mount.parentElement?.setAttribute('data-part-colour',`#${partMaterial.color.getHexString()}`);
     // The parts, the partner's arrow and the chain are all one piece's arrow or a sum of them, so
     // they wear its colour; the beads where the chain joins are pale, like the flat figure's.
-    for(const m of [fadeMaterial,chainMaterial,newestMaterial])m.color.copy(partMaterial.color);
+    for(const m of [fadeMaterial,chainMaterial,newestMaterial,wholeMaterial])m.color.copy(partMaterial.color);
     // While the walk adds links, the ones already laid stand back, as the flat chain does at .55, and the newest
     // is the piece's colour itself (see `newestMaterial`).
     if(p.run?.stage==='add')mixInk(chainMaterial.color,paper,partMaterial.color,.55);
@@ -1577,11 +1634,11 @@ export function FieldStage(props:FieldStageProps){
     dispose:()=>{
      disposed=true;cancelAnimationFrame(frameId);cancelAnimationFrame(cutFrame);observer.disconnect();themeWatch.disconnect();nameWatch.disconnect();stageWatch.disconnect();cancelAnimationFrame(namesFrame);root?.removeEventListener(SNAPSHOT_EVENT,snapshot);
      clearGroup(body);clearGroup(slices);clearGroup(field);clearGroup(cuts);arrowGeometry.dispose();
-     for(const mesh of [point,halo,element,netArrow.shaft,netArrow.head,partArrow.shaft,partArrow.head,keepArrow.shaft,keepArrow.head,dropArrow.shaft,dropArrow.head,partnerArrow.shaft,partnerKeepArrow.shaft,newestArrow.shaft,pieceSolid,pieceGhost,fill,partnerBody,chainJoints])mesh.geometry.dispose();
+     for(const mesh of [point,halo,element,netArrow.shaft,netArrow.head,partArrow.shaft,partArrow.head,keepArrow.shaft,keepArrow.head,dropArrow.shaft,dropArrow.head,partnerArrow.shaft,partnerKeepArrow.shaft,wholeArrow.shaft,newestArrow.shaft,pieceSolid,pieceGhost,fill,partnerBody,chainJoints])mesh.geometry.dispose();
      dashGeometry.dispose();flatHead.dispose();
-     lineHeadMesh.geometry.dispose();frontHeadMesh.geometry.dispose();signs.geometry.dispose();signRings.geometry.dispose();dropStrokes();
+     lineHeadMesh.geometry.dispose();frontHeadMesh.geometry.dispose();signs.geometry.dispose();dropStrokes();
      for(const m of [bodyMaterial,sheetMaterial,sliceMaterial,pickedMaterial,lineMaterial,frontLineMaterial,frontHeadMaterial,arrowMaterial,latticeHeadMaterial,signMaterial,lineHeadMaterial,axisMaterial,gridMaterial,pointMaterial,haloMaterial,elementMaterial,netMaterial,partMaterial,
-      pieceMaterial,ghostMaterial,fillMaterial,cutMaterial,growMaterial,partnerMaterial,partnerKeepMaterial,fadeMaterial,chainMaterial,newestMaterial,jointMaterial])m.dispose();
+      pieceMaterial,ghostMaterial,fillMaterial,cutMaterial,growMaterial,partnerMaterial,partnerKeepMaterial,wholeMaterial,fadeMaterial,chainMaterial,newestMaterial,jointMaterial])m.dispose();
      axes.geometry.dispose();grid.geometry.dispose();ticks.geometry.dispose();
      renderer.dispose();
      if(renderer.domElement.parentNode===mount)mount.removeChild(renderer.domElement);
@@ -1620,7 +1677,11 @@ export function FieldStage(props:FieldStageProps){
 function runData(run:RunScene|null|undefined):Record<string,string>{
  if(!run)return {};
  const count=(tone:string)=>String(run.tones.filter(t=>t===tone).length);
- const a=run.arrows,arrows=a?[a.keep&&'keep',a.drop&&'drop',a.partner&&'partner',a.partnerDrop&&'partner-drop',a.keep&&a.partnerSurvivor&&a.cancelled>.5&&'partner-keep'].filter(Boolean).join(' '):'';
+ const a=run.arrows,spans=keptSpans(a),arrows=a?[a.keep&&'keep',a.drop&&'drop',a.partner&&'partner',a.partnerDrop&&'partner-drop',spans.partner&&'partner-keep'].filter(Boolean).join(' '):'';
+ // The parts along the axis as laid, as distances along the arrows' line from P: where each starts and ends.
+ const u=a?.keep??a?.partnerSurvivor,ul=u?Math.hypot(u.x,u.y,u.z):0;
+ const along=(v:Vec)=>ul>0?(v.x*u!.x+v.y*u!.y+v.z*u!.z)/ul:0;
+ const span=(name:string,q:{from:Vec;along:Vec}|null)=>q?`${name} ${along(q.from).toFixed(5)} ${(along(q.from)+Math.hypot(q.along.x,q.along.y,q.along.z)).toFixed(5)}`:'';
  const end=run.chain?.[run.chain.length-1];
  return {
   'data-run-stage':run.stage,'data-run-cut':run.open>.004?'open':'closed',
@@ -1634,6 +1695,11 @@ function runData(run:RunScene|null|undefined):Record<string,string>{
   ...(a&&(a.from.x||a.from.y||a.from.z)?{'data-run-arrows-from':`${a.from.x} ${a.from.y} ${a.from.z}`}:{}),
   // How the dropped part is drawn: 'solid' where it survives, 'dashed' where a partner cancels it.
   ...(dropStyle(a)?{'data-run-drop':dropStyle(a)!}:{}),
+  // While a mirror pair goes into the sum: how much of its parts along the axis the sum has taken in, and what is
+  // left of them where the scene lays them (see `keptSpans`).
+  ...(a?.pair?{'data-run-taken':a.taken.toFixed(4),'data-run-whole':a.whole.toFixed(4),'data-run-keep-span':[span('piece',spans.piece),span('partner',spans.partner)].filter(Boolean).join(';')}:{}),
+  // How much of the charge is drawn as in the sum, and as lit, as shares of it (see `RunPart`).
+  'data-run-added-span':run.spans.added.toFixed(5),'data-run-lit-span':run.spans.lit.toFixed(5),
   // The mirror piece's own arrow is a whole contribution, drawn solid; see `partnerMaterial`.
   ...(a?.partner?{'data-run-partner-style':'solid'}:{}),
   ...(run.chain&&end?{'data-run-chain':String(run.chain.length),'data-run-chain-end':`${end.x} ${end.y} ${end.z}`}:{}),

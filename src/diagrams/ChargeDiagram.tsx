@@ -2483,10 +2483,12 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
       run={build ? runScene({ stage: building, kind: id === 'disk' ? 'disk' : id === 'sheet' ? 'sheet' : 'wire', closed: id === 'ring', n, selected: selectedIndex, at: world,
         selectedSpan: halfPair && pairSlot ? [pairSlot.a.lo, pairSlot.a.hi] : null,
         partner: partnerLit ? (mirrorArc ? 'across' : partnerIndex) : halfPair && pairSlot?.b ? { lo: pairSlot.b.lo, hi: pairSlot.b.hi } : null, weights, summing: mode === 'sum' || mode === 'integrate', continuum, split,
+        // The stretches the pairs before this one have put in: the ring cut an odd number of ways takes pieces in by halves.
+        added: pairNow && pairSteps ? pairSteps.slice(0, pairNow.k).flatMap(s => s.b ? [[s.a.lo, s.a.hi], [s.b.lo, s.b.hi]] as [number, number][] : [[s.a.lo, s.a.hi]] as [number, number][]) : null,
         // The pair going in, laid from the tip of the sum so far at the sum's own scale: see `pairDraw`.
         arrows: pairNow ? { scale: pairNow.grow * gain / unit, field: pairNow.step.fa, keep: alongAxis(id, pairNow.step.fa), drop: acrossAxis(id, pairNow.step.fa), partner: pairNow.step.fb,
             partnerKeep: pairNow.step.fb ? alongAxis(id, pairNow.step.fb) : zero, partnerDrop: pairNow.step.fb ? acrossAxis(id, pairNow.step.fb) : zero, components: true, cancelled: pairNow.cancel,
-            from: scaleVec(pairSoFar, gain / unit), whole: pairNow.cancel < .6, fade: 1 - pairNow.merge }
+            from: scaleVec(pairSoFar, gain / unit), fade: 1 - pairNow.merge }
           : !scalar && showContribution && mode !== 'sum' && building !== 'limit' ? { scale: selectedGain * gain / unit, field: sample.field, keep, drop, partner: pairing ? partnerField : null, partnerKeep, partnerDrop, components, cancelled: cancelT } : null,
         chain: chaining ? { scale: gain / unit, fields: samples.map(s => s.field), weights } : null }) : null} />}
     <LabelScale.Provider value={labelScale}>
