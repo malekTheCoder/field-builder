@@ -294,6 +294,18 @@ export function lessonRange(id: ProblemId, kind: 'E' | 'V'): readonly [number, n
   RANGES.set(key, range);
   return range;
 }
+/** THE RING'S PIECES IN SPACE, where they are only hit targets. The scene draws the pieces, and the sheet hides the
+ * flat ones there (opacity 0, !important); they stay so that a click on a piece still picks it. But each frame of the
+ * run built every one of them again -- a motion path of ninety-seven points apiece, with a strength the run moved on
+ * every frame -- for a picture nobody sees, and the frames at the finest cuts of Shrink them were the slowest of the
+ * run (60 to 90 ms on the CI runner). So in space they carry no strength of their own, and memo keeps them while
+ * what a click or a test reads off them holds: the pieces' classes (one per piece, `;` between) -- which says the
+ * cut, the piece lit, its mirror and the pieces in the sum -- the radius, and the Explorer's steady select. */
+const RingHits = memo(function RingHits({ classes, radius, onSelect }: { classes: string; radius: number; onSelect: (i: number) => void }) {
+  const each = classes.split(';'), n = each.length;
+  return <>{each.map((name, i) => { const identity = intervalKey(i, n);
+    return <g key={identity} data-piece-key={identity} className={name} style={{ '--t': (i / n).toFixed(3) } as CSSProperties} onPointerDown={ev => { ev.stopPropagation(); onSelect(i); }}><path d={pathThrough(worldArc(radius, 2 * Math.PI * i / n, 2 * Math.PI * (i + 1) / n))} fill="none" strokeWidth={name.includes('is-selected') ? 10 : 7} /></g>; })}</>;
+});
 /** Memoised, because while "Watch it build" plays the page around the figure re-renders on every
  * frame and most of those frames change nothing the figure draws: three of the five stages hold
  * every prop still, and the other two hold it still once their motion has finished. Each render
@@ -1223,6 +1235,12 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
   // ...and while the run adds in mirror pairs, the pair going in: both of its pieces lit together.
   const pairLit = !!pairSlot?.b && !halfPair;
   const partnerLit = ((building === 'cancel' || pair) && !selfMirror && (supportsPair || scalarPartner)) || pairLit;
+  // The ring's pieces as the flat figure marks them: the one lit, its mirror, the ones in the sum. In space they are
+  // only hit targets, drawn by `RingHits`.
+  const ringPieceClass = (i: number) => { const active = i === selectedIndex && !halfPair, added = Math.abs(weights[i]) > 0 && (mode === 'sum' || mode === 'integrate');
+    return `cd-piece ${active ? 'is-selected' : ''}${partnerLit && i === partnerIndex && !active && !mirrorArc ? ' is-partner' : ''}${added && !active ? ' is-added' : ''}`; };
+  const ringArc = (i: number, of: number) => pathThrough(worldArc(R, 2 * Math.PI * i / of, 2 * Math.PI * (i + 1) / of));
+  const ringClasses = id === 'ring' && inSpace ? samples.map((_, i) => ringPieceClass(i)).join(';') : '';
   // HOW FAR THE TWO SIDEWAYS PARTS HAVE CANCELLED, 0 to 1.
   //
   // Inside the run it is read off the run's own clock: the stage's first two fifths hold the pair
@@ -3035,19 +3053,21 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
                 would only be a second copy lying on top. It stays in the tree because the
                 shared layout animation between lessons is keyed to it. */}
             <g opacity={inSpace ? 0 : 1}><motion.path layoutId={`fb-source-${family}`} data-source-body="true" data-dim="charge" initial={false} animate={{ d: pathThrough(worldArc(R)) }} transition={{ duration: still ? 0 : .45 }} className="cd-charge-base" /></g>
-            {samples.map((_, i) => {
+            {ringClasses ? <RingHits classes={ringClasses} radius={R} onSelect={onSelect} /> : samples.map((_, i) => {
               const active = i === selectedIndex && !halfPair, accumulated = Math.abs(weights[i]) > 0 && (mode === 'sum' || mode === 'integrate');
               const inInterval = Math.abs(wholeWeights[i]) > 0;
-              const opacity = !inInterval ? .14 : active ? 1 : accumulated ? .94 : building === 'add' ? .16 : .48 + continuum * .3;
-              const a0 = 2 * Math.PI * i / n, a1 = 2 * Math.PI * (i + 1) / n, identity = intervalKey(i, n);
-              return <g key={identity} data-piece-key={identity} className={`cd-piece ${active ? 'is-selected' : ''}${partnerLit && i === partnerIndex && !active && !mirrorArc ? ' is-partner' : ''}${accumulated && !active ? ' is-added' : ''}`} style={{ opacity, ...cutAt(i / n) }} onPointerDown={ev => { ev.stopPropagation(); onSelect(i); }}><motion.path initial={false} animate={{ d: pathThrough(worldArc(R, a0, a1)) }} transition={{ duration: still ? 0 : .18 }} fill="none" strokeWidth={active ? 10 : 7} /></g>;
+              const opacity = !inInterval ? .14 : active ? 1 : accumulated ? .94 : building === 'add' ? .16 : .48 + continuum * .3, identity = intervalKey(i, n);
+              return <g key={identity} data-piece-key={identity} className={ringPieceClass(i)} style={{ opacity, ...cutAt(i / n) }} onPointerDown={ev => { ev.stopPropagation(); onSelect(i); }}><motion.path initial={false} animate={{ d: ringArc(i, n) }} transition={{ duration: still ? 0 : .18 }} fill="none" strokeWidth={active ? 10 : 7} /></g>;
             })}
             {/* The ring's last pair at an odd count: two half pieces, straight across from each other. */}
             {halfPair && pairSlot?.b && [pairSlot.a, pairSlot.b].map((span, k) => <g key={k} className={`cd-piece ${k ? 'is-partner' : 'is-selected'} cd-half-piece`} data-half-piece={k ? 'partner' : 'piece'} style={{ pointerEvents: 'none' }}>
               <path d={pathThrough(worldArc(R, 2 * Math.PI * span.lo, 2 * Math.PI * span.hi))} fill="none" strokeWidth={k ? 7 : 10} /></g>)}
             {mirrorArc && partnerLit && (() => { const a0 = 2 * Math.PI * selectedIndex / n + Math.PI, a1 = 2 * Math.PI * (selectedIndex + 1) / n + Math.PI;
               return <g className="cd-piece is-partner cd-mirror-arc" data-mirror-arc="true" style={{ pointerEvents: 'none' }}><path d={pathThrough(worldArc(R, a0, a1))} fill="none" strokeWidth={7} /></g>; })()}
-            {continuum < .995 && <g className="cd-seams" aria-hidden="true" style={{ opacity: .7 * (1 - continuum) }}>
+            {/* Not built in space: the scene draws the cuts and the cuts the next doubling makes, and the sheet hides
+                these there (opacity 0, !important). Built anyway, they were a mark per cut and per growing cut on every
+                frame of Shrink them -- hundreds once the ring is cut finely -- thrown away unseen (see `RingHits`). */}
+            {!inSpace && continuum < .995 && <g className="cd-seams" aria-hidden="true" style={{ opacity: .7 * (1 - continuum) }}>
               {seamFractions(n).map(t => { const theta = 2 * Math.PI * t, h = 8 / unit, c = Math.cos(theta), s = Math.sin(theta); return <g key={seamKey(t)} data-seam={seamKey(t)} className="cd-seam"><line x1={(R - h) * c} y1={(R - h) * s} x2={(R + h) * c} y2={(R + h) * s} /></g>; })}
               {split > .04 && split < .995 && splitFractions(n).map(t => { const theta = 2 * Math.PI * t, h = 8 * split / unit, c = Math.cos(theta), s = Math.sin(theta); return <g key={seamKey(t)} data-seam={seamKey(t)} className="cd-seam is-growing" style={{ opacity: split }}><line x1={(R - h) * c} y1={(R - h) * s} x2={(R + h) * c} y2={(R + h) * s} /></g>; })}
             </g>}
@@ -3255,7 +3275,10 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
       {inSpace && <ViewCube view={view} at={{ x: cubeAt, y: cubeAt }} size={cubeSize} minFont={11 / Math.max(.2, unitPx)}
         onPick={(next, label) => { stopGlide(); setZoom(1); glideTo(next, .5); setAnnouncement(label); }}
         onSpinStart={() => { stopGlide(); setActiveDrag(true); }}
-        onSpin={(dx, dy) => { const next = orbitCamera({ yaw: yawMv.get(), pitch: pitchMv.get() }, dx * 1.7, dy * 1.7); commitView(next); }}
+        // The cube is held, not the scene behind it: a drag turns the CUBE the way the hand moves --
+        // its front face follows the pointer, as on a CAD tool's cube -- which is the opposite of the
+        // figure's own drag, where the plane's near edge follows the pointer.
+        onSpin={(dx, dy) => { const next = orbitCamera({ yaw: yawMv.get(), pitch: pitchMv.get() }, -dx * 1.7, -dy * 1.7); commitView(next); }}
         onStep={key => nudge(key)} />}
       {/* `x` is the line's RIGHT edge: it hangs off the figure's top right corner, clear of the
           view cube in the opposite one and above everything the drawing puts in the middle. While
