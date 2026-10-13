@@ -1,0 +1,112 @@
+/* =====================================================================
+   THE HOME PAGE. The lesson's own language, at rest: the serif for what
+   is said, the sans for what is read, teal for the field and orange for
+   the charge, on the same ground in both themes. The header is the
+   lesson's header (explorer.css), so the name in the corner never moves.
+   ===================================================================== */
+.home{min-height:100vh;background:var(--background);color:var(--foreground);font-size:15px}
+.home-main{max-width:1160px;margin:0 auto;padding:64px 40px 40px}
+.home-main:focus,.home-lessons:focus{outline:none}
+
+/* The opening: what the site is, the way in, and the picture it is about. */
+.home-hero{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,.95fr);gap:56px;align-items:center;padding-bottom:64px}
+.home-kicker{font-size:var(--type-meta);font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:var(--primary)}
+.home-hero h1{font-family:var(--serif);font-weight:400;font-size:clamp(40px,5.2vw,66px);line-height:1.02;letter-spacing:-.032em;margin:16px 0 20px;text-wrap:balance}
+.home-lede{font-size:18px;line-height:1.62;color:var(--muted-foreground);max-width:46ch;text-wrap:pretty}
+.home-actions{display:flex;flex-wrap:wrap;align-items:center;gap:16px 28px;margin-top:32px}
+.home-start{display:inline-flex;align-items:center;gap:10px;height:48px;padding:0 22px 0 24px;border-radius:999px;
+ background:var(--field);color:var(--on-accent);font-size:15px;font-weight:600;letter-spacing:.005em;text-decoration:none;
+ box-shadow:0 1px 2px color-mix(in oklab,var(--field) 35%,transparent),0 8px 22px -10px color-mix(in oklab,var(--field) 70%,transparent);
+ transition:transform .16s ease,background-color .2s ease}
+.home-start:hover{transform:translateY(-1px);background:color-mix(in oklab,var(--field) 88%,var(--foreground))}
+.home-start:active{transform:none}
+.home-start svg{transition:transform .2s ease}.home-start:hover svg{transform:translateX(2px)}
+.home-continue{display:inline-flex;flex-direction:column;gap:2px;text-decoration:none;font-size:var(--type-meta);color:var(--muted-foreground)}
+.home-continue-to{display:inline-flex;align-items:center;gap:7px;font-size:15px;font-weight:500;color:var(--foreground);transition:color .15s ease}
+.home-continue-to svg{color:var(--primary)}
+.home-continue:hover .home-continue-to{color:var(--primary)}
+.home-hero-figure{background:var(--card);border:1px solid var(--surface-rule);border-radius:20px;box-shadow:var(--shadow-soft);padding:20px 18px 14px}
+.home-cover{display:block;width:100%;height:auto}
+
+/* The cover's marks, in the figure's own colours: the charge orange, one piece's arrow and its distance
+   picked out, every other piece's arrow quieter, and their sum in the field's teal. */
+.home-axis{stroke:var(--border-strong);stroke-width:1;stroke-dasharray:2 6;stroke-linecap:round;opacity:.7}
+.home-ray{stroke:var(--ghost);stroke-width:1;opacity:.3}
+.home-ray.is-chosen{stroke:var(--charge);stroke-width:1.4;stroke-dasharray:5 5;opacity:.85}
+.home-piece{fill:var(--charge-fill);stroke:var(--charge);stroke-width:1.4}
+.home-piece.is-chosen{fill:var(--charge)}
+.home-part path{stroke:var(--contribution);stroke-width:2;stroke-linecap:round;fill:none;opacity:.6}
+.home-part .home-head{fill:var(--contribution);stroke:none}
+.home-part.is-chosen path{stroke-width:2.6;opacity:1}
+.home-tie{stroke:var(--ghost);stroke-width:1;stroke-dasharray:2 3;opacity:.6}
+.home-net path{stroke:var(--field);stroke-width:3.4;stroke-linecap:round;fill:none}
+.home-net .home-head{fill:var(--field);stroke:none}
+.home-p{fill:var(--foreground)}
+.home-label{font-family:var(--serif);font-style:italic;font-size:20px;fill:var(--foreground)}
+.home-label tspan.is-upright{font-style:normal}
+.home-dq,.home-r{fill:var(--charge)}
+.home-e{fill:var(--field);font-weight:600}
+
+.home-section-title{font-family:var(--serif);font-weight:400;font-size:var(--type-title);letter-spacing:-.015em;line-height:1.2;margin-bottom:22px}
+
+/* How every lesson goes: the run's five steps, in a row that reads left to right. */
+.home-how{padding:44px 0 52px;border-top:1px solid var(--surface-rule)}
+.home-steps{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:14px}
+.home-steps li{position:relative;display:flex;flex-direction:column;gap:6px;padding:16px 16px 18px;background:var(--card);border:1px solid var(--surface-rule);border-radius:12px}
+.home-steps li::before{content:'';width:18px;height:3px;border-radius:2px;background:var(--field);margin-bottom:6px}
+.home-steps li:first-child::before{background:var(--charge)}
+.home-steps li:not(:last-child)::after{content:'';position:absolute;right:-11px;top:26px;width:7px;height:7px;border-top:1.5px solid var(--border-strong);border-right:1.5px solid var(--border-strong);transform:rotate(45deg)}
+.home-steps strong{font-family:var(--serif);font-weight:400;font-size:19px;letter-spacing:-.01em;line-height:1.25}
+.home-steps span{font-size:13.5px;line-height:1.5;color:var(--muted-foreground)}
+
+/* Every lesson, by family: the same groups as the lesson list, each with a line on what its shapes share. */
+.home-lessons{padding:44px 0 8px;border-top:1px solid var(--surface-rule)}
+.home-family{display:grid;grid-template-columns:250px minmax(0,1fr);gap:32px;padding:26px 0}
+.home-family+.home-family{border-top:1px solid var(--surface-rule)}
+.home-family-head h3{font-family:var(--serif);font-weight:400;font-size:var(--type-sub);letter-spacing:-.012em;line-height:1.25}
+.home-family-head p{margin-top:8px;font-size:13.5px;line-height:1.55;color:var(--muted-foreground);max-width:32ch}
+.home-grid{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px}
+.home-grid li{display:flex}
+.home-card{flex:1;display:grid;grid-template-columns:38px minmax(0,1fr);grid-template-rows:auto 1fr;gap:3px 13px;align-items:start;padding:15px 16px 16px;
+ border:1px solid var(--border);border-radius:12px;background:var(--card);color:inherit;text-decoration:none;
+ transition:border-color .15s ease,background-color .15s ease,transform .16s ease}
+.home-card:hover{border-color:var(--primary);background:var(--exp-soft);transform:translateY(-1px)}
+.home-glyph{grid-row:1 / span 2;display:grid;place-items:center;width:38px;height:38px;border-radius:10px;background:var(--accent);color:var(--primary)}
+.home-card strong{font-size:15px;font-weight:600;line-height:1.35;padding-top:1px}
+.home-card-about{font-size:13px;line-height:1.5;color:var(--muted-foreground)}
+
+.home-foot{display:flex;flex-wrap:wrap;align-items:baseline;gap:8px 24px;margin-top:40px;padding:28px 0 8px;border-top:1px solid var(--surface-rule);font-size:var(--type-meta);color:var(--muted-foreground)}
+.home-foot p{font-family:var(--serif);font-size:18px;color:var(--foreground)}
+.home-foot a{display:inline-flex;align-items:center;gap:6px;margin-left:auto;text-decoration:none}
+.home-foot a:hover{color:var(--primary)}
+
+@media(max-width:1050px){
+ .home-main{padding:48px 32px 32px}
+ .home-hero{gap:40px}
+ .home-steps{grid-template-columns:minmax(0,1fr)}
+ .home-steps li{display:grid;grid-template-columns:150px minmax(0,1fr);align-items:baseline;gap:4px 18px;padding:14px 18px}
+ .home-steps li::before{display:none}
+ .home-steps li::after{display:none}
+ .home-family{grid-template-columns:minmax(0,1fr);gap:16px}
+ .home-family-head p{max-width:60ch}
+}
+@media(max-width:820px){
+ .home-hero{grid-template-columns:minmax(0,1fr);padding-bottom:48px}
+ .home-hero-figure{max-width:520px}
+}
+@media(max-width:560px){
+ .home-main{padding:32px 16px 24px}
+ .home-hero{gap:32px;padding-bottom:40px}
+ .home-hero h1{font-size:40px;margin:12px 0 16px}
+ .home-lede{font-size:16.5px}
+ .home-actions{margin-top:26px}
+ .home-start{width:100%;justify-content:center}
+ .home-how,.home-lessons{padding-top:36px}
+ .home-how{padding-bottom:40px}
+ .home-steps li{grid-template-columns:minmax(0,1fr);padding:13px 16px}
+ .home-family{padding:22px 0}
+ .home-grid{grid-template-columns:minmax(0,1fr);gap:10px}
+ .home-foot a{margin-left:0}
+}
+@media(prefers-reduced-motion:reduce){.home-start,.home-start svg,.home-card,.home-continue-to{transition:none}.home-start:hover,.home-card:hover,.home-start:hover svg{transform:none}}
+@media print{.home-start,.home-continue,.home .exp-header-right{display:none}}

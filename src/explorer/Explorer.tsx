@@ -27,49 +27,12 @@ import {Assessment} from '../components/Assessment';
 import {artifactHtml,downloadArtifact,figureCopy,lessonArtifact,printLesson} from '../state/artifact';
 import {Hint} from '../components/Hint';
 import {LawsDialog,LawsReference} from '../components/Laws';
+import {ShapeGlyph,families} from './lessons';
+import {Brand} from './Brand';
+import {inPlace} from '../state/route';
 import './explorer.css';
 import '../print.css';
 export type Mode=ExploreMode;
-// Drawn rather than borrowed from the icon set: the generic shapes gave the ring
-// and the arc the same circle, which is precisely the distinction a student is
-// here to learn. Each glyph is the actual geometry, with P marked where the
-// choice of observation point is what defines the problem.
-const GLYPHS:Record<ProblemId,React.ReactNode>={
- bisector:<><path d="M7 3.5v11M4.6 3.5h4.8M4.6 14.5h4.8"/><circle cx="14" cy="9" r="1.3" fill="currentColor" stroke="none"/></>,
- axial:<><path d="M3 9h7.5M3 6.6v4.8M10.5 6.6v4.8"/><circle cx="15" cy="9" r="1.3" fill="currentColor" stroke="none"/></>,
- infinite:<><path d="M9 1.6v14.8M6.6 4L9 1.6 11.4 4M6.6 14L9 16.4 11.4 14"/><circle cx="14.4" cy="9" r="1.3" fill="currentColor" stroke="none"/></>,
- ring:<circle cx="9" cy="9" r="5.8"/>,
- disk:<circle cx="9" cy="9" r="5.8" fill="currentColor" fillOpacity=".28"/>,
- semi:<><path d="M4 12.4h10.2M12.2 10.4l2.2 2-2.2 2"/><circle cx="4" cy="5.4" r="1.3" fill="currentColor" stroke="none"/></>,
- arc:<><path d="M4.2 13.8A6.8 6.8 0 0 1 13.8 4.2"/><circle cx="9" cy="9" r="1.3" fill="currentColor" stroke="none"/></>,
- sheet:<path d="M1.8 12.4 6.6 6.6h9.6l-4.8 5.8Z"/>,
- endpoint:<><path d="M6 3.4v9.2M3.6 3.4h4.8"/><circle cx="14" cy="12.6" r="1.3" fill="currentColor" stroke="none"/></>,
- ramp:<><path d="M6 12.6 3.8 3.4h4.4Z" fill="currentColor" fillOpacity=".3"/><circle cx="14" cy="12.6" r="1.3" fill="currentColor" stroke="none"/></>,
- 'v-ring':<circle cx="9" cy="9" r="5.8"/>,
- 'v-disk':<circle cx="9" cy="9" r="5.8" fill="currentColor" fillOpacity=".28"/>,
- 'v-arc':<><path d="M4.2 13.8A6.8 6.8 0 0 1 13.8 4.2"/><circle cx="9" cy="9" r="1.3" fill="currentColor" stroke="none"/></>,
- 'v-rod-bisector':<><path d="M7 3.5v11M4.6 3.5h4.8M4.6 14.5h4.8"/><circle cx="14" cy="9" r="1.3" fill="currentColor" stroke="none"/></>,
- 'v-rod-axial':<><path d="M3 9h7.5M3 6.6v4.8M10.5 6.6v4.8"/><circle cx="15" cy="9" r="1.3" fill="currentColor" stroke="none"/></>};
-// Hidden from screen readers: the glyph always sits beside the lesson's printed name, and as a
-// named image it read every lesson twice -- "Finite line Finite line".
-function ShapeGlyph({id,size=18}:{id:ProblemId;size?:number}){return <svg width={size} height={size} viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" data-glyph={id}>{GLYPHS[id]}</svg>}
-// FIFTEEN NAMES IN ONE COLUMN SAID NOTHING ABOUT THE SUBJECT. Scanning it, a reader could not
-// see that four of them are the same rod looked at from four places, that three never end, or
-// that the last five are the first shapes over again with the arrows replaced by numbers --
-// which is the single most useful thing the list could have told them. The families are the
-// lesson, so the list is grouped by them and each group says its own name.
-const FAMILIES:{label:string;ids:ProblemId[]}[]=[
- {label:'Straight rods',ids:['bisector','axial','endpoint','ramp']},
- {label:'Rings, disks and arcs',ids:['ring','disk','arc']},
- {label:'Charge with no end',ids:['infinite','semi','sheet']},
- {label:'The same shapes, as potential',ids:['v-ring','v-disk','v-arc','v-rod-bisector','v-rod-axial']}];
-/** Group a set of lessons into the families above, keeping each family's stated order and
- *  dropping families nothing landed in. Anything the table has not heard of still appears, in
- *  a trailing group of its own: a new geometry must never go missing because this list is stale. */
-function families(list:Problem[]){const rest=new Set(list.map(p=>p.id));
- const groups=FAMILIES.map(f=>({label:f.label,items:f.ids.flatMap(id=>{const p=list.find(x=>x.id===id);if(!p)return[];rest.delete(id);return[p]})})).filter(g=>g.items.length>0);
- const extra=list.filter(p=>rest.has(p.id));
- return extra.length>0?[...groups,{label:'More geometries',items:extra}]:groups}
 /** How long a parameter must hold still before it is written anywhere. Long enough that a
  * drag writes once at the end, short enough to survive a quick change and a reload. */
 const SETTLE=220;
@@ -85,7 +48,9 @@ const MAX_STEP=100;
 /** The longest the run waits, as it opens, for the page's glide to the board's top (Explorer, `hold`): a
  * smooth scroll of three hundred pixels takes about a third of a second. */
 const GLIDE_HOLD=600;
-const STORAGE='field-builder:explorer:v1';
+/** Where the reader's settings are kept: the last lesson, the theme, each lesson's values. The home page reads
+ * it too, for the way back to the last lesson and for the theme. */
+export const STORAGE='field-builder:explorer:v1';
 /** The library's card for the open lesson, where the dialog puts the focus; the first card if none is. */
 const libraryFocus=()=>document.querySelector<HTMLElement>('.exp-library-dialog [aria-current=page]')??true;
 /** A lesson as it is opened from storage or from a link: with the charge CUT INTO PIECES. The run drives the
@@ -102,7 +67,6 @@ const atRest=(v:Partial<Params>):Params=>({...cleanParams(v),continuum:0});
  * another page as a button. They are links to the lesson's address now. A plain click still switches the
  * lesson in place, without reloading the page; a click meant for a new tab or window is the browser's. */
 const lessonHref=(id:ProblemId)=>`?p=${id}`;
-const inPlace=(e:React.MouseEvent)=>e.button===0&&!(e.metaKey||e.ctrlKey||e.shiftKey||e.altKey);
 /** No lines: one value, so a run that has not settled hands the transport the same empty list. */
 const NONE:string[]=[];
 /** A Greek letter in a sentence of the page's sans, set in the face the formulas use. Geist draws φ as
@@ -163,7 +127,7 @@ function snapCharge(next:number,current:number,reason?:string){
 function useSteady<A extends unknown[],R>(fn:(...args:A)=>R):(...args:A)=>R{const ref=useRef(fn);useInsertionEffect(()=>{ref.current=fn});return useCallback((...args:A)=>ref.current(...args),[])}
 /** The board re-renders when what it shows changes, not whenever the page does. */
 const Workbench=memo(EquationWorkbench);
-export default function Explorer(){
+export default function Explorer({welcome}:{welcome?:boolean}={}){
  const [id,setId]=useState<ProblemId>('bisector');const [path,setPath]=useState('angular');const [mode,setMode]=useState<Mode>('divide');const [paramsMap,setParamsMap]=useState<Partial<Record<ProblemId,Params>>>({});const [dark,setDark]=useState(false);const [ready,setReady]=useState(false);const [storageOK,setStorageOK]=useState(true);const [onboarding,setOnboarding]=useState(false);const [hideTour,setHideTour]=useState(false);const [cued,setCued]=useState(false);const [library,setLibrary]=useState(false);const [sidebarOpen,setSidebarOpen]=useState(true);const [showNumbers,setShowNumbers]=useState(false);const [components,setComponents]=useState(false);const [pair,setPair]=useState(false);const [progress,setProgress]=useState(1);const [selected,setSelected]=useState<number|null>(null);const [bounds,setBounds]=useState<[number,number]>([0,100]);const [limitsOpen,setLimitsOpen]=useState(false);const [slipsOpen,setSlipsOpen]=useState(false);const [limitIndex,setLimitIndex]=useState(0);const [highlight,setHighlight]=useState('');const [status,setStatus]=useState('');const [building,setBuilding]=useState(false);const [runAt]=useState(runClock);const [buildIndex,setBuildIndex]=useState(0);const [buildShown,setBuildShown]=useState(false);const [runPiece,setRunPiece]=useState(.7);const [laws,setLaws]=useState(false);const toolsButton=useRef<HTMLButtonElement>(null);const build=useRef<{stop:()=>void}|null>(null);const clock=useRef({at:0,stopAt:0});const buildC=useRef(-1);const buildStep=useRef(-1);const reduced=useReducedMotion();const routeLabel=useId(),endnotesHeading=useId();const tourButton=useRef<HTMLButtonElement>(null),watchButton=useRef<HTMLButtonElement>(null),walk=useRef<HTMLDivElement>(null),reveal=useRef(false);
  // Held per lesson: `getProblem` builds the infinite line afresh on every call, and a new problem
  // object is a changed prop to everything memoised below.
@@ -191,8 +155,14 @@ export default function Explorer(){
  // tour opens as on any visit. The start-here cue still greets a teacher's link: the students it is
  // sent to are exactly the first-time readers it is for, and it blocks nothing -- it is hidden from
  // screen readers, cannot be clicked, and goes at the first input.
+ // AND ONCE A VISIT, NOT ONCE A LESSON. The site now opens on its home page (home/Site.tsx), so a visit
+ // reaches its first lesson from a card there rather than from the bare address: that lesson is offered
+ // the tour as the bare address was (`welcome` true), and a lesson entered again in the same visit -- home
+ // and back -- is not (`welcome` false). Mounted on its own, the lesson decides from its address as above.
+ // What the site says of this arrival, as it was when the lesson mounted: read once, by the effect below.
+ const welcomed=useRef(welcome);
  // oxlint-disable-next-line react/react-compiler
- useEffect(()=>{try{const raw=localStorage.getItem(STORAGE);const parsed=raw?JSON.parse(raw):null;const saved=parsed&&typeof parsed==='object'&&!Array.isArray(parsed)?parsed:{};const pm:Partial<Record<ProblemId,Params>>={};for(const pr of PROBLEMS)if(saved.params?.[pr.id])pm[pr.id]=atRest(saved.params[pr.id]);const url=parseAssignment(typeof location==='undefined'?'':location.search);const linked=url.id??(url.params?'bisector':undefined);if(linked&&isReady(linked)){setId(linked);pm[linked]=atRest({...DEFAULT_PARAMS,...url.params})}else if(PROBLEMS.some(p=>p.id===saved.id)&&isReady(saved.id))setId(saved.id);setDark(saved.dark===true);setShowNumbers(saved.showNumbers===true);setSidebarOpen(saved.sidebarOpen!==false);setParamsMap(pm);if(url.mode)setMode(url.mode);if(url.pair)setPair(true);if(url.components)setComponents(true);const before=saved.seen===true,hide=typeof saved.hideTour==='boolean'?saved.hideTour:before;const own=typeof saved.id==='string'&&serializeAssignment({id:linked,params:{...url.params,continuum:0}})===serializeAssignment({id:saved.id,params:{...saved.params?.[saved.id],continuum:0}});setHideTour(hide);setCued(saved.cued===true||before);setOnboarding(!hide&&(!linked||own));}catch{setStorageOK(false);setOnboarding(true)}setReady(true);return()=>{build.current?.stop();build.current=null}},[]);
+ useEffect(()=>{try{const raw=localStorage.getItem(STORAGE);const parsed=raw?JSON.parse(raw):null;const saved=parsed&&typeof parsed==='object'&&!Array.isArray(parsed)?parsed:{};const pm:Partial<Record<ProblemId,Params>>={};for(const pr of PROBLEMS)if(saved.params?.[pr.id])pm[pr.id]=atRest(saved.params[pr.id]);const url=parseAssignment(typeof location==='undefined'?'':location.search);const linked=url.id??(url.params?'bisector':undefined);if(linked&&isReady(linked)){setId(linked);pm[linked]=atRest({...DEFAULT_PARAMS,...url.params})}else if(PROBLEMS.some(p=>p.id===saved.id)&&isReady(saved.id))setId(saved.id);setDark(saved.dark===true);setShowNumbers(saved.showNumbers===true);setSidebarOpen(saved.sidebarOpen!==false);setParamsMap(pm);if(url.mode)setMode(url.mode);if(url.pair)setPair(true);if(url.components)setComponents(true);const before=saved.seen===true,hide=typeof saved.hideTour==='boolean'?saved.hideTour:before;const own=typeof saved.id==='string'&&serializeAssignment({id:linked,params:{...url.params,continuum:0}})===serializeAssignment({id:saved.id,params:{...saved.params?.[saved.id],continuum:0}});setHideTour(hide);setCued(saved.cued===true||before);setOnboarding(!hide&&(welcomed.current??(!linked||own)));}catch{setStorageOK(false);setOnboarding(true)}setReady(true);return()=>{build.current?.stop();build.current=null}},[]);
  // oxlint-disable-next-line react/react-compiler -- Synchronize persisted preferences; quota/security errors update the save indicator.
  // Not before the saved settings are read: the page's first commit has dark false, and toggling then took
  // off the dark class the document's head had already set from storage (index.html), flashing the light
@@ -730,7 +700,7 @@ export default function Explorer(){
  return <div className={`explorer-app ${showNumbers?'with-numbers':'symbolic-view'}${cueing?' is-cueing':''}`}>{/* Twenty tab stops -- the header, all fifteen
      lessons, the list toggle and the library -- stood between a keyboard and the lesson's one button.
      The first stop now goes straight to it (or to the run's play button, while the run is open). */}
- <a className="skip-link" href="#lesson" onClick={skipToLesson}>Skip to the lesson</a><header className="exp-header"><div className="exp-brand"><span className="exp-logo">∫</span><span>field<span className="brand-light">builder</span></span></div>{/* FIVE ACTIONS BECAME TWO AND A MENU. Walkthrough is how a reader starts, and the theme
+ <a className="skip-link" href="#lesson" onClick={skipToLesson}>Skip to the lesson</a><header className="exp-header"><Brand/>{/* FIVE ACTIONS BECAME TWO AND A MENU. Walkthrough is how a reader starts, and the theme
      switch is read as often as the page is; print, save a copy and the repository are things
      a reader does at most once and never in the middle of a derivation, so they stop taking
      three of the five slots above the lesson. Every one keeps the name it had, so it is the
