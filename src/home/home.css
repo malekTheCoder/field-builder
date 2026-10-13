@@ -21,10 +21,23 @@
 .home-start:hover{transform:translateY(-1px);background:color-mix(in oklab,var(--field) 88%,var(--foreground))}
 .home-start:active{transform:none}
 .home-start svg{transition:transform .2s ease}.home-start:hover svg{transform:translateX(2px)}
-.home-continue{display:inline-flex;flex-direction:column;gap:2px;text-decoration:none;font-size:var(--type-meta);color:var(--muted-foreground)}
-.home-continue-to{display:inline-flex;align-items:center;gap:7px;font-size:15px;font-weight:500;color:var(--foreground);transition:color .15s ease}
-.home-continue-to svg{color:var(--primary)}
-.home-continue:hover .home-continue-to{color:var(--primary)}
+/* The second way in, a button beside the first: it used to be two lines of text with no edge, and
+   read as a caption rather than something to press. Outlined where the first is filled, the same
+   height and pill, the lesson's own glyph leading and an arrow trailing, so the pair read as two
+   choices of one kind. */
+.home-continue{display:inline-flex;align-items:center;gap:12px;height:48px;padding:0 18px 0 16px;border-radius:999px;
+ border:1.5px solid color-mix(in oklab,var(--field) 45%,var(--border));background:var(--card);color:var(--foreground);
+ text-decoration:none;box-shadow:0 1px 2px color-mix(in oklab,var(--foreground) 8%,transparent);
+ transition:border-color .2s ease,background-color .2s ease,transform .16s ease}
+.home-continue>svg:first-child{color:var(--primary);flex:none}
+.home-continue>svg:last-child{color:var(--muted-foreground);flex:none;transition:transform .2s ease,color .2s ease}
+.home-continue-words{display:flex;flex-direction:column;line-height:1.15;min-width:0}
+.home-continue-kicker{font-size:11.5px;color:var(--muted-foreground)}
+.home-continue-to{font-size:14.5px;font-weight:600;color:var(--foreground);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.home-continue:hover{border-color:var(--field);background:color-mix(in oklab,var(--field) 6%,var(--card));transform:translateY(-1px)}
+.home-continue:hover>svg:last-child{color:var(--primary);transform:translateX(2px)}
+.home-continue:active{transform:none}
+.home-continue:focus-visible{outline:3px solid color-mix(in oklab,var(--field) 55%,transparent);outline-offset:2px}
 .home-hero-figure{background:var(--card);border:1px solid var(--surface-rule);border-radius:20px;box-shadow:var(--shadow-soft);padding:20px 18px 14px}
 .home-cover{display:block;width:100%;height:auto}
 
@@ -100,7 +113,7 @@
  .home-hero h1{font-size:40px;margin:12px 0 16px}
  .home-lede{font-size:16.5px}
  .home-actions{margin-top:26px}
- .home-start{width:100%;justify-content:center}
+ .home-start,.home-continue{width:100%;justify-content:center}
  .home-how,.home-lessons{padding-top:36px}
  .home-how{padding-bottom:40px}
  .home-steps li{grid-template-columns:minmax(0,1fr);padding:13px 16px}
@@ -108,5 +121,5 @@
  .home-grid{grid-template-columns:minmax(0,1fr);gap:10px}
  .home-foot a{margin-left:0}
 }
-@media(prefers-reduced-motion:reduce){.home-start,.home-start svg,.home-card,.home-continue-to{transition:none}.home-start:hover,.home-card:hover,.home-start:hover svg{transform:none}}
+@media(prefers-reduced-motion:reduce){.home-start,.home-start svg,.home-card,.home-continue,.home-continue svg{transition:none}.home-continue:hover{transform:none}.home-start:hover,.home-card:hover,.home-start:hover svg{transform:none}}
 @media print{.home-start,.home-continue,.home .exp-header-right{display:none}}

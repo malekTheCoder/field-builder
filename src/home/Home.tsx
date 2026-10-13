@@ -100,7 +100,7 @@ export default function Home(){
      <p className="home-lede">Build the integral for the field and the potential of continuous charge — rods, rings, disks and sheets — by cutting the charge into pieces and adding up what each piece does at P.</p>
      <div className="home-actions">
       <a className="home-start" href={lessonAddress(start.id,saved)} onClick={open}>Start with the finite line<ArrowRight size={16} aria-hidden="true"/></a>
-      {last&&<a className="home-continue" href={lessonAddress(last.id,saved)} onClick={open}><span>Continue where you left off</span><span className="home-continue-to"><ShapeGlyph id={last.id} size={16}/>{last.short}</span></a>}
+      {last&&<a className="home-continue" href={lessonAddress(last.id,saved)} onClick={open}><ShapeGlyph id={last.id} size={18}/><span className="home-continue-words"><span className="home-continue-kicker">Continue where you left off</span><span className="home-continue-to">{last.short}</span></span><ArrowRight size={15} aria-hidden="true"/></a>}
      </div>
     </div>
     <div className="home-hero-figure"><Cover/></div>
