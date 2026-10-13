@@ -3,6 +3,7 @@ import {snapshotLayer} from '../diagrams/snapshot';
 import {PLOT} from '../diagrams/vectorfield';
 import {buildStages} from '../explorer/buildRun';
 import {getProblem} from '../problems/definitions';
+import {lessonFor, type Lesson} from '../lessons';
 import type {Problem} from '../problems/types';
 import {alongIntegralOf, boardLines, resultLines, workedSteps, type BoardLine} from '../workbench/derivation';
 
@@ -23,6 +24,8 @@ export type LessonArtifact = {
    * holding the paper can open the same setup. */
   address?: string;
   setup: string;
+  /** The lesson at the top of the page (src/lessons), printed where the page prints it: before everything else. */
+  lesson?: Omit<Lesson, 'id'>;
   /** The five stages the board writes, from the cut to the integral. */
   building?: BuildingStage[];
   /** The other component's integral, where one survives, set as the panel's answer sets it under the
@@ -105,8 +108,9 @@ export function lessonArtifact(p: Problem, algebra: Problem = p, address?: strin
   const {worked, back} = lessonWorking(p, algebra);
   // Handed the infinite line's finite-rod route as the lesson itself, the board is still the angular one.
   const q = p.id === 'infinite' && p.variable !== 'theta' ? getProblem('infinite') : p;
-  const stages = buildStages(q), lines = boardLines(q), along = alongIntegralOf(q);
-  return {title: p.title, subtitle: p.subtitle, ...(address ? {address} : {}), setup: algebra.setup,
+  const stages = buildStages(q), lines = boardLines(q), along = alongIntegralOf(q), lesson = lessonFor(p.id);
+  return {title: p.title, subtitle: p.subtitle, ...(address ? {address} : {}),
+    ...(lesson ? {lesson: {lead: lesson.lead, sections: lesson.sections, read: lesson.read}} : {}), setup: algebra.setup,
     building: lines.map((line, i) => ({name: stages[i].name, gloss: stages[i].prose, line})),
     ...(along ? {along: {text: ALONG[q.id] ?? ALONG.rod, tex: along.tex}} : {}),
     coordinate: p.coordinate, integralTex: algebra.integralTex,
@@ -432,6 +436,15 @@ export function artifactHtml(a: LessonArtifact) {
   const sources = a.sources?.length
     ? keep('<h2>Sources</h2>', [`<ul class="sources">${a.sources.map(s => `<li><a href="${escapeHtml(s.url)}">${escapeHtml(s.title)}</a><span class="url">${escapeHtml(s.url)}</span></li>`).join('\n')}</ul>\n${footer}`])
     : `${footer}\n`;
+  // THE LESSON LEADS THE COPY, as it leads the page and the page's print: the lead, the teaching under its
+  // headings with its equations set as the copy sets every other, and the books to read it in -- each with its
+  // address printed, since on paper a link is only its words. Kept plain: no disclosure, no buttons. Its headings
+  // are `taught`: some share a name with a stage of the build below (What cancels, Add them up), and are not it.
+  const taught = a.lesson
+    ? `<section class="lesson">\n${keep('<h2>The lesson</h2>', [`<p class="lead">${proseHtml(a.lesson.lead)}</p>`,
+      ...a.lesson.sections.map(s => `<div class="keep"><h3 class="taught">${escapeHtml(s.heading)}</h3>\n${s.body.map(b => typeof b === 'string' ? `<p>${proseHtml(b)}</p>` : mathml(b.tex)).join('\n')}</div>`),
+      ...(a.lesson.read.length ? [`<div class="keep"><h3 class="taught">Read it in a textbook</h3>\n<ul class="sources">${a.lesson.read.map(r => `<li>${r.url ? `<a href="${escapeHtml(r.url)}"><cite>${escapeHtml(r.book)}</cite></a>` : `<cite>${escapeHtml(r.book)}</cite>`}, ${escapeHtml(r.where)}${r.url ? `<span class="url">${escapeHtml(r.url)}</span>` : ''}</li>`).join('\n')}</ul></div>`] : [])])}</section>\n`
+    : '';
   // The live lesson's address, in full: on paper a link is only what is printed.
   const address = a.address ? `<p class="address">The live lesson, as saved: <a href="${escapeHtml(a.address)}">${escapeHtml(a.address)}</a></p>\n` : '';
   // The maths names its faces. The generic `math` family did not reach one with a MATH table in
@@ -485,6 +498,10 @@ h3 { font: 600 15px/1.3 system-ui, -apple-system, "Segoe UI", sans-serif; margin
 .sources { margin: 0; padding-left: 20px; }
 .sources li { margin: 0 0 10px; }
 .sources a { color: #0e2333; }
+.lesson { margin: 18px 0 8px; padding-left: 14px; border-left: 2px solid #9cc7c2; }
+.lesson h2 { margin-top: 0; }
+.lesson .lead { font-size: 16px; }
+.lesson cite { font-style: italic; }
 .url { display: block; color: #4a6274; font-size: 12px; overflow-wrap: anywhere; }
 footer { margin-top: 36px; padding-top: 12px; border-top: 1px solid #d8e1e7; color: #4a6274; font-size: 12px; }
 </style></head>
@@ -492,7 +509,7 @@ footer { margin-top: 36px; padding-top: 12px; border-top: 1px solid #d8e1e7; col
 <p class="kicker">Field Builder · saved copy</p>
 <h1>${escapeHtml(a.title)}</h1>
 <p class="lede">${escapeHtml(a.subtitle)}</p>
-${address}${figure}
+${address}${taught}${figure}
 ${keep('<h2>Setup</h2>', [`<p>${proseHtml(a.setup)}</p>`])}${building}${keep(`<h2>${a.secondaryIntegralTex ? 'The integrals' : 'The integral'}</h2>`, [displays([a.integralTex, ...(a.secondaryIntegralTex ? [a.secondaryIntegralTex] : [])]).map(tex => mathml(tex)).join('\n')])}${note}${constant}${working}${keep('<h2>The result</h2>', [`<div class="result">${displays(a.results).map(tex => mathml(tex)).join('\n')}</div>`])}${derived}${checks}${sources}</main>
 <script>${FIT_ROOTS}</script>
 </body></html>`;

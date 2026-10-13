@@ -98,6 +98,12 @@
   .ew-panel { border: 0 !important; }
   .db-step, .ew-result { break-inside: avoid; }
   .cd-svg { max-height: none !important; width: 100% !important; }
+  /* The lesson at the top prints whole and open, whatever its disclosure says on the screen (LessonIntro.tsx: it
+     is shut by a screen-only rule, so nothing here has to open it). Its buttons are the screen's (.no-print); a
+     reading's address is printed under its title. A section keeps its heading and its equation on one sheet. */
+  .exp-lesson { max-width: none !important; margin-bottom: 18px !important; }
+  .exp-lesson-section { break-inside: avoid; }
+  .exp-lesson-section h3 { break-after: avoid; }
 }
 
 /* Worked steps in the derivation reader: the expression, named, with the confusions worth

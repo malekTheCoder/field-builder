@@ -31,6 +31,8 @@ import {Hint} from '../components/Hint';
 import {LawsDialog,LawsReference} from '../components/Laws';
 import {ShapeGlyph,families} from './lessons';
 import {Brand} from './Brand';
+import {LessonIntro} from './LessonIntro';
+import {lessonFor} from '../lessons';
 import {inPlace} from '../state/route';
 import './explorer.css';
 import '../print.css';
@@ -157,7 +159,7 @@ function useSteady<A extends unknown[],R>(fn:(...args:A)=>R):(...args:A)=>R{cons
 /** The board re-renders when what it shows changes, not whenever the page does. */
 const Workbench=memo(EquationWorkbench);
 export default function Explorer({welcome}:{welcome?:boolean}={}){
- const [id,setId]=useState<ProblemId>('bisector');const [path,setPath]=useState('angular');const [mode,setMode]=useState<Mode>('divide');const [paramsMap,setParamsMap]=useState<Partial<Record<ProblemId,Params>>>({});const [dark,setDark]=useState(false);const [ready,setReady]=useState(false);const [storageOK,setStorageOK]=useState(true);const [onboarding,setOnboarding]=useState(false);const [hideTour,setHideTour]=useState(false);const [cued,setCued]=useState(false);const [library,setLibrary]=useState(false);const [sidebarOpen,setSidebarOpen]=useState(true);const [showNumbers,setShowNumbers]=useState(false);const [components,setComponents]=useState(false);const [pair,setPair]=useState(false);const [progress,setProgress]=useState(1);const [selected,setSelected]=useState<number|null>(null);const [bounds,setBounds]=useState<[number,number]>([0,100]);const [limitsOpen,setLimitsOpen]=useState(true);const [slipsOpen,setSlipsOpen]=useState(true);const [limitIndex,setLimitIndex]=useState(0);const [highlight,setHighlight]=useState('');const [status,setStatus]=useState('');const [building,setBuilding]=useState(false);const [runAt]=useState(runClock);const [buildIndex,setBuildIndex]=useState(0);const [buildShown,setBuildShown]=useState(false);const [runPiece,setRunPiece]=useState(.7);const [laws,setLaws]=useState(false);const toolsButton=useRef<HTMLButtonElement>(null);const build=useRef<{stop:()=>void}|null>(null);const clock=useRef({at:0,stopAt:0});const buildC=useRef(-1);const buildStep=useRef(-1);const reduced=useReducedMotion();const routeLabel=useId(),endnotesHeading=useId();const tourButton=useRef<HTMLButtonElement>(null),watchButton=useRef<HTMLButtonElement>(null),walk=useRef<HTMLDivElement>(null),reveal=useRef(false);
+ const [id,setId]=useState<ProblemId>('bisector');const [path,setPath]=useState('angular');const [mode,setMode]=useState<Mode>('divide');const [paramsMap,setParamsMap]=useState<Partial<Record<ProblemId,Params>>>({});const [dark,setDark]=useState(false);const [ready,setReady]=useState(false);const [storageOK,setStorageOK]=useState(true);const [onboarding,setOnboarding]=useState(false);const [hideTour,setHideTour]=useState(false);const [cued,setCued]=useState(false);const [library,setLibrary]=useState(false);const [sidebarOpen,setSidebarOpen]=useState(true);const [showNumbers,setShowNumbers]=useState(false);const [components,setComponents]=useState(false);const [pair,setPair]=useState(false);const [progress,setProgress]=useState(1);const [selected,setSelected]=useState<number|null>(null);const [bounds,setBounds]=useState<[number,number]>([0,100]);const [limitsOpen,setLimitsOpen]=useState(true);const [slipsOpen,setSlipsOpen]=useState(true);const [limitIndex,setLimitIndex]=useState(0);const [highlight,setHighlight]=useState('');const [status,setStatus]=useState('');const [building,setBuilding]=useState(false);const [runAt]=useState(runClock);const [buildIndex,setBuildIndex]=useState(0);const [buildShown,setBuildShown]=useState(false);const [runPiece,setRunPiece]=useState(.7);const [laws,setLaws]=useState(false);const [lessonOpen,setLessonOpen]=useState(false);const toolsButton=useRef<HTMLButtonElement>(null);const build=useRef<{stop:()=>void}|null>(null);const clock=useRef({at:0,stopAt:0});const buildC=useRef(-1);const buildStep=useRef(-1);const reduced=useReducedMotion();const routeLabel=useId(),endnotesHeading=useId();const tourButton=useRef<HTMLButtonElement>(null),watchButton=useRef<HTMLButtonElement>(null),walk=useRef<HTMLDivElement>(null),reveal=useRef(false);
  // Held per lesson: `getProblem` builds the infinite line afresh on every call, and a new problem
  // object is a changed prop to everything memoised below.
  const p=useMemo(()=>getProblem(id,'angular'),[id]),derivationProblem=useMemo(()=>getProblem(id,path),[id,path]),params=paramsMap[id]??DEFAULT_PARAMS;const continuum=params.continuum;const count=partitionCount(params.slices,continuum);const geom=p.geometry,scalar=p.quantity==='V';const isInfinite=['infinite','semi','sheet'].includes(geom);const isRound=['ring','disk','arc'].includes(geom);const lim=p.limits[Math.min(limitIndex,p.limits.length-1)];
@@ -210,7 +212,7 @@ export default function Explorer({welcome}:{welcome?:boolean}={}){
   const pm:Partial<Record<ProblemId,Params>>={};for(const pr of PROBLEMS)if(saved.params?.[pr.id]&&typeof saved.params[pr.id]==='object')pm[pr.id]=atRest(saved.params[pr.id]);
   const url=parseAssignment(typeof location==='undefined'?'':location.search);const linked=url.id??(url.params||url.stage?'bisector':undefined);
   if(linked&&isReady(linked)){setId(linked);pm[linked]=atRest({...DEFAULT_PARAMS,...url.params});if(url.stage)linkedStage.current=url.stage}else if(PROBLEMS.some(p=>p.id===saved.id)&&isReady(saved.id))setId(saved.id);
-  setDark(saved.dark===true);setShowNumbers(saved.showNumbers===true);setSidebarOpen(saved.sidebarOpen!==false);setParamsMap(pm);
+  setDark(saved.dark===true);setLessonOpen(saved.lessonOpen===true);setShowNumbers(saved.showNumbers===true);setSidebarOpen(saved.sidebarOpen!==false);setParamsMap(pm);
   if(url.mode)setMode(url.mode);if(url.pair)setPair(true);if(url.components)setComponents(true);
   // Only "Don't show this again" keeps the tour shut. An old `seen: true` is from before that box,
   // and from before this tour: a returning reader meets the new tour and the box to stop it. They have
@@ -280,7 +282,7 @@ export default function Explorer({welcome}:{welcome?:boolean}={}){
  // saved continuum=1, and every later visit opened on a smooth rod "In the limit" with the board still
  // saying ΔQ. While the run is open, both write the lesson as closing the run puts it back -- and what
  // was saved or linked before that fix is read back with its cut (atRest).
- useEffect(()=>{if(!ready)return;const t=setTimeout(()=>{try{const saved=buildShown?{...paramsMap,[id]:{...params,continuum:0}}:paramsMap;localStorage.setItem(STORAGE,JSON.stringify({id,dark,params:saved,hideTour,cued,showNumbers,sidebarOpen}))}catch{setStorageOK(false)}},SETTLE);return()=>clearTimeout(t)},[id,dark,paramsMap,params,ready,hideTour,cued,showNumbers,sidebarOpen,buildShown]);
+ useEffect(()=>{if(!ready)return;const t=setTimeout(()=>{try{const saved=buildShown?{...paramsMap,[id]:{...params,continuum:0}}:paramsMap;localStorage.setItem(STORAGE,JSON.stringify({id,dark,params:saved,hideTour,cued,showNumbers,sidebarOpen,lessonOpen}))}catch{setStorageOK(false)}},SETTLE);return()=>clearTimeout(t)},[id,dark,paramsMap,params,ready,hideTour,cued,showNumbers,sidebarOpen,lessonOpen,buildShown]);
  // THE ADDRESS ALWAYS NAMES ITS LESSON. The first lesson at its defaults wrote no query at all, so a
  // teacher who shared the address bar for Finite line shared the bare home page, and every student who had
  // used the site before opened their own last lesson instead.
@@ -776,11 +778,18 @@ export default function Explorer({welcome}:{welcome?:boolean}={}){
    const last=panel.lastElementChild,end=last?at(last).bottom:panel.scrollHeight;
    const need=Math.ceil(Math.max(0,Math.max(to,panel.scrollTop)+view-end)),had=panel.style.getPropertyValue('--run-room');
    if(final||(had!==''&&need>parseFloat(had)))panel.style.setProperty('--run-room',`${need}px`);
+   // AND ONCE THE BOARD HAS GLIDED BACK, THE ROOM IT GLIDED BACK FROM GOES. The first look is taken while the
+   // page is still gliding down to the figure, with the board's foot under the window: it sees less of the board
+   // than there will be and sends it too far. The second look then has to keep room for where the board has got
+   // to, or it would jump there, and the board glided back up leaving that room as blank card under the answer
+   // -- seventy pixels once the lesson's lead made the page's glide longer. Trimmed when the glide ends.
+   if(final&&panel.scrollTop>to+2){panel.removeEventListener('scrollend',trim);trim=()=>{panel.style.setProperty('--run-room',`${Math.ceil(Math.max(0,Math.max(to,panel.scrollTop)+view-end))}px`)};panel.addEventListener('scrollend',trim,{once:true})}
    if(Math.abs(to-panel.scrollTop)>2)panel.scrollTo({top:to,behavior:reduced?'auto':'smooth'});
   };
+  let trim=()=>{};
   follow(false);
   const again=window.setTimeout(()=>follow(true),reduced?0:650);
-  return()=>window.clearTimeout(again);
+  return()=>{window.clearTimeout(again);document.querySelector<HTMLElement>('.explorer-app .exp-workspace>.ew-panel')?.removeEventListener('scrollend',trim)};
  },[buildOpen,buildIndex,settledRun,building,scrubbing,reduced,relaid]);
  // THE BOARD HELD AT REST SAYS THAT IT GOES ON. Held to the window beside the figure, it scrolls inside itself,
  // and the only sign was a thin scrollbar -- which macOS, iPadOS, ChromeOS and Android draw as nothing until
@@ -817,6 +826,13 @@ export default function Explorer({welcome}:{welcome?:boolean}={}){
  // screen, against the run's own promise that it drives the state the controls drive. (While the sum
  // builds, the walking piece follows the sum, so there a click still only pauses.)
  const choose=useSteady(changeDistribution),select=useSteady((i:number)=>{stop();if(buildOpen)setRunPiece((i+.5)/count);setSelected(i)}),pickMode=useSteady(chooseMode),step=useSteady(moveTo);
+ // The lesson at the top (src/lessons): which geometry's, its disclosure, and its last line's way to the figure.
+ // "Go to Watch it build" brings the button to the middle of the window and gives it the focus, so a keyboard
+ // is on it and Enter starts the run; it does not start the run itself, which would play the first stage off
+ // the screen while the page was still gliding down to it. With the run already open, to the figure.
+ const lesson=useMemo(()=>lessonFor(id),[id]);
+ const toggleLesson=useSteady(()=>setLessonOpen(v=>!v));
+ const toBuild=useSteady(()=>{const target=watchButton.current??document.querySelector<HTMLElement>('.exp-diagram-card');if(!target)return;target.scrollIntoView({block:'center',behavior:reduced?'auto':'smooth'});target.focus({preventScroll:true})});
  const play=useSteady(runBuild),seek=useSteady((at:number,dragging:boolean)=>seekBuild(at,dragging)),close=useSteady(()=>{refocus.current=true;endBuild()});
  // SPACE PAUSES THE RUN, AS IT DOES A VIDEO. A teacher presenting clicks the title or the blank beside the
  // figure to point at something, which puts the focus on the lesson itself, and then presses Space for
@@ -958,7 +974,8 @@ export default function Explorer({welcome}:{welcome?:boolean}={}){
      the trail is now just the way back out to the library -- which on a narrow screen, where
      the list is not there at all, is the only way to another lesson. Its chevron makes it look like a
      way back; it says that it opens a picker. */}
-<div className="exp-crumbs"><button type="button" className="exp-crumb-link" aria-haspopup="dialog" aria-expanded={library} onClick={()=>setLibrary(true)}><ChevronLeft size={13} aria-hidden="true"/>Charge library</button></div></div><div className="exp-heading"><div><h1 id={LESSON_TITLE} tabIndex={-1}>{p.title}</h1><p>{p.subtitle}</p></div></div>
+<div className="exp-crumbs"><button type="button" className="exp-crumb-link" aria-haspopup="dialog" aria-expanded={library} onClick={()=>setLibrary(true)}><ChevronLeft size={13} aria-hidden="true"/>Charge library</button></div></div><div className={'exp-heading'+(lesson?' has-lesson':'')}><div><h1 id={LESSON_TITLE} tabIndex={-1}>{p.title}</h1><p>{p.subtitle}</p></div></div>
+ {lesson&&<LessonIntro lesson={lesson} open={lessonOpen} onToggle={toggleLesson} onBuild={toBuild}/>}
  <div className={'exp-workspace'+running}><div className="exp-visual-column"><section className={'exp-diagram-card mode-'+mode+' focus-'+highlight+running+(buildOpen&&scrubbing?' is-scrubbing':'')} aria-label="Interactive field visualization"><div className="exp-diagram-heading"><div><MathText tex={p.coordinate}/></div>
   {/* THE LESSON'S ONE BUTTON, AT THE TOP OF ITS FIGURE. It sat under the figure and its toolbar,
       past the bottom of a laptop's window -- its top at 919 pixels on a 1440 by 900 screen -- so
