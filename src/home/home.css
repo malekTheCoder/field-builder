@@ -51,6 +51,12 @@
 .home-part path{stroke:var(--contribution);stroke-width:2;stroke-linecap:round;fill:none;opacity:.6}
 .home-part .home-head{fill:var(--contribution);stroke:none}
 .home-part.is-chosen path{stroke-width:2.6;opacity:1}
+.home-cancel path{stroke:var(--contribution);stroke-width:2;stroke-dasharray:4 3;stroke-linecap:round;fill:none;opacity:.75}
+.home-cancel .home-head{fill:var(--contribution);stroke:none;opacity:.75}
+.home-strike{stroke:var(--charge);stroke-width:2;stroke-linecap:round}
+.home-note{font-family:var(--font-geist-sans),system-ui,sans-serif;font-size:11.5px;fill:var(--muted-foreground)}
+@media (max-width:520px){.home-note{font-size:14px}}
+.home-de{font-size:17px;fill:var(--contribution)}
 .home-tie{stroke:var(--ghost);stroke-width:1;stroke-dasharray:2 3;opacity:.6}
 .home-net path{stroke:var(--field);stroke-width:3.4;stroke-linecap:round;fill:none}
 .home-net .home-head{fill:var(--field);stroke:none}

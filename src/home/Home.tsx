@@ -50,32 +50,46 @@ const STEPS:{name:string;text:string}[]=[
  {name:'Add them up',text:'Add what survives, piece by piece along the charge.'},
  {name:'Shrink them',text:'Make the pieces smaller without end. The sum becomes the integral.'}];
 
-/** The picture the site is about, drawn once: a rod cut into pieces, one piece and its distance to P, and the
- * arrows of every piece added tip to tail at P -- the middle piece first, then each mirror pair, so the sum is
- * back on the axis after every pair, as the lessons add them -- with the field they make, E, beneath. To
- * scale: each piece's arrow falls off as the inverse square of its distance, so even the cover says nothing
- * that is not so. */
+/** The picture the site is about, drawn once: a rod cut into pieces, and the argument of every lesson in one
+ * frame. The top piece and its mirror at the bottom are the same distance from P, so their arrows there are
+ * the same length: their up and down parts are equal and opposite, and cancel; their parts along the axis
+ * point the same way, and add -- and adding every such pair is the field E, drawn beneath. It replaced a
+ * tip-to-tail chain of all five arrows, which zigzagged and said nothing about cancelling. */
 function Cover(){
- const P={x:226,y:150},rod=86,pieces=[70,110,150,190,230],chosen=0,unit=38,order=[2,1,3,0,4];
- const arrows=pieces.map(y=>{const dx=P.x-rod,dy=P.y-y,r=Math.hypot(dx,dy),len=unit*(dx/r)**2;return {ux:dx/r,uy:dy/r,len}});
- const head=(x:number,y:number,ux:number,uy:number,s:number)=>`M${x} ${y}L${x-ux*s-uy*s*.55} ${y-uy*s+ux*s*.55}L${x-ux*s+uy*s*.55} ${y-uy*s-ux*s*.55}Z`;
- const arrow=(x0:number,y0:number,ux:number,uy:number,len:number,key:string|number,cls:string,s:number)=>{const x=x0+ux*len,y=y0+uy*len;return <g key={key} className={cls}><path d={`M${x0} ${y0}L${x-ux*s*.6} ${y-uy*s*.6}`}/><path className="home-head" d={head(x,y,ux,uy,s)}/></g>};
- let at={x:P.x,y:P.y};
- const chain=order.map(i=>{const a=arrows[i],from=at;at={x:from.x+a.ux*a.len,y:from.y+a.uy*a.len};return arrow(from.x,from.y,a.ux,a.uy,a.len,i,'home-part'+(i===chosen?' is-chosen':''),6)});
- const net=at.x-P.x,below=24;
- return <svg className="home-cover" viewBox="28 40 404 222" aria-hidden="true">
+ const P={x:226,y:150},rod=86,pieces=[70,110,150,190,230],top=0,bottom=4,L=86;
+ const dx=P.x-rod,dy=P.y-pieces[top],r=Math.hypot(dx,dy),ux=dx/r,uy=dy/r;
+ const along=L*ux,across=L*uy,E=2*along,below=72;
+ const head=(x:number,y:number,hx:number,hy:number,s:number)=>`M${x} ${y}L${x-hx*s-hy*s*.55} ${y-hy*s+hx*s*.55}L${x-hx*s+hy*s*.55} ${y-hy*s-hx*s*.55}Z`;
+ const arrow=(x0:number,y0:number,hx:number,hy:number,len:number,cls:string,s:number)=>{const x=x0+hx*len,y=y0+hy*len;return <g className={cls}><path d={`M${x0} ${y0}L${x-hx*s*.6} ${y-hy*s*.6}`}/><path className="home-head" d={head(x,y,hx,hy,s)}/></g>};
+ const kx=P.x+along;
+ return <svg className="home-cover" viewBox="28 40 404 232" aria-hidden="true">
   <line className="home-axis" x1={rod-26} y1={P.y} x2={428} y2={P.y}/>
-  {pieces.map((y,i)=>i!==chosen&&<line key={i} className="home-ray" x1={rod} y1={y} x2={P.x} y2={P.y}/>)}
-  <line className="home-ray is-chosen" x1={rod} y1={pieces[chosen]} x2={P.x} y2={P.y}/>
-  <text className="home-label home-r" x={(rod+P.x)/2+4} y={(pieces[chosen]+P.y)/2-10}>r</text>
-  {pieces.map((y,i)=><rect key={i} className={'home-piece'+(i===chosen?' is-chosen':'')} x={rod-7} y={y-18} width={14} height={36} rx={4}/>)}
-  <text className="home-label home-dq" x={rod-20} y={pieces[chosen]+6} textAnchor="end"><tspan className="is-upright">Δ</tspan>Q</text>
-  {chain}
-  <line className="home-tie" x1={P.x} y1={P.y} x2={P.x} y2={P.y+below}/><line className="home-tie" x1={at.x} y1={at.y} x2={at.x} y2={P.y+below}/>
-  {arrow(P.x,P.y+below,1,0,net,'net','home-net',10)}
+  {pieces.map((y,i)=>i!==top&&i!==bottom&&<line key={i} className="home-ray" x1={rod} y1={y} x2={P.x} y2={P.y}/>)}
+  <line className="home-ray is-chosen" x1={rod} y1={pieces[top]} x2={P.x} y2={P.y}/>
+  <line className="home-ray is-chosen" x1={rod} y1={pieces[bottom]} x2={P.x} y2={P.y}/>
+  <text className="home-label home-r" x={(rod+P.x)/2+4} y={(pieces[top]+P.y)/2-10}>r</text>
+  <text className="home-label home-r" x={(rod+P.x)/2+4} y={(pieces[bottom]+P.y)/2+24}>r</text>
+  {pieces.map((y,i)=><rect key={i} className={'home-piece'+(i===top||i===bottom?' is-chosen':'')} x={rod-7} y={y-18} width={14} height={36} rx={4}/>)}
+  <text className="home-label home-dq" x={rod-20} y={pieces[top]+6} textAnchor="end"><tspan className="is-upright">Δ</tspan>Q</text>
+  <text className="home-label home-dq" x={rod-20} y={pieces[bottom]+6} textAnchor="end"><tspan className="is-upright">Δ</tspan>Q</text>
+  {/* Each piece's arrow at P: the top piece's leans down, its mirror's leans up. */}
+  {arrow(P.x,P.y,ux,uy,L,'home-part is-chosen',7)}
+  {arrow(P.x,P.y,ux,-uy,L,'home-part is-chosen',7)}
+  {/* Their parts across the axis: equal, opposite, struck through -- they cancel. */}
+  {arrow(kx,P.y,0,1,across,'home-cancel',6)}
+  {arrow(kx,P.y,0,-1,across,'home-cancel',6)}
+  <line className="home-strike" x1={kx-9} y1={P.y-across/2-7} x2={kx+9} y2={P.y-across/2+7}/>
+  <line className="home-strike" x1={kx-9} y1={P.y+across/2-7} x2={kx+9} y2={P.y+across/2+7}/>
+  <text className="home-note" x={kx+16} y={P.y-across/2+5}>cancel</text>
+  <text className="home-label home-de" x={kx+12} y={P.y+across+8}><tspan className="is-upright">Δ</tspan>E</text>
+  <text className="home-label home-de" x={kx+12} y={P.y-across+4}><tspan className="is-upright">Δ</tspan>E</text>
+  {/* Their parts along the axis add: two of them, laid end to end, is this pair's share of E. */}
+  <line className="home-tie" x1={P.x} y1={P.y} x2={P.x} y2={P.y+below}/><line className="home-tie" x1={P.x+E} y1={P.y} x2={P.x+E} y2={P.y+below}/>
+  {arrow(P.x,P.y+below,1,0,E,'home-net',10)}
+  <text className="home-note" x={P.x+E/2} y={P.y+below+24} textAnchor="middle">the parts along the axis add</text>
   <circle className="home-p" cx={P.x} cy={P.y} r={4.5}/>
   <text className="home-label" x={P.x-8} y={P.y-12} textAnchor="end">P</text>
-  <text className="home-label home-e" x={P.x+net+8} y={P.y+below+6}>E</text>
+  <text className="home-label home-e" x={P.x+E+10} y={P.y+below+6}>E</text>
  </svg>;
 }
 
