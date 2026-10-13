@@ -1,4 +1,4 @@
-import {cleanup, fireEvent, render, waitFor} from '@testing-library/react';
+import {cleanup, render, waitFor} from '@testing-library/react';
 import {afterEach, beforeEach, describe, expect, it} from 'vitest';
 import {page} from 'vitest/browser';
 import Explorer from '../src/explorer/Explorer';
@@ -37,7 +37,7 @@ describe('limiting cases', () => {
  for (const [w, h] of [[1440, 900], [1060, 900]] as const) it(`every tab starts inside the list at ${w} by ${h}`, async () => {
   await page.viewport(w, h);
   const view = await openLesson('ring');
-  fireEvent.click(view.getByText('Limiting cases'));
+  // Limiting cases starts open: a click on its summary would fold it away.
   const list = await waitFor(() => { const el = view.container.querySelector<HTMLElement>('.exp-limit-tabs'); expect(el).toBeTruthy(); return el!; });
   const box = list.getBoundingClientRect();
   const tabs = [...list.querySelectorAll<HTMLElement>('[data-slot=tabs-trigger]')];

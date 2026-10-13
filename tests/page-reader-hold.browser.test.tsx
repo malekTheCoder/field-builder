@@ -1,5 +1,5 @@
 import {act, cleanup, fireEvent, render, waitFor} from '@testing-library/react';
-import {afterEach, beforeEach, describe, expect, it} from 'vitest';
+import {afterEach, beforeEach, describe, expect, it, onTestFinished} from 'vitest';
 import {page, userEvent} from 'vitest/browser';
 // Measured with the page's own type and sheet: what fits in a window depends on both.
 import 'katex/dist/katex.min.css';
@@ -240,7 +240,7 @@ describe('every control says what it is', () => {
  });
  it('each limiting case is its tab\'s panel, under a named list', async () => {
   const view = await openLesson('ring');
-  fireEvent.click(view.getByText('Limiting cases'));
+  // Limiting cases starts open: a click on its summary would fold it away.
   const list = await view.findByRole('tablist', {name: 'Limiting cases'});
   const chosen = list.querySelector('[aria-selected=true]')!;
   const panel = view.getByRole('tabpanel');
@@ -256,7 +256,7 @@ describe('every control says what it is', () => {
 describe('every slider can be seen and taken hold of', () => {
  it('the limiting case\'s track holds 3:1 on the ground, and with a finger it is a band', async () => {
   const view = await openLesson('bisector');
-  fireEvent.click(view.getByText('Limiting cases'));
+  // Limiting cases starts open: a click on its summary would fold it away.
   const track = await waitFor(() => { const t = view.container.querySelector<HTMLElement>('.assessment [data-slot=slider-track]'); expect(t).toBeTruthy(); return t!; });
   // Drawn in the track token, not left to the slider's own grey (#718896 on the light ground).
   const fill = getComputedStyle(track).backgroundColor;
@@ -273,8 +273,14 @@ describe('every slider can be seen and taken hold of', () => {
   expect(view.container.querySelector('.assessment [data-slot=slider]>div')!.matches(band!.selectorText)).toBe(true);
  });
  it('at 320 pixels the ramp\'s confusions stay in the page\'s width', async () => {
+  // The limit card above the confusions, open with them, keeps a data table hidden by the app's sr-only
+  // rule, which this project does not build: unclipped, the table alone ran the page wide.
+  const srOnly = document.createElement('style');
+  srOnly.textContent = '.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border-width:0}';
+  document.head.appendChild(srOnly);
+  onTestFinished(() => { srOnly.remove(); });
   const view = await openLesson('ramp', 320, 700);
-  fireEvent.click(view.getByText('Easy to confuse with'));
+  // Easy to confuse with starts open: a click on its summary would fold it away.
   await waitFor(() => expect(view.container.querySelector('.exp-slip-math .katex')).toBeTruthy());
   // The ramp's widest expression measured 311px on the shipped page, but this project runs without
   // Tailwind and sets it a little narrower, so one wider than the column stands in for it: a formula
