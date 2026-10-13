@@ -2242,7 +2242,7 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
     // "y = L  Shrink them".
     obstacleBoxes.push({ x: 0, y: 0, width: 720, height: TITLE_BAND });
     // The view cube and the four steps round it, which grow with the labels on a phone.
-    if (inSpace) { const c = 62 * cubeScale, r = (2.1 * 22 + 8.4) * cubeScale; obstacleBoxes.push({ x: c - r, y: c - r, width: 2 * r, height: 2 * r }); }
+    if (inSpace) { const c = 74 * cubeScale, r = (2.15 * 27 + 8.4) * cubeScale; obstacleBoxes.push({ x: c - r, y: c - r, width: 2 * r, height: 2 * r }); }
     if (gauge && building !== 'pieces') {
       const reach = Math.max(gauge.extent, 12);
       obstacleBoxes.push({ x: gauge.x - 6, y: gauge.up ? P.y - reach - 4 : P.y - 4, width: gauge.w + 12, height: reach + 8 });
@@ -2725,7 +2725,7 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
       {handOver && <g className="cd-hand-over" data-hand-over={handOver.multiplier.toFixed(3)} opacity={handOver.opacity}>
         <Vector from={P} to={plus(P, handOver.vector)} clip={plotClip} color="var(--contribution)" width={2.4} label={handOver.opacity > .5 ? pieceSymbol : undefined} reduced ghost={inSpace} />
       </g>}
-      {inSpace && <ViewCube view={view} at={{ x: 62 * cubeScale, y: 62 * cubeScale }} size={22 * cubeScale}
+      {inSpace && <ViewCube view={view} at={{ x: 74 * cubeScale, y: 74 * cubeScale }} size={27 * cubeScale}
         onPick={(next, label) => { stopGlide(); setZoom(1); glideTo(next, .5); setAnnouncement(label); }}
         onSpinStart={() => { stopGlide(); setActiveDrag(true); }}
         onSpin={(dx, dy) => { const next = orbitCamera({ yaw: yawMv.get(), pitch: pitchMv.get() }, dx * 1.7, dy * 1.7); commitView(next); }}

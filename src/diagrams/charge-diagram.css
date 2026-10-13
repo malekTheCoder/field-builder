@@ -92,7 +92,10 @@
    stage into its gutter with negative margins, and those must keep working when the cap is off. */
 .charge-diagram{display:flex;flex-direction:column}
 .charge-diagram>.cd-stage{align-self:center;flex:none;box-sizing:border-box;
- width:min(100% + 2 * var(--card-gutter,0px),calc(min(62vh,700px) * 720 / 430));aspect-ratio:720/430}
+ width:min(100% + 2 * var(--card-gutter,0px),calc(min(78vh,860px) * 720 / 430));aspect-ratio:720/430}
+/* The height budget was 62% of the window, which on an ordinary laptop or a wide card capped the
+   figure well short of the card's width and left a band of empty card on either side of it. The
+   figure is what the page is for: it may take most of the window's height, and fills the card. */
 .cd-stage>.cd-svg{width:100%;height:100%;max-height:none;aspect-ratio:auto}
 @media print{.charge-diagram>.cd-stage{width:100%}}
 /* Symbols: serif italic, sized to be read across a room. */
@@ -378,14 +381,21 @@
    is about. Each face carries its own fill-opacity inline, set by how squarely it faces the
    camera -- painted alike they merged into one flat blob, because neighbouring faces had no edge
    between them. The white stroke is that edge. */
-.cd-cube{cursor:grab}
+.cd-cube{cursor:grab;touch-action:none}
 .cd-cube:active{cursor:grabbing}
-.cd-cube-grab{fill:transparent;touch-action:none}
-.cd-cube-face{fill:var(--field,#0b6b63);stroke:var(--diagram,#fff);stroke-width:1.2;stroke-linejoin:round;transition:filter .18s ease;cursor:pointer}
-.cd-cube-side:hover .cd-cube-face{filter:brightness(1.28)}
-.cd-cube-face:focus-visible{outline:2px solid var(--field);outline-offset:2px}
+.cd-cube-grab{fill:transparent}
+/* Each face is cut into nine targets -- the face, its edges, its corners -- drawn as one face: the
+   cells share the face's colour with no seams, the outline goes over them, and only the target
+   under the pointer shows itself, lifted toward white, wherever its cells fall on the cube. */
+.cd-cube-cell{stroke:none;cursor:pointer;transition:filter .14s ease}
+.cd-cube-cell.is-lit{filter:brightness(1.45) saturate(.9)}
+.cd-cube-cell.is-edge.is-lit,.cd-cube-cell.is-corner.is-lit{filter:brightness(1.7) saturate(.8)}
+.cd-cube-outline{fill:none;stroke:var(--diagram,#fff);stroke-width:1.4;stroke-linejoin:round;pointer-events:none}
+.cd-cube-key{fill:transparent;pointer-events:none}
+.cd-cube-key:focus-visible{outline:none}
+.cd-cube-key:focus-visible+*{outline:none}
 .cd-svg .cd-cube-label{fill:var(--on-accent,#fff);font-weight:650;letter-spacing:.03em;pointer-events:none;font-family:var(--font-geist-sans),system-ui,sans-serif}
-/* The four steppers around it, as CAD tools put them. */
+@media (prefers-reduced-motion:reduce){.cd-cube-cell{transition:none}}
 .cd-cube-step{cursor:pointer;opacity:.34;transition:opacity .18s ease}
 .cd-cube:hover .cd-cube-step{opacity:.72}
 .cd-cube-step:hover{opacity:1}
