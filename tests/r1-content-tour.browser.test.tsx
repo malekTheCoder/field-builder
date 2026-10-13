@@ -16,7 +16,7 @@ const page = async (n: number) => {
   await press(view.baseElement.querySelector(`[aria-label="Introduction page ${n}"]`)!);
   return view;
 };
-const P = {x: 215, y: 112};
+const P = {x: 130, y: 112};
 describe('the walkthrough', () => {
   it('draws the vector sum where Coulomb’s law puts it: the resultant of the pieces added so far', async () => {
     const {baseElement} = await page(4);
@@ -41,23 +41,8 @@ describe('the walkthrough', () => {
     for (const g of added) expect(Number(g.dataset.x)).toBeLessThan(P.x);
     expect(added.some(g => Number(g.dataset.y) < P.y) && added.some(g => Number(g.dataset.y) > P.y)).toBe(true);
   });
-  it('lays the small contributions head to tail, each heading away from its piece', async () => {
-    const {baseElement} = await page(4);
-    const pieces = baseElement.querySelectorAll<SVGGElement>('g.ob-piece');
-    expect(pieces.length, 'twelve pieces, each with its contribution').toBe(12);
-    let tail: number[] | null = null;
-    for (const g of pieces) {
-      const step = g.querySelector('path.ob-step')!.getAttribute('d')!;
-      const [, x1, y1, x2, y2] = /^M([\d.]+) ([\d.]+)L([\d.]+) ([\d.]+)$/.exec(step)!.map(Number);
-      // Along P − piece: away from the piece, whichever side of P's level it sits.
-      const away = Math.atan2(P.y - Number(g.dataset.y), P.x - Number(g.dataset.x)), drawn = Math.atan2(y2 - y1, x2 - x1);
-      expect(Math.abs(drawn - away) * 180 / Math.PI, step).toBeLessThan(1);
-      expect(x2, step).toBeGreaterThan(x1);
-      // Each one starts where the last one ended.
-      if (tail) expect([x1, y1], step).toEqual(tail);
-      tail = [x2, y2];
-    }
-  });
+  // 'lays the small contributions head to tail' went with the chain: the page adds mirror pairs now
+  // (tests/content-w4-tour.browser.test.tsx).
   it('names the count of pieces with a symbol, not a numeral', async () => {
     const {baseElement} = await page(3);
     for (const label of baseElement.querySelectorAll('.ob-visual text')) expect(label.textContent, label.textContent ?? '').not.toMatch(/[0-9]/);
