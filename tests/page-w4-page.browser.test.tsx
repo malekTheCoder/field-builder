@@ -1,4 +1,4 @@
-import {cleanup, fireEvent, render, waitFor} from '@testing-library/react';
+import {cleanup, render, waitFor} from '@testing-library/react';
 import {afterEach, describe, expect, it} from 'vitest';
 import {page} from 'vitest/browser';
 // The page's own sheet and faces: an ink and a typeface are what these read.
@@ -30,7 +30,7 @@ async function openLesson(id: string) {
 }
 async function slips(id: string) {
  const view = await openLesson(id);
- fireEvent.click(view.getByText('Easy to confuse with'));
+ // Easy to confuse with starts open: a click on its summary would fold it away.
  await waitFor(() => expect(view.container.querySelector('.exp-slip-math .katex')).toBeTruthy());
  return view;
 }

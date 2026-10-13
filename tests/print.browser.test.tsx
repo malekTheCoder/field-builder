@@ -1,5 +1,8 @@
+// The page ships KaTeX's sheet. Without it the endnotes' formulas, which print now that they open
+// with the page, laid out thousands of pixels wide.
+import 'katex/dist/katex.min.css';
 import {cleanup, render, waitFor} from '@testing-library/react';
-import {afterEach, describe, expect, it, vi} from 'vitest';
+import {afterEach, describe, expect, it, onTestFinished, vi} from 'vitest';
 import {cdp, page, userEvent} from 'vitest/browser';
 import Explorer from '../src/explorer/Explorer';
 import {getProblem} from '../src/problems/definitions';
@@ -23,6 +26,12 @@ function cssText() {
 describe('print stylesheet and offline copy', () => {
   it('declares letter paper and hides chrome while keeping the figure', async () => {
     localStorage.setItem('field-builder:explorer:v1', JSON.stringify({id: 'bisector', seen: true, dark: false, sidebarOpen: true, params: {}}));
+    // The limit card's data table is hidden by the app's sr-only rule, which this project does not
+    // build; unclipped, its seventy rows of figures ran the page thousands of pixels wide.
+    const srOnly = document.createElement('style');
+    srOnly.textContent = '.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border-width:0}';
+    document.head.appendChild(srOnly);
+    onTestFinished(() => { srOnly.remove(); });
     const {findByRole, getByRole, container} = render(<Explorer />);
     expect(await findByRole('heading', {name: getProblem('bisector').title})).toBeTruthy();
     expect(cssText()).toMatch(/@page[^{]*\{[^}]*size:\s*letter/i);
@@ -46,12 +55,17 @@ describe('print stylesheet and offline copy', () => {
     expect(diagram!.getBoundingClientRect().width).toBeGreaterThan(40);
     expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(document.documentElement.clientWidth + 24);
     // Nothing that only acts on a screen prints: the figure's view strip, the walkthrough's
-    // buttons, slider tracks, the geometry reset, and endnotes nobody opened...
+    // buttons, slider tracks, the geometry reset, and endnotes folded away...
     for (const [name, control] of screenOnly) expect(control.checkVisibility(), `${name} prints`).toBe(false);
     const tracks = container.querySelectorAll<HTMLElement>('[data-slot=slider]');
     expect(tracks.length).toBeGreaterThan(0);
     for (const track of tracks) expect(track.checkVisibility()).toBe(false);
-    expect(container.querySelector<HTMLElement>('.exp-endnotes')!.checkVisibility()).toBe(false);
+    // The endnotes open with the page, so they print as they stand; one folded away before printing
+    // prints as nothing, not as a heading over nothing.
+    const notes = [...container.querySelectorAll<HTMLDetailsElement>('details.exp-note')];
+    expect(notes[0].checkVisibility()).toBe(true);
+    notes[1].open = false;
+    expect(notes[1].checkVisibility()).toBe(false);
     // ...nor the geometry sliders' names: with no values beside them, "z Height · R Radius · Q Total
     // charge · N Pieces" printed as a list of names against nothing.
     expect(container.querySelector<HTMLElement>('.exp-parameters')!.checkVisibility()).toBe(false);

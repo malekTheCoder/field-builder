@@ -139,7 +139,7 @@ describe('the run on a phone', () => {
 describe('the limiting cases', () => {
  it('the tabs are as wide as the check they choose between', async () => {
   const view = await openLesson('ring', 1280, 800);
-  fireEvent.click(view.getByText('Limiting cases'));
+  // Limiting cases starts open: a click on its summary would fold it away.
   const tabs = await view.findByRole('tablist', {name: 'Limiting cases'});
   await waitFor(() => expect(view.container.querySelector('.exp-limit-panel .assessment')).toBeTruthy());
   const check = view.container.querySelector('.exp-limit-panel .assessment')!.getBoundingClientRect();

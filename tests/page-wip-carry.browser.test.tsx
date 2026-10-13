@@ -333,7 +333,7 @@ describe('the first-visit cue', () => {
 describe('on paper', () => {
  it('every limiting case prints under its own heading, and the tabs come back after', async () => {
   const view = await openLesson('bisector');
-  fireEvent.click(view.getByText('Limiting cases'));
+  // Limiting cases starts open: a click on its summary would fold it away.
   await waitFor(() => expect(view.getByRole('tablist', {name: 'Limiting cases'})).toBeTruthy());
   window.dispatchEvent(new Event('beforeprint'));
   const printed = [...view.container.querySelectorAll('.exp-limit-print h3')].map(h => h.textContent);

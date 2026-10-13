@@ -254,7 +254,7 @@ describe('what is drawn to be seen can be seen', () => {
  });
  it('a Greek letter in a sentence is the one in the formulas, not Geist\'s stroked ϕ', async () => {
   const view = await openLesson('arc');
-  fireEvent.click(view.getByText('Limiting cases'));
+  // Limiting cases starts open: a click on its summary would fold it away.
   await waitFor(() => expect(view.container.querySelector('.exp-limit-why')).toBeTruthy());
   const note = view.container.querySelector('.exp-limit-why')!;
   const letters = [...note.querySelectorAll<HTMLElement>('.exp-greek')];

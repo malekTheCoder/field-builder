@@ -1,4 +1,4 @@
-import {cleanup, fireEvent, render, waitFor} from '@testing-library/react';
+import {cleanup, render, waitFor} from '@testing-library/react';
 import {afterEach, describe, expect, it, vi} from 'vitest';
 import {cdp, page} from 'vitest/browser';
 import 'katex/dist/katex.min.css';
@@ -32,7 +32,7 @@ async function openLesson(id: string) {
 describe('on paper', () => {
  it('each limiting case starts a section, further from the case above than from its own explanation', async () => {
   const view = await openLesson('bisector');
-  fireEvent.click(view.getByText('Limiting cases'));
+  // Limiting cases starts open: a click on its summary would fold it away.
   await waitFor(() => expect(view.getByRole('tablist', {name: 'Limiting cases'})).toBeTruthy());
   window.dispatchEvent(new Event('beforeprint'));
   await cdp().send('Emulation.setEmulatedMedia', {media: 'print'});
