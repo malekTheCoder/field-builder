@@ -139,7 +139,7 @@ describe('formulas are never separated by punctuation alone, and no sentence ope
 describe('small marks of the setting', () => {
   it('ΔE carries the charge’s sign, said in One piece; its size is |ΔE|', () => {
     for (const id of ['bisector', 'endpoint', 'ramp', 'infinite', 'semi', 'arc', 'ring', 'axial']) expect(step(id, 'one').say, id).toMatch(/\$\\Delta E=k\\,\\Delta Q\/r_i\^2\$ is negative when the charge is/);
-    expect(step('bisector', 'cancel').say).toContain(String.raw`of size $|\Delta E|$`);
+    expect(step('bisector', 'one').say).toContain(String.raw`its size is $|\Delta E|$`);
   });
   it('kλ is spaced one way in Shrink’s two rows', () => {
     for (const p of PROBLEMS) expect(step(p.id, 'limit').tex, p.id).not.toMatch(/\\frac\{k\\,\\htmlClass\{fx fx-element\}\{\\(lambda|sigma)/);
@@ -153,7 +153,7 @@ describe('small marks of the setting', () => {
     expect(resultLines(getProblem('axial'))[0]).toMatch(/\\left\(\\frac1a-\\frac1\{L\+a\}\\right\)\\\\\[[\d.]+em\]&=\\frac\{k\\lambda L\}\{a\(L\+a\)\}\\\\\[[\d.]+em\]&=\\frac\{kQ\}\{a\(L\+a\)\}/);
   });
   it('a potential’s What cancels says its line is the one above, unchanged', () => {
-    for (const p of PROBLEMS.filter(q => q.quantity === 'V')) expect(step(p.id, 'cancel').nothing, p.id).toMatch(/\$\\Delta V\$ stays as One (piece|ring) wrote it\.$/);
+    for (const p of PROBLEMS.filter(q => q.quantity === 'V')) expect(step(p.id, 'cancel').nothing, p.id).toMatch(/\$\\Delta V\$ is unchanged from the step before\.$/);
   });
   it('Add says where E_y is, where the chain leans', () => {
     for (const id of ['endpoint', 'ramp', 'semi']) expect(step(id, 'add').say, id).toMatch(/How far it reaches along \$y\$ is \$E_y\$.*its integral is written with the answer, below/);

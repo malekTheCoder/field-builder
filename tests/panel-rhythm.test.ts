@@ -32,7 +32,7 @@ function whites(tex: string) {
   // Each row's own ink: its content set alone, in display style, as aligned sets its cells.
   const own = rows.map(r => tree(r.replace(/&/g, '')));
   return rows.slice(1).map((row, i) => ({
-    row, opens: /^(E_[xyz]|\|\\mathbf E\||V)?&=/.test(row),
+    row, opens: /^(E_[xyz]|\|\\mathbf E\||V)?&=/.test(row), component: /^(E_[xyz]|\|\\mathbf E\||V)&=/.test(row),
     white: (laid[i].depth! - own[i].depth!) + (laid[i + 1].height! - own[i + 1].height!),
   }));
 }
@@ -42,9 +42,11 @@ describe('the answer in one rhythm', () => {
   it('every new equality in an answer stands about .7em below the row above it; a continuation keeps the line spacing', () => {
     const bad: string[] = [];
     let seen = 0;
-    for (const p of PROBLEMS) for (const tex of resultLines(p).filter(aligned)) for (const {row, opens, white} of whites(tex)) {
+    for (const p of PROBLEMS) for (const tex of resultLines(p).filter(aligned)) for (const {row, opens, component, white} of whites(tex)) {
       seen++;
-      if (opens ? white < .55 || white > .85 : white < .2 || white > .5) bad.push(`${p.id}: ${white.toFixed(2)}em above "${row.slice(0, 40)}"`);
+      // A second component starts a new equation, and stands farther off than a chain's next row: at the
+      // chain's own .7em the endpoint's E_y read as the third row of E_x's chain.
+      if (component ? white < 1.05 || white > 1.4 : opens ? white < .55 || white > .85 : white < .2 || white > .5) bad.push(`${p.id}: ${white.toFixed(2)}em above "${row.slice(0, 40)}"`);
     }
     expect(seen).toBeGreaterThan(12);
     expect(bad).toEqual([]);

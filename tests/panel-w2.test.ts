@@ -26,8 +26,9 @@ describe('a lopsided bracket says why its survivor is a sine, and why it has a m
       const say = step(id, 'cancel', [...b], lopsided).say!;
       if (id === 'arc') expect(say, id).toContain(String.raw`Its part along $y$ is $-\Delta E\sin\theta$`);
       else expect(say, id).toMatch(/is the side opposite.*hence the minus in \$\\Delta E_y\$ below\./);
-      // Its own paragraph: the cosine's sentence, then the sine's.
-      expect(say.split(BREAK).length, id).toBe(2);
+      // Its own paragraph: the cosine's sentence, then the sine's. (The rod's angle paragraph is two since
+      // wave five: the arrow on the line, then the vertically opposite angles.)
+      expect(say.split(BREAK).length, id).toBe(id === 'bisector' ? 3 : 2);
       // And with the whole charge, the mirror's sentence instead.
       expect(step(id, 'cancel').say, id).not.toMatch(/hence the minus|Its part along \$y\$/);
     }

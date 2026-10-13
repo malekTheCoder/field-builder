@@ -231,9 +231,8 @@ describe('the captions say only what is true', () => {
    for (const text of [add.line, add.caption]) {
     expect(text, `${p.id}: "${text}"`).toMatch(/sum/);
     expect(text, `${p.id}: "${text}"`).not.toMatch(/is the (field|potential) at P/);
-    // A line that names the field or the potential says it is reached only as the pieces shrink. The
-    // mirror-pair lines spend their ninety characters on the lone middle piece the figure adds first, and
-    // name neither: their caption, the board's "only ≈" and Shrink them's line say it.
+    // A line that names the field or the potential says it is reached only as the pieces shrink, the
+    // mirror-pair lines now among them: they ended on the lone middle piece and never said where the sum goes.
     if (text === add.caption || /field|potential/.test(text)) expect(text, `${p.id}: "${text}"`).toMatch(/(once|as) (they|the (piece|ring)s) shrink/);
    }
   }
@@ -267,7 +266,10 @@ describe('the captions say only what is true', () => {
  it('a potential’s piece adds k times its charge over its distance, and goes on the column the next stage names', () => {
   for (const p of PROBLEMS.filter(q => q.quantity === 'V')) {
    const [, one, cancel] = buildStages(p);
-   expect(one.line, p.id).toMatch(/adds k times its charge over its distance/);
+   // What is added, then what it is: "It adds k times its charge over its distance to the potential" had
+   // no antecedent for "It", and "its distance to the potential" parsed first.
+   expect(one.line, p.id).toMatch(/adds (k times its charge over its distance|a number to the potential at P: k times its charge over its distance)/);
+   expect(one.line, p.id).not.toMatch(/^It /);
    expect(cancel.caption, p.id).not.toMatch(/pile/);
   }
   // A rod's mirror piece is one of the column's pieces. The ring's partner is a length of ring, which

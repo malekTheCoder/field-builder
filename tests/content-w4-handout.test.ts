@@ -35,11 +35,11 @@ describe('the copy builds the integral as the board does', () => {
       const shown = tex(section).join('\n');
       for (const line of boardLines(p)) {
         expect(shown, `${p.id}/${line.key}`).toContain(plain(line.tex).slice(plain(line.tex).search(/=|\\approx/)));
-        for (const t of [line.where, line.merged, line.cancels, line.also]) if (t) expect(shown, `${p.id}/${line.key}`).toContain(plain(t));
+        for (const t of [line.where, line.swaps?.join(String.raw`,\qquad `), line.merged, line.cancels, line.also, line.alsoWhere]) if (t) expect(shown, `${p.id}/${line.key}`).toContain(plain(t));
       }
       expect(section, p.id).not.toMatch(/htmlClass|katex-error|\\colon/);
-      // The bounds' colon is punctuation, set tight.
-      expect(section, p.id).toMatch(/<mo lspace="0em" rspace="0\.1667em">:<\/mo>/);
+      // The pieces' range is a range, "−L/2 ≤ y ≤ L/2", not "y: −L/2 → L/2", which read as an equation for y.
+      expect(section, p.id).toMatch(/<mo>(≤|&lt;)<\/mo>/);
     }
   });
   it('the line’s second half is a row of one chain under its first, never a phantom over a blank', () => {

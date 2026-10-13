@@ -29,7 +29,7 @@ describe('a bracket off the middle', () => {
       expect(cancel.nothing, id).toMatch(/every piece’s mirror lies outside it/);
       expect(cancel.nothing, id).not.toMatch(/some pieces’ mirrors/);
       // The whole charge keeps its mirror sentence.
-      expect(step(id, 'cancel').say, id).toMatch(/Its mirror piece, at \$-\\(alpha|theta)\$, makes the same \$\\Delta E_x\$\.$/);
+      expect(step(id, 'cancel').say, id).toMatch(/Its mirror piece, at \$-\\(alpha|theta)(_i)?\$, makes the same \$\\Delta E_x\$\.$/);
     }
     // Off-centre but over the middle, some mirrors are in and some out.
     const over = step('bisector', 'cancel', ['-L/4', 'L/2'], {keeps: false, oneSided: false});
@@ -42,7 +42,7 @@ describe('a bracket off the middle', () => {
   });
   it('the bisector’s survivor −k ΔQ sin α / r_i² takes its sign from y, and the card says so', () => {
     const cancel = step('bisector', 'cancel', ['-L/2', '0']);
-    expect(cancel.say).toContain(String.raw`$\sin\alpha=y/\sqrt{y^2+r^2}$`);
+    expect(cancel.say).toContain(String.raw`$\sin\alpha_i=y_i/\sqrt{y_i^2+r^2}$`);
     expect(cancel.say!.indexOf('$\\alpha$ is the angle')).toBeLessThan(cancel.say!.indexOf('is negative'));
     // A point charge q at (0, y) makes E_y = k q (0 − y)/r_i³ at P = (r, 0): with sin α = y/r_i that is
     // −k q sin α / r_i², below the axis as above it.
@@ -80,7 +80,7 @@ describe('a potential with a mirror says why nothing cancels', () => {
   it('the same distance, the same sign, and a number has no sideways part', () => {
     for (const id of ['v-rod-bisector', 'v-ring', 'v-arc']) {
       const nothing = step(id, 'cancel').nothing!;
-      expect(nothing, id).toMatch(/just as far away and its charge has the same sign, so it adds the same \$\\Delta V\$: nothing cancels, since a number has no sideways part, and \$\\Delta V\$ stays as One (piece|ring) wrote it\.$/);
+      expect(nothing, id).toMatch(/just as far away and its charge has the same sign, so it adds the same \$\\Delta V\$: nothing cancels, since a number has no sideways part, and \$\\Delta V\$ is unchanged from the step before\.$/);
     }
   });
   it('k is defined after the "over r_i", so the dash never reads as k over r_i', () => {

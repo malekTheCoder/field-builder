@@ -401,8 +401,9 @@ export function artifactHtml(a: LessonArtifact) {
     if (l.nothing) parts.push(aside(proseHtml(l.nothing)));
     parts.push(mathml(chained(plain(l.tex), l.finish && plain(l.finish))));
     // What the line's new symbols mean, centred under the line it explains, as a book sets a "where".
-    for (const gloss of [l.where, l.merged]) if (gloss) parts.push(`<p class="aside sym">${mathml(plain(gloss), false)}</p>`);
+    for (const gloss of [l.where, l.swaps?.join(String.raw`,\qquad `), l.merged]) if (gloss) parts.push(`<p class="aside sym">${mathml(plain(gloss), false)}</p>`);
     if (l.also) parts.push(aside(`${mathml(plain(l.also), false)} survives too.`));
+    if (l.alsoWhere) parts.push(`<p class="aside sym">${mathml(plain(l.alsoWhere), false)}</p>`);
     if (last && a.along) parts.push(`<p>${proseHtml(a.along.text)}</p>`, mathml(a.along.tex));
     if (!kSaid && [l.cancels, l.tex, l.finish, l.also].some(t => t && usesK(plain(t)))) { parts.push(kNote); kSaid = true; }
     return `<div class="stage">${parts.join('\n')}</div>`;

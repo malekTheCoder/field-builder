@@ -44,7 +44,8 @@ describe('Cut it up says when a piece is nearly a point charge, not that the dra
       const [cut, one] = buildStages(lesson(id));
       expect(cut.line, id).toMatch(/^The thinner a ring, the more nearly all of it is the same distance from P\.$/);
       expect(cut.line, id).not.toMatch(/^Thin rings:/);
-      if (id === 'disk') expect(one.line).toMatch(/^A thin ring’s bits are all one distance and one angle from P/);
+      // A thin ring's, and said so a student can picture it: "one angle from P" was not.
+      if (id === 'disk') expect(one.line).toMatch(/^Every bit of a thin ring is equally far from P, at the same angle/);
     }
   });
   it('"compared with", never "beside", in any line, caption or remark', () => {
@@ -76,7 +77,8 @@ describe('Add them up says the middle piece goes in alone', () => {
       expect(Math.abs(middle.field.y / middle.field.x), `${id} at ${charge}`).toBeLessThan(1e-9);
     }
     const add = buildStages(lesson(id))[3];
-    expect(add.line).toBe('Mirror pairs’ y parts cancel; the sum runs along x. A lone middle piece has no y part.');
+    // The line ends on what the sum reaches; the lone middle piece is said by the caption and the board.
+    expect(add.line).toBe('Mirror pairs’ y parts cancel; the sum runs along x: the field at P once the pieces shrink.');
     expect(add.caption).toMatch(/a lone middle piece has no sideways part/);
     expect(step(id, 'add').say).toContain('(a lone middle piece, on the $x$-axis, has none)');
   });
@@ -99,7 +101,8 @@ describe('the ring: one word for one thing', () => {
     }
     expect(stages[0].line).toBe('All of the ring is one distance and one angle from P, so pieces need not be small.');
     expect(stages[1].line).toBe('Treated as a point charge, a piece’s part along the axis is exact at any size.');
-    expect(stages[2].line).toMatch(/half a turn round cancels the sideways part/);
+    // Of each piece's part: "the ring half a turn round" named the whole ring as the partner.
+    expect(stages[2].line).toMatch(/^Each piece’s sideways part is undone half a turn round/);
     expect(stages[3].line).toMatch(/^Pairs half a turn apart: sideways parts cancel/);
     for (const id of ['disk', 'sheet']) expect(buildStages(lesson(id))[2].line, id).not.toMatch(/axial/);
   });
@@ -135,8 +138,10 @@ describe('why the arrow’s angle is α: it is the same line carried on through 
   it('the rods say so, and the part along x is ΔE cos α with ΔE signed, for either charge', () => {
     for (const id of ['bisector', 'endpoint', 'ramp']) {
       const say = step(id, 'cancel').say!;
-      expect(say, id).toMatch(/lies along that line, carried on through.*\$P\$: beyond.*\$P\$, where a positive charge’s arrow points, its angle with the axis is the one opposite \$\\alpha\$, so equal to it\./);
-      expect(say, id).toContain(String.raw`Its part along $x$ is $\Delta E\cos\alpha$, the side next to`);
+      // "Vertically opposite", by name: "the one opposite α" was read as the side opposite α, two clauses on.
+      expect(say, id).toMatch(/lies along that line, carried on through.*\$P\$\.\s+There the line crosses the axis, and vertically opposite angles are equal, so beyond.*\$P\$, where a positive charge’s arrow points, the arrow makes the angle \$\\alpha_i\$ with the axis too\./);
+      expect(say, id).not.toMatch(/the one opposite/);
+      expect(say, id).toContain(String.raw`Its part along $x$ is $\Delta E\cos\alpha_i$, the side next to`);
     }
     // Every piece of the bisector, either sign: the sampled field's x part is k ΔQ cos α / r_i², ΔQ signed.
     for (const charge of [2, -3.7]) for (const piece of sampleDistribution('bisector', {...DEFAULT_PARAMS, charge}, 7)) {

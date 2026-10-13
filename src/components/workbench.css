@@ -219,6 +219,9 @@
    The cancellation opens its step, directly under the step's name -- What cancels is named for it --
    with a little air before the line that is what survives it. */
 .db-also{margin-top:5px}
+/* The surviving component's factor in the variable, under the line that uses it: a little air, or its
+   stacked numerator nearly touched the line's own fraction. */
+.db .db-also+.math.db-where{margin-top:3px}
 .db-cancels{margin:2px 0 1px}
 .db .math.db-cancels{margin:-3px -4px -2px}
 /* The cancellation is what the step is named for, so it is set in ink, a size up from a gloss: in the
@@ -238,6 +241,15 @@
 .db-then-tex{font-size:var(--db-math)}
 .db-then .katex-display{margin-top:0}
 .db .math.db-merged{margin-bottom:-1px}
+/* Shrink them's replacements, one formula each, side by side and wrapping between formulas. Each is given
+   the chip's room round its ink and takes it back, as a gloss is (above), so a lit factor's ring is whole. */
+.db-swaps{display:flex;flex-wrap:wrap;column-gap:1.5em;row-gap:.15em;margin-top:.2em}
+.db-swaps>.math{padding:5px 4px 6px;margin:-5px -4px -3px}
+/* Two glosses stacked under one line -- the replacements, then a square times its own square root -- sat
+   about 6px apart, the three-halves power nearly touching the row above, and the paragraph started right
+   under them. A little air between the two, and before the paragraph, as a step with one gloss has. */
+.db .db-then .math.db-merged{margin-top:.35em}
+.db-then:has(.db-merged)+.db-say{margin-top:.35em}
 /* The longest line is the last, every factor written out. Where the panel is narrow the board's
    type comes down a step at a time rather than letting a line scroll inside its box. Set on the
    steps, not the board: a container cannot answer a query about itself.

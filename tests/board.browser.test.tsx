@@ -113,7 +113,8 @@ describe('every new symbol is said in words beside the line that brings it in', 
       const say = where.nextElementSibling as HTMLElement;
       expect(say.classList.contains('db-say'), id).toBe(true);
       // The line to the piece, of length r_i: r_i is a distance on this board, never a line.
-      if (id === 'bisector' || id === 'ring') expect(read(say), id).toMatch(/^The angle α is the one at P between the line to the piece \(length ri\) and the/);
+      if (id === 'bisector') expect(read(say), id).toMatch(/^The angle αi is the one at P between the line to piece i \(length ri\) and the/);
+      if (id === 'ring') expect(read(say), id).toMatch(/^The angle α is the one at P between the line to the piece \(length ri\) and the/);
       expect(read(say), id).toMatch(/lies along/);
       cleanup();
     }
@@ -125,7 +126,7 @@ describe('every new symbol is said in words beside the line that brings it in', 
     // And last, in a paragraph of its own, why the sum's ≈ is now an =: the approximation Add named is
     // the one shrinking removes.
     // Where piece i sits is y_i, and y_i becoming the integral's y is the step said in words.
-    expect(says.map(read)).toEqual(['Make the pieces thinner without end, N→∞: each Δy becomes dy, piece i’s position yi becomes the integral’s y, and the sum over pieces becomes an integral over y. For that, what changes from piece to piece is written in terms of yi: the squared distance ri2=yi2+r2 and the cosine cosαi=r/yi2+r2.', 'The ≈ becomes = here: the thinner a piece, the more nearly it is a point charge, and in the limit it is one.']);
+    expect(says.map(read)).toEqual(['Make the pieces thinner without end, N→∞: each Δy becomes dy, piece i’s position yi becomes the integral’s y, and the sum over pieces becomes an integral over y. What changes from piece to piece is written in terms of yi: the squared distance ri2=yi2+r2 and the cosine cosαi=r/yi2+r2.', 'The ≈ becomes = here: the thinner a piece, the more nearly it is a point charge, and in the limit it is one.']);
     // Its symbols are the board's, set as math.
     expect(says.reduce((n, s) => n + s.querySelectorAll('.katex').length, 0)).toBe(12);
   });

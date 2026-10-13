@@ -63,7 +63,7 @@ describe('the ring’s piece, of any size', () => {
 describe('the bracket’s angle is said to be negative only where it can be', () => {
   it('wholly above the middle, no word about below it', () => {
     expect(step('bisector', 'cancel', ['0', 'L/2']).say).not.toMatch(/is negative/);
-    expect(step('bisector', 'cancel', ['-L/2', '0']).say).toMatch(/below the.*\$x\$-axis, where \$\\alpha\$, like \$y\$, is negative/);
+    expect(step('bisector', 'cancel', ['-L/2', '0']).say).toMatch(/below the.*\$x\$-axis, where \$\\alpha_i\$, like \$y_i\$, is negative/);
     expect(step('bisector', 'cancel', ['-L/4', 'L/2'], {keeps: false, oneSided: false}).say).toMatch(/is negative/);
     // A handle's name says nothing of where it is: the panel says, and without it the sentence stays.
     expect(step('bisector', 'cancel', ['y_1', 'L/2'], {below: false}).say).not.toMatch(/is negative/);

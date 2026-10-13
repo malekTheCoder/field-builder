@@ -105,7 +105,9 @@ const CANCELS: Record<string, string> = {
 // word -- and what survives is the part along the axis.
 const CANCEL_LINES: Record<string, string> = {
   bisector: 'Mirror pieces cancel each other’s parts along the rod; the perpendicular parts survive.',
-  ring: 'The ring half a turn round cancels the sideways part; the part along the axis survives.',
+  // Of the piece's part, not of "the ring half a turn round", which named the whole ring as the partner. Nor
+  // "the piece half a turn round": at an odd N that is the cut between two pieces (see `PAIR_RING` on the board).
+  ring: 'Each piece’s sideways part is undone half a turn round; the part along the axis survives.',
   arc: 'Mirror pieces cancel each other’s parts across the axis; the parts along it survive.',
   infinite: 'Mirror pieces cancel each other’s parts along the line; the perpendicular parts survive.',
   disk: 'Each ring’s sideways parts already cancel round it: only the part along the axis is left.',
@@ -224,14 +226,18 @@ export function buildStages(p: Problem): BuildStage[] {
       : `A piece short compared with its distance from${P} is nearly a point charge.`,
     // k times: a charge over a distance is not a potential, and the caption beside it says k.
     one: scalar ? (surface ? `A thin ring adds $k$ times its charge over its distance: all of it is equally far from${P}.`
-        : `It adds $k$ times its charge over its distance to the potential at${P}: a number.`)
-      : unbounded ? `Every equal-angle piece contributes exactly as much at${P}: the far ones hold more charge.`
+        // "It adds k times its charge over its distance to the potential at P" had no antecedent for "It",
+        // and "its distance to the potential" parsed first. What is added, then what it is.
+        : `Each piece adds a number to the potential at${P}: $k$ times its charge over its distance.`)
+      // Both halves of the reason: "the far ones hold more charge" alone would make them contribute MORE.
+      : unbounded ? `Equal-angle pieces make the same $|\\Delta E|$ at${P}: far ones hold more charge, but are farther.`
       // Only cut at equal angles: cut into rings of equal width, a sheet's rings peak at s = z/√2.
       : geometry === 'sheet' ? `Cut at equal angles, each farther ring is so much bigger that it makes a bigger $\\Delta E$ at${P}.`
       // Its own idea, not Cut it up's again ("every bit of one ring is the same distance from P"): the
       // bits are point charges, and a thin ring's are all one distance and one angle away -- a thin ring's,
       // not every drawn ring's: at three rings the inner one is a third of the disk wide.
-      : geometry === 'disk' ? `A thin ring’s bits are all one distance and one angle from${P}: it adds up at once.`
+      // "One angle from P" was not a thing a student could picture: the angle is the line's to the axis.
+      : geometry === 'disk' ? `Every bit of a thin ring is equally far from${P}, at the same angle: it adds up at once.`
       // The ring's Cut it up says a piece's part along the axis is exactly a point charge's at any size;
       // "a piece's field lies along the line joining them" holds only of a small piece, so the two read
       // as one claim and contradicted each other. At three pieces a piece is a third of the ring, and its
@@ -272,7 +278,10 @@ export function buildStages(p: Problem): BuildStage[] {
     // "Once they shrink" made "they" the pairs, or the parts, and the sum seem to shrink: the sum is the
     // subject, and the pieces are what shrink.
     add: pairs && !scalar ? (exact ? `Pairs half a turn apart: sideways parts cancel; $z$ parts sum to exactly the field at${P}.`
-        : `Mirror pairs’ $y$ parts cancel; the sum runs along $x$. A lone middle piece has no $y$ part.`)
+        // Ending on what the sum reaches, not on the lone middle piece: the board under the line and the
+        // caption say why that piece needs no partner, and the line closed on that footnote without ever
+        // saying where the sum goes.
+        : `Mirror pairs’ $y$ parts cancel; the sum runs along $x$: the field at${P} once the pieces shrink.`)
       : exact ? (scalar ? `Stack every piece’s contribution. The column is exactly the potential at${P}.`
         : `Every piece’s arrow, tip to tail. The sum ends exactly at the field at${P}: every piece is equally far, at the same angle.`)
       : scalar ? `Stack every ${unit}’s number: their sum becomes the potential at${P} as the ${unit}s shrink.`

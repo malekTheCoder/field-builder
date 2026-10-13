@@ -62,6 +62,10 @@ const LIGHTS:Record<string,Term>={element:'element',charge:'element',distance:'d
 const REST:BoardState={open:false,index:-1,playing:false,settled:true};
 /** How much angle a bracket on a ring or an arc takes, named as the board names a limit: a bracketed
  * integral of a constant finishes on it, and pasting the limits into "hi − lo" wrote (φ/4 − −φ/4). */
+// THE ANSWER, NAMED AS ONE. Its box was headed "The whole distribution": a first-year reader did not take it for
+// the answer, and "distribution" is a word they do not have yet. It says it is the answer, and for what, in the
+// figure's own noun; the bracketed part's box says the same of the part.
+const WHOLE:Record<string,string>={bisector:'rod',axial:'rod',endpoint:'rod',ramp:'rod',infinite:'line',semi:'line',ring:'ring',disk:'disk',sheet:'sheet',arc:'arc'};
 function spanTex(p:Problem,from:number,to:number){const g=p.geometry,n=(to-from)/100;return g==='ring'?plain(2*n,raw`\pi`)??undefined:g==='arc'?plain(n,raw`\varphi`)??undefined:undefined;}
 export function EquationWorkbench({problem:p,derivationProblem,params,onModeChange,onHighlight,boundRange,onBoundRangeChange,build=REST,onStep,highlight=''}:EquationWorkbenchProps){
  // THE PANEL RE-RENDERS EVERY FRAME OF THE RUN, because the page does: the figure has to move. What
@@ -206,8 +210,8 @@ export function EquationWorkbench({problem:p,derivationProblem,params,onModeChan
   <DerivationBoard lines={lines} names={names} state={state} lit={LIGHTS[highlight]??''} onStep={playStep} onPoint={point}/>
  </div>
  {allBounds
-  ?<div className={'ew-result'+(settled?' is-shown':'')} aria-hidden={settled?undefined:true}><span className="ew-result-label">The whole distribution</span>{secondary&&<><p className="ew-result-lead"><Prose text={surviving}/></p><MathText className="ew-result-integral" tex={secondary} block/></>}<p className="ew-result-lead">{lead} <button type="button" className="ew-result-unfold" onClick={unfold}>Show every step</button></p>{results.map(t=><MathText key={t} tex={t} block/>)}{withK}<p><Prose text={sign}/></p></div>
-  :<div className="ew-result is-shown is-partial"><span className="ew-result-label">Part of the distribution</span><p><Prose text={partNote}/></p>{partTex&&<><MathText className="ew-result-part" tex={partTex} block/><p>{partBack}</p></>}</div>}
+  ?<div className={'ew-result'+(settled?' is-shown':'')} aria-hidden={settled?undefined:true}><span className="ew-result-label">{`The answer, whole ${WHOLE[g]??'charge'}`}</span>{secondary&&<><p className="ew-result-lead"><Prose text={surviving}/></p><MathText className="ew-result-integral" tex={secondary} block/></>}<p className="ew-result-lead">{lead} <button type="button" className="ew-result-unfold" onClick={unfold}>Show every step</button></p>{results.map(t=><MathText key={t} tex={t} block/>)}{withK}<p><Prose text={sign}/></p></div>
+  :<div className="ew-result is-shown is-partial"><span className="ew-result-label">The answer for the bracketed part</span><p><Prose text={partNote}/></p>{partTex&&<><MathText className="ew-result-part" tex={partTex} block/><p>{partBack}</p></>}</div>}
  {/* THE SHELF: what a reader opens afterwards. The interval, the algebra worked out, and where
      the model comes from -- all closed until asked for, so the derivation stays the subject. */}
  <div className="ew-reference">

@@ -202,8 +202,8 @@ describe('the derivation board', () => {
       expect(text, p.id).not.toMatch(/\\,\\htmlClass\{fx fx-projection\}\{\\(cos|sin)/);
       // −Σ and −∫, not Σ − and ∫ −.
       expect(text, p.id).not.toMatch(/\\sum_i\s*-|\\int_\{[^}]*\}\^\{[^}]*\}-|\\int_\{\\htmlClass\{fx fx-bounds\}\{[^}]*\}\}\^\{\\htmlClass\{fx fx-bounds\}\{[^}]*\}\}-/);
-      // And the range's colon is punctuation, not a relation.
-      expect(lines.find(l => l.key === 'add')!.where, p.id).toContain('\\colon');
+      // And the pieces' range is a range, "−L/2 ≤ y ≤ L/2": "y: −L/2 → L/2" read as an equation for y.
+      expect(lines.find(l => l.key === 'add')!.where, p.id).toMatch(new RegExp(`(\\\\le|<)\\s*${p.variableTex.replace(/\\/g, '\\\\')}\\s*(\\\\le|<)`));
     });
     it(`${p.id}: What cancels answers its own question -- the cancellation, or why nothing cancels`, () => {
       const cancel = lines.find(l => l.key === 'cancel')!;
@@ -258,7 +258,8 @@ describe('the derivation board', () => {
     // y = r tan θ and a sec² arrived in the first line of the infinite line with θ said two steps
     // later; α arrived in What cancels with no word for it at all.
     for (const p of PROBLEMS.filter(q => q.quantity === 'E' && q.id !== 'axial')) {
-      const angle = p.id === 'infinite' || p.id === 'arc' ? '\\theta' : '\\alpha';
+      // The rods index their piece's angle from its first appearance, α_i (see `HYPOTENUSE` on the board).
+      const angle = p.id === 'infinite' || p.id === 'arc' ? '\\theta' : ['bisector', 'endpoint', 'ramp'].includes(p.id) ? '\\alpha_i' : '\\alpha';
       const lines = boardLines(p);
       const uses = (tex?: string) => !!tex && tex.replace(/\\Delta\\(theta|alpha)/g, '').includes(angle);
       const first = lines.findIndex(l => [l.tex, l.where, l.finish, l.cancels, l.also].some(uses));
@@ -270,7 +271,7 @@ describe('the derivation board', () => {
     }
     const say = (id: string) => step(id, 'cancel').say!;
     expect(say('bisector')).toMatch(/the side next to/);
-    expect(say('endpoint')).toContain(String.raw`$\Delta E\sin\alpha$, is the side opposite`);
+    expect(say('endpoint')).toContain(String.raw`$\Delta E\sin\alpha_i$, is the side opposite`);
     for (const id of ['endpoint', 'ramp', 'semi', 'arc']) expect(say(id), id).toMatch(/hence the minus|\$-\\Delta E\\cos\\theta\$/);
     expect(step('semi', 'pieces').say).toMatch(/from the perpendicular to the line/);
     expect(say('semi')).toContain(String.raw`$\Delta E\sin\alpha$, the side opposite`);
@@ -283,9 +284,12 @@ describe('the derivation board', () => {
     // θ and φ on a ring's or an arc's first line, said there: on the potentials they were never said.
     for (const id of ['ring', 'v-ring', 'arc', 'v-arc']) expect(step(id, 'pieces').say, id).toMatch(/^A piece’s angle round the (ring|arc) is \$\\theta\$/);
     for (const id of ['arc', 'v-arc']) expect(step(id, 'pieces').say, id).toContain(String.raw`the whole arc’s angle is $\varphi$`);
-    // Bold is the arrow and plain its size, said where the plain one first appears -- the size |ΔE|, since
-    // ΔE itself carries the charge's sign (One piece says so).
-    for (const id of ['bisector', 'endpoint', 'ring', 'infinite', 'semi', 'arc']) expect(say(id), id).toMatch(/\$\\Delta\\mathbf E\$, of size \$\|\\Delta E\|\$/);
+    // Bold is the arrow, the plain letter the arrow without its direction, and its size |ΔE| -- all said in One
+    // piece, where the plain one first appears. What cancels named all three in one sentence and took four reads.
+    for (const id of ['bisector', 'endpoint', 'ring', 'infinite', 'semi', 'arc']) {
+      expect(step(id, 'one').say, id).toContain(String.raw`its size is $|\Delta E|$`);
+      expect(say(id), id).not.toMatch(/of size/);
+    }
     // "Hence the minus" points at the line that has it: the line above the sentence has none.
     for (const id of ['endpoint', 'ramp']) expect(say(id), id).toContain(String.raw`hence the minus in $\Delta E_y$ below`);
     // The infinite line says why its part along x is ΔE cos θ.
@@ -305,13 +309,13 @@ describe('the derivation board', () => {
     // angle's triangle when pointed at, while the pair it names is drawn in the contributions' teal.
     for (const id of ['bisector', 'infinite', 'arc']) {
       expect(step(id, 'cancel').cancels, id).toContain(String.raw`\Delta E_y+(-\Delta E_y)=0\;\Rightarrow\;E_y=0`);
-      expect(step(id, 'cancel').say, id).toMatch(/Its mirror piece, at \$-\\(alpha|theta)\$, makes the same \$\\Delta E_x\$\.$/);
+      expect(step(id, 'cancel').say, id).toMatch(/Its mirror piece, at \$-\\(alpha|theta)(_i)?\$, makes the same \$\\Delta E_x\$\.$/);
       // ΔE_y is named directly under the cancellation that uses it, not at the paragraph's end -- in a
       // sentence with a verb, as the ring's and the disk's are.
       expect(step(id, 'cancel').cancelsSay, id).toMatch(/^A piece’s part (along the rod|along the line|across the axis) is \$\\Delta E_y\$; its mirror piece makes \$-\\Delta E_y\$\.$/);
     }
     expect(step('ring', 'cancel').cancels).toContain(String.raw`\Delta\mathbf E_\perp+(-\Delta\mathbf E_\perp)=\mathbf 0`);
-    for (const id of ['disk', 'sheet']) expect(step(id, 'cancel').cancels, id).toContain(String.raw`\delta\mathbf E_\perp=\mathbf 0`);
+    for (const id of ['disk', 'sheet']) expect(step(id, 'cancel').cancels, id).toContain(String.raw`\delta\mathbf E_\perp=\Delta\mathbf E_\perp=\mathbf 0`);
     for (const id of ['bisector', 'infinite', 'arc', 'ring', 'disk', 'sheet']) expect(step(id, 'cancel').cancels, id).not.toContain('fx-');
     // Nothing is written cancelling where nothing does -- and that is said, at rest, in its place.
     for (const id of ['axial', 'endpoint', 'ramp', 'semi', 'v-ring', 'v-disk', 'v-arc', 'v-rod-bisector', 'v-rod-axial']) {

@@ -87,6 +87,9 @@ export const DerivationBoard = memo(function DerivationBoard({lines, names, stat
                 <MathText className="db-then-tex" tex={line.finish} block trusted />
               </span></span>}
               {line.where && <MathText className="db-where" tex={line.where} trusted />}
+              {/* Shrink them's other replacements, a formula each: separate pieces of math, so a narrow
+                  panel wraps between them rather than scrolling one long row sideways. */}
+              {line.swaps && <span className="db-where db-swaps">{line.swaps.map(t => <MathText key={t} tex={t} trusted />)}</span>}
               {line.merged && <span className={'db-then' + (finished ? ' is-shown' : '')}><span className="db-then-in">
                 <MathText className="db-where db-merged" tex={line.merged} trusted />
               </span></span>}
@@ -96,6 +99,7 @@ export const DerivationBoard = memo(function DerivationBoard({lines, names, stat
               {/* The other component, then in words that it lives on: said in a sentence, which
                   wraps, rather than in a \text{} glued to the equation, which cannot. */}
               {line.also && <span className="db-where db-say db-also"><MathText tex={line.also} trusted /> survives too.</span>}
+              {line.alsoWhere && <MathText className="db-where" tex={line.alsoWhere} trusted />}
             </span>
           </span>
         </button>

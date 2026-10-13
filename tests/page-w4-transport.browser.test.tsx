@@ -76,10 +76,10 @@ describe('on a phone the run says what its new symbols stand for', () => {
   const one = stage(view, 1).querySelector('.bp-where');
   expect(one, 'One piece never says what rᵢ is').toBeTruthy();
   expect(tex(one!)[0]).toBe(lines[1].where);
-  expect(tex(one!)[0]).toMatch(/r_i=\\sqrt\{y\^2\+r\^2\}/);
+  expect(tex(one!)[0]).toMatch(/r_i=\\sqrt\{y_i\^2\+r\^2\}/);
   fireEvent.click(view.getByRole('button', {name: 'Stage 3: What cancels'}));
   const cancel = stage(view, 2).querySelector('.bp-where')!;
-  expect(tex(cancel)[0]).toMatch(/\\cos\\alpha=\\frac\{r\}/);
+  expect(tex(cancel)[0]).toMatch(/\\cos\\alpha_i=\\frac\{r\}/);
   expect(cancel.checkVisibility()).toBe(true);
   // A gloss: smaller than its line and in the muted ink, and set apart from it.
   const line = [...stage(view, 2).children].find(c => c.classList.contains('math') && !c.classList.contains('bp-where') && !c.classList.contains('bp-cancels'))!;

@@ -100,7 +100,7 @@ describe('the bracket', () => {
     // The handles move on the figure: the form's answer to a question nobody asked any more goes.
     view.rerender(ui('bisector', {boundRange: [37, 81], onBoundRangeChange: changed}));
     expect(view.container.querySelector('.ew-bound-feedback')).toBeNull();
-    expect(view.container.querySelector('.ew-result-label')?.textContent).toBe('Part of the distribution');
+    expect(view.container.querySelector('.ew-result-label')?.textContent).toBe('The answer for the bracketed part');
     // The form asks for a range itself, and the range comes back: its answer stays.
     const [lo, hi] = inputs(view);
     fireEvent.change(lo, {target: {value: '0'}});
