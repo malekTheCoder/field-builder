@@ -57,6 +57,9 @@ owner says they are urgent.
    limiting cases are already in them, kept simple.
 11. **How to use this site** (owner, 2026-10-13): a guide to actually learning with it, not a feature tour.
    The plan goes to the owner first; build only once they approve. Best after the fourteen lessons land.
+   Owner (2026-10-13): it must teach ACTIVE study, not rereading: quiz yourself, predict, recall.
+12. **Quizzes with personalized feedback** (owner's idea, 2026-10-13): quiz sections on the site, and
+   feedback that follows what the student gets wrong. Proposal sent to the owner; not started.
 
 ## Done
 - No em dashes on the site (owner, 2026-10-13): every visible sentence that used one now uses a comma,
