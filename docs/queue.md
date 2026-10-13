@@ -6,10 +6,10 @@ then to **Done**, with the commit. Newest requests are added at the bottom of **
 owner says they are urgent.
 
 ## In progress
-- **Limiting cases: open by default and interactive.** Drag the dot along the curve, scrub the plot,
-  the schematic moves with it, and words for each end. (agent)
-- **Home page.** A landing page at the site root; the logo and the root link go there; ?p= lesson
-  links still open lessons directly. (agent)
+- **The other fourteen lessons** (Next 9): two agents, rods and lines / rings, disks, arcs and the sheet;
+  two physics reviewers after.
+- **Critique round, wave 5** (owner, 2026-10-13: "both in parallel"): one round, five lanes with two
+  critics each, one publish at the end. Usage cap: weekly 40%, 5-hour 90%.
 
 ## Next
 - **Lesson-to-lesson links feel broken** (e.g. "Take this rod to infinity" on the finite line). Clicking
