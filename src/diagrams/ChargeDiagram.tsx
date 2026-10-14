@@ -577,7 +577,16 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
   const surfaceFit = perspective ? surfaceUnit(p.distance, surfacePitch, id === 'sheet' ? 0 : R, surfaceBelow) : 0;
   const surfaceRoomy = roomy ? Math.max(18, Math.min(surfaceFit, Math.floor(95 / Math.max(.5, p.distance * Math.cos(surfacePitch)) / 5) * 5)) : surfaceFit;
   const surfaceDrop = roomy ? clamp(surfaceBelow - R * surfaceRoomy * Math.abs(Math.sin(surfacePitch)), 0, 24) : 0;
-  const originAt1: Point = perspective ? { x: 315, y: 296 + lift + surfaceDrop } : footed ? { x: 210, y: 250 + lift } : id === 'semi' ? { x: 300, y: 310 } : id === 'axial' ? { x: 130, y: 230 } : id === 'arc' ? { x: 375, y: 218 } : { x: 220, y: 216 };
+  // A bounded ring or disk grows deeper on screen as the camera rises. Keep the opening scale, so turning the
+  // view does not resize the charge or change the field's apparent strength; move the shared SVG/GL origin up
+  // just enough to keep the near rim and its signs above the footer. Fitting only the opening pitch clipped a
+  // default ring at 1.3 radians, and the phone's lower origin clipped more of it. The unbounded sheet keeps its
+  // deliberate edge fade. The flat views already reserve their label row through `surfaceBelow`.
+  const boundedRound = perspective && id !== 'sheet';
+  // At rest a ring's signs sit outside the wire; its outline alone needs less clearance during the run.
+  const roundMargin = inSpace && id === 'ring' && !build ? 22 : 10;
+  const surfaceRise = inSpace && boundedRound ? Math.max(0, R * surfaceRoomy * Math.abs(Math.sin(view.pitch)) - surfaceBelow + surfaceDrop + roundMargin - 10) : 0;
+  const originAt1: Point = perspective ? { x: 315, y: 296 + lift + surfaceDrop - surfaceRise } : footed ? { x: 210, y: 250 + lift } : id === 'semi' ? { x: 300, y: 310 } : id === 'axial' ? { x: 130, y: 230 } : id === 'arc' ? { x: 375, y: 218 } : { x: 220, y: 216 };
   // Pixels per metre, times whatever the reader has zoomed to. The projection, the canvas
   // and the 3D frustum all read this, so one multiply zooms the whole figure and no layer
   // can disagree with another about scale.
@@ -639,7 +648,17 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
   const room = (centre: number, half: number, extent: number) =>
     Math.abs(half) < .5 ? Infinity : Math.min((extent - MARGIN - centre) / Math.abs(half), (centre - MARGIN) / Math.abs(half));
   const roomX = room(anchor.x, pAt1.x - anchor.x, 720), roomY = room(anchor.y, pAt1.y - anchor.y, 430);
-  const fits = roomX < roomY ? roomX : roomY;
+  // P alone cannot set the zoom ceiling of a round charge: the near rim lies beyond it, and used to leave the
+  // window while P was still safely inside. Fit all four extrema of the projected circle about the same zoom
+  // anchor. This also preserves the label row under a flat ring or disk.
+  const edgeRoom = (centre: number, edge: number, lo: number, hi: number) => edge > centre + 1e-6 ? (hi - centre) / (edge - centre)
+    : edge < centre - 1e-6 ? (lo - centre) / (edge - centre) : Infinity;
+  const roundDepth = R * baseUnit * Math.abs(Math.sin(view.pitch));
+  const roundFit = boundedRound ? Math.min(
+    edgeRoom(anchor.x, originAt1.x - R * baseUnit, 42 + roundMargin, 668 - roundMargin), edgeRoom(anchor.x, originAt1.x + R * baseUnit, 42 + roundMargin, 668 - roundMargin),
+    edgeRoom(anchor.y, originAt1.y - roundDepth, 54 + roundMargin, 371 - roundMargin - labelRoom), edgeRoom(anchor.y, originAt1.y + roundDepth, 54 + roundMargin, 371 - roundMargin - labelRoom),
+  ) : Infinity;
+  const fits = Math.min(roomX, roomY, roundFit);
   const zoomCeiling = fits > ZOOM_MAX ? ZOOM_MAX : fits < 1 ? 1 : fits;
   const zoom = zoomWanted < zoomCeiling ? zoomWanted : zoomCeiling;
   const O: Point = zoom === 1 ? originAt1
@@ -759,8 +778,9 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
   };
   const runScale = (() => {
     if (!build || scalar) return 1;
+    // Undo only the orbit's framing lift in this reference view, so orbiting never refits the field scale.
     const ref = inSpace ? opening : FLAT, base = 100 / scaleValue;
-    const at = projectCamera(pWorld, ref.yaw, ref.pitch), from = { x: O.x + unit * at.x, y: O.y + unit * at.y };
+    const at = projectCamera(pWorld, ref.yaw, ref.pitch), from = { x: O.x + unit * at.x, y: O.y + surfaceRise + unit * at.y };
     const screen = (v: Vec): Point => { const s = projectCamera(v, ref.yaw, ref.pitch); return { x: base * s.x, y: base * s.y }; };
     const netV = screen(magnitude(runSum) >= magnitude(exactField) ? runSum : exactField), length = Math.hypot(netV.x, netV.y);
     let want = 1;
@@ -848,7 +868,7 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
   // `alone` says the piece is its own mirror, with no partner drawn or laid on its part.
   const roomFor = (f: Vec, alone = selfMirror) => {
     if (scalar) return Infinity;
-    const ref = inSpace ? opening : FLAT, at = projectCamera(pWorld, ref.yaw, ref.pitch), from = { x: O.x + unit * at.x, y: O.y + unit * at.y };
+    const ref = inSpace ? opening : FLAT, at = projectCamera(pWorld, ref.yaw, ref.pitch), from = { x: O.x + unit * at.x, y: O.y + surfaceRise + unit * at.y };
     const mirror = id === 'ring' ? { x: -f.x, y: -f.y, z: f.z } : { x: f.x, y: -f.y, z: f.z };
     // And the parts each is resolved into, which What cancels draws as arrows of their own and names
     // past their tips: room for the whole arrow along its slant still let the part straight up from
