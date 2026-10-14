@@ -156,7 +156,9 @@ describe('a new lesson opens its own way', () => {
  });
  it('and a zoom on one lesson does not follow the reader into the next', async () => {
   const view = await openLesson('ring');
-  fireEvent.click(view.getByRole('button', {name: 'Zoom in'}));
+  // A ring that already fills the safe frame may be at its zoom ceiling. Zoom out to change
+  // the camera, then verify that the next lesson still starts at its own default scale.
+  fireEvent.click(view.getByRole('button', {name: 'Zoom out'}));
   await waitFor(() => expect((view.getByRole('button', {name: 'Reset view'}) as HTMLButtonElement).disabled).toBe(false));
   await go(view, 'Disk of charge', getProblem('disk').title);
   await waitFor(() => expect((view.getByRole('button', {name: 'Reset view'}) as HTMLButtonElement).disabled).toBe(true));

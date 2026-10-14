@@ -120,8 +120,13 @@ describe('ChargeDiagram in a real browser', () => {
     await userEvent.keyboard('{ArrowUp}');               // tilt lifts P off the axis it spins on
     const tilted = facing();
     expect(tilted).not.toBe(square);
-    await userEvent.keyboard('=');                       // the zoom keys ride the same handler
-    expect(facing()).not.toBe(tilted);
+    // The whole ring can already fill the safe frame. Move away from that ceiling first,
+    // then check both zoom keys through the same focused figure handler.
+    await userEvent.keyboard('-');
+    const wider = facing();
+    expect(wider).not.toBe(tilted);
+    await userEvent.keyboard('=');
+    expect(facing()).not.toBe(wider);
     await userEvent.keyboard('{Home}');                  // and Home puts back angle and zoom at once
     expect(facing()).toBe(square);
     expect(reset.disabled).toBe(true);

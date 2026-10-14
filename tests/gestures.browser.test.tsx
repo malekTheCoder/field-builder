@@ -62,7 +62,8 @@ describe('the gestures the figure advertises', () => {
     // zooming the figure must not have the page slide out from under them at the same time.
     // fireEvent returns false when the handler called preventDefault, and flushes the state
     // update that follows; a bare dispatchEvent leaves React's render for some later tick.
-    const notCancelled = fireEvent.wheel(svg, {deltaY: -240});
+    // The opening ring can be at its safe zoom ceiling, so move outward into its zoom range.
+    const notCancelled = fireEvent.wheel(svg, {deltaY: 240});
     expect(notCancelled, 'the page would scroll as well as the figure zooming').toBe(false);
     expect(reset.disabled, 'the wheel did not zoom').toBe(false);
     expect(facing(), 'the wheel did not zoom').not.toBe(square);
@@ -82,12 +83,12 @@ describe('the gestures the figure advertises', () => {
     const square = facing();
     fireEvent.pointerDown(svg, {clientX: 60, clientY: 60, pointerId: 1});
     fireEvent.pointerUp(svg, {pointerId: 1});
-    fireEvent.keyDown(svg, {key: '='});
-    expect(reset.disabled).toBe(false);
-    const closer = facing();
-    expect(closer).not.toBe(square);
     fireEvent.keyDown(svg, {key: '-'});
-    expect(facing()).not.toBe(closer);
+    expect(reset.disabled).toBe(false);
+    const wider = facing();
+    expect(wider).not.toBe(square);
+    fireEvent.keyDown(svg, {key: '='});
+    expect(facing()).not.toBe(wider);
   });
   it('arrow keys reach the view from the pad as well, which its tooltips promise', () => {
     // Every turn key on the pad is captioned with the arrow key that does the same thing. A
@@ -95,7 +96,7 @@ describe('the gestures the figure advertises', () => {
     // said, not a scrolled page. `role="group"` carries no roving-focus convention -- that is
     // toolbars and tablists -- so nothing is taken from anyone driving this by screen reader.
     const {view, facing} = mount('ring');
-    const button = view.getByRole('button', {name: 'Zoom in'}) as HTMLButtonElement;
+    const button = view.getByRole('button', {name: 'Zoom out'}) as HTMLButtonElement;
     button.focus();
     expect(document.activeElement).toBe(button);
     const before = facing();
@@ -121,7 +122,8 @@ describe('the gestures the figure advertises', () => {
     // would be measured against a camera still on its way home.
     let before = facing();
     // Turning lives on the view cube inside the figure now; the pad keeps zoom and the way home.
-    for (const label of ['Zoom in', 'Zoom out']) {
+    // Move away from the opening ceiling before testing the inward direction.
+    for (const label of ['Zoom out', 'Zoom in']) {
       const button = view.getByRole('button', {name: label}) as HTMLButtonElement;
       expect(button.disabled, `${label} was disabled`).toBe(false);
       fireEvent.click(button);
