@@ -6,10 +6,7 @@ then to **Done**, with the commit. Newest requests are added at the bottom of **
 owner says they are urgent.
 
 ## In progress
-- **Critique round, wave 5: PAUSED** (owner went offline, 2026-10-13). Four lanes' fixes wait on the local
-  branch `swarm` (content, page, scene, figure); the panel's is on `paused/w5-panel`, not yet integrated.
-  To finish: integrate the panel, run the whole suite, publish swarm to main, check CI. Then the owner runs
-  one Codex round ([codex-round-prompt.md](codex-round-prompt.md)). Usage cap: weekly 40%, 5-hour 90%.
+- **Codex round** (owner runs it with [codex-round-prompt.md](codex-round-prompt.md)). Stay off its files meanwhile.
 
 ## Next
 - **Lesson-to-lesson links feel broken** (e.g. "Take this rod to infinity" on the finite line). Clicking
@@ -63,6 +60,10 @@ owner says they are urgent.
    [quiz-plan.md](quiz-plan.md), waiting for the owner's OK.
 
 ## Done
+- Wave 5 (one critique round, five lanes) published as 04fd0a4: the handout teaches the method once, the
+  tour's sum page is true on every lesson, the lead takes the subtitle's place, focus lands on the title,
+  pairs join the sum at its head in 3D, quieter sheet rings, handles that cannot cross, one θ on a wide arc,
+  and the panel's one notation per step. Full suite 4034 green.
 - All fifteen lessons are written and physics-reviewed (601aac8, 3cf1fb6, 26c3a11; reviews 5286115,
   6adbdb2, 0f272b0). The reviewers fixed: a ring piece called a point charge, a factor of two in the disk's
   integral, the arc potential's φ claim, the rod-on-axis far fields measured from the end, the bisector's
