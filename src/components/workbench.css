@@ -223,6 +223,7 @@
    stacked numerator nearly touched the line's own fraction. */
 .db .db-also+.math.db-where{margin-top:3px}
 .db-cancels{margin:2px 0 1px}
+.db-cancels .db-conclusion{display:inline-block;white-space:nowrap}
 .db .math.db-cancels{margin:-3px -4px -2px}
 /* The cancellation is what the step is named for, so it is set in ink, a size up from a gloss: in the
    gloss's muted grey at the gloss's size, the answer to What cancels was the quietest math on its

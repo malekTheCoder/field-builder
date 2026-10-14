@@ -23,6 +23,10 @@ export type BoardState = {
   /** The last stage has arrived at the integral, so its finished form can be shown. */
   settled: boolean;
 };
+// Keep the conclusion of a cancellation together. On the sheet's narrow board KaTeX broke after
+// the final equals sign, leaving its zero alone on the next line. The implication is a natural
+// place to wrap, but the relation it introduces is one unit. The authored formula stays intact.
+const cancellationTex = (tex: string) => tex.replace(/(\\Rightarrow[\s\S]+)$/, String.raw`\allowbreak\htmlClass{db-conclusion}{$1}`);
 const TERMS: readonly Term[] = ['element', 'distance', 'projection', 'bounds'];
 /* THE BOARD HAS NO NOTE. A paused stage used to open the run's caption under its step, and once the
  * step's own remark said everything, the caption said it again: paused on What cancels at the rod's
@@ -72,7 +76,7 @@ export const DerivationBoard = memo(function DerivationBoard({lines, names, stat
               {/* What cancels opens on the cancellation -- or on why nothing does: the step is named
                   for it, and with it fourth, under a paragraph, a reader scanning the step read "What
                   cancels: ΔE_x", the part that survives. The line after it is what is left. */}
-              {line.cancels && <MathText className="db-where db-cancels" tex={line.cancels} trusted />}
+              {line.cancels && <MathText className="db-where db-cancels" tex={cancellationTex(line.cancels)} trusted />}
               {/* What the cancellation's symbols are, directly under it: ΔE_y used to be named only
                   at the end of the paragraph four lines down. */}
               {line.cancelsSay && <span className="db-where db-say db-pair"><Prose text={line.cancelsSay} /></span>}
