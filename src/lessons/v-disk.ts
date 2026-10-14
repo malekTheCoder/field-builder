@@ -38,7 +38,7 @@ export const lesson: Lesson = {
       raw`That is the disk’s field, its integral traded for an easier one and a derivative.`,
     ]},
     {heading: 'What the answer says', body: [
-      raw`Far up the axis, $z\gg R$, $V$ approaches $kQ/z$, a point charge’s potential. At the centre it is finite, $\sigma R/(2\varepsilon_0)$, though the field jumps there. Hold $\sigma$ fixed and let the disk grow without end, and $V$ grows without end too, while the field settles to the sheet’s $\sigma/(2\varepsilon_0)$: an infinite sheet has no potential relative to infinity, only differences.`,
+      raw`Far up the axis, $z\gg R$, $V$ approaches $kQ/z$, a point charge’s potential. At the centre it is finite, $\sigma R/(2\varepsilon_0)$, though the field jumps there. Hold a nonzero $\sigma$ fixed and let the disk grow without end: $|V|$ grows without end, with $V$ keeping the sign of $\sigma$, while the field settles to the sheet’s $\sigma/(2\varepsilon_0)$: an infinite sheet has no potential relative to infinity, only differences.`,
     ]},
   ],
   read: [

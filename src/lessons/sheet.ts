@@ -19,7 +19,7 @@ export const lesson: Lesson = {
     {heading: 'One ring', body: [
       raw`Each ring makes nearly the field of a thin ring of that charge at its middle angle, and the ring lesson has that field. With $k=1/(4\pi\varepsilon_0)$ and $\cos\alpha=z/r_i$, put in $s$, $r_i$ and $\Delta Q$ and almost everything cancels:`,
       {tex: raw`\Delta E_z=\frac{k\,\Delta Q}{r_i^2}\cos\alpha=2\pi k\sigma\sin\alpha\,\Delta\alpha`},
-      raw`That grows with $\alpha$. A farther ring is weaker for each unit of its charge, since it is farther away and its field meets the axis more slantwise, but it holds so much more charge that its field at $P$ is bigger than the nearer ring’s. Here the far parts of the charge matter most.`,
+      raw`Its magnitude $|\Delta E_z|$ grows with $\alpha$. A farther ring is weaker for each unit of its charge, since it is farther away and its field meets the axis more slantwise, but it holds so much more charge that its field at $P$ is bigger than the nearer ring’s. Here the far parts of the charge matter most.`,
     ]},
     {heading: 'What cancels', body: [
       raw`Within each ring the sideways parts cancel, a bit against the bit straight across. Every ring’s field at $P$ points along the axis, all the same way: away from the sheet for positive $\sigma$, toward it for negative.`,
@@ -27,7 +27,7 @@ export const lesson: Lesson = {
     {heading: 'Add them up', body: [
       raw`So the rings add like numbers, from the axis, $\alpha=0$, out toward a right angle:`,
       {tex: raw`E_z\approx\sum_i 2\pi k\sigma\sin\alpha_i\,\Delta\alpha`},
-      raw`No term is more than $2\pi k\sigma\,\Delta\alpha$ and there are $N$ of them, so the endless sheet adds to a finite field.`,
+      raw`Each term has magnitude at most $2\pi k|\sigma|\,\Delta\alpha$. Since $N\Delta\alpha=\pi/2$, the sum’s magnitude is at most $\pi^2 k|\sigma|$, a finite bound that stays fixed as the rings get thinner.`,
     ]},
     {heading: 'Shrink them', body: [
       raw`Make the rings thinner in angle without end, and treating each as a thin ring becomes exact. The integral of $\sin\alpha$ is $-\cos\alpha$, which rises by exactly one from $\alpha=0$ to $\alpha=\pi/2$:`,
