@@ -1,4 +1,4 @@
-import {cleanup, render, waitFor} from '@testing-library/react';
+import {cleanup, fireEvent, render, waitFor} from '@testing-library/react';
 import {afterAll, afterEach, beforeAll, describe, expect, it} from 'vitest';
 import {page} from 'vitest/browser';
 // The page's own styles: what is measured is where the panel's first step lands on a real screen.
@@ -24,15 +24,28 @@ let quiet: HTMLStyleElement;
 beforeAll(async () => { quiet = document.createElement('style'); quiet.textContent = QUIET; document.head.appendChild(quiet); await page.viewport(1280, 720); });
 afterAll(async () => { quiet.remove(); await page.viewport(1280, 800); });
 afterEach(() => { cleanup(); localStorage.clear(); window.history.replaceState(null, '', '/'); });
+/** On CI's slower machine a lingering save from the lesson before could still win the race for the saved id,
+ * and the page opened on that lesson. Choose the lesson as a reader would, from the list, when it did. */
+async function settleOn(view: ReturnType<typeof render>, id: string) {
+  const title = getProblem(id as never).title;
+  if (view.container.querySelector('h1')?.textContent !== title) {
+    const nav = view.container.querySelector('nav[aria-label="Lessons"]');
+    const link = [...(nav?.querySelectorAll('a') ?? [])].find(a => a.textContent?.trim() === getProblem(id as never).short);
+    if (link) fireEvent.click(link);
+  }
+  await waitFor(() => expect(view.container.querySelector('h1')?.textContent, 'opened the wrong lesson').toBe(title));
+}
 
 describe('the problem leaves the first step on the first screen', () => {
   it('every lesson at 1280×720: Cut it up starts above the fold', async () => {
     for (const p of PROBLEMS) {
+      cleanup();
       await new Promise(r => setTimeout(r, 280));
+      window.history.replaceState(null, '', '/');
       localStorage.setItem('field-builder:explorer:v1', JSON.stringify({id: p.id, hideTour: true, cued: true, dark: false, sidebarOpen: true, params: {}}));
       const view = render(<Explorer />);
       await view.findByRole('button', {name: 'Watch it build'});
-      await waitFor(() => expect(view.container.querySelector('h1')?.textContent, 'opened the wrong lesson').toBe(getProblem(p.id).title));
+      await settleOn(view, p.id);
       await document.fonts.ready;
       window.scrollTo(0, 0);
       const cut = view.container.querySelector<HTMLElement>('.db-step[data-step="pieces"]');

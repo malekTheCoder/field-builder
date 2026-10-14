@@ -25,12 +25,24 @@ afterEach(() => {
  cleanup();
  window.history.replaceState(null, '', '/');
 });
+/** On CI's slower machine a lingering save from the lesson before could still win the race for the saved id,
+ * and the page opened on that lesson. Choose the lesson as a reader would, from the list, when it did. */
+async function settleOn(view: ReturnType<typeof render>, id: string) {
+  const title = getProblem(id as never).title;
+  if (view.container.querySelector('h1')?.textContent !== title) {
+    const nav = view.container.querySelector('nav[aria-label="Lessons"]');
+    const link = [...(nav?.querySelectorAll('a') ?? [])].find(a => a.textContent?.trim() === getProblem(id as never).short);
+    if (link) fireEvent.click(link);
+  }
+  await waitFor(() => expect(view.container.querySelector('h1')?.textContent, 'opened the wrong lesson').toBe(title));
+}
 async function openLesson(id: string) {
  await new Promise(r => setTimeout(r, 280));
  localStorage.setItem('field-builder:explorer:v1', JSON.stringify({id, hideTour: true, cued: true, dark: false, sidebarOpen: true, params: {}}));
+ window.history.replaceState(null, '', '/');
  const view = render(<Explorer />);
  await view.findByRole('button', {name: 'Watch it build'});
- await waitFor(() => expect(view.container.querySelector('h1')?.textContent, 'opened the wrong lesson').toBe(getProblem(id as never).title));
+ await settleOn(view, id);
  await document.fonts.ready;
  return view;
 }
