@@ -111,6 +111,20 @@ describe('the home page', () => {
   expect(tour(), 'the tour came back within the same visit').toBeNull();
  }, 20000);
 
+ it('opens the law from "One law" in the heading, and gives focus back', async () => {
+  window.history.replaceState(null, '', '/');
+  const view = render(<Site />);
+  const heading = await view.findByRole('heading', {level: 1});
+  expect(heading.textContent).toBe('One law, every geometry.');
+  const law = view.getByRole('button', {name: 'One law'});
+  await userEvent.click(law);
+  const dialog = await view.findByRole('dialog');
+  expect(dialog.textContent).toContain('The laws behind every lesson');
+  expect(dialog.textContent).toContain('Coulomb');
+  await userEvent.keyboard('{Escape}');
+  await waitFor(() => expect(view.queryByRole('dialog')).toBeNull());
+  await waitFor(() => expect(document.activeElement).toBe(law));
+ }, 15000);
  it('fits a phone with no sideways scroll', async () => {
   await page.viewport(360, 740);
   seen();

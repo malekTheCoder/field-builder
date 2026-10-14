@@ -1,5 +1,5 @@
 'use client';
-import {useEffect,useMemo,useSyncExternalStore} from 'react';
+import {useEffect,useMemo,useRef,useState,useSyncExternalStore} from 'react';
 import {ArrowRight,GitBranch,Moon,Sun} from 'lucide-react';
 import {PROBLEMS} from '../problems/definitions';
 import {isReady} from '../problems/readiness';
@@ -10,6 +10,7 @@ import {families,ShapeGlyph} from '../explorer/lessons';
 import {Brand} from '../explorer/Brand';
 import {STORAGE} from '../explorer/Explorer';
 import {Hint} from '../components/Hint';
+import {LawsDialog} from '../components/Laws';
 import {GuideLink} from '../guide/Guide';
 import {QuizLink} from '../quiz/Quiz';
 import '../explorer/explorer.css';
@@ -97,6 +98,7 @@ function Cover(){
 
 export default function Home(){
  const raw=useSyncExternalStore(subscribeStorage,readSaved,()=>null);
+ const [laws,setLaws]=useState(false),lawButton=useRef<HTMLButtonElement>(null);
  const saved=useMemo(()=>parseSaved(raw),[raw]);
  const dark=useSyncExternalStore(subscribeTheme,isDark,()=>false);
  useEffect(()=>{document.title='Field Builder · Electric fields and potential, derived'},[]);
@@ -112,7 +114,10 @@ export default function Home(){
    <section className="home-hero" aria-labelledby="home-title">
     <div className="home-hero-text">
      <p className="home-kicker">Electric fields and potential, derived</p>
-     <h1 id="home-title">One law, every geometry.</h1>
+     {/* "One law" is the claim the page makes, so it opens the law: Coulomb's, with superposition, the
+         reference every lesson's ⋯ menu opens, said the same way here. */}
+     <h1 id="home-title" aria-label="One law, every geometry."><button ref={lawButton} type="button" className="home-law" onClick={()=>setLaws(true)} aria-haspopup="dialog">One law</button>, every geometry.</h1>
+     <LawsDialog open={laws} onOpenChange={setLaws} returnFocus={lawButton}/>
      <p className="home-lede">Build the integral for the field and the potential of continuous charge, such as rods, rings, disks and sheets, by cutting the charge into pieces and adding up what each piece does at P.</p>
      <div className="home-actions">
       <a className="home-start" href={lessonAddress(start.id,saved)} onClick={open}>Start with the finite line<ArrowRight size={16} aria-hidden="true"/></a>

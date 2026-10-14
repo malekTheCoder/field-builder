@@ -132,3 +132,10 @@
 /* In a contrast theme the background and the shadow go, and the site's main way in was a bare link, read as a
    caption beside Continue and the cards, which keep their borders. An edge in the button's own colour keeps it a button. */
 @media(forced-colors:active){.home-start{border:2px solid ButtonText}}
+
+/* "One law" opens the law. It stays the heading's own words, so it is not dressed as a link: a dotted
+   underline in the accent says it can be pressed, and pressing it says the rest. */
+.home-law{font:inherit;letter-spacing:inherit;color:inherit;background:none;border:0;padding:0;margin:0;cursor:pointer;
+ text-decoration:underline dotted color-mix(in oklab,var(--primary) 70%,transparent);text-decoration-thickness:.06em;text-underline-offset:.14em}
+.home-law:hover{color:var(--primary);text-decoration-style:solid}
+.home-law:focus-visible{outline:2px solid var(--primary);outline-offset:4px;border-radius:6px}
