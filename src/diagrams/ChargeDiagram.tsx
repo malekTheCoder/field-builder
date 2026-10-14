@@ -585,7 +585,13 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
   const boundedRound = perspective && id !== 'sheet';
   // At rest a ring's signs sit outside the wire; its outline alone needs less clearance during the run.
   const roundMargin = inSpace && id === 'ring' && !build ? 22 : 10;
-  const surfaceRise = inSpace && boundedRound ? Math.max(0, R * surfaceRoomy * Math.abs(Math.sin(view.pitch)) - surfaceBelow + surfaceDrop + roundMargin - 10) : 0;
+  // The flat disk needs a complete dimension row, not just a letter below the rim. Without the bar's
+  // sixteen-unit gap and its full label height, the phone fell back to a foreshortened R beside s = 0,
+  // leaving R, s and both limits crowded together. Lift the drawing by only that missing clearance;
+  // its charge and arrow scales stay the same. Keep the same row when the reader zooms in below.
+  const flatDiskClearance = id === 'disk' && !inSpace ? 25 + 1.37 * SYM * labelScale + 8 : 0;
+  const surfaceRise = inSpace && boundedRound ? Math.max(0, R * surfaceRoomy * Math.abs(Math.sin(view.pitch)) - surfaceBelow + surfaceDrop + roundMargin - 10)
+    : flatDiskClearance ? Math.max(0, 296 + lift + surfaceDrop + R * surfaceRoomy * Math.abs(Math.sin(view.pitch)) + flatDiskClearance - FOOTER_BAND) : 0;
   const originAt1: Point = perspective ? { x: 315, y: 296 + lift + surfaceDrop - surfaceRise } : footed ? { x: 210, y: 250 + lift } : id === 'semi' ? { x: 300, y: 310 } : id === 'axial' ? { x: 130, y: 230 } : id === 'arc' ? { x: 375, y: 218 } : { x: 220, y: 216 };
   // Pixels per metre, times whatever the reader has zoomed to. The projection, the canvas
   // and the 3D frustum all read this, so one multiply zooms the whole figure and no layer
@@ -654,9 +660,10 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
   const edgeRoom = (centre: number, edge: number, lo: number, hi: number) => edge > centre + 1e-6 ? (hi - centre) / (edge - centre)
     : edge < centre - 1e-6 ? (lo - centre) / (edge - centre) : Infinity;
   const roundDepth = R * baseUnit * Math.abs(Math.sin(view.pitch));
+  const roundBottom = Math.min(371 - roundMargin - labelRoom, flatDiskClearance ? FOOTER_BAND - flatDiskClearance : Infinity);
   const roundFit = boundedRound ? Math.min(
     edgeRoom(anchor.x, originAt1.x - R * baseUnit, 42 + roundMargin, 668 - roundMargin), edgeRoom(anchor.x, originAt1.x + R * baseUnit, 42 + roundMargin, 668 - roundMargin),
-    edgeRoom(anchor.y, originAt1.y - roundDepth, 54 + roundMargin, 371 - roundMargin - labelRoom), edgeRoom(anchor.y, originAt1.y + roundDepth, 54 + roundMargin, 371 - roundMargin - labelRoom),
+    edgeRoom(anchor.y, originAt1.y - roundDepth, 54 + roundMargin, roundBottom), edgeRoom(anchor.y, originAt1.y + roundDepth, 54 + roundMargin, roundBottom),
   ) : Infinity;
   const fits = Math.min(roomX, roomY, roundFit);
   const zoomCeiling = fits > ZOOM_MAX ? ZOOM_MAX : fits < 1 ? 1 : fits;
@@ -1661,8 +1668,8 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
   // Seen flat, the radius at that azimuth foreshortens to a stub at O, and R stood beside the z bar, which then read
   // as having two names. There R is a dimension of its own under the disk's left half, true length side-on, as a
   // drawing dimensions the radius of a part seen edge-on: see `dims`.
-  // (Where there is no room for it under the disk -- a phone, with the flat disk lifted toward the footer -- the radius
-  // at that azimuth is kept.)
+  // The flat view reserves this whole row below its near rim, including on phones; in space the radius
+  // keeps its true azimuth on the charge.
   const flatR = id === 'disk' && !inSpace ? (() => { const y = O.y + R * unit * Math.abs(Math.sin(view.pitch)) + 16; return y + 9 + 1.37 * SYM * labelScale <= FOOTER_BAND ? y : null; })() : null;
   const rim = id === 'disk' && flatR === null ? (() => {
     const tip = ray({ x: -Math.SQRT1_2, y: -Math.SQRT1_2, z: 0 }, R * unit), d = direction(vsub(tip, O));
@@ -2061,7 +2068,7 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
     dims.push(dimBar('r', 'distance', { x, y: O.y }, { x, y: P.y }, 'r', -1));
   }
   if (perspective && !inSpace) dims.push(dimBar('z', 'distance', { x: O.x - 30, y: O.y }, { x: O.x - 30, y: P.y }, 'z', -1));
-  if (flatR !== null) dims.push({ ...dimBar('R', 'size', { x: O.x - R * unit, y: flatR }, { x: O.x, y: flatR }, 'R', 1), within: `0 ${flatR.toFixed(1)} 0 1` });
+  if (flatR !== null) dims.push({ ...dimBar('R', 'size', { x: O.x - R * unit, y: flatR }, { x: O.x, y: flatR }, 'R', 1), within: `0 ${flatR.toFixed(1)} 0 1;${(O.x - SYM * labelScale).toFixed(1)} 0 -1 0` });
   if (perspective && inSpace) {
     // In space the bar would cross an axis on either side, so z is a letter alone: beside the axis,
     // between P and where the plane's far edge crosses it, clear of both.
@@ -2448,6 +2455,13 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
         const mid = { x: (a.at.x + b.at.x) / 2, y: (a.at.y + b.at.y) / 2 }, u = { x: (b.at.x - a.at.x) / gap, y: (b.at.y - a.at.y) / gap };
         a.within = `${mid.x.toFixed(1)} ${mid.y.toFixed(1)} ${(-u.x).toFixed(3)} ${(-u.y).toFixed(3)}`;
         b.within = `${mid.x.toFixed(1)} ${mid.y.toFixed(1)} ${u.x.toFixed(3)} ${u.y.toFixed(3)}`;
+        // The flat disk's lower limit belongs above its central handle. Below and left is the disk's
+        // own R dimension, which a short radius otherwise lets s = 0 slide onto.
+        if (id === 'disk' && !inSpace) {
+          a.within += `;0 ${(O.y - 10).toFixed(1)} 0 -1`;
+          // The upper limit reads outside the rim, even when the radius is shorter than its name.
+          b.within += `;${(b.at.x + 1.5 * SYM * labelScale).toFixed(1)} 0 1 0`;
+        }
       }
     }
     return out;
