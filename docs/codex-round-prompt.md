@@ -16,7 +16,7 @@ problems, test everything, merge, push, and confirm CI is green.
   and learns to build the integral for its field or potential at a point P.
 - **Where it lives:**
   - Repo: `~/Developer/field-builder`, GitHub `malekTheCoder/field-builder`, remote on SSH.
-  - Live: https://field.malekswilam.dev via GitHub Pages.
+  - Live: https://learnem.malekswilam.dev via GitHub Pages.
   - CI: `.github/workflows/pages.yml` runs on every push to `main`: `tsc`, `oxlint`, `npm test` (all
     vitest projects) and `npm run build:static`, then deploys. A red suite means no deploy.
 - **The owner's bar is textbook quality:**

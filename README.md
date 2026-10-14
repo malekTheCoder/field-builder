@@ -2,7 +2,7 @@
 
 An interactive electric-field workbench for calculus-based introductory physics (Physics 2 / AP Physics C: E&M). Students move an observation point, cut a charge distribution into elements, watch a finite sum become an integral, and check the result against a limiting case.
 
-**Live site:** [https://field.malekswilam.dev](https://field.malekswilam.dev) — public, no student accounts.
+**Live site:** [https://learnem.malekswilam.dev](https://learnem.malekswilam.dev) — public, no student accounts.
 
 Fifteen lessons are in the library, **all live**: ten field geometries and five potential lessons. A lesson that is not ready can be held back in `src/problems/readiness.ts`, where it stays listed under *Coming soon* rather than hidden. They are listed rather than hidden, so a reader can see the whole plan and tell the gap is deliberate; `src/problems/readiness.ts` is the only switch, and why each one is held back is written there.
 
@@ -24,7 +24,7 @@ The run can be paused, scrubbed, and stepped a stage at a time from the bar unde
 
 The address is the assignment: every student who opens a link sees the same lesson with the same values. **Lesson tools (…) → Copy a link to this lesson** copies it, so a projector in full screen or a phone without an address bar can still share one. While Watch it build is open the address names the stage it is on, so pausing the ring at What cancels and copying the link sends exactly that.
 
-Example: [https://field.malekswilam.dev/?p=ring&r=2&stage=3](https://field.malekswilam.dev/?p=ring&r=2&stage=3) opens the ring with P at height 2, Watch it build held at the end of What cancels.
+Example: [https://learnem.malekswilam.dev/?p=ring&r=2&stage=3](https://learnem.malekswilam.dev/?p=ring&r=2&stage=3) opens the ring with P at height 2, Watch it build held at the end of What cancels.
 
 | query | meaning |
 | --- | --- |
@@ -159,6 +159,6 @@ Gauss’s law, Biot–Savart, circuits, and student-account sync are not in the 
 
 Public repository: [https://github.com/malekTheCoder/field-builder](https://github.com/malekTheCoder/field-builder).
 
-Application address: https://field.malekswilam.dev. The active deployment workflow is `.github/workflows/pages.yml`. `npm run build:static` produces `dist-static/`; fonts and physics run locally in the browser. GitHub Actions validates and deploys that directory on pushes to main.
+Application address: https://learnem.malekswilam.dev. The active deployment workflow is `.github/workflows/pages.yml`. `npm run build:static` produces `dist-static/`; fonts and physics run locally in the browser. GitHub Actions validates and deploys that directory on pushes to main.
 
 The custom-domain CNAME points `field` to `malekthecoder.github.io`. Domain DNS changes are managed by the owner; the main domain and mail records are independent of this app.

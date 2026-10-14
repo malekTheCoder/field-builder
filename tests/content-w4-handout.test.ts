@@ -77,10 +77,10 @@ describe('the copy prints as a handout', () => {
     }
   });
   it('the live lesson’s address is printed under the title, when the page hands it over', () => {
-    const p = getProblem('arc'), url = 'https://field.malekswilam.dev/?p=arc&phi=90deg&Q=-2';
+    const p = getProblem('arc'), url = 'https://learnem.malekswilam.dev/?p=arc&phi=90deg&Q=-2';
     const html = artifactHtml(lessonArtifact(p, p, url));
     const address = /<p class="address">([\s\S]*?)<\/p>/.exec(html)![1];
-    expect(address).toContain(`<a href="https://field.malekswilam.dev/?p=arc&amp;phi=90deg&amp;Q=-2">https://field.malekswilam.dev/?p=arc&amp;phi=90deg&amp;Q=-2</a>`);
+    expect(address).toContain(`<a href="https://learnem.malekswilam.dev/?p=arc&amp;phi=90deg&amp;Q=-2">https://learnem.malekswilam.dev/?p=arc&amp;phi=90deg&amp;Q=-2</a>`);
     expect(html.indexOf('<p class="address">')).toBeGreaterThan(html.indexOf('<p class="lede">'));
     expect(html.indexOf('<p class="address">')).toBeLessThan(html.search(/<h2>Setup<\/h2>|<p class="problem">/));
     expect(artifactHtml(lessonArtifact(p))).not.toMatch(/class="address"/);
