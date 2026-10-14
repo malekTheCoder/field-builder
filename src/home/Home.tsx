@@ -56,12 +56,14 @@ const STEPS:{name:string;text:string}[]=[
 /** The picture the site is about, drawn once: a rod cut into pieces, and the argument of every lesson in one
  * frame. The top piece and its mirror at the bottom are the same distance from P, so their arrows there are
  * the same length: their up and down parts are equal and opposite, and cancel; their parts along the axis
- * point the same way, and add -- and adding every such pair is the field E, drawn beneath. It replaced a
+ * point the same way, and add. The arrow beneath is this pair’s share of E, not the whole rod’s field;
+ * the other pieces still have to be added. The two slant distances use r_i, as the lesson does: r is
+ * reserved for the perpendicular distance from the rod to P. It replaced a
  * tip-to-tail chain of all five arrows, which zigzagged and said nothing about cancelling. */
 function Cover(){
  const P={x:226,y:150},rod=86,pieces=[70,110,150,190,230],top=0,bottom=4,L=86;
  const dx=P.x-rod,dy=P.y-pieces[top],r=Math.hypot(dx,dy),ux=dx/r,uy=dy/r;
- const along=L*ux,across=L*uy,E=2*along,below=72;
+ const along=L*ux,across=L*uy,pair=2*along,below=72;
  const head=(x:number,y:number,hx:number,hy:number,s:number)=>`M${x} ${y}L${x-hx*s-hy*s*.55} ${y-hy*s+hx*s*.55}L${x-hx*s+hy*s*.55} ${y-hy*s-hx*s*.55}Z`;
  const arrow=(x0:number,y0:number,hx:number,hy:number,len:number,cls:string,s:number)=>{const x=x0+hx*len,y=y0+hy*len;return <g className={cls}><path d={`M${x0} ${y0}L${x-hx*s*.6} ${y-hy*s*.6}`}/><path className="home-head" d={head(x,y,hx,hy,s)}/></g>};
  const kx=P.x+along;
@@ -70,8 +72,8 @@ function Cover(){
   {pieces.map((y,i)=>i!==top&&i!==bottom&&<line key={i} className="home-ray" x1={rod} y1={y} x2={P.x} y2={P.y}/>)}
   <line className="home-ray is-chosen" x1={rod} y1={pieces[top]} x2={P.x} y2={P.y}/>
   <line className="home-ray is-chosen" x1={rod} y1={pieces[bottom]} x2={P.x} y2={P.y}/>
-  <text className="home-label home-r" x={(rod+P.x)/2+4} y={(pieces[top]+P.y)/2-10}>r</text>
-  <text className="home-label home-r" x={(rod+P.x)/2+4} y={(pieces[bottom]+P.y)/2+24}>r</text>
+  <text className="home-label home-r" x={(rod+P.x)/2+4} y={(pieces[top]+P.y)/2-10}>r<tspan fontSize="65%" baselineShift="sub">i</tspan></text>
+  <text className="home-label home-r" x={(rod+P.x)/2+4} y={(pieces[bottom]+P.y)/2+24}>r<tspan fontSize="65%" baselineShift="sub">i</tspan></text>
   {pieces.map((y,i)=><rect key={i} className={'home-piece'+(i===top||i===bottom?' is-chosen':'')} x={rod-7} y={y-18} width={14} height={36} rx={4}/>)}
   <text className="home-label home-dq" x={rod-20} y={pieces[top]+6} textAnchor="end"><tspan className="is-upright">Δ</tspan>Q</text>
   <text className="home-label home-dq" x={rod-20} y={pieces[bottom]+6} textAnchor="end"><tspan className="is-upright">Δ</tspan>Q</text>
@@ -87,12 +89,11 @@ function Cover(){
   <text className="home-label home-de" x={kx+12} y={P.y+across+8}><tspan className="is-upright">Δ</tspan>E</text>
   <text className="home-label home-de" x={kx+12} y={P.y-across+4}><tspan className="is-upright">Δ</tspan>E</text>
   {/* Their parts along the axis add: two of them, laid end to end, is this pair's share of E. */}
-  <line className="home-tie" x1={P.x} y1={P.y} x2={P.x} y2={P.y+below}/><line className="home-tie" x1={P.x+E} y1={P.y} x2={P.x+E} y2={P.y+below}/>
-  {arrow(P.x,P.y+below,1,0,E,'home-net',10)}
-  <text className="home-note" x={P.x+E/2} y={P.y+below+24} textAnchor="middle">the parts along the axis add</text>
+  <line className="home-tie" x1={P.x} y1={P.y} x2={P.x} y2={P.y+below}/><line className="home-tie" x1={P.x+pair} y1={P.y} x2={P.x+pair} y2={P.y+below}/>
+  {arrow(P.x,P.y+below,1,0,pair,'home-net',10)}
+  <text className="home-note" x={P.x+pair/2} y={P.y+below+24} textAnchor="middle">this pair’s share of <tspan fontStyle="italic">E</tspan></text>
   <circle className="home-p" cx={P.x} cy={P.y} r={4.5}/>
   <text className="home-label" x={P.x-8} y={P.y-12} textAnchor="end">P</text>
-  <text className="home-label home-e" x={P.x+E+10} y={P.y+below+6}>E</text>
  </svg>;
 }
 

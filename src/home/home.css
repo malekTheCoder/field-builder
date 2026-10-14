@@ -64,7 +64,6 @@
 .home-label{font-family:var(--serif);font-style:italic;font-size:20px;fill:var(--foreground)}
 .home-label tspan.is-upright{font-style:normal}
 .home-dq,.home-r{fill:var(--charge)}
-.home-e{fill:var(--field);font-weight:600}
 
 .home-section-title{font-family:var(--serif);font-weight:400;font-size:var(--type-title);letter-spacing:-.015em;line-height:1.2;margin-bottom:22px}
 
