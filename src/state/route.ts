@@ -2,13 +2,17 @@ import {isReady} from '../problems/readiness';
 import {parseAssignment} from './assignment';
 
 /** Which page an address is: a lesson when it names one (or carries the values of the first, as an
- * old link with no lesson in it does -- see Explorer's reading of the address), the home page otherwise.
- * Every lesson's address names it (`?p=ring`), so a teacher's link still opens its lesson directly. */
-export type View = 'home' | 'lesson';
+ * old link with no lesson in it does -- see Explorer's reading of the address), the study guide when it
+ * says `?guide`, the home page otherwise. Every lesson's address names it (`?p=ring`), so a teacher's link
+ * still opens its lesson directly; and a lesson wins over the guide, so no lesson link can be taken from it. */
+export type View = 'home' | 'lesson' | 'guide';
 export function viewOf(search: string): View {
   const a = parseAssignment(search);
-  return (a.id && isReady(a.id)) || a.params ? 'lesson' : 'home';
+  if ((a.id && isReady(a.id)) || a.params) return 'lesson';
+  return new URLSearchParams(search).has('guide') ? 'guide' : 'home';
 }
+/** The study guide's address: a page of its own a teacher can link to, as a lesson's is. */
+export const GUIDE_HREF = '?guide';
 
 /** A move made by the page itself. `pushState` fires no event of its own, so the page that switches
  * between home and lesson is told by this one; Back and Forward arrive as `popstate`. */
