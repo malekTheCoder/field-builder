@@ -53,7 +53,7 @@ owner says they are urgent.
 ## Done
 - Walkthrough (owner's answer, 2026-10-13): an old `seen` no longer hides it; "Don't show this again" and
   "Skip intro" on every page (a545d5e). Handouts already carry the limiting cases.
-- Usage guard: stop at weekly 35% (owner, 2026-10-14) or 5-hour 90%; check get_usage before each round.
+- Usage guard: stop at weekly 40% (owner, 2026-10-14) or 5-hour 90%; check get_usage before each round.
 - Wave 5 (one critique round, five lanes) published as 04fd0a4: the handout teaches the method once, the
   tour's sum page is true on every lesson, the lead takes the subtitle's place, focus lands on the title,
   pairs join the sum at its head in 3D, quieter sheet rings, handles that cannot cross, one θ on a wide arc,
