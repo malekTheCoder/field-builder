@@ -9,6 +9,8 @@ owner says they are urgent.
 - **Codex round** (owner runs it with [codex-round-prompt.md](codex-round-prompt.md)). Stay off its files meanwhile.
 - **How to use this site** (owner, 2026-10-13: "make sure it's active study"): its own page at ?guide,
   linked from home and the lesson header. An agent is building it in a worktree, alongside Codex.
+- **Quiz yourself, step 1** (owner approved, 2026-10-14): the ?quiz page and its three screens, with a bank
+  for the finite line, the ring and the infinite line, for the owner to try. Agent in a worktree.
 
 ## Next
 - **Lesson-to-lesson links feel broken** (e.g. "Take this rod to infinity" on the finite line). Clicking
