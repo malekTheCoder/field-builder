@@ -2232,6 +2232,12 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
     if (!build && !scalar && showContribution && mode !== 'sum' && selectedGain > 1.25) return surface ? 'The ring\u2019s arrow drawn larger' : 'The piece\u2019s arrow drawn larger';
     return cutInto;
   })();
+  // The sheet's angular charge element is the longest footer formula. On a phone the full scale warning
+  // overlapped its final Δα, so two true statements became one unreadable line. Keep the formula intact and
+  // say the same magnification warning in fewer words where the figure is narrow; no font shrinking needed.
+  const footerScaleNote = narrow ? scaleNote.replace('The ring\u2019s', 'Ring').replace('The piece\u2019s', 'Piece')
+    .replace('Both pieces\u2019', 'Both').replace(' drawn larger', ' enlarged').replace(' drawn smaller', ' reduced')
+    .replace(`${cutInto} \u00b7 back to scale`, 'Returning to scale') : scaleNote;
   // WHERE P IS NAMED. Beside the dot, on whichever side nothing else at P is using: not toward the
   // charge, not along the field's arrow or a piece's, not along the construction line, and not along
   // the axis P sits on -- which for a ring or a disk seen in space is straight down onto the plane.
@@ -3544,7 +3550,7 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
       <line x1="30" y1="387" x2="690" y2="387" className="cd-divider" />
       <text x="30" y="409" className="cd-footer cd-footer-math"><SymbolText symbol={sourceLabel.symbol} tail={sourceLabel.tail} /></text>
       {build && <text key={build.key} data-anchor="fixed" data-build-stage={build.key} className="cd-stage-label" x="360" y="34" textAnchor="middle">{build.name}</text>}
-      <text x="690" y="409" textAnchor="end" className="cd-footer" data-dim="pieces">{scaleNote}</text>
+      <text x="690" y="409" textAnchor="end" className="cd-footer" data-dim="pieces">{footerScaleNote}</text>
     </svg>
     </LabelScale.Provider>
     </div>
