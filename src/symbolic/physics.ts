@@ -164,7 +164,7 @@ export function limitPlot(problem:Problem,limit:Limit):LimitPlot{
   // The potential's curve is the arc's point charges added up, not the closed form kQ/R: a legend
   // that said "your exact potential" read as kQ/R plotted against itself.
   case 'full':return scalar
-   ?{kind:'constant',y:'|V| ÷ kQ/R, and |E| scaled',axis:'opening angle φ, with Q fixed',from:'φ small',to:'full circle',line:'kQ/R',solid:'The arc’s pieces, added up',second:'The field |E|, scaled',caption:'As the arc closes the field falls to zero, while the potential stays on the dashed line at every φ.'}
+   ?{kind:'constant',y:'|V| ÷ k|Q|/R, and |E| scaled',axis:'opening angle φ, with Q fixed',from:'φ small',to:'full circle',line:'k|Q|/R',solid:'The arc’s pieces, added up',second:'The field |E|, scaled',caption:'As the arc closes the field falls to zero, while the potential stays on the dashed line at every φ.'}
    :{kind:'decay',y:'|E|, scaled',axis:'opening angle φ, with Q fixed',from:'φ small',to:'full circle',line:'zero',caption:'With the charge fixed, the field only falls as the arc opens, and reaches zero when it closes into a full circle.'};
   case 'half':return{kind:'ratio',y:'|sum| ÷ integral',axis:'the semicircle as N point charges',from:'one piece',to:'many pieces',line:'the integral',solid:'Sum of N point charges',caption:'The plot builds the semicircle from N point charges: the more there are, the closer their sum comes to the integral, the dashed line.'};
   // The sheet's curve is its rings added up, the line's its pieces: neither is the closed form, and a
