@@ -47,8 +47,8 @@ owner says they are urgent.
    [quiz-plan.md](quiz-plan.md), waiting for the owner's OK.
 9. **Design language redo** (owner, 2026-10-14): carry over the hiketalkstay rebuild's look (one grotesque,
    pure greys, an ink button, hairlines and no shadows, a rare accent) while the figure keeps its physics
-   colours. Plan: [redesign-plan.md](redesign-plan.md), waiting for the owner's three choices. Do it after
-   the Codex round.
+   colours. Plan: [redesign-plan.md](redesign-plan.md), approved (Hanken Grotesk, teal accent, ink logo).
+   Do it after the Codex round.
 
 ## Done
 - Walkthrough (owner's answer, 2026-10-13): an old `seen` no longer hides it; "Don't show this again" and

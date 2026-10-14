@@ -1,6 +1,6 @@
 # Design language redo: plan
 
-Status: proposal, waiting for the owner's OK (asked 2026-10-14). Not started.
+Status: approved 2026-10-14 (Hanken Grotesk, teal accent, ink logo tile). Starts after the Codex round lands.
 
 The owner asked for the site's design language to be redone after the hiketalkstay rebuild they did
 (`~/Developer/hiketalkstay-rebuild`, palette "Mererani"). This plan carries that language over, and adapts
@@ -77,12 +77,10 @@ it where a physics teaching site differs from a travel site.
 - **Every first-screen and layout guarantee** (1280×720, 1366×657, 390).
 - **Readable maths sizes.**
 
-## Decisions for the owner
-1. **Typeface:** Hanken Grotesk (the same as hiketalkstay), or keep Geist (already loaded, also a clean
-   grotesque).
-2. **Accent:** keep the site's teal as the only accent (in hairlines, links and focus), or use
-   hiketalkstay's blue-violet.
-3. **Logo:** keep the teal ∫ tile, or make it ink.
+## The owner's decisions (2026-10-14)
+1. **Typeface:** Hanken Grotesk, the same family as hiketalkstay.
+2. **Accent:** the site's teal, as the only accent, in hairlines, links and focus, never a fill.
+3. **Logo:** an ink tile with a white ∫.
 
 ## Order of work (after the Codex round lands, since it touches the same files)
 1. **Tokens.** Colour, type scale, radius, motion and dark theme in `app/globals.css`, with a contrast
