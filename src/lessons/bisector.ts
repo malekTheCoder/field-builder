@@ -28,7 +28,7 @@ export const lesson: Lesson = {
     ]},
     {heading: 'What cancels', body: [
       raw`Fields add as vectors, so split each one into parts along the axes. The part along $x$ is $\Delta E\cos\alpha$, and the same triangle gives $\cos\alpha=r/\sqrt{y^2+r^2}$.`,
-      raw`Now take the piece’s mirror, at $-y$. It is the same distance from $P$ and makes a field of the same size, at the same angle on the other side of the axis. Their parts along the rod are equal and opposite, so they cancel; their parts along $x$ are equal, so they add. Every piece has such a partner, so`,
+      raw`Now take the piece’s mirror, at $-y$. It is the same distance from $P$ and makes a field of the same size, at the same angle on the other side of the axis. Their parts along the rod are equal and opposite, so they cancel; their parts along $x$ are equal, so they add. Every piece off the axis has such a partner, and a middle piece level with $P$ has no part along the rod at all, so`,
       {tex: raw`E_y=0`},
       raw`and the whole field at $P$ is $E_x$, perpendicular to the rod.`,
     ]},
@@ -50,6 +50,6 @@ export const lesson: Lesson = {
   read: [
     {book: 'OpenStax, University Physics Volume 2', where: '§5.5, Calculating Electric Fields of Charge Distributions', url: 'https://openstax.org/books/university-physics-volume-2/pages/5-5-calculating-electric-fields-of-charge-distributions'},
     {book: 'Griffiths, Introduction to Electrodynamics', where: '§2.1, Example 2.1: a line segment, above its midpoint'},
-    {book: 'Purcell and Morin, Electricity and Magnetism', where: 'Chapter 1, Electrostatics: charges and fields'},
+    {book: 'Purcell and Morin, Electricity and Magnetism', where: 'Chapter 1, Electrostatics'},
   ],
 };

@@ -39,7 +39,7 @@ export const LessonIntro=memo(function LessonIntro({lesson,open,onToggle,onBuild
    {lesson.sections.map(s=><section key={s.heading} className="exp-lesson-section"><h3>{s.heading}</h3>
     {s.body.map((b,i)=>typeof b==='string'?<p key={i}><Prose text={b}/></p>:<MathText key={i} block className="exp-lesson-display" tex={b.tex}/>)}</section>)}
    <section className="exp-lesson-section exp-lesson-read"><h3>Read it in a textbook</h3>
-    <ul>{lesson.read.map(r=><li key={r.book}>{r.url?<a href={r.url} target="_blank" rel="noreferrer">{r.book}<ExternalLink size={12} aria-hidden="true"/></a>:<cite>{r.book}</cite>}<span>{r.where}</span>{r.url&&<span className="exp-lesson-url">{r.url}</span>}</li>)}</ul>
+    <ul>{lesson.read.map((r,i)=><li key={i}>{r.url?<a href={r.url} target="_blank" rel="noreferrer">{r.book}<ExternalLink size={12} aria-hidden="true"/></a>:<cite>{r.book}</cite>}<span>{r.where}</span>{r.url&&<span className="exp-lesson-url">{r.url}</span>}</li>)}</ul>
    </section>
    {/* The lesson ends where the page's one button begins: the same argument, built one stage at a time on the
        figure. Named for where it goes, not "Watch it build" a second time -- two buttons of one name doing two

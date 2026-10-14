@@ -904,7 +904,7 @@
 /* Read as one aside to the title: a rule down its side in the field's ink, the lead in the page's ink beside the
    subtitle's muted one, and the way in to the rest after the lead's last word -- under it where the line is full.
    Shut, it is the lead and one quiet button, so the figure is still on the first screen. */
-.exp-heading.has-lesson{margin-bottom:14px}
+.exp-heading.has-lesson{margin-bottom:10px}
 .exp-lesson{display:flex;flex-wrap:wrap;align-items:baseline;column-gap:16px;row-gap:4px;max-width:78ch;
  margin:0 0 var(--gap-part);padding:2px 0 2px 16px;border-left:2px solid color-mix(in oklab,var(--field) 55%,transparent)}
 .exp-lesson-lead{flex:1 1 34ch;max-width:66ch;font-size:var(--type-body);line-height:1.6;color:var(--foreground)}

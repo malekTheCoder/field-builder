@@ -6,10 +6,10 @@ then to **Done**, with the commit. Newest requests are added at the bottom of **
 owner says they are urgent.
 
 ## In progress
-- **The other fourteen lessons** (Next 9): two agents, rods and lines / rings, disks, arcs and the sheet;
-  two physics reviewers after.
-- **Critique round, wave 5** (owner, 2026-10-13: "both in parallel"): one round, five lanes with two
-  critics each, one publish at the end. Usage cap: weekly 40%, 5-hour 90%.
+- **Critique round, wave 5: PAUSED** (owner went offline, 2026-10-13). Four lanes' fixes wait on the local
+  branch `swarm` (content, page, scene, figure); the panel's is on `paused/w5-panel`, not yet integrated.
+  To finish: integrate the panel, run the whole suite, publish swarm to main, check CI. Then the owner runs
+  one Codex round ([codex-round-prompt.md](codex-round-prompt.md)). Usage cap: weekly 40%, 5-hour 90%.
 
 ## Next
 - **Lesson-to-lesson links feel broken** (e.g. "Take this rod to infinity" on the finite line). Clicking
@@ -55,8 +55,18 @@ owner says they are urgent.
 10. **Walkthrough (owner's answer, 2026-10-13).** An old `seen` no longer hides it: returning readers
    get the new tour, with "Don't show this again" and "Skip intro" on every page. Handouts: the
    limiting cases are already in them, kept simple.
+11. **How to use this site** (owner, 2026-10-13): a guide to actually learning with it, not a feature tour.
+   The plan goes to the owner first; build only once they approve. Best after the fourteen lessons land.
+   Owner (2026-10-13): it must teach ACTIVE study, not rereading: quiz yourself, predict, recall.
+12. **Quiz yourself** (owner, 2026-10-13): its own page, not inside the lessons. The student picks the
+   shapes, questions come from a bank, and personalized feedback follows. Plan:
+   [quiz-plan.md](quiz-plan.md), waiting for the owner's OK.
 
 ## Done
+- All fifteen lessons are written and physics-reviewed (601aac8, 3cf1fb6, 26c3a11; reviews 5286115,
+  6adbdb2, 0f272b0). The reviewers fixed: a ring piece called a point charge, a factor of two in the disk's
+  integral, the arc potential's φ claim, the rod-on-axis far fields measured from the end, the bisector's
+  lone middle piece, sign-dependent "grows", and Purcell's chapter title.
 - No em dashes on the site (owner, 2026-10-13): every visible sentence that used one now uses a comma,
   colon, brackets or a full stop; tests/no-em-dash.test.ts keeps them out. Comments may still use them.
 - CI green again, Pages deploying (d55dcb4, run 38389216435). The ring's run-perf failure was not a
