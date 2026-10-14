@@ -45,6 +45,10 @@ owner says they are urgent.
 8. **Quiz yourself** (owner, 2026-10-13): its own page, not inside the lessons. The student picks the
    shapes, questions come from a bank, and personalized feedback follows. Plan:
    [quiz-plan.md](quiz-plan.md), waiting for the owner's OK.
+9. **Design language redo** (owner, 2026-10-14): carry over the hiketalkstay rebuild's look (one grotesque,
+   pure greys, an ink button, hairlines and no shadows, a rare accent) while the figure keeps its physics
+   colours. Plan: [redesign-plan.md](redesign-plan.md), waiting for the owner's three choices. Do it after
+   the Codex round.
 
 ## Done
 - Walkthrough (owner's answer, 2026-10-13): an old `seen` no longer hides it; "Don't show this again" and
