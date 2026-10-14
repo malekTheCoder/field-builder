@@ -6,11 +6,15 @@ then to **Done**, with the commit. Newest requests are added at the bottom of **
 owner says they are urgent.
 
 ## In progress
-- **Codex round** (owner runs it with [codex-round-prompt.md](codex-round-prompt.md)). Stay off its files meanwhile.
-- **How to use this site** (owner, 2026-10-13: "make sure it's active study"): its own page at ?guide,
-  linked from home and the lesson header. An agent is building it in a worktree, alongside Codex.
-- **Quiz yourself, step 1** (owner approved, 2026-10-14): the ?quiz page and its three screens, with a bank
-  for the finite line, the ring and the infinite line, for the owner to try. Agent in a worktree.
+Where things stood on 2026-10-14 evening, in case the session resumes after a disconnect:
+- **Codex round:** Codex stopped; Claude is landing it. Its 13 commits are on branch `codex/round` in the
+  worktree `~/Developer/fb-codex-round` (rebased on f8ee8f7). Codex's own local suite passed (4118). To land it:
+  rebase onto origin/main, run tsc + oxlint + the whole suite, push, remove the worktree and the branch.
+- **Quiz questions for the other twelve shapes:** two agents in worktrees under `.claude/worktrees/`
+  (rods and lines; disks, arcs and the sheet). Each pushes to main itself. If one died mid-way, its
+  worktree has its files: finish, test, push. Then two physics reviewers check all the quiz's questions.
+- **Redesign:** approved ([redesign-plan.md](redesign-plan.md)); starts once the Codex round is on main.
+- Agents don't watch CI any more; Claude checks it every so often.
 
 ## Next
 - **Lesson-to-lesson links feel broken** (e.g. "Take this rod to infinity" on the finite line). Clicking
