@@ -946,3 +946,7 @@
 @media(max-width:520px){.exp-lesson{padding-left:12px;column-gap:12px}.exp-lesson-section p{font-size:15px}.exp-lesson-display{font-size:16px}}
 @media(prefers-reduced-motion:reduce){.exp-lesson-toggle>svg{transition:none}}
 @media(forced-colors:active){.exp-lesson{border-left-color:CanvasText}.exp-lesson-go{border-color:ButtonText}}
+/* THE STUDY GUIDE'S LINK GIVES WAY ON THE NARROWEST PHONES. Beside Walkthrough it is one more button in the
+   header, and at 320 pixels the name, four buttons and their eight-pixel spacing ran a pixel past the window
+   with the CI's fonts: the page scrolled sideways. Below 360 the guide is reached from the home page. */
+@media(max-width:360px){.exp-header .guide-link{display:none}}
