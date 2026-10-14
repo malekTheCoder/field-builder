@@ -23,3 +23,13 @@ it('the home subtotal is precisely the two visible contributions at one scale',(
  expect(components[0][1]+components[1][1]).toBeCloseTo(0,10);
  expect(b[1]-a[1]).toBe(0);
 });
+
+it('the shared outline allows ring pieces and both fields and potentials',()=>{
+ const {container}=render(<Home/>),outline=container.querySelector('.home-steps')!.textContent!;
+ // Disk, sheet and disk-potential lessons reuse a whole thin ring’s result. Treating that
+ // ring as a point charge is precisely the shortcut the disk lesson warns against.
+ expect(outline).not.toMatch(/each small enough to act as a point|as if it were a point charge/);
+ expect(outline).toMatch(/thin rings/);
+ expect(outline).toMatch(/field or potential/);
+ expect(outline).toMatch(/a result already built/);
+});

@@ -47,8 +47,8 @@ const FAMILY_NOTE:Record<string,string>={
 
 /** The argument every lesson makes, in the five steps of its run (explorer/buildRun.ts). */
 const STEPS:{name:string;text:string}[]=[
- {name:'Cut it up',text:'Cut the charge into pieces, each small enough to act as a point.'},
- {name:'One piece',text:'Write what one piece does at P, as if it were a point charge.'},
+ {name:'Cut it up',text:'Cut the charge into simple pieces: short segments, small arcs or thin rings.'},
+ {name:'One piece',text:'Find one piece’s field or potential at P, using Coulomb’s law or a result already built.'},
  {name:'What cancels',text:'Pair each piece with its mirror, where it has one, and see what cancels.'},
  {name:'Add them up',text:'Add what survives, piece by piece along the charge.'},
  {name:'Shrink them',text:'Make the pieces smaller without end. The sum becomes the integral.'}];
