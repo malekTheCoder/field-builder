@@ -377,6 +377,29 @@ const keep = (head: string, blocks: string[]) => blocks.length ? `<div class="ke
  * itself prints none, and the copy should not be where they come back. Its one address is the live
  * lesson's, under the title: a student holding the paper had no way back to the page it came from. */
 export function artifactHtml(a: LessonArtifact) {
+  // The textbook lesson comes first, and may already contain a result or the last line of a
+  // differentiation. The old guards only compared the later Working with The result, so seven lessons’
+  // copies printed a lesson's equation again. Keep its first display and point back by the
+  // section's name. The explanation still stays in the working, and the link works offline;
+  // on paper "above" and the section name are enough to find the equation.
+  const displayKey = (tex: string) => mathml(tex).replace(/<annotation\b[\s\S]*?<\/annotation>/g, '').replace(/\s+/g, ' ');
+  const taughtDisplays = new Map<string, {anchor: string; heading: string}>();
+  for (const [si, section] of (a.lesson?.sections ?? []).entries()) for (const [bi, block] of section.body.entries()) {
+    if (typeof block === 'string') continue;
+    const key = displayKey(block.tex);
+    if (!taughtDisplays.has(key)) taughtDisplays.set(key, {anchor: `lesson-equation-${si}-${bi}`, heading: section.heading});
+  }
+  const reference = (where: {anchor: string; heading: string}) => `<p class="equation-reference">This equation appears above in <a href="#${where.anchor}">${escapeHtml(where.heading)}</a>.</p>`;
+  const display = (tex: string) => {
+    const where = taughtDisplays.get(displayKey(tex));
+    return where ? reference(where) : mathml(tex);
+  };
+  const lessonDisplay = (tex: string, si: number, bi: number) => {
+    const where = taughtDisplays.get(displayKey(tex))!;
+    return where.anchor === `lesson-equation-${si}-${bi}`
+      ? mathml(tex).replace('<math ', `<math id="${where.anchor}" `)
+      : reference(where);
+  };
   const figure = a.svg
     ? `<figure>${a.svg}${a.coordinate ? `<figcaption>${mathml(a.coordinate, false)}</figcaption>` : ''}</figure>`
     : '';
@@ -419,11 +442,11 @@ export function artifactHtml(a: LessonArtifact) {
   const building = !taughtFirst && a.building?.length ? keep('<h2>Building the integral</h2>', a.building.map((s, i) => stage(s, i === a.building!.length - 1))) : '';
   // A potential lesson promises that "E falls out of one derivative"; the copy ended at V without it,
   // and then printed only the derivative's last line.
-  const steps = (list: WorkedStep[]) => list.map(w => `<div class="step"><p>${proseHtml(w.text)}</p>\n${mathml(w.tex)}</div>`);
+  const steps = (list: WorkedStep[]) => list.map(w => `<div class="step"><p>${proseHtml(w.text)}</p>\n${display(w.tex)}</div>`);
   const derived = a.back?.length
     ? keep('<h2>The field, by differentiating</h2>', steps(a.back))
     : a.derived?.length
-    ? keep('<h2>The field, by differentiating</h2>', [`<div class="result">${a.derived.map(tex => mathml(tex)).join('\n')}</div>`])
+    ? keep('<h2>The field, by differentiating</h2>', [`<div class="result">${a.derived.map(tex => display(tex)).join('\n')}</div>`])
     : '';
   // THE INTEGRAL WAS PRINTED TWICE. Most lessons' first worked step takes the constants outside, and
   // the integral the copy prints is already in that form: in eleven of sixteen copies the same display
@@ -471,7 +494,7 @@ export function artifactHtml(a: LessonArtifact) {
   // are `taught`: some share a name with a stage of the build below (What cancels, Add them up), and are not it.
   const taught = a.lesson
     ? `<section class="lesson">\n${keep('<h2>The lesson</h2>', [`<p class="lead">${proseHtml(a.lesson.lead)}</p>`,
-      ...a.lesson.sections.map(s => `<div class="keep"><h3 class="taught">${escapeHtml(s.heading)}</h3>\n${s.body.map(b => typeof b === 'string' ? `<p>${proseHtml(b)}</p>` : mathml(b.tex)).join('\n')}</div>`),
+      ...a.lesson.sections.map((s, si) => `<div class="keep"><h3 class="taught">${escapeHtml(s.heading)}</h3>\n${s.body.map((b, bi) => typeof b === 'string' ? `<p>${proseHtml(b)}</p>` : lessonDisplay(b.tex, si, bi)).join('\n')}</div>`),
       ...(a.lesson.read.length || moreReading.length ? [`<div class="keep"><h3 class="taught">Read it in a textbook</h3>\n<ul class="sources">${[...a.lesson.read.map(r => `<li>${r.url ? `<a href="${escapeHtml(r.url)}"><cite>${escapeHtml(r.book)}</cite></a>` : `<cite>${escapeHtml(r.book)}</cite>`}, ${escapeHtml(r.where)}${r.url ? `<span class="url">${escapeHtml(r.url)}</span>` : ''}</li>`),
         ...moreReading.map(s => `<li><a href="${escapeHtml(s.url)}">${escapeHtml(s.title)}</a><span class="url">${escapeHtml(s.url)}</span></li>`)].join('\n')}</ul></div>`] : [])])}</section>\n`
     : '';
@@ -515,6 +538,8 @@ mtable[columnalign^="right left"] > mtr > mtd:nth-child(even) { text-align: left
 .step p { margin: 14px 0 2px; }
 .where { margin-top: 12px; }
 .note { margin: -4px 0 10px; }
+.equation-reference { color:#4a6274; }
+.equation-reference a { color:#0e2333; }
 .problem { max-width: none; margin: 18px 0 6px; padding: 10px 14px; border: 1px solid #d8e1e7; border-radius: 6px; }
 .route { color:#4a6274; }
 .stage .gloss { margin: 0 0 4px; color:#4a6274; }
@@ -542,7 +567,7 @@ footer { margin-top: 36px; padding-top: 12px; border-top: 1px solid #d8e1e7; col
 <h1>${escapeHtml(a.title)}</h1>
 <p class="lede">${escapeHtml(a.subtitle)}</p>
 ${address}${taught}${figure}
-${taughtFirst ? `<p class="problem">${proseHtml(a.setup)}</p>\n` : keep('<h2>Setup</h2>', [`<p>${proseHtml(a.setup)}</p>`])}${building}${keep(`<h2>${a.secondaryIntegralTex ? 'The integrals' : 'The integral'}</h2>`, [displays([a.integralTex, ...(a.secondaryIntegralTex ? [a.secondaryIntegralTex] : [])]).map(tex => mathml(tex)).join('\n') + (a.route ? `\n<p class="note route">${proseHtml(a.route)}</p>` : '')])}${note}${constant}${working}${keep('<h2>The result</h2>', [`<div class="result">${displays(a.results).map(tex => mathml(tex)).join('\n')}</div>`])}${derived}${checks}${sources}</main>
+${taughtFirst ? `<p class="problem">${proseHtml(a.setup)}</p>\n` : keep('<h2>Setup</h2>', [`<p>${proseHtml(a.setup)}</p>`])}${building}${keep(`<h2>${a.secondaryIntegralTex ? 'The integrals' : 'The integral'}</h2>`, [displays([a.integralTex, ...(a.secondaryIntegralTex ? [a.secondaryIntegralTex] : [])]).map(tex => display(tex)).join('\n') + (a.route ? `\n<p class="note route">${proseHtml(a.route)}</p>` : '')])}${note}${constant}${working}${keep('<h2>The result</h2>', [`<div class="result">${displays(a.results).map(tex => display(tex)).join('\n')}</div>`])}${derived}${checks}${sources}</main>
 <script>${FIT_ROOTS}</script>
 </body></html>`;
 }
