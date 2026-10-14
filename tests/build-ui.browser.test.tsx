@@ -82,13 +82,16 @@ describe('watch it build', () => {
   const view = await openLesson('bisector');
   fireEvent.click(view.getByRole('button', {name: 'Watch it build'}));
   jump(view, 4, 'Add them up');
-  // The figure says which it is showing, in its own corner.
-  expect(footer(view)).toContain('Cut into pieces');
+  // The charge formula says these are finite pieces even while the scale note explains an
+  // enlarged arrow returning to scale. Its short phone wording need not say 'Cut into pieces'.
+  expect(footer(view)).toContain('ΔQ');
+  expect(footer(view)).not.toContain('In the limit');
   // Landing on a stage lands on its FIRST frame, here and everywhere: the pieces have not
   // shrunk yet. Playing from there is what takes them to the limit, and a reader who clicks
   // the last marker should still get to watch the shrinking rather than arrive after it.
   jump(view, 5, 'Shrink them');
-  expect(footer(view)).toContain('Cut into pieces');
+  expect(footer(view)).toContain('ΔQ');
+  expect(footer(view)).not.toContain('In the limit');
   fireEvent.click(view.getByRole('button', {name: 'Play'}));
   await waitFor(() => expect(footer(view)).toContain('In the limit'), {timeout: 25000});
  }, 60000);
