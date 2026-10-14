@@ -3,6 +3,7 @@ import {useEffect,useRef,useSyncExternalStore} from 'react';
 import Explorer from '../explorer/Explorer';
 import Home from './Home';
 import Guide from '../guide/Guide';
+import Quiz from '../quiz/Quiz';
 import {subscribeAddress,viewOf,type View} from '../state/route';
 
 /** How the lesson on screen was reached in this visit: from the address the page was opened at, as the first
@@ -45,5 +46,5 @@ export default function Site(){
   window.scrollTo({top:0,behavior:'auto'});
   document.getElementById(view==='lesson'?'lesson-title':view)?.focus({preventScroll:true});
  },[view]);
- return view===null?null:view==='home'?<Home/>:view==='guide'?<Guide/>:<Explorer welcome={arrival==='address'?undefined:arrival==='first'}/>;
+ return view===null?null:view==='home'?<Home/>:view==='guide'?<Guide/>:view==='quiz'?<Quiz/>:<Explorer welcome={arrival==='address'?undefined:arrival==='first'}/>;
 }

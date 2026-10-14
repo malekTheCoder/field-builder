@@ -1,0 +1,142 @@
+import type {Question} from '../types';
+const raw = String.raw;
+
+/* THE FINITE LINE, ON ITS BISECTOR, in its lesson's symbols (src/lessons/bisector.ts): a rod of length L and
+ * charge Q on the y-axis, centred on the origin, λ = Q/L, P = (r, 0), a piece at height y holding ΔQ = λΔy,
+ * rᵢ = √(y² + r²), α the angle at P to the x-axis. Every result and limit here is checked by number in
+ * tests/quiz-physics.test.ts. */
+export const bank: Question[] = [
+  {id: 'bisector-what-cancels', lesson: 'bisector', kind: 'predict',
+    prompt: raw`Pair every piece of the rod with its mirror across the $x$-axis. At $P$, which parts of their fields cancel?`,
+    choices: [
+      {correct: true, text: raw`The parts along the rod cancel; the parts along $x$ add.`},
+      {text: raw`The parts along $x$ cancel; the parts along the rod add.`, misconception: 'cancel-survivor',
+        why: raw`Both pieces of a pair are on the rod, on the same side of $P$, so their fields both point away from the rod (or both toward it) along $x$. Those parts add. It is the parts along the rod that point opposite ways.`},
+      {text: raw`Both parts cancel, so the field at $P$ is zero.`, misconception: 'cancel-survivor',
+        why: raw`Only the parts along the rod are equal and opposite. The parts along $x$ point the same way for both pieces of a pair, so the field at $P$ is not zero.`},
+      {text: raw`Nothing cancels: mirror pieces make the same field at $P$.`, misconception: 'missed-cancel',
+        why: raw`Mirror pieces make fields of the same size, but not the same direction: one leans up and one leans down. Their parts along the rod are equal and opposite.`},
+    ],
+    explanation: raw`A piece at height $y$ and its mirror at $-y$ are the same distance $r_i$ from $P$, so their fields are the same size, at the same angle $\alpha$ on either side of the $x$-axis. Their parts along the rod are equal and opposite and cancel; their parts along $x$ are equal and add. So $E_y=0$ and the field at $P$ is $E_x$.`,
+    review: {lesson: 'bisector', stage: 'cancel'}},
+
+  {id: 'bisector-dq', lesson: 'bisector', kind: 'setup',
+    prompt: raw`One piece of the rod sits at height $y$ and has length $dy$. What charge does it hold?`,
+    choices: [
+      {correct: true, tex: raw`dQ=\lambda\,dy`},
+      {tex: raw`dQ=Q\,dy`, misconception: 'whole-charge',
+        why: raw`That puts the whole rod’s charge in every piece, and it is not even a charge: $Q\,dy$ is a charge times a length. Adding these pieces up would give $QL$, not $Q$.`},
+      {tex: raw`dQ=\lambda`, misconception: 'piece-length',
+        why: raw`$\lambda$ is a charge per unit length, not a charge. A piece holds $\lambda$ times its own length.`},
+      {tex: raw`dQ=\frac{Q}{y}\,dy`, misconception: 'piece-length',
+        why: raw`The charge is spread evenly, so a piece’s share depends on its length, not on where it sits. The density is $Q/L$, the same everywhere on the rod.`},
+    ],
+    explanation: raw`The charge per unit length is $\lambda=Q/L$, the same all along the rod, so a piece of length $dy$ holds $\lambda\,dy$. Adding every piece from $-L/2$ to $L/2$ gives $\lambda L=Q$ back.`,
+    review: {lesson: 'bisector', stage: 'cut'}},
+
+  {id: 'bisector-integrand', lesson: 'bisector', kind: 'setup',
+    prompt: raw`Which expression is what one piece adds to the field at $P$?`,
+    choices: [
+      {correct: true, tex: raw`\frac{k\,dQ}{y^2+r^2}\cdot\frac{r}{\sqrt{y^2+r^2}}`},
+      {tex: raw`\frac{k\,dQ}{y^2+r^2}`, misconception: 'projection',
+        why: raw`That is the whole of the piece’s field. Its part along the rod cancels against its mirror, so only the part along $x$, the fraction $\cos\alpha=r/\sqrt{y^2+r^2}$ of it, is added.`},
+      {tex: raw`\frac{k\,dQ}{y^2+r^2}\cdot\frac{y}{\sqrt{y^2+r^2}}`, misconception: 'wrong-part',
+        why: raw`$y/\sqrt{y^2+r^2}$ is $\sin\alpha$: it projects onto the rod, the part that cancels in pairs. The part along $x$ is adjacent to $\alpha$, so it takes $\cos\alpha$.`},
+      {tex: raw`\frac{k\,dQ}{r^2}\cdot\frac{r}{\sqrt{y^2+r^2}}`, misconception: 'fixed-distance',
+        why: raw`$r$ is only the horizontal leg. The piece at height $y$ is $r_i=\sqrt{y^2+r^2}$ from $P$, and Coulomb’s law needs that distance.`},
+    ],
+    explanation: raw`Coulomb’s law gives the piece’s field, $k\,dQ/r_i^2$ with $r_i=\sqrt{y^2+r^2}$. Only its part along $x$ survives the cancelling, so it is multiplied by $\cos\alpha=r/\sqrt{y^2+r^2}$.`,
+    review: {lesson: 'bisector', stage: 'add'}},
+
+  {id: 'bisector-bounds', lesson: 'bisector', kind: 'setup',
+    prompt: raw`The rod has length $L$ and its centre at the origin. With the integrand for one piece written in $y$, which bounds give the whole rod’s field?`,
+    choices: [
+      {correct: true, tex: raw`\int_{-L/2}^{L/2}\cdots\,dy`},
+      {tex: raw`\int_{-L}^{L}\cdots\,dy`, misconception: 'bounds',
+        why: raw`That runs over a rod twice as long. The ends of this one are only half its length from the centre.`},
+      {tex: raw`\int_{0}^{L/2}\cdots\,dy`, misconception: 'bounds',
+        why: raw`That covers only the upper half of the rod, so it gives half the field. It is right only with a factor of two in front, the mirror half’s share.`},
+      {tex: raw`\int_{0}^{L}\cdots\,dy`, misconception: 'bounds',
+        why: raw`That would be a rod from the origin upward. This one is centred on the origin, so it runs from $-L/2$ to $L/2$.`},
+    ],
+    explanation: raw`The bounds are where the charge starts and ends, in the variable you integrate over. Centred on the origin, the rod runs from $y=-L/2$ to $y=L/2$.`,
+    review: {lesson: 'bisector', stage: 'shrink'}},
+
+  {id: 'bisector-substitution', lesson: 'bisector', kind: 'setup',
+    prompt: raw`The integrand is $k\lambda r\,dy/(y^2+r^2)^{3/2}$. Substitute $y=r\tan\alpha$. What does it become?`,
+    choices: [
+      {correct: true, tex: raw`\frac{k\lambda}{r}\cos\alpha\,d\alpha`},
+      {tex: raw`\frac{k\lambda}{r^2}\cos^3\alpha\,d\alpha`, misconception: 'jacobian',
+        why: raw`That changed the integrand but not the step: $dy$ was swapped for $d\alpha$ as if they were the same size. Differentiating $y=r\tan\alpha$ gives $dy=r\sec^2\alpha\,d\alpha$, and those two powers of $\sec\alpha$ cancel two powers of $\cos\alpha$.`},
+      {tex: raw`\frac{k\lambda}{r}\,d\alpha`, misconception: 'projection',
+        why: raw`That is what the piece’s whole field would give. The integrand already holds the projection $r/\sqrt{y^2+r^2}$, which is $\cos\alpha$, and it does not go away.`},
+      {tex: raw`\frac{k\lambda}{r}\sin\alpha\,d\alpha`, misconception: 'wrong-part',
+        why: raw`$\sin\alpha$ is the part along the rod, the part that cancels. The integrand projects onto $x$, adjacent to $\alpha$, so it keeps $\cos\alpha$.`},
+    ],
+    explanation: raw`With $y=r\tan\alpha$, $dy=r\sec^2\alpha\,d\alpha$ and $(y^2+r^2)^{3/2}=r^3\sec^3\alpha$. So the integrand is $k\lambda r\cdot r\sec^2\alpha\,d\alpha$ over $r^3\sec^3\alpha$, which is $(k\lambda/r)\cos\alpha\,d\alpha$, and its integral is $k\lambda\sin\alpha/r$.`,
+    review: {lesson: 'bisector', stage: 'shrink'}},
+
+  {id: 'bisector-far', lesson: 'bisector', kind: 'check',
+    prompt: raw`$E_x=\dfrac{kQ}{r\sqrt{(L/2)^2+r^2}}$. Move $P$ far from the rod, $r\gg L$. What must $E_x$ approach?`,
+    choices: [
+      {correct: true, tex: raw`\frac{kQ}{r^2}`},
+      {tex: raw`\frac{2k\lambda}{r}`, misconception: 'far-limit',
+        why: raw`That is the other end: close to a long rod’s middle, $r\ll L$, where the rod looks endless. Far away the rod’s length stops mattering.`},
+      {tex: raw`\frac{kQ}{r}`, misconception: 'potential-power',
+        why: raw`That falls as $1/r$, as a point charge’s potential does. A field from a finite charge, seen from far away, falls as the inverse square.`},
+      {tex: raw`0`, misconception: 'cancel-survivor',
+        why: raw`Far away the field gets weak, but it never cancels: every piece still pushes along $x$ the same way. It shrinks as $1/r^2$, like any finite charge’s.`},
+    ],
+    explanation: raw`When $r\gg L$, the root $\sqrt{(L/2)^2+r^2}$ is nearly $r$, so $E_x$ tends to $kQ/r^2$. From far away the rod is a point charge, as any finite charge is.`,
+    review: {lesson: 'bisector', section: 'What the answer says'}},
+
+  {id: 'bisector-grow', lesson: 'bisector', kind: 'check',
+    prompt: raw`Hold $\lambda$ fixed and let the rod grow until $L$ is far longer than $r$. What does $E_x$ approach?`,
+    choices: [
+      {correct: true, tex: raw`\frac{2k\lambda}{r}`},
+      {tex: raw`0`, misconception: 'held-total-charge',
+        why: raw`That is what happens with $Q$ held fixed: the same charge spread ever thinner. Here $\lambda$ is fixed, so $Q=\lambda L$ grows with the rod.`},
+      {tex: raw`\frac{k\lambda}{r}`, misconception: 'bounds',
+        why: raw`That is the share of one half of the rod. The half below the axis adds the same again along $x$.`},
+      {tex: raw`\frac{2k\lambda}{r^2}`, misconception: 'line-falloff',
+        why: raw`A rod much longer than $r$ looks endless from $P$, and an endless line’s field falls only as $1/r$. The units say so too: $k\lambda/r$ is already a field.`},
+    ],
+    explanation: raw`Write $Q=\lambda L$: $E_x=k\lambda L/\bigl(r\sqrt{(L/2)^2+r^2}\bigr)$. When $L\gg r$ the root is nearly $L/2$, so $E_x$ tends to $2k\lambda/r$, the field of an infinite line.`,
+    review: {lesson: 'bisector', section: 'What the answer says'}},
+
+  {id: 'bisector-negative', lesson: 'bisector', kind: 'predict',
+    prompt: raw`Give the rod a negative charge. Which way does the field at $P$ point?`,
+    choices: [
+      {correct: true, text: raw`Along $x$, toward the rod.`},
+      {text: raw`Along $x$, away from the rod.`, misconception: 'sign',
+        why: raw`That is the field of a positive rod. A negative charge turns every piece’s arrow round, so their sum points toward the rod.`},
+      {text: raw`Along the rod.`, misconception: 'missed-cancel',
+        why: raw`The sign changes which way each arrow points, but not what cancels. Mirror pieces still cancel along the rod, so what is left is along $x$.`},
+    ],
+    explanation: raw`Each piece’s field now points toward the piece. Mirror pieces still cancel along the rod, and their parts along $x$ still add, now pointing toward the rod. The formula says the same: $E_x$ has the sign of $Q$.`,
+    review: {lesson: 'bisector', section: 'What the answer says'}},
+
+  {id: 'bisector-raise-p', lesson: 'bisector', kind: 'transfer',
+    prompt: raw`Move $P$ up, still beside the rod but level with a point above its middle. What happens to the part of the field along the rod?`,
+    choices: [
+      {correct: true, text: raw`It survives: the extra stretch of rod below $P$ has no mirror pieces above to cancel it.`},
+      {text: raw`It still cancels, since every piece has a mirror across the $x$-axis.`, misconception: 'cancel-survivor',
+        why: raw`What cancels is a pair the same distance from $P$, mirrored across the line through $P$. With $P$ raised, the pieces mirrored across the $x$-axis are different distances from it, and the stretch below no longer has partners.`},
+      {text: raw`It cancels, and now the part along $x$ cancels too.`, misconception: 'cancel-survivor',
+        why: raw`Every piece is on the rod, on one side of $P$, so all their parts along $x$ point the same way. They add wherever $P$ is.`},
+    ],
+    explanation: raw`Pieces mirrored across the horizontal line through $P$ still cancel along the rod. But the rod reaches further below $P$ than above it, and that extra stretch has no partners: its parts along the rod are left over. For a positive rod they push $P$’s field up, away from the longer side.`,
+    review: {lesson: 'endpoint', stage: 'cancel'}},
+
+  {id: 'bisector-uneven', lesson: 'bisector', kind: 'transfer',
+    prompt: raw`Keep the rod and $P$ where they are, but make the charge denser toward the top than the bottom, all of one sign. Is $E_y$ at $P$ still zero?`,
+    choices: [
+      {correct: true, text: raw`No: a piece and its mirror now hold different charges, so their parts along the rod no longer cancel.`},
+      {text: raw`Yes: every piece still has a mirror the same distance from $P$.`, misconception: 'cancel-survivor',
+        why: raw`Being the same distance away is not enough. Mirror pieces cancel only if they hold the same charge, so that their fields are the same size.`},
+      {text: raw`Yes, as long as the total charge $Q$ is the same.`, misconception: 'cancel-survivor',
+        why: raw`The field depends on where the charge is, not only on how much there is. Moving charge toward the top tips the field.`},
+    ],
+    explanation: raw`Cancelling needs two things: a mirror piece the same distance from $P$, and the same charge on it. With $\lambda$ larger toward the top, the upper piece of each pair makes the larger field, so a part along the rod survives. The density then goes inside the integral as $\lambda(y)$.`,
+    review: {lesson: 'ramp', stage: 'cancel'}},
+];

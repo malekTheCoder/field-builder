@@ -1,0 +1,136 @@
+import type {Question} from '../types';
+const raw = String.raw;
+
+/* THE INFINITE LINE, in its lesson's symbols (src/lessons/infinite.ts): density λ on the whole y-axis,
+ * P = (r, 0), cut at equal angles θ at P measured from the perpendicular, y = r tan θ, rᵢ = r sec θ,
+ * ΔQ = λ r sec²θ Δθ, so every piece makes kλΔθ/r. θ, not α: the lesson integrates in θ. Every result and limit
+ * here is checked by number in tests/quiz-physics.test.ts. */
+export const bank: Question[] = [
+  {id: 'infinite-double-r', lesson: 'infinite', kind: 'predict',
+    prompt: raw`Move $P$ twice as far from an infinite line of charge. What happens to the field there?`,
+    choices: [
+      {correct: true, text: raw`It halves.`},
+      {text: raw`It falls to a quarter, as a point charge’s does.`, misconception: 'line-falloff',
+        why: raw`An endless line is not a point charge. Twice as far away, the stretch of line inside any fixed angle at $P$ is twice as long and holds twice the charge, so the inverse square’s quartering becomes a halving.`},
+      {text: raw`It does not change: the line looks the same from any distance.`, misconception: 'line-falloff',
+        why: raw`The line fills the same half turn from any distance, but each piece is farther away. The extra charge in a fixed angle only makes up part of that, so the field still falls, as $1/r$.`},
+      {text: raw`It falls to an eighth.`, misconception: 'line-falloff',
+        why: raw`That would be a field falling as $1/r^3$, faster even than a point charge’s. A line is more charge than a point, not less, and its field falls more slowly: as $1/r$.`},
+    ],
+    explanation: raw`$E=2k\lambda/r$ falls as $1/r$. Seen from any distance, the line fills the same half turn at $P$; the stretch of it inside a fixed angle grows in proportion to $r$, so its charge grows as $r$ while the inverse square shrinks its field as $r^2$. Doubling $r$ halves the field.`,
+    review: {lesson: 'infinite', section: 'What the answer says'}},
+
+  {id: 'infinite-dq', lesson: 'infinite', kind: 'setup',
+    prompt: raw`Cut the line at equal angles $\Delta\theta$ seen from $P$. What charge does the piece at angle $\theta$ hold?`,
+    choices: [
+      {correct: true, tex: raw`\Delta Q=\lambda r\sec^2\theta\,\Delta\theta`},
+      {tex: raw`\Delta Q=\lambda\,\Delta\theta`, misconception: 'piece-length',
+        why: raw`$\lambda$ is a charge per unit length, and $\Delta\theta$ is an angle. The piece’s charge is $\lambda$ times its length along the line.`},
+      {tex: raw`\Delta Q=\lambda r\,\Delta\theta`, misconception: 'jacobian',
+        why: raw`$r\,\Delta\theta$ is the length only of the piece straight across from $P$. Farther along, the same angle takes in a longer stretch of line, longer by $\sec^2\theta$.`},
+      {tex: raw`\Delta Q=\lambda r\sec\theta\,\Delta\theta`, misconception: 'jacobian',
+        why: raw`$r\sec\theta\,\Delta\theta$ is the width of the angle at the piece’s distance, square to the line of sight. The line crosses that line of sight on a slant, which makes the piece longer by one more $\sec\theta$.`},
+    ],
+    explanation: raw`The piece sits at $y=r\tan\theta$, so a step $\Delta\theta$ moves along the line by $\Delta y=r\sec^2\theta\,\Delta\theta$. It holds $\lambda$ times that: $\lambda r\sec^2\theta\,\Delta\theta$. Far pieces are far longer than near ones.`,
+    review: {lesson: 'infinite', stage: 'cut'}},
+
+  {id: 'infinite-equal-pieces', lesson: 'infinite', kind: 'predict',
+    prompt: raw`With the line cut at equal angles at $P$, how do the sizes of the pieces’ fields at $P$ compare?`,
+    choices: [
+      {correct: true, text: raw`All the same: a far piece holds more charge, and is farther away by exactly enough.`},
+      {text: raw`The far pieces’ fields are weaker, by the inverse square of their distance.`, misconception: 'jacobian',
+        why: raw`That forgets that a far piece is longer and holds more charge: $\lambda r\sec^2\theta\,\Delta\theta$. Its extra charge exactly makes up for its extra distance.`},
+      {text: raw`The far pieces’ fields are stronger, since they hold more charge.`, misconception: 'fixed-distance',
+        why: raw`A far piece does hold more charge, but it is also farther away, $r_i=r\sec\theta$. The $\sec^2\theta$ in its charge cancels the one in $r_i^2$.`},
+    ],
+    explanation: raw`Each piece makes $\Delta E=k\,\Delta Q/r_i^2$. Its charge is $\lambda r\sec^2\theta\,\Delta\theta$ and its distance squared is $r^2\sec^2\theta$, so the secants cancel and $\Delta E=k\lambda\,\Delta\theta/r$, the same for every piece. That is what cutting by angle buys.`,
+    review: {lesson: 'infinite', stage: 'piece'}},
+
+  {id: 'infinite-bounds', lesson: 'infinite', kind: 'setup',
+    prompt: raw`In the angle $\theta$ at $P$, what are the bounds that cover the whole line?`,
+    choices: [
+      {correct: true, tex: raw`\int_{-\pi/2}^{\pi/2}\cdots\,d\theta`},
+      {tex: raw`\int_{-\infty}^{\infty}\cdots\,d\theta`, misconception: 'bounds',
+        why: raw`Those are the bounds in $y$. In the angle, the line’s two endless ends are at $\theta=\pm\pi/2$, where $\tan\theta$ runs off to infinity.`},
+      {tex: raw`\int_{0}^{\pi/2}\cdots\,d\theta`, misconception: 'bounds',
+        why: raw`That covers only the half of the line above $P$, so it gives half the field. The mirror half, below, adds the same again along $x$.`},
+      {tex: raw`\int_{0}^{2\pi}\cdots\,d\theta`, misconception: 'bounds',
+        why: raw`That is a full turn round $P$, but the line lies on one side of $P$: seen from $P$ it fills only half a turn.`},
+    ],
+    explanation: raw`With $y=r\tan\theta$, the whole $y$-axis is covered once as $\theta$ runs from $-\pi/2$ to $\pi/2$. An endless line becomes a finite angle, which is why the angle was chosen.`,
+    review: {lesson: 'infinite', stage: 'shrink'}},
+
+  {id: 'infinite-what-survives', lesson: 'infinite', kind: 'setup',
+    prompt: raw`Which part of each piece’s field is added up, and with what factor?`,
+    choices: [
+      {correct: true, text: raw`The part along $x$, perpendicular to the line, with $\cos\theta$.`},
+      {text: raw`The part along the line, with $\sin\theta$.`, misconception: 'wrong-part',
+        why: raw`The part along the line is the one the mirror piece, at $-\theta$, cancels. What survives is perpendicular to the line, adjacent to $\theta$.`},
+      {text: raw`The whole field of each piece, with no factor.`, misconception: 'projection',
+        why: raw`Each piece’s field leans along the line, and that part cancels against its mirror. Adding whole arrows counts the cancelled parts too.`},
+    ],
+    explanation: raw`The piece at $-\theta$ mirrors the piece at $\theta$: their parts along the line are equal and opposite, and cancel, so $E_y=0$. Their parts along $x$ are $\Delta E\cos\theta$, and add.`,
+    review: {lesson: 'infinite', stage: 'cancel'}},
+
+  {id: 'infinite-no-q', lesson: 'infinite', kind: 'setup',
+    prompt: raw`Why is the infinite line’s field written with $\lambda$, and never with its total charge $Q$?`,
+    choices: [
+      {correct: true, text: raw`An endless line has no finite total charge. Its density $\lambda$ is what is given.`},
+      {text: raw`It could be: far away, the field is $kQ/r^2$, as for any charge.`, misconception: 'whole-charge',
+        why: raw`An endless line never looks like a point, from any distance, and it has no finite $Q$ to put in $kQ/r^2$.`},
+      {text: raw`It could be: for a line, $Q$ and $\lambda$ are the same thing.`, misconception: 'whole-charge',
+        why: raw`$Q$ is a charge and $\lambda$ is a charge per unit length. A piece holds $\lambda$ times its length; the whole line would hold $\lambda$ times an endless length.`},
+    ],
+    explanation: raw`Every stretch of the line holds $\lambda$ per unit length, and the line never ends, so there is no total to use. One piece holds $\lambda$ times its length, and the answer, $2k\lambda/r$, is written in $\lambda$.`,
+    review: {lesson: 'infinite', stage: 'cut'}},
+
+  {id: 'infinite-result', lesson: 'infinite', kind: 'check',
+    prompt: raw`Each piece adds $(k\lambda/r)\cos\theta\,d\theta$ along $x$. What is the field of the whole line at $P$?`,
+    choices: [
+      {correct: true, tex: raw`E_x=\frac{2k\lambda}{r}`},
+      {tex: raw`E_x=\frac{k\lambda}{r}`, misconception: 'bounds',
+        why: raw`That is the share of one half of the line, $\theta$ from $0$ to $\pi/2$. The half on the other side of $P$ adds the same again.`},
+      {tex: raw`E_x=\frac{\pi k\lambda}{r}`, misconception: 'projection',
+        why: raw`That adds every piece’s whole field, $k\lambda\,d\theta/r$, over the half turn. Only the part along $x$ survives, so the integrand keeps its $\cos\theta$.`},
+      {tex: raw`E_x=\frac{2k\lambda}{r^2}`, misconception: 'line-falloff',
+        why: raw`An endless line’s field falls as $1/r$, not $1/r^2$. And the units disagree: $k\lambda/r$ is already a field.`},
+    ],
+    explanation: raw`The integral of $\cos\theta$ is $\sin\theta$, which rises from $-1$ to $1$ between $-\pi/2$ and $\pi/2$, a rise of two. So $E_x=2k\lambda/r=\lambda/(2\pi\varepsilon_0r)$.`,
+    review: {lesson: 'infinite', stage: 'shrink'}},
+
+  {id: 'infinite-from-rod', lesson: 'infinite', kind: 'check',
+    prompt: raw`A rod of length $L$ has the field $\dfrac{kQ}{r\sqrt{(L/2)^2+r^2}}$ beside its middle. To get the infinite line from it, which limit do you take?`,
+    choices: [
+      {correct: true, text: raw`Let $L$ grow with $\lambda$ held fixed, so $Q=\lambda L$ grows too. The field tends to $2k\lambda/r$.`},
+      {text: raw`Let $L$ grow with $Q$ held fixed. The field tends to zero.`, misconception: 'held-total-charge',
+        why: raw`That spreads the same charge ever thinner, until there is none left near $P$. An infinite line has the same density all along it, so it is $\lambda$ that stays fixed.`},
+      {text: raw`Let $r$ grow far past $L$. The field tends to $kQ/r^2$.`, misconception: 'far-limit',
+        why: raw`That is the far limit, where the rod looks like a point. A rod looks endless from close to its middle, $L\gg r$.`},
+    ],
+    explanation: raw`Hold $\lambda$ fixed and write $Q=\lambda L$: the field is $k\lambda L/\bigl(r\sqrt{(L/2)^2+r^2}\bigr)$, and as $L$ grows the root tends to $L/2$, leaving $2k\lambda/r$.`,
+    review: {lesson: 'infinite', section: 'Limiting cases'}},
+
+  {id: 'infinite-negative', lesson: 'infinite', kind: 'transfer',
+    prompt: raw`Give the line a negative density $\lambda$. Which way does the field at $P$ point?`,
+    choices: [
+      {correct: true, text: raw`Perpendicular to the line, toward it.`},
+      {text: raw`Perpendicular to the line, away from it.`, misconception: 'sign',
+        why: raw`That is a positive line’s field. With $\lambda$ negative every piece’s field points toward the piece, and $E_x=2k\lambda/r$ comes out negative: toward the line.`},
+      {text: raw`Along the line.`, misconception: 'missed-cancel',
+        why: raw`The sign turns every arrow round but does not change what cancels: mirror pieces still cancel along the line.`},
+    ],
+    explanation: raw`Every piece’s field points from $P$ toward the piece. Mirror pieces still cancel along the line, and what is left points toward it. $E_x=2k\lambda/r$ carries the sign of $\lambda$.`,
+    review: {lesson: 'infinite', section: 'What the answer says'}},
+
+  {id: 'infinite-cut-in-half', lesson: 'infinite', kind: 'transfer',
+    prompt: raw`Take away the half of the line below $P$’s level, so it ends at the point nearest $P$ and runs on upward without end. What is the field at $P$ now?`,
+    choices: [
+      {correct: true, text: raw`Its part perpendicular to the line halves, and an equal part along the line appears: it leans at $\pi/4$.`},
+      {text: raw`Half the field, still perpendicular to the line.`, misconception: 'cancel-survivor',
+        why: raw`The parts along the line cancelled only between a piece and its mirror below $P$. Those mirrors are gone, so the parts along the line now add up.`},
+      {text: raw`The same field: what is left is still endless.`, misconception: 'bounds',
+        why: raw`Half the line is gone. In the angle at $P$, $\theta$ now runs from $0$ to $\pi/2$, half the bounds, and so half of the perpendicular part.`},
+    ],
+    explanation: raw`With $\theta$ from $0$ to $\pi/2$, the part perpendicular to the line is $(k\lambda/r)\int\cos\theta\,d\theta=k\lambda/r$, half as much. Nothing is left to cancel the parts along the line, and they add to $(k\lambda/r)\int\sin\theta\,d\theta=k\lambda/r$ as well: two equal parts, so the field leans at $\pi/4$.`,
+    review: {lesson: 'semi', stage: 'cancel'}},
+];

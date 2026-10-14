@@ -11,6 +11,7 @@ import {Brand} from '../explorer/Brand';
 import {STORAGE} from '../explorer/Explorer';
 import {Hint} from '../components/Hint';
 import {GuideLink} from '../guide/Guide';
+import {QuizLink} from '../quiz/Quiz';
 import '../explorer/explorer.css';
 import './home.css';
 
@@ -117,7 +118,7 @@ export default function Home(){
       <a className="home-start" href={lessonAddress(start.id,saved)} onClick={open}>Start with the finite line<ArrowRight size={16} aria-hidden="true"/></a>
       {last&&<a className="home-continue" href={lessonAddress(last.id,saved)} onClick={open}><ShapeGlyph id={last.id} size={18}/><span className="home-continue-words"><span className="home-continue-kicker">Continue where you left off</span><span className="home-continue-to">{last.short}</span></span><ArrowRight size={15} aria-hidden="true"/></a>}
      </div>
-     <GuideLink/>
+     <div className="home-more"><GuideLink/><QuizLink/></div>
     </div>
     <div className="home-hero-figure"><Cover/></div>
    </section>
