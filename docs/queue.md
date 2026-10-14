@@ -7,6 +7,8 @@ owner says they are urgent.
 
 ## In progress
 - **Codex round** (owner runs it with [codex-round-prompt.md](codex-round-prompt.md)). Stay off its files meanwhile.
+- **How to use this site** (owner, 2026-10-13: "make sure it's active study"): its own page at ?guide,
+  linked from home and the lesson header. An agent is building it in a worktree, alongside Codex.
 
 ## Next
 - **Lesson-to-lesson links feel broken** (e.g. "Take this rod to infinity" on the finite line). Clicking
@@ -15,8 +17,8 @@ owner says they are urgent.
   clear "Next: <lesson> →" card with its glyph at the end of the lesson. On click, the new lesson
   visibly takes over: the lesson list scrolls to and highlights it, a short line says where you
   came from and why ("From the finite rod: let it run to infinity"), and there is a way back. This
-  applies to every `link` in src/problems/*.ts (about a dozen). Start it after the CI run-perf fix
-  lands, because both touch Explorer.tsx.
+  applies to every `link` in src/problems/*.ts (about a dozen). Start it after the Codex round,
+  because both touch Explorer.tsx.
 
 1. **Gauss's law, "coming soon" on the site.** A Gauss's law section shown as coming soon on the
    home page, in the lesson list and in the library. Do this after the home page lands. The plan is
@@ -38,28 +40,14 @@ owner says they are urgent.
    - Partial: v-rod-bisector in 3D drops its labels.
    - Partial: webglcontextlost is not handled.
    - Partial: Shrink's rule still says "thinner without end".
-8. **Usage guard (set).** Check plan usage (the get_usage tool) before each round and at each wake-up. Stop at weekly ≥ 30% or 5-hour ≥ 80%.
-   Pause the agents once the 5-hour window passes the owner's chosen percent; the threshold is
-   still to be confirmed.
-9. **A lesson at the top of every lesson** (owner, 2026-10-13). Before the figure, teach the concept the
-   way a textbook does, then the page shows it. Original prose (no copied textbook text), with
-   "read more" pointers to textbook sections (OpenStax University Physics is free; Griffiths,
-   Purcell). On the site: a lead that is always shown, and "Read the lesson" opens the whole of it, so the
-   figure stays on the first screen. Also in the printout and the offline handout. Plan: one agent
-   builds the frame and the finite line's lesson; two agents write the other fourteen; two physics
-   reviewers check them.
-   Frame and the finite line's lesson done (0deeff0); the other fourteen wait on the owner's look.
-10. **Walkthrough (owner's answer, 2026-10-13).** An old `seen` no longer hides it: returning readers
-   get the new tour, with "Don't show this again" and "Skip intro" on every page. Handouts: the
-   limiting cases are already in them, kept simple.
-11. **How to use this site** (owner, 2026-10-13): a guide to actually learning with it, not a feature tour.
-   The plan goes to the owner first; build only once they approve. Best after the fourteen lessons land.
-   Owner (2026-10-13): it must teach ACTIVE study, not rereading: quiz yourself, predict, recall.
-12. **Quiz yourself** (owner, 2026-10-13): its own page, not inside the lessons. The student picks the
+8. **Quiz yourself** (owner, 2026-10-13): its own page, not inside the lessons. The student picks the
    shapes, questions come from a bank, and personalized feedback follows. Plan:
    [quiz-plan.md](quiz-plan.md), waiting for the owner's OK.
 
 ## Done
+- Walkthrough (owner's answer, 2026-10-13): an old `seen` no longer hides it; "Don't show this again" and
+  "Skip intro" on every page (a545d5e). Handouts already carry the limiting cases.
+- Usage guard: stop at weekly 35% (owner, 2026-10-14) or 5-hour 90%; check get_usage before each round.
 - Wave 5 (one critique round, five lanes) published as 04fd0a4: the handout teaches the method once, the
   tour's sum page is true on every lesson, the lead takes the subtitle's place, focus lands on the title,
   pairs join the sum at its head in 3D, quieter sheet rings, handles that cannot cross, one θ on a wide arc,
