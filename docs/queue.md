@@ -7,13 +7,10 @@ owner says they are urgent.
 
 ## In progress
 Where things stood on 2026-10-14 evening, in case the session resumes after a disconnect:
-- **Codex round:** Codex stopped; Claude is landing it. Its 13 commits are on branch `codex/round` in the
-  worktree `~/Developer/fb-codex-round` (rebased on f8ee8f7). Codex's own local suite passed (4118). To land it:
-  rebase onto origin/main, run tsc + oxlint + the whole suite, push, remove the worktree and the branch.
 - **Quiz questions for the other twelve shapes:** two agents in worktrees under `.claude/worktrees/`
   (rods and lines; disks, arcs and the sheet). Each pushes to main itself. If one died mid-way, its
   worktree has its files: finish, test, push. Then two physics reviewers check all the quiz's questions.
-- **Redesign:** approved ([redesign-plan.md](redesign-plan.md)); starts once the Codex round is on main.
+- **Redesign:** approved ([redesign-plan.md](redesign-plan.md)); the Codex round is on main, so it can start.
 - Agents don't watch CI any more; Claude checks it every so often.
 
 ## Next
@@ -55,6 +52,10 @@ Where things stood on 2026-10-14 evening, in case the session resumes after a di
    Do it after the Codex round.
 
 ## Done
+- Codex round (2026-10-14), landed by Claude: 13 commits ending 781d631, report in
+  docs/rounds/codex-round-2026-10-14.md. Ten findings fixed (signed potential label, the sheet's bound and
+  two potential sentences for negative charge, the home cover's r_i and pair share, phone and 3D framing).
+  Unit 3090 and tsc green after the rebase; CI not yet checked.
 - Walkthrough (owner's answer, 2026-10-13): an old `seen` no longer hides it; "Don't show this again" and
   "Skip intro" on every page (a545d5e). Handouts already carry the limiting cases.
 - Usage guard: stop at weekly 40% (owner, 2026-10-14) or 5-hour 90%; check get_usage before each round.
