@@ -1209,7 +1209,7 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
     // Every wedge and every ray stops at it, because the piece it stands for does.
     const chargeLine: Line = { point: O, dir: vsub(project(id === 'sheet' ? across : { x: 0, y: 1, z: 0 }), project(zero)) };
     const wedges: { index: number; key: string; points: string; middle: Point | null }[] = [];
-    const rays: { key: string; end: Point }[] = [];
+    const rays: { key: string; end: Point; t: number }[] = [];
     for (const side of sides) {
       const suffix = side > 0 ? ':r' : side < 0 ? ':l' : '';
       const seam = (t: number): Vec => side === 0 ? world(t) : scaleVec(across, side * Math.abs(world(t).x));
@@ -1226,7 +1226,7 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
       }
       // Only the rays that reach the charge on the page: one that runs on to the frame's edge is the
       // edge of no angle drawn here, and the outermost two made a line through P.
-      edges.forEach((d, i) => { const end = d ? rayMeetsLine(P, d, rect, chargeLine) : null; if (end) rays.push({ key: seamKey(i / n) + suffix, end }); });
+      edges.forEach((d, i) => { const end = d ? rayMeetsLine(P, d, rect, chargeLine) : null; if (end) rays.push({ key: seamKey(i / n) + suffix, end, t: i / n }); });
     }
     return { wedges, rays, line: chargeLine };
   })();
@@ -1280,6 +1280,10 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
   })();
   const trueFrom = trueOffset ? plus(P, trueOffset) : P;
   const cutAt = (t: number) => ({ '--t': t.toFixed(3) }) as CSSProperties;
+  // When a piece comes free in Cut it up: as the second of its two cuts is made. The first piece's other end is the
+  // charge's own, and on a ring the cut at a full turn is the first one made, so every piece is free once the cut
+  // after it is -- the last, once the last cut is. See `.cd-stage-pieces` in charge-diagram.css.
+  const freeAt = (i: number) => ({ '--free': (n > 1 ? Math.min(i + 1, n - 1) / n : 0).toFixed(3) }) as CSSProperties;
   const elementSymbol = continuum>=.999 ? 'dQ' : 'ΔQ';
   const fieldSymbol = continuum>=.999 ? 'dE' : 'ΔE';
   // Cut into an odd number of pieces, a ring has no piece straight across from any other: the point
@@ -1336,6 +1340,8 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
     write();
     return runClock.subscribe(write);
   }, [runClock, stageStartsAt, runSeconds, clockedSpan]);
+  // The same clock for the scene's cuts, while Cut it up is on screen (see `cutClock` in FieldStage).
+  const sceneCutClock = useMemo(() => runClock && building === 'pieces' ? { get: () => runClock.get(), subscribe: (listener: () => void) => runClock.subscribe(listener), start: stageStartsAt } : null, [runClock, building, stageStartsAt]);
   const [clockT, setClockT] = useState(0);
   useLayoutEffect(() => {
     if (!cancelClock?.clock) return;
@@ -3192,7 +3198,7 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
       bodyPath={bodyPath} point={pWorld} element={sceneElement} net={netShown ? scaleVec(displayed, netCut * gain / unit) : null} contribution={handOver ? scaleVec(handOver.field, handOver.multiplier * gain / unit) : pairNow ? (pairNow.step.fb && pairNow.cancel < .6 ? scaleVec(pairNow.step.fa, pairNow.grow * pairM * gain / unit) : null) : scalar || !showContribution || mode === 'sum' || building === 'limit' ? null : scaleVec(sample.field, selectedGain * gain / unit)}
       contributionFrom={pairNow ? scaleVec(pairSoFar, gain / unit) : null}
       unit={unit} frame={{ width: 720, height: 430 }} origin={O} charge={p.charge} animating={moving}
-      getView={() => ({ yaw: yawMv.get(), pitch: pitchMv.get() })} onUnavailable={why => setNoScene(why === 'lost' ? 'lost' : 'failed')}
+      getView={() => ({ yaw: yawMv.get(), pitch: pitchMv.get() })} cutClock={sceneCutClock} onUnavailable={why => setNoScene(why === 'lost' ? 'lost' : 'failed')}
       // The run, for the scene to draw as bodies: the same partition, partner, sum and arrows the
       // flat marks below are drawn from, at the same scale, so the two can never tell it differently.
       run={build ? runScene({ stage: building, kind: id === 'disk' ? 'disk' : id === 'sheet' ? 'sheet' : 'wire', closed: id === 'ring', n, selected: selectedIndex, at: world,
@@ -3232,8 +3238,8 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
             a piece whose charge is off the page is still something a reader can click. */}
         {fan && <g className={'cd-fan' + (mode === 'divide' || mode === 'project' ? '' : ' is-quiet')}>
           {fan.wedges.map(w => <polygon key={w.key} data-wedge-key={w.key} className={'cd-wedge' + (w.index % 2 ? ' is-odd' : '') + (w.index === selectedIndex ? ' is-selected' : '')}
-            points={w.points} onPointerDown={ev => { ev.stopPropagation(); onSelect(w.index); }}><title>{`Piece ${w.index + 1} of ${n}`}</title></polygon>)}
-          {raysShown.map(r => <line key={r.key} className={'cd-ray' + (chosenRays.has(r.key) ? ' is-chosen' : '')} x1={P.x} y1={P.y} x2={r.end.x.toFixed(1)} y2={r.end.y.toFixed(1)} style={{ opacity: 1 - continuum }} />)}
+            points={w.points} style={freeAt(w.index)} onPointerDown={ev => { ev.stopPropagation(); onSelect(w.index); }}><title>{`Piece ${w.index + 1} of ${n}`}</title></polygon>)}
+          {raysShown.map(r => <line key={r.key} className={'cd-ray' + (chosenRays.has(r.key) ? ' is-chosen' : '')} x1={P.x} y1={P.y} x2={r.end.x.toFixed(1)} y2={r.end.y.toFixed(1)} style={{ opacity: 1 - continuum, ...cutAt(r.t) }} />)}
         </g>}
         {perspective && <g ref={plane} className="cd-orbit-plane" transform={planeMatrix(view.yaw, view.pitch, O, unit)}>
           {id === 'sheet' && <g opacity={inSpace ? 0 : 1}><motion.path layoutId="fb-source-surface" data-source-body="true" data-dim="charge" initial={false} animate={{ d: pathThrough(worldArc(7), true) }} transition={{ duration: still ? 0 : .45 }} className="cd-surface" /></g>}
@@ -3254,7 +3260,7 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
               const active = i === selectedIndex && !halfPair, accumulated = Math.abs(weights[i]) > 0 && (mode === 'sum' || mode === 'integrate');
               const inInterval = Math.abs(wholeWeights[i]) > 0;
               const opacity = !inInterval ? .14 : active ? 1 : accumulated ? .94 : building === 'add' ? .16 : .48 + continuum * .3, identity = intervalKey(i, n);
-              return <g key={identity} data-piece-key={identity} className={ringPieceClass(i)} style={{ opacity, ...cutAt(i / n) }} onPointerDown={ev => { ev.stopPropagation(); onSelect(i); }}><motion.path initial={false} animate={{ d: ringArc(i, n) }} transition={{ duration: still ? 0 : .18 }} fill="none" strokeWidth={active ? 10 : 7} /></g>;
+              return <g key={identity} data-piece-key={identity} className={ringPieceClass(i)} style={{ opacity, ...cutAt(i / n), ...freeAt(i) }} onPointerDown={ev => { ev.stopPropagation(); onSelect(i); }}><motion.path initial={false} animate={{ d: ringArc(i, n) }} transition={{ duration: still ? 0 : .18 }} fill="none" strokeWidth={active ? 10 : 7} /></g>;
             })}
             {/* The ring's last pair at an odd count: two half pieces, straight across from each other. */}
             {halfPair && pairSlot?.b && [pairSlot.a, pairSlot.b].map((span, k) => <g key={k} className={`cd-piece ${k ? 'is-partner' : 'is-selected'} cd-half-piece`} data-half-piece={k ? 'partner' : 'piece'} style={{ pointerEvents: 'none' }}>
@@ -3265,10 +3271,16 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
                 these there (opacity 0, !important). Built anyway, they were a mark per cut and per growing cut on every
                 frame of Shrink them -- hundreds once the ring is cut finely -- thrown away unseen (see `RingHits`). */}
             {!inSpace && continuum < .995 && <g className="cd-seams" aria-hidden="true" style={{ opacity: .7 * (1 - continuum) }}>
-              {seamFractions(n).map(t => { const theta = 2 * Math.PI * t, h = 8 / unit, c = Math.cos(theta), s = Math.sin(theta); return <g key={seamKey(t)} data-seam={seamKey(t)} className="cd-seam"><line x1={(R - h) * c} y1={(R - h) * s} x2={(R + h) * c} y2={(R + h) * s} /></g>; })}
+              {seamFractions(n).map(t => { const theta = 2 * Math.PI * t, h = 8 / unit, c = Math.cos(theta), s = Math.sin(theta); return <g key={seamKey(t)} data-seam={seamKey(t)} className="cd-seam" style={cutAt(t)}><line x1={(R - h) * c} y1={(R - h) * s} x2={(R + h) * c} y2={(R + h) * s} /></g>; })}
               {split > .04 && split < .995 && splitFractions(n).map(t => { const theta = 2 * Math.PI * t, h = 8 * split / unit, c = Math.cos(theta), s = Math.sin(theta); return <g key={seamKey(t)} data-seam={seamKey(t)} className="cd-seam is-growing" style={{ opacity: split }}><line x1={(R - h) * c} y1={(R - h) * s} x2={(R + h) * c} y2={(R + h) * s} /></g>; })}
             </g>}
           </>}
+          {/* A SURFACE'S CUTS, AS CUT IT UP MAKES THEM. Flat, a disk or a sheet showed no partition at all -- one
+              ring and nothing round it -- so the stage that cuts it had nothing to cut. Its circles are made in order,
+              outward, as a wire's cuts are made along it. In space the scene draws them (`.cd-in-space` hides these). */}
+          {(id === 'disk' || id === 'sheet') && building === 'pieces' && <g className="cd-seams cd-surface-seams" aria-hidden="true">
+            {seamFractions(n).map(t => <g key={seamKey(t)} data-seam={seamKey(t)} className="cd-seam" style={cutAt(t)}><path d={pathThrough(worldArc(Math.max(.001, Math.abs(world(t).x))), true)} fill="none" /></g>)}
+          </g>}
         </g>}
         {id === 'sheet' && !inSpace && <path d={[sheetRim.left, sheetRim.right].map(q => `M${(q.x - 15).toFixed(1)} ${(q.y - 6).toFixed(1)}l12 12m6 -12 12 12`).join('')} className="cd-continuation" />}
         {/* In Cut it up too, where the tag says "ring ΔQ" and the sentence speaks of rings: with no ring drawn the tag
@@ -3307,7 +3319,7 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
             const shade = ramp ? { fillOpacity: .08 + .92 * s.position.y / p.size } : undefined;
             shape = upright ? <rect x={pos.x - rodHalf} y={lo} width={rodHalf * 2} height={extent} clipPath={`url(#${uid}rod)`} {...shade} /> : <rect x={lo} y={pos.y - rodHalf} width={extent} height={rodHalf * 2} clipPath={`url(#${uid}rod)`} />;
           }
-          return <g key={identity} data-piece-key={identity} className={`cd-piece ${active ? 'is-selected' : ''}${ramp ? ' is-density' : ''}${partnerLit && i === partnerIndex && !active ? ' is-partner' : ''}${accumulated && !active ? ' is-added' : ''}`} style={{ opacity: opacity * heat, strokeOpacity: active ? 1 : outline, ...cutAt(i / n) }} onPointerDown={ev => { ev.stopPropagation(); onSelect(i); }}>{shape}</g>;
+          return <g key={identity} data-piece-key={identity} className={`cd-piece ${active ? 'is-selected' : ''}${ramp ? ' is-density' : ''}${partnerLit && i === partnerIndex && !active ? ' is-partner' : ''}${accumulated && !active ? ' is-added' : ''}`} style={{ opacity: opacity * heat, strokeOpacity: active ? 1 : outline, ...cutAt(i / n), ...freeAt(i) }} onPointerDown={ev => { ev.stopPropagation(); onSelect(i); }}>{shape}</g>;
         })}
         {/* THE RAMP IN THE LIMIT. The pieces are its density while it is cut: each one shaded by its λ. As
             they shrink away their shading goes with them, and the climax of the run was an empty tube with

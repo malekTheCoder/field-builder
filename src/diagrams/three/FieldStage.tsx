@@ -61,6 +61,10 @@ export type FieldStageProps={
  animating?:boolean; getView?:()=>{yaw:number;pitch:number};
  /** "Watch it build", while it is open: what the scene draws of each stage. See `runScene`. */
  run?:RunScene|null;
+ /** The run's own clock, while it is in Cut it up, and the moment that stage began: the cuts are made, and the
+  * piece is named, at the time the run is at -- held by a pause, moved by a seek, stepped by Reduced Motion's
+  * beats -- as the flat figure's are (`--cd-local`). Without it they are made on the wall clock. */
+ cutClock?:{get():number;subscribe(listener:()=>void):()=>void;start:number}|null;
  /** Told, once, that the scene cannot start here -- no WebGL context, or its chunk never arrived -- so the
   * figure can draw itself flat instead. Without it the stage says so itself, over its empty layer. */
  onUnavailable?:(why?:'lost')=>void;
@@ -68,6 +72,9 @@ export type FieldStageProps={
 /** The cuts are made in order along the charge, at the same pace as the flat figure's
  * `.cd-stage-pieces .cd-seam` animation, so a reader who flips between 2D and 3D sees one run. */
 const CUT={spread:1.5,delay:.2,each:.42};
+/** When the cutting is done and the chosen piece is lit and named, in seconds into Cut it up: the flat figure's
+ * `cd-pick` and the ΔQ tag's fade start at the same moment. Until then the charge is cut, not yet pointed at. */
+const NAMED_AT=2;
 /** THE CHARGE IS THE SAME COLOUR WHATEVER ITS SIGN. The scene used to paint a negative charge blue,
  * while the flat figure, the piece tags, the construction lines and every dQ on the board stay the
  * charge's own orange for both signs and say the sign with plus and minus marks -- so turning a
@@ -77,8 +84,8 @@ const CUT={spread:1.5,delay:.2,each:.42};
  * every field line carries an arrowhead now, out of a positive charge and into a negative one.
  * The body, the line work (cuts, rings, the chosen piece), the pieces already added, and the glow. */
 export const CHARGE={body:0xf0975c,line:0xc2703a,added:0xd9834b,glow:0x3a1c08} as const;
-const CUT_MS=(CUT.spread+CUT.delay+CUT.each)*1000+60;
-type Live={dispose:()=>void;update:(p:FieldStageProps)=>void};
+const CUT_MS=Math.max((CUT.spread+CUT.delay+CUT.each)*1000,NAMED_AT*1000)+60;
+type Live={dispose:()=>void;update:(p:FieldStageProps)=>void;tick?:()=>void};
 const sampleKey=(p:FieldStageProps)=>{
  if(p.bodyPath?.length){
   const f=p.bodyPath[0],l=p.bodyPath[p.bodyPath.length-1];
@@ -123,6 +130,8 @@ export function FieldStage(props:FieldStageProps){
  // on offer to try again; a stage with nobody to tell says so itself, and draws again if the context comes back.
  const [lost,setLost]=useState(false);
  useEffect(()=>{latest.current=props;live.current?.update(props);});
+ const cutClock=props.cutClock;
+ useEffect(()=>cutClock?.subscribe(()=>live.current?.tick?.()),[cutClock]);
  useEffect(()=>{
   const mount=host.current;
   if(!mount)return;
@@ -1230,14 +1239,18 @@ export function FieldStage(props:FieldStageProps){
    // Restarted whenever the run comes back to that stage, as the flat figure's animation is.
    let cutStart=-Infinity,runStage='',piecesKey='',partnerKey='',cutsKey='',fillKey='';
    const reducedMotion=()=>{try{return window.matchMedia('(prefers-reduced-motion: reduce)').matches;}catch{return false;}};
-   /** How far the cut a fraction `t` along the charge has opened, 0 to 1. Reduced motion makes
-    * every cut at once, as the flat figure does: the cuts are the argument, the stagger is not. */
+   /** How far the cut a fraction `t` along the charge has opened, 0 to 1. On the run's clock, Reduced Motion's
+    * beats step through the cuts, as the flat figure's do. Off it, Reduced Motion makes every cut at once. */
    const cutShown=(t:number,now:number)=>{
     if(runStage!=='pieces')return 1;
-    const k=Math.max(0,Math.min(1,((now-cutStart)/1000-(t*CUT.spread+CUT.delay))/CUT.each));
+    const k=Math.max(0,Math.min(1,(cutLocal(now)-(t*CUT.spread+CUT.delay))/CUT.each));
     return 1-(1-k)**3;
    };
-   const cutting=()=>runStage==='pieces'&&performance.now()-cutStart<CUT_MS;
+   /** Seconds into Cut it up: on the run's clock where there is one, or else since the stage was first drawn. */
+   const cutLocal=(now:number)=>{const c=latest.current.cutClock;return c?c.get()-c.start:(now-cutStart)/1000;};
+   // The wall clock's cuts carry a loop of their own; the run's clock wakes the scene itself (see `tick`).
+   const cutting=()=>runStage==='pieces'&&!latest.current.cutClock&&performance.now()-cutStart<CUT_MS;
+   let ticked=-1;
    const quantise=(v:number,steps=40)=>Math.round(v*steps)/steps;
    const toneColour=(tone:string)=>new THREE.Color(tone==='added'?CHARGE.added:CHARGE.body);
    const applyRun=(p:FieldStageProps,wr:number,positive:boolean,dark:boolean,spread:number,thick:number,far:FarFade|null,yaw:number,frameWorld:number)=>{
@@ -1572,6 +1585,17 @@ export function FieldStage(props:FieldStageProps){
      // rather than through it. Its near side and its sides keep their full strength.
      if(elementKey!==key){buildElement(p.element,thick,null,frameWorld,pieceFar);elementKey=key;}
     }else element.visible=false;
+    // Cut it up lights the chosen piece only once every cut is made, as the flat figure names it: before that the
+    // charge is being cut, and a piece already lit said it had been cut before the stage began.
+    const unnamed=p.run?.stage==='pieces'&&cutLocal(performance.now())<NAMED_AT;
+    if(unnamed)element.visible=false;
+    // How far Cut it up has got, said on the stage for a test to read: the cuts made so far, and whether the piece
+    // is named yet. Nothing a reader sees; the drawing is a canvas.
+    if(p.run?.stage==='pieces'){
+     const n=p.run.pieces.length,ts=Array.from({length:p.closed?n:n-1},(_,k)=>(p.closed?k:k+1)/n),now=performance.now();
+     const made=`${ts.filter(t=>cutShown(t,now)>.5).length}/${ts.length}:${unnamed?'cutting':'named'}`;
+     if(mount.parentElement?.getAttribute('data-run-cutting')!==made)mount.parentElement?.setAttribute('data-run-cutting',made);
+    }else mount.parentElement?.removeAttribute('data-run-cutting');
     if(p.net)layArrow(netArrow,p.point,p.net,Math.hypot(p.net.x,p.net.y,p.net.z),wr*.75);else netArrow.group.visible=false;
     // One element's contribution is the field AT P due to that element, so it is laid from P.
     // While a mirror pair goes into the sum the run draws the piece's whole arrow itself, fading (see `wholeArrow`).
@@ -1724,6 +1748,9 @@ export function FieldStage(props:FieldStageProps){
    wakeCuts();
    live.current={
     update:p=>{if(disposed)return;apply(p);wake();wakeCuts();},
+    // The run's clock moved: redraw only while Cut it up is still cutting or yet to name its piece, and only when
+    // the time it has reached has changed.
+    tick:()=>{if(disposed||runStage!=='pieces')return;const t=Math.max(0,Math.min(CUT_MS/1000,cutLocal(0)));if(t===ticked)return;ticked=t;apply(latest.current);},
     dispose:()=>{
      disposed=true;canvas.removeEventListener('webglcontextlost',onLost);canvas.removeEventListener('webglcontextrestored',onRestored);cancelAnimationFrame(frameId);cancelAnimationFrame(cutFrame);observer.disconnect();themeWatch.disconnect();nameWatch.disconnect();stageWatch.disconnect();cancelAnimationFrame(namesFrame);root?.removeEventListener(SNAPSHOT_EVENT,snapshot);
      clearGroup(body);clearGroup(slices);clearGroup(field);clearGroup(cuts);arrowGeometry.dispose();

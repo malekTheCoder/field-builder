@@ -427,12 +427,48 @@
 .cd-field-canvas{transition:opacity .45s ease}
 .cd-building .cd-field-canvas{opacity:.14}
 
-/* 1 · CUT IT UP. The figure used to open this stage already cut, so nothing happened. Now the
-   cuts are made in order along the charge, and each piece flashes as it comes free. */
+/* 1 · CUT IT UP. The figure used to open this stage already cut, so nothing happened. Then the cuts were
+   "made" in order -- as thin marks in the charge's own colour, laid exactly over the lines between pieces that
+   were already drawn, so the stage still opened on a charge in pieces with one piece lit and named, and its
+   first frame and its last were the same picture on every lesson.
+
+   So the stage starts from the charge WHOLE: no lines between its pieces, no piece lit, nothing named. Each cut
+   is then made in order along it, as a gap in the paper's colour opening across the charge (a little past its
+   edges, so the outline is cut too); each piece's own outline arrives as it comes free (`--free`: as the second
+   of its two cuts is made), with a flash; an endless line's angles at P come in with their cuts; and only when
+   every cut is made is one piece lit and named ΔQ (its length, its angle). All on the run's clock (see
+   `.cd-clocked` below), so a pause, a seek and Reduced Motion's beats show the frame the clock is at. */
+.cd-stage-pieces .cd-seams{opacity:1!important}
+.cd-stage-pieces .cd-seam line,.cd-stage-pieces .cd-seam path{stroke:var(--diagram,#fff);stroke-width:4;stroke-opacity:1}
 .cd-stage-pieces .cd-seam{transform-box:fill-box;transform-origin:center;animation:cd-cut .42s cubic-bezier(.2,.8,.2,1) both;animation-delay:calc(var(--t,0) * 1.5s + .2s - var(--cd-local,0s))}
-@keyframes cd-cut{from{opacity:0;transform:scale(0)}to{opacity:1;transform:none}}
-.cd-stage-pieces .cd-piece{animation:cd-free .7s ease-out both;animation-delay:calc(var(--t,0) * 1.5s + .3s - var(--cd-local,0s))}
+@keyframes cd-cut{from{opacity:0;transform:scale(0)}to{opacity:1;transform:scale(1.3)}}
+/* A surface's cut is a circle: drawn round from nothing, never scaled out of its centre past the disk's rim. */
+.cd-stage-pieces .cd-surface-seams .cd-seam{animation-name:cd-cut-round}
+@keyframes cd-cut-round{from{opacity:0}to{opacity:1}}
+.cd-stage-pieces .cd-piece{animation:cd-free .7s ease-out both;animation-delay:calc(var(--free,0) * 1.5s + .3s - var(--cd-local,0s))}
 @keyframes cd-free{0%{filter:none}35%{filter:drop-shadow(0 0 8px var(--charge,#b8460f)) brightness(1.15)}100%{filter:none}}
+/* A rod's pieces are cells; until a piece is free, its outline is not drawn, and the rod reads as one bar. */
+.cd-stage-pieces .cd-piece>rect{animation:cd-outline .35s ease-out both;animation-delay:calc(var(--free,0) * 1.5s + .3s - var(--cd-local,0s))}
+@keyframes cd-outline{from{stroke-opacity:0}}
+/* The piece the run will talk about looks like every other until the cutting is done. */
+.cd-stage-pieces .cd-piece.is-selected{animation:cd-free .7s ease-out both,cd-pick .45s ease-out both;animation-delay:calc(var(--free,0) * 1.5s + .3s - var(--cd-local,0s)),calc(2s - var(--cd-local,0s))}
+@keyframes cd-pick{from{fill:var(--charge-fill,#fdefe6);opacity:.48}}
+/* Without the flash (Reduced Motion), the lit piece's own glow waits for it too. */
+@keyframes cd-pick-still{from{fill:var(--charge-fill,#fdefe6);opacity:.48;filter:none}}
+/* ...and its + mark, set white on the lit piece, stays the charge's colour on the unlit one until then. */
+.cd-stage-pieces .cd-svg .cd-plus text.is-on-fill{animation:cd-pick-mark .45s ease-out both;animation-delay:calc(2s - var(--cd-local,0s))}
+@keyframes cd-pick-mark{from{fill:var(--charge,#b8460f);stroke:var(--diagram,#fff)}}
+.cd-wire-kind.cd-stage-pieces .cd-piece.is-selected>path{animation:cd-pick-stroke .45s ease-out both;animation-delay:calc(2s - var(--cd-local,0s))}
+@keyframes cd-pick-stroke{from{stroke-width:7px}}
+/* A surface's piece is a ring drawn on it: there is none to see until the surface has been cut into rings. */
+.cd-surface-kind.cd-stage-pieces .cd-piece.is-selected{animation:cd-pick-ring .45s ease-out both;animation-delay:calc(2s - var(--cd-local,0s))}
+@keyframes cd-pick-ring{from{opacity:0}}
+.cd-stage-pieces .cd-wedge{animation:cd-wedge .4s ease-out both;animation-delay:calc(var(--free,0) * 1.5s + .3s - var(--cd-local,0s))}
+@keyframes cd-wedge{from{fill-opacity:0}}
+.cd-stage-pieces .cd-ray{animation:cd-ray .42s ease-out both;animation-delay:calc(var(--t,0) * 1.5s + .2s - var(--cd-local,0s))}
+@keyframes cd-ray{from{stroke-opacity:0}}
+/* Named once it is cut: ΔQ, and the piece's length or angle. Three classes, to outrank the stage-wide fades below. */
+.cd-building.cd-stage-pieces :is(.cd-source-tag,.cd-piece-length,.cd-piece-angle){animation:cd-fade .45s ease-out both;animation-delay:calc(2s - var(--cd-local,0s))}
 
 /* 2 · ONE PIECE and 3 · WHAT CANCELS. Everything but the pieces being pointed at steps back,
    and those glow, so the arrow at P is plainly theirs. */
@@ -481,7 +517,7 @@
    it moves -- is taken off each one's delay: a held animation shows exactly the frame that time reaches, so
    a pause, a seek or a stepped clock shows the frame the clock is at. The piece's own arrow grew in One
    piece and is whole through What cancels. */
-.cd-clocked.cd-stage-pieces .cd-seam,.cd-clocked.cd-stage-pieces .cd-piece,.cd-clocked.cd-building .cd-grow{animation-play-state:paused}
+.cd-clocked.cd-stage-pieces :is(.cd-seam,.cd-piece,.cd-piece>rect,.cd-piece>path,.cd-wedge,.cd-ray,.cd-source-tag,.cd-piece-length,.cd-piece-angle,.cd-plus text),.cd-clocked.cd-building .cd-grow{animation-play-state:paused}
 .cd-clocked.cd-stage-cancel .cd-grow:not(.cd-grow-pair):not(.cd-grow-parts){animation:none}
 @keyframes cd-grow{from{opacity:0;transform:scale(.12)}to{opacity:1;transform:none}}
 .cd-building .cd-construction,.cd-building .cd-source-tag{animation:cd-fade .5s ease-out both}
@@ -496,7 +532,22 @@
 @media (prefers-reduced-motion:reduce){
  .cd-building:not(.cd-clocked) .cd-grow,.cd-building .cd-construction,.cd-building .cd-source-tag,.cd-building .cd-triangle,.cd-building .cd-bound{animation:none}
  .cd-building .cd-piece{transition:none}
- .cd-svg .cd-stage-label,.cd-stage-pieces:not(.cd-clocked) .cd-seam,.cd-stage-pieces:not(.cd-clocked) .cd-piece{animation:none}
+ .cd-svg .cd-stage-label,.cd-stage-pieces:not(.cd-clocked) :is(.cd-seam,.cd-piece,.cd-piece>rect,.cd-piece>path,.cd-wedge,.cd-ray,.cd-plus text){animation:none}
+ .cd-building.cd-stage-pieces:not(.cd-clocked) :is(.cd-source-tag,.cd-piece-length,.cd-piece-angle){animation:none}
+ /* ...and on the clock, kept. The page stops every animation under Reduced Motion (globals.css), with !important,
+    and Cut it up's cuts are animations held still at the clock's time: stopped, the stage drew its last frame from
+    its first, every cut made and the piece named, and skipped the cutting. Held at a time they are not motion; the
+    clock steps through them in beats. Each is restored here, unchanged but for its easing, which a step has no use for. */
+ .cd-clocked.cd-stage-pieces .cd-seam{animation:cd-cut .42s linear both paused!important;animation-delay:calc(var(--t,0) * 1.5s + .2s - var(--cd-local,0s))!important}
+ .cd-clocked.cd-stage-pieces .cd-surface-seams .cd-seam{animation-name:cd-cut-round!important}
+ .cd-clocked.cd-stage-pieces .cd-piece>rect{animation:cd-outline .35s linear both paused!important;animation-delay:calc(var(--free,0) * 1.5s + .3s - var(--cd-local,0s))!important}
+ .cd-clocked.cd-stage-pieces .cd-piece.is-selected{animation:cd-pick-still .45s linear both paused!important;animation-delay:calc(2s - var(--cd-local,0s))!important}
+ .cd-clocked.cd-surface-kind.cd-stage-pieces .cd-piece.is-selected{animation-name:cd-pick-ring!important}
+ .cd-clocked.cd-wire-kind.cd-stage-pieces .cd-piece.is-selected>path{animation:cd-pick-stroke .45s linear both paused!important;animation-delay:calc(2s - var(--cd-local,0s))!important}
+ .cd-clocked.cd-stage-pieces .cd-wedge{animation:cd-wedge .4s linear both paused!important;animation-delay:calc(var(--free,0) * 1.5s + .3s - var(--cd-local,0s))!important}
+ .cd-clocked.cd-stage-pieces .cd-ray{animation:cd-ray .42s linear both paused!important;animation-delay:calc(var(--t,0) * 1.5s + .2s - var(--cd-local,0s))!important}
+ .cd-clocked.cd-building.cd-stage-pieces :is(.cd-source-tag,.cd-piece-length,.cd-piece-angle){animation:cd-fade .45s linear both paused!important;animation-delay:calc(2s - var(--cd-local,0s))!important}
+ .cd-clocked.cd-stage-pieces .cd-svg .cd-plus text.is-on-fill{animation:cd-pick-mark .45s linear both paused!important;animation-delay:calc(2s - var(--cd-local,0s))!important}
  .cd-field-canvas{transition:none}
 }
 
