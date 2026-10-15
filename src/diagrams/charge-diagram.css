@@ -303,9 +303,9 @@
 
 /* Flat or in space. Two states of one control, so they look like a pair rather than two
    different kinds of button. */
-.cd-toolbar{display:flex;flex-wrap:wrap;align-items:center;gap:8px 18px;padding:8px 2px 0;font-size:12px}
+.cd-toolbar{display:flex;flex-wrap:wrap;align-items:center;gap:8px 18px;padding:8px 2px 0;font-size:var(--t-fine,14px)}
 .cd-view-modes{display:flex;align-items:center;gap:6px}
-.cd-toolbar .cd-orbit-reset{font-size:12px}
+.cd-toolbar .cd-orbit-reset{font-size:var(--t-fine,14px)}
 .cd-view-mode{padding:3px 10px;border:1px solid var(--border);border-radius:6px;background:none;color:var(--muted-foreground);cursor:pointer;font:inherit;font-variant-numeric:tabular-nums;transition:background .16s ease,color .16s ease,border-color .16s ease}
 .cd-view-mode.is-on{background:var(--muted);border-color:var(--foreground);color:var(--foreground)}
 .cd-view-mode:focus-visible{outline:2px solid var(--field);outline-offset:1px}
@@ -551,9 +551,9 @@
    ink-coloured slider. Nothing in it uses the field colour, which belongs to the figure and
    the page's real sliders. */
 .cd-controls[open]>summary~*{margin-left:5px;padding-left:12px;border-left:1px solid var(--surface-rule,var(--border))}
-.cd-controls p{font-size:12px;line-height:1.5;color:var(--muted-foreground);margin:0;padding-bottom:6px;max-width:68ch}
+.cd-controls p{font-size:var(--t-fine,14px);line-height:1.5;color:var(--muted-foreground);margin:0;padding-bottom:6px;max-width:68ch}
 .cd-control-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(15rem,1fr));gap:0 24px;padding-bottom:2px}
-.cd-control-grid label{display:flex;align-items:center;gap:10px;min-width:0;min-height:26px;font-size:12px;line-height:1.3;color:var(--muted-foreground)}
+.cd-control-grid label{display:flex;align-items:center;gap:10px;min-width:0;min-height:26px;font-size:var(--t-fine,14px);line-height:1.3;color:var(--muted-foreground)}
 .cd-control-grid input{flex:0 1 9rem;min-width:5rem;margin:0 0 0 auto;height:18px;background:none;cursor:pointer;
  -webkit-appearance:none;appearance:none}
 .cd-control-grid input::-webkit-slider-runnable-track{height:2px;border-radius:2px;background:var(--border)}
@@ -564,7 +564,7 @@
 .cd-control-grid input:hover::-moz-range-thumb{background:var(--foreground)}
 /* The one control here with no slider on the page: say what it does in a line, not a card. */
 .cd-camera-control{grid-column:1/-1;justify-self:start;display:flex;flex-wrap:wrap;align-items:baseline;gap:0 8px;margin:0 0 4px;padding:3px 0;
- border:0;background:none;color:var(--foreground);font:inherit;font-size:12px;text-align:left;cursor:pointer}
+ border:0;background:none;color:var(--foreground);font:inherit;font-size:var(--t-fine,14px);text-align:left;cursor:pointer}
 .cd-camera-control:hover{color:var(--foreground)}
 .cd-camera-control span{color:var(--muted-foreground)}
 @media(max-width:600px){

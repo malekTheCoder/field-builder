@@ -4,7 +4,7 @@
    the charge, on the same ground in both themes. The header is the
    lesson's header (explorer.css), so the name in the corner never moves.
    ===================================================================== */
-.home{min-height:100vh;background:var(--background);color:var(--foreground);font-size:15px}
+.home{min-height:100vh;background:var(--background);color:var(--foreground);font-size:16px}
 .home-main{max-width:1160px;margin:0 auto;padding:64px 40px 40px}
 .home-main:focus,.home-lessons:focus{outline:none}
 
@@ -30,9 +30,13 @@
  transition:border-color var(--dur-state) var(--ease),transform var(--dur-press) var(--ease)}
 .home-continue>svg:first-child{color:var(--foreground);flex:none}
 .home-continue>svg:last-child{color:var(--muted-foreground);flex:none;transition:color var(--dur-state) var(--ease)}
-.home-continue-words{display:flex;flex-direction:column;line-height:1.15;min-width:0}
-.home-continue-kicker{font-size:12px;color:var(--muted-foreground)}
-.home-continue-to{font-size:15px;font-weight:600;color:var(--foreground);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* One line, at the size of the button beside it: the lesson's name. What the button does is the caption under it,
+   on the type scale, where a twelve-pixel kicker stacked over a fifteen-pixel name made a button of two sizes. */
+.home-continue{position:relative}
+.home-actions:has(.home-continue){padding-bottom:26px}
+.home-continue-words{display:block;min-width:0}
+.home-continue-kicker{position:absolute;left:0;top:calc(100% + 6px);font-size:var(--t-fine,14px);line-height:1.4;color:var(--muted-foreground);white-space:nowrap}
+.home-continue-to{display:block;font-size:16px;font-weight:600;color:var(--foreground);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .home-continue:hover{border-color:var(--foreground);background:var(--card)}
 .home-continue:hover>svg:last-child{color:var(--foreground)}
 .home-continue:active{transform:translateY(1px)}
@@ -105,7 +109,7 @@
 
 .home-foot{display:flex;flex-wrap:wrap;align-items:baseline;gap:8px 24px;margin-top:40px;padding:28px 0 8px;border-top:1px solid var(--rule);font-size:var(--type-meta);color:var(--muted-foreground)}
 .home-foot p{font-family:var(--font-ui);font-size:var(--t-lead,19px);letter-spacing:-.005em;color:var(--foreground);font-weight:600}
-.home-foot a{display:inline-flex;align-items:center;gap:6px;margin-left:auto;text-decoration:none}
+.home-foot a{display:inline-flex;align-items:center;gap:6px;margin-left:auto;color:var(--foreground);text-decoration:underline;text-decoration-color:var(--primary);text-decoration-thickness:1px;text-underline-offset:.25em;transition:color var(--dur-state) var(--ease)}
 .home-foot a:hover{color:var(--primary)}
 
 @media(max-width:1050px){

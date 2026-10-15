@@ -87,7 +87,7 @@
  .ob-formula{font-size:var(--type-body);padding-top:16px;margin-top:16px}
  .ob-title[data-slot=dialog-title]{font-size:var(--type-title)!important;max-width:none}
  .ob-mini-control{padding:12px 14px;gap:10px}
- .ob-actions [data-slot=button]{font-size:12px;padding:0 12px}
+ .ob-actions [data-slot=button]{font-size:var(--t-fine,14px);padding:0 12px}
  .ew-content{padding:18px}
 }
 
@@ -131,7 +131,7 @@
    and a hairline between it and the derivation it sets. Its symbols are set as the remarks' are: inline, at
    the words' size and a little up, a symbol held to its word and never broken inside. */
 .ew-problem{margin:0 0 18px;padding:0 0 16px;border-bottom:1px solid var(--surface-rule)}
-.ew-problem-title{margin:0 0 5px;font-family:var(--font-ui);font-size:15px;line-height:20px;font-weight:600;letter-spacing:-.003em;color:var(--foreground)}
+.ew-problem-title{margin:0 0 5px;font-family:var(--font-ui);font-size:16px;line-height:20px;font-weight:600;letter-spacing:-.003em;color:var(--foreground)}
 .ew-problem-text{margin:0;font-family:var(--font-ui),Arial,sans-serif;font-size:14px;line-height:1.5;color:var(--foreground);text-wrap:pretty}
 .ew-problem-text .math{font-size:inherit;margin:0;padding-bottom:0}
 .ew-problem-text .db-sym .katex{font-size:1.1em}
@@ -159,7 +159,7 @@
  text-align:left;cursor:pointer}
 .db-head:focus-visible{outline:2px solid var(--primary);outline-offset:3px}
 .db-title{position:relative;display:flex;align-items:center;gap:10px;margin:0 0 0 -22px;padding:10px 6px 4px 0;
- font-family:var(--font-ui);font-size:15px;line-height:20px;font-weight:600;letter-spacing:-.003em;color:var(--foreground);
+ font-family:var(--font-ui);font-size:16px;line-height:20px;font-weight:600;letter-spacing:-.003em;color:var(--foreground);
  transition:color var(--dur-state) var(--ease)}
 .db-head:hover .db-title{color:var(--foreground)}
 .db-node{position:relative;z-index:1;width:12px;height:12px;flex:none;border-radius:50%;border:2px solid var(--border-strong);
@@ -172,7 +172,7 @@
 .db-step.is-here .db-title{color:var(--foreground)}
 /* A step still to come is quieter by its weight, not by fading its ink: at 70% the names measured
    3.2:1 on the light card and 4.3:1 on the dark, under the 4.5:1 text needs at 15px. */
-.db-step.is-next .db-title{color:var(--muted-foreground);font-weight:500}
+.db-step.is-next .db-title{color:var(--muted-foreground);font-weight:400}
 
 /* A step still to come is its name only; it opens when the run reaches it. */
 .db-reveal{display:grid;grid-template-rows:1fr;opacity:1;transition:grid-template-rows .5s cubic-bezier(.2,.8,.2,1),opacity .4s ease .05s}
@@ -256,7 +256,7 @@
    The second step starts at 280px: the ramp's last line is about 241px of math at 14.5px, which
    left the 272px board beside the figure at 1060px no room at all -- and on Linux, where glyph
    advances are rounded to whole pixels, it came out 246px in a 240px box and scrolled. */
-@container (max-width:290px){.db-step{--db-math:14.5px;--db-gloss:13.5px}}
+@container (max-width:290px){.db-step{--db-math:14.5px}}
 /* Below 280px the type follows the board instead of stepping. The steps were set at the widths the
    sweep measured and guessed between them: on a phone the board is the screen less 98px, and at
    boards of 240 to 264px the ramp's last line scrolled. The line is about 16.6 times the type size
@@ -324,9 +324,9 @@
 /* What the closed form is: the integral above, done. A remark under the heading, with the way to the
    steps in it -- a link-like button, not a second disclosure. */
 .ew-result>.ew-result-lead{margin:4px 0 2px}
-.ew-result-unfold{display:inline;margin:0;padding:0;border:0;background:none;font:inherit;color:var(--primary);cursor:pointer;
- text-decoration:underline;text-decoration-thickness:1px;text-underline-offset:2px}
-.ew-result-unfold:hover{color:var(--foreground)}
+.ew-result-unfold{display:inline;margin:0;padding:0;border:0;background:none;font:inherit;color:var(--foreground);cursor:pointer;
+ text-decoration:underline;text-decoration-color:var(--primary);text-decoration-thickness:1px;text-underline-offset:.25em;transition:color var(--dur-state) var(--ease)}
+.ew-result-unfold:hover{color:var(--primary)}
 .ew-result-unfold:focus-visible{outline:2px solid var(--primary);outline-offset:3px;border-radius:2px}
 .ew-result>p{margin:10px 0 0;font-size:var(--type-meta);line-height:1.6;color:var(--muted-foreground);text-wrap:pretty}
 .ew-result.is-partial{border-top-color:var(--surface-rule)}

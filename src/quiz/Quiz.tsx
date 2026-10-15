@@ -41,7 +41,7 @@ export function QuizLink(){
 /** A choice as it is set: a formula, or words with symbols in them. */
 const ChoiceBody=({c}:{c:Choice})=>c.tex?<MathText tex={c.tex}/>:<Prose text={c.text??''}/>;
 /** A place on the site to look, as a link with a line on what it opens. */
-function Place({p}:{p:Pointer}){const x=place(p);return <span className="quiz-place"><a href={x.href} onClick={open}><ShapeGlyph id={p.lesson} size={15}/>{x.title}<ArrowRight size={13} aria-hidden="true"/></a><small>{x.where}</small></span>}
+function Place({p}:{p:Pointer}){const x=place(p);return <span className="quiz-place"><a href={x.href} onClick={open}><ShapeGlyph id={p.lesson} size={15}/>{x.title}</a><small>{x.where}</small></span>}
 /** How a shape went, in words, for a page that shows no numerals. */
 function howItWent(right:number,total:number){
  if(right===total)return 'All right';

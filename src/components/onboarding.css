@@ -32,5 +32,5 @@
 .fb-onboarding .ob-dismiss{flex-basis:100%;display:flex;flex-wrap:wrap;align-items:center;gap:6px 9px;font-size:var(--type-meta);
  color:var(--muted-foreground);cursor:pointer;user-select:none;-webkit-user-select:none}
 .fb-onboarding .ob-dismiss:hover{color:var(--foreground)}
-.fb-onboarding .ob-dismiss-note{margin-left:auto;font-size:11px;opacity:.85}
+.fb-onboarding .ob-dismiss-note{margin-left:auto;font-size:var(--t-fine,14px)}
 @media(max-width:520px){.fb-onboarding .ob-dismiss-note{flex-basis:100%;margin-left:25px}}
