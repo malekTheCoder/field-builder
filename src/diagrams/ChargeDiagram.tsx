@@ -2578,7 +2578,7 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
         if (Math.hypot(b.x - a.x, b.y - a.y) < 14) return null;
         const f = (q: Point) => `${q.x.toFixed(1)} ${q.y.toFixed(1)}`, tick = (q: Point) => `M${f({ x: q.x + near.x * 4, y: q.y + near.y * 4 })}l${(-near.x * 8).toFixed(1)} ${(-near.y * 8).toFixed(1)}`;
         const mid = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
-        return { bar: `M${f(a)}L${f(b)}${tick(a)}${tick(b)}`, mid, name: besidePoint(mid, near, 6, termSize), within: `${f(on(o))} ${near.x.toFixed(3)} ${near.y.toFixed(3)}` };
+        return { bar: `M${f(a)}L${f(b)}${tick(a)}${tick(b)}`, mid, name: besidePoint(mid, near, 11, termSize), within: `${f(on(o))} ${near.x.toFixed(3)} ${near.y.toFixed(3)}` };
       })() : null;
       return { kind: 'slope' as const, legs: [] as [Point, Point][], arc: [] as Point[], hyp, riSpot: besidePoint(hyp, normal, 7, termSize, .52), coordinate };
     }
