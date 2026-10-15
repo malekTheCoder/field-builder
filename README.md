@@ -2,13 +2,21 @@
 
 An interactive electric-field workbench for calculus-based introductory physics (Physics 2 / AP Physics C: E&M). Students move an observation point, cut a charge distribution into elements, watch a finite sum become an integral, and check the result against a limiting case.
 
+What's on the site:
+
+- **A home page** at the site root, with every lesson and a "One law" heading that opens the laws behind them.
+- **Fifteen lessons.** Each opens with a short textbook-style lesson (a lead, and "Read the lesson" for the rest, with pointers to OpenStax, Griffiths and Purcell), then the figure and **Build the integral**, then Limiting cases, Easy to confuse with, and a **Next** card to the related lesson.
+- **Quiz yourself** (`?quiz`): pick the shapes, answer questions from a bank of about a hundred and forty-five (every shape, physics-reviewed), and get personalized feedback: your weak spots, each linked to the lesson stage that fixes it, and the answers you were sure of but got wrong. History stays in the browser.
+- **How to study with this site** (`?guide`): active study, not rereading. Predict, explain each stage, write it before checking, check the limits, redo it from memory, come back later.
+- **Gauss's law**, listed as coming soon.
+
 **Live site:** [https://learnem.malekswilam.dev](https://learnem.malekswilam.dev) — public, no student accounts.
 
 Fifteen lessons are in the library, **all live**: ten field geometries and five potential lessons. A lesson that is not ready can be held back in `src/problems/readiness.ts`, where it stays listed under *Coming soon* rather than hidden. They are listed rather than hidden, so a reader can see the whole plan and tell the gap is deliberate; `src/problems/readiness.ts` is the only switch, and why each one is held back is written there.
 
 ## In class
 
-Open the live site. The explorer is the whole product: a figure, the integral being assembled beside it, and controls under both. Nothing is graded and nothing is scored — the site teaches, it does not test. Preferences stay in that browser’s local storage. There is no class roster, no cloud save, and no tracking.
+Open the live site. A lesson is a figure, the integral being assembled beside it, and controls under both. Nothing is graded on a server: the quiz's feedback and every preference stay in that browser’s local storage. There is no class roster, no cloud save, and no tracking.
 
 Point students at the one button above the figure, **Watch it build**. It plays the derivation as one run of five stages, and the board beside the figure writes one line of algebra per stage:
 
@@ -16,7 +24,7 @@ Point students at the one button above the figure, **Watch it build**. It plays 
 2. **One piece** — one piece's field at P, ΔE = kΔQ/rᵢ², along the line from the piece to P.
 3. **What cancels** — the piece's mirror partner, where it has one, and the sideways parts the two undo between them.
 4. **Add them up** — on the symmetric lessons (the finite and infinite lines, the ring, the arc) the pieces go in as **mirror pairs**, so the cancellation is seen and the sum grows straight along the axis; elsewhere the pieces' arrows add as a chain.
-5. **Shrink them** — the pieces made thinner without end: the sum becomes the integral, ΔQ becomes dQ, ≈ becomes =, and the answer arrives.
+5. **Shrink them** — as N → ∞ the pieces grow ever thinner (in angle, on the endless lines and the sheet): the sum becomes the integral, ΔQ becomes dQ, ≈ becomes =, and the answer arrives.
 
 The run can be paused, scrubbed, and stepped a stage at a time from the bar under the figure, from the board's own lines, or with a presenter's clicker; on a phone the bar also carries each stage's algebra.
 
@@ -78,7 +86,7 @@ Potential lessons (`v-ring`, `v-disk`, `v-arc`, `v-rod-bisector`, `v-rod-axial`)
 ## The fifteen lessons
 
 On the three unbounded geometries a piece is drawn as **one angle at P**: the partition is equal
-steps in θ, so an outer piece's charge lies hundreds of metres away, but the wedge it subtends at
+steps in the angle at P, so an outer piece's charge lies hundreds of metres away, but the wedge it subtends at
 P is always on screen and can be clicked. On a potential lesson the pieces' contributions are
 **stacked into a column** beside P: numbers, which add with no direction to cancel.
 
@@ -86,10 +94,10 @@ P is always on screen and can be clicked. On a potential lesson the pieces' cont
 
 1. Finite line, perpendicular bisector (`bisector`)
 2. Finite line, axial point beyond the end (`axial`)
-3. Infinite line — angular substitution or finite-line limit (`infinite`)
+3. Infinite line: angular substitution in α, or the finite-line limit (`infinite`)
 4. Ring, central axis (`ring`)
 5. Disk, built from annular rings (`disk`)
-6. Semi-infinite line — both components survive (`semi`)
+6. Semi-infinite line along y, P level with its end: both components survive (`semi`)
 7. Arc, center of curvature (`arc`)
 8. Infinite nonconducting sheet (`sheet`)
 9. Finite rod standing on its end, P level with that end (`endpoint`)
@@ -134,27 +142,9 @@ npm test
 
 ## Physics conventions
 
-Coordinates, units, and assumptions are explicit in each model. Positive charge is the default. For a semi-infinite rod along positive x and P=(0,r), the field components are Ex = −kλ/r and Ey = +kλ/r. The magnitude is √2 k|λ|/r. The finite rod from y=0 to y=L observed at P=(r,0) has Ex = kQ/(r√(r²+L²)) and Ey = −kλ(1/r − 1/√(r²+L²)); as L grows at fixed λ it reproduces that semi-infinite pair. Disk formulas distinguish signed height from magnitude, and the ideal charged surface z=0 is excluded.
+Coordinates, units, and assumptions are explicit in each model. Positive charge is the default, and every sentence is written to hold for either sign. The angle at P is α in every lesson (the arc's opening angle is φ and its piece angle θ). For a semi-infinite line up the y-axis from the origin and P=(r,0), the field components are Ex = kλ/r and Ey = −kλ/r. The magnitude is √2 k|λ|/r. The finite rod from y=0 to y=L observed at P=(r,0) has Ex = kQ/(r√(r²+L²)) and Ey = −kλ(1/r − 1/√(r²+L²)); as L grows at fixed λ it reproduces that semi-infinite pair. Disk formulas distinguish signed height from magnitude, and the ideal charged surface z=0 is excluded.
 
 Source references are embedded in the problem definitions and shown with the worked derivations.
-
-## Tests
-
-`npm test` runs the unit suite in Node and the browser suite in Chromium. One test is skipped by design: the check that a shared link to a held-back lesson is ignored, which has nothing to point at while every lesson is live. They cover:
-
-- every closed form against independent point-charge quadrature, including the five potentials and both charge polarities;
-- the limiting cases the app asserts — rod to point charge, rod to infinite line, disk to sheet, zero field at a ring's center with its axial maximum at z = R/√2, a closing arc cancelling to zero, distance-independence of the sheet, ramp far-field and first-moment;
-- the numerical sampler that drives the diagram: charge conservation, partial and reversed interval sums, infinite-domain tails, scalar potential sums;
-- the symbolic answer checker, including notation variants, deliberate sign and projection mistakes, and rejection of unsafe input;
-- **the physics, verified independently**: 193 checks built from Coulomb's law and each lesson's own setup sentence, with machinery deliberately unlike the first suite's (adaptive Simpson with Richardson extrapolation against fixed panels; a sinh sweep against doubled tails; a periodic trapezoid per annulus) so the two agree only where the physics is right. Worst error 6e-13 against a bar of 1e-10, and its teeth were checked by mutation — perturbing the ring's closed form by 2e-4 fails six tests by name and leaves the other 187 alone;
-- what the figure actually draws: field lines traced from the geometry, the selected piece on screen, labels that do not escape the frame, and the pieces of unbounded lessons that do;
-- the build sequence as choreography (five stages in the one order that makes the argument, the partition cut finer only at the end, and no scalar lesson claiming anything cancels) and as wiring (each stage checked by what appears in the drawing, not by what its caption says);
-- every slider of every live lesson lighting a feature that is actually drawn;
-- recovery from malformed local storage, teacher assignment URLs — including one pointing at a lesson that is not ready, which must be ignored — the print stylesheet, the offline HTML, the keyboard tour trap, and touch drags at phone and tablet sizes.
-
-## What this is not
-
-Gauss’s law, Biot–Savart, circuits, and student-account sync are not in the product. **Nothing here grades, scores or quizzes** — that was removed deliberately; the site's job is to make the derivation visible, not to test whether it landed. Numerals are currently stripped from the figures while the fundamentals are settled, so the lessons read symbolically. Visual theming may still shift from commit to commit.
 
 ## Project location and deployment
 
@@ -162,4 +152,4 @@ Public repository: [https://github.com/malekTheCoder/field-builder](https://gith
 
 Application address: https://learnem.malekswilam.dev. The active deployment workflow is `.github/workflows/pages.yml`. `npm run build:static` produces `dist-static/`; fonts and physics run locally in the browser. GitHub Actions validates and deploys that directory on pushes to main.
 
-The custom-domain CNAME points `field` to `malekthecoder.github.io`. Domain DNS changes are managed by the owner; the main domain and mail records are independent of this app.
+The custom domain is set in the repository's Pages settings; its DNS CNAME points `learnem` to `malekthecoder.github.io`. Domain DNS changes are managed by the owner; the main domain and mail records are independent of this app.
