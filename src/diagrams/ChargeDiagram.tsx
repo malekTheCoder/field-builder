@@ -2087,6 +2087,23 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
   // the leg that IS r went unlettered.
   const rOnLeg = !inSpace && !scalar && (id === 'bisector' || id === 'infinite' || footed || id === 'semi') && components && hasDrop && showContribution
     && building !== 'add' && building !== 'limit' && selectedOnFrame && P.x - O.x >= rodHalf + 6;
+  // A NEGATIVE CHARGE'S ΔE_x LIES ON THE r LEG. Its part along the axis points from P back at the rod, down the leg
+  // that is r, and the leg was painted over it: the arrow read as the leg with a teal head, and the two names took
+  // the one line between them -- "ΔE_x r" side by side under the endpoint's leg, ΔE_x pushed up beside the y leg on
+  // the bisector. There the leg stops just past the arrow's point, as r_i's line does at ΔE's, ΔE_x is named beside
+  // its own shaft, away from the mirror's arrows (with no mirror, out of the triangle), and r beside the stretch of
+  // leg the arrow leaves bare, across the line from ΔE_x where there is room. On a phone the triangle holds y, r and
+  // α and no more: there ΔE_x is named on the mirror's side, between the two survivors, which are equal. A positive
+  // charge's part leaves P the other way, off the leg, and nothing changes there.
+  const keepOnLeg = rOnLeg && p.charge < 0 && Math.hypot(keepScreen.x, keepScreen.y) > 4 && keepScreen.x * (O.x - P.x) > 0;
+  const keepSide = keepOnLeg ? (pairing && labelScale >= 1.2 ? -(awayFrom(keepScreen, partnerScreen) ?? 0) || undefined : awayFrom(keepScreen, pairing ? partnerScreen : contribution)) : undefined;
+  // ...and held on its side of the line, where a name across it named r. Its middle is where the angle's letter
+  // stands, inside the triangle, so further spots beside its shaft run on toward its point.
+  const keepOnLegWithin = keepOnLeg && keepSide ? (() => { const u = direction(keepScreen)!; return `${P.x.toFixed(1)} ${P.y.toFixed(1)} ${(-u.y * keepSide).toFixed(3)} ${(u.x * keepSide).toFixed(3)}`; })() : undefined;
+  const keepOnLegAlts = keepOnLeg && keepSide ? (() => {
+    const u = direction(keepScreen)!, n = { x: -u.y * keepSide, y: u.x * keepSide };
+    return [[.8, 7], [.9, 4], [.97, 3], [.4, 7]].map(([f, g]) => besidePoint(plus(P, scaleVec2(keepScreen, f)), n, g, SYM * labelScale, .52)).map(q => `${q.x.toFixed(1)} ${q.y.toFixed(1)} ${q.anchor}`).join(';');
+  })() : undefined;
   if ((id === 'bisector' || id === 'infinite' || footed || id === 'semi') && !rOnLeg && !spaceRod) {
     // r, from the rod to P, on a bar below the axis that stops at P rather than running into it --
     // and below anything drawn down from P over that stretch, sixteen units clear of its lowest point.
@@ -2651,6 +2668,9 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
     const legAt = (f: number) => besidePoint({ x: start.x + (foot.x - start.x) * f, y: start.y + (foot.y - start.y) * f }, { x: side, y: 0 }, 6, termSize);
     const legAlt = [legAt(.25), legAt(.75), legAt(.12), legAt(.88)].map(q => `${q.x.toFixed(1)} ${q.y.toFixed(1)} ${q.anchor}`).join(';');
     const legWithin = `${(O.x + side * rodHalf).toFixed(1)} 0 ${side} 0`;
+    // With ΔE_x's name set beside its own shaft over the r leg, y was pushed out under the axis beside r, as though it
+    // named the r leg too: it stays on its own leg's side of P's level.
+    const yWithin = keepOnLeg && Math.abs(start.y - foot.y) > 1 ? `${legWithin};0 ${foot.y.toFixed(1)} 0 ${Math.sign(start.y - foot.y)}` : legWithin;
     // Its sides run to the leg, and along r_i to where the line to the piece starts.
     // Its first side runs all the way to the rod's axis, which is where the angle is measured from. Shorter,
     // the angle's letter could not stand inside it once P was within a metre or so, and went under the axis
@@ -2665,15 +2685,23 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
     // A little nearer the rod than the middle: nearer P, the mirror piece's line to P has closed in under
     // the leg, and the angle's letter stands over it.
     const at = (f: number) => ({ x: foot.x + (P.x - foot.x) * f, y: foot.y + (P.y - foot.y) * f }), under = { x: 0, y: 1 };
-    const baseMid = at(.5), rSpot = besidePoint(at(.38), under, 6, termSize);
+    // With a negative charge's ΔE_x lying on this leg (see `keepOnLeg`), the leg is drawn to just past the arrow's
+    // point, and r stands beside the stretch the arrow leaves bare, across the line from ΔE_x's name.
+    const legReach = Math.hypot(P.x - foot.x, P.y - foot.y), keepReach = Math.hypot(keepScreen.x, keepScreen.y);
+    const legBare = keepOnLeg ? Math.max(0, legReach - keepReach - 3) : legReach;
+    const legEnd = keepOnLeg ? (legBare > 5 ? at(legBare / legReach) : foot) : P;
+    const keepNormal = keepOnLeg && keepSide ? (() => { const u = direction(keepScreen)!; return { x: -u.y * keepSide, y: u.x * keepSide }; })() : null;
+    const rSide = keepNormal ? { x: -keepNormal.x, y: -keepNormal.y } : under;
+    const rAt = keepNormal && legBare > 12 ? legBare / legReach / 2 : .38;
+    const baseMid = at(.5), rSpot = besidePoint(at(rAt), rSide, 6, termSize);
     // ...and never past the mirror's line to P, which closes in under the leg toward P: set beyond it, on a phone, r
     // read as the length of that line -- the mirror's r_i. Between the two, or, failing that, above the leg inside the
     // triangle beside the right angle.
     const above = { x: -under.x, y: -under.y };
-    const rAlt = [...[.25, .55, .2].map(f => besidePoint(at(f), under, 6, termSize)), besidePoint(at(.3), above, 6, termSize)].map(q => `${q.x.toFixed(1)} ${q.y.toFixed(1)} ${q.anchor}`).join(';');
+    const rAlt = [...(keepNormal ? [besidePoint(at(rAt), { x: -rSide.x, y: -rSide.y }, 6, termSize)] : []), ...[.25, .55, .2].map(f => besidePoint(at(f), under, 6, termSize)), besidePoint(at(.3), above, 6, termSize)].map(q => `${q.x.toFixed(1)} ${q.y.toFixed(1)} ${q.anchor}`).join(';');
     const mirrorFrom = pairing ? offRod(partnerPos, P, partnerIndex) : null, mirrorDir = mirrorFrom ? direction(vsub(mirrorFrom, P)) : null;
     const rWithin = mirrorDir ? (() => { let m = { x: -mirrorDir.y, y: mirrorDir.x }; if (m.x * (baseMid.x - P.x) + m.y * (baseMid.y - P.y) < 0) m = { x: -m.x, y: -m.y }; return `${P.x.toFixed(1)} ${P.y.toFixed(1)} ${m.x.toFixed(3)} ${m.y.toFixed(3)}`; })() : undefined;
-    return { kind: 'rod' as const, legs: (hasLeg ? [[met, foot], [foot, P], ...(Math.hypot(start.x - met.x, start.y - met.y) > 1 ? [[met, start]] : [])] : []) as [Point, Point][], arc: mark?.arc ?? [], mark, foot, start, met, extension, square, riSpot, hyp, legMid, legSpot, legAlt, legWithin, legLength, hasLeg, baseMid, rSpot, rAlt, rWithin };
+    return { kind: 'rod' as const, legs: (hasLeg ? [[met, foot], [foot, P], ...(Math.hypot(start.x - met.x, start.y - met.y) > 1 ? [[met, start]] : [])] : []) as [Point, Point][], arc: mark?.arc ?? [], mark, foot, start, met, extension, square, riSpot, hyp, legMid, legSpot, legAlt, legWithin, legLength, hasLeg, baseMid, rSpot, rAlt, rWithin, legEnd, yWithin };
   })();
   // THE SAME ANGLE ON THE ARROWS' SIDE OF P. The board takes ΔE cos α as the part along the axis, "the side next to
   // α" -- and α was drawn only in the triangle, on the far side of P from the arrows, where the side next to it is the
@@ -3396,7 +3424,7 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
             -- the rod seen along its axis, a ring of a disk -- the piece's own arrow already is the
             part that survives, and a second arrow on top of it would only be a second name. */}
         {components && hasDrop && <g className="cd-grow cd-grow-parts" style={{ transformOrigin: `${P.x}px ${P.y}px` }}>
-          <Vector from={P} to={plus(P, keepScreen)} clip={plotClip} color="var(--contribution)" width={2.4} label={keepSymbol} at={keepNamedMid ? 'mid' : 'tip'} side={keepNamedMid ? awayFrom(keepScreen, partnerScreen) : undefined} within={keepWithin} reduced={still} keep={partsTerm} priority={2} />
+          <Vector from={P} to={plus(P, keepScreen)} clip={plotClip} color="var(--contribution)" width={2.4} label={keepSymbol} at={keepNamedMid || keepSide ? 'mid' : 'tip'} side={keepNamedMid ? awayFrom(keepScreen, partnerScreen) : keepSide} within={keepWithin ?? keepOnLegWithin} alts={keepOnLegAlts} reduced={still} keep={partsTerm} priority={2} />
           {/* Dashed where a mirror will cancel it, though the mirror is not drawn: solid is the site's mark for a part
               that survives, and on the four symmetric lessons this one is exactly the part that does not. */}
           {!pairing && <Vector from={P} to={plus(P, dropScreen)} clip={plotClip} color="var(--contribution)" width={2.4} dashed={supportsPair && full && !selfMirror} label={dropSymbol} vector={perspective} at="tip" reduced={still} keep={partsTerm} priority={2} />}
@@ -3583,17 +3611,17 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
             <path className="cd-ri-bar" d={triangle.riBar} />
             <text x={triangle.riName.x.toFixed(1)} y={triangle.riName.y.toFixed(1)} textAnchor={triangle.riName.anchor} data-mirror={`${((a.x + b.x) / 2).toFixed(1)} ${((a.y + b.y) / 2).toFixed(1)}`} {...termAttrs(distanceTerm)}><SymbolText symbol="r_i" tail=" = L + a − x" /></text>
           </>; })()}
-        {triangle.kind === 'rod' && (() => { const { start, foot, met, extension, square, riSpot, hyp, legMid, legSpot, legAlt, legWithin, legLength, mark, hasLeg, baseMid, rSpot, rAlt, rWithin } = triangle;
+        {triangle.kind === 'rod' && (() => { const { start, foot, met, extension, square, riSpot, hyp, legMid, legSpot, legAlt, legWithin, legLength, mark, hasLeg, baseMid, rSpot, rAlt, rWithin, legEnd, yWithin } = triangle;
           return <>
-            {hasLeg && <path data-leg="true" d={`M${met.x.toFixed(1)} ${met.y.toFixed(1)}L${foot.x.toFixed(1)} ${foot.y.toFixed(1)}L${P.x.toFixed(1)} ${P.y.toFixed(1)}`} />}
+            {hasLeg && <path data-leg="true" d={`M${met.x.toFixed(1)} ${met.y.toFixed(1)}L${foot.x.toFixed(1)} ${foot.y.toFixed(1)}L${legEnd.x.toFixed(1)} ${legEnd.y.toFixed(1)}`} />}
             {hasLeg && legLength > 4 && <path className="cd-extension-tick" data-leg-extension="true" d={`M${met.x.toFixed(1)} ${met.y.toFixed(1)}L${start.x.toFixed(1)} ${start.y.toFixed(1)}L${extension[1].x.toFixed(1)} ${extension[1].y.toFixed(1)}`} />}
             {square && <path className="cd-right-angle" d={square} />}
             <text x={riSpot.x.toFixed(1)} y={riSpot.y.toFixed(1)} textAnchor={riSpot.anchor} data-mirror={`${hyp.x.toFixed(1)} ${hyp.y.toFixed(1)}`} data-within={legWithin} className="cd-ri" {...termAttrs(distanceTerm)}><SymbolText symbol="r_i" /></text>
             {legLength > 14 && <text x={legSpot.x.toFixed(1)} y={legSpot.y.toFixed(1)} textAnchor={legSpot.anchor} data-mirror={`${legMid.x.toFixed(1)} ${legMid.y.toFixed(1)}`}
-              data-alt={legAlt} data-within={legWithin} data-shaft={lineOf(start, foot)} {...(distanceTerm ? termAttrs(true) : { 'data-priority': 1 })}>y</text>}
+              data-alt={legAlt} data-within={yWithin} data-shaft={lineOf(start, foot)} {...(distanceTerm ? termAttrs(true) : { 'data-priority': 1 })}>y</text>}
             {/* Each leg's letter held to its own leg, as a dimension's is to its bar: with P close in, the r leg is a few
                 units long, and r stood beside the y leg and y beside ΔE_y, each read as the other's name. */}
-            {rOnLeg && hasLeg && <text x={rSpot.x.toFixed(1)} y={rSpot.y.toFixed(1)} textAnchor={rSpot.anchor} data-dim="distance" data-mirror={`${baseMid.x.toFixed(1)} ${baseMid.y.toFixed(1)}`} data-alt={rAlt} data-within={rWithin} data-shaft={lineOf(foot, P)} {...GIVEN}>r</text>}
+            {rOnLeg && hasLeg && <text x={rSpot.x.toFixed(1)} y={rSpot.y.toFixed(1)} textAnchor={rSpot.anchor} data-dim="distance" data-mirror={`${baseMid.x.toFixed(1)} ${baseMid.y.toFixed(1)}`} data-alt={rAlt} data-within={rWithin} data-shaft={lineOf(foot, keepOnLeg && Math.hypot(legEnd.x - foot.x, legEnd.y - foot.y) > 5 ? legEnd : P)} {...GIVEN}>r</text>}
             {mark?.node}
           </>; })()}
         {/* After the triangle's own, which is the angle's first mark: this one repeats it. */}
