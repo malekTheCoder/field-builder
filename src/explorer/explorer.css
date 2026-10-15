@@ -1004,3 +1004,10 @@
 .exp-library-family .exp-soon-tag{color:var(--muted-foreground)}
 @media(max-width:1250px){.exp-planned-row{padding:7px 9px;gap:9px}}
 @media(forced-colors:active){.exp-soon-tag,.exp-library-grid>.exp-library-card.is-planned{border-color:GrayText;color:GrayText}.exp-planned-row{color:GrayText}}
+
+/* The quiz from inside a lesson: a header link beside How to use, its word dropped on a phone and the
+   link itself below 400 pixels, where the header has no room (the home page still links to it); and a
+   line just above the lesson's Next card that opens it on this shape. */
+@media(max-width:520px){.exp-header .quiz-link>span{display:none}}
+@media(max-width:400px){.exp-header .quiz-link{display:none}}
+.exp-quiz-this{margin-top:var(--space-4,16px);font-size:var(--t-fine,14px)}
