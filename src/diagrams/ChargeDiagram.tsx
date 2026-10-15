@@ -16,7 +16,7 @@ import type { Params, Problem, ProblemId } from '../problems/types';
 import { field, magnitude, pretty, potential, type Vec } from '../symbolic/physics';
 import { sampleDistribution, sumSamples, sumInterval, intervalWeights, sumPotential, activeIntervalIndex } from './sampling';
 import { intervalKey, orderedBounds, partitionCount, seamFractions, seamKey, splitFractions, splitProgress } from './subdivision';
-import { acrossAxis, alongAxis, pairOrder, pairPhase, pairPlan, pairShares, pairStepAt, pairSum } from './pairs';
+import { acrossAxis, alongAxis, pairOrder, pairPhase, pairPlan, pairShares, pairStepAt, pairSum, spacePairGain, spacePairShrink } from './pairs';
 import { clampCamera, depthFromScreen, keyboardCamera, openingCamera, orbitCamera, projectCamera, surfaceUnit, type CameraView } from './camera';
 import { ViewCube } from './ViewCube';
 import { nearestOnBox, placeLabels, segmentBoxes, type Box, type HalfPlane, type Segment } from './labels';
@@ -1054,7 +1054,14 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
   // in, so what goes in is what the sum grows by; the corner says so while it is enlarged. Never past the plot's edge,
   // nor up into the vertical axis' letter: on the ring the pair rises up the z axis, and a head ending on the z read as
   // the axis' own arrowhead (see `roomFor`).
-  const pairGain = pairNow ? (() => {
+  // IN SPACE, ONE ENLARGEMENT FOR EVERY PAIR, fitted once in the view the figure opens in: see `spacePairGain`.
+  const spaceGain = pairNow && pairSteps && inSpace ? (() => {
+    const at = projectCamera(pWorld, opening.yaw, opening.pitch), from = { x: O.x + unit * at.x, y: O.y + surfaceRise + unit * at.y };
+    const screen = (v: Vec): Point => { const s = projectCamera(v, opening.yaw, opening.pitch); return { x: gain * s.x, y: gain * s.y }; };
+    const top = axisTop + .39 * SYM * labelScale + 4;
+    return spacePairGain(id, pairSteps, screen, from, { x: 52, y: top, width: 606, height: 361 - top }, 44 * labelScale);
+  })() : 0;
+  const pairGain = pairNow ? spaceGain || (() => {
     const f = fieldScreen(pairNow.step.fa), own = Math.hypot(f.x, f.y);
     if (own < 1e-6) return 1;
     const from = plus(P, fieldScreen(pairSoFar)), top = axisTop + .39 * SYM * labelScale + 4;
@@ -1080,7 +1087,7 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
     }
     return Math.max(1, Math.min(44 * labelScale / own, cap));
   })() : 1;
-  const pairM = pairNow ? pairGain + (1 - pairGain) * pairNow.merge : 1;
+  const pairM = pairNow ? pairGain + (1 - pairGain) * (spaceGain ? spacePairShrink(pairNow) : pairNow.merge) : 1;
   const pairDraw = pairNow ? (() => {
     const { step, grow, cancel, merge } = pairNow;
     const m = pairM;

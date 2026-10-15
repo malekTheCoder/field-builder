@@ -119,3 +119,54 @@ export function pairStepAt(count: number, progress: number): {k: number; u: numb
  const x = Math.max(0, Math.min(1, Number.isFinite(progress) ? progress : 0)) * count, k = Math.max(0, Math.min(count - 1, Math.floor(x)));
  return {k, u: Math.max(0, Math.min(1, x - k))};
 }
+/** HOW MUCH OF ITS ENLARGEMENT A PAIR STILL HAS IN SPACE, 1 on arrival and 0 once it is in: it lets go of it
+ * through the cancellation and the merge, not the merge alone. See `spacePairGain`. */
+export function spacePairShrink(phase: {cancel: number; merge: number}): number { return (phase.cancel + phase.merge) / 2; }
+type Point = {x: number; y: number};
+/** ONE MAGNIFICATION FOR EVERY PAIR OF THE STAGE, FOR A FIGURE IN SPACE.
+ *
+ * Each pair arriving at the tip of the sum used to be enlarged by a gain of its own, read off its own arrow in the
+ * view of the moment and capped by the room left above the tip it arrives at. Seen in space that drew the ring's
+ * pairs as a burst of arrowheads: a piece whose part across the axis points at the camera is foreshortened, the
+ * room above the tip shrinks pair by pair, and the stack of the two parts along the axis (twice the piece's own) was
+ * fitted at the full enlargement. The default ring's second and last pairs came out fifteen to thirty units long,
+ * and two pieces of exactly the same size were drawn at different sizes (one and a half times, then nearly twice).
+ *
+ * So in space the enlargement is one factor, the same for every pair, worked out once from the pairs' exact fields
+ * and the view the figure opens in, so turning the view does not resize them. It is as large as makes the shortest
+ * whole piece's arrow `readable` units long, and no larger than keeps every pair, laid from its own tip of the sum,
+ * inside `box` (inset by twelve units). The pair lets the enlargement go while its parts across cancel and the sum
+ * takes it in (`spacePairShrink`), so the stack is laid only at a shrinking enlargement and goes in at the sum's own
+ * scale, as before; the arrival, where the parts across are the point, is what gets the room.
+ *
+ * `screen` maps a field to the screen at the sum's own scale, in the opening view; `from` is P there. */
+export function spacePairGain(id: string, plan: readonly PairStep[], screen: (v: Vec) => Point, from: Point, box: {x: number; y: number; width: number; height: number}, readable: number): number {
+ if (!plan.length) return 1;
+ const len = (v: Vec) => { const s = screen(v); return Math.hypot(s.x, s.y); };
+ // The shortest whole piece's arrow (a length straight across is a whole piece's length too); a half piece is half of one.
+ let shortest = Infinity;
+ for (const st of plan) for (const [span, f] of [[st.a, st.fa], [st.b, st.fb]] as const) if (span && f && span.kind !== 'half') { const l = len(f); if (l > 1e-6) shortest = Math.min(shortest, l); }
+ if (!Number.isFinite(shortest)) for (const st of plan) for (const f of [st.fa, st.fb]) if (f) { const l = len(f); if (l > 1e-6) shortest = Math.min(shortest, l); }
+ if (!Number.isFinite(shortest)) return 1;
+ const want = readable / shortest;
+ if (want <= 1) return 1;
+ const lo = {x: box.x + 12, y: box.y + 12}, hi = {x: box.x + box.width - 12, y: box.y + box.height - 12};
+ const inside = (p: Point) => p.x >= lo.x - 1e-9 && p.x <= hi.x + 1e-9 && p.y >= lo.y - 1e-9 && p.y <= hi.y + 1e-9;
+ const tips: Point[] = plan.map((_, k) => { const s = screen(pairSum(plan, k)); return {x: from.x + s.x, y: from.y + s.y}; });
+ const fits = (m: number) => plan.every((st, k) => {
+  const t = tips[k], at = (v: Vec, g: number, base: Point = t) => { const s = screen(v); return {x: base.x + s.x * g, y: base.y + s.y * g}; };
+  // Arriving: the whole arrows, the parts along the axis and across it, all from the tip at the full enlargement.
+  for (const v of [st.fa, st.fb, alongAxis(id, st.fa), acrossAxis(id, st.fa), st.fb ? alongAxis(id, st.fb) : null, st.fb ? acrossAxis(id, st.fb) : null]) if (v && !inside(at(v, m))) return false;
+  // Cancelling and going in: the mirror's part along the axis slides out to lie on the piece's, as the enlargement goes.
+  if (st.fb) for (let i = 0; i <= 20; i++) {
+   const c = i / 20, g = m + (1 - m) * spacePairShrink({cancel: c, merge: 0});
+   if (!inside(at(alongAxis(id, st.fb), g, at(alongAxis(id, st.fa), g * c)))) return false;
+  }
+  return true;
+ });
+ if (fits(want)) return want;
+ if (!fits(1)) return 1;
+ let a = 1, b = want;
+ for (let i = 0; i < 32; i++) { const m = (a + b) / 2; if (fits(m)) a = m; else b = m; }
+ return a;
+}

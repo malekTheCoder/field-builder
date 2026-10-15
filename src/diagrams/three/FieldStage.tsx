@@ -1406,6 +1406,10 @@ export function FieldStage(props:FieldStageProps){
     if(arrows?.partner&&whole>.01)layArrow(partnerArrow,at,arrows.partner,size(arrows.partner),slim);else partnerArrow.group.visible=false;
     if(arrows?.pieceWhole&&whole>.01)layArrow(wholeArrow,at,arrows.pieceWhole,size(arrows.pieceWhole),slim);else wholeArrow.group.visible=false;
     partnerMaterial.opacity=whole;wholeMaterial.opacity=whole;
+    // How long the pair's two whole arrows are on the screen, in units of the figure: for the tests (see `spacePairGain`).
+    const shownOf=(v:Vec)=>Math.hypot(v.x*screenRight.x+v.y*screenRight.y+v.z*screenRight.z,v.x*screenUp.x+v.y*screenUp.y+v.z*screenUp.z)/px;
+    if(arrows?.pair&&arrows.pieceWhole&&arrows.partner)mount.parentElement?.setAttribute('data-run-pair-shown',`${shownOf(arrows.pieceWhole).toFixed(2)} ${shownOf(arrows.partner).toFixed(2)}`);
+    else mount.parentElement?.removeAttribute('data-run-pair-shown');
     layDashed(partnerDropArrow,plus(P,arrows?.partnerFrom??P),arrows?.partnerDrop??null,pair);
     // What the mirror keeps: on the tip of what the piece keeps once the sideways parts are half gone, fading in,
     // while one piece is explained; sliding out from under the piece's while a pair goes into the sum.
