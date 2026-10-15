@@ -134,7 +134,7 @@ export const bank: Question[] = [
       {correct: true, text: raw`No: a piece and its mirror now hold different charges, so their parts along the rod no longer cancel.`},
       {text: raw`Yes: every piece still has a mirror the same distance from $P$.`, misconception: 'cancel-survivor',
         why: raw`Being the same distance away is not enough. Mirror pieces cancel only if they hold the same charge, so that their fields are the same size.`},
-      {text: raw`Yes, as long as the total charge $Q$ is the same.`, misconception: 'cancel-survivor',
+      {text: raw`Yes, as long as the total charge $Q$ is the same.`, misconception: 'density-inside',
         why: raw`The field depends on where the charge is, not only on how much there is. Moving charge toward the top tips the field.`},
     ],
     explanation: raw`Cancelling needs two things: a mirror piece the same distance from $P$, and the same charge on it. With $\lambda$ larger toward the top, the upper piece of each pair makes the larger field, so a part along the rod survives. The density then goes inside the integral as $\lambda(y)$.`,

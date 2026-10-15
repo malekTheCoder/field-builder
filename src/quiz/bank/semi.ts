@@ -35,7 +35,7 @@ export const bank: Question[] = [
   {id: 'semi-lean', lesson: 'semi', kind: 'predict',
     prompt: raw`How steeply does the field lean, compared with $\pi/4$ from the perpendicular?`,
     choices: [
-      {correct: true, text: raw`Exactly $\pi/4$: cut at equal angles, every piece makes the same size of field.`},
+      {correct: true, text: raw`Exactly $\pi/4$: cut at equal angles, every piece makes the same size of field, spread evenly over a quarter turn.`},
       {text: raw`Closer to the perpendicular: the near pieces are much closer to $P$, so they count most.`, misconception: 'jacobian',
         why: raw`The near pieces are closer, but the far pieces are longer and hold more charge. Cut at equal angles at $P$, the two exactly balance: every piece makes $k\lambda\,\Delta\alpha/r$.`},
       {text: raw`Closer to the line: the far pieces hold far more charge.`, misconception: 'fixed-distance',

@@ -79,7 +79,7 @@ export const bank: Question[] = [
         why: raw`That is $+dV/da$. Beyond a positive rod, $V$ falls as $P$ moves away, so the field, which points the way $V$ falls, points away from the rod.`},
       {tex: raw`\frac{kQ}{a^2}`, misconception: 'point-up-close',
         why: raw`That treats the rod as a point charge at its near end. The derivative of the logarithm keeps the far end too: $kQ/\bigl(a(L+a)\bigr)$.`},
-      {tex: raw`\frac{k\lambda}{a}\ln\frac{L+a}{a}`, misconception: 'potential-power',
+      {tex: raw`\frac{k\lambda}{a}\ln\frac{L+a}{a}`, misconception: 'gradient',
         why: raw`That divides $V$ by the distance, which works only for a point charge. The field is minus the rate at which $V$ changes as $P$ moves out.`},
     ],
     explanation: raw`$\ln\bigl((L+a)/a\bigr)$ differentiates to $1/(L+a)-1/a$, so $-dV/da=k\lambda\bigl(1/a-1/(L+a)\bigr)$: the field beyond the end of this rod, found without a single arrow.`,

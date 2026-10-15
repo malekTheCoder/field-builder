@@ -64,7 +64,7 @@ export const bank: Question[] = [
     review: {lesson: 'axial', section: 'Limiting cases'}},
 
   {id: 'axial-near', lesson: 'axial', kind: 'check',
-    prompt: raw`Now bring $P$ in until it is up against the end, $a\ll L$. How does $E_x$ grow?`,
+    prompt: raw`Now bring $P$ in until it is up against the end, $a\ll L$. How does the size of $E_x$ grow?`,
     choices: [
       {correct: true, text: raw`As $1/a$: up close the rod looks like a line that never stops, and $E_x$ tends to $k\lambda/a$.`},
       {text: raw`As $1/a^2$: it tends to $kQ/a^2$, the whole charge at the end.`, misconception: 'point-up-close',

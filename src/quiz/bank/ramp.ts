@@ -50,7 +50,7 @@ export const bank: Question[] = [
     review: {lesson: 'ramp', stage: 'shrink'}},
 
   {id: 'ramp-vs-uniform', lesson: 'ramp', kind: 'predict',
-    prompt: raw`Compare the ramp with a uniform rod of the same length and the same total charge $Q$, both seen from $P$. Which has the larger $E_x$?`,
+    prompt: raw`Compare the ramp with a uniform rod of the same length and the same total charge $Q$, both seen from $P$. Which has the larger $|E_x|$?`,
     choices: [
       {correct: true, text: raw`The uniform rod: the ramp keeps more of its charge near the top, farther from $P$.`},
       {text: raw`Neither: with the same $Q$, they make the same field.`, misconception: 'density-inside',
@@ -58,7 +58,7 @@ export const bank: Question[] = [
       {text: raw`The ramp: its densest part, $\lambda_0$, is twice the uniform rod’s density.`, misconception: 'density-inside',
         why: raw`Its densest part is at the top, the end farthest from $P$, and its foot is nearly empty. The uniform rod has more charge near $P$.`},
     ],
-    explanation: raw`Both hold $Q$, but the ramp’s charge is gathered toward the top, away from $P$, while the uniform rod keeps a fair share near the foot, close to $P$. Near charge counts for more, so at every distance the uniform rod’s $E_x$ is the larger; the two agree only far away.`,
+    explanation: raw`Both hold $Q$, but the ramp’s charge is gathered toward the top, away from $P$, while the uniform rod keeps a fair share near the foot, close to $P$. Near charge counts for more, so at every distance the uniform rod’s $|E_x|$ is the larger; the two agree only far away.`,
     review: {lesson: 'ramp', section: 'What the answer says'}},
 
   {id: 'ramp-middle', lesson: 'ramp', kind: 'predict',
@@ -98,15 +98,15 @@ export const bank: Question[] = [
     review: {lesson: 'ramp', section: 'Limiting cases'}},
 
   {id: 'ramp-flipped', lesson: 'ramp', kind: 'transfer',
-    prompt: raw`Turn the ramp upside down: densest at the foot, $\lambda_0\,(1-y/L)$, empty at the top, with $P$ still at $(r,0)$. How does $E_x$ change?`,
+    prompt: raw`Turn the ramp upside down: densest at the foot, $\lambda_0\,(1-y/L)$, empty at the top, with $P$ still at $(r,0)$. How does $|E_x|$ change?`,
     choices: [
       {correct: true, text: raw`It grows: the same charge now sits nearer $P$.`},
       {text: raw`It stays the same: the total charge is still $\lambda_0L/2$.`, misconception: 'density-inside',
         why: raw`The total is the same, but its place is not. Close by, charge near $P$ counts for more than charge far from it.`},
       {text: raw`It shrinks: the density now falls along the rod instead of rising.`, misconception: 'density-inside',
-        why: raw`Which way the density runs matters only through where it puts the charge. Falling from the foot puts the charge near $P$, where each piece makes a bigger field, mostly along $x$.`},
+        why: raw`Which way the density runs matters only through where it puts the charge. Falling from the foot puts the charge near $P$, where each piece makes a bigger field, more nearly along $x$.`},
     ],
-    explanation: raw`The flipped rod holds the same $Q$, but gathered at the foot, close to $P$. Near pieces make bigger fields, and their fields point nearly along $x$, so $E_x$ grows. The density still rides inside the integral, now as $\lambda_0\,(1-y/L)$.`,
+    explanation: raw`The flipped rod holds the same $Q$, but gathered at the foot, close to $P$. Near pieces make bigger fields, and the nearer the foot a piece is, the more nearly along $x$ its field points, so $|E_x|$ grows. The density still rides inside the integral, now as $\lambda_0\,(1-y/L)$.`,
     review: {lesson: 'ramp', stage: 'cut'}},
 
   {id: 'ramp-negative', lesson: 'ramp', kind: 'transfer',

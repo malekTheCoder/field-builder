@@ -287,6 +287,14 @@ describe('the ramp', () => {
  it('turned upside down, densest at the foot, the same charge makes a larger E_x', () => {
   for (const r of [.3, 1, 3]) expect(line(r, 0, 0, L, y => l0 * (1 - y / L)).ex).toBeGreaterThan(ex(r));
  });
+ it('the comparisons are of sizes, |E_x|: for negative charge the larger field is the more negative E_x', () => {
+  // The bank once asked for the 'larger E_x' and said the flipped ramp's E_x 'grows': true only for positive λ₀.
+  for (const r of [.3, 1, 3]) {
+   const ramped = line(r, 0, 0, L, y => -ramp(y)).ex, uniform = line(r, 0, 0, L, () => -Q / L, 20000).ex, flipped = line(r, 0, 0, L, y => -l0 * (1 - y / L)).ex;
+   expect(uniform).toBeLessThan(ramped); expect(Math.abs(uniform)).toBeGreaterThan(Math.abs(ramped));
+   expect(flipped).toBeLessThan(ramped); expect(Math.abs(flipped)).toBeGreaterThan(Math.abs(ramped));
+  }
+ });
  it('a negative ramp’s field points toward the rod and up', () => {
   const f = line(1, 0, 0, L, y => -ramp(y)); expect(f.ex).toBeLessThan(0); expect(f.ey).toBeGreaterThan(0);
  });
@@ -311,6 +319,11 @@ describe('the semi-infinite line', () => {
   const n = 100000, da = Math.PI / 2 / n; let s = 0, c = 0;
   for (let i = 0; i < n; i++) { const a = (i + .5) * da; s += Math.sin(a) * da; c += Math.cos(a) * da; }
   close(s, 1, 1e-8); close(c, 1, 1e-8);
+ });
+ it('equal pieces alone do not make the lean π/4: a finite rod level with its end, also cut at equal angles, leans less', () => {
+  // The π/4 needs the pieces spread evenly over the whole quarter turn, as the corrected answer says.
+  const r = 1, f = line(r, 0, 0, 2, () => lam);
+  expect(Math.abs(Math.atan2(-f.ey, f.ex) - Math.PI / 4)).toBeGreaterThan(.1);
  });
  it('one piece’s parts are −ΔE sin α along x and ΔE cos α along y, α from the perpendicular', () => {
   const r = 1, x = .8, a = Math.atan(x / r), d = Math.hypot(x, r), e = k / d ** 2;
@@ -348,6 +361,11 @@ describe('the potential on the bisector of a rod', () => {
   for (const big of [1e4, 1e6]) close(V(r, big), 2 * k * lam * Math.log(big / r), 1e-6);
   expect(V(r, 1e6) - V(r, 1e3)).toBeGreaterThan(2 * k * lam * 6);
   close(V(1, 1e8) - V(2, 1e8), 2 * k * lam * Math.log(2), 1e-6);
+ });
+ it('for a negative rod grown at fixed λ it is its size that grows: V itself heads down without bound', () => {
+  const Vn = (len: number) => 2 * k * -lam * Math.log((len / 2 + Math.sqrt((len / 2) ** 2 + 1)) / 1);
+  expect(Vn(1e6)).toBeLessThan(Vn(1e3) - 2 * k * lam * 6);
+  close(vline(1, 0, -50, 50, () => -lam, 200000), Vn(100), 1e-6);
  });
  it('E_x = −dV/dr is the bisector’s field, pointing away from a positive rod; V/r is not', () => {
   for (const r of [.4, 1, 3]) {
