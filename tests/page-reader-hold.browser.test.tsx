@@ -213,10 +213,12 @@ describe('on a projector zoomed for the room, the run\'s algebra is on screen at
     const inPlayer = !!math && math.checkVisibility() && math.getBoundingClientRect().bottom <= innerHeight + 1;
     expect(onBoard || inPlayer, `${name}: its algebra is on screen nowhere`).toBe(true);
     expect(box(view, '.cd-stage').top, `${name}: the drawing went off the top`).toBeGreaterThanOrEqual(-1);
-   }, {timeout: 4000});
+   // CI's runner is several times slower than a laptop: the board's glide to the stage had not
+   // landed in four seconds there on some runs, though it always lands. Twelve leaves it room.
+   }, {timeout: 12000});
   }
   fireEvent.click(view.getByRole('button', {name: 'Close'}));
- }, 40000);
+ }, 90000);
 });
 function contrast(a: string, b: string) {
  const lum = (c: string) => {
