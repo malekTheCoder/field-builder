@@ -1916,7 +1916,8 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
     const size = SYM * labelScale, spot = (q: { x: number; y: number; anchor: string }) => `${q.x.toFixed(1)} ${q.y.toFixed(1)} ${q.anchor}`;
     // The axis lesson's in space too, on the rod as projected: its bracket, under the rod seen flat, is drawn by the flat
     // view's fixed rows, and was simply left out once the view turned -- with the Δx the footer writes ΔQ in.
-    const projected = surface || (inSpace && id === 'axial');
+    // ...and the rod on its bisector's, beside the rod as projected on the side away from P, where r_i's line is not.
+    const projected = surface || (inSpace && (id === 'axial' || id === 'bisector'));
     if (projected) {
       if (id === 'sheet' && selectedIndex >= n - 1) return null;
       const end = (t: number) => project(surface ? { x: Math.abs(world(t).x), y: 0, z: 0 } : world(t));
@@ -1928,7 +1929,7 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
       if (Math.hypot(b.x - a.x, b.y - a.y) < 12) { if (!shrinking) return null; a = { x: middle.x - u.x * 6, y: middle.y - u.y * 6 }; b = { x: middle.x + u.x * 6, y: middle.y + u.y * 6 }; }
       let nrm = { x: -u.y, y: u.x };
       // Away from P; on the rod, which P stands in line with, on its lower side, away from r_i's bracket.
-      if (surface ? nrm.x * (P.x - middle.x) + nrm.y * (P.y - middle.y) > 0 : nrm.y < 0) nrm = { x: -nrm.x, y: -nrm.y };
+      if (surface || id === 'bisector' ? nrm.x * (P.x - middle.x) + nrm.y * (P.y - middle.y) > 0 : nrm.y < 0) nrm = { x: -nrm.x, y: -nrm.y };
       const at = (q: Point, k = 9): Point => ({ x: q.x + nrm.x * k, y: q.y + nrm.y * k }), A = at(a), B = at(b), M = at(middle);
       const tick = (q: Point) => `M${(q.x - nrm.x * 4).toFixed(1)} ${(q.y - nrm.y * 4).toFixed(1)}l${(nrm.x * 8).toFixed(1)} ${(nrm.y * 8).toFixed(1)}`;
       const label = besidePoint(M, nrm, 5, size), ends = [direction({ x: nrm.x - u.x, y: nrm.y - u.y }) ?? nrm, direction({ x: nrm.x + u.x, y: nrm.y + u.y }) ?? nrm];
@@ -2011,7 +2012,33 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
   // phrase, and +∞ and −∞ already name y's ends there.
 
   const dims: Dim[] = [];
-  if (id === 'bisector' || footed) {
+  // THE ROD ON ITS BISECTOR KEEPS ITS DIMENSIONS IN SPACE. Its L, r and the ends' ±L/2 are laid by the flat view's fixed
+  // rows, so turned into space they were hidden, and the potential lesson, whose answer is a function of L and r and
+  // nothing else, lost every given on the figure. Drawn through the projection instead, on true segments: L's bracket
+  // beside the rod on the side away from P, r's from the rod to P beside the x axis, under it, and each end's name
+  // past its end.
+  const spaceRod = inSpace && id === 'bisector' ? (() => {
+    const o = project(zero), top = project({ x: 0, y: R, z: 0 }), bottom = project({ x: 0, y: -R, z: 0 });
+    const along = direction(vsub(top, bottom)), toP = direction(vsub(P, o));
+    if (!along || !toP) return null;
+    let away = { x: -along.y, y: along.x };
+    if (away.x * (P.x - o.x) + away.y * (P.y - o.y) > 0) away = { x: -away.x, y: -away.y };
+    return { o, top, bottom, along, away, toP, size: SYM * labelScale };
+  })() : null;
+  if (spaceRod) {
+    const { o, top, bottom, along, away, toP } = spaceRod, k = 30, shift = (q: Point, d: Point, by: number) => ({ x: q.x + d.x * by, y: q.y + d.y * by });
+    const nrm = { x: -along.y, y: along.x }, side = nrm.x * away.x + nrm.y * away.y >= 0 ? 1 : -1;
+    dims.push({ ...dimBar('L', 'size', shift(top, away, k), shift(bottom, away, k), 'L', side), within: `${shift(o, away, k).x.toFixed(1)} ${shift(o, away, k).y.toFixed(1)} ${away.x.toFixed(3)} ${away.y.toFixed(3)}` });
+    // r under the x axis: from where the rod's line crosses the bar's line to P.
+    let under = { x: -toP.y, y: toP.x };
+    if (under.y < 0) under = { x: -under.x, y: -under.y };
+    const off = shift(o, under, 18), det = along.x * -toP.y - along.y * -toP.x;
+    const t = Math.abs(det) > 1e-6 ? (along.x * (off.y - o.y) - along.y * (off.x - o.x)) / det : 0;
+    const from = shift(off, toP, Math.max(0, t) + 4), to = shift(P, under, 18);
+    const rn = { x: -toP.y, y: toP.x }, rSide = rn.x * under.x + rn.y * under.y >= 0 ? 1 : -1;
+    if (Math.hypot(to.x - from.x, to.y - from.y) > 12) dims.push({ ...dimBar('r', 'distance', from, to, 'r', rSide), within: `${off.x.toFixed(1)} ${off.y.toFixed(1)} ${under.x.toFixed(3)} ${under.y.toFixed(3)}` });
+  }
+  if ((id === 'bisector' && !spaceRod) || footed) {
     // L's bracket stands left of the rod; its letter sits left of the bracket and up from the x
     // axis, which runs through the bracket's middle on the bisector.
     const top = id === 'bisector' ? O.y - R * unit : O.y - p.size * unit, bottom = id === 'bisector' ? O.y + R * unit : O.y;
@@ -2043,7 +2070,7 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
   // the leg that IS r went unlettered.
   const rOnLeg = !inSpace && !scalar && (id === 'bisector' || id === 'infinite' || footed || id === 'semi') && components && hasDrop && showContribution
     && building !== 'add' && building !== 'limit' && selectedOnFrame && (id === 'semi' ? O.y - P.y : P.x - O.x) >= rodHalf + 6;
-  if ((id === 'bisector' || id === 'infinite' || footed) && !rOnLeg) {
+  if ((id === 'bisector' || id === 'infinite' || footed) && !rOnLeg && !spaceRod) {
     // r, from the rod to P, on a bar below the axis that stops at P rather than running into it --
     // and below anything drawn down from P over that stretch, sixteen units clear of its lowest point.
     // From the rod's edge -- or its axis, for a P closer in than the edge's tick could stand.
@@ -2526,7 +2553,17 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
       // Above the line to P, and below it if that side is taken: either side names the same segment.
       const hyp = { x: (source.x + P.x) / 2, y: (source.y + P.y) / 2 }, along = direction(vsub(P, source)) ?? { x: 1, y: 0 };
       const normal = along.x >= 0 ? { x: along.y, y: -along.x } : { x: -along.y, y: along.x };
-      return { kind: 'slope' as const, legs: [] as [Point, Point][], arc: [] as Point[], hyp, riSpot: besidePoint(hyp, normal, 7, termSize, .52) };
+      // THE PIECE'S y, beside the rod on P's side, from O to the piece: the board's r_i is worked out from it and r, and
+      // turned into space the rod on its bisector lost it with the flat triangle.
+      const coordinate = spaceRod ? (() => {
+        const { o, away } = spaceRod, near = { x: -away.x, y: -away.y }, k = 16, on = (q: Point) => ({ x: q.x + near.x * k, y: q.y + near.y * k });
+        const a = on(o), b = on(project(sample.position));
+        if (Math.hypot(b.x - a.x, b.y - a.y) < 14) return null;
+        const f = (q: Point) => `${q.x.toFixed(1)} ${q.y.toFixed(1)}`, tick = (q: Point) => `M${f({ x: q.x + near.x * 4, y: q.y + near.y * 4 })}l${(-near.x * 8).toFixed(1)} ${(-near.y * 8).toFixed(1)}`;
+        const mid = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+        return { bar: `M${f(a)}L${f(b)}${tick(a)}${tick(b)}`, mid, name: besidePoint(mid, near, 6, termSize), within: `${f(on(o))} ${near.x.toFixed(3)} ${near.y.toFixed(3)}` };
+      })() : null;
+      return { kind: 'slope' as const, legs: [] as [Point, Point][], arc: [] as Point[], hyp, riSpot: besidePoint(hyp, normal, 7, termSize, .52), coordinate };
     }
     // The arc's potential too: its board writes r_i = R and integrates over θ, and the figure drew the line to
     // the piece unnamed and no θ at all -- where the field's arc, on the same geometry, draws both.
@@ -3263,12 +3300,23 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
       {/* DIMENSIONS, drawn as a draftsman draws them: a bar beside what it measures, a tick at each
           end, its letter beside the bar's middle -- and every one of them off the axes, the charge
           and P, which used to have the letters L and r lying on their lines. */}
-      {dims.map(d => <g key={d.key} data-dim={d.dim} className={`cd-dimension${inSpace && !perspective ? ' is-hidden' : ''}`}>
+      {dims.map(d => <g key={d.key} data-dim={d.dim} className={`cd-dimension${inSpace && !perspective && !spaceRod ? ' is-hidden' : ''}`}>
         <path d={d.path} />
         {d.extension && <line className="cd-extension" x1={d.extension[0].x} y1={d.extension[0].y} x2={d.extension[1].x} y2={d.extension[1].y} />}
         {d.label && <text x={d.label.x} y={d.label.y} textAnchor={d.label.anchor} data-mirror={`${((d.a.x + d.b.x) / 2).toFixed(1)} ${((d.a.y + d.b.y) / 2).toFixed(1)}`} data-alt={d.alt} data-within={d.within} data-shaft={lineOf(d.a, d.b)} {...GIVEN}>{d.name}</text>}
       </g>)}
-      {id === 'bisector' && <g data-dim="size" className={`cd-dimension${inSpace && !perspective ? ' is-hidden' : ''}`}><text className="cd-end" x={O.x+17} y={O.y-R*unit-8} data-alt={rodEndAlt.top} data-within={rodEndAlt.topWithin} {...endAttrs}>+L/2</text><text className="cd-end" x={O.x+17} y={Math.min(O.y+R*unit+20, 366)} data-alt={rodEndAlt.bottom} data-within={rodEndAlt.bottomWithin} {...endAttrs}>−L/2</text></g>}
+      {id === 'bisector' && !spaceRod && <g data-dim="size" className={`cd-dimension${inSpace && !perspective ? ' is-hidden' : ''}`}><text className="cd-end" x={O.x+17} y={O.y-R*unit-8} data-alt={rodEndAlt.top} data-within={rodEndAlt.topWithin} {...endAttrs}>+L/2</text><text className="cd-end" x={O.x+17} y={Math.min(O.y+R*unit+20, 366)} data-alt={rodEndAlt.bottom} data-within={rodEndAlt.bottomWithin} {...endAttrs}>−L/2</text></g>}
+      {spaceRod && <g data-dim="size" className="cd-dimension">{([['+L/2', spaceRod.top, spaceRod.along], ['\u2212L/2', spaceRod.bottom, { x: -spaceRod.along.x, y: -spaceRod.along.y }]] as const).map(([name, end, out]) => {
+        // Kept: in space the y axis runs on past each end and the z axis stands beside the top one, so a name the placer
+        // was free to drop found nowhere clear and both went.
+        // Past its end on P's side, off the y axis, which runs on along the rod in space and takes the spot straight past
+        // the end; or beside the end, or past it on the far side. Never beside the rod further in, where it named a piece.
+        const { away } = spaceRod, near = { x: -away.x, y: -away.y }, slant = (d: Point) => direction({ x: out.x + d.x, y: out.y + d.y }) ?? out;
+        const at = besidePoint(end, slant(near), 8, spaceRod.size);
+        const past = (k: number) => ({ x: end.x + out.x * k, y: end.y + out.y * k });
+        const alt = [besidePoint(end, near, 10, spaceRod.size), besidePoint(end, slant(near), 22, spaceRod.size), besidePoint(end, slant(away), 8, spaceRod.size), besidePoint(past(12), away, 8, spaceRod.size), besidePoint(past(12), near, 8, spaceRod.size), besidePoint(end, out, 22, spaceRod.size)];
+        return <text key={name} className="cd-end" x={at.x.toFixed(1)} y={at.y.toFixed(1)} textAnchor={at.anchor} data-mirror={`${end.x.toFixed(1)} ${end.y.toFixed(1)}`} data-alt={alt.map(q => `${q.x.toFixed(1)} ${q.y.toFixed(1)} ${q.anchor}`).join(';')} data-keep="true">{name}</text>;
+      })}</g>}
       {footed && <g data-dim="size" className={`cd-dimension${inSpace && !perspective ? ' is-hidden' : ''}`}><text className={ramp ? 'cd-end cd-density-end' : 'cd-end'} x={O.x+17} y={O.y-p.size*unit-8} data-alt={rodEndAlt.top} data-within={rodEndAlt.topWithin} {...(ramp ? {} : endAttrs)}>{ramp ? <SymbolText symbol="λ = λ_0" /> : 'y = L'}</text><text className={ramp ? 'cd-end cd-density-end' : 'cd-end'} x={O.x+19} y={O.y-9} data-alt={rodEndAlt.bottom} data-within={rodEndAlt.bottomWithin} {...(ramp ? {} : endAttrs)}>{ramp ? 'λ = 0' : 'y = 0'}</text></g>}
       {/* The rod's far end, by its coordinate: "L" here as well as under the bar was two L's. */}
       {/* Under the tick where the L and a bars meet, below the axis: above it, on the line the piece's
@@ -3514,6 +3562,8 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
 
           </>; })()}
         {triangle.kind === 'slope' && <text x={triangle.riSpot.x.toFixed(1)} y={triangle.riSpot.y.toFixed(1)} textAnchor={triangle.riSpot.anchor} data-mirror={`${triangle.hyp.x.toFixed(1)} ${triangle.hyp.y.toFixed(1)}`} className="cd-ri" {...termAttrs(distanceTerm)}><SymbolText symbol="r_i" /></text>}
+        {triangle.kind === 'slope' && triangle.coordinate && <g data-piece-coordinate="true"><path className="cd-x-bar" d={triangle.coordinate.bar} />
+          <text x={triangle.coordinate.name.x.toFixed(1)} y={triangle.coordinate.name.y.toFixed(1)} textAnchor={triangle.coordinate.name.anchor} data-mirror={`${triangle.coordinate.mid.x.toFixed(1)} ${triangle.coordinate.mid.y.toFixed(1)}`} data-within={triangle.coordinate.within} {...(stageOne ? termAttrs(true) : GIVEN)}>y</text></g>}
         {triangle.kind === 'arc' && <><line x1={P.x} y1={P.y} x2={selectedPoint.x} y2={selectedPoint.y}/>{triangle.mark?.node}
           {/* The line from the piece to P is r_i, and on the arc every r_i is R: the board writes the field
               with r_i, and the figure drew the line unnamed. On the side of it away from θ. */}
