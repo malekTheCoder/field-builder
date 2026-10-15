@@ -56,3 +56,77 @@ gets nothing, and seeing why is the lesson.
 - Lessons 1–5 first, then the rest?
 - Inside the same Explorer page, or a separate "Gauss" view sharing the figure?
 - Should the run's five beats be the same length and pacing as "Watch it build"?
+
+## What the owner's "Gauss's Law Study Lab" adds (read 2026-10-15)
+The owner built a full Gauss's law study guide as a claude.ai artifact ("Gauss's Law Study Lab",
+https://claude.ai/artifact/Dy4cf8MBKeuYFLZPQfEYEf). Its extracted text is in
+`.claude/loop/references/gauss-study-lab.txt`, kept out of git because it quotes textbook problems.
+When the lessons are built, read it first and match its teaching order and its traps. What it changes
+in this plan:
+
+- **One recipe, said every time:** identify the symmetry, sketch the field's shape, draw the surface
+  through the point, evaluate both sides, solve and check. Its three-letter summary, Left side / Right
+  side / then divide, fits the site's five-beat run. Left side: the flux integral collapses to
+  E·(area): 4πr²E, 2πrLE or 2EA. Right side: Q_enc, where the integral lives. Then solve.
+- **Symmetry before calculation:** a lesson of its own on the three usable symmetries (spherical,
+  cylindrical, planar). It argues why a long cylinder's field must point straight out, and says what
+  makes a surface useful: each patch has E perpendicular and constant, E along it, or E = 0.
+- **Flux in full:** the dot product for a field given as a vector, and nonuniform fields through
+  curved surfaces (its worked case is a nonuniform field through a cube).
+- **Why only the enclosed charge counts**, in four steps: a sphere around a point charge, any shape
+  around it, a charge outside the surface, many charges.
+- **Q_enc from a density as its own lesson:** the ratio method for uniform densities; thin shells
+  (spherical 4πr'²dr', cylindrical 2πr'L dr', slab A dz') for nonuniform ones; and normalising ρ₀ when
+  the problem gives Q. Its "integral mistakes graders see most" list belongs in the quiz bank:
+  - ρ dr instead of ρ 4πr'² dr';
+  - (4/3)πr³ used as dV;
+  - upper limit R inside, or r outside;
+  - ρ₀ left unknown when Q was given;
+  - the slab's missing factor of two;
+  - L or A left in E;
+  - inside and outside answers that don't meet at R.
+- **More lessons than this plan had:**
+  - Conductors, with cavities that hold charge.
+  - A hole as a positive object plus a negative one, by superposition.
+  - The hard cases:
+    - charge that extends to infinity;
+    - densities that blow up at the centre;
+    - running it backwards, from E to ρ;
+    - flux integrals you actually have to do;
+    - a slab whose density changes sign, where the symmetric pillbox gives 0 = 0 and a one-sided
+      pillbox is needed.
+- **Five misconceptions** for the quiz and the lessons:
+  - zero flux means zero field;
+  - E in the law is only the enclosed charge's field;
+  - a bigger surface has more flux;
+  - the surface must be a real object or enclose all the charge;
+  - Q_enc is always the object's total charge.
+- **A "Before you hand it in" checklist:**
+  - units;
+  - L and A cancelled;
+  - E continuous at the boundary for a finite ρ, and a jump of σ/ε₀ across a surface charge;
+  - the far limit looks like a point, a line or a sheet;
+  - the direction stated;
+  - diameter vs radius;
+  - the angle measured from the normal.
+- **An interactive "instrument":** drag charges into and out of a dashed Gaussian surface and watch
+  the net flux. It changes only when a charge crosses the surface. That is a good first figure for
+  "Flux, the idea".
+
+Conventions: the study lab writes a surface density as η (Knight's letter). This site writes σ, and
+keeps σ.
+
+Proposed lesson list, updated:
+1. Symmetry first.
+2. Flux, the idea.
+3. Why only the charge inside.
+4. Q_enc from a density.
+5. Spheres.
+6. Lines and cylinders.
+7. Sheets and slabs.
+8. Conductors.
+9. Holes by superposition.
+10. When symmetry runs out.
+11. The hard cases.
+
+The site's "coming soon" list shows the shorter seven until the owner picks.
