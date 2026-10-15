@@ -238,6 +238,10 @@ export default function Explorer({welcome}:{welcome?:boolean}={}){
  // a first visit -- and, as everywhere, not over a teacher's link.
  /** A stage of the run the address names, waiting for the lesson it names to be the one on screen. */
  const linkedStage=useRef(0);
+ // THE VIEW A LINK NAMES (view=2d or view=3d), for its own lesson only (a change of lesson lets it go), and the view the
+ // figure is in, for the address.
+ const [linkedView,setLinkedView]=useState<{id:ProblemId;view:'2d'|'3d'}|null>(null);
+ const [inSpace,setInSpace]=useState<boolean|null>(null);
  /* oxlint-disable react/react-compiler -- Reads storage and the address once, after hydration. */
  useEffect(()=>{
   let raw:string|null=null;
@@ -247,7 +251,7 @@ export default function Explorer({welcome}:{welcome?:boolean}={}){
   const saved=parsed&&typeof parsed==='object'&&!Array.isArray(parsed)?parsed:{};
   const pm:Partial<Record<ProblemId,Params>>={};for(const pr of PROBLEMS)if(saved.params?.[pr.id]&&typeof saved.params[pr.id]==='object')pm[pr.id]=atRest(saved.params[pr.id]);
   const url=parseAssignment(typeof location==='undefined'?'':location.search);const linked=url.id??(url.params||url.stage?'bisector':undefined);
-  if(linked&&isReady(linked)){setId(linked);pm[linked]=atRest({...DEFAULT_PARAMS,...url.params});if(url.stage)linkedStage.current=url.stage}else if(PROBLEMS.some(p=>p.id===saved.id)&&isReady(saved.id))setId(saved.id);
+  if(linked&&isReady(linked)){setId(linked);pm[linked]=atRest({...DEFAULT_PARAMS,...url.params});if(url.stage)linkedStage.current=url.stage;if(url.view)setLinkedView({id:linked,view:url.view})}else if(PROBLEMS.some(p=>p.id===saved.id)&&isReady(saved.id))setId(saved.id);
   setDark(saved.dark===true);setShowNumbers(saved.showNumbers===true);setSidebarOpen(saved.sidebarOpen!==false);setParamsMap(pm);
   if(url.mode)setMode(url.mode);if(url.pair)setPair(true);if(url.components)setComponents(true);
   // Only "Don't show this again" keeps the tour shut. An old `seen: true` is from before that box,
@@ -335,7 +339,12 @@ export default function Explorer({welcome}:{welcome?:boolean}={}){
  // cancels" -- could not be made: the address carried nothing of the run, so pausing there and copying it shared the
  // lesson at rest. It names the stage now (stage=3), never a frame of it, and a link with one opens the run held on
  // that stage's finished frame (`linkedStage`, below). Closing the run takes it away again.
- const address=`?${serializeAssignment(buildShown?{id,params:{...params,continuum:0},stage:buildIndex+1}:{id,mode,params:{...params,continuum:0},pair,components})||`p=${id}`}`;
+ // ...AND THE VIEW, where it is not the lesson's own, as every other value is left out at its default: view=3d for a rod,
+ // a line or the arc turned into space, view=2d for a lesson that opens in space (the ring, the disk, the sheet) drawn
+ // flat. A link without it opens each lesson its own way, as every link before it did.
+ const opensInSpace=['ring','disk','sheet'].includes(geom);
+ const view=inSpace===null||inSpace===opensInSpace?undefined:inSpace?'3d' as const:'2d' as const;
+ const address=`?${serializeAssignment(buildShown?{id,params:{...params,continuum:0},stage:buildIndex+1,view}:{id,mode,params:{...params,continuum:0},pair,components,view})||`p=${id}`}`;
  useEffect(()=>{if(!ready||typeof history==='undefined')return;
   const t=setTimeout(()=>{
    // Still guarded: a throw here would reach the error boundary and blank the lesson.
@@ -367,7 +376,7 @@ export default function Explorer({welcome}:{welcome?:boolean}={}){
   if(!to||!isReady(to))return;
   if(to!==id)changeDistribution(to);
   setParamsMap(old=>({...old,[to]:atRest({...DEFAULT_PARAMS,...url.params})}));
-  if(url.mode)setMode(url.mode);if(url.pair)setPair(true);if(url.components)setComponents(true);if(url.stage){if(to===id)openLinked(url.stage);else linkedStage.current=url.stage}
+  if(url.mode)setMode(url.mode);if(url.pair)setPair(true);if(url.components)setComponents(true);if(url.stage){if(to===id)openLinked(url.stage);else linkedStage.current=url.stage}if(url.view)setLinkedView({id:to,view:url.view})
  });
  useEffect(()=>{window.addEventListener('popstate',revisit);return()=>window.removeEventListener('popstate',revisit)},[revisit]);
  // Each lesson names its own tab, so history, the tab strip and a screen reader's window title can
@@ -469,7 +478,7 @@ export default function Explorer({welcome}:{welcome?:boolean}={}){
   * seeks or steps has taken the run in hand, and it no longer waits. */
  const hold=useRef({ms:0,until:0});
  function stop(){build.current?.stop();build.current=null;stoppedByRun.current=false;hold.current={ms:0,until:0};setBuilding(false)}
- function changeDistribution(next:string){stop();setId(next as ProblemId);setSelected(null);setProgress(1);setBounds([0,100]);setLibrary(false);setLimitIndex(0);setStatus('');setHighlight('');setCameFrom(null);endBuild();}
+ function changeDistribution(next:string){stop();setId(next as ProblemId);setSelected(null);setProgress(1);setBounds([0,100]);setLibrary(false);setLimitIndex(0);setStatus('');setHighlight('');setCameFrom(null);endBuild();setLinkedView(null);}
  // WATCH IT BUILD. The five stages are data (`buildRun.ts`); this is the projector. It drives
  // exactly the state the manual controls drive -- mode, the mirror partner, how much of the sum
  // is drawn, how fine the partition is -- so the run can never show a figure the reader cannot
@@ -1073,7 +1082,7 @@ export default function Explorer({welcome}:{welcome?:boolean}={}){
    <span className="exp-watch-note">Five steps, about half a minute</span>
    <button ref={watchButton} type="button" className="exp-watch-button" onClick={watch} title="Five steps, about half a minute. Pause or step through at any point."><Play size={13} fill="currentColor" strokeWidth={0}/>Watch it build</button>
   </div>}
- </div><ChargeDiagram compact problem={p} params={params} setParams={updateParams} count={count} continuum={continuum} selected={activeIndex} onSelect={select} progress={progress} components={components} pair={pair} mode={mode} boundRange={bounds} onBoundRangeChange={setBounds} highlight={figureHighlight} build={figureBuild}/>{/* ONE WAY IN. There used to be two buttons here -- "Watch it build" and "Walk me through the
+ </div><ChargeDiagram compact problem={p} params={params} setParams={updateParams} count={count} continuum={continuum} selected={activeIndex} onSelect={select} progress={progress} components={components} pair={pair} mode={mode} boundRange={bounds} onBoundRangeChange={setBounds} highlight={figureHighlight} build={figureBuild} view={linkedView?.id===id?linkedView.view:undefined} onViewChange={setInSpace}/>{/* ONE WAY IN. There used to be two buttons here -- "Watch it build" and "Walk me through the
       integral" -- which told the same argument twice, in different words, in different steps,
       and neither one touched the equation beside the figure. The run is now the walkthrough as
       well: it plays, pauses, scrubs and steps one stage at a time, and the derivation in the

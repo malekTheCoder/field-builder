@@ -3,7 +3,8 @@ import { DEFAULT_PARAMS, type Params } from '../problems/types';
 
 export type ExploreMode = 'divide' | 'project' | 'sum' | 'integrate';
 /** `stage` is a stage of Watch it build, 1 to 5: the link opens the run held on that stage's finished frame. */
-export type Assignment = { id?: ProblemId; mode?: ExploreMode; params?: Partial<Params>; pair?: boolean; components?: boolean; stage?: number };
+/** `view` is how the figure is drawn: flat ('2d') or in space ('3d'). Left out, each lesson opens its own way. */
+export type Assignment = { id?: ProblemId; mode?: ExploreMode; params?: Partial<Params>; pair?: boolean; components?: boolean; stage?: number; view?: '2d' | '3d' };
 /** The run's stages by the words a teacher would write them in, in the run's order (buildRun.ts). */
 export const STAGE_WORDS = ['cut', 'piece', 'cancel', 'add', 'shrink'] as const;
 const MODES = new Set<string>(['divide', 'project', 'sum', 'integrate']);
@@ -87,6 +88,9 @@ export function parseAssignment(search: string): Assignment {
  if (components !== undefined) out.components = components;
  const stage = readStage(params.get('stage'));
  if (stage !== undefined) out.stage = stage;
+ // As a teacher might type it: 3D, 3d, or with a space pasted after it. Anything else opens the lesson its own way.
+ const view = params.get('view')?.trim().toLowerCase();
+ if (view === '2d' || view === '3d') out.view = view;
  return out;
 }
 /** Compact query (no leading ?). Defaults are omitted so a teacher link stays short. The arc's angle is written
@@ -103,6 +107,7 @@ export function serializeAssignment(a: Assignment): string {
  if (a.pair) q.set('pair', '1');
  if (a.components) q.set('components', '1');
  if (a.stage) q.set('stage', String(a.stage));
+ if (a.view) q.set('view', a.view);
  if (a.id && (a.id !== 'bisector' || q.toString())) q.set('p', a.id);
  return q.toString();
 }

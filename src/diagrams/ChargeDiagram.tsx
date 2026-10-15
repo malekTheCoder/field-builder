@@ -50,6 +50,11 @@ export type ChargeDiagramProps = {
      * different piece along the charge. */
     piece?: number;
   };
+  /** How a link asked for the figure to be drawn, flat or in space: applied when it arrives or the lesson changes,
+   * and the reader's own choice from then on. */
+  view?: '2d' | '3d';
+  /** Told whenever the figure goes into space or comes out of it, so a link to the lesson can say which. */
+  onViewChange?: (inSpace: boolean) => void;
 };
 const clamp = (n: number, a: number, b: number) => Math.max(a, Math.min(b, n));
 /** Where the pair that cancels is, `local` of the way through What cancels: whole for the first two
@@ -311,7 +316,7 @@ const RingHits = memo(function RingHits({ classes, radius, onSelect }: { classes
  * every prop still, and the other two hold it still once their motion has finished. Each render
  * here also lays the labels out again, which measures every label on the page; skipping the render
  * skips that too. The props are compared one by one, so anything that does change still redraws. */
-export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, setParams, count, continuum, selected, onSelect, progress, components, pair, mode, boundRange = [0, 100], onBoundRangeChange, highlight = '', compact = false, build }: ChargeDiagramProps) {
+export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, setParams, count, continuum, selected, onSelect, progress, components, pair, mode, boundRange = [0, 100], onBoundRangeChange, highlight = '', compact = false, build, view: linkedView, onViewChange }: ChargeDiagramProps) {
   const cameraControl = useRef<HTMLButtonElement>(null);
   const svg = useRef<SVGSVGElement>(null), plane = useRef<SVGGElement>(null), dragging = useRef<string | null>(null), uid = useId().replace(/:/g, '');
   // The plot's window, as a clip for the strokes the run draws out of P: a last guard, beneath the scale
@@ -397,6 +402,7 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
   const FLAT: CameraView = perspective ? { yaw: 0, pitch: .15 } : { yaw: 0, pitch: Math.PI / 2 };
   // null means "whatever this geometry is normally drawn as"; the toggle sets it explicitly.
   const inSpace = !noScene && (spatial ?? perspective);
+  useEffect(() => { onViewChange?.(inSpace); }, [inSpace, onViewChange]);
   const view = inSpace ? camera : FLAT;
   // Where the two parts that survive are laid TIP TO TAIL, adding, as What cancels ends -- on the rods, the
   // arc and the ring alike, and in space as the scene lays them. On a phone, where the names are set half as
@@ -1560,6 +1566,14 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
     setZoom(1);
     setSpatial(null);
   }, [problem.geometry]);
+  // A LINK THAT NAMES THE VIEW (view=2d or view=3d) opens the lesson drawn that way, after the reset above, whose
+  // lesson it is. From the opening camera, as the 3D button glides to.
+  useLayoutEffect(() => {
+    if (!linkedView) return;
+    stopGlide();
+    commitView(openingCamera(problem.geometry));
+    setSpatial(linkedView === '3d');
+  }, [linkedView, problem.geometry]);
   /* oxlint-enable react-hooks/exhaustive-deps */
   // Orbit follows the 2D/3D choice rather than the geometry. The planar lessons carry axis
   // labels and dimension brackets pinned to fixed screen coordinates, so those are withheld

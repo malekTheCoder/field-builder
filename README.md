@@ -30,6 +30,7 @@ Example: [https://learnem.malekswilam.dev/?p=ring&r=2&stage=3](https://learnem.m
 | --- | --- |
 | `p` (`problem`, `id`) | Lesson id: `bisector`, `axial`, `infinite`, `ring`, `disk`, `semi`, `arc`, `sheet`, `endpoint`, `ramp`, `v-ring`, `v-disk`, `v-arc`, `v-rod-bisector`, `v-rod-axial` |
 | `stage` | Open Watch it build held on a stage's finished frame: `1`–`5`, or `cut`, `piece`, `cancel`, `add`, `shrink`. `stage=5` opens on the answer. |
+| `view` | `3d` draws the figure in space, `2d` flat. Left out, each lesson opens its own way (the ring, the disk and the sheet in space, the rest flat); the page writes it only where the reader has changed that. |
 | `r` | Where P is: its distance r, its height z, or the end distance a (also `distance`) |
 | `L` | Length, or 2R on the ring, disk and arc (also `size`) |
 | `Q` | Charge or density, Q, λ, σ or λ₀ (also `charge`); never zero |
