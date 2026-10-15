@@ -17,11 +17,11 @@ function tokens(selector: ':root' | '.dark') {
 const lin = (c: number) => { c /= 255; return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4; };
 function luminance(hex: string) {
  let h = hex.replace('#', '');
- if (h.length === 3) h = [...h].map(x => x + x).join('');
+ if (h.length === 3) h = h.split('').map(x => x + x).join('');
  const [r, g, b] = [0, 2, 4].map(i => parseInt(h.slice(i, i + 2), 16));
  return 0.2126 * lin(r) + 0.7152 * lin(g) + 0.0722 * lin(b);
 }
-export const contrast = (a: string, b: string) => { const x = luminance(a), y = luminance(b); return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05); };
+const contrast = (a: string, b: string) => { const x = luminance(a), y = luminance(b); return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05); };
 
 for (const theme of [':root', '.dark'] as const) describe(`the ${theme === ':root' ? 'light' : 'dark'} theme's tokens`, () => {
  const light = tokens(':root'), t = theme === ':root' ? light : {...light, ...tokens('.dark')};
@@ -38,7 +38,7 @@ for (const theme of [':root', '.dark'] as const) describe(`the ${theme === ':roo
  it('builds every neutral from pure greys', () => {
   for (const name of ['background', 'card', 'muted', 'border', 'border-strong', 'muted-foreground', 'foreground', 'diagram', 'cta', 'on-cta']) {
    const h = hex(name).replace('#', '');
-   const full = h.length === 3 ? [...h].map(x => x + x).join('') : h;
+   const full = h.length === 3 ? h.split('').map(x => x + x).join('') : h;
    expect(full.slice(0, 2) === full.slice(2, 4) && full.slice(2, 4) === full.slice(4, 6), `--${name} ${hex(name)} is not a grey`).toBe(true);
   }
  });

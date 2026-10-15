@@ -157,8 +157,9 @@ export function ViewCube({view, at, size = 22, minFont = 0, onPick, onSpin, onSp
     {ordered.map(f => {
       const towards = facing(f, d);
       // Shaded by how squarely it faces the camera, so adjacent faces have an edge between them;
-      // opaque, so its name stays readable over a busy figure.
-      const fill = `color-mix(in oklab, var(--field, #0b6b63) ${(38 + 52 * towards).toFixed(0)}%, var(--diagram, #ffffff))`;
+      // opaque, so its name stays readable over a busy figure. In the page's ink, not the field's teal: the cube is a
+      // control for the camera, and on this site colour is kept for the physics.
+      const fill = `color-mix(in oklab, var(--foreground, #171717) ${(9 + 25 * towards).toFixed(0)}%, var(--diagram, #ffffff))`;
       return <g key={f.key} className="cd-cube-side" data-face={f.key}>
         {cellsOf(f).map(c => <polygon key={c.key} data-target={c.key}
           className={'cd-cube-cell' + (c.centre ? ' is-face' : c.key.split(',').filter(x => x !== '0').length === 3 ? ' is-corner' : ' is-edge') + (hover === c.key ? ' is-lit' : '')}

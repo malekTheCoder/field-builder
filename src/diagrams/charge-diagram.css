@@ -390,13 +390,13 @@
    cells share the face's colour with no seams, the outline goes over them, and only the target
    under the pointer shows itself, lifted toward white, wherever its cells fall on the cube. */
 .cd-cube-cell{stroke:none;cursor:pointer;transition:filter .14s ease}
-.cd-cube-cell.is-lit{filter:brightness(1.45) saturate(.9)}
-.cd-cube-cell.is-edge.is-lit,.cd-cube-cell.is-corner.is-lit{filter:brightness(1.7) saturate(.8)}
+.cd-cube-cell.is-lit{filter:brightness(1.12)}
+.cd-cube-cell.is-edge.is-lit,.cd-cube-cell.is-corner.is-lit{filter:brightness(1.2)}
 .cd-cube-outline{fill:none;stroke:var(--diagram,#fff);stroke-width:1.4;stroke-linejoin:round;pointer-events:none}
 .cd-cube-key{fill:transparent;pointer-events:none}
 .cd-cube-key:focus-visible{outline:none}
 .cd-cube-key:focus-visible+*{outline:none}
-.cd-svg .cd-cube-label{fill:var(--on-accent,#fff);font-weight:650;letter-spacing:.03em;pointer-events:none;font-family:var(--font-ui),system-ui,sans-serif}
+.cd-svg .cd-cube-label{fill:var(--foreground,#171717);font-weight:600;letter-spacing:.03em;pointer-events:none;font-family:var(--font-ui),system-ui,sans-serif}
 @media (prefers-reduced-motion:reduce){.cd-cube-cell{transition:none}}
 /* The four steppers around it, as CAD tools put them. */
 /* On a touch screen they are the only way to turn the figure but a drag, and no hover ever raises them: at .34 they were one
@@ -406,8 +406,8 @@
 .cd-cube-step:hover{opacity:1}
 .cd-cube-step circle{fill:var(--diagram,#fff);stroke:var(--ghost,#6d8492);stroke-width:1}
 .cd-cube-step circle.cd-cube-hit{fill:transparent;stroke:none}
-.cd-cube-step path{fill:none;stroke:var(--field,#0b6b63);stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
-.cd-cube-step:focus-visible{outline:2px solid var(--field);outline-offset:2px}
+.cd-cube-step path{fill:none;stroke:var(--foreground,#171717);stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.cd-cube-step:focus-visible{outline:2px solid var(--primary);outline-offset:2px}
 
 /* ---- WATCH IT BUILD, as something you can see -------------------------------------------
    Each stage has to change the FIGURE, not just the caption under it: the caption sits below

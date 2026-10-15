@@ -259,9 +259,9 @@ describe('every slider can be seen and taken hold of', () => {
   const view = await openLesson('bisector');
   // Limiting cases starts open: a click on its summary would fold it away.
   const track = await waitFor(() => { const t = view.container.querySelector<HTMLElement>('.assessment [data-slot=slider-track]'); expect(t).toBeTruthy(); return t!; });
-  // Drawn in the track token, not left to the slider's own grey (#718896 on the light ground).
+  // Drawn in the track token, not left to the slider's own grey (#858585 on the light ground).
   const fill = getComputedStyle(track).backgroundColor;
-  expect(fill, 'the track is not drawn in --exp-track').toBe('rgb(113, 136, 150)');
+  expect(fill, 'the track is not drawn in --exp-track').toBe('rgb(133, 133, 133)');
   expect(contrast(fill, getComputedStyle(document.body).backgroundColor)).toBeGreaterThanOrEqual(3);
   // The finger's band is read from the sheet, not by emulating a touch screen: Chromium keeps answering
   // (hover: none) after its touch emulation is switched off, and the files after this one then ran on a

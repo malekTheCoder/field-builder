@@ -34,7 +34,7 @@
 .exp-note-heading{font-size:var(--type-sub);line-height:1.18;margin:0}
 .exp-note-body>p,.exp-note-body .exp-limit-why{font-size:var(--type-lead);line-height:1.62;color:var(--muted-foreground);max-width:62ch;margin-top:16px}
 .exp-breadcrumb,.exp-breadcrumb button,.exp-diagram-heading>span,.exp-range output{font-size:var(--type-meta)}
-.exp-shape-button[data-slot=sidebar-menu-button],.exp-limit-tabs [data-slot=tabs-trigger]{font-size:var(--type-body)}
+.exp-shape-button[data-slot=sidebar-menu-button]{font-size:var(--type-meta)}.exp-limit-tabs [data-slot=tabs-trigger]{font-size:var(--type-body)}
 /* No uppercase-letterspaced kickers: a nav label is a nav label. */
 /* ---- 2. Variables lead, numbers follow ------------------------------ */
 
