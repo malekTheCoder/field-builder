@@ -17,14 +17,12 @@
 .law-why{grid-column:1/-1;font-size:var(--type-meta);line-height:1.7;color:var(--muted-foreground);max-width:58ch}
 .law-detail{display:grid;gap:13px;padding:2px 0 20px;font-size:var(--type-meta);line-height:1.8;color:var(--muted-foreground);max-width:58ch}
 .law-detail .math{font-size:var(--type-meta);color:var(--foreground);overflow-x:auto;overflow-y:hidden}
-.laws-dialog[data-slot=dialog-content]{max-width:min(560px,calc(100vw - 32px))!important;padding:28px!important;gap:0!important;
- border:1px solid var(--border);border-radius:18px;max-height:calc(100dvh - 32px);overflow-y:auto}
-.laws-title[data-slot=dialog-title]{font-family:var(--font-ui);font-size:var(--type-sub)!important;font-weight:600;letter-spacing:-.01em;
- line-height:1.25;margin:0 0 12px;padding-right:24px}
+.laws-dialog[data-slot=dialog-content]{max-width:min(var(--dialog-width,600px),calc(100vw - 32px))!important;padding:var(--dialog-pad,28px)!important;gap:0!important;
+ border:1px solid var(--border);border-radius:var(--radius-card);max-height:calc(100dvh - 32px);overflow-y:auto}
+.laws-title[data-slot=dialog-title]{margin:0 0 12px}
 /* Inside the tour the laws stand in for the figure, under the page's own framing sentence. */
 .fb-onboarding .laws{margin-top:4px}
-@media(max-width:520px){.laws-dialog[data-slot=dialog-content]{padding:22px 20px!important;border-radius:14px}
- .law-name{font-size:var(--type-body)}.law>button{padding:13px 0}}
+@media(max-width:520px){ .law-name{font-size:var(--type-body)}.law>button{padding:13px 0}}
 @media(prefers-reduced-motion:reduce){.law>button>svg{transition:none}}
 /* Where the tour shows only some of the laws, one quiet line says where the others are. */
 .laws-more{margin:0 0 6px;font-size:var(--type-meta);line-height:1.7;color:var(--muted-foreground);max-width:58ch}

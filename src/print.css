@@ -60,6 +60,7 @@
   .exp-note > summary small,
   .ew-worked-done,
   .ew-next-step,
+  .exp-note > summary::after,
   /* The integration interval is a disclosure, and its interval is printed in Add them up: it took a fourth
      sheet of its own on three lessons. */
   .ew-bounds,

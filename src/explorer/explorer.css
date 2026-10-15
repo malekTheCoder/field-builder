@@ -6,7 +6,7 @@
 @media(max-width:1000px){.exp-workspace{grid-template-columns:minmax(0,1fr)}.exp-workspace>aside,.exp-workspace>.equation-workbench{position:static;grid-row:2}.exp-heading h1{font-size:32px}.exp-main{padding:26px 26px 30px}.parameter-grid{gap:29px}.exp-range>div:first-child{font-size:12px}.exp-range output{font-size:12px}}
 @media(max-width:520px){.exp-header{padding:0 16px;height:67px;gap:10px}.exp-brand{font-size:22px}.exp-brand small{font-size:8px}.exp-logo{height:35px;width:31px;font-size:27px;border-radius:8px}.exp-header-right{gap:8px}.exp-header .tour-button>span,.repo-button{display:none!important}.exp-main{padding:20px 14px}.exp-breadcrumb{margin-bottom:23px;font-size:11px}.exp-heading{align-items:flex-start;margin-bottom:19px;gap:10px}.exp-heading h1{font-size:28px;letter-spacing:-1px}.exp-heading p{font-size:13px}.exp-workspace{gap:17px}.exp-diagram-heading{padding:13px 14px}.exp-diagram-heading>span{font-size:9px;letter-spacing:.06em}.exp-diagram-heading .math{font-size:11px}.exp-parameters{padding:14px 15px 21px}.parameter-grid{gap:18px;grid-template-columns:1fr 1fr}.parameter-grid>.exp-range:last-child:nth-child(3){grid-column:1 / -1;margin-top:7px}.exp-range>div:first-child{font-size:11px}.exp-range output{font-size:11px}.exp-library-grid{grid-template-columns:1fr}.exp-library-dialog[data-slot=dialog-content]{padding:22px!important}}
 @media(prefers-reduced-motion:reduce){.exp-shape-button[data-slot=sidebar-menu-button],.exp-diagram-card{transition:none!important}}
-.exp-heading{margin-bottom:20px}.exp-breadcrumb{margin-bottom:19px}.exp-note-body>p{font-size:14px}.exp-range>div:first-child{font-size:14px}.exp-range output{font-size:12px}.exp-workspace>.ew-panel .ew-context,.exp-workspace>.ew-panel .ew-concept-detail,.exp-workspace>.ew-panel .ew-worked-step p{font-size:13px}.exp-workspace>.ew-panel .ew-disclosure{font-size:var(--type-meta)}.exp-workspace>.ew-panel .ew-equation{font-size:16px}.exp-workspace>.ew-panel .ew-equation-label{font-size:12px}.exp-workspace>.ew-panel .ew-panel{border-radius:12px}.exp-workspace>.ew-panel{border-radius:12px}.exp-workspace>.ew-panel .ew-bound-fields label{font-size:var(--type-meta)}.exp-workspace>.ew-panel .ew-bound-form>p{font-size:var(--type-meta)}.exp-shape-button[data-slot=sidebar-menu-button]{font-size:13px}.exp-range [data-slot=slider]{padding:5px 0}.exp-header .exp-brand small{font-size:10px}.exp-sidebar .exp-nav-bottom>span{font-size:12px}
+.exp-heading{margin-bottom:20px}.exp-breadcrumb{margin-bottom:19px}.exp-note-body>p{font-size:14px}.exp-range>div:first-child{font-size:14px}.exp-range output{font-size:12px}.exp-workspace>.ew-panel .ew-context,.exp-workspace>.ew-panel .ew-concept-detail,.exp-workspace>.ew-panel .ew-worked-step p{font-size:13px}.exp-workspace>.ew-panel .ew-disclosure{font-size:var(--type-meta)}.exp-workspace>.ew-panel .ew-equation{font-size:16px}.exp-workspace>.ew-panel .ew-equation-label{font-size:12px}.exp-workspace>.ew-panel .ew-bound-fields label{font-size:var(--type-meta)}.exp-workspace>.ew-panel .ew-bound-form>p{font-size:var(--type-meta)}.exp-shape-button[data-slot=sidebar-menu-button]{font-size:13px}.exp-range [data-slot=slider]{padding:5px 0}.exp-header .exp-brand small{font-size:10px}.exp-sidebar .exp-nav-bottom>span{font-size:14px}
 @media(max-width:520px){.exp-range>div:first-child{font-size:13px}.exp-range output{font-size:11px}}
 /* =====================================================================
    SECOND VISUAL PASS
@@ -68,7 +68,7 @@
 .exp-heading{margin-bottom:22px;align-items:flex-start}
 .exp-breadcrumb{margin-bottom:22px}
 .exp-header{border-bottom:1px solid var(--surface-rule)}
-.exp-shape-button[data-slot=sidebar-menu-button]{height:44px;border-radius:8px}
+.exp-shape-button[data-slot=sidebar-menu-button]{height:44px}
 /* ---- 4. Wide screens: give the figure everything that is going ------ */
 
 @media(min-width:1500px){
@@ -185,7 +185,7 @@
 .exp-diagram-heading>.exp-watch{display:flex;flex-wrap:nowrap;align-items:center;gap:14px;margin-left:auto;min-width:0}
 .exp-watch-button{flex:none;white-space:nowrap}
 @container (max-width:520px){.exp-watch-note{display:none}}
-.exp-watch-button{display:inline-flex;align-items:center;gap:8px;height:34px;padding:0 15px 0 12px;border:0;border-radius:12px;corner-shape:squircle;
+.exp-watch-button{display:inline-flex;align-items:center;gap:8px;height:34px;padding:0 15px 0 12px;border:0;border-radius:var(--radius-control);corner-shape:squircle;
  background:var(--cta);color:var(--on-cta);font:inherit;font-size:14px;font-weight:600;letter-spacing:.005em;cursor:pointer;
  transition:background-color var(--dur-state) var(--ease),transform var(--dur-press) var(--ease)}
 /* The button's lift is held close to it: a twenty-pixel teal blur under it fell across the top of the
@@ -342,17 +342,19 @@
 
 .exp-endnotes{margin-top:38px;border-top:1px solid var(--rule);display:flex;flex-direction:column}
 .exp-note{border-bottom:1px solid var(--border)}
-.exp-note>summary{display:flex;flex-direction:column;gap:3px;padding:16px 2px;cursor:pointer;list-style:none}
+.exp-note>summary{position:relative;display:flex;flex-direction:column;gap:3px;padding:16px 34px 16px 2px;cursor:pointer;list-style:none}
 .exp-note>summary::-webkit-details-marker{display:none}
 .exp-note>summary>span{font-size:var(--type-body);color:var(--foreground)}
 .exp-note>summary>small{font-size:var(--type-meta);color:var(--muted-foreground);line-height:1.45;max-width:62ch}
 .exp-note>summary:hover>span{color:var(--primary)}
 .exp-note>summary:focus-visible{outline:2px solid var(--primary);outline-offset:2px;border-radius:6px}
-/* The marker is drawn rather than inherited so it can sit on the text's baseline. */
-
-.exp-note>summary>span::before{content:'';display:inline-block;width:0;height:0;margin-right:9px;vertical-align:middle;
- border-left:5px solid currentColor;border-top:4px solid transparent;border-bottom:4px solid transparent;transition:transform .18s ease}
-.exp-note[open]>summary>span::before{transform:rotate(90deg)}
+/* THE SITE'S ONE DISCLOSURE: a chevron at the row's right that turns over as it opens, the board's "Model
+   assumptions", "Integration interval" and the laws' rows. These two had the browser's own triangle on the left. */
+.exp-note>summary::after{content:'';position:absolute;right:6px;top:50%;width:15px;height:15px;margin-top:-7.5px;
+ background:var(--muted-foreground);-webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") center/contain no-repeat;mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") center/contain no-repeat;
+ transition:transform var(--dur-state) var(--ease),background-color var(--dur-state) var(--ease)}
+.exp-note>summary:hover::after{background:var(--foreground)}
+.exp-note[open]>summary::after{transform:rotate(180deg)}
 /* AN ENDNOTE IS STILL READING MATTER. Opened, these two bodies took the whole width of the
    page -- and the limiting-case plot is an SVG scaled to its container, so at 1900px it drew
    its own axis labels at forty pixels, with the slider under it running the full width of the
@@ -391,7 +393,7 @@
    ramp's displaystyle logarithm (311px) widened the grid past a 288px column at 320px -- a 1280 screen at
    400% zoom -- and the whole page scrolled sideways. Now the expression scrolls inside its own box. */
 @media(max-width:700px){.exp-slip-note{grid-template-columns:minmax(0,1fr);gap:4px}}
-@media(prefers-reduced-motion:reduce){.exp-note>summary>span::before{transition:none}}
+@media(prefers-reduced-motion:reduce){.exp-note>summary::after{transition:none}}
 /* The first-visit pointer at the walkthrough. Fixed, so it is unaffected by the page scrolling
    under it, and pointer-events:none so it can never be the thing a reader clicks by accident. */
 
@@ -545,7 +547,7 @@
    ===================================================================== */
 /* The first tab stop: straight to the lesson's one button, past the header and the fifteen lessons.
    Off the top of the window until it has the focus, then a pill where it can be seen. */
-.skip-link{position:absolute;left:16px;top:10px;z-index:100;padding:8px 16px;border-radius:12px;background:var(--cta);
+.skip-link{position:absolute;left:16px;top:10px;z-index:100;padding:8px 16px;border-radius:var(--radius-control);background:var(--cta);
  color:var(--on-cta);font-size:var(--type-meta);font-weight:600;text-decoration:none;transform:translateY(-200%);transition:transform .15s ease}
 .skip-link:focus{transform:none}
 .exp-main:focus{outline:none}
@@ -859,7 +861,8 @@
 /* THE LIBRARY'S HEAD STAYS IN VIEW. The dialog was its own scroller and opens on the open lesson's card, so on
    a phone it opened scrolled four hundred pixels down, its title and its Close button above the top -- and a
    phone has no Escape key. The cards scroll in their own region under the title; the dialog does not. */
-.exp-library-dialog[data-slot=dialog-content]{display:flex;flex-direction:column;overflow:hidden}
+.exp-library-dialog[data-slot=dialog-content]{display:flex;flex-direction:column;overflow:hidden;
+ max-width:min(var(--dialog-width,600px),calc(100vw - 32px))!important;padding:var(--dialog-pad,28px)!important}
 .exp-library-list{flex:1 1 auto;min-height:0;overflow-y:auto;margin:0 -8px;padding:4px 8px 6px;scrollbar-width:thin}
 /* =====================================================================
    THE PAGE AROUND THE FIGURE AND THE BOARD
@@ -931,10 +934,15 @@
 .exp-heading.has-lesson{margin-bottom:10px}
 .exp-lesson{display:block;max-width:calc(66ch + 18px);
  margin:0 0 var(--gap-part);padding:2px 0 2px 16px;border-left:2px solid var(--rule)}
-.exp-lesson-lead{flex:1 1 34ch;max-width:66ch;font-size:var(--type-body);line-height:1.6;color:var(--foreground)}
-.exp-lesson-toggle{flex:none;display:inline-flex;align-items:center;gap:6px;padding:4px 2px;border:0;background:none;
- color:var(--primary);font-size:var(--type-meta);font-weight:600;white-space:nowrap}
-.exp-lesson-toggle>svg{transition:transform var(--dur-state) var(--ease)}
+/* "Read the lesson" follows the lead's last word, at every width. As a wrapping flex row it sat beside the lead's
+   box instead: at its right edge on a Chromebook, half a page from the words on a wide screen. */
+.exp-lesson-lead{display:inline;font-size:var(--type-body);line-height:1.6;color:var(--foreground)}
+.exp-lesson-lead+.exp-lesson-toggle{margin-left:.6em}
+/* The site's one link (globals.css, ONE LINK) and its one disclosure: the chevron on the right, turning. */
+.exp-lesson-toggle{display:inline-flex;flex-direction:row-reverse;align-items:center;gap:6px;padding:2px 0;border:0;background:none;
+ color:var(--foreground);font-size:var(--type-body);font-weight:400;white-space:nowrap;
+ text-decoration:underline;text-decoration-color:var(--primary);text-decoration-thickness:1px;text-underline-offset:.25em;transition:color var(--dur-state) var(--ease)}
+.exp-lesson-toggle>svg{color:var(--muted-foreground);transition:transform var(--dur-state) var(--ease)}
 .exp-lesson-toggle[aria-expanded=true]>svg{transform:rotate(180deg)}
 .exp-lesson-toggle:hover{color:var(--primary)}
 .exp-lesson-toggle:focus-visible,.exp-lesson-go:focus-visible,.exp-lesson-read a:focus-visible{outline:2px solid var(--primary);outline-offset:2px;border-radius:4px}
@@ -960,7 +968,7 @@
 @media screen{.exp-lesson-read .exp-lesson-url{display:none}}
 .exp-lesson-next{display:flex;flex-wrap:wrap;align-items:center;gap:10px 16px;margin-top:22px;padding-top:16px;border-top:1px solid var(--surface-rule)}
 .exp-lesson-next>p{flex:1 1 100%;margin:0;font-size:var(--type-body);color:var(--muted-foreground)}
-.exp-lesson-go{display:inline-flex;align-items:center;height:34px;padding:0 15px;border:1px solid var(--border-strong);border-radius:12px;corner-shape:squircle;background:var(--card);
+.exp-lesson-go{display:inline-flex;align-items:center;height:34px;padding:0 15px;border:1px solid var(--border-strong);border-radius:var(--radius-control);corner-shape:squircle;background:var(--card);
  color:var(--foreground);transition:border-color var(--dur-state) var(--ease);font-size:var(--type-meta);font-weight:600;white-space:nowrap}
 .exp-lesson-go:hover{border-color:var(--foreground)}.exp-lesson-go:active{transform:translateY(1px)}
 @media(max-width:520px){.exp-lesson{padding-left:12px}.exp-lesson-display{font-size:16px}}

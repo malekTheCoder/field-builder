@@ -353,7 +353,7 @@
 /* The view pad. Every gesture the figure answers to has a button here, because a control
    that only exists as a key you have to already know about is not a control. */
 .cd-pad{display:flex;align-items:center;gap:4px;margin-left:auto}
-.cd-pad-key{width:26px;height:26px;display:grid;place-items:center;border:1px solid var(--border);border-radius:6px;background:none;color:var(--muted-foreground);font:inherit;font-size:13px;line-height:1;cursor:pointer;transition:background .16s ease,color .16s ease}
+.cd-pad-key{width:26px;height:26px;display:grid;place-items:center;border:1px solid var(--border);border-radius:var(--radius-control);background:none;color:var(--muted-foreground);font:inherit;font-size:var(--t-fine,14px);line-height:1;cursor:pointer;transition:background .16s ease,color .16s ease}
 .cd-pad-key:hover:not(:disabled){background:var(--muted);color:var(--foreground)}
 .cd-pad-key:disabled{opacity:.35;cursor:default}
 .cd-pad-key:focus-visible{outline:2px solid var(--field);outline-offset:1px}
@@ -514,7 +514,7 @@
    each group is visibly ONE control with a state, which is what it is.
    ===================================================================== */
 .cd-toolbar{margin-top:12px;padding:12px 2px 0;border-top:1px solid var(--surface-rule,var(--border));gap:8px 16px}
-.cd-view-modes{gap:0;border:1px solid var(--border);border-radius:10px;overflow:hidden}
+.cd-view-modes{gap:0;border:1px solid var(--border);border-radius:var(--radius-control);overflow:hidden}
 .cd-view-mode{border:0;border-left:1px solid var(--border);border-radius:0;padding:4px 11px;line-height:1.5}
 .cd-view-modes>.cd-view-mode:first-child{border-left:0}
 /* The chosen segment used to say so with its border colour, which a segmented control does not
@@ -526,7 +526,7 @@
 /* Inside the shell, so the group's own overflow:hidden cannot clip the ring away. */
 .cd-view-mode:focus-visible{outline:2px solid var(--field);outline-offset:-2px}
 .cd-pad{gap:6px;margin-left:auto;flex:none}
-.cd-pad-key{width:28px;height:28px;border-radius:7px}
+.cd-pad-key{width:28px;height:28px;border-radius:var(--radius-control)}
 .cd-pad .cd-orbit-reset{margin-left:8px;font-size:var(--type-meta,13px);color:var(--muted-foreground)}
 .cd-pad .cd-orbit-reset:hover:not(:disabled){color:var(--foreground)}
 .cd-pad .cd-orbit-reset:disabled{opacity:.35;cursor:default}
@@ -539,7 +539,14 @@
 .cd-caption>.cd-controls[open]{flex:1 1 100%;margin-left:0}
 .cd-controls{color:var(--muted-foreground);font-size:var(--type-meta,13px)}
 /* At full muted ink: faded to three quarters it was 3.6:1 against the page. */
-.cd-controls>summary{cursor:pointer;font-size:var(--type-meta,13px);color:var(--muted-foreground);min-height:24px}
+.cd-controls>summary{cursor:pointer;font-size:var(--type-meta,13px);color:var(--muted-foreground);min-height:24px;
+ list-style:none;display:inline-flex;align-items:center;gap:6px}
+/* The site's one disclosure (explorer.css, .exp-note): a chevron after the name, turning over as it opens. */
+.cd-controls>summary::-webkit-details-marker{display:none}
+.cd-controls>summary::after{content:'';flex:none;width:14px;height:14px;background:currentColor;
+ -webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") center/contain no-repeat;mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") center/contain no-repeat;transition:transform var(--dur-state,160ms) var(--ease,ease)}
+.cd-controls[open]>summary::after{transform:rotate(180deg)}
+@media (prefers-reduced-motion:reduce){.cd-controls>summary::after{transition:none}}
 .cd-controls>summary:hover{opacity:1;color:var(--foreground)}
 .cd-controls[open]>summary{opacity:1;margin-bottom:2px}
 .cd-controls :focus-visible{outline:2px solid var(--field);outline-offset:3px;border-radius:3px}

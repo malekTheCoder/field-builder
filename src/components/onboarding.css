@@ -10,8 +10,7 @@
    now holds at the dialog's foot, over the page scrolling under it, and the dialog's bottom padding
    moves into the footer, so where the page fits it sits exactly where it did. */
 .fb-onboarding.fb-onboarding[data-slot=dialog-content]{padding-bottom:0!important}
-.fb-onboarding .ob-footer{position:sticky;bottom:0;z-index:1;background:var(--card);padding-bottom:26px}
-@media(max-width:520px){.fb-onboarding .ob-footer{padding-bottom:20px}}
+.fb-onboarding .ob-footer{position:sticky;bottom:0;z-index:1;background:var(--card);padding-bottom:var(--dialog-pad,28px)}
 /* AND IT SAYS WHEN THERE IS MORE UNDER IT. Held over the page, the footer's rule cut the laws page's text
    mid-line on a phone, 390 by 844, and nothing said a sentence went on underneath: a reader took the cut line
    for the page's end. The text now fades into the footer while there is more of it below, and the fade goes as

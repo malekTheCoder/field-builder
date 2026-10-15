@@ -2,7 +2,7 @@
 .cd-orbitable:active{cursor:grabbing}
 .cd-orbitable:focus{outline:none}
 .cd-orbitable:focus-visible{outline:2px solid var(--primary,#0b6b63);outline-offset:2px;border-radius:12px}
-.cd-orbit-reset{appearance:none;background:none;border:1px solid var(--border);border-radius:10px;color:inherit;font:inherit;letter-spacing:inherit;padding:3px 12px;cursor:pointer;flex:none;transition:border-color .18s,color .18s,opacity .18s}
+.cd-orbit-reset{appearance:none;background:none;border:1px solid var(--border);border-radius:var(--radius-control);color:inherit;font:inherit;letter-spacing:inherit;padding:3px 12px;cursor:pointer;flex:none;transition:border-color .18s,color .18s,opacity .18s}
 .cd-orbit-reset:hover:not(:disabled){border-color:var(--border-strong);color:var(--foreground)}
 .cd-orbit-reset:focus-visible{outline:2px solid var(--primary,#0b6b63);outline-offset:3px}
 .cd-orbit-reset:disabled{opacity:.35;cursor:default}
