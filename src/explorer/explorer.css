@@ -219,8 +219,13 @@
  background:var(--exp-track);transition:background-color var(--dur-state) var(--ease)}
 .bp-seg:hover .bp-seg-bar{background:color-mix(in oklab,var(--exp-track) 75%,var(--foreground))}
 .bp-seg-fill{position:absolute;inset:0;transform-origin:left center;background:var(--foreground);border-radius:inherit;will-change:transform}
-.bp-knob{position:absolute;top:12.5px;width:13px;height:13px;margin:-6.5px 0 0 -6.5px;border-radius:50%;background:var(--card);
+/* The knob rides a full-width carrier moved by a transform, so it slides on the compositor as the fill does: a
+   percentage of the carrier's own width is a percentage of the stage's. */
+.bp-knob-track{position:absolute;top:0;left:0;width:100%;height:0;pointer-events:none;will-change:transform}
+.bp-knob{position:absolute;top:12.5px;left:0;width:13px;height:13px;margin:-6.5px 0 0 -6.5px;border-radius:50%;background:var(--card);
  border:2.5px solid var(--foreground);box-shadow:none;pointer-events:none}
+/* A jump -- a click on a stage, a step -- eases for a moment; playing and scrubbing never do (BuildPlayer). */
+.bp-track.is-jumping .bp-seg-fill,.bp-track.is-jumping .bp-knob-track{transition:transform .18s var(--ease,ease-out)}
 .bp-seg-name{display:block;font-size:12px;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
  color:var(--muted-foreground);transition:color var(--dur-state) var(--ease)}
 .bp-seg.is-done .bp-seg-name{color:color-mix(in oklab,var(--foreground) 62%,var(--muted-foreground))}

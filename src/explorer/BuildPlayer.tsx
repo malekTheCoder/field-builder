@@ -81,12 +81,48 @@ const K_IS = String.raw`k=1/(4\pi\varepsilon_0)`;
 /** Memoised so that the page re-rendering around it -- which it does whenever the figure moves --
  * does not redraw it; the clock alone moves it on every frame. */
 export const BuildPlayer = memo(function BuildPlayer({stages, clock, index, playing, math = NO_MATH, chain = NO_LINES, answer = NO_LINES, lead = INTEGRAL_DONE, onPlay, onSeek, onStep, onClose}: Props) {
-  const [at, setAt] = useState(clock.get);
-  // Subscribed before the browser can run another frame: layout effects run inside the commit.
-  useLayoutEffect(() => clock.subscribe(() => setAt(clock.get())), [clock]);
   const starts = useMemo(() => stages.map((_, i) => stages.slice(0, i).reduce((t, s) => t + s.seconds, 0)), [stages]);
   const total = stages.reduce((t, s) => t + s.seconds, 0);
+  const fillOf = (seconds: number, i: number) => Math.max(0, Math.min(1, (seconds - starts[i]) / stages[i].seconds));
+  /** THE BAR GLIDES AT THE CLOCK'S OWN RATE. Its fill and its knob were drawn by a render of this transport on every
+   * tick of the clock -- a React state update scheduled from the run's frame, committed later, and on a frame where
+   * the figure was also being redrawn (Add them up, Shrink them, a drag along the bar) committed with it, after it:
+   * the bar moved in steps of whatever the figure took to draw, and on a slow frame skipped. Now each tick writes the
+   * fill's scale and the knob's offset straight onto them, in the frame the clock moved, as transforms: nothing is
+   * laid out and nothing waits on a render. Only what changes by stages -- which are done, whether the run has
+   * ended -- is state, and it renders only when one of those changes. */
+  const track = useRef<HTMLDivElement>(null);
+  const shape = (seconds: number) => starts.map((_, i) => fillOf(seconds, i) >= 1 ? 1 : 0).join('') + (seconds >= total - .01 ? 'e' : '');
+  const [, setShape] = useState(() => shape(clock.get()));
+  const glide = useRef(0), jumping = useRef(0);
+  useLayoutEffect(() => {
+    const draw = () => {
+      const seconds = clock.get(), el = track.current;
+      if (el) el.querySelectorAll<HTMLElement>('.bp-seg').forEach((seg, i) => {
+        const f = fillOf(seconds, i);
+        const fill = seg.querySelector<HTMLElement>('.bp-seg-fill'), knob = seg.querySelector<HTMLElement>('.bp-knob-track');
+        if (fill) fill.style.transform = `scaleX(${f})`;
+        if (knob) knob.style.transform = `translateX(${(f * 100).toFixed(3)}%)`;
+      });
+      // The jump is the first move after a click; any move after it is the run playing on, or a drag, and is not eased.
+      if (jumping.current === 2) { jumping.current = 0; el?.classList.remove('is-jumping'); } else if (jumping.current === 1) jumping.current = 2;
+      setShape(shape(seconds));
+    };
+    // Subscribed before the browser can run another frame: layout effects run inside the commit.
+    return clock.subscribe(draw);
+  });
+  const at = clock.get();
   const ended = !playing && at >= total - .01;
+  /** A click on a stage, or a step, jumps the bar: that one move eases, briefly. Playing and scrubbing never do --
+   * an eased bar trails the clock it shows. Reduced Motion drops the ease (globals.css). */
+  const jump = () => {
+    const el = track.current;
+    if (!el) return;
+    el.classList.add('is-jumping');
+    jumping.current = 1;
+    window.clearTimeout(glide.current);
+    glide.current = window.setTimeout(() => { jumping.current = 0; el.classList.remove('is-jumping'); }, 260);
+  };
   // The algebra changes with the stage, not with the clock, so it is not rebuilt with every frame.
   // EVERY STAGE'S ALGEBRA IS SET, AND ONLY THE CURRENT STAGE'S SHOWS -- as with the sentences above it,
   // and for the same reason: each stage's line is a different height, and on a phone the page under
@@ -193,11 +229,13 @@ export const BuildPlayer = memo(function BuildPlayer({stages, clock, index, play
     if (forward && (from >= 0 ? from : index) === stages.length - 1) return;
     if (from >= 0) {
       const next = forward ? Math.min(stages.length - 1, from + 1) : Math.max(0, from - 1);
+      jump();
       onStep(next);
       segments.current[next]?.focus();
       return;
     }
-    onStep(forward ? Math.min(stages.length - 1, index + 1) : at - starts[index] > .6 || index === 0 ? index : index - 1);
+    jump();
+    onStep(forward ? Math.min(stages.length - 1, index + 1) : clock.get() - starts[index] > .6 || index === 0 ? index : index - 1);
   };
   const last = index === stages.length - 1;
   // A group of controls with a name, which is exactly what the role says; the tags the linter
@@ -208,9 +246,9 @@ export const BuildPlayer = memo(function BuildPlayer({stages, clock, index, play
       <button type="button" className="bp-play" onClick={onPlay} aria-label={playing ? 'Pause' : ended ? 'Play again' : 'Play'}>
         {playing ? <Pause size={15} fill="currentColor" strokeWidth={0} /> : ended ? <RotateCcw size={15} strokeWidth={2.4} /> : <Play size={15} fill="currentColor" strokeWidth={0} />}
       </button>
-      <div className="bp-track" {...pointer}>
+      <div ref={track} className="bp-track" {...pointer}>
         {stages.map((s, i) => {
-          const fill = Math.max(0, Math.min(1, (at - starts[i]) / s.seconds));
+          const fill = fillOf(at, i);
           const here = i === index;
           // One tab stop for the five, on the stage the run is at: the arrow keys already move between
           // them, as in a list of tabs, and five stops stood between Play and Close.
@@ -220,9 +258,9 @@ export const BuildPlayer = memo(function BuildPlayer({stages, clock, index, play
           return <button key={s.key} ref={el => { segments.current[i] = el; }} type="button" tabIndex={here ? 0 : -1}
             className={'bp-seg' + (here ? ' is-here' : '') + (fill >= 1 ? ' is-done' : '')}
             style={{flexGrow: s.seconds}} aria-label={`Stage ${i + 1}: ${s.name}`} aria-current={here ? 'step' : undefined}
-            onClick={() => { if (!dragged.current) onSeek(starts[i], false); dragged.current = false; }}>
+            onClick={() => { if (!dragged.current) { jump(); onSeek(starts[i], false); } dragged.current = false; }}>
             <span className="bp-seg-bar" aria-hidden="true"><span className="bp-seg-fill" style={{transform: `scaleX(${fill})`}} /></span>
-            {here && <span className="bp-knob" aria-hidden="true" style={{left: `${fill * 100}%`}} />}
+            {here && <span className="bp-knob-track" aria-hidden="true" style={{transform: `translateX(${(fill * 100).toFixed(3)}%)`}}><span className="bp-knob" /></span>}
             <span className="bp-seg-name" aria-hidden="true">{s.name}</span>
           </button>;
         })}
@@ -240,10 +278,10 @@ export const BuildPlayer = memo(function BuildPlayer({stages, clock, index, play
           : <p key={`held-${s.key}`} className="bp-line-held" aria-hidden="true"><strong>{s.name}.</strong> <Prose text={s.prose} /></p>)}
       </div>
       <span className="bp-steps">
-        <button type="button" className="bp-icon" onClick={() => onStep(at - starts[index] > .6 || index === 0 ? index : index - 1)} aria-label="Previous stage"><ChevronLeft size={17} /></button>
+        <button type="button" className="bp-icon" onClick={() => { jump(); onStep(clock.get() - starts[index] > .6 || index === 0 ? index : index - 1); }} aria-label="Previous stage"><ChevronLeft size={17} /></button>
         {/* Marked unavailable rather than disabled at the last stage: disabling the button that has
             the focus -- which pressing it from the fourth stage did -- dropped the focus to the page. */}
-        <button type="button" className="bp-icon" onClick={() => { if (!last) onStep(index + 1); }} aria-disabled={last || undefined} aria-label="Next stage"><ChevronRight size={17} /></button>
+        <button type="button" className="bp-icon" onClick={() => { if (!last) { jump(); onStep(index + 1); } }} aria-disabled={last || undefined} aria-label="Next stage"><ChevronRight size={17} /></button>
       </span>
     </div>
     {mathBlock}
