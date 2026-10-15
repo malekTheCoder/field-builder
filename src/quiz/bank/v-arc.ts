@@ -87,13 +87,13 @@ export const bank: Question[] = [
   {id: 'v-arc-fixed-density', lesson: 'v-arc', kind: 'transfer',
     prompt: raw`Now hold $\lambda$ fixed instead of $Q$, and open the arc. What does $V$ at $P$ do?`,
     choices: [
-      {correct: true, text: raw`It grows as $V=k\lambda\varphi$: opening the arc now adds charge.`},
+      {correct: true, text: raw`Its size grows, as $V=k\lambda\varphi$: opening the arc now adds charge.`},
       {text: raw`It stays the same: $V$ never depends on the opening.`, misconception: 'arc-held-fixed',
         why: raw`$V=kQ/R$ is the same at every opening only while $Q$ is. With $\lambda$ fixed, $Q=\lambda R\varphi$ grows with the arc, and $V$ with it.`},
       {text: raw`It falls, as the field does once the arc is past a semicircle.`, misconception: 'arc-opening',
         why: raw`At fixed $\lambda$ the field does fall past a semicircle, because its arrows turn back. $V$ has no arrows: every added piece is $R$ away and adds $k\lambda\,\Delta\theta$ with the charge’s sign.`},
     ],
-    explanation: raw`With $\lambda$ fixed, $V=k\lambda\varphi$ grows in proportion to $\varphi$: every piece added is $R$ from $P$ and adds $k\lambda\,\Delta\theta$. What is held fixed decides the story; with $Q$ fixed, the same sum is $kQ/R$ at every opening.`,
+    explanation: raw`With $\lambda$ fixed, $V=k\lambda\varphi$ grows in size in proportion to $\varphi$: every piece added is $R$ from $P$ and adds $k\lambda\,\Delta\theta$. What is held fixed decides the story; with $Q$ fixed, the same sum is $kQ/R$ at every opening.`,
     review: {lesson: 'v-arc', section: 'What the answer says'}},
 
   {id: 'v-arc-no-gradient', lesson: 'v-arc', kind: 'transfer',

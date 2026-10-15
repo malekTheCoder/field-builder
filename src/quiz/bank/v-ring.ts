@@ -93,7 +93,7 @@ export const bank: Question[] = [
       {text: raw`It stays the same, since every piece is the same distance from $P$.`, misconception: 'fixed-distance',
         why: raw`Every piece is the same distance from $P$ as every other, but that distance, $\sqrt{R^2+z^2}$, grows as $P$ moves up.`},
     ],
-    explanation: raw`$|V|=k|Q|/\sqrt{R^2+z^2}$, and the root only grows with $z$, so the size of $V$ falls steadily from its value at the centre. The field is minus the slope of this curve: zero at the centre, where the curve is level, and largest where $V$ falls fastest, at $z=R/\sqrt2$.`,
+    explanation: raw`$|V|=k|Q|/\sqrt{R^2+z^2}$, and the root only grows with $z$, so the size of $V$ falls steadily from its value at the centre. The size of the field is how steeply this curve falls: zero at the centre, where the curve is level, and largest where it falls fastest, at $z=R/\sqrt2$.`,
     review: {lesson: 'v-ring', section: 'What the answer says'}},
 
   {id: 'v-ring-off-axis', lesson: 'v-ring', kind: 'transfer',

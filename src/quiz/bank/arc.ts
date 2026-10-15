@@ -52,7 +52,7 @@ export const bank: Question[] = [
     choices: [
       {correct: true, tex: raw`\Delta E_x=-\frac{k\,\Delta Q}{R^2}\cos\theta`},
       {tex: raw`\Delta E_x=\frac{k\,\Delta Q}{R^2}\cos\theta`, misconception: 'sign',
-        why: raw`The field at $P$ lies along the radius through the piece, carried on through $P$: away from a positive piece. For a piece on the $+x$ side, that is toward $-x$, hence the minus sign.`},
+        why: raw`The minus is the geometry’s, not the charge’s. The field at $P$ lies along the radius through the piece, carried on through $P$: away from a positive piece. For a piece on the $+x$ side, that is toward $-x$; a negative $\Delta Q$ turns it round on top of that.`},
       {tex: raw`\Delta E_x=-\frac{k\,\Delta Q}{R^2}\sin\theta`, misconception: 'wrong-part',
         why: raw`$\sin\theta$ projects across the axis, onto $y$, the part the mirror piece cancels. The radius through the piece makes the angle $\theta$ with the $x$-axis, so the part along $x$ takes $\cos\theta$.`},
       {tex: raw`\Delta E_x=-\frac{k\,\Delta Q}{R^2}`, misconception: 'projection',

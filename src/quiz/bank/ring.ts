@@ -64,11 +64,11 @@ export const bank: Question[] = [
   {id: 'ring-few-pieces', lesson: 'ring', kind: 'predict',
     prompt: raw`On a rod the pieces had to be short to be nearly point charges. Cut the ring into just a few long pieces and add their parts along the axis as if each were a point charge. How close is that to the exact $E_z$?`,
     choices: [
-      {correct: true, text: raw`Exact, however few the pieces: every bit of the ring is the same distance from $P$ at the same angle.`},
+      {correct: true, text: raw`Exact, however few the pieces: every bit of the ring is the same distance from $P$ at the same angle to the axis.`},
       {text: raw`Close, and closer the more pieces there are.`, misconception: 'ring-small-pieces',
         why: raw`That is true of a rod, where a long piece spans many distances from $P$. Every bit of a ring is the same $r_i$ from $P$ at the same $\alpha$, so a long piece’s part along the axis is exactly a point charge’s.`},
       {text: raw`Far off, until each piece is short compared with its distance from $P$.`, misconception: 'ring-small-pieces',
-        why: raw`A piece needs to be short only if different bits of it are different distances from $P$, or at different angles. On a ring seen from its axis none are.`},
+        why: raw`A piece needs to be short only if its bits’ parts along the axis differ, because they are different distances from $P$ or at different angles to the axis. On a ring seen from its axis none are, though the bits’ sideways parts do turn round it.`},
     ],
     explanation: raw`Every piece has the same $r_i$ and the same $\alpha$, so they come out of the sum, and what is left is the sum of the charges, the whole of $Q$: $E_z=kQ\cos\alpha/(R^2+z^2)$, exact at any cut. A long piece’s own field is weaker and leans closer to the axis than a point charge’s, but its part along the axis is the same.`,
     review: {lesson: 'ring', stage: 'add'}},

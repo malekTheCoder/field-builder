@@ -85,13 +85,13 @@ export const bank: Question[] = [
   {id: 'v-disk-grow', lesson: 'v-disk', kind: 'check',
     prompt: raw`Hold $\sigma$ fixed and let the disk grow without end. Its field settles to $\sigma/(2\varepsilon_0)$. What does $V$ at $P$ do?`,
     choices: [
-      {correct: true, text: raw`It grows without end: an infinite sheet has no potential relative to infinity, only differences.`},
+      {correct: true, text: raw`Its size grows without end: an infinite sheet has no potential relative to infinity, only differences.`},
       {text: raw`It settles to $\sigma/(2\varepsilon_0)$, as the field does.`, misconception: 'field-for-potential',
         why: raw`That is the field’s limit. The field settles because a far ring’s part along the axis is small; the potential takes no part, and each new ring at the rim adds nearly $2\pi k\sigma\,ds$, which never dies away.`},
       {text: raw`It falls to zero, as the charge spreads ever thinner.`, misconception: 'held-total-charge',
         why: raw`With $\sigma$ fixed the charge does not spread thinner: $Q=\sigma\pi R^2$ grows with the disk, and every new ring adds to $V$.`},
     ],
-    explanation: raw`For a big disk, $\sqrt{R^2+z^2}-z$ is nearly $R$, so $V$ is nearly $\sigma R/(2\varepsilon_0)$ and grows without end. Each new ring at the rim adds nearly $2\pi k\sigma\,ds$ to $V$ but almost nothing to the field. So an infinite sheet’s potential is only ever given as a difference.`,
+    explanation: raw`For a big disk, $\sqrt{R^2+z^2}-z$ is nearly $R$, so $V$ is nearly $\sigma R/(2\varepsilon_0)$, and its size grows without end. Each new ring at the rim adds nearly $2\pi k\sigma\,ds$ to $V$ but almost nothing to the field. So an infinite sheet’s potential is only ever given as a difference.`,
     review: {lesson: 'v-disk', section: 'Limiting cases'}},
 
   {id: 'v-disk-hole', lesson: 'v-disk', kind: 'transfer',

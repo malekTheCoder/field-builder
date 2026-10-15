@@ -93,7 +93,7 @@ export const bank: Question[] = [
     choices: [
       {correct: true, tex: raw`\frac{\sigma}{2\varepsilon_0}`},
       {tex: raw`0`, misconception: 'cancel-survivor',
-        why: raw`A ring’s field is zero at its centre, but a disk is not one ring. Every ring of it is below $P$, so every ring’s part along the axis points the same way, and the rings close under $P$ give most of it.`},
+        why: raw`A ring’s field is zero at its centre, but a disk is not one ring. Every ring of it is below $P$, so every ring’s part along the axis points the same way, and they add.`},
       {tex: raw`\infty`, misconception: 'closer-stronger',
         why: raw`A point charge’s field grows without end as you come close, but the disk’s charge is spread out. Close to its centre the disk looks like an endless sheet, whose field is finite.`},
       {tex: raw`\frac{\sigma}{\varepsilon_0}`, misconception: 'sheet-double',
@@ -109,7 +109,7 @@ export const bank: Question[] = [
       {text: raw`It falls to zero, as the charge spreads ever thinner.`, misconception: 'held-total-charge',
         why: raw`That is what happens with $Q$ held fixed. Here $\sigma$ is fixed, so the charge $Q=\sigma\pi R^2$ grows with the disk, and every new ring adds to the field.`},
       {text: raw`It grows without end, as the charge does.`, misconception: 'endless-field',
-        why: raw`Each ring added at the rim is farther away, and its field meets the axis more slantwise, so for a big disk each adds less than the last and the sum settles. Charge without end does not make a field without end here.`},
+        why: raw`Each ring added at the rim is farther away, and its field meets the axis more slantwise, so for a big disk each adds less than the last, falling off as $1/s^2$, fast enough that the sum settles. Charge without end does not make a field without end here.`},
       {text: raw`It settles to $\sigma/\varepsilon_0$.`, misconception: 'sheet-double',
         why: raw`That is twice the limit. The integral gives $2\pi k\sigma$, and with $k=1/(4\pi\varepsilon_0)$ that is $\sigma/(2\varepsilon_0)$. $\sigma/\varepsilon_0$ is the field just outside a conductor.`},
     ],

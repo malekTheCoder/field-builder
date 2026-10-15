@@ -684,3 +684,47 @@ describe('the potential at the centre of an arc', () => {
  });
  it('a negative arc’s potential is negative', () => { expect(at(0, 0, 0, arcCharges(R, -Q, 2, 10)).v).toBeLessThan(0); });
 });
+
+/* THE PHYSICS REVIEW'S CORRECTIONS, for the rings', disks', arcs' and sheet's banks: each claim reworded there is
+ * checked here, for both signs of charge where the bank no longer fixes one. */
+describe('the review of the rings’, disks’, arcs’ and sheet’s questions', () => {
+ it('a long piece of ring: its part along the axis is exactly a point charge’s, though its sideways part is not', () => {
+  const R = 1.3, z = .8, q = .5, piece = at(0, 0, z, circle(R, q / Math.PI, 0, Math.PI, 20000)); // half a ring as one piece
+  const mid: Charge = [0, R, 0, q], point = at(0, 0, z, [mid]);
+  close(piece.ez, point.ez, 1e-9);
+  expect(Math.hypot(piece.ex, piece.ey)).toBeLessThan(.9 * Math.hypot(point.ex, point.ey)); // weaker, leaning closer to the axis
+ });
+ it('cut at equal angles, no ring of the sheet adds more than 2πk|σ|Δα in size, for either sign', () => {
+  const N = 12, d = Math.PI / 2 / N;
+  for (const sig of [.8, -.8]) for (let i = 0; i < N; i++) {
+   const p = at(0, 0, 1, sheetCharges(sig, 1, i * d, i === N - 1 ? Math.PI / 2 - 1e-7 : (i + 1) * d, 300)).ez;
+   expect(Math.sign(p)).toBe(Math.sign(sig)); expect(Math.abs(p)).toBeLessThanOrEqual(2 * Math.PI * k * Math.abs(sig) * d * (1 + 1e-9));
+  }
+ });
+ it('a disk’s rim ring of width ds adds about 2πkσ z ds/s², a 1/s² fall-off whose sum beyond R is 2πkσ z/R', () => {
+  const sig = .4, z = 1, ds = 1e-3;
+  for (const s of [50, 100]) close(ring(s, sig * 2 * Math.PI * s * ds, z, 64).ez, 2 * Math.PI * k * sig * z * ds / s ** 2, 1e-3);
+  const R = 30, rest = sig / (2 * eps0) - sig / (2 * eps0) * (1 - z / Math.sqrt(R * R + z * z));
+  close(rest, 2 * Math.PI * k * sig * z / R, 1e-3);
+ });
+ it('mirror pieces of an arc never cancel along x; past a semicircle, other pieces do', () => {
+  const R = 1.2, t = .7, a = at(0, 0, 0, [[R * Math.cos(t), R * Math.sin(t), 0, .1]]).ex, b = at(0, 0, 0, [[R * Math.cos(-t), R * Math.sin(-t), 0, .1]]).ex;
+  close(a, b, 1e-12);
+  const far = at(0, 0, 0, [[R * Math.cos(Math.PI - t), R * Math.sin(Math.PI - t), 0, .1]]).ex; close(far, -a, 1e-12);
+ });
+ it('the arc’s minus is the geometry’s: ΔE_x = −k ΔQ cos θ/R² for a negative piece too', () => {
+  const R = 1.2;
+  for (const t of [.3, -1, 2.2]) close(at(0, 0, 0, [[R * Math.cos(t), R * Math.sin(t), 0, -.1]]).ex, -k * -.1 * Math.cos(t) / R ** 2, 1e-12);
+ });
+ it('for a negative ring the field’s size is how steeply |V| falls up the axis', () => {
+  const R = 1.3, cs = circle(R, -2 / (2 * Math.PI), 0, 2 * Math.PI, 64), z = .9, h = 1e-5;
+  const slope = (Math.abs(at(0, 0, z + h, cs).v) - Math.abs(at(0, 0, z - h, cs).v)) / (2 * h), f = at(0, 0, z, cs);
+  close(-slope, Math.abs(f.ez), 1e-7); expect(f.ez).toBeLessThan(0);
+ });
+ it('at fixed negative σ or λ the potential’s size grows, keeping its sign', () => {
+  const sig = -.3, v = (r: number) => at(0, 0, 1, diskCharges(r, sig, 1)).v;
+  expect(v(10)).toBeLessThan(0); expect(Math.abs(v(100))).toBeGreaterThan(5 * Math.abs(v(10)));
+  const lam = -.9, R = 1.2, va = (phi: number) => at(0, 0, 0, arcCharges(R, lam * R * phi, phi, 50)).v;
+  expect(va(1)).toBeLessThan(0); expect(Math.abs(va(2))).toBeGreaterThan(Math.abs(va(1)));
+ });
+});
