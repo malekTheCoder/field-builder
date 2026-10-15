@@ -115,13 +115,13 @@ export const bank: Question[] = [
   {id: 'semi-add-mirror', lesson: 'semi', kind: 'transfer',
     prompt: raw`Add the mirror half, from the end down to $-\infty$, with the same $\lambda$. What is the field at $P$ now?`,
     choices: [
-      {correct: true, text: raw`$2k\lambda/r$, straight away from the line: the parts along it cancel, the parts across add.`},
+      {correct: true, text: raw`$2k\lambda/r$ along $x$, perpendicular to the line: the parts along it cancel, the parts across add.`},
       {text: raw`$2\sqrt2\,k\lambda/r$, still leaning at $\pi/4$: twice the half line’s field.`, misconception: 'missed-cancel',
         why: raw`The new half is the old half’s mirror: its part along the line points the other way, toward $+y$, and cancels the old half’s. Only the parts across the line add.`},
       {text: raw`Zero: the two halves cancel each other.`, misconception: 'cancel-survivor',
         why: raw`Only the parts along the line are equal and opposite. The parts across it point the same way for both halves, away from the line for a positive charge, and add.`},
     ],
-    explanation: raw`The mirror half gives $+k\lambda/r$ along $y$, cancelling this half’s $-k\lambda/r$, and another $k\lambda/r$ across the line. The total is $2k\lambda/r$ straight out: the infinite line. The lean was the missing half.`,
+    explanation: raw`The mirror half gives $+k\lambda/r$ along $y$, cancelling this half’s $-k\lambda/r$, and another $k\lambda/r$ across the line. The total is $2k\lambda/r$ along $x$, perpendicular to the line: the infinite line. The lean was the missing half.`,
     review: {lesson: 'semi', section: 'What the answer says'}},
 
   {id: 'semi-negative', lesson: 'semi', kind: 'transfer',

@@ -147,7 +147,7 @@ describe('the derivation board', () => {
       // its own variable, Δv → dv. The step named Shrink them never said the pieces got thinner -- nor,
       // on the exact lessons, did it ever: they said only that the term never changes, and credited the
       // integral to that.
-      expect(limit, p.id).toMatch(/^As \$N\\to\\infty\$ the (piece|ring)s grow ever thinner: /);
+      expect(limit, p.id).toMatch(/^As \$N\\to\\infty\$ the (piece|ring)s grow ever thinner( in angle)?: /);
       if (p.id !== 'semi' && p.id !== 'sheet') expect(limit, p.id).toContain(`$\\Delta ${p.variableTex}$ becomes $d${p.variableTex}$`);
       // "Write … in y" is "in terms of y", as a student is taught to say it.
       expect(limit, p.id).not.toMatch(/written in \$/);

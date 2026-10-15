@@ -72,7 +72,7 @@ describe('following it', () => {
   expect(document.activeElement?.id).toBe('lesson-title');
   expect(document.activeElement?.textContent).toBe(getProblem('infinite').title);
   // The line under the title, and the way back.
-  expect(cameFrom()?.textContent).toContain('From the finite rod: let it run to infinity.');
+  expect(cameFrom()?.textContent).toContain('From the finite rod: hold λ fixed and let it run to infinity.');
   const back = view.getByRole('link', {name: `Back to ${getProblem('bisector').short}`});
   expect(back.closest('.exp-heading')).toBeTruthy();
   // A screen reader hears it.

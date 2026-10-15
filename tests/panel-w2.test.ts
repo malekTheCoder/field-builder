@@ -237,7 +237,7 @@ describe('the run says it the same way', () => {
   it('Shrink them’s caption gives the line’s reason, and says thinner', () => {
     for (const p of PROBLEMS) {
       const cap = buildStages(p)[4].caption;
-      expect(cap, p.id).toMatch(/^Finally, as N → ∞ the (piece|ring)s grow ever thinner\./);
+      expect(cap, p.id).toMatch(/^Finally, as N → ∞ the (piece|ring)s grow ever thinner( in angle)?\./);
       expect(cap, p.id).not.toMatch(/without end/);
       expect(cap, p.id).not.toMatch(/smaller|stops depending/);
       if (!exactSum(p)) expect(cap, p.id).toMatch(/which was only nearly right, becomes exact/);

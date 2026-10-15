@@ -1,4 +1,11 @@
 import {describe, expect, it} from 'vitest';
+import {getProblem} from '../src/problems/definitions';
+import {buildStages} from '../src/explorer/buildRun';
+import {boardLines} from '../src/workbench/derivation';
+import {MISCONCEPTION} from '../src/quiz/misconceptions';
+import {bank as bankSemi} from '../src/quiz/bank/semi';
+import {bank as bankInfinite} from '../src/quiz/bank/infinite';
+import {lesson as semiLesson} from '../src/lessons/semi';
 /* THE QUIZ'S PHYSICS, CHECKED BY NUMBER. Every question in src/quiz/bank that states a result, a limit or a
  * comparison is checked here by brute force: the charge cut into many point charges and their fields added
  * as vectors, with nothing from the lessons' algebra assumed. A claim the bank makes and a sum that disagrees
@@ -726,5 +733,69 @@ describe('the review of the rings’, disks’, arcs’ and sheet’s questions'
   expect(v(10)).toBeLessThan(0); expect(Math.abs(v(100))).toBeGreaterThan(5 * Math.abs(v(10)));
   const lam = -.9, R = 1.2, va = (phi: number) => at(0, 0, 0, arcCharges(R, lam * R * phi, phi, 50)).v;
   expect(va(1)).toBeLessThan(0); expect(Math.abs(va(2))).toBeGreaterThan(Math.abs(va(1)));
+ });
+});
+
+/* THE PHYSICS REVIEW OF THE SEMI-INFINITE LINE, THE α RENAME AND THE LINKS: each claim reworded there, checked by
+ * number for both signs of charge, and pinned as it now reads. */
+describe('the review of the semi-infinite line, the α rename and the links', () => {
+ const half = (r: number, l: number) => line(r, 0, 0, 1e5 * r, () => l, 400000);
+ const below = (r: number, l: number) => line(r, 0, -1e5 * r, 0, () => l, 400000);
+ it('the mirror half added gives 2kλ/r along x, perpendicular to the line, for either sign: not "straight out"', () => {
+  for (const l of [1.5, -1.5]) {
+   const up = half(1, l), down = below(1, l);
+   close(up.ex + down.ex, 2 * k * l, 1e-3); expect(Math.abs(up.ey + down.ey)).toBeLessThan(1e-4);
+  }
+  // a negative line's sum points in, toward the line: "straight out" held for a positive line only
+  expect(half(1, -1.5).ex + below(1, -1.5).ex).toBeLessThan(0);
+  const add = bankSemi.find(q => q.id === 'semi-add-mirror')!;
+  expect(add.choices.find(c => c.correct)!.text).not.toMatch(/straight (away|out)/);
+  expect(add.explanation).not.toMatch(/straight out/);
+  expect(semiLesson.sections.flatMap(s => s.body).filter(b => typeof b === 'string').join(' ')).not.toMatch(/straight out/);
+ });
+ it('cut in half, the infinite line’s part along it is −kλ/r, signed: back past the end for a positive line', () => {
+  for (const l of [1.5, -1.5]) close(half(1, l).ey, -k * l, 1e-3);
+  const q = bankInfinite.find(x => x.id === 'infinite-cut-in-half')!;
+  expect(q.explanation).toContain(String.raw`-(k\lambda/r)\int\sin\alpha\,d\alpha=-k\lambda/r`);
+ });
+ it('a half line fills a quarter turn at P from any distance, not half a turn, and its field still halves as r doubles', () => {
+  for (const r of [.5, 3]) close(Math.atan2(1e9 * r, r), Math.PI / 2, 1e-8);
+  for (const l of [1.5, -1.5]) { const a = half(1, l), b = half(2, l); close(b.ex / a.ex, .5, 2e-3); close(b.ey / a.ey, .5, 2e-3); }
+  expect(MISCONCEPTION.get('line-falloff')!.idea).toMatch(/a quarter turn for a half line/);
+ });
+ it('cut at equal angles, the outermost piece never ends at any N: it grows thinner only in angle, and its field still shrinks', () => {
+  const r = 1, l = 1.5;
+  for (const n of [4, 40]) {
+   const da = Math.PI / 2 / n, outer = line(r, 0, r * Math.tan(Math.PI / 2 - da), 1e9, () => l, 200000);
+   // its whole field is 2kλ sin(Δα/2)/r: it shrinks with Δα though the piece is endless
+   close(Math.hypot(outer.ex, outer.ey), 2 * k * l * Math.sin(da / 2) / r, 1e-3);
+  }
+  for (const id of ['infinite', 'semi', 'sheet']) {
+   expect(boardLines(getProblem(id)).find(b => b.key === 'limit')!.say, id).toMatch(/grow ever thinner in angle/);
+   expect(buildStages(getProblem(id)).at(-1)!.caption, id).toMatch(/grow ever thinner in angle/);
+  }
+  expect(boardLines(getProblem('bisector')).find(b => b.key === 'limit')!.say).not.toMatch(/in angle/);
+ });
+ it('the endless line’s piece is r sec²α dα long: the rename reached the misconception that names it', () => {
+  const r = 2, d = 1e-6, a = 1.1;
+  close(r * Math.tan(a + d / 2) - r * Math.tan(a - d / 2), r * d / Math.cos(a) ** 2, 1e-6);
+  expect(MISCONCEPTION.get('piece-length')!.idea).toContain(String.raw`r\sec^2\alpha\,d\alpha`);
+  expect(MISCONCEPTION.get('piece-length')!.idea).not.toContain(String.raw`\sec^2\theta`);
+ });
+ it('the arc’s potential ignores the opening only at a fixed charge, and its link says so', () => {
+  const R = 1.2, Q = 1.7, lam = .9;
+  close(at(0, 0, 0, arcCharges(R, Q, 1, 50)).v, at(0, 0, 0, arcCharges(R, Q, 5, 50)).v, 1e-12);
+  expect(at(0, 0, 0, arcCharges(R, lam * R * 5, 5, 50)).v).toBeGreaterThan(at(0, 0, 0, arcCharges(R, lam * R, 1, 50)).v);
+  const link = getProblem('arc').link!;
+  expect(link.text).toMatch(/at a fixed charge/); expect(link.from).toMatch(/at a fixed charge/);
+ });
+ it('a rod grown at fixed λ becomes the endless line; at fixed Q its field goes to zero, so the links hold λ', () => {
+  const r = 1, Q = 3, lam = 1.5;
+  for (const L of [1e4, 1e6]) {
+   const f = line(r, 0, 0, L, () => lam, 200000); close(f.ex, k * lam / r, 1e-3);
+   expect(line(r, 0, 0, L, () => Q / L, 200000).ex).toBeLessThan(1e-3);
+  }
+  expect(getProblem('endpoint').link!.from).toMatch(/hold λ fixed/);
+  expect(getProblem('bisector').link!.from).toMatch(/hold λ fixed/);
  });
 });

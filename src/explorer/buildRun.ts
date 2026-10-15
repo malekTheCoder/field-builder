@@ -334,6 +334,9 @@ export function buildStages(p: Problem): BuildStage[] {
   // approximation, the one that shrinking makes exact; the caption read to a screen reader still ended
   // "the answer stops depending on how finely we chose to cut", the reason the line had dropped. And it
   // said "smaller" where the board's rule and the line say "thinner".
+  // Thinner in angle where the cut is by angle at P: the outermost piece of an endless line, and the
+  // sheet's outermost ring, never ends at any N, so it grows no thinner in length.
+  const thinner = unbounded || geometry === 'sheet' ? 'grow ever thinner in angle' : 'grow ever thinner';
   const exactNow = geometry === 'arc' ? 'taking cos θ at each piece’s middle, which was only nearly right, becomes exact, since cos θ stops changing across a piece'
     : geometry === 'sheet' ? 'treating each ring as a thin ring, which was only nearly right, becomes exact'
     : surface ? 'counting each ring’s charge at one radius, which was only nearly right, becomes exact'
@@ -384,8 +387,8 @@ export function buildStages(p: Problem): BuildStage[] {
           ? 'Finally, as N → ∞ the pieces grow ever thinner. Each segment of the column gets too thin to see and the sum becomes the integral, but the height does not move: every piece was already the same distance from P, so the sum was exact all along.'
           : 'Finally, as N → ∞ the pieces grow ever thinner. Each piece’s arrow shrinks to nothing while there are ever more of them, and the sum becomes the integral. The answer does not move: every piece was already the same distance from P at the same angle, so the sum was exact all along.'
         : scalar
-        ? `Finally, as N → ∞ the ${unit}s grow ever thinner. Each segment of the column gets too thin to see, and the sum becomes the integral: ${exactNow}.`
-        : `Finally, as N → ∞ the ${unit}s grow ever thinner. Each ${unit}’s arrow shrinks to nothing while there are ever more of them, and the sum becomes the integral: ${exactNow}.`},
+        ? `Finally, as N → ∞ the ${unit}s ${thinner}. Each segment of the column gets too thin to see, and the sum becomes the integral: ${exactNow}.`
+        : `Finally, as N → ∞ the ${unit}s ${thinner}. Each ${unit}’s arrow shrinks to nothing while there are ever more of them, and the sum becomes the integral: ${exactNow}.`},
   ];
 }
 /** How far a stage's motion has got, `local` of the way through the stage: the moving share

@@ -940,7 +940,10 @@ export function boardLines(p: Problem, bounds?: [string, string], opts: {keeps?:
   // read as the rod growing endless, the reading the run's line was rid of. The semi-infinite line and the sheet are cut in an angle but integrated in x
   // and s: their own tail says what the piece's width becomes, so here they say N → ∞ alone.
   const ownCut = p.id !== 'semi' && p.id !== 'sheet';
-  const thinner = `As $N\\to\\infty$ the ${unit}s grow ever thinner: ${ownCut ? `each $\\Delta ${v}$ becomes $d${v}$, ` : ''}${unit}${NB}$i$’s position $${v}_i$ becomes the integral’s $${v}$, and ${becomes}.`;
+  // Thinner IN ANGLE where the cut is by angle at P: at every N the outermost piece of an endless line, and
+  // the outermost ring of the sheet, never ends, so it grows no thinner in length.
+  const inAngle = p.geometry === 'infinite' || p.geometry === 'semi' || p.geometry === 'sheet' ? ' in angle' : '';
+  const thinner = `As $N\\to\\infty$ the ${unit}s grow ever thinner${inAngle}: ${ownCut ? `each $\\Delta ${v}$ becomes $d${v}$, ` : ''}${unit}${NB}$i$’s position $${v}_i$ becomes the integral’s $${v}$, and ${becomes}.`;
   // An exact lesson's rule said "Nothing changes from piece to piece … So the sum becomes an integral
   // of a term that never changes": it never said the pieces got thinner, and its "So" credited the
   // integral to the term being constant. The sum becomes an integral because Δθ → dθ, as everywhere;

@@ -131,6 +131,6 @@ export const bank: Question[] = [
       {text: raw`The same field: what is left is still endless.`, misconception: 'bounds',
         why: raw`Half the line is gone. In the angle at $P$, $\alpha$ now runs from $0$ to $\pi/2$, half the bounds, and so half of the perpendicular part.`},
     ],
-    explanation: raw`With $\alpha$ from $0$ to $\pi/2$, the part perpendicular to the line is $(k\lambda/r)\int\cos\alpha\,d\alpha=k\lambda/r$, half as much. Nothing is left to cancel the parts along the line, and they add to $(k\lambda/r)\int\sin\alpha\,d\alpha=k\lambda/r$ as well: two equal parts, so the field leans at $\pi/4$.`,
+    explanation: raw`With $\alpha$ from $0$ to $\pi/2$, the part perpendicular to the line is $(k\lambda/r)\int\cos\alpha\,d\alpha=k\lambda/r$, half as much. Nothing is left to cancel the parts along the line, and they add to $-(k\lambda/r)\int\sin\alpha\,d\alpha=-k\lambda/r$, back past the end for a positive line: two parts of equal size, so the field leans at $\pi/4$.`,
     review: {lesson: 'semi', stage: 'cancel'}},
 ];

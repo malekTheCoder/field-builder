@@ -34,7 +34,7 @@ export const lesson: Lesson = {
       {tex: raw`E_x\approx\sum_i\frac{k\,\Delta Q_i}{r_i^2}\cos\alpha_i`},
     ]},
     {heading: 'Shrink them', body: [
-      raw`As $N\to\infty$ the pieces shrink and the sums become exact integrals. Written in $y$, as the page writes them, $r\sec^2\alpha\,\Delta\alpha$ becomes the length $dy$ and $\cos\alpha=r/\sqrt{y^2+r^2}$:`,
+      raw`As $N\to\infty$ the pieces grow ever thinner in angle and the sums become exact integrals. Written in $y$, as the page writes them, $r\sec^2\alpha\,\Delta\alpha$ becomes the length $dy$ and $\cos\alpha=r/\sqrt{y^2+r^2}$:`,
       {tex: raw`E_x=\int_0^\infty\frac{k\lambda\,dy}{y^2+r^2}\cdot\frac{r}{\sqrt{y^2+r^2}}`},
       raw`and $y=r\tan\alpha$ makes it $k\lambda/r$. In the angle, where each piece is worth $k\lambda\,d\alpha/r$, the two components are one picture:`,
       {tex: raw`\begin{aligned}E_x&=\frac{k\lambda}{r}\int_0^{\pi/2}\cos\alpha\,d\alpha=\frac{k\lambda}{r}\\E_y&=-\frac{k\lambda}{r}\int_0^{\pi/2}\sin\alpha\,d\alpha=-\frac{k\lambda}{r}\end{aligned}`},
@@ -42,7 +42,7 @@ export const lesson: Lesson = {
     ]},
     {heading: 'What the answer says', body: [
       raw`The two parts are equal in size, so $|\mathbf E|=\sqrt2\,k|\lambda|/r$ and the field leans at $\pi/4$: halfway between $+x$ and $-y$ for a positive charge, the opposite way for a negative one. Both parts fall as $1/r$, so moving $P$ away weakens the field but never turns it.`,
-      raw`The lean is the missing half. Add the mirror line, from the end down to $-\infty$, and its part along $y$ cancels this one’s while its part across adds, giving $2k\lambda/r$ straight out: the infinite line.`,
+      raw`The lean is the missing half. Add the mirror line, from the end down to $-\infty$, and its part along $y$ cancels this one’s while its part across adds, giving $2k\lambda/r$ along $x$, perpendicular to the line: the infinite line.`,
     ]},
   ],
   read: [

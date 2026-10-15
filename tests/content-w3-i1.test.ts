@@ -107,7 +107,7 @@ describe('“Easy to confuse with” names each quantity once, its symbol last, 
 
 describe('links and references name what they lead to',()=>{
  it('the arc leads on to the potential at its own centre',()=>{
-  expect(getProblem('arc').link).toMatchObject({id:'v-arc',text:'The potential at this same centre, which the opening angle never changes'});
+  expect(getProblem('arc').link).toMatchObject({id:'v-arc',text:'The potential at this same centre, which at a fixed charge the opening angle never changes'});
   expect(getProblem('v-arc').link!.id).toBe('arc');
  });
  it('the rod on its axis names its near reference by its formula, not as the semi-infinite line lesson’s field',()=>{
