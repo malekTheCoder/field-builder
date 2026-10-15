@@ -6,12 +6,11 @@ then to **Done**, with the commit. Newest requests are added at the bottom of **
 owner says they are urgent.
 
 ## In progress
-Where things stood on 2026-10-14 evening, in case the session resumes after a disconnect:
-- **Quiz questions for the other twelve shapes:** two agents in worktrees under `.claude/worktrees/`
-  (rods and lines; disks, arcs and the sheet). Each pushes to main itself. If one died mid-way, its
-  worktree has its files: finish, test, push. Then two physics reviewers check all the quiz's questions.
-- **Redesign:** approved ([redesign-plan.md](redesign-plan.md)); the Codex round is on main, so it can start.
-- Agents don't watch CI any more; Claude checks it every so often.
+- **Quiz: all fifteen shapes have questions** (8b172fb, b04aa49). Two physics reviewers are checking every
+  question now (rods and lines; rings, disks, arcs and the sheet).
+- **Redesign** ([redesign-plan.md](redesign-plan.md)): one agent in a worktree, in steps: fonts and tokens,
+  chrome, a visual pass, the whole suite.
+- Agents don't watch CI; Claude checks it every so often. The projector check got CI time (94ca8e3).
 
 ## Next
 - **Lesson-to-lesson links feel broken** (e.g. "Take this rod to infinity" on the finite line). Clicking
