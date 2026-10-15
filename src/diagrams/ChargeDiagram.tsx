@@ -377,7 +377,10 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
   // the piece's wedge and its name floating round a note in an empty plot, ring, disk and sheet opening that way.
   // Once the stage says it cannot start (`onUnavailable`), the figure is drawn flat for good, with 3D turned off
   // and a line under the toolbar saying why.
-  const [noScene, setNoScene] = useState(false);
+  //
+  // A CONTEXT LOST WHILE DRAWING ('lost') goes flat the same way, but not for good: the device can draw in space, the
+  // browser only took this context back, so 3D stays on offer and choosing it starts the scene again.
+  const [noScene, setNoScene] = useState<false | 'failed' | 'lost'>(false);
   const ZOOM_MIN = .45, ZOOM_MAX = 3.2;
   const [zoomWanted, setZoom] = useState(1);
   const [fieldView, setFieldView] = useState<'lines' | 'vectors' | 'off'>('lines');
@@ -3147,7 +3150,7 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
       bodyPath={bodyPath} point={pWorld} element={sceneElement} net={netShown ? scaleVec(displayed, netCut * gain / unit) : null} contribution={handOver ? scaleVec(handOver.field, handOver.multiplier * gain / unit) : pairNow ? (pairNow.step.fb && pairNow.cancel < .6 ? scaleVec(pairNow.step.fa, pairNow.grow * pairM * gain / unit) : null) : scalar || !showContribution || mode === 'sum' || building === 'limit' ? null : scaleVec(sample.field, selectedGain * gain / unit)}
       contributionFrom={pairNow ? scaleVec(pairSoFar, gain / unit) : null}
       unit={unit} frame={{ width: 720, height: 430 }} origin={O} charge={p.charge} animating={moving}
-      getView={() => ({ yaw: yawMv.get(), pitch: pitchMv.get() })} onUnavailable={() => setNoScene(true)}
+      getView={() => ({ yaw: yawMv.get(), pitch: pitchMv.get() })} onUnavailable={why => setNoScene(why === 'lost' ? 'lost' : 'failed')}
       // The run, for the scene to draw as bodies: the same partition, partner, sum and arrows the
       // flat marks below are drawn from, at the same scale, so the two can never tell it differently.
       run={build ? runScene({ stage: building, kind: id === 'disk' ? 'disk' : id === 'sheet' ? 'sheet' : 'wire', closed: id === 'ring', n, selected: selectedIndex, at: world,
@@ -3637,12 +3640,12 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
         stands between the reader and the charge any more. */}
     <div className="cd-toolbar">
     <div className="cd-view-modes" role="group" aria-label="How to view the figure">
-      {([['2D', false], ['3D', true]] as const).map(([label, wants]) => <button key={label} type="button" disabled={wants && noScene} title={wants && noScene ? 'The 3D view is not available on this device' : wants ? 'In space: drag, scroll or use the arrow keys to turn it' : 'Flat, looking straight down the axis'}
+      {([['2D', false], ['3D', true]] as const).map(([label, wants]) => <button key={label} type="button" disabled={wants && noScene === 'failed'} title={wants && noScene === 'failed' ? 'The 3D view is not available on this device' : wants ? 'In space: drag, scroll or use the arrow keys to turn it' : 'Flat, looking straight down the axis'}
         className={`cd-view-mode${inSpace === wants ? ' is-on' : ''}`} aria-pressed={inSpace === wants}
         onClick={() => {
           if (wants === inSpace) return;
           stopGlide();
-          if (wants) { yawMv.set(FLAT.yaw); pitchMv.set(FLAT.pitch); setCamera({ ...FLAT }); setSpatial(true); glideTo(openingCamera(problem.geometry), .8); }
+          if (wants) { setNoScene(false); yawMv.set(FLAT.yaw); pitchMv.set(FLAT.pitch); setCamera({ ...FLAT }); setSpatial(true); glideTo(openingCamera(problem.geometry), .8); }
           else glideTo(FLAT, .65, () => setSpatial(false));
         }}>{label}</button>)}
     </div>
@@ -3663,7 +3666,7 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
       <button type="button" className="text-button cd-orbit-reset" onKeyDown={viewKeys} onClick={resetView} disabled={zoom === 1 && (!inSpace || (Math.abs(camera.yaw - opening.yaw) < 1e-6 && Math.abs(camera.pitch - opening.pitch) < 1e-6))}>Reset view</button>
     </div>
     {/* An <output>: a status, announced as it appears. */}
-    {noScene && <output className="cd-stage-unavailable">The 3D view is not available on this device.</output>}
+    {noScene && <output className="cd-stage-unavailable">{noScene === 'lost' ? 'The 3D view was interrupted, so the figure is drawn in 2D. Choose 3D to try again.' : 'The 3D view is not available on this device.'}</output>}
     </div>
     <div className="cd-caption"><span>{sourceText}</span>
     <details className="cd-controls" open={!compact}><summary>Keyboard help</summary>{/* A footnote on the caption line, not a fourth section. It used to be called "Diagram controls", which promised a second control panel and delivered the sliders the page already carries -- so a reader who opened it found the distance slider twice and concluded one of them was a different thing. It is the keyboard and screen-reader path: name it that, and the duplicates read as what they are, the same controls reachable another way. The drawn legend says how to turn and zoom; this says what a drawing cannot -- what Tab reaches, what Home and End do -- and says it to a reader who cannot see the legend at all. */}<p id={`${uid}help`}>The same controls the figure and the page carry, reachable from the keyboard, not a second set. Tab moves between them; arrow keys adjust one, Home and End (Search with ← and → on a Chromebook) take it to its limits. P and the integration bounds also drag in the figure.{inSpace?' The figure takes focus too: arrow keys turn it, plus and minus zoom, Home puts it back.':''}</p>

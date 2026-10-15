@@ -63,7 +63,7 @@ export type FieldStageProps={
  run?:RunScene|null;
  /** Told, once, that the scene cannot start here -- no WebGL context, or its chunk never arrived -- so the
   * figure can draw itself flat instead. Without it the stage says so itself, over its empty layer. */
- onUnavailable?:()=>void;
+ onUnavailable?:(why?:'lost')=>void;
 };
 /** The cuts are made in order along the charge, at the same pace as the flat figure's
  * `.cd-stage-pieces .cd-seam` animation, so a reader who flips between 2D and 3D sees one run. */
@@ -117,6 +117,11 @@ export function FieldStage(props:FieldStageProps){
  // flat view, which needs no WebGL and shows the same lesson; the note is then the figure's, under its
  // toolbar. A stage with nobody to tell still says it here.
  const [failed,setFailed]=useState(false);
+ // A CONTEXT THE BROWSER TAKES BACK. A GPU reset, a driver update, too many tabs drawing at once: the browser may take
+ // the WebGL context away at any moment, and the scene went blank with nothing to say so -- an empty card where the
+ // figure was. The figure is told (`onUnavailable('lost')`) and draws itself flat, with a line saying why and 3D left
+ // on offer to try again; a stage with nobody to tell says so itself, and draws again if the context comes back.
+ const [lost,setLost]=useState(false);
  useEffect(()=>{latest.current=props;live.current?.update(props);});
  useEffect(()=>{
   const mount=host.current;
@@ -1652,6 +1657,11 @@ export function FieldStage(props:FieldStageProps){
     clearTicks(p);
     renderer.render(scene,camera);
    };
+   // Cancelled, so the browser may give the context back (`webglcontextrestored`); three rebuilds its own state then.
+   const canvas=renderer.domElement;
+   const onLost=(ev:Event)=>{ev.preventDefault();if(disposed)return;mount.parentElement?.setAttribute('data-scene-lost','true');setLost(true);latest.current.onUnavailable?.('lost');};
+   const onRestored=()=>{if(disposed)return;mount.parentElement?.removeAttribute('data-scene-lost');setLost(false);apply(latest.current);};
+   canvas.addEventListener('webglcontextlost',onLost);canvas.addEventListener('webglcontextrestored',onRestored);
    const observer=new ResizeObserver(()=>{if(!disposed)apply(latest.current);});
    observer.observe(mount);
    // THE SCENE IS DRAWN AGAIN WHEN THE THEME CHANGES, not only when the figure renders. The page switches the
@@ -1715,7 +1725,7 @@ export function FieldStage(props:FieldStageProps){
    live.current={
     update:p=>{if(disposed)return;apply(p);wake();wakeCuts();},
     dispose:()=>{
-     disposed=true;cancelAnimationFrame(frameId);cancelAnimationFrame(cutFrame);observer.disconnect();themeWatch.disconnect();nameWatch.disconnect();stageWatch.disconnect();cancelAnimationFrame(namesFrame);root?.removeEventListener(SNAPSHOT_EVENT,snapshot);
+     disposed=true;canvas.removeEventListener('webglcontextlost',onLost);canvas.removeEventListener('webglcontextrestored',onRestored);cancelAnimationFrame(frameId);cancelAnimationFrame(cutFrame);observer.disconnect();themeWatch.disconnect();nameWatch.disconnect();stageWatch.disconnect();cancelAnimationFrame(namesFrame);root?.removeEventListener(SNAPSHOT_EVENT,snapshot);
      clearGroup(body);clearGroup(slices);clearGroup(field);clearGroup(cuts);arrowGeometry.dispose();
      for(const mesh of [point,halo,element,netArrow.shaft,netArrow.head,partArrow.shaft,partArrow.head,keepArrow.shaft,keepArrow.head,dropArrow.shaft,dropArrow.head,partnerArrow.shaft,partnerKeepArrow.shaft,wholeArrow.shaft,newestArrow.shaft,pieceSolid,pieceGhost,fill,partnerBody,chainJoints])mesh.geometry.dispose();
      dashGeometry.dispose();flatHead.dispose();
@@ -1746,9 +1756,9 @@ export function FieldStage(props:FieldStageProps){
   <div className="cd-field-stage" aria-hidden="true" style={{clipPath:STAGE_CLIP}} {...runData(props.run,props.net)}>
    <div ref={host} className="cd-stage-gl"/>
   </div>
-  {failed&&!props.onUnavailable&&<output className="cd-stage-unavailable" style={{display:'block',position:'absolute',left:'50%',top:'50%',transform:'translate(-50%,-50%)',margin:0,padding:'.5em .9em',maxWidth:'80%',textAlign:'center',
+  {(failed||lost)&&!props.onUnavailable&&<output className="cd-stage-unavailable" style={{display:'block',position:'absolute',left:'50%',top:'50%',transform:'translate(-50%,-50%)',margin:0,padding:'.5em .9em',maxWidth:'80%',textAlign:'center',
    font:'500 14px/1.4 var(--font-ui),system-ui,sans-serif',color:'var(--muted-foreground,#4a6172)',background:'var(--diagram,#fff)',borderRadius:8,pointerEvents:'none',zIndex:2}}>
-   The 3D view is not available on this device. The 2D view shows the same figure.
+   {lost?'The 3D view was interrupted. It comes back when the browser restores it; the 2D view shows the same figure.':'The 3D view is not available on this device. The 2D view shows the same figure.'}
   </output>}
  </>;
 }
