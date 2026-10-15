@@ -23,6 +23,7 @@ import { ViewCube } from './ViewCube';
 import { nearestOnBox, placeLabels, segmentBoxes, type Box, type HalfPlane, type Segment } from './labels';
 import { area, rayMeetsLine, rayToEdge, rayToLine, sub as vsub, unit as direction, wedgePath, type Line } from './fan';
 import { FieldCanvas } from './FieldCanvas';
+import { PLOT } from './vectorfield';
 import { FieldStage } from './three/FieldStage';
 import { fieldsCollinear, runScene } from './three/runScene';
 import './charge-diagram.css';
@@ -160,6 +161,12 @@ const RUN_FLOOR = 70;
 const FOOTER_BAND = 378;
 /** Where the band above the plot ends: the stage's name is set there while the run plays. */
 const TITLE_BAND = 48;
+/** THE PLOT'S WINDOW: the rectangle every stroke of the drawing is cut to (the `clip` path below, and the field
+ * canvas' own clip). Zoomed in, a layer drawn outside it ran on past the window and out of the figure: the rod's
+ * length bar from the top of the card through the caption and into the controls, the rod's + marks beside the
+ * heading and the zoom buttons. Every stroke is cut to it; a mark or a name whose thing has left it goes with it. */
+const inWindow = (q: { x: number; y: number }, inset = 0) =>
+  q.x >= PLOT.x + inset && q.x <= PLOT.x + PLOT.width - inset && q.y >= PLOT.y + inset && q.y <= PLOT.y + PLOT.height - inset;
 const LabelScale = createContext(1);
 /** How far along its shaft an arrow named beside it is named: three fifths of the way out, where the
  * arrows leaving P have spread apart. At the middle a name stood nearer the arrow's tail, among the
@@ -666,10 +673,14 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
   // that nothing could hold both ends. There is no panning, so past this point zooming only
   // pushes the physics out of sight -- the plus key stops instead, which is honest, and the
   // minus key always has somewhere to go.
-  const MARGIN = 26;
-  const room = (centre: number, half: number, extent: number) =>
-    Math.abs(half) < .5 ? Infinity : Math.min((extent - MARGIN - centre) / Math.abs(half), (centre - MARGIN) / Math.abs(half));
-  const roomX = room(anchor.x, pAt1.x - anchor.x, 720), roomY = room(anchor.y, pAt1.y - anchor.y, 430);
+  //
+  // Held inside the plot's WINDOW, not the whole figure: fitted to the figure's edges, the sheet's P rose out of the
+  // window at full zoom into the band above it, its halo over the window's edge and Σ ΔE named at the very top of
+  // the card, over nothing the window still showed. Twenty units in, the halo's whole width.
+  const MARGIN = 20;
+  const room = (centre: number, half: number, lo: number, hi: number) =>
+    Math.abs(half) < .5 ? Infinity : Math.min((hi - MARGIN - centre) / Math.abs(half), (centre - lo - MARGIN) / Math.abs(half));
+  const roomX = room(anchor.x, pAt1.x - anchor.x, PLOT.x, PLOT.x + PLOT.width), roomY = room(anchor.y, pAt1.y - anchor.y, PLOT.y, PLOT.y + PLOT.height);
   // P alone cannot set the zoom ceiling of a round charge: the near rim lies beyond it, and used to leave the
   // window while P was still safely inside. Fit all four extrema of the projected circle about the same zoom
   // anchor. This also preserves the label row under a flat ring or disk.
@@ -2184,7 +2195,9 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
     // beside P rather than along the axis.
     // Scaled with the names: drawn at the drawing's size on a phone, where the names beside it are half as large again,
     // the column -- the potential lessons' only picture of V -- was six pixels wide, half the width of "ΣΔV" beside it.
-    const w = 12 * labelScale, leftSide = id === 'arc', gap = 28 * labelScale, fine = n > 64;
+    // Left of P where the window has no room for it on the right: zoomed in on the rod seen along its axis, P stands
+    // near the window's right edge and the column ran on past it.
+    const w = 12 * labelScale, gap = 28 * labelScale, fine = n > 64, leftSide = id === 'arc' || P.x + gap + w + 4 * labelScale > PLOT.x + PLOT.width;
     let x = leftSide ? P.x - gap - w : P.x + gap;
     // HOW TALL. At most 88 units, and ALWAYS the way the potential's sign points: the direction is the
     // column's only sign, since ΔV, ΣΔV and V carry none, and a column for a positive V that stood
@@ -3018,7 +3031,7 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
     // label does not creep further on every pass.
     for (const t of texts) {
       t.removeAttribute('transform');
-      if (t.dataset.placerHidden) { t.style.removeProperty('opacity'); delete t.dataset.placerHidden; }
+      if (t.dataset.placerHidden) { t.style.removeProperty('opacity'); delete t.dataset.placerHidden; delete t.dataset.offWindow; }
       delete t.dataset.placerLeader;
     }
     for (const l of root.querySelectorAll<SVGLineElement>('.cd-source-tag line')) l.style.removeProperty('opacity');
@@ -3073,10 +3086,23 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
       if (t.closest('.cd-cube')) { const r = t.getBoundingClientRect(); return r.width < .5 || r.height < .5 ? null : toFrame(r); }
       try { const b = t.getBBox(); return b.width < .5 || b.height < .5 ? null : { x: b.x, y: b.y, width: b.width, height: b.height }; } catch { return null; }
     };
+    // A NAME WHOSE THING HAS LEFT THE WINDOW GOES WITH IT. Zoomed in, the rod's L named a bar cut away past the
+    // window's edge, O stood in the margin for an origin off the page, and an end's name was pinned to the frame's
+    // edge, naming nothing a reader could see. What a name names is the point it is held to (`data-hold`), the point
+    // it is mirrored through (`data-mirror`), or the thing its leader runs back to; `data-names` says it where none
+    // of those is the thing. A few units' grace, for a point on the window's own edge.
+    const hide = (t: SVGTextElement) => { t.style.opacity = '0'; t.dataset.placerHidden = 'true'; };
+    const labelFrame = { x0: 0, y0: build ? TITLE_BAND : 0, x1: 720, y1: FOOTER_BAND };
     texts.forEach((t, order) => {
       if (gone(t)) return;
       const box = ownBox(t);
       if (!box) return;
+      const named = point(t.dataset.names) ?? point(t.dataset.hold) ?? point(t.dataset.mirror) ?? point(t.dataset.leaderFrom);
+      if (named && !inWindow(named, -4) && !t.closest('.cd-cube')) { hide(t); t.dataset.offWindow = 'true'; return; }
+      // And a name set in a fixed place -- an axis' letter -- that would stand past the frame is not drawn at all,
+      // rather than half over the card's heading or its caption.
+      if (anchored(t) && !t.closest('.cd-cube') && !t.classList.contains('cd-footer') && !t.classList.contains('cd-stage-label')
+        && (box.x < labelFrame.x0 - 1 || box.y < labelFrame.y0 - 1 || box.x + box.width > labelFrame.x1 + 1 || box.y + box.height > labelFrame.y1 + 1)) { hide(t); return; }
       if (anchored(t)) {
         (t.closest('.cd-plus, .cd-cube') ? fixedMarks : fixedWords).push(box);
         if (!t.closest('.cd-plus, .cd-cube') && !t.classList.contains('cd-footer') && !t.classList.contains('cd-stage-label')) knockWords.push(box);
@@ -3173,7 +3199,9 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
     for (const g of root.querySelectorAll<SVGGElement>('.cd-dimension, .cd-infinity')) {
       if (footed && g.classList.contains('cd-dimension')) continue;
       const ends = [...g.querySelectorAll<SVGTextElement>(':scope > text.cd-end')];
-      if (ends.length === 2 && ends.some(t => t.dataset.placerHidden) && ends.some(t => !t.dataset.placerHidden && t.dataset.keep !== 'true'))
+      // Not where an end has only left the window: the rod is then seen running on out of it, and the end still in
+      // view is named as the end it is.
+      if (ends.length === 2 && ends.some(t => t.dataset.placerHidden && !t.dataset.offWindow) && ends.some(t => !t.dataset.placerHidden && t.dataset.keep !== 'true'))
         for (const t of ends) { t.style.opacity = '0'; t.dataset.placerHidden = 'true'; }
     }
     // A PATCH OF THE GROUND UNDER EVERY NAME, over the field lines. The canvas lies under the drawing and a name's halo
@@ -3220,7 +3248,7 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
           : !scalar && showContribution && mode !== 'sum' && building !== 'limit' ? { scale: selectedGain * gain / unit, field: sample.field, keep, drop, partner: pairing ? partnerField : null, partnerKeep, partnerDrop, components, cancelled: cancelT } : null,
         chain: chaining ? { scale: gain / unit, fields: samples.map(s => s.field), weights } : null }) : null} />}
     <LabelScale.Provider value={labelScale}>
-    <svg ref={svg} className={`cd-svg${inSpace ? ' cd-orbitable' : ''}${scalar ? ' cd-scalar' : ''}`} viewBox="0 0 720 430" role="img" tabIndex={inSpace ? 0 : undefined} {...(inSpace ? orbit : {})} aria-label={`${problem.title}. Interactive charge distribution and ${scalar ? 'electric potential' : 'electric field'} visualization.${inSpace ? ' Drag or use the arrow keys to rotate the view, plus and minus to zoom, Home to reset it.' : ''}`}>
+    <svg ref={svg} className={`cd-svg${inSpace ? ' cd-orbitable' : ''}${scalar ? ' cd-scalar' : ''}`} style={{ '--cd-plot-clip': plotClip } as CSSProperties} viewBox="0 0 720 430" role="img" tabIndex={inSpace ? 0 : undefined} {...(inSpace ? orbit : {})} aria-label={`${problem.title}. Interactive charge distribution and ${scalar ? 'electric potential' : 'electric field'} visualization.${inSpace ? ' Drag or use the arrow keys to rotate the view, plus and minus to zoom, Home to reset it.' : ''}`}>
       <defs>
         <pattern id={`${uid}grid`} width="28" height="28" patternUnits="userSpaceOnUse"><circle cx="1" cy="1" r=".7" fill="var(--grid)" /></pattern>
         <clipPath id={`${uid}clip`}><rect x="42" y="54" width="626" height="317" rx="10" /></clipPath>
@@ -3234,10 +3262,14 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
       <rect className="cd-grid" x="20" y="48" width="680" height="336" rx="12" fill={`url(#${uid}grid)`} opacity=".55" />
       {/* The names' patches over the field lines, filled by the placer: see its last pass. */}
       {!inSpace && !scalar && fieldView !== 'off' && <g className="cd-label-knock" aria-hidden="true" />}
-      <g className="cd-axes" clipPath={inSpace ? `url(#${uid}clip)` : undefined}>
+      {/* The axes' lines are cut to the plot's window, always: zoomed in, the flat y axis' bar and the x axis ran on
+          past the window's edge (see WINDOW). Their letters are not cut -- a letter cut in half is worse than none --
+          and a flat axis whose line has left the window takes its letter with it. In space the letters are clamped
+          inside the window already, and keep the clip they always had. */}
+      <g className="cd-axes" clipPath={inSpace ? plotClip : undefined}>
         {/* Projected axes whenever the view can turn, so they rotate with what they measure;
             the flat pair is only right when the camera is locked. */}
-        {inSpace ? <><path d={`M${2 * O.x - axisX.x} ${2 * O.y - axisX.y}L${axisX.x} ${axisX.y} M${2 * O.x - axisY.x} ${2 * O.y - axisY.y}L${axisY.x} ${axisY.y} M${O.x} ${O.y + 27}V60`} /><text data-anchor="fixed" data-axis="x" {...(axisLetters?.x ?? axisTip(axisX, 13, 5))}>x</text><text data-anchor="fixed" data-axis="y" {...(axisLetters?.y ?? axisTip(axisY, 13, 5))}>y</text><text data-anchor="fixed" x={O.x + 18} y={axisTop + 1}>z</text></> : <><path d={`M64 ${O.y}H656 M${O.x} 365V60`} /><text data-anchor="fixed" x="662" y={id === 'axial' ? O.y + 24 : O.y - 9} textAnchor="middle">x</text>{!((id === 'infinite' || id === 'semi') && (legLettered || pieceLength || bounds.some(b => b.name))) && <text data-anchor="fixed" data-axis={perspective ? 'z' : 'y'} x={yLeft ? O.x - 11 : O.x + (perspective ? 18 : id === 'infinite' || id === 'semi' ? 13 : 11)} textAnchor={yLeft ? 'end' : undefined} y={axisTop}>{perspective ? 'z' : 'y'}</text>}</>}
+        {inSpace ? <><path d={`M${2 * O.x - axisX.x} ${2 * O.y - axisX.y}L${axisX.x} ${axisX.y} M${2 * O.x - axisY.x} ${2 * O.y - axisY.y}L${axisY.x} ${axisY.y} M${O.x} ${O.y + 27}V60`} /><text data-anchor="fixed" data-axis="x" {...(axisLetters?.x ?? axisTip(axisX, 13, 5))}>x</text><text data-anchor="fixed" data-axis="y" {...(axisLetters?.y ?? axisTip(axisY, 13, 5))}>y</text><text data-anchor="fixed" x={O.x + 18} y={axisTop + 1}>z</text></> : <><path d={`M64 ${O.y}H656 M${O.x} 365V60`} clipPath={plotClip} />{inWindow({ x: 360, y: O.y }) && <text data-anchor="fixed" x="662" y={id === 'axial' ? O.y + 24 : O.y - 9} textAnchor="middle">x</text>}{inWindow({ x: O.x, y: 200 }) && !((id === 'infinite' || id === 'semi') && (legLettered || pieceLength || bounds.some(b => b.name))) && <text data-anchor="fixed" data-axis={perspective ? 'z' : 'y'} x={yLeft ? O.x - 11 : O.x + (perspective ? 18 : id === 'infinite' || id === 'semi' ? 13 : 11)} textAnchor={yLeft ? 'end' : undefined} y={axisTop}>{perspective ? 'z' : 'y'}</text>}</>}
       </g>
       <g clipPath={`url(#${uid}clip)`}>
         {/* Painted first, under everything: it is the frame the rest of the figure sits in, not a
@@ -3352,24 +3384,24 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
       </g>
       {/* Where a line that never ends leaves the frame: break marks across it, a little way in, and its
           end named beside them, hung off their left so the name and the marks never touch. */}
-      {id === 'infinite' && <g className="cd-infinity">{breakGaps.map(g => <polygon key={g} className="cd-break-gap" points={g} />)}<path className="cd-break-under" d={breaks.map(([a, b]) => `M${a.x.toFixed(1)} ${a.y.toFixed(1)}L${b.x.toFixed(1)} ${b.y.toFixed(1)}`).join('')} /><path d={breaks.map(([a, b]) => `M${a.x.toFixed(1)} ${a.y.toFixed(1)}L${b.x.toFixed(1)} ${b.y.toFixed(1)}`).join('')} />
+      {id === 'infinite' && <g className="cd-infinity"><g clipPath={plotClip}>{breakGaps.map(g => <polygon key={g} className="cd-break-gap" points={g} />)}<path className="cd-break-under" d={breaks.map(([a, b]) => `M${a.x.toFixed(1)} ${a.y.toFixed(1)}L${b.x.toFixed(1)} ${b.y.toFixed(1)}`).join('')} /><path d={breaks.map(([a, b]) => `M${a.x.toFixed(1)} ${a.y.toFixed(1)}L${b.x.toFixed(1)} ${b.y.toFixed(1)}`).join('')} /></g>
         {/* Kept while the limits are the subject, and hidden together or not at all:
             on a phone +∞ gave way in What cancels and Shrink them while −∞ stood, and the line seemed to end at the top.
             Never lit as the limits, though: they are y's ends, and the board's limits are α's, −π/2 and π/2, which the
             edge's arrows carry. Lit in the limits' colour as the board's α: −π/2 → π/2 lit beside them, they read as
             the integral's limits. */}
-        <text className="cd-end cd-coordinate-end" x={O.x - 16} y={(80 + .3 * SYM * labelScale).toFixed(1)} textAnchor="end" {...endAttrs}>+∞</text><text className="cd-end cd-coordinate-end" x={O.x - 16} y={(348 + .3 * SYM * labelScale).toFixed(1)} textAnchor="end" {...endAttrs}>−∞</text></g>}
-      {id === 'semi' && <g className="cd-infinity">{breakGaps.map(g => <polygon key={g} className="cd-break-gap" points={g} />)}<path className="cd-break-under" d={breaks.map(([a, b]) => `M${a.x.toFixed(1)} ${a.y.toFixed(1)}L${b.x.toFixed(1)} ${b.y.toFixed(1)}`).join('')} /><path d={breaks.map(([a, b]) => `M${a.x.toFixed(1)} ${a.y.toFixed(1)}L${b.x.toFixed(1)} ${b.y.toFixed(1)}`).join('')} /><text className="cd-end" x={O.x - 16} y={(80 + .3 * SYM * labelScale).toFixed(1)} textAnchor="end" {...semiEndAttrs}>∞</text></g>}
-      {id === 'sheet' && !inSpace && <text x={sheetRim.right.x} y={sheetRim.right.y + 24} textAnchor="end" className="cd-end" {...GIVEN}>s → ∞</text>}
+        <text className="cd-end cd-coordinate-end" x={O.x - 16} y={(80 + .3 * SYM * labelScale).toFixed(1)} textAnchor="end" data-names={`${O.x.toFixed(1)} 80`} {...endAttrs}>+∞</text><text className="cd-end cd-coordinate-end" x={O.x - 16} y={(348 + .3 * SYM * labelScale).toFixed(1)} textAnchor="end" data-names={`${O.x.toFixed(1)} 348`} {...endAttrs}>−∞</text></g>}
+      {id === 'semi' && <g className="cd-infinity"><g clipPath={plotClip}>{breakGaps.map(g => <polygon key={g} className="cd-break-gap" points={g} />)}<path className="cd-break-under" d={breaks.map(([a, b]) => `M${a.x.toFixed(1)} ${a.y.toFixed(1)}L${b.x.toFixed(1)} ${b.y.toFixed(1)}`).join('')} /><path d={breaks.map(([a, b]) => `M${a.x.toFixed(1)} ${a.y.toFixed(1)}L${b.x.toFixed(1)} ${b.y.toFixed(1)}`).join('')} /></g><text className="cd-end" x={O.x - 16} y={(80 + .3 * SYM * labelScale).toFixed(1)} textAnchor="end" data-names={`${O.x.toFixed(1)} 80`} {...semiEndAttrs}>∞</text></g>}
+      {id === 'sheet' && !inSpace && <text x={sheetRim.right.x} y={sheetRim.right.y + 24} textAnchor="end" className="cd-end" data-names={`${sheetRim.right.x.toFixed(1)} ${sheetRim.right.y.toFixed(1)}`} {...GIVEN}>s → ∞</text>}
       {/* DIMENSIONS, drawn as a draftsman draws them: a bar beside what it measures, a tick at each
           end, its letter beside the bar's middle -- and every one of them off the axes, the charge
           and P, which used to have the letters L and r lying on their lines. */}
       {dims.map(d => <g key={d.key} data-dim={d.dim} className={`cd-dimension${inSpace && !perspective && !spaceRod ? ' is-hidden' : ''}`}>
-        <path d={d.path} />
-        {d.extension && <line className="cd-extension" x1={d.extension[0].x} y1={d.extension[0].y} x2={d.extension[1].x} y2={d.extension[1].y} />}
+        <path d={d.path} clipPath={plotClip} />
+        {d.extension && <line className="cd-extension" clipPath={plotClip} x1={d.extension[0].x} y1={d.extension[0].y} x2={d.extension[1].x} y2={d.extension[1].y} />}
         {d.label && <text x={d.label.x} y={d.label.y} textAnchor={d.label.anchor} data-mirror={`${((d.a.x + d.b.x) / 2).toFixed(1)} ${((d.a.y + d.b.y) / 2).toFixed(1)}`} data-alt={d.alt} data-within={d.within} data-shaft={lineOf(d.a, d.b)} {...GIVEN}>{d.name}</text>}
       </g>)}
-      {id === 'bisector' && !spaceRod && <g data-dim="size" className={`cd-dimension${inSpace && !perspective ? ' is-hidden' : ''}`}><text className="cd-end" x={O.x+17} y={O.y-R*unit-8} data-alt={rodEndAlt.top} data-within={rodEndAlt.topWithin} {...endAttrs}>+L/2</text><text className="cd-end" x={O.x+17} y={Math.min(O.y+R*unit+20, 366)} data-alt={rodEndAlt.bottom} data-within={rodEndAlt.bottomWithin} {...endAttrs}>−L/2</text></g>}
+      {id === 'bisector' && !spaceRod && <g data-dim="size" className={`cd-dimension${inSpace && !perspective ? ' is-hidden' : ''}`}><text className="cd-end" x={O.x+17} y={O.y-R*unit-8} data-names={`${O.x.toFixed(1)} ${(O.y-R*unit).toFixed(1)}`} data-alt={rodEndAlt.top} data-within={rodEndAlt.topWithin} {...endAttrs}>+L/2</text><text className="cd-end" x={O.x+17} y={Math.min(O.y+R*unit+20, 366)} data-names={`${O.x.toFixed(1)} ${(O.y+R*unit).toFixed(1)}`} data-alt={rodEndAlt.bottom} data-within={rodEndAlt.bottomWithin} {...endAttrs}>−L/2</text></g>}
       {spaceRod && <g data-dim="size" className="cd-dimension">{([['+L/2', spaceRod.top, spaceRod.along], ['\u2212L/2', spaceRod.bottom, { x: -spaceRod.along.x, y: -spaceRod.along.y }]] as const).map(([name, end, out]) => {
         // Kept: in space the y axis runs on past each end and the z axis stands beside the top one, so a name the placer
         // was free to drop found nowhere clear and both went.
@@ -3381,26 +3413,26 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
         const alt = [besidePoint(end, near, 10, spaceRod.size), besidePoint(end, slant(near), 22, spaceRod.size), besidePoint(end, slant(away), 8, spaceRod.size), besidePoint(past(12), away, 8, spaceRod.size), besidePoint(past(12), near, 8, spaceRod.size), besidePoint(end, out, 22, spaceRod.size)];
         return <text key={name} className="cd-end" x={at.x.toFixed(1)} y={at.y.toFixed(1)} textAnchor={at.anchor} data-mirror={`${end.x.toFixed(1)} ${end.y.toFixed(1)}`} data-alt={alt.map(q => `${q.x.toFixed(1)} ${q.y.toFixed(1)} ${q.anchor}`).join(';')} data-keep="true">{name}</text>;
       })}</g>}
-      {footed && <g data-dim="size" className={`cd-dimension${inSpace && !perspective ? ' is-hidden' : ''}`}><text className={ramp ? 'cd-end cd-density-end' : 'cd-end'} x={O.x+17} y={O.y-p.size*unit-8} data-alt={rodEndAlt.top} data-within={rodEndAlt.topWithin} {...(ramp ? {} : endAttrs)}>{ramp ? <SymbolText symbol="λ = λ_0" /> : 'y = L'}</text><text className={ramp ? 'cd-end cd-density-end' : 'cd-end'} x={O.x+19} y={O.y-9} data-alt={rodEndAlt.bottom} data-within={rodEndAlt.bottomWithin} {...(ramp ? {} : endAttrs)}>{ramp ? 'λ = 0' : 'y = 0'}</text></g>}
+      {footed && <g data-dim="size" className={`cd-dimension${inSpace && !perspective ? ' is-hidden' : ''}`}><text className={ramp ? 'cd-end cd-density-end' : 'cd-end'} x={O.x+17} y={O.y-p.size*unit-8} data-names={`${O.x.toFixed(1)} ${(O.y-p.size*unit).toFixed(1)}`} data-alt={rodEndAlt.top} data-within={rodEndAlt.topWithin} {...(ramp ? {} : endAttrs)}>{ramp ? <SymbolText symbol="λ = λ_0" /> : 'y = L'}</text><text className={ramp ? 'cd-end cd-density-end' : 'cd-end'} x={O.x+19} y={O.y-9} data-names={`${O.x.toFixed(1)} ${O.y.toFixed(1)}`} data-alt={rodEndAlt.bottom} data-within={rodEndAlt.bottomWithin} {...(ramp ? {} : endAttrs)}>{ramp ? 'λ = 0' : 'y = 0'}</text></g>}
       {/* The rod's far end, by its coordinate: "L" here as well as under the bar was two L's. */}
       {/* Under the tick where the L and a bars meet, below the axis: above it, on the line the piece's
           ΔQ is written on, the two read as one phrase. */}
       {id === 'axial' && <g data-dim="size" className={`cd-dimension${inSpace && !perspective ? ' is-hidden' : ''}`}><text className="cd-end" x={O.x+p.size*unit} y={barY + 8 + .98 * SYM * labelScale} textAnchor="middle" data-mirror={`${(O.x+p.size*unit).toFixed(1)} ${barY.toFixed(1)}`} data-alt={rodEndAlt.top} {...endAttrs}>x = L</text></g>}
       {/* The radius, named beside its middle -- or nearer either end, above or below it, where the middle
           is taken: flat, a sheet's chosen ring is an ellipse that hems the radius in at its middle. */}
-      {rim && <g data-dim="size" data-rim="true" className="cd-dimension"><path d={`M${O.x.toFixed(1)} ${O.y.toFixed(1)}L${rim.tip.x.toFixed(1)} ${rim.tip.y.toFixed(1)}`} />
+      {rim && <g data-dim="size" data-rim="true" className="cd-dimension"><path d={`M${O.x.toFixed(1)} ${O.y.toFixed(1)}L${rim.tip.x.toFixed(1)} ${rim.tip.y.toFixed(1)}`} clipPath={plotClip} />
         <text x={rim.spot.x.toFixed(1)} y={rim.spot.y.toFixed(1)} textAnchor={rim.spot.anchor} data-mirror={`${rim.mid.x.toFixed(1)} ${rim.mid.y.toFixed(1)}`} data-alt={rim.alt} data-shaft={lineOf(O, rim.tip)} data-within={awayFromP(O, rim.tip)} {...GIVEN}>R</text></g>}
-      {perspective && <g data-dim={id === 'disk' ? undefined : 'size'} className={`cd-dimension${inSpace && !perspective ? ' is-hidden' : ''}`}><path d={`M${O.x} ${O.y}L${radiusTip.x} ${radiusTip.y}`} /><text x={O.x+(radiusTip.x-O.x)*.6} y={O.y+(radiusTip.y-O.y)*.6+19} data-mirror={`${(O.x+(radiusTip.x-O.x)*.6).toFixed(1)} ${(O.y+(radiusTip.y-O.y)*.6).toFixed(1)}`}
+      {perspective && <g data-dim={id === 'disk' ? undefined : 'size'} className={`cd-dimension${inSpace && !perspective ? ' is-hidden' : ''}`}><path d={`M${O.x} ${O.y}L${radiusTip.x} ${radiusTip.y}`} clipPath={plotClip} /><text x={O.x+(radiusTip.x-O.x)*.6} y={O.y+(radiusTip.y-O.y)*.6+19} data-mirror={`${(O.x+(radiusTip.x-O.x)*.6).toFixed(1)} ${(O.y+(radiusTip.y-O.y)*.6).toFixed(1)}`}
         // Not past .85 of the way out on the flat sheet, where "s → ∞" stands under the axis' end: as the walk went out,
         // s took that place right under it and the two read as one garbled name, "s / s → ∞".
         data-alt={(id === 'sheet' && !inSpace ? [.35, .6] : [.35, .85]).flatMap(f => [19, -8].map(dy => `${(O.x + (radiusTip.x - O.x) * f).toFixed(1)} ${(O.y + (radiusTip.y - O.y) * f + dy).toFixed(1)} start`)).join(';')} data-shaft={lineOf(O, radiusTip)} data-within={awayFromP(O, radiusTip)} {...GIVEN}>{surface ? 's' : 'R'}</text></g>}
-      {id === 'arc' && <g className={`cd-dimension${inSpace && !perspective ? ' is-hidden' : ''}`}><g data-dim="angle"><path className="cd-phi-arc" d={pathThrough(circlePoints(R*PHI_AT, -p.phi/2, p.phi/2)) + (arcLetters?.phiHeads ?? '')} />{arcLetters && <text x={arcLetters.phi.x.toFixed(1)} y={arcLetters.phi.y.toFixed(1)} textAnchor="middle" data-alt={arcLetters.phiAlt} data-within={arcLetters.phiWithin} {...(stageCancel ? { 'data-priority': 0 } : GIVEN)}>{setUpright('φ')}</text>}</g>
+      {id === 'arc' && <g className={`cd-dimension${inSpace && !perspective ? ' is-hidden' : ''}`}><g data-dim="angle"><path className="cd-phi-arc" d={pathThrough(circlePoints(R*PHI_AT, -p.phi/2, p.phi/2)) + (arcLetters?.phiHeads ?? '')} clipPath={plotClip} />{arcLetters && <text x={arcLetters.phi.x.toFixed(1)} y={arcLetters.phi.y.toFixed(1)} textAnchor="middle" data-alt={arcLetters.phiAlt} data-within={arcLetters.phiWithin} {...(stageCancel ? { 'data-priority': 0 } : GIVEN)}>{setUpright('φ')}</text>}</g>
         {/* Not while the pair is drawn: the radius runs to the arc's lower end, on the y axis at the default φ, which is
             the line the two sideways parts are drawn on -- R's letter stood beside ΔE_y's shaft and took ΔE_y's place,
             and ΔE_y went out by the arc's end, read as the end's name. r_i = R names the radius in that stage. */}
-        {arcLetters && !pairing && <g data-dim="size" data-arc-radius="true"><path d={arcLetters.rPath} /><text x={arcLetters.rSpot.x.toFixed(1)} y={arcLetters.rSpot.y.toFixed(1)} textAnchor={arcLetters.rSpot.anchor} data-mirror={`${((O.x + arcLetters.rTip.x) / 2).toFixed(1)} ${((O.y + arcLetters.rTip.y) / 2).toFixed(1)}`} data-alt={arcLetters.rAlt} data-shaft={lineOf(O, arcLetters.rTip)} {...GIVEN}>R</text></g>}</g>}
+        {arcLetters && !pairing && <g data-dim="size" data-arc-radius="true"><path d={arcLetters.rPath} clipPath={plotClip} /><text x={arcLetters.rSpot.x.toFixed(1)} y={arcLetters.rSpot.y.toFixed(1)} textAnchor={arcLetters.rSpot.anchor} data-mirror={`${((O.x + arcLetters.rTip.x) / 2).toFixed(1)} ${((O.y + arcLetters.rTip.y) / 2).toFixed(1)}`} data-alt={arcLetters.rAlt} data-shaft={lineOf(O, arcLetters.rTip)} {...GIVEN}>R</text></g>}</g>}
       {pieceLength && <g className="cd-piece-length" data-piece-length={pieceLength.name}>
-        <path d={pieceLength.path} />
+        <path d={pieceLength.path} clipPath={plotClip} />
         <text x={pieceLength.label.x.toFixed(1)} y={pieceLength.label.y.toFixed(1)} textAnchor={pieceLength.label.anchor} data-mirror={`${pieceLength.mirror.x.toFixed(1)} ${pieceLength.mirror.y.toFixed(1)}`} data-alt={pieceLength.alt} data-within={pieceLength.within} {...termAttrs(true)}>{setUpright(pieceLength.name)}</text>
       </g>}
       {/* Placed, not pinned: where every name of a term wants the room, O is the one that gives way. */}
@@ -3480,7 +3512,7 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
           block the same way. */}
       {building === 'add' && !scalar && !handOver && newestLink && !chainShort && <g className="cd-sum-newest" data-sum-newest="true"><Vector from={newestLink[0]} to={newestLink[1]} color="var(--contribution)" width={3.6} reduced ghost={inSpace} clip={plotClip} /></g>}
       {!scalar && chainEnds && chainPoints.length > 1 && <path className="cd-sum-chain cd-sum-chain-ends" d={chainEnds} fill="none" clipPath={plotClip} style={{ opacity: clamp((1 - continuum) / .7, 0, 1) }} />}
-      {building === 'add' && !scalar && chainPoints.length > 1 && !chainShort && chainPoints.length <= 65 && chainPoints.slice(1, -1).map((c, k) => Math.hypot(c.x - chainPoints[k].x, c.y - chainPoints[k].y) < 8 ? null : <circle key={k} className="cd-sum-joint" cx={c.x} cy={c.y} r="2.8" />)}
+      {building === 'add' && !scalar && chainPoints.length > 1 && !chainShort && chainPoints.length <= 65 && chainPoints.slice(1, -1).map((c, k) => Math.hypot(c.x - chainPoints[k].x, c.y - chainPoints[k].y) < 8 ? null : <circle key={k} className="cd-sum-joint" cx={c.x} cy={c.y} r="2.8" clipPath={plotClip} />)}
       {/* THE PAIR GOING IN, at the tip of the sum so far (see `pairDraw`): the mirror's whole arrow in its lighter
           tint under the piece's, their parts across dashed, and their parts along the axis -- the mirror's laid
           first, so the piece's is on top while the two coincide. In space the scene draws them as bodies. */}
@@ -3562,7 +3594,7 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
           {/* Where the column stands: a short rule level with P, so it reads as the potential AT P
               growing up from nothing. It used to be a long guide line through P, which crossed the
               ring and its R, stood beside the y axis on the arc, and in space read as a second axis. */}
-          <line className="cd-gauge-base" x1={gauge.x - 5} y1={P.y} x2={gauge.x + gauge.w + 5} y2={P.y} />
+          <line className="cd-gauge-base" x1={gauge.x - 5} y1={P.y} x2={gauge.x + gauge.w + 5} y2={P.y} clipPath={plotClip} />
           {gauge.stacked ? null : gauge.fine
             ? <rect className="cd-stack-slot" x={gauge.x} width={gauge.w} {...gauge.box(0, gauge.at)} />
             : gauge.slots.map(sl => <rect key={sl.i} data-stack-slot={sl.i} className={'cd-stack-slot' + (gauge.lit.has(sl.i) ? ' is-lit' : '')} x={gauge.x} width={gauge.w} {...gauge.box(sl.lo, sl.hi)}
@@ -3575,9 +3607,9 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
             data-gauge-name="true" data-within={`0 ${P.y.toFixed(1)} 0 ${gauge.up ? -1 : 1}`} {...(gauge.name.includes('\u03a3') && hideAnswer ? {} : { 'data-keep': 'true', 'data-priority': 2 })}>{setUpright(gauge.name)}</text>
         </g>}
       {/* Leaders for names the placer had to take past their reach: filled by the placer, never by React. */}
-      <g className="cd-label-leaders" aria-hidden="true" />
+      <g className="cd-label-leaders" aria-hidden="true" clipPath={plotClip} />
       <g {...(id === 'arc' ? {} : handle('P'))} className={`cd-observation ${id === 'arc' ? 'is-fixed' : ''}`}>
-        <circle data-orbit-p="true" cx={P.x} cy={P.y} r="28" className="cd-point-glow" fill={`url(#${uid}point)`} style={{ opacity: inSpace || building ? 0 : 1 }} /><circle data-orbit-p="true" cx={P.x} cy={P.y} r={haloR} className="cd-point-halo" style={{ opacity: inSpace ? 0 : 1 }} /><circle data-orbit-p="true" cx={P.x} cy={P.y} r="5" className="cd-point" style={{ opacity: inSpace ? 0 : 1 }} />
+        <circle data-orbit-p="true" cx={P.x} cy={P.y} r="28" className="cd-point-glow" clipPath={plotClip} fill={`url(#${uid}point)`} style={{ opacity: inSpace || building ? 0 : 1 }} /><circle data-orbit-p="true" cx={P.x} cy={P.y} r={haloR} className="cd-point-halo" style={{ opacity: inSpace ? 0 : 1 }} /><circle data-orbit-p="true" cx={P.x} cy={P.y} r="5" className="cd-point" style={{ opacity: inSpace ? 0 : 1 }} />
         {/* Beside the dot, on the side nothing else is using: away from the charge, the field's arrow,
             the construction and the axis P sits on. It used to hang a fixed 31px below P, which in
             every view of a ring or a disk is down the axis and onto the plane -- read as a point ON
@@ -3586,7 +3618,7 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
         <text data-orbit-p="true" data-dx={pLabel.dx.toFixed(2)} data-dy={pLabel.dy.toFixed(2)} x={P.x + pLabel.dx} y={P.y + pLabel.dy} textAnchor={pLabel.anchor} className="cd-point-label" data-leader={pLabel.leader ? 'true' : undefined} data-hold={`${P.x.toFixed(1)} ${P.y.toFixed(1)}`}
           data-priority="3" data-keep="true" data-mirror={pLabel.mirror ? `${P.x.toFixed(1)} ${P.y.toFixed(1)}` : undefined} data-alt={pLabel.alternates || undefined}>{id === 'arc' && !pPlain ? <>P = <tspan className="cd-origin-o">O</tspan></> : 'P'}</text>
       </g>
-      {(showContribution || building === 'pieces' || highlight === 'element') && <g className="cd-source-tag"><line x1={source.x} y1={source.y} x2={source.x+(source.x>560?-22:22)} y2={source.y+(source.y<95?22:-20)} /><text data-leader="true" data-leader-from={`${source.x.toFixed(1)} ${source.y.toFixed(1)}`} data-within={tagWithin} x={source.x+(source.x>560?-27:27)} y={source.y+(source.y<95?27:-21)} textAnchor={source.x>560?'end':'start'} data-alt={tagAlternates} {...(stageCancel ? termAttrs(true) : termAttrs(building === 'pieces' || stageOne || building === 'add' || building === 'limit' || highlight === 'element'))}>{sourceVisible ? (surface ? <><tspan className="cd-word">ring </tspan><SymbolText symbol={elementSymbol} /></> : <SymbolText symbol={elementSymbol} />) : <><SymbolText symbol={elementSymbol} /><tspan className="cd-word"> outside view</tspan></>}</text></g>}
+      {(showContribution || building === 'pieces' || highlight === 'element') && <g className="cd-source-tag"><line clipPath={plotClip} x1={source.x} y1={source.y} x2={source.x+(source.x>560?-22:22)} y2={source.y+(source.y<95?22:-20)} /><text data-leader="true" data-leader-from={`${source.x.toFixed(1)} ${source.y.toFixed(1)}`} data-within={tagWithin} x={source.x+(source.x>560?-27:27)} y={source.y+(source.y<95?27:-21)} textAnchor={source.x>560?'end':'start'} data-alt={tagAlternates} {...(stageCancel ? termAttrs(true) : termAttrs(building === 'pieces' || stageOne || building === 'add' || building === 'limit' || highlight === 'element'))}>{sourceVisible ? (surface ? <><tspan className="cd-word">ring </tspan><SymbolText symbol={elementSymbol} /></> : <SymbolText symbol={elementSymbol} />) : <><SymbolText symbol={elementSymbol} /><tspan className="cd-word"> outside view</tspan></>}</text></g>}
       {/* THE LIMITS OF INTEGRATION, named as the lesson writes them -- -L/2 and L/2, 0 and 2pi -- and
           only while a handle sits on a limit: dragged in, it is wherever the reader put it, which has
           no name. They used to be "a" and "b" everywhere, which on the rod seen along its axis is
@@ -3594,12 +3626,12 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
           one point, so they are one handle until they are dragged apart; a limit that lies off the
           page is an arrow at the edge pointing to it, not a handle pinned in the frame's corner. */}
       {ringAngle && <g className="cd-piece-angle" data-ring-angle="true">
-        {ringAngle.rays.map((q, k) => <line key={k} className="cd-piece-ray" x1={O.x.toFixed(1)} y1={O.y.toFixed(1)} x2={q.x.toFixed(1)} y2={q.y.toFixed(1)} />)}
-        <path className="cd-angle-arc" d={pathThrough(ringAngle.arc)} />
+        <g clipPath={plotClip}>{ringAngle.rays.map((q, k) => <line key={k} className="cd-piece-ray" x1={O.x.toFixed(1)} y1={O.y.toFixed(1)} x2={q.x.toFixed(1)} y2={q.y.toFixed(1)} />)}
+        <path className="cd-angle-arc" d={pathThrough(ringAngle.arc)} /></g>
         <text x={ringAngle.spot.x.toFixed(1)} y={ringAngle.spot.y.toFixed(1)} textAnchor={ringAngle.spot.anchor} data-mirror={`${ringAngle.mid.x.toFixed(1)} ${ringAngle.mid.y.toFixed(1)}`} {...termAttrs(true)}><SymbolText symbol={ringAngle.name} /></text>
       </g>}
       {pieceAngle && <g className="cd-piece-angle" data-piece-angle={pieceAngle.box ? 'true' : undefined}>
-        {pieceAngle.rays.map((q, k) => <line key={k} className="cd-piece-ray" x1={P.x.toFixed(1)} y1={P.y.toFixed(1)} x2={q.x.toFixed(1)} y2={q.y.toFixed(1)} />)}
+        <g clipPath={plotClip}>{pieceAngle.rays.map((q, k) => <line key={k} className="cd-piece-ray" x1={P.x.toFixed(1)} y1={P.y.toFixed(1)} x2={q.x.toFixed(1)} y2={q.y.toFixed(1)} />)}</g>
         {pieceAngle.node}
       </g>}
       {/* The triangle the distance and the angle are read off: see `triangle` above. */}
@@ -3665,11 +3697,13 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
           each with a thin ring of the ground colour: a dashed stroke laid through a + turned it into a
           minus sign. Their size goes with the labels', so on a phone they are still marks. */}
       {/* Not under a limit's handle: the last + at each end of the rod stood half under it. */}
-      {rodLike && <g data-dim="charge" className="cd-plus" aria-hidden="true">{chargeMarks.filter(v => !bounds.some(b => b.mark && !b.edge && Math.hypot((upright ? O.x : v) - b.at.x, (upright ? v : O.y) - b.at.y) < 13 * labelScale)).map(v => <text key={v} className={onFill(v) ? 'is-on-fill' : undefined} x={upright ? O.x : v} y={(upright ? v : O.y) + 4.5 * labelScale} textAnchor="middle">{p.charge < 0 ? '\u2212' : '+'}</text>)}</g>}
+      {/* Only the marks on the part of the rod the window shows: zoomed in, the rest stood out past it, beside the
+          card's heading and its zoom buttons, with nothing under them. */}
+      {rodLike && <g data-dim="charge" className="cd-plus" aria-hidden="true">{chargeMarks.filter(v => inWindow(upright ? { x: O.x, y: v } : { x: v, y: O.y }, 6 * labelScale)).filter(v => !bounds.some(b => b.mark && !b.edge && Math.hypot((upright ? O.x : v) - b.at.x, (upright ? v : O.y) - b.at.y) < 13 * labelScale)).map(v => <text key={v} className={onFill(v) ? 'is-on-fill' : undefined} x={upright ? O.x : v} y={(upright ? v : O.y) + 4.5 * labelScale} textAnchor="middle">{p.charge < 0 ? '\u2212' : '+'}</text>)}</g>}
       {/* The arc's sign, as the rods carry theirs: one mark on each piece's middle, fewer where the pieces are too
           short to hold one each. It carried none, and on the arc's potential the column's direction -- up from P
           or down -- depends on a sign nothing on the figure gave. */}
-      {arcMarks.length > 0 && <g data-dim="charge" className="cd-plus" aria-hidden="true">{arcMarks.map(m => <text key={m.key} className={m.lit ? 'is-on-fill' : undefined} x={m.at.x.toFixed(1)} y={(m.at.y + 4.5 * labelScale).toFixed(1)} textAnchor="middle">{p.charge < 0 ? '\u2212' : '+'}</text>)}</g>}
+      {arcMarks.length > 0 && <g data-dim="charge" className="cd-plus" aria-hidden="true">{arcMarks.filter(m => inWindow(m.at, 6 * labelScale)).map(m => <text key={m.key} className={m.lit ? 'is-on-fill' : undefined} x={m.at.x.toFixed(1)} y={(m.at.y + 4.5 * labelScale).toFixed(1)} textAnchor="middle">{p.charge < 0 ? '\u2212' : '+'}</text>)}</g>}
       {/* The limits' handles, painted over the charge's marks: a + printed on a handle read as a mark of
           the handle's. */}
       {handlesShown && bounds.map(b => <g key={b.key} {...handle(b.handle)} className={'cd-bound' + (b.edge && b.mark ? ' is-edge' : '')} data-bound={b.key}>

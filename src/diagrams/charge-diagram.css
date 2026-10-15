@@ -756,3 +756,9 @@
    lifted toward white while the fade still says "gone". */
 .dark .cd-stage-one .cd-piece:not(.is-selected),.dark .cd-stage-cancel .cd-piece:not(.is-selected):not(.is-partner){opacity:1!important;fill:color-mix(in oklab,var(--charge,#b8460f) 52%,var(--diagram,#0f1d2a));stroke:color-mix(in oklab,var(--charge,#b8460f) 62%,var(--diagram,#0f1d2a))}
 .dark .cd-cancel-ghost .cd-vector{color:color-mix(in oklab,var(--contribution,#2f9089) 62%,#fff)!important}
+
+/* EVERY STROKE OF THE CONSTRUCTION IS CUT TO THE PLOT'S WINDOW (`--cd-plot-clip`, set on the figure to its own clip
+   path). Zoomed in, the dimension bars, the triangle's legs, the angles' rays and the potential's column ran on past
+   the window and out of the figure, over the card's heading, caption and controls. Strokes only: a name is never cut
+   in half -- the placer keeps it in, or hides it once what it names has left the window. */
+.cd-svg :is(.cd-dimension,.cd-triangle,.cd-piece-angle,.cd-angle-twin,.cd-ri-line,.cd-piece-length,.cd-gauge,.cd-sum-newest,.cd-pair-step,.cd-cancel-ghost,.cd-true-field) :is(path,line,circle,rect,polygon,polyline,ellipse){clip-path:var(--cd-plot-clip)}
