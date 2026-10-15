@@ -281,6 +281,9 @@
 .cd-stage .cd-svg{position:relative;z-index:1}
 :root{--field-line:color-mix(in oklab,var(--field) 42%,transparent)}
 .dark{--field-line:color-mix(in oklab,var(--field) 46%,transparent)}
+/* On a phone the figure is drawn at under half its size, so a line of the same width in figure units is under half a
+   pixel wide, and on the dark ground it all but went. Stronger there, in the same teal: the colour does not change. */
+@media(max-width:600px){.dark{--field-line:color-mix(in oklab,var(--field) 70%,transparent)}}
 
 /* The 3D body sits with the field layer, beneath every label and control. */
 .cd-field-stage{position:absolute;inset:0;pointer-events:none;z-index:0}
@@ -529,7 +532,7 @@
 .cd-pad-key{width:28px;height:28px;border-radius:var(--radius-control)}
 .cd-pad .cd-orbit-reset{margin-left:8px;font-size:var(--type-meta,13px);color:var(--muted-foreground)}
 .cd-pad .cd-orbit-reset:hover:not(:disabled){color:var(--foreground)}
-.cd-pad .cd-orbit-reset:disabled{opacity:.35;cursor:default}
+.cd-pad .cd-orbit-reset:disabled{opacity:1;color:var(--muted-foreground);border-style:dashed;cursor:default}
 /* The caption is prose about the figure, so it is set as prose and carries no rule of its own. */
 .cd-caption{margin-top:9px;padding:0 2px;border-top:0;gap:6px 16px;
  font-size:var(--type-meta,13px);letter-spacing:0;color:var(--muted-foreground)}

@@ -5,7 +5,9 @@
 .cd-orbit-reset{appearance:none;background:none;border:1px solid var(--border);border-radius:var(--radius-control);color:inherit;font:inherit;letter-spacing:inherit;padding:3px 12px;cursor:pointer;flex:none;transition:border-color .18s,color .18s,opacity .18s}
 .cd-orbit-reset:hover:not(:disabled){border-color:var(--border-strong);color:var(--foreground)}
 .cd-orbit-reset:focus-visible{outline:2px solid var(--primary,#0b6b63);outline-offset:3px}
-.cd-orbit-reset:disabled{opacity:.35;cursor:default}
+/* Nothing to reset: said by a dashed edge round a label still in the muted ink. Faded to a third it was 2.9:1, a
+   stuck control rather than a resting one. */
+.cd-orbit-reset:disabled{opacity:1;color:var(--muted-foreground);border-style:dashed;cursor:default}
 @media(prefers-reduced-motion:reduce){.cd-orbit-reset{transition:none}}
 /* No WebGL here: 3D is off, said so in a line of its own under the toolbar (see ChargeDiagram's `noScene`).
    The segment keeps its place in the control, greyed, so the reader sees what is missing rather than a

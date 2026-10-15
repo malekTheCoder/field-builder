@@ -47,6 +47,13 @@ owner says they are urgent.
    Do it after the Codex round.
 
 ## Done
+- Redesign QA fixes (2026-10-15): the report's findings in .claude/loop/reports/redesign-qa.md, worst first. One type
+  scale in the chrome (14 for labels, 16 for reading, 600 for headings and labels only), one link (ink, a teal
+  hairline under it, teal on hover), one dialog (600 wide, one padding, a 24 title, the Close in its own row), one
+  disclosure (a right-hand chevron), one radius pair; print in one column with no grey band; the quiz's wrong answer
+  in ink with a cross; the library's glyphs grey; the limit plot in a hairline card; a readable disabled Reset view.
+  Skipped: the sidebar's potential labels (lessons.tsx is another lane's) and the view cube's steppers (already
+  carry a hit circle). Before and after shots in the session scratchpad, qa-fixed/.
 - 3D round (2026-10-15), four commits: the ring's mirror pairs in space at one readable enlargement, fitted
   once in the opening view, the same for every pair (4ee46c8; the default ring's second pair 31 → 42 units,
   the half pieces 15 → 22, all three at 2.48x; the flat figure unchanged); the rod on its bisector keeps L, r,

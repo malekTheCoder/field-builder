@@ -4,6 +4,8 @@
   /* The app shell paints the page's tinted ground over body, and print-color-adjust:exact below
      would print that tint as a sheet of ink behind the whole lesson. */
   html, body, .explorer-app { background: #fff !important; color: #171717 !important; }
+  /* The header paints the same ground (explorer.css), and printed as a grey band behind the name. */
+  .exp-header { background: transparent !important; }
   * { box-shadow: none !important; text-shadow: none !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   .no-print,
   .exp-header-right,
@@ -58,9 +60,9 @@
      Unfold's "every step accounted for", and its Next step button. Not the Unfold's opening line: on the
      infinite line it says which derivation the steps are -- a finite rod, let grow -- as paper needs to. */
   .exp-note > summary small,
+  .exp-note > summary::after,
   .ew-worked-done,
   .ew-next-step,
-  .exp-note > summary::after,
   /* The integration interval is a disclosure, and its interval is printed in Add them up: it took a fourth
      sheet of its own on three lessons. */
   .ew-bounds,
@@ -102,7 +104,12 @@
   /* The lesson at the top prints whole and open, whatever its disclosure says on the screen (LessonIntro.tsx: it
      is shut by a screen-only rule, so nothing here has to open it). Its buttons are the screen's (.no-print); a
      reading's address is printed under its title. A section keeps its heading and its equation on one sheet. */
-  .exp-lesson { max-width: none !important; margin-bottom: 18px !important; }
+  /* One column: the lead, then the sections under it. The screen's lead-and-button row is a wrapping flex
+     row, and with its width freed here the sections, at most 66ch, fitted beside the lead: the lead printed
+     alone in a left column over blank paper, the lesson beside it, and the rule down the side of both. The
+     rule marks the lead only, as it does on the screen. */
+  .exp-lesson { display: block !important; max-width: none !important; margin-bottom: 18px !important; border-left: 0 !important; padding-left: 0 !important; }
+  .exp-lesson-lead { display: block; border-left: 2px solid var(--rule); padding-left: 16px; }
   .exp-lesson-section { break-inside: avoid; }
   .exp-lesson-section h3 { break-after: avoid; }
 }
