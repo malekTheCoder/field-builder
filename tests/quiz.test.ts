@@ -30,7 +30,9 @@ const pointerIsReal = (p: Pointer) => {
 
 describe('the bank', () => {
  it('has eight to ten questions for each of its shapes, with unique ids, and all four kinds', () => {
-  expect(QUIZ_SHAPES.sort()).toEqual(['bisector', 'infinite', 'ring']);
+  // Every shape with a bank is a lesson; the banks written so far are all there.
+  for (const shape of QUIZ_SHAPES) expect(PROBLEMS.some(p => p.id === shape), shape).toBe(true);
+  expect(QUIZ_SHAPES).toEqual(expect.arrayContaining(['bisector', 'infinite', 'ring', 'axial', 'endpoint', 'ramp', 'semi', 'v-rod-bisector', 'v-rod-axial']));
   for (const [shape, qs] of Object.entries(BANKS)) {
    expect(qs!.length, shape).toBeGreaterThanOrEqual(8); expect(qs!.length, shape).toBeLessThanOrEqual(10);
    expect(qs!.every(q => q.lesson === shape && q.id.startsWith(shape + '-')), shape).toBe(true);
@@ -92,7 +94,7 @@ describe('the draw', () => {
  });
  it('keeps to the chosen kinds', () => {
   const d = draw({shapes: ['bisector', 'ring', 'infinite'], kinds: ['check'], length: 'long'}, emptyHistory(), seeded(5));
-  expect(d.length).toBe(BANK.filter(q => q.kind === 'check').length);
+  expect(d.length).toBe(Math.min(20, BANK.filter(q => q.kind === 'check' && ['bisector', 'ring', 'infinite'].includes(q.lesson)).length));
   expect(d.every(x => x.question.kind === 'check')).toBe(true);
   expect(draw({shapes: ['ring'], kinds: [], length: 'short'}, emptyHistory(), seeded(5))).toEqual([]);
  });
@@ -117,7 +119,7 @@ describe('the draw', () => {
  it('weights a weak-spots quiz toward the misconceptions that came up', () => {
   const d = drawWeak({shapes: ['bisector', 'ring', 'infinite'], kinds: [...kinds], length: 'short'}, new Map([['jacobian', 3]]), emptyHistory(), seeded(7));
   expect(d.length).toBe(6);
-  const withJacobian = BANK.filter(q => q.choices.some(c => c.misconception === 'jacobian')).map(q => q.id);
+  const withJacobian = BANK.filter(q => ['bisector', 'ring', 'infinite'].includes(q.lesson) && q.choices.some(c => c.misconception === 'jacobian')).map(q => q.id);
   expect(withJacobian.length).toBeGreaterThanOrEqual(3);
   for (const id of withJacobian) expect(d.map(x => x.question.id)).toContain(id);
  });

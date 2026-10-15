@@ -5,6 +5,12 @@ import type {Answer, Kind, Misconception, Pointer, Question, StageWord} from './
 import {bank as bisector} from './bank/bisector';
 import {bank as ring} from './bank/ring';
 import {bank as infinite} from './bank/infinite';
+import {bank as axial} from './bank/axial';
+import {bank as endpoint} from './bank/endpoint';
+import {bank as ramp} from './bank/ramp';
+import {bank as semi} from './bank/semi';
+import {bank as vRodBisector} from './bank/v-rod-bisector';
+import {bank as vRodAxial} from './bank/v-rod-axial';
 
 /* THE QUIZ'S ENGINE: pure functions, no React and no page, so every rule here is tested in node. It draws a
  * quiz from the shapes, kinds and length the student chose; scores it; finds the misconceptions behind the
@@ -12,7 +18,10 @@ import {bank as infinite} from './bank/infinite';
  * questions come back first. Nothing here touches the network. */
 
 /** The bank, by shape. A shape with no bank yet is listed on the set-up screen as coming soon. */
-export const BANKS: Partial<Record<ProblemId, Question[]>> = {bisector, ring, infinite};
+export const BANKS: Partial<Record<ProblemId, Question[]>> = {
+  bisector, ring, infinite,
+  axial, endpoint, ramp, semi, 'v-rod-bisector': vRodBisector, 'v-rod-axial': vRodAxial,
+};
 export const BANK: Question[] = Object.values(BANKS).flat();
 export const QUESTION = new Map(BANK.map(q => [q.id, q]));
 export const QUIZ_SHAPES = Object.keys(BANKS) as ProblemId[];

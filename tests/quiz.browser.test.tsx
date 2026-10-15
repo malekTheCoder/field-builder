@@ -3,8 +3,8 @@ import {cleanup, render, waitFor, within} from '@testing-library/react';
 import {afterEach, beforeEach, describe, expect, it} from 'vitest';
 import {page, userEvent} from 'vitest/browser';
 import Site, {newVisit} from '../src/home/Site';
-import {getProblem} from '../src/problems/definitions';
-import {BANK, DEFAULT_SETTINGS, HISTORY_KEY, QUESTION} from '../src/quiz/engine';
+import {getProblem, PROBLEMS} from '../src/problems/definitions';
+import {BANK, BANKS, DEFAULT_SETTINGS, HISTORY_KEY, QUESTION, QUIZ_SHAPES} from '../src/quiz/engine';
 import {MISCONCEPTION} from '../src/quiz/misconceptions';
 
 /* QUIZ YOURSELF, in the page: set up, take, the end screen's weak spots and their links, retry, history and
@@ -37,6 +37,10 @@ async function openQuiz() {
  expect(await r.findByRole('heading', {level: 1, name: 'Test what you understand'})).toBeTruthy();
  return r;
 }
+/** Untick every shape but these, from the set-up screen's default of every shape with a bank. */
+async function keepOnly(r: ReturnType<typeof render>, keep: string[]) {
+ for (const id of QUIZ_SHAPES) if (!keep.includes(id)) await userEvent.click(r.getByRole('checkbox', {name: getProblem(id).short}));
+}
 /** Answer the question on screen: with the given misconception's choice, or right; sure or guessing. */
 async function answer(r: ReturnType<typeof render>, wrong: string | null, sure: boolean) {
  const {q, radioFor} = onScreen();
@@ -62,20 +66,19 @@ describe('quiz yourself', () => {
   expect(document.title).toBe('Quiz yourself · Field Builder');
  });
 
- it('sets up with three shapes ready and the rest coming soon, every kind on, and no numerals', async () => {
+ it('sets up with every shape that has a bank ready and the rest coming soon, every kind on, and no numerals', async () => {
   const r = await openQuiz();
-  for (const id of ['bisector', 'ring', 'infinite'] as const) {
+  for (const id of QUIZ_SHAPES) {
    const box = r.getByRole('checkbox', {name: getProblem(id).short}) as HTMLInputElement;
    expect(box.disabled).toBe(false); expect(box.checked).toBe(true);
   }
-  const soon = r.getByRole('checkbox', {name: getProblem('disk').short}) as HTMLInputElement;
-  expect(soon.disabled).toBe(true);
-  expect(r.getAllByRole('checkbox').filter(b => (b as HTMLInputElement).disabled).length).toBe(12);
+  for (const p of PROBLEMS.filter(x => !BANKS[x.id])) expect((r.getByRole('checkbox', {name: p.short}) as HTMLInputElement).disabled).toBe(true);
+  expect(r.getAllByRole('checkbox').filter(b => (b as HTMLInputElement).disabled).length).toBe(PROBLEMS.length - QUIZ_SHAPES.length);
   for (const k of ['Predict', 'Set up', 'Check', 'Transfer']) expect((r.getByRole('checkbox', {name: new RegExp(`^${k}`)}) as HTMLInputElement).checked).toBe(true);
   expect((r.getByRole('radio', {name: /^Short/}) as HTMLInputElement).checked).toBe(true);
   expect(words(r.container)).not.toMatch(/[0-9]/);
   // Nothing chosen: it says so, and does not start.
-  for (const id of ['bisector', 'ring', 'infinite'] as const) await userEvent.click(r.getByRole('checkbox', {name: getProblem(id).short}));
+  await keepOnly(r, []);
   await userEvent.click(r.getByRole('button', {name: /Start the quiz/}));
   expect(r.container.querySelector('.quiz-nudge')!.textContent).toBe('Choose at least one shape.');
   expect(r.queryByRole('button', {name: 'Check my answer'})).toBeNull();
@@ -83,7 +86,7 @@ describe('quiz yourself', () => {
 
  it('takes a short quiz, and the end shows the weak spots, the confidence flags and the right links', async () => {
   const r = await openQuiz();
-  for (const id of ['bisector', 'infinite'] as const) await userEvent.click(r.getByRole('checkbox', {name: getProblem(id).short}));
+  await keepOnly(r, ['ring']);
   await userEvent.click(r.getByRole('button', {name: /Start the quiz/}));
   await waitFor(() => expect(document.activeElement?.id).toBe('quiz-question'));
   expect(snap().items.length).toBe(6);
@@ -152,6 +155,8 @@ describe('quiz yourself', () => {
   localStorage.setItem(HISTORY_KEY, JSON.stringify({missed: ['infinite-dq'], asked: ['infinite-dq'], misconceptions: {jacobian: 1}}));
   const r = await openQuiz();
   expect(r.container.querySelector('.quiz-history')!.textContent).toContain('One question you missed before will come first.');
+  // The three shapes this test was written on: on every shape, more questions than fit carry the Jacobian.
+  await keepOnly(r, ['bisector', 'ring', 'infinite']);
   await userEvent.click(r.getByRole('button', {name: /Start the quiz/}));
   await waitFor(() => expect(snap().items[0].id).toBe('infinite-dq'));
   await answer(r, 'jacobian', true);
