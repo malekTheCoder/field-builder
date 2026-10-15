@@ -5,9 +5,8 @@ import {afterEach, describe, expect, it} from 'vitest';
 // Measured in a default serif at a default size, a line would fit or overflow for reasons that
 // have nothing to do with what ships.
 import 'katex/dist/katex.min.css';
-import '@fontsource-variable/geist';
+import '@fontsource-variable/hanken-grotesk';
 import '@fontsource-variable/geist-mono';
-import '@fontsource-variable/source-serif-4';
 import '../app/globals.css';
 import '../src/static-fonts.css';
 import '../src/components/workbench.css';

@@ -1743,7 +1743,7 @@ export function FieldStage(props:FieldStageProps){
    <div ref={host} className="cd-stage-gl"/>
   </div>
   {failed&&!props.onUnavailable&&<output className="cd-stage-unavailable" style={{display:'block',position:'absolute',left:'50%',top:'50%',transform:'translate(-50%,-50%)',margin:0,padding:'.5em .9em',maxWidth:'80%',textAlign:'center',
-   font:'500 14px/1.4 var(--font-geist-sans),system-ui,sans-serif',color:'var(--muted-foreground,#4a6172)',background:'var(--diagram,#fff)',borderRadius:8,pointerEvents:'none',zIndex:2}}>
+   font:'500 14px/1.4 var(--font-ui),system-ui,sans-serif',color:'var(--muted-foreground,#4a6172)',background:'var(--diagram,#fff)',borderRadius:8,pointerEvents:'none',zIndex:2}}>
    The 3D view is not available on this device. The 2D view shows the same figure.
   </output>}
  </>;

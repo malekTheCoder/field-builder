@@ -28,7 +28,7 @@
 /* The charge marks are the charge's own colour, set on the marks themselves: a fill on their group
    is inherited, and anything that names the text directly beats inheritance. A mark that sits on a
    piece filled with the charge colour turns to the ground colour, or it would vanish into it. */
-.cd-svg .cd-plus text{fill:var(--charge,#b8460f);stroke:none;font-family:var(--font-geist-sans),system-ui,sans-serif;font-style:normal;font-size:13px;font-weight:700}
+.cd-svg .cd-plus text{fill:var(--charge,#b8460f);stroke:none;font-family:var(--font-ui),system-ui,sans-serif;font-style:normal;font-size:13px;font-weight:700}
 .cd-svg .cd-plus text.is-on-fill{fill:var(--diagram,#ffffff)}
 /* Painted over the construction now, so each mark keeps a thin ring of the ground colour: a dashed
    stroke under it stops at its edge instead of running through it. On a phone the marks grow with the
@@ -67,7 +67,7 @@
 .cd-caption{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px 16px;padding:11px 24px 17px;color:var(--cd-muted);font-size:11px;line-height:1.5;letter-spacing:.02em}.cd-caption>span{flex:1 1 14rem;min-width:0}
 @media(max-width:600px){.cd-caption{padding:6px 13px 12px;font-size:9px;gap:7px}}
 @media(prefers-reduced-motion:reduce){.cd-piece,.cd-point-halo{transition:none!important}}
-.cd-triangle path,.cd-triangle line{fill:none;stroke:var(--ghost);stroke-width:1.4;stroke-dasharray:4 3}.cd-triangle text{fill:var(--foreground)}.cd-triangle .cd-triangle-note{font-family:var(--font-geist-sans),sans-serif;font-size:9px;font-style:normal;fill:var(--muted-foreground)}
+.cd-triangle path,.cd-triangle line{fill:none;stroke:var(--ghost);stroke-width:1.4;stroke-dasharray:4 3}.cd-triangle text{fill:var(--foreground)}.cd-triangle .cd-triangle-note{font-family:var(--font-ui),sans-serif;font-size:9px;font-style:normal;fill:var(--muted-foreground)}
 
 /* =====================================================================
    SECOND VISUAL PASS — the figure is the reason the app exists.
@@ -108,7 +108,7 @@
 .charge-diagram{--cd-sym:17.5px;--cd-sym-p:20.5px}
 .cd-axes text,.cd-dimension text,.cd-triangle text,.cd-svg .cd-origin,.cd-svg .cd-end,.cd-svg .cd-vector-label,.cd-svg .cd-point-label,
 .cd-svg .cd-source-tag text,.cd-svg .cd-bound text,.cd-svg .cd-gauge text,.cd-svg .cd-zero{
- font-family:var(--font-display),Georgia,serif;font-style:italic;font-weight:600;font-size:calc(var(--cd-sym) * var(--cd-k,1))}
+ font-family:var(--font-math);font-style:italic;font-weight:600;font-size:calc(var(--cd-sym) * var(--cd-k,1))}
 .cd-svg .cd-point-label{font-size:calc(var(--cd-sym-p) * var(--cd-k,1));stroke-width:6px}
 /* Lining figures: the display serif's italic sets its figures old-style by default, and "y = 0" read as
    "y = o", the ring's limit as "θ = o, 2π", λ₀ as λₒ. */
@@ -119,13 +119,13 @@
 .cd-svg .cd-origin,.cd-svg .cd-origin-o{fill:var(--cd-ink);font-style:normal}
 .cd-svg .cd-end{fill:var(--cd-ink)}
 /* Prose annotation stays sans and stays quiet — it is not the figure. */
-.cd-svg :where(text){font-family:var(--font-geist-sans),system-ui,sans-serif;font-size:13px;font-weight:500}
+.cd-svg :where(text){font-family:var(--font-ui),system-ui,sans-serif;font-size:13px;font-weight:500}
 .cd-svg .cd-kicker{font-size:11px;letter-spacing:.14em;font-weight:600}
 .cd-svg .cd-small{font-size:12px}
 .cd-svg .cd-footer{font-size:calc(12px * var(--cd-k,1))}
 /* The charge element's formula, set as the figure sets its symbols: the display serif, a real subscript
    on λ₀. In the upright sans the Unicode ₀ fell back to a tiny ring and the ramp read "λ°". */
-.cd-svg .cd-footer-math{font-family:var(--font-display),Georgia,serif;font-style:italic;font-weight:600;font-size:calc(14px * var(--cd-k,1));fill:var(--cd-ink)}
+.cd-svg .cd-footer-math{font-family:var(--font-math);font-style:italic;font-weight:600;font-size:calc(14px * var(--cd-k,1));fill:var(--cd-ink)}
 /* On a phone the figure is drawn at half size: at the desktop's 12px the footer came out under nine. */
 .cd-narrow .cd-svg .cd-footer{font-size:calc(15px * var(--cd-k,1))}
 .cd-narrow .cd-svg .cd-footer-math{font-size:calc(15.5px * var(--cd-k,1))}
@@ -307,7 +307,7 @@
 .cd-view-modes{display:flex;align-items:center;gap:6px}
 .cd-toolbar .cd-orbit-reset{font-size:12px}
 .cd-view-mode{padding:3px 10px;border:1px solid var(--border);border-radius:6px;background:none;color:var(--muted-foreground);cursor:pointer;font:inherit;font-variant-numeric:tabular-nums;transition:background .16s ease,color .16s ease,border-color .16s ease}
-.cd-view-mode.is-on{background:color-mix(in oklab,var(--field) 13%,transparent);border-color:var(--field);color:var(--foreground)}
+.cd-view-mode.is-on{background:var(--muted);border-color:var(--foreground);color:var(--foreground)}
 .cd-view-mode:focus-visible{outline:2px solid var(--field);outline-offset:1px}
 /* Brackets and axis labels are placed at fixed screen coordinates, so once the view can
    turn they would sit away from what they measure. */
@@ -396,7 +396,7 @@
 .cd-cube-key{fill:transparent;pointer-events:none}
 .cd-cube-key:focus-visible{outline:none}
 .cd-cube-key:focus-visible+*{outline:none}
-.cd-svg .cd-cube-label{fill:var(--on-accent,#fff);font-weight:650;letter-spacing:.03em;pointer-events:none;font-family:var(--font-geist-sans),system-ui,sans-serif}
+.cd-svg .cd-cube-label{fill:var(--on-accent,#fff);font-weight:650;letter-spacing:.03em;pointer-events:none;font-family:var(--font-ui),system-ui,sans-serif}
 @media (prefers-reduced-motion:reduce){.cd-cube-cell{transition:none}}
 /* The four steppers around it, as CAD tools put them. */
 /* On a touch screen they are the only way to turn the figure but a drag, and no hover ever raises them: at .34 they were one
@@ -416,7 +416,7 @@
 
 /* The stage's name, inside the figure where the reader is looking. Re-keyed per stage so it
    fades in afresh each time the run moves on. */
-.cd-svg .cd-stage-label{font-family:var(--font-display),Georgia,serif;font-size:calc(17px * var(--cd-k,1));font-weight:600;fill:var(--field);paint-order:stroke;stroke:var(--diagram,#fff);stroke-width:5px;animation:cd-stage-in .5s ease-out both}
+.cd-svg .cd-stage-label{font-family:var(--font-ui),Arial,sans-serif;font-size:calc(17px * var(--cd-k,1));font-weight:600;fill:var(--field);paint-order:stroke;stroke:var(--diagram,#fff);stroke-width:5px;animation:cd-stage-in .5s ease-out both}
 @keyframes cd-stage-in{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
 
 /* The field is background to the argument while it runs. At full strength its lines drown the
@@ -514,14 +514,14 @@
    each group is visibly ONE control with a state, which is what it is.
    ===================================================================== */
 .cd-toolbar{margin-top:12px;padding:12px 2px 0;border-top:1px solid var(--surface-rule,var(--border));gap:8px 16px}
-.cd-view-modes{gap:0;border:1px solid var(--border);border-radius:8px;overflow:hidden}
+.cd-view-modes{gap:0;border:1px solid var(--border);border-radius:10px;overflow:hidden}
 .cd-view-mode{border:0;border-left:1px solid var(--border);border-radius:0;padding:4px 11px;line-height:1.5}
 .cd-view-modes>.cd-view-mode:first-child{border-left:0}
 /* The chosen segment used to say so with its border colour, which a segmented control does not
    have to spend; the fill has to carry it alone now, so it is deepened to where it reads as
    pressed at a glance in both themes. Nothing about the text changes -- a weight change here
    would re-measure the segment and shift the group every time the reader switched. */
-.cd-view-mode.is-on{background:color-mix(in oklab,var(--field) 19%,transparent);color:var(--foreground)}
+.cd-view-mode.is-on{background:var(--muted);color:var(--foreground);font-weight:600}
 .cd-view-mode:hover:not(.is-on){background:var(--muted);color:var(--foreground)}
 /* Inside the shell, so the group's own overflow:hidden cannot clip the ring away. */
 .cd-view-mode:focus-visible{outline:2px solid var(--field);outline-offset:-2px}
@@ -565,7 +565,7 @@
 /* The one control here with no slider on the page: say what it does in a line, not a card. */
 .cd-camera-control{grid-column:1/-1;justify-self:start;display:flex;flex-wrap:wrap;align-items:baseline;gap:0 8px;margin:0 0 4px;padding:3px 0;
  border:0;background:none;color:var(--foreground);font:inherit;font-size:12px;text-align:left;cursor:pointer}
-.cd-camera-control:hover{color:var(--primary)}
+.cd-camera-control:hover{color:var(--foreground)}
 .cd-camera-control span{color:var(--muted-foreground)}
 @media(max-width:600px){
  .cd-toolbar{margin-top:10px;padding:10px 0 0;gap:8px 10px}
@@ -600,7 +600,7 @@
 .cd-svg .cd-vector-label.is-muted{opacity:1;fill:color-mix(in oklab,var(--contribution,#2f9089) 60%,var(--cd-ink))}
 /* A word among the symbols -- the "ring" of "ring ΔQ" -- is set as a word: upright, in the page's sans. In the
    italic beside s and z it read as a product, r·i·n·g·ΔQ. */
-.cd-svg .cd-word{font-style:normal;font-family:var(--font-geist-sans),system-ui,sans-serif;font-weight:550}
+.cd-svg .cd-word{font-style:normal;font-family:var(--font-ui),system-ui,sans-serif;font-weight:550}
 /* The mirror's surviving part, in space while the run plays, is the scene's: it lays it as a body on the tip
    of the piece's own, and a flat copy over it would be a second drawing of the same thing. The flat one stays
    in the tree, where the label placer keeps every name off it. */
@@ -636,14 +636,14 @@
 /* The chosen piece's own length, bracketed beside it on the side away from P: the charge's colour, since
    it is the piece's, and lit with the charge element when the board points there. */
 .cd-piece-length path{fill:none;stroke:color-mix(in oklab,var(--charge,#b8460f) 72%,var(--cd-ink));stroke-width:1.6}
-.cd-svg .cd-piece-length text{font-family:var(--font-display),Georgia,serif;font-style:italic;font-weight:600;font-size:calc(var(--cd-sym) * var(--cd-k,1));
+.cd-svg .cd-piece-length text{font-family:var(--font-math);font-style:italic;font-weight:600;font-size:calc(var(--cd-sym) * var(--cd-k,1));
  fill:var(--charge,#b8460f);paint-order:stroke;stroke:var(--diagram,#fff);stroke-width:4px;stroke-linejoin:round}
 .cd-focus-element .cd-piece-length path{stroke:var(--term-element);stroke-width:2.4}
 .cd-building .cd-piece-length{animation:cd-fade .5s ease-out .2s both}
 /* The piece's angle at P, in the piece's own colour, as its length bracket is. */
 .cd-svg .cd-piece-angle .cd-angle-arc{fill:none;stroke:color-mix(in oklab,var(--charge,#b8460f) 72%,var(--cd-ink));stroke-width:1.6}
 .cd-svg .cd-piece-angle .cd-angle-leader,.cd-svg .cd-piece-angle .cd-piece-ray{stroke:color-mix(in oklab,var(--charge,#b8460f) 60%,var(--diagram,#fff));stroke-width:1}
-.cd-svg .cd-piece-angle text{font-family:var(--font-display),Georgia,serif;font-style:italic;font-weight:600;font-size:calc(var(--cd-sym) * var(--cd-k,1));
+.cd-svg .cd-piece-angle text{font-family:var(--font-math);font-style:italic;font-weight:600;font-size:calc(var(--cd-sym) * var(--cd-k,1));
  fill:var(--charge,#b8460f);paint-order:stroke;stroke:var(--diagram,#fff);stroke-width:4px;stroke-linejoin:round}
 .cd-focus-element .cd-piece-angle .cd-angle-arc{stroke:var(--term-element);stroke-width:2.4}
 .cd-building .cd-piece-angle{animation:cd-fade .5s ease-out .2s both}
@@ -653,10 +653,10 @@
 /* The axis lesson's piece coordinate, x, from O to the piece on r_i's own line: a plain dimension in ink. */
 .cd-svg .cd-triangle .cd-x-bar{stroke:color-mix(in oklab,var(--cd-ink) 46%,transparent);stroke-dasharray:none;stroke-width:1.6}
 /* The scene's r_i, on the line from P to the piece: set as the schematic's letters are. */
-.cd-svg .cd-ri-line text{font-family:var(--font-display),Georgia,serif;font-style:italic;font-weight:600;font-size:calc(var(--cd-sym) * var(--cd-k,1));fill:var(--foreground);paint-order:stroke;stroke:var(--diagram,#fff);stroke-width:4px;stroke-linejoin:round}
+.cd-svg .cd-ri-line text{font-family:var(--font-math);font-style:italic;font-weight:600;font-size:calc(var(--cd-sym) * var(--cd-k,1));fill:var(--foreground);paint-order:stroke;stroke:var(--diagram,#fff);stroke-width:4px;stroke-linejoin:round}
 /* α and φ in the board's own face (see `setUpright`): the serif's italic α is an "a" with a tail, and its φ the
    stroked form beside the board's curly \varphi. */
-.cd-svg .cd-greek{font-family:KaTeX_Math,var(--font-display),Georgia,serif;font-style:italic}
+.cd-svg .cd-greek{font-family:var(--font-math);font-style:italic}
 /* A whole vector's E, bold and upright as the board's \mathbf E: see `SymbolText`. */
 .cd-svg .cd-bold{font-style:normal;font-weight:800}
 /* The angle again, on the arrows' side of P: lighter than the triangle's own, which it repeats. */

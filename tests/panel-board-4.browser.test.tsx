@@ -2,9 +2,8 @@ import {cleanup, fireEvent, render, waitFor} from '@testing-library/react';
 import {afterEach, beforeAll, describe, expect, it, vi} from 'vitest';
 // The page's own styles: a size, a leading and a fit are what these measure.
 import 'katex/dist/katex.min.css';
-import '@fontsource-variable/geist';
+import '@fontsource-variable/hanken-grotesk';
 import '@fontsource-variable/geist-mono';
-import '@fontsource-variable/source-serif-4';
 import '../app/globals.css';
 import '../src/static-fonts.css';
 import '../src/components/workbench.css';

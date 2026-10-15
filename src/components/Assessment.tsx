@@ -157,7 +157,7 @@ export function sweepName(problem:Problem,limit:Limit):string{
  * stroked ϕ, while KaTeX and the slider set the curly φ: two glyphs for one angle in one card.
  * The list is written out, not var(--serif): that token reads a font variable that is not set
  * everywhere, and one unset variable voids the whole declaration -- back to the stroked ϕ. */
-const GREEK={fontFamily:'KaTeX_Math, "Source Serif 4", Georgia, serif',fontStyle:'italic'} as const;
+const GREEK={fontFamily:'KaTeX_Math, "Times New Roman", serif',fontStyle:'italic'} as const;
 function Sym({text}:{text:string}):ReactNode{
  return text.split(/([α-ωΑ-Ω])/).map((part,i)=>i%2?<tspan key={i} className="comparison-sym" style={GREEK}>{part}</tspan>:<Fragment key={i}>{part}</Fragment>);
 }

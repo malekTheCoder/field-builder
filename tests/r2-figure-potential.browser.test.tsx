@@ -4,9 +4,8 @@ import {page} from 'vitest/browser';
 // The page's own styles: the distance's colour is defined there, and so is the rule that shows the
 // run's line of algebra under the figure on a narrow screen.
 import 'katex/dist/katex.min.css';
-import '@fontsource-variable/geist';
+import '@fontsource-variable/hanken-grotesk';
 import '@fontsource-variable/geist-mono';
-import '@fontsource-variable/source-serif-4';
 import '../app/globals.css';
 import '../src/static-fonts.css';
 import Explorer from '../src/explorer/Explorer';

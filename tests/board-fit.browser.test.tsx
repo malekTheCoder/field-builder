@@ -5,9 +5,8 @@ import {page} from 'vitest/browser';
 // fonts, and the type scale in globals.css, the lines would be measured in a default serif at a
 // default size -- and fit or overflow for reasons that have nothing to do with what ships.
 import 'katex/dist/katex.min.css';
-import '@fontsource-variable/geist';
+import '@fontsource-variable/hanken-grotesk';
 import '@fontsource-variable/geist-mono';
-import '@fontsource-variable/source-serif-4';
 import '../app/globals.css';
 import '../src/static-fonts.css';
 import Explorer from '../src/explorer/Explorer';

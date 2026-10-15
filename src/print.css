@@ -3,7 +3,7 @@
   @page { size: letter portrait; margin: 12mm; }
   /* The app shell paints the page's tinted ground over body, and print-color-adjust:exact below
      would print that tint as a sheet of ink behind the whole lesson. */
-  html, body, .explorer-app { background: #fff !important; color: #0e2333 !important; }
+  html, body, .explorer-app { background: #fff !important; color: #171717 !important; }
   * { box-shadow: none !important; text-shadow: none !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   .no-print,
   .exp-header-right,
@@ -77,7 +77,7 @@
   .exp-workspace > .ew-panel { -webkit-mask-image: none !important; mask-image: none !important; }
   /* The derivation prints whole, wherever the run had got to: paper has no "still to come". */
   .db-reveal, .db-then { grid-template-rows: 1fr !important; opacity: 1 !important; }
-  .db-step .db-title { color: #0e2333 !important; }
+  .db-step .db-title { color: #171717 !important; }
   .ew-result { display: block !important; animation: none !important; }
   /* A shut disclosure prints as a heading over nothing. Opened before printing, it prints. */
   details.exp-note:not([open]),

@@ -4,9 +4,8 @@ import {cdp, page, userEvent} from 'vitest/browser';
 // Measured with the page's own type and sheet: the crash screen, the sliders' row and the short windows'
 // transport are laid out by app/globals.css as much as by the component's own sheet.
 import 'katex/dist/katex.min.css';
-import '@fontsource-variable/geist';
+import '@fontsource-variable/hanken-grotesk';
 import '@fontsource-variable/geist-mono';
-import '@fontsource-variable/source-serif-4';
 import '../app/globals.css';
 import '../src/static-fonts.css';
 import Explorer from '../src/explorer/Explorer';

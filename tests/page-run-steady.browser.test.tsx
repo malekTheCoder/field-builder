@@ -3,9 +3,8 @@ import {afterEach, beforeEach, describe, expect, it} from 'vitest';
 import {page} from 'vitest/browser';
 // Measured with the page's own type and sheet: where the board scrolls to depends on both.
 import 'katex/dist/katex.min.css';
-import '@fontsource-variable/geist';
+import '@fontsource-variable/hanken-grotesk';
 import '@fontsource-variable/geist-mono';
-import '@fontsource-variable/source-serif-4';
 import '../app/globals.css';
 import '../src/static-fonts.css';
 import Explorer from '../src/explorer/Explorer';

@@ -1,26 +1,12 @@
 import type { Metadata } from 'next';
-import { Geist, Geist_Mono, Source_Serif_4 } from 'next/font/google';
+import '@fontsource-variable/hanken-grotesk';
+import '@fontsource-variable/geist-mono';
 import 'katex/dist/katex.min.css';
 import './globals.css';
+import '../src/static-fonts.css';
 
-const geistSans = Geist({
-  variable: '--font-geist-sans',
-  subsets: ['latin'],
-});
-
-const geistMono = Geist_Mono({
-  variable: '--font-geist-mono',
-  subsets: ['latin'],
-});
-
-// Headings and prose sit next to KaTeX's Computer Modern all over this app. A
-// text serif belongs in that company; the sans defaults did not.
-const serif = Source_Serif_4({
-  variable: '--font-display',
-  subsets: ['latin'],
-  weight: ['400', '600'],
-  style: ['normal', 'italic'],
-});
+// One family outside the maths, Hanken Grotesk, self-hosted from the same package the static site loads
+// (src/main.tsx), so the two entries set the same face; the maths keeps KaTeX's serif.
 
 export const metadata: Metadata = {
   title: 'Field Builder · Electric fields and potential, derived',
@@ -46,9 +32,7 @@ export default function RootLayout({
       <head>
         <script dangerouslySetInnerHTML={{ __html: EARLY_THEME }} />
       </head>
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} ${serif.variable} antialiased`}
-      >
+      <body className="antialiased">
         {children}
       </body>
     </html>

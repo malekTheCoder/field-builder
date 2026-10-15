@@ -5,7 +5,7 @@ import {afterEach, describe, expect, it} from 'vitest';
 // when its formula is wider than the card. Measured in a default serif, a formula would fit or run
 // over for reasons that have nothing to do with what ships.
 import 'katex/dist/katex.min.css';
-import '@fontsource-variable/geist';
+import '@fontsource-variable/hanken-grotesk';
 import '../app/globals.css';
 import '../src/static-fonts.css';
 import {Assessment} from '../src/components/Assessment';

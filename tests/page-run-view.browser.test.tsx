@@ -4,9 +4,8 @@ import {page} from 'vitest/browser';
 // Measured with the page's own type: the board's lines and the transport's algebra are KaTeX, and
 // their heights decide what fits in a window.
 import 'katex/dist/katex.min.css';
-import '@fontsource-variable/geist';
+import '@fontsource-variable/hanken-grotesk';
 import '@fontsource-variable/geist-mono';
-import '@fontsource-variable/source-serif-4';
 import '../app/globals.css';
 import '../src/static-fonts.css';
 import Explorer from '../src/explorer/Explorer';

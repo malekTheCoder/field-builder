@@ -3,8 +3,7 @@ import {afterEach, describe, expect, it} from 'vitest';
 import {page} from 'vitest/browser';
 // The page's own sheet and faces: an ink and a typeface are what these read.
 import 'katex/dist/katex.min.css';
-import '@fontsource-variable/geist';
-import '@fontsource-variable/source-serif-4';
+import '@fontsource-variable/hanken-grotesk';
 import '../app/globals.css';
 import '../src/static-fonts.css';
 import Explorer from '../src/explorer/Explorer';

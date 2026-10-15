@@ -2,7 +2,7 @@ import {cleanup, render} from '@testing-library/react';
 import {afterEach, describe, expect, it} from 'vitest';
 // The plot's own type: its labels are 10.5px Geist from globals.css, and whether a label sits clear
 // of a curve depends on how wide the label really is.
-import '@fontsource-variable/geist';
+import '@fontsource-variable/hanken-grotesk';
 import '../app/globals.css';
 import '../src/static-fonts.css';
 import {Assessment} from '../src/components/Assessment';

@@ -3,9 +3,8 @@ import {afterAll, afterEach, beforeAll, describe, expect, it} from 'vitest';
 import {page} from 'vitest/browser';
 // The page's own type: several of these measure a label's box against a stroke beside it.
 import 'katex/dist/katex.min.css';
-import '@fontsource-variable/geist';
+import '@fontsource-variable/hanken-grotesk';
 import '@fontsource-variable/geist-mono';
-import '@fontsource-variable/source-serif-4';
 import '../app/globals.css';
 import '../src/static-fonts.css';
 import Explorer from '../src/explorer/Explorer';

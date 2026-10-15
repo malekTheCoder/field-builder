@@ -507,20 +507,20 @@ export function artifactHtml(a: LessonArtifact) {
 <html lang="en"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/><title>${escapeHtml(a.title)} · Field Builder</title>
 <style>
 @page { size: letter; margin: 12mm; }
-html,body { background:#fff; color:#0e2333; font: 15px/1.55 system-ui, -apple-system, "Segoe UI", sans-serif; margin:0; }
+html,body { background:#fff; color:#171717; font: 16px/1.55 "Hanken Grotesk", system-ui, -apple-system, "Segoe UI", sans-serif; margin:0; }
 main { max-width: 720px; margin: 0 auto; padding: 24px 18px 32px; }
-.kicker { margin: 0 0 18px; color:#4a6274; font-size: 12px; }
-h1 { font: 400 30px/1.15 Georgia, "Times New Roman", serif; margin: 0 0 8px; }
-h2 { font: 400 20px/1.2 Georgia, "Times New Roman", serif; margin: 28px 0 8px; }
+.kicker { margin: 0 0 18px; color:#5e5e5e; font-size: 12px; }
+h1 { font: 600 30px/1.15 "Hanken Grotesk", system-ui, -apple-system, "Segoe UI", sans-serif; letter-spacing: -0.015em; margin: 0 0 8px; }
+h2 { font: 600 19px/1.25 "Hanken Grotesk", system-ui, -apple-system, "Segoe UI", sans-serif; margin: 28px 0 8px; }
 h2, h3 { break-after: avoid; }
 .keep { break-inside: avoid; }
 p { max-width: 62ch; margin: 0 0 10px; }
-.lede { color:#4a6274; font-size: 16px; }
-.address { color:#4a6274; font-size: 13px; overflow-wrap: anywhere; }
-.address a { color: #0e2333; }
+.lede { color:#5e5e5e; font-size: 16px; }
+.address { color:#5e5e5e; font-size: 13px; overflow-wrap: anywhere; }
+.address a { color: #171717; }
 figure { margin: 22px 0 6px; break-inside: avoid; }
 figure svg { display:block; width: 100%; height: auto; max-height: 440px; }
-figcaption { margin-top: 4px; color:#4a6274; font-size: 15px; }
+figcaption { margin-top: 4px; color:#5e5e5e; font-size: 15px; }
 math { font-family: "STIX Two Math", "Latin Modern Math", "Cambria Math", math; font-size: 1.12em; }
 math[display="block"] { margin: 10px 0 14px; }
 .result math[display="block"] { margin: 6px 0; }
@@ -538,29 +538,29 @@ mtable[columnalign^="right left"] > mtr > mtd:nth-child(even) { text-align: left
 .step p { margin: 14px 0 2px; }
 .where { margin-top: 12px; }
 .note { margin: -4px 0 10px; }
-.equation-reference { color:#4a6274; }
-.equation-reference a { color:#0e2333; }
-.problem { max-width: none; margin: 18px 0 6px; padding: 10px 14px; border: 1px solid #d8e1e7; border-radius: 6px; }
-.route { color:#4a6274; }
-.stage .gloss { margin: 0 0 4px; color:#4a6274; }
+.equation-reference { color:#5e5e5e; }
+.equation-reference a { color:#171717; }
+.problem { max-width: none; margin: 18px 0 6px; padding: 10px 14px; border: 1px solid #d4d4d4; border-radius: 6px; }
+.route { color:#5e5e5e; }
+.stage .gloss { margin: 0 0 4px; color:#5e5e5e; }
 .stage .aside { margin: -6px 0 8px; }
 .stage .sym { max-width: none; text-align: center; }
 .stage .where { margin-top: 0; }
 .g { font-family: "STIX Two Math", "Latin Modern Math", "Cambria Math", serif; font-style: italic; }
 .g.up { font-style: normal; }
-h3 { font: 600 15px/1.3 system-ui, -apple-system, "Segoe UI", sans-serif; margin: 18px 0 2px; }
+h3 { font: 600 16px/1.3 "Hanken Grotesk", system-ui, -apple-system, "Segoe UI", sans-serif; margin: 18px 0 2px; }
 .stage h3 { margin: 18px 0 4px; }
 .check { break-inside: avoid; }
 .check math[display="block"] { margin: 6px 0 8px; }
 .sources { margin: 0; padding-left: 20px; }
 .sources li { margin: 0 0 10px; }
-.sources a { color: #0e2333; }
-.lesson { margin: 18px 0 8px; padding-left: 14px; border-left: 2px solid #9cc7c2; }
+.sources a { color: #171717; }
+.lesson { margin: 18px 0 8px; padding-left: 14px; border-left: 2px solid #8fc0ba; }
 .lesson h2 { margin-top: 0; }
 .lesson .lead { font-size: 16px; }
 .lesson cite { font-style: italic; }
-.url { display: block; color: #4a6274; font-size: 12px; overflow-wrap: anywhere; }
-footer { margin-top: 36px; padding-top: 12px; border-top: 1px solid #d8e1e7; color: #4a6274; font-size: 12px; }
+.url { display: block; color: #5e5e5e; font-size: 12px; overflow-wrap: anywhere; }
+footer { margin-top: 36px; padding-top: 12px; border-top: 1px solid #d4d4d4; color: #5e5e5e; font-size: 12px; }
 </style></head>
 <body><main>
 <p class="kicker">Field Builder · saved copy</p>

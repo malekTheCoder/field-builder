@@ -3,9 +3,8 @@ import {afterEach, beforeAll, describe, expect, it, vi} from 'vitest';
 // The page's own styles, imported the way src/main.tsx imports them: a chip is a box KaTeX's own
 // stylesheet and the page's type scale lay out, and without them there is nothing true to measure.
 import 'katex/dist/katex.min.css';
-import '@fontsource-variable/geist';
+import '@fontsource-variable/hanken-grotesk';
 import '@fontsource-variable/geist-mono';
-import '@fontsource-variable/source-serif-4';
 import '../app/globals.css';
 import '../src/static-fonts.css';
 import {EquationWorkbench} from '../src/components/EquationWorkbench';

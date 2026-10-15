@@ -3,9 +3,8 @@ import {afterEach, expect, it} from 'vitest';
 // The page's own styles, as tests/r1-content-unfold-fit.browser.test.tsx loads them: the unfold sets
 // its maths in the body size, and measured in a default font a line fits or not for no real reason.
 import 'katex/dist/katex.min.css';
-import '@fontsource-variable/geist';
+import '@fontsource-variable/hanken-grotesk';
 import '@fontsource-variable/geist-mono';
-import '@fontsource-variable/source-serif-4';
 import '../app/globals.css';
 import '../src/static-fonts.css';
 import '../src/components/workbench.css';

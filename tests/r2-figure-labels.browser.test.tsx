@@ -4,9 +4,8 @@ import {page} from 'vitest/browser';
 // The page's own type, imported as src/main.tsx imports it: the placer measures every label, and a
 // label measured in a fallback face is a different size from the one a reader sees.
 import 'katex/dist/katex.min.css';
-import '@fontsource-variable/geist';
+import '@fontsource-variable/hanken-grotesk';
 import '@fontsource-variable/geist-mono';
-import '@fontsource-variable/source-serif-4';
 import '../app/globals.css';
 import '../src/static-fonts.css';
 import Explorer from '../src/explorer/Explorer';

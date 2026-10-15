@@ -1,6 +1,5 @@
 import 'katex/dist/katex.min.css';
-import '@fontsource-variable/geist';
-import '@fontsource-variable/source-serif-4';
+import '@fontsource-variable/hanken-grotesk';
 import '../app/globals.css';
 import '../src/static-fonts.css';
 import {cleanup,render} from '@testing-library/react';
