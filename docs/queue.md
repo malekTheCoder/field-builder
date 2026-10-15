@@ -25,7 +25,6 @@ owner says they are urgent.
 1. **Gauss's law, "coming soon" on the site.** A Gauss's law section shown as coming soon on the
    home page, in the lesson list and in the library. Do this after the home page lands. The plan is
    in [gauss-law-plan.md](gauss-law-plan.md); the section itself is not started.
-2. **Ring, default 3D view, "Add them up".** The mirror-pair arrows come out small (~15–25 units).
 4. **Wide arc (φ ≈ 1.8π), What cancels.** The label placer hides ΔE and "r_i = R", and the ghost
    names crowd.
 5. **Ring's ΔE_z name** sits next to the stacked mirror survivor in a narrow fan (R small, z large,
@@ -36,11 +35,8 @@ owner says they are urgent.
    - Infinite line's angle θ → α.
    - The offline copy's figure at the One-piece frame.
    - Keep a dragged bracket when Watch it build starts.
-   - A `view=2d|3d` link key.
    - Partial: the ring's What-cancels piece is 73 px (target 90).
    - Partial: Q<0 rods' ΔE_x on the r leg.
-   - Partial: v-rod-bisector in 3D drops its labels.
-   - Partial: webglcontextlost is not handled.
    - Partial: Shrink's rule still says "thinner without end".
 8. **Quiz yourself** (owner, 2026-10-13): its own page, not inside the lessons. The student picks the
    shapes, questions come from a bank, and personalized feedback follows. Plan:
@@ -51,6 +47,12 @@ owner says they are urgent.
    Do it after the Codex round.
 
 ## Done
+- 3D round (2026-10-15), four commits: the ring's mirror pairs in space at one readable enlargement, fitted
+  once in the opening view, the same for every pair (4ee46c8; the default ring's second pair 31 → 42 units,
+  the half pieces 15 → 22, all three at 2.48x; the flat figure unchanged); the rod on its bisector keeps L, r,
+  ±L/2, Δy, y and dy in space, on true segments (0133d7c; was Next 7); a lost WebGL context draws the figure
+  flat with a line saying why, 3D left on offer (ca923dc; was Next 7); and a `view=2d|3d` link key, written
+  where the view is not the lesson's own and carried by Copy a link (65b9ef2; was Next 7).
 - Codex round (2026-10-14), landed by Claude: 13 commits ending 781d631, report in
   docs/rounds/codex-round-2026-10-14.md. Ten findings fixed (signed potential label, the sheet's bound and
   two potential sentences for negative charge, the home cover's r_i and pair share, phone and 3D framing).
