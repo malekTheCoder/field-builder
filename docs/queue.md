@@ -19,6 +19,10 @@ owner says they are urgent.
 3. A critique round on the redesigned site, when the owner wants one.
 
 ## Done
+- 2026-10-15, owner, urgent: Cut it up did nothing on every lesson (the charge was drawn cut and named from its
+  first frame; in space the cuts were on the wall clock; Reduced Motion skipped it). It now starts whole, cuts in
+  order, then names ΔQ, flat and in space, stepped under Reduced Motion (de611de). The sum at P says what it is:
+  V ≈ Σ ΔV, E ≈ Σ ΔE (= where exact) once every piece is in (98c65e7). The run's bar glides at frame rate (62bb874).
 - 2026-10-15 batch (all on main, CI green on 5465a3a):
   - Quiz yourself: all fifteen shapes (8b172fb, b04aa49), physics-reviewed (518c953, 95e7b3e).
   - Redesign after hiketalkstay (232457a..9de4823) and its QA fixes (8193c49, 7116ede, 8820410).
