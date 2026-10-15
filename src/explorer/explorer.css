@@ -415,7 +415,7 @@
    reader does at most once and never mid-derivation; they were taking three of the five slots
    above the lesson, at the same weight as Walkthrough and the theme switch. */
 
-.exp-tools-menu[data-slot=dropdown-menu-content]{min-width:15rem;padding:6px;border:1px solid var(--border-strong);
+.exp-tools-menu[data-slot=dropdown-menu-content]{min-width:18rem;padding:6px;border:1px solid var(--border-strong);
  border-radius:var(--radius-control);corner-shape:squircle;background:var(--card);box-shadow:none}
 .exp-tools-menu [data-slot=dropdown-menu-item]{gap:10px;padding:9px 10px;border-radius:8px;
  font-size:var(--type-meta);color:var(--foreground);text-decoration:none;cursor:pointer}
