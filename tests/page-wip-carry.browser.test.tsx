@@ -244,7 +244,7 @@ describe('where the focus goes', () => {
   // Focusable, it took every click inside the lesson, and the keys a reader pages with scrolled the window,
   // never the board held beside the figure.
   expect(document.getElementById('lesson')!.hasAttribute('tabindex')).toBe(false);
-  fireEvent.click(view.container.querySelector('.exp-related')!);
+  fireEvent.click(view.container.querySelector('.exp-next')!);
   await waitFor(() => expect(view.container.querySelector('h1')?.textContent).toBe(getProblem('infinite').title));
   expect(document.activeElement?.id).toBe('lesson-title');
   expect(document.activeElement?.textContent).toBe(getProblem('infinite').title);

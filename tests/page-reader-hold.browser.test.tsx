@@ -317,8 +317,9 @@ describe('where the lesson leads, and the laws under it', () => {
   window.scrollTo(0, document.body.scrollHeight);
   fireEvent.click(view.getByRole('link', {name: /Take this rod to infinity/}));
   await waitFor(() => expect(view.container.querySelector('h1')?.textContent).toBe(getProblem('infinite').title));
-  expect(window.scrollY).toBe(0);
- });
+  // It glides there now, rather than jumping.
+  await waitFor(() => expect(window.scrollY).toBe(0), {timeout: 3000});
+ }, 15000);
  it('the laws open from the lesson, the potential\'s law first on a potential lesson', async () => {
   const view = await openLesson('v-ring');
   fireEvent.click(view.getByRole('button', {name: 'The laws behind it'}));

@@ -2,7 +2,7 @@
 import {memo,useCallback,useId,useInsertionEffect,useMemo,useState,useEffect,useRef,type CSSProperties,type ReactNode} from 'react';
 import {flushSync} from 'react-dom';
 import {useReducedMotion} from 'motion/react';
-import {BookOpen,ChevronLeft,ChevronRight,CircleHelp,Download,GitBranch,GraduationCap,Link as LinkIcon,Play,Printer,RotateCcw,Sun,Moon,PanelLeft,MoreHorizontal} from 'lucide-react';
+import {ArrowLeft,ArrowRight,BookOpen,ChevronLeft,CircleHelp,Download,GitBranch,GraduationCap,Link as LinkIcon,Play,Printer,RotateCcw,Sun,Moon,PanelLeft,MoreHorizontal} from 'lucide-react';
 import {DropdownMenu,DropdownMenuTrigger,DropdownMenuContent,DropdownMenuItem} from '@/components/ui/dropdown-menu';
 import {Sidebar,SidebarContent,SidebarProvider,SidebarMenu,SidebarMenuItem,SidebarMenuButton} from '@/components/ui/sidebar';
 import {Tabs,TabsContent,TabsList,TabsTrigger} from '@/components/ui/tabs';
@@ -195,7 +195,7 @@ function useSteady<A extends unknown[],R>(fn:(...args:A)=>R):(...args:A)=>R{cons
 /** The board re-renders when what it shows changes, not whenever the page does. */
 const Workbench=memo(EquationWorkbench);
 export default function Explorer({welcome}:{welcome?:boolean}={}){
- const [id,setId]=useState<ProblemId>('bisector');const [path,setPath]=useState('angular');const [mode,setMode]=useState<Mode>('divide');const [paramsMap,setParamsMap]=useState<Partial<Record<ProblemId,Params>>>({});const [dark,setDark]=useState(false);const [ready,setReady]=useState(false);const [storageOK,setStorageOK]=useState(true);const [onboarding,setOnboarding]=useState(false);const [hideTour,setHideTour]=useState(false);const [cued,setCued]=useState(false);const [library,setLibrary]=useState(false);const [sidebarOpen,setSidebarOpen]=useState(true);const [showNumbers,setShowNumbers]=useState(false);const [components,setComponents]=useState(false);const [pair,setPair]=useState(false);const [progress,setProgress]=useState(1);const [selected,setSelected]=useState<number|null>(null);const [bounds,setBounds]=useState<[number,number]>([0,100]);const [limitsOpen,setLimitsOpen]=useState(true);const [slipsOpen,setSlipsOpen]=useState(true);const [limitIndex,setLimitIndex]=useState(0);const [highlight,setHighlight]=useState('');const [status,setStatus]=useState('');const [building,setBuilding]=useState(false);const [runAt]=useState(runClock);const [buildIndex,setBuildIndex]=useState(0);const [buildShown,setBuildShown]=useState(false);const [runPiece,setRunPiece]=useState(.7);const [laws,setLaws]=useState(false);const [lessonOpen,setLessonOpen]=useState(false);const toolsButton=useRef<HTMLButtonElement>(null);const build=useRef<{stop:()=>void}|null>(null);const clock=useRef({at:0,stopAt:0});const buildC=useRef(-1);const buildStep=useRef(-1);const reduced=useReducedMotion();const routeLabel=useId(),endnotesHeading=useId();const tourButton=useRef<HTMLButtonElement>(null),watchButton=useRef<HTMLButtonElement>(null),walk=useRef<HTMLDivElement>(null),reveal=useRef(false);
+ const [id,setId]=useState<ProblemId>('bisector');const [path,setPath]=useState('angular');const [mode,setMode]=useState<Mode>('divide');const [paramsMap,setParamsMap]=useState<Partial<Record<ProblemId,Params>>>({});const [dark,setDark]=useState(false);const [ready,setReady]=useState(false);const [storageOK,setStorageOK]=useState(true);const [onboarding,setOnboarding]=useState(false);const [hideTour,setHideTour]=useState(false);const [cued,setCued]=useState(false);const [library,setLibrary]=useState(false);const [sidebarOpen,setSidebarOpen]=useState(true);const [showNumbers,setShowNumbers]=useState(false);const [components,setComponents]=useState(false);const [pair,setPair]=useState(false);const [progress,setProgress]=useState(1);const [selected,setSelected]=useState<number|null>(null);const [bounds,setBounds]=useState<[number,number]>([0,100]);const [limitsOpen,setLimitsOpen]=useState(true);const [slipsOpen,setSlipsOpen]=useState(true);const [limitIndex,setLimitIndex]=useState(0);const [highlight,setHighlight]=useState('');const [status,setStatus]=useState('');const [building,setBuilding]=useState(false);const [runAt]=useState(runClock);const [buildIndex,setBuildIndex]=useState(0);const [buildShown,setBuildShown]=useState(false);const [runPiece,setRunPiece]=useState(.7);const [laws,setLaws]=useState(false);const [lessonOpen,setLessonOpen]=useState(false);const [cameFrom,setCameFrom]=useState<{id:ProblemId;from:string}|null>(null);const toolsButton=useRef<HTMLButtonElement>(null);const build=useRef<{stop:()=>void}|null>(null);const clock=useRef({at:0,stopAt:0});const buildC=useRef(-1);const buildStep=useRef(-1);const reduced=useReducedMotion();const routeLabel=useId(),endnotesHeading=useId();const tourButton=useRef<HTMLButtonElement>(null),watchButton=useRef<HTMLButtonElement>(null),walk=useRef<HTMLDivElement>(null),reveal=useRef(false);
  // Held per lesson: `getProblem` builds the infinite line afresh on every call, and a new problem
  // object is a changed prop to everything memoised below.
  const p=useMemo(()=>getProblem(id,'angular'),[id]),derivationProblem=useMemo(()=>getProblem(id,path),[id,path]),params=paramsMap[id]??DEFAULT_PARAMS;const continuum=params.continuum;const count=partitionCount(params.slices,continuum);const geom=p.geometry,scalar=p.quantity==='V';const isInfinite=['infinite','semi','sheet'].includes(geom);const isRound=['ring','disk','arc'].includes(geom);const lim=p.limits[Math.min(limitIndex,p.limits.length-1)];
@@ -469,7 +469,7 @@ export default function Explorer({welcome}:{welcome?:boolean}={}){
   * seeks or steps has taken the run in hand, and it no longer waits. */
  const hold=useRef({ms:0,until:0});
  function stop(){build.current?.stop();build.current=null;stoppedByRun.current=false;hold.current={ms:0,until:0};setBuilding(false)}
- function changeDistribution(next:string){stop();setId(next as ProblemId);setSelected(null);setProgress(1);setBounds([0,100]);setLibrary(false);setLimitIndex(0);setStatus('');setHighlight('');endBuild();}
+ function changeDistribution(next:string){stop();setId(next as ProblemId);setSelected(null);setProgress(1);setBounds([0,100]);setLibrary(false);setLimitIndex(0);setStatus('');setHighlight('');setCameFrom(null);endBuild();}
  // WATCH IT BUILD. The five stages are data (`buildRun.ts`); this is the projector. It drives
  // exactly the state the manual controls drive -- mode, the mirror partner, how much of the sum
  // is drawn, how fine the partition is -- so the run can never show a figure the reader cannot
@@ -867,6 +867,36 @@ export default function Explorer({welcome}:{welcome?:boolean}={}){
  // screen, against the run's own promise that it drives the state the controls drive. (While the sum
  // builds, the walking piece follows the sum, so there a click still only pauses.)
  const choose=useSteady(changeDistribution),select=useSteady((i:number)=>{stop();if(buildOpen)setRunPiece((i+.5)/count);setSelected(i)}),pickMode=useSteady(chooseMode),step=useSteady(moveTo);
+ // ONE LESSON HANDS THE READER TO THE NEXT, AND IT SHOWS. The lesson's last line swapped the page for the lesson
+ // it named and jumped to the top: nothing said a new lesson had opened, the list's mark could be scrolled out of
+ // sight, and there was no way back but the browser's. Now the page glides to the top (jumps, under reduced
+ // motion), the focus is on the new title, the list brings the new lesson into view, and a line under the title
+ // says where the reader came from and why, with the way back. A screen reader hears the same in the live region.
+ // The lesson being left is written into the address first, so the browser's Back returns to it even when it
+ // was opened from a bare address and has not been written yet.
+ const handoff=useRef(false);
+ const follow=useSteady((to:ProblemId,from:string)=>{
+  const was=id;
+  try{if(location.search!==address)history.replaceState(null,'',address)}catch{/* the address is a convenience */}
+  changeDistribution(to);setCameFrom({id:was,from});handoff.current=true;
+  setStatus(`${getProblem(to,path).title}. ${from}.`);
+  window.scrollTo({top:0,behavior:reduced?'auto':'smooth'});focusLesson();
+ });
+ const goBack=useSteady((to:ProblemId)=>{changeDistribution(to);handoff.current=true;setStatus(`Back to ${getProblem(to,path).title}.`);window.scrollTo({top:0,behavior:reduced?'auto':'smooth'});focusLesson()});
+ // The open lesson is in view in the list, whichever way it was opened: the list scrolls on its own, beside the
+ // lesson, so a lesson far down it could be open with nothing in the column saying which.
+ useEffect(()=>{
+  const row=document.querySelector<HTMLElement>('.exp-lessons .exp-shape-button.active'),list=row?.closest<HTMLElement>('.exp-sidebar [data-slot=sidebar-content]'),column=list?.closest<HTMLElement>('.exp-sidebar');
+  const glide=handoff.current;handoff.current=false;
+  if(glide)focusLesson();
+  if(!row||!list||!column||list.scrollHeight<=list.clientHeight+1)return;
+  // Measured where the list will be once the page is at its top, under the header, since that is where it is
+  // going: the part of the list the window shows there is what has to hold the row.
+  const top=column.getBoundingClientRect().top+(glide?window.scrollY:0),shown=Math.max(80,Math.min(list.clientHeight,window.innerHeight-Math.max(0,top)-parseFloat(getComputedStyle(column).paddingTop||'0')));
+  const at=row.getBoundingClientRect().top-list.getBoundingClientRect().top+list.scrollTop,h=row.offsetHeight;
+  if(at>=list.scrollTop+8&&at+h<=list.scrollTop+shown-8)return;
+  list.scrollTo({top:Math.max(0,Math.min(list.scrollHeight-list.clientHeight,at-(shown-h)/2)),behavior:glide&&!reduced?'smooth':'auto'});
+ },[id,sidebarOpen,reduced]);
  // The lesson at the top (src/lessons): which geometry's, its disclosure, and its last line's way to the figure.
  // "Go to Watch it build" brings the button to the middle of the window and gives it the focus, so a keyboard
  // is on it and Enter starts the run; it does not start the run itself, which would play the first stage off
@@ -1005,6 +1035,7 @@ export default function Explorer({welcome}:{welcome?:boolean}={}){
  const [faces,setFaces]=useState(false);
  useEffect(()=>{let on=true;const f=requestAnimationFrame(()=>{(document.fonts?.ready??Promise.resolve()).then(()=>{if(on)setFaces(true)},()=>{if(on)setFaces(true)})});return()=>{on=false;cancelAnimationFrame(f)}},[]);
  const related=p.link&&isReady(p.link.id)?{...p.link,short:PROBLEMS.find(x=>x.id===p.link?.id)?.short??''}:null;
+ const back=cameFrom&&isReady(cameFrom.id)?{...cameFrom,short:PROBLEMS.find(x=>x.id===cameFrom.id)?.short??''}:null;
  const running=buildOpen?' is-running'+(settledRun?' is-settled':''):'',cueing=ready&&!cued&&!onboarding;
  return <div className={`explorer-app ${showNumbers?'with-numbers':'symbolic-view'}${cueing?' is-cueing':''}`}>{/* Twenty tab stops -- the header, all fifteen
      lessons, the list toggle and the library -- stood between a keyboard and the lesson's one button.
@@ -1021,7 +1052,7 @@ export default function Explorer({welcome}:{welcome?:boolean}={}){
      the trail is now just the way back out to the library -- which on a narrow screen, where
      the list is not there at all, is the only way to another lesson. Its chevron makes it look like a
      way back; it says that it opens a picker. */}
-<div className="exp-crumbs"><button type="button" className="exp-crumb-link" aria-haspopup="dialog" aria-expanded={library} onClick={()=>setLibrary(true)}><ChevronLeft size={13} aria-hidden="true"/>Charge library</button></div></div><div className={'exp-heading'+(lesson?' has-lesson':'')}><div><h1 id={LESSON_TITLE} tabIndex={-1}>{p.title}</h1>{/* With a written lesson its lead says what the page finds, a line below: the subtitle said it a third time, with the panel's problem, before the figure, and on a short laptop its line was room the drawing lost. */}{!lesson&&<p>{p.subtitle}</p>}</div></div>
+<div className="exp-crumbs"><button type="button" className="exp-crumb-link" aria-haspopup="dialog" aria-expanded={library} onClick={()=>setLibrary(true)}><ChevronLeft size={13} aria-hidden="true"/>Charge library</button></div></div><div className={'exp-heading'+(lesson?' has-lesson':'')}><div><h1 id={LESSON_TITLE} tabIndex={-1}>{p.title}</h1>{/* Where the reader came from, while they are still here: gone the moment they go elsewhere or reload. */}{back&&<p className="exp-came-from"><span>{greek(back.from)}.</span> <a className="exp-came-back" href={lessonHref(back.id)} onClick={e=>{if(!inPlace(e))return;e.preventDefault();goBack(back.id)}}><ArrowLeft size={14} aria-hidden="true"/>Back to {back.short}</a></p>}{/* With a written lesson its lead says what the page finds, a line below: the subtitle said it a third time, with the panel's problem, before the figure, and on a short laptop its line was room the drawing lost. */}{!lesson&&<p>{p.subtitle}</p>}</div></div>
  {lesson&&<LessonIntro lesson={lesson} open={lessonOpen} onToggle={toggleLesson} onBuild={toBuild}/>}
  <div className={'exp-workspace'+running}><div className="exp-visual-column"><section className={'exp-diagram-card mode-'+mode+' focus-'+highlight+running+(buildOpen&&scrubbing?' is-scrubbing':'')} aria-label="Interactive field visualization"><div className="exp-diagram-heading"><div><MathText tex={p.coordinate}/></div>
   {/* THE LESSON'S ONE BUTTON, AT THE TOP OF ITS FIGURE. It sat under the figure and its toolbar,
@@ -1091,9 +1122,11 @@ export default function Explorer({welcome}:{welcome?:boolean}={}){
       from these rings, the field this potential differentiates back to -- and the limiting cases send the
       reader there in words ("the Semi-infinite line lesson lays this line along x"), but nothing went
       there. The last line of the lesson does. */}
-  {related&&<a className="exp-related" href={lessonHref(related.id)} onClick={e=>{if(!inPlace(e))return;e.preventDefault();choose(related.id);window.scrollTo({top:0,behavior:'auto'});focusLesson()}}>
-   <span className="exp-related-text">{greek(related.text)}</span>
-   <span className="exp-related-to"><ShapeGlyph id={related.id} size={16}/>{related.short}<ChevronRight size={15} aria-hidden="true"/></span>
+  {/* A card, not a line: the lesson's last word is where to go next, its shape, its name and why. */}
+  {related&&<a className="exp-next" href={lessonHref(related.id)} aria-label={`Next: ${related.short}. ${related.text}`} onClick={e=>{if(!inPlace(e))return;e.preventDefault();follow(related.id,related.from)}}>
+   <span className="exp-next-glyph"><ShapeGlyph id={related.id} size={22}/></span>
+   <span className="exp-next-words"><span className="exp-next-kicker">Next</span><strong className="exp-next-to">{related.short}</strong><span className="exp-next-why">{greek(related.text)}</span></span>
+   <ArrowRight className="exp-next-arrow" size={18} aria-hidden="true"/>
   </a>}
  </section>
  <output className="sr-only" aria-live="polite">{status}</output></main></SidebarProvider>

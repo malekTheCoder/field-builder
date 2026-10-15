@@ -52,7 +52,7 @@
   .ew-lede,
   .ew-result-unfold,
   /* Where the lesson leads, and the laws link: buttons, for the screen. */
-  .exp-related,
+  .exp-next,.exp-came-from,
   .skip-link,
   /* Instructions for the screen: how to use an endnote ("push the geometry to an extreme and watch"), the
      Unfold's "every step accounted for", and its Next step button. Not the Unfold's opening line: on the

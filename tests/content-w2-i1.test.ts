@@ -195,8 +195,8 @@ describe('the words around the lessons',()=>{
  });
  it('the semi-infinite line quotes the lesson it names, and both it and the axial rod lead somewhere',()=>{
   expect(plain(getProblem('semi').setup)).toContain('the lesson “Field level with the end of a rod”,');
-  expect(getProblem('semi').link).toEqual({id:'endpoint',text:'Cut this line back to a rod of length L'});
-  expect(getProblem('axial').link).toEqual({id:'v-rod-axial',text:'The potential beyond this same rod'});
+  expect(getProblem('semi').link).toMatchObject({id:'endpoint',text:'Cut this line back to a rod of length L'});
+  expect(getProblem('axial').link).toMatchObject({id:'v-rod-axial',text:'The potential beyond this same rod'});
   for(const p of PROBLEMS)expect(p.link,p.id).toBeDefined();
  });
  it('a direction a symmetry note gives is said for positive charge',()=>{

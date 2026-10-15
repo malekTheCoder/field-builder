@@ -819,21 +819,43 @@
  .exp-heading h1{font-size:var(--t-head,30px);margin-bottom:4px}
  .exp-heading p{max-width:72ch}
 }
-/* The lesson's last line: where it leads. A row like the two endnotes above it, the sentence in the
-   prose's ink and the lesson it goes to in the list's quieter voice, with its shape. */
-.exp-related{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:4px 14px;width:100%;
- padding:var(--gap-tight) 2px;border:0;border-bottom:1px solid var(--border);background:none;color:var(--foreground);
- font:inherit;font-size:var(--type-body);text-align:left;cursor:pointer}
-.exp-related-text{flex:1 1 20rem;min-width:0}
-.exp-related-to{display:inline-flex;align-items:center;gap:7px;font-size:var(--type-meta);color:var(--muted-foreground);white-space:nowrap}
-.exp-related-to>svg:first-child{color:var(--charge)}
-.exp-related:hover .exp-related-text,.exp-related:hover .exp-related-to{color:var(--primary)}
-.exp-related:focus-visible{outline:2px solid var(--primary);outline-offset:2px;border-radius:6px;box-shadow:none}
+/* THE LESSON'S LAST WORD: WHERE TO GO NEXT. It was a ruled line like the endnotes above it, and read as one
+   more of them. A card now, the home page's card: the next lesson's shape in its tile, "Next" and its name,
+   the reason in the muted voice, an arrow. White on the ground, one hairline, no shadow; hover darkens the
+   hairline, a press sets it down a pixel. */
+.exp-next{display:grid;grid-template-columns:44px minmax(0,1fr) auto;align-items:center;gap:var(--space-4,16px);margin-top:var(--gap-block);
+ padding:var(--space-4,16px) var(--space-5,24px) var(--space-4,16px) var(--space-4,16px);border:1px solid var(--border);border-radius:var(--radius-card);corner-shape:squircle;
+ background:var(--card);color:var(--foreground);text-decoration:none;
+ transition:border-color var(--dur-state) var(--ease),transform var(--dur-press) var(--ease)}
+.exp-next:hover{border-color:var(--border-strong)}
+.exp-next:active{transform:translateY(1px)}
+.exp-next:focus-visible{outline:2px solid var(--primary);outline-offset:3px;box-shadow:none}
+.exp-next-glyph{display:grid;place-items:center;width:44px;height:44px;border-radius:var(--radius-chip);background:var(--background);color:var(--foreground)}
+.exp-next-words{display:flex;flex-direction:column;gap:2px;min-width:0}
+.exp-next-kicker{font-size:var(--type-meta);font-weight:600;color:var(--muted-foreground);line-height:1.3}
+.exp-next-to{font-size:var(--t-lead,19px);font-weight:600;letter-spacing:-.005em;line-height:1.25}
+.exp-next-why{font-size:var(--type-meta);color:var(--muted-foreground);line-height:1.45;text-wrap:pretty}
+.exp-next-arrow{color:var(--muted-foreground);transition:color var(--dur-state) var(--ease),transform var(--dur-state) var(--ease)}
+.exp-next:hover .exp-next-arrow{color:var(--foreground);transform:translateX(2px)}
+@media(max-width:520px){.exp-next{gap:var(--space-3,12px);padding:var(--space-3,12px) var(--space-4,16px) var(--space-3,12px) var(--space-3,12px)}.exp-next-glyph{width:38px;height:38px}.exp-next{grid-template-columns:38px minmax(0,1fr) auto}.exp-next-to{font-size:var(--t-body,16px)}}
+@media(prefers-reduced-motion:reduce){.exp-next,.exp-next-arrow{transition:none}.exp-next:hover .exp-next-arrow,.exp-next:active{transform:none}}
+@media(forced-colors:active){.exp-next{border-color:ButtonText}}
+/* Where the reader came from, under the title of the lesson a Next card opened: the reason in the muted voice,
+   and the way back as a link in the accent. Only there while the reader stays; it never pushes the figure far. */
+.exp-heading p.exp-came-from{display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 12px;margin:-4px 0 0;max-width:none;font-size:var(--type-meta);line-height:1.45;color:var(--muted-foreground)}
+.exp-came-back{display:inline-flex;align-items:center;gap:5px;color:var(--primary);font-weight:600;text-decoration:none;white-space:nowrap}
+.exp-came-back>svg{align-self:center}
+.exp-came-back:hover{text-decoration:underline;text-underline-offset:3px}
+.exp-came-back:focus-visible{outline:2px solid var(--primary);outline-offset:2px;border-radius:4px}
+/* THE LIST STAYS BESIDE THE LESSON. It scrolled away with the page, so a lesson opened from the end of another
+   had its mark in the list far above the window. The column's content is held at the top of the window and
+   scrolls on its own when it is taller than the window, and the open lesson is scrolled into it (Explorer). */
+@media screen{.exp-sidebar [data-slot=sidebar-content]{position:sticky;top:0;max-height:100vh;max-height:100dvh;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:var(--border-strong) transparent}}
 /* Under the list's closing formula: the laws it is one of. */
 .exp-nav-bottom .exp-laws-link{margin:10px 0 0 -6px;font-size:var(--type-meta);color:var(--sidebar-dim)}
 .exp-nav-bottom .exp-laws-link:hover{color:var(--sidebar-primary)}
 /* The library's cards and the lesson's last row are links (Explorer.tsx, lessonHref): set as the controls they were. */
-.exp-library-grid>a.exp-library-card,a.exp-related,a.exp-shape-button{text-decoration:none}
+.exp-library-grid>a.exp-library-card,a.exp-next,a.exp-shape-button{text-decoration:none}
 /* THE LIBRARY'S HEAD STAYS IN VIEW. The dialog was its own scroller and opens on the open lesson's card, so on
    a phone it opened scrolled four hundred pixels down, its title and its Close button above the top -- and a
    phone has no Escape key. The cards scroll in their own region under the title; the dialog does not. */
