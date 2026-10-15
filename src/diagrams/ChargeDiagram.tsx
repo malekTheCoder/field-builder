@@ -1992,6 +1992,11 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
   // −L/2 under the r bar's tick. Kept then, with places past each end and across the rod to go to.
   const limitsTerm = building === 'add' || building === 'limit' || highlight === 'bounds' || (!build && mode === 'integrate');
   const endAttrs = limitsTerm ? { 'data-keep': 'true', 'data-priority': 2 } : {};
+  // THE HALF LINE'S ∞ IS WHAT SAYS IT NEVER ENDS, and it has one. Not kept outside the limits' stages, it was the name
+  // the placer gave up when the run's piece, cut by angle at the top break, hung its ΔQ beside the break: on a phone
+  // in What cancels ΔQ took the spot left of the marks and the line read as ending at the top of the frame. It is kept
+  // in every stage, and placed before the piece's tag, which hangs on a line and can go further off to stay by its piece.
+  const semiEndAttrs = id === 'semi' ? { 'data-keep': 'true', 'data-priority': 2.2 } : endAttrs;
   const rodEndAlt = (() => {
     const spot = (x: number, y: number, anchor: string) => `${x.toFixed(1)} ${y.toFixed(1)} ${anchor}`;
     if (id === 'axial') {
@@ -3335,7 +3340,7 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
             edge's arrows carry. Lit in the limits' colour as the board's α: −π/2 → π/2 lit beside them, they read as
             the integral's limits. */}
         <text className="cd-end cd-coordinate-end" x={O.x - 16} y={(80 + .3 * SYM * labelScale).toFixed(1)} textAnchor="end" {...endAttrs}>+∞</text><text className="cd-end cd-coordinate-end" x={O.x - 16} y={(348 + .3 * SYM * labelScale).toFixed(1)} textAnchor="end" {...endAttrs}>−∞</text></g>}
-      {id === 'semi' && <g className="cd-infinity">{breakGaps.map(g => <polygon key={g} className="cd-break-gap" points={g} />)}<path className="cd-break-under" d={breaks.map(([a, b]) => `M${a.x.toFixed(1)} ${a.y.toFixed(1)}L${b.x.toFixed(1)} ${b.y.toFixed(1)}`).join('')} /><path d={breaks.map(([a, b]) => `M${a.x.toFixed(1)} ${a.y.toFixed(1)}L${b.x.toFixed(1)} ${b.y.toFixed(1)}`).join('')} /><text className="cd-end" x={O.x - 16} y={(80 + .3 * SYM * labelScale).toFixed(1)} textAnchor="end" {...endAttrs}>∞</text></g>}
+      {id === 'semi' && <g className="cd-infinity">{breakGaps.map(g => <polygon key={g} className="cd-break-gap" points={g} />)}<path className="cd-break-under" d={breaks.map(([a, b]) => `M${a.x.toFixed(1)} ${a.y.toFixed(1)}L${b.x.toFixed(1)} ${b.y.toFixed(1)}`).join('')} /><path d={breaks.map(([a, b]) => `M${a.x.toFixed(1)} ${a.y.toFixed(1)}L${b.x.toFixed(1)} ${b.y.toFixed(1)}`).join('')} /><text className="cd-end" x={O.x - 16} y={(80 + .3 * SYM * labelScale).toFixed(1)} textAnchor="end" {...semiEndAttrs}>∞</text></g>}
       {id === 'sheet' && !inSpace && <text x={sheetRim.right.x} y={sheetRim.right.y + 24} textAnchor="end" className="cd-end" {...GIVEN}>s → ∞</text>}
       {/* DIMENSIONS, drawn as a draftsman draws them: a bar beside what it measures, a tick at each
           end, its letter beside the bar's middle -- and every one of them off the axes, the charge
