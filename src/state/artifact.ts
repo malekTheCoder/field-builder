@@ -128,10 +128,10 @@ export function lessonArtifact(p: Problem, algebra: Problem = p, address?: strin
  * missing, and the second integral read as a different problem or a printing error. */
 const ROUTE = String.raw`This is the finite-line route: start with a rod of length $L$, then let $L$ grow at fixed $\lambda$. Above, the field is built by angle instead; both routes arrive at the same field.`;
 /** Where E_y's integral comes from, said as the panel says it over the same integral (EquationWorkbench's
- * `surviving`): the factor the board never writes, the sine (the half line's cosine), named with it. */
+ * `surviving`): the factor the board never writes, the sine, named with it. The half line stands up the
+ * y-axis as the rods do, so its sentence is theirs. */
 const ALONG: Record<string, string> = {
   rod: String.raw`The other component, $E_y$, is the surviving $\Delta E_y$ added up the same way, with $\sin\alpha=y/\sqrt{y^2+r^2}$:`,
-  semi: String.raw`The other component, $E_y$, is the surviving $\Delta E_y$ added up the same way, with $\cos\alpha=r/\sqrt{x^2+r^2}$:`,
 };
 
 /** Two TeX strings that set the same display: braces and spaces are only grouping. */

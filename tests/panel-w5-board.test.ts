@@ -53,7 +53,7 @@ describe('piece i is at y_i from One piece on', () => {
     }
     // The lessons cut in an angle keep their letters: their sec² cancels only while ΔQ and r_i are alike.
     expect(step('infinite', 'one').where).toContain(String.raw`r_i=r\sec\alpha}`);
-    expect(step('semi', 'one').say).toContain('The piece is $x$ along the line');
+    expect(step('semi', 'one').say).toContain('The piece is $y$ along the line');
   });
   it('and the sine the rods level with an end build E_y with is glossed beside the cosine, and is right', () => {
     for (const id of ['endpoint', 'ramp']) {
@@ -62,7 +62,7 @@ describe('piece i is at y_i from One piece on', () => {
       expect(cancel.also, id).toContain(String.raw`\sin\alpha_i`);
       typeset(cancel.alsoWhere!);
     }
-    expect(step('semi', 'cancel').alsoWhere).toContain(String.raw`\cos\alpha=\frac{r}{\sqrt{x^2+r^2}}`);
+    expect(step('semi', 'cancel').alsoWhere).toContain(String.raw`\sin\alpha=\frac{y}{\sqrt{y^2+r^2}}`);
     // ΔE_y = −k ΔQ sin α / r_i², with ΔQ = λ dy and sin α = y/√(y² + r²), is the endpoint's own E_y integrand.
     const at = {k: 1.3, lambda: .7, r: 1.4};
     for (const y of [.2, 1.1, 3.7]) {
@@ -83,8 +83,8 @@ describe('Shrink them writes every swap as maths', () => {
     expect(step('v-rod-axial', 'limit').swaps).toContain(String.raw`\htmlClass{fx fx-distance}{r_i\to L+a-x}`);
     // An exact lesson's term never changes: only the width.
     expect(step('ring', 'limit').swaps).toEqual([String.raw`\Delta \theta\to d\theta`]);
-    // Cut in an angle but integrated in x and s, the width's own swap is in the charge element.
-    expect(step('semi', 'limit').swaps!.some(s => s.includes('\\Delta x'))).toBe(false);
+    // Cut in an angle but integrated in y and s, the width's own swap is in the charge element.
+    expect(step('semi', 'limit').swaps!.some(s => s.includes('\\Delta y'))).toBe(false);
     for (const p of PROBLEMS) for (const s of step(p.id, 'limit').swaps ?? []) typeset(s);
   });
 });

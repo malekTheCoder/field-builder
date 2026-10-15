@@ -152,9 +152,11 @@ describe('the net arrow is never stopped to a dot', () => {
   }
   expect(lengths[0] / lengths[1]).toBeGreaterThan(.75);
  }, 45000);
- it('the semi-infinite line with P six metres up: P in the plot\'s middle and a long net', async () => {
+ it('the semi-infinite line with P six metres out: P in the plot\'s middle and a long net', async () => {
   const v = await openLesson('semi', {distance: 6});
-  expect(P(v).y).toBeGreaterThanOrEqual(150);
+  // P stands out level with the line's end, which stands left of the middle: six metres out it is well inside.
+  expect(P(v).x).toBeGreaterThanOrEqual(300);
+  expect(P(v).x).toBeLessThanOrEqual(560);
   await hold(v, 4, .99);
   expect(net(v).length).toBeGreaterThanOrEqual(80);
   expect(net(v).shown).toBe(true);
@@ -221,7 +223,7 @@ describe('the limits are named in the stage that sets them', () => {
 
 describe('the footer names the charge the board does', () => {
  // In the limit, in the variable the board integrates over: α on the endless line, x and s on the others.
- for (const [id, want, limit] of [['infinite', 'ΔQ = λr sec²α Δα', 'dQ = λr sec²α dα'], ['semi', 'ΔQ = λr sec²α Δα', 'dQ = λ dx'], ['sheet', 'ΔQ = σ 2πs z sec²α Δα', 'dQ = σ 2πs ds']] as const) it(id, async () => {
+ for (const [id, want, limit] of [['infinite', 'ΔQ = λr sec²α Δα', 'dQ = λr sec²α dα'], ['semi', 'ΔQ = λr sec²α Δα', 'dQ = λ dy'], ['sheet', 'ΔQ = σ 2πs z sec²α Δα', 'dQ = σ 2πs ds']] as const) it(id, async () => {
   const v = await openLesson(id);
   await hold(v, 2, .5);
   const footer = v.container.querySelector<SVGTextElement>('.cd-footer-math')!;

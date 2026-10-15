@@ -22,7 +22,7 @@ const DE_Y: Record<string, string> = {
   bisector: '-k*lambda/(y^2+r^2)*y/sqrt(y^2+r^2)',
   endpoint: '-k*lambda/(y^2+r^2)*y/sqrt(y^2+r^2)',
   ramp: '-k*lambda0*y/L/(y^2+r^2)*y/sqrt(y^2+r^2)',
-  semi: 'k*lambda/(x^2+r^2)*r/sqrt(x^2+r^2)',
+  semi: '-k*lambda/(y^2+r^2)*y/sqrt(y^2+r^2)',
   infinite: '-k*(lambda*r/cos(alpha)^2)/(r^2/cos(alpha)^2)*sin(alpha)',
   arc: '-k*lambda*R/R^2*sin(theta)',
 };
@@ -147,7 +147,7 @@ describe('small marks of the setting', () => {
   it('the infinite line’s merged gloss is inline; the sheet’s ring charge is grouped; the bridge is to the piece’s own length', () => {
     expect(step('infinite', 'limit').merged).not.toContain('\\frac');
     expect(step('sheet', 'pieces').tex).toContain(String.raw`\sigma\,(2\pi s)(z\sec^2\alpha\,\Delta\alpha)`);
-    expect(step('semi', 'pieces').say).toMatch(/which for a piece near\s\$P\$ is nearly its own length, \$\\Delta x\$\./);
+    expect(step('semi', 'pieces').say).toMatch(/which for a piece near\s\$P\$ is nearly its own length, \$\\Delta y\$\./);
   });
   it('the axial answer makes one change per "="', () => {
     expect(resultLines(getProblem('axial'))[0]).toMatch(/\\left\(\\frac1a-\\frac1\{L\+a\}\\right\)\\\\\[[\d.]+em\]&=\\frac\{k\\lambda L\}\{a\(L\+a\)\}\\\\\[[\d.]+em\]&=\\frac\{kQ\}\{a\(L\+a\)\}/);

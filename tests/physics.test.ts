@@ -13,8 +13,8 @@ describe('closed forms against independent point-charge quadrature',()=>{
  });
 });
 describe('geometry, signs and limiting cases',()=>{
- it('semi-infinite line has negative x, positive y, and a 135° direction',()=>{
-  const v=field('semi',params());expect(v.x).toBeLessThan(0);expect(v.y).toBeGreaterThan(0);expect(v.x).toBe(-v.y);expect(Math.atan2(v.y,v.x)).toBeCloseTo(3*Math.PI/4,12);
+ it('semi-infinite line has positive x, negative y, and a −45° direction',()=>{
+  const v=field('semi',params());expect(v.x).toBeGreaterThan(0);expect(v.y).toBeLessThan(0);expect(v.x).toBe(-v.y);expect(Math.atan2(v.y,v.x)).toBeCloseTo(-Math.PI/4,12);
  });
  for(const id of ids)it(`${id} reverses exactly when charge reverses`,()=>{
   const v=field(id,params()),n=field(id,params({charge:-DEFAULT_PARAMS.charge}));closeVector(n,{x:-v.x,y:-v.y,z:-v.z},1e-14);
@@ -42,9 +42,9 @@ describe('geometry, signs and limiting cases',()=>{
  });
  it('the end-on rod becomes the semi-infinite line at fixed linear density',()=>{
   const p=params({size:1e12}),rod=field('endpoint',{...p,charge:p.charge*p.size}),line=field('semi',p),lambda=p.charge*1e-9;
-  // `semi` draws the same physical rod in its own frame — rod along +x from the foot of the
-  // perpendicular — so the limit matches it after that rigid motion, component by component.
-  expect(rod.x).toBeCloseTo(-line.x,9);expect(rod.y).toBeCloseTo(-line.y,9);
+  // `semi` lays the line as the rod stands -- up +y from its end, with P level with the end -- so the
+  // limit matches it component by component, in the same frame.
+  expect(rod.x).toBeCloseTo(line.x,9);expect(rod.y).toBeCloseTo(line.y,9);
   expect(rod.x).toBeCloseTo(K*lambda/p.distance,9);expect(rod.y).toBeCloseTo(-K*lambda/p.distance,9);
   expect(magnitude(rod)).toBeCloseTo(magnitude(line),9);
   expect(magnitude(rod)).toBeCloseTo(Math.SQRT2*K*lambda/p.distance,9);

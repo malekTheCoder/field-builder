@@ -36,8 +36,8 @@ describe('physical charge sampling', () => {
     expect(sumSamples(samples, -1)).toEqual({x:0,y:0,z:0});
     expect(sumSamples(samples, 1/24).x).toBeCloseTo(samples[0].field.x/2, 12);
     expect(sumSamples(samples, 2)).toEqual(sumSamples(samples));
-    expect(sumSamples(samples, 1).x).toBeLessThan(0);
-    expect(sumSamples(samples, 1).y).toBeGreaterThan(0);
+    expect(sumSamples(samples, 1).x).toBeGreaterThan(0);
+    expect(sumSamples(samples, 1).y).toBeLessThan(0);
   });
   it('a full arc cancels for odd and even partitions', () => {
     for (const n of [3,4,13,80,200]) expect(magnitude(sumSamples(sampleDistribution('arc', {...DEFAULT_PARAMS,phi:2*Math.PI}, n)))).toBeLessThan(1e-12);

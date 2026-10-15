@@ -65,9 +65,9 @@ describe('the Unfold derives the antiderivatives a student cannot guess',()=>{
    expect(plain(w.text),`${p.id} ${s.kind}`).not.toMatch(/check (?:the antiderivative )?by differentiating|differentiate it to check/i);
  });
  it('the semi-infinite line names which rod’s integrand its E_y reuses',()=>{
-  const text=plain(worked('semi')[2].text);
+  const text=plain(worked('semi')[0].text);
   expect(text).not.toMatch(/the finite rod’s/);
-  expect(text).toContain(String.raw`$r/(x^2+r^2)^{3/2}$`);
+  expect(text).toContain(String.raw`$y/(r\sqrt{y^2+r^2})$`);
   expect(text).toMatch(/when \$P\$ is level with its end/);
  });
  it('the axial rod shows both minus signs and the common denominator',()=>{
@@ -129,22 +129,22 @@ describe('the arc’s semicircle is written at the lesson’s fixed Q',()=>{
 });
 describe('the semi-infinite line’s α is where the figure draws it',()=>{
  const setup=plain(getProblem('semi').setup);
- it('at P, from the perpendicular down to the line’s end, and the same α at +y for the field',()=>{
+ it('at P, from the perpendicular across to the line’s end, and the same α at +x for the field',()=>{
   expect(setup).not.toMatch(/measured from \$\+y\$ toward \$-x\$/);
   // The problem names the angle; where the piece then sits is said on the board, at the step that cuts
   // the line by α (the problem was cut to the given, the axes, the angle and the Find, so Cut it up still
   // starts on a laptop's first screen).
   expect(setup).toMatch(/\$\\alpha\$ is the angle at \$P\$ between that perpendicular and the line to a piece/);
   const board=boardLines(getProblem('semi')).flatMap(l=>[l.say,l.where,l.nothing,l.tex]).join(' ');
-  expect(board).toContain(String.raw`x=r\tan\alpha`);
+  expect(board).toContain(String.raw`y=r\tan\alpha`);
   expect(setup).not.toMatch(/Line · level with an end/);
-  // And it is so: the element at x = r tan α, seen from P = (0, r).
+  // And it is so: the element at y = r tan α, seen from P = (r, 0).
   const r=1.3;for(const a of [.3,.9,1.3]){
-   const x=r*Math.tan(a),down=[0,-1],toElement=[x,-r],field=[-x,r];
+   const y=r*Math.tan(a),across=[-1,0],toElement=[-r,y],field=[r,-y];
    const angle=(u:number[],v:number[])=>Math.acos((u[0]*v[0]+u[1]*v[1])/(Math.hypot(...u)*Math.hypot(...v)));
-   expect(angle(down,toElement)).toBeCloseTo(a,12);
-   expect(angle([0,1],field)).toBeCloseTo(a,12);
-   expect(field[0]).toBeLessThan(0);
+   expect(angle(across,toElement)).toBeCloseTo(a,12);
+   expect(angle([1,0],field)).toBeCloseTo(a,12);
+   expect(field[1]).toBeLessThan(0);
   }
  });
 });

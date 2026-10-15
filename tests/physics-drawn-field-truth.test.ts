@@ -231,8 +231,8 @@ const LESSON:Record<string,Lesson>={
   field:(P,p)=>rampField(p.size,p.charge*NANO,P)},
  // The whole y-axis: λ is the slider, and there is no end to be far from.
  infinite:{support:P=>Math.hypot(P[0],P[2]),field:(P,p)=>wireField([0,1,0],p.charge*NANO,P)},
- // x ≥ 0 on the x-axis; behind the origin the nearest charge is the origin itself.
- semi:{support:P=>P[0]>=0?Math.hypot(P[1],P[2]):len(P),field:(P,p)=>rayField([0,0,0],[1,0,0],p.charge*NANO,P)},
+ // y ≥ 0 on the y-axis; below the origin the nearest charge is the origin itself.
+ semi:{support:P=>P[1]>=0?Math.hypot(P[0],P[2]):len(P),field:(P,p)=>rayField([0,0,0],[0,1,0],p.charge*NANO,P)},
 };
 
 // ---- the shipped drawing configuration, copied from its two consumers -------
@@ -1007,7 +1007,7 @@ describe.skipIf(!isReady('sheet' as ProblemId))('sheet: straight normal lines, v
 // two local gaps out, i.e. 0.06°. The magnitudes are compared after rescaling the thinned
 // set back to the whole charge, which is what the picture claims to be showing.
 const ARROW_NS=[3,4,5,6,8,12,16,24,40,64,160,200];
-const AXIS:Record<string,V3>={bisector:[0,1,0],endpoint:[0,1,0],ramp:[0,1,0],infinite:[0,1,0],axial:[1,0,0],semi:[1,0,0]};
+const AXIS:Record<string,V3>={bisector:[0,1,0],endpoint:[0,1,0],ramp:[0,1,0],infinite:[0,1,0],axial:[1,0,0],semi:[0,1,0]};
 describe('arrows: none on the charge, and the rest are the textbook field',()=>{
  for(const id of shipping(['bisector','axial','endpoint','ramp','infinite','semi'] as ProblemId[]))
   it(`${id}: no arrow is drawn on top of the charge`,()=>{

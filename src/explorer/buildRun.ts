@@ -86,7 +86,7 @@ const CANCELS: Record<string, string> = {
   // No partner at all: the line stops at the foot of the perpendicular, so the part along it
   // survives. Saying "every contribution points much the same way" was wrong here -- they fan
   // through a right angle -- and it hid the one consequence worth seeing.
-  semi: 'Nothing cancels here. The line stops right below P, so there is no charge on the other side to undo the part along the line. Every piece keeps both of its parts, which is why this field leans instead of pointing perpendicular to the line.',
+  semi: 'Nothing cancels here. The line starts level with P and runs only upward, so there is no charge below to undo the part along the line. Every piece keeps both of its parts, which is why this field leans instead of pointing perpendicular to the line.',
 };
 /** The cancellation in one sentence each, for reading while the arrows move. */
 //

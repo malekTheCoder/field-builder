@@ -301,12 +301,12 @@ describe('the ramp', () => {
 });
 
 describe('the semi-infinite line', () => {
- // The line on the x-axis from 0 to ∞ with P = (0, r) is the reflection, across y = x, of a line on the y-axis
- // from 0 to ∞ with P = (r, 0): the reflection swaps the two components.
- const lam = 1.5, semi = (r: number, l = lam) => { const f = line(r, 0, 0, 1e5 * r, () => l, 400000); return {ex: f.ey, ey: f.ex}; };
- it('E_x = −kλ/r and E_y = kλ/r: away from the line and back past the end, at π/4', () => {
-  const f = semi(1); close(f.ex, -k * lam, 1e-3); close(f.ey, k * lam, 1e-3);
-  close(Math.atan2(f.ey, -f.ex), Math.PI / 4, 1e-3);
+ // The line on the y-axis from its end at 0 up to ∞, with P = (r, 0) level with the end, as the lesson lays it.
+ // (It was laid along x with P above the end; it now stands as the rod level with an end stands.)
+ const lam = 1.5, semi = (r: number, l = lam) => { const f = line(r, 0, 0, 1e5 * r, () => l, 400000); return {ex: f.ex, ey: f.ey}; };
+ it('E_x = kλ/r and E_y = −kλ/r: away from the line and back past the end, at π/4', () => {
+  const f = semi(1); close(f.ex, k * lam, 1e-3); close(f.ey, -k * lam, 1e-3);
+  close(Math.atan2(-f.ey, f.ex), Math.PI / 4, 1e-3);
  });
  it('cut at equal angles from the perpendicular, every piece is r sec²α Δα long and makes kλΔα/r', () => {
   const r = 1.3, d = 1e-6;
@@ -325,21 +325,21 @@ describe('the semi-infinite line', () => {
   const r = 1, f = line(r, 0, 0, 2, () => lam);
   expect(Math.abs(Math.atan2(-f.ey, f.ex) - Math.PI / 4)).toBeGreaterThan(.1);
  });
- it('one piece’s parts are −ΔE sin α along x and ΔE cos α along y, α from the perpendicular', () => {
-  const r = 1, x = .8, a = Math.atan(x / r), d = Math.hypot(x, r), e = k / d ** 2;
-  close(e * (0 - x) / d, -e * Math.sin(a), 1e-12); close(e * (r - 0) / d, e * Math.cos(a), 1e-12);
+ it('one piece’s parts are ΔE cos α along x and −ΔE sin α along y, α from the perpendicular', () => {
+  const r = 1, y = .8, a = Math.atan(y / r), d = Math.hypot(y, r), e = k / d ** 2;
+  close(e * (r - 0) / d, e * Math.cos(a), 1e-12); close(e * (0 - y) / d, -e * Math.sin(a), 1e-12);
  });
  it('doubling r halves both parts and keeps the lean; they do not quarter', () => {
   const a = semi(1), b = semi(2);
   close(b.ex / a.ex, .5, 2e-3); close(b.ey / a.ey, .5, 2e-3);
-  close(Math.atan2(b.ey, -b.ex), Math.PI / 4, 1e-3);
+  close(Math.atan2(-b.ey, b.ex), Math.PI / 4, 1e-3);
  });
  it('with the mirror half added, it is 2kλ/r straight out from the line', () => {
-  const f = line(1, 0, -1e5, 1e5, () => lam, 400000); // the whole line, reflected as above
+  const f = line(1, 0, -1e5, 1e5, () => lam, 400000); // the whole line
   close(f.ex, 2 * k * lam, 1e-3); expect(Math.abs(f.ey)).toBeLessThan(1e-6);
  });
- it('a negative line’s field points toward the line and out over it, still at π/4', () => {
-  const f = semi(1, -lam); expect(f.ex).toBeGreaterThan(0); expect(f.ey).toBeLessThan(0);
+ it('a negative line’s field points toward the line and up along it, still at π/4', () => {
+  const f = semi(1, -lam); expect(f.ex).toBeLessThan(0); expect(f.ey).toBeGreaterThan(0);
   close(Math.abs(f.ex), Math.abs(f.ey), 2e-3);
  });
 });

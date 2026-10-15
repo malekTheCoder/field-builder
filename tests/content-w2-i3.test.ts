@@ -106,8 +106,8 @@ describe('each lesson’s working says what it does',()=>{
   // Said now where the board says why ΔE_x carries a minus, not in the problem, which keeps to the given, the
   // axes, the angle and the Find.
   const say=plain(boardLines(getProblem('semi')).find(l=>l.key==='cancel')!.say??'');
-  expect(say).toMatch(/For positive charge the part along the line points back past the end, toward \$-x\$/);
-  expect(say).toMatch(/hence the minus; for negative charge, toward \$\+x\$/);
+  expect(say).toMatch(/For positive charge the part along the line points back past the end, toward \$-y\$/);
+  expect(say).toMatch(/hence the minus in \$\\Delta E_y\$ below; for negative charge, toward \$\+y\$/);
  });
  it('the rod’s potential approximates far away as its own Check does, from the rod’s centre',()=>{
   const p=getProblem('v-rod-axial'),last=integrate(p).at(-1)!;

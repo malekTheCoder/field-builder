@@ -184,7 +184,7 @@ function refPieces(id:ProblemId,p:Params,n:number):Piece[]{
   // line in one θ-bin carries λ dy = λ d sec²θ Δθ with Δθ = π/n. `charge` is λ.
   case 'infinite':return mid(n).map(t=>{const th=Math.PI*t-Math.PI/2;return {q:c*d*Math.PI/(n*Math.cos(th)**2),at:[0,d*Math.tan(th),0] as V3};});
   // Half-line along +x from the origin, same sweep over θ ∈ (0, π/2), Δθ = π/2n.
-  case 'semi':return mid(n).map(t=>{const th=Math.PI*t/2;return {q:c*d*Math.PI/(2*n*Math.cos(th)**2),at:[d*Math.tan(th),0,0] as V3};});
+  case 'semi':return mid(n).map(t=>{const th=Math.PI*t/2;return {q:c*d*Math.PI/(2*n*Math.cos(th)**2),at:[0,d*Math.tan(th),0] as V3};});
   // Disk: whole annuli at equal steps of radius, dq = σ·2πs·Δs with Δs = R/n. The
   // stored position is the representative point (s, 0, 0); the figure sums the whole ring.
   case 'disk':case 'v-disk':{const sigma=c/(Math.PI*R*R);return mid(n).map(t=>{const s=R*t;return {q:sigma*2*Math.PI*s*(R/n),at:[s,0,0] as V3};});}
@@ -404,10 +404,10 @@ const TAN_CUT:Record<'infinite'|'semi'|'sheet',TanCut>={
  // dq_i = λ d (π/7) sec²θ_i = 1.3464, 1.6586, 3.4635, 27.191 nC. A sphere of radius 4.3
  // on the wire holds five of the seven: 11.5907 nC, Φ = 1309.06 N m²/C per nC/m.
  infinite:{layout:'wire',n:7,p:params({charge:1,distance:3}),surface:(k=1)=>sphere([0,0,0],4.3*k,256,64,[0,1,0]),count:5},
- // Half-line along +x, θ_i = (2i+1)π/32 ⇒ x = 0.2955, 0.9100, 1.6035, 2.4620 | 3.656 …
+ // Half-line up +y, θ_i = (2i+1)π/32 ⇒ y = 0.2955, 0.9100, 1.6035, 2.4620 | 3.656 …
  // A sphere of radius 3 at the wire's end holds the first four: (3π/16)Σsec²θ_i =
  // 2.98114 nC, Φ = 336.692 N m²/C per nC/m.
- semi:{layout:'wire',n:8,p:params({charge:1,distance:3}),surface:(k=1)=>sphere([0,0,0],3*k,256,64,[1,0,0]),count:4},
+ semi:{layout:'wire',n:8,p:params({charge:1,distance:3}),surface:(k=1)=>sphere([0,0,0],3*k,256,64,[0,1,0]),count:4},
  // Rings at the same radii; a pillbox of radius 3 and half-height 1.5 holds the first four
  // rings whole (4 × 16 in the bookkeeping spread): 27.6622 nC, Φ = 3124.19 N m²/C per
  // nC/m² — deliberately NOT the continuum's σπρ² = 28.2743 nC (3193.3). See below.

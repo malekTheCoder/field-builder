@@ -42,7 +42,7 @@ const SWAPS: Record<string, Swap[]> = {
   ramp: [[String.raw`\lambda(y_i)=\lambda_0\,(y_i/L)`, 'lambda0*y/L', 'none'], ...ROD_SWAPS],
   axial: [[String.raw`r_i^2=(L+a-x_i)^2`, '(L+a-x)^2', 'distance^2']],
   infinite: [[String.raw`r_i^2=r^2\sec^2\alpha_i`, 'r^2/cos(alpha)^2', 'distance^2']],
-  semi: [[String.raw`r_i^2=x_i^2+r^2`, 'x^2+r^2', 'distance^2'], [String.raw`\sin\alpha_i=x_i/\sqrt{x_i^2+r^2}`, 'x/sqrt(x^2+r^2)', 'none']],
+  semi: [[String.raw`r_i^2=y_i^2+r^2`, 'y^2+r^2', 'distance^2'], [String.raw`\cos\alpha_i=r/\sqrt{y_i^2+r^2}`, 'r/sqrt(y^2+r^2)', 'projection']],
   ring: [], arc: [], 'v-ring': [], 'v-arc': [],
   disk: [RING_CHARGE, ...RING_SWAPS], sheet: RING_SWAPS,
   'v-disk': [RING_CHARGE, [String.raw`r_i=\sqrt{s_i^2+z^2}`, 'sqrt(s^2+z^2)', 'distance']],
@@ -217,7 +217,7 @@ describe('the derivation board', () => {
     // and so does the board now. It is a definition of the stand-in, not "≈" of the piece's charge.
     for (const [id, tex, where, bracket] of [
       ['infinite', String.raw`\lambda r\sec^2\alpha\,\Delta\alpha`, String.raw`y=r\tan\alpha`, String.raw`$\Delta y$`],
-      ['semi', String.raw`\lambda r\sec^2\alpha\,\Delta\alpha`, String.raw`x=r\tan\alpha`, String.raw`$\Delta x$`],
+      ['semi', String.raw`\lambda r\sec^2\alpha\,\Delta\alpha`, String.raw`y=r\tan\alpha`, String.raw`$\Delta y$`],
       // Grouped as its sentence says it: σ times the circumference, times the width.
       ['sheet', String.raw`\sigma\,(2\pi s)(z\sec^2\alpha\,\Delta\alpha)`, String.raw`s=z\tan\alpha`, String.raw`$\Delta s$`],
     ] as const) {
@@ -323,7 +323,7 @@ describe('the derivation board', () => {
       expect(step(id, 'cancel').nothing, id).toBeTruthy();
     }
     for (const id of ['endpoint', 'ramp']) expect(step(id, 'cancel').nothing, id).toMatch(/every piece lies above the.*\$x\$-axis, so no piece has a mirror partner.*Cancellation needs a symmetry this geometry lacks\.$/);
-    expect(step('semi', 'cancel').nothing).toMatch(/stops right below.*no piece has a mirror partner.*which is why the field leans\.$/);
+    expect(step('semi', 'cancel').nothing).toMatch(/starts level with.*runs only upward.*no piece has a mirror partner.*which is why the field leans\.$/);
     // Where nothing cancels, nothing names a pair that is not there.
     for (const id of ['axial', 'endpoint', 'ramp', 'semi', 'v-ring', 'v-disk', 'v-arc', 'v-rod-bisector', 'v-rod-axial']) expect(step(id, 'cancel').cancelsSay, id).toBeUndefined();
     // Nor off-centre, where the pairs are broken.

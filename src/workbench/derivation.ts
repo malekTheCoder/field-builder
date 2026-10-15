@@ -435,22 +435,23 @@ const PARTS: Record<ProblemId, Parts> = {
     tail: String.raw`, while $\Delta Q_i$ and $\cos\alpha_i$ already are`,
     simplify: true,
     check: {dq: 'lambda*r/cos(alpha)^2', r: 'r/cos(alpha)', dir: 'cos(alpha)'}},
-  // P sits above the end of the line, so the component along the line survives and points back
-  // toward the end: a minus sign and the sine of the angle at P, measured from the perpendicular
-  // P drops to the line -- as the lesson's own text measures it, and as the infinite line's α is.
-  semi: {dq: String.raw`\lambda\,dx`, piece: String.raw`\lambda r\sec^2\alpha\,\Delta\alpha`, r: String.raw`\sqrt{x^2+r^2}`, r2: String.raw`x^2+r^2`, pieceIs: String.raw`x=r\tan\alpha`,
-    holds: String.raw`${BRIDGE(String.raw`\alpha`, String.raw`x=r\tan\alpha`, 'x', String.raw`r\sec^2\alpha`, ON_LINE(String.raw`\alpha`, 'a quarter turn'))}${BREAK}The density $\lambda$ is the charge per unit length. ${STAND_IN('piece')}`,
-    at: HYPOTENUSE('x', 'r', 'line', false),
-    anti: {pre: String.raw`k\lambda`, inner: String.raw`\frac1{\sqrt{x^2+r^2}}`, check: 'k*lambda/sqrt(x^2+r^2)'},
-    antiAlso: {pre: String.raw`\frac{k\lambda}{r}`, inner: String.raw`\frac{x}{\sqrt{x^2+r^2}}`, check: 'k*lambda/r*x/sqrt(x^2+r^2)'},
-    alongIntegral: {tex: String.raw`E_y=\int_0^\infty\frac{k\lambda r}{(x^2+r^2)^{3/2}}\,dx`, check: 'k*lambda*r/(x^2+r^2)^(3/2)'},
-    equal: String.raw`Putting $x=r\tan\alpha$ makes $r_i^2=x^2+r^2=r^2\sec^2\alpha$, and the $\sec^2\alpha$ in $\Delta Q$ cancels: every piece’s $\Delta E$ is $k\lambda\,\Delta\alpha/r$. A far piece holds more charge, and is farther away by exactly enough.`,
-    sign: '-', dir: String.raw`\sin\alpha`, dirOf: String.raw`\frac{x}{\sqrt{x^2+r^2}}`, simplify: true,
-    also: (dQ, ri2) => String.raw`\Delta E_y=\frac{k\,${dQ}}{${ri2}}${fx('projection', String.raw`\cos\alpha`)}`, alsoOf: String.raw`\cos\alpha=\frac{r}{\sqrt{x^2+r^2}}`,
-    nothing: String.raw`Nothing cancels: the line stops right below${NB}$P$, so no piece has a mirror partner, and both parts of each survive, which is why the field leans.`,
-    dirIs: String.raw`${ARROW} lies along the line of sight to the piece, so its part along the line is $\Delta E\sin\alpha$, the side opposite${NB}$\alpha$, and its part across the line is $\Delta E\cos\alpha$. For positive charge the part along the line points back past the end, toward $-x$: hence the minus; for negative charge, toward $+x$.`,
-    tail: String.raw`; and in the charge, $r\sec^2\alpha\,\Delta\alpha$ becomes the length${NB}$dx$`,
-    check: {dq: 'lambda', r: 'sqrt(x^2+r^2)', dir: '-x/sqrt(x^2+r^2)'}},
+  // P is level with the end of the line, as it is with the rod's end in the lesson it grows from, so the
+  // component along the line survives and points back past the end: a minus sign and the sine of the
+  // angle at P, measured from the perpendicular P drops to the line -- as the lesson's own text measures
+  // it, and as the infinite line's α is. The part across the line, along x, is the cosine's, as on the rod.
+  semi: {dq: String.raw`\lambda\,dy`, piece: String.raw`\lambda r\sec^2\alpha\,\Delta\alpha`, r: String.raw`\sqrt{y^2+r^2}`, r2: String.raw`y^2+r^2`, pieceIs: String.raw`y=r\tan\alpha`,
+    holds: String.raw`${BRIDGE(String.raw`\alpha`, String.raw`y=r\tan\alpha`, 'y', String.raw`r\sec^2\alpha`, ON_LINE(String.raw`\alpha`, 'a quarter turn'))}${BREAK}The density $\lambda$ is the charge per unit length. ${STAND_IN('piece')}`,
+    at: HYPOTENUSE('y', 'r', 'line', false),
+    anti: {pre: String.raw`\frac{k\lambda}{r}`, inner: String.raw`\frac{y}{\sqrt{y^2+r^2}}`, check: 'k*lambda/r*y/sqrt(y^2+r^2)'},
+    antiAlso: {pre: String.raw`k\lambda`, inner: String.raw`\frac1{\sqrt{y^2+r^2}}`, check: 'k*lambda/sqrt(y^2+r^2)'},
+    alongIntegral: {tex: String.raw`E_y=-\int_0^\infty\frac{k\lambda y}{(y^2+r^2)^{3/2}}\,dy`, check: '-k*lambda*y/(y^2+r^2)^(3/2)'},
+    equal: String.raw`Putting $y=r\tan\alpha$ makes $r_i^2=y^2+r^2=r^2\sec^2\alpha$, and the $\sec^2\alpha$ in $\Delta Q$ cancels: every piece’s $\Delta E$ is $k\lambda\,\Delta\alpha/r$. A far piece holds more charge, and is farther away by exactly enough.`,
+    dir: String.raw`\cos\alpha`, dirOf: String.raw`\frac{r}{\sqrt{y^2+r^2}}`, simplify: true,
+    also: (dQ, ri2) => String.raw`\Delta E_y=-\frac{k\,${dQ}}{${ri2}}${fx('projection', String.raw`\sin\alpha`)}`, alsoOf: String.raw`\sin\alpha=\frac{y}{\sqrt{y^2+r^2}}`,
+    nothing: String.raw`Nothing cancels: the line starts level with${NB}$P$ and runs only upward, so no piece has a mirror partner below the${NB}$x$-axis, and both parts of each survive, which is why the field leans.`,
+    dirIs: String.raw`${ARROW} lies along the line of sight to the piece, so its part across the line, along $x$, is $\Delta E\cos\alpha$, the side next to${NB}$\alpha$, and its part along the line is $\Delta E\sin\alpha$, the side opposite${NB}$\alpha$. For positive charge the part along the line points back past the end, toward $-y$: hence the minus in $\Delta E_y$ below; for negative charge, toward $+y$.`,
+    tail: String.raw`; and in the charge, $r\sec^2\alpha\,\Delta\alpha$ becomes the length${NB}$dy$`,
+    check: {dq: 'lambda', r: 'sqrt(y^2+r^2)', dir: 'r/sqrt(y^2+r^2)'}},
   // The whole ring's charge is spelled 2πRλ, as the lesson's own Unfold one click down spells it: the
   // board's λ2πR beside "Use Q = 2πRλ" was one quantity in two spellings on one card.
   ring: {...RING, ...COS_AXIS('R'), dirIs: ANGLE_RING, pairSay: PAIR_RING, mirror: {across: String.raw`\sin\alpha`, lost: 'across the axis'}, simplify: true,
@@ -569,7 +570,7 @@ const SPANS: Record<string, {each: string; run: (lo: string, hi: string) => stri
   ramp: {each: 'piece $i$ sits at $y_i$', run: (lo, hi) => `from one end, ${lo}, to the other, ${hi}`},
   // In the angle the infinite line is finite: its far ends are where α reaches a right angle.
   infinite: {each: String.raw`piece $i$ sits at the angle $\alpha_i$`, run: (lo, hi) => `from ${lo}, far along the line one way, to ${hi}, far along it the other`},
-  semi: {each: 'piece $i$ sits at $x_i$', run: lo => String.raw`from the end, ${lo}, on to $\infty$`},
+  semi: {each: 'piece $i$ sits at $y_i$', run: lo => String.raw`from the end, ${lo}, on to $\infty$`},
   ring: {each: String.raw`piece $i$ sits at the angle $\theta_i$ round the ring`, run: (lo, hi) => `from ${lo} once round to ${hi}`},
   arc: {each: String.raw`piece $i$ sits at the angle $\theta_i$`, run: (lo, hi) => `from one end of the arc, ${lo}, to the other, ${hi}`},
   disk: {each: 'ring $i$ sits at the radius $s_i$', run: (lo, hi) => `from the centre, ${lo}, to the rim, ${hi}`},
@@ -1020,7 +1021,7 @@ const SET_OVER_TWO_LINES: Partial<Record<ProblemId, string[]>> = {
   endpoint: [String.raw`\begin{aligned}E_x&=\frac{k\lambda L}{r\sqrt{L^2+r^2}}${rowGap(1)}&=\frac{kQ}{r\sqrt{L^2+r^2}}${COMPONENT_GAP}E_y&=-k\lambda\left(\frac1r-\frac1{\sqrt{L^2+r^2}}\right)${rowGap(1)}&=-\frac{kQ}{L}\left(\frac1r-\frac1{\sqrt{L^2+r^2}}\right)\end{aligned}`],
   // The magnitude on a row of its own: it is not a signed component, and the note under the
   // components says they are signed.
-  semi: [String.raw`\begin{aligned}E_x&=-\frac{k\lambda}{r}${rowGap(1.25)}E_y&=\frac{k\lambda}{r}${rowGap(1.25)}|\mathbf E|&=\frac{\sqrt2\,k|\lambda|}{r}\end{aligned}`],
+  semi: [String.raw`\begin{aligned}E_x&=\frac{k\lambda}{r}${rowGap(1.25)}E_y&=-\frac{k\lambda}{r}${rowGap(1.25)}|\mathbf E|&=\frac{\sqrt2\,k|\lambda|}{r}\end{aligned}`],
   // The disk's field holds only above it, as its potential does, and both say so as the sheet does,
   // "(z > 0)": on a row of their own, because on one line it ran out of the panel. The condition
   // hangs under the right-hand side, after the "=", not under the "=" itself -- close under it, as a
@@ -1101,22 +1102,22 @@ export const INFINITE_UNFOLD: WorkedStep[] = [
 ];
 /** THE SEMI-INFINITE LINE, IN THE ANGLE IT WAS BUILT IN. One piece proves the lesson's claim in α --
  * the sec²α in ΔQ cancels the one in the distance, so every piece makes kλΔα/r -- and the infinite line,
- * its sibling, finishes on ∫cos α dα. This one's Unfold did E_x by u = x² + r² and then, for E_y, put
- * x = r tan α back: α to x to α, two methods for two components of one integral, and never the
- * one-line α integral One piece set up. So both components are done in α, and the lesson's own last
- * step, combining them, follows. (x dx/(x² + r²)^{3/2} = r tan α · r sec²α dα / r³ sec³α = sin α dα/r.)
+ * its sibling, finishes on ∫cos α dα. This one's Unfold did one component by u = y² + r² and then put
+ * y = r tan α back for the other: α to y to α, two methods for two components of one integral, and never
+ * the one-line α integral One piece set up. So both components are done in α, and the lesson's own last
+ * step, combining them, follows. (y dy/(y² + r²)^{3/2} = r tan α · r sec²α dα / r³ sec³α = sin α dα/r.)
  *
  * A bracket that opens on a minus is \Bigl[ or \left[, never \Big[: KaTeX sets \Big as an ordinary
  * symbol, so the minus after it was spaced as a subtraction, "[ − cos α ]". */
 export const SEMI_UNFOLD: WorkedStep[] = [
   // In the physics, not the run's stage names: "as in Cut it up … One piece's dα/r" meant nothing on the
   // printed handout, where there is no run, and capitalised mid-sentence it read as a typo on the page.
-  {text: String.raw`With $-k\lambda$ outside, put $x=r\tan\alpha$, where $\alpha$ is the angle at${NB}$P$ from the perpendicular to the line: $dx=r\sec^2\alpha\,d\alpha$ and $x^2+r^2=r^2\sec^2\alpha$, so the integrand is $\sin\alpha\,d\alpha/r$, each piece’s field written by its angle. As $x$ runs from $0$ to $\infty$, $\alpha$ runs from $0$ to $\pi/2$.`,
-    tex: String.raw`\begin{aligned}E_x&=-k\lambda\int_0^\infty\frac{x\,dx}{(x^2+r^2)^{3/2}}${rowGap(1)}&=-\frac{k\lambda}{r}\int_0^{\pi/2}\sin\alpha\,d\alpha\end{aligned}`},
-  {text: String.raw`Integrate: $\int\sin\alpha\,d\alpha=-\cos\alpha$. Upper end minus lower end: $-\cos(\pi/2)+\cos0=1$.`,
-    tex: String.raw`E_x=-\frac{k\lambda}{r}\Bigl[-\cos\alpha\Bigr]_0^{\pi/2}=-\frac{k\lambda}{r}`},
-  {text: String.raw`The other component, $E_y$, is the same with $\cos\alpha$ in place of $\sin\alpha$, and no minus: $\int\cos\alpha\,d\alpha=\sin\alpha$.`,
-    tex: String.raw`\begin{aligned}E_y&=\frac{k\lambda}{r}\int_0^{\pi/2}\cos\alpha\,d\alpha${rowGap(.95)}&=\frac{k\lambda}{r}\Big[\sin\alpha\Big]_0^{\pi/2}=\frac{k\lambda}{r}\end{aligned}`},
+  {text: String.raw`With $k\lambda$ outside, put $y=r\tan\alpha$, where $\alpha$ is the angle at${NB}$P$ from the perpendicular to the line: $dy=r\sec^2\alpha\,d\alpha$ and $y^2+r^2=r^2\sec^2\alpha$, so the integrand is $\cos\alpha\,d\alpha/r$, each piece’s field written by its angle. As $y$ runs from $0$ to $\infty$, $\alpha$ runs from $0$ to $\pi/2$.`,
+    tex: String.raw`\begin{aligned}E_x&=k\lambda\int_0^\infty\frac{r\,dy}{(y^2+r^2)^{3/2}}${rowGap(1)}&=\frac{k\lambda}{r}\int_0^{\pi/2}\cos\alpha\,d\alpha\end{aligned}`},
+  {text: String.raw`Integrate: $\int\cos\alpha\,d\alpha=\sin\alpha$. Upper end minus lower end: $\sin(\pi/2)-\sin0=1$.`,
+    tex: String.raw`E_x=\frac{k\lambda}{r}\Big[\sin\alpha\Big]_0^{\pi/2}=\frac{k\lambda}{r}`},
+  {text: String.raw`The other component, $E_y$, is the same with $\sin\alpha$ in place of $\cos\alpha$, and a minus: $\int\sin\alpha\,d\alpha=-\cos\alpha$, and upper end minus lower end is $-\cos(\pi/2)+\cos0=1$.`,
+    tex: String.raw`\begin{aligned}E_y&=-\frac{k\lambda}{r}\int_0^{\pi/2}\sin\alpha\,d\alpha${rowGap(.95)}&=-\frac{k\lambda}{r}\Bigl[-\cos\alpha\Bigr]_0^{\pi/2}=-\frac{k\lambda}{r}\end{aligned}`},
 ];
 /** THE DISK, WITH THE STEPS A WEAK-CALCULUS READER CANNOT SUPPLY. Its Unfold said "2πkσz comes
  * outside the integral" over an indefinite ∫ s ds/(s² + z²)^{3/2} with neither, wrote

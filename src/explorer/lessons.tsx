@@ -12,7 +12,7 @@ export const GLYPHS:Record<ProblemId,React.ReactNode>={
  infinite:<><path d="M9 1.6v14.8M6.6 4L9 1.6 11.4 4M6.6 14L9 16.4 11.4 14"/><circle cx="14.4" cy="9" r="1.3" fill="currentColor" stroke="none"/></>,
  ring:<circle cx="9" cy="9" r="5.8"/>,
  disk:<circle cx="9" cy="9" r="5.8" fill="currentColor" fillOpacity=".28"/>,
- semi:<><path d="M4 12.4h10.2M12.2 10.4l2.2 2-2.2 2"/><circle cx="4" cy="5.4" r="1.3" fill="currentColor" stroke="none"/></>,
+ semi:<><path d="M6 12.6V1.8M3.6 4.2 6 1.8l2.4 2.4"/><circle cx="14" cy="12.6" r="1.3" fill="currentColor" stroke="none"/></>,
  arc:<><path d="M4.2 13.8A6.8 6.8 0 0 1 13.8 4.2"/><circle cx="9" cy="9" r="1.3" fill="currentColor" stroke="none"/></>,
  sheet:<path d="M1.8 12.4 6.6 6.6h9.6l-4.8 5.8Z"/>,
  endpoint:<><path d="M6 3.4v9.2M3.6 3.4h4.8"/><circle cx="14" cy="12.6" r="1.3" fill="currentColor" stroke="none"/></>,

@@ -79,9 +79,9 @@ describe('a growth law is drawn as the line its label names, on an axis that say
   });
 });
 
-describe('the half line’s thumbnail keeps P off the line and its arrow above it', () => {
-  // The charged line is drawn at y = 38 with a stroke 7 wide: its top edge is at 34.5.
-  const TOP = 34.5;
+describe('the half line’s thumbnail keeps P off the line and its arrow beside it', () => {
+  // The charged line stands at x = 64, up from its end, with a stroke 7 wide: its right edge is at 67.5.
+  const EDGE = 67.5;
   it('for either sign, along the whole sweep', async () => {
     const semi = getProblem('semi');
     for (const charge of [2, -2]) {
@@ -91,14 +91,14 @@ describe('the half line’s thumbnail keeps P off the line and its arrow above i
         if (key !== '{PageUp}') slider.focus();
         await userEvent.keyboard(key);
         const svg = container.querySelector('.limit-mini svg')!;
-        const dot = svg.querySelector('circle')!, cy = Number(dot.getAttribute('cy')), r = Number(dot.getAttribute('r'));
-        expect(cy + r, `q=${charge} ${key}: P's dot clears the line`).toBeLessThan(TOP - 2);
+        const dot = svg.querySelector('circle')!, cx = Number(dot.getAttribute('cx')), r = Number(dot.getAttribute('r'));
+        expect(cx - r, `q=${charge} ${key}: P's dot clears the line`).toBeGreaterThan(EDGE + 2);
         const arrow = svg.querySelector<SVGGElement>('.limit-arrow');
         if (arrow) {
           const b = arrow.getBBox();
-          expect(b.y + b.height, `q=${charge} ${key}: the arrow stays above the line`).toBeLessThanOrEqual(TOP);
+          expect(b.x, `q=${charge} ${key}: the arrow stays clear of the line`).toBeGreaterThanOrEqual(EDGE);
         }
-        if (charge > 0 && key === '{Home}') expect(arrow, 'a positive line’s arrow, up and away, is drawn').not.toBeNull();
+        if (charge > 0 && key === '{Home}') expect(arrow, 'a positive line’s arrow, out and down, is drawn').not.toBeNull();
       }
       unmount();
     }

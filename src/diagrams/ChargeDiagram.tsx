@@ -601,7 +601,7 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
   const flatDiskClearance = id === 'disk' && !inSpace ? 25 + 1.37 * SYM * labelScale + 8 : 0;
   const surfaceRise = inSpace && boundedRound ? Math.max(0, R * surfaceRoomy * Math.abs(Math.sin(view.pitch)) - surfaceBelow + surfaceDrop + roundMargin - 10)
     : flatDiskClearance ? Math.max(0, 296 + lift + surfaceDrop + R * surfaceRoomy * Math.abs(Math.sin(view.pitch)) + flatDiskClearance - FOOTER_BAND) : 0;
-  const originAt1: Point = perspective ? { x: 315, y: 296 + lift + surfaceDrop - surfaceRise } : footed ? { x: 210, y: 250 + lift } : id === 'semi' ? { x: 300, y: 310 } : id === 'axial' ? { x: 130, y: 230 } : id === 'arc' ? { x: 375, y: 218 } : { x: 220, y: 216 };
+  const originAt1: Point = perspective ? { x: 315, y: 296 + lift + surfaceDrop - surfaceRise } : footed ? { x: 210, y: 250 + lift } : id === 'semi' ? { x: 200, y: 275 + lift } : id === 'axial' ? { x: 130, y: 230 } : id === 'arc' ? { x: 375, y: 218 } : { x: 220, y: 216 };
   // Pixels per metre, times whatever the reader has zoomed to. The projection, the canvas
   // and the 3D frustum all read this, so one multiply zooms the whole figure and no layer
   // can disagree with another about scale.
@@ -623,9 +623,9 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
     : id === 'bisector' ? Math.min(45, 140 / R)
     : id === 'axial' ? fit(p.size + p.distance, 400, 20, 70)
     : id === 'arc' ? fit(2 * R, 300, 25, 65)
-    // The semi-infinite line stands P straight up from its end, and at a fixed 35 a P six metres up sat
-    // under the plot's top edge with its arrows squeezed into the corner and two thirds of the picture
-    // empty. Fitted to P's height, as the ring, the disk and the sheet are.
+    // The semi-infinite line stands P out level with its end, and at a fixed 35 a P six metres out sat at
+    // the plot's edge with its arrows squeezed into the corner and most of the picture empty. Fitted to
+    // P's distance, as the ring, the disk and the sheet are fitted to P's height.
     : id === 'semi' ? Math.min(35, Math.max(18, Math.floor(150 / Math.max(.5, p.distance) / 5) * 5))
     // The endless line has no length but r, so its picture is the same at every r: while the run plays, P stands at
     // least seventy units off it. At thirty-five per metre, P half a metre out stood seventeen units from the rod,
@@ -634,7 +634,7 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
     : id === 'infinite' && build ? clamp(Math.round(70 / Math.max(.5, p.distance) / 5) * 5, 35, 140)
     : 35;
   // Where P lives, and the line it is allowed to move along: from `pivot`, `axisDir` per unit of `distance`.
-  const axisDir: Vec = id === 'arc' ? zero : id === 'axial' ? { x: 1, y: 0, z: 0 } : id === 'semi' ? { x: 0, y: 1, z: 0 } : perspective ? { x: 0, y: 0, z: 1 } : { x: 1, y: 0, z: 0 };
+  const axisDir: Vec = id === 'arc' ? zero : id === 'axial' ? { x: 1, y: 0, z: 0 } : perspective ? { x: 0, y: 0, z: 1 } : { x: 1, y: 0, z: 0 };
   const pivot: Vec = id === 'axial' ? { x: p.size, y: 0, z: 0 } : zero;
   const pWorld: Vec = { x: pivot.x + axisDir.x * p.distance, y: pivot.y + axisDir.y * p.distance, z: pivot.z + axisDir.z * p.distance };
   // Zoom magnifies the picture about the two things the picture is ABOUT -- the charge and P
@@ -700,7 +700,7 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
     if (id === 'axial') return { x: p.size * t, y: 0, z: 0 };
     if (footed) return { x: 0, y: p.size * t, z: 0 };
     if (id === 'infinite') return { x: 0, y: p.distance * Math.tan(Math.PI * (clamp(t, .001, .999) - .5)), z: 0 };
-    if (id === 'semi') return { x: p.distance * Math.tan(Math.PI * clamp(t, 0, .999) / 2), y: 0, z: 0 };
+    if (id === 'semi') return { x: 0, y: p.distance * Math.tan(Math.PI * clamp(t, 0, .999) / 2), z: 0 };
     if (surface) return { x: id === 'disk' ? R * t : p.distance * Math.tan(Math.PI * clamp(t, 0, .999) / 2), y: 0, z: 0 };
     const theta = id === 'ring' ? 2 * Math.PI * t : p.phi * (t - .5);
     return { x: R * Math.cos(theta), y: R * Math.sin(theta), z: 0 };
@@ -1202,7 +1202,7 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
     const sides = id === 'sheet' ? [1, -1] : [0];
     // The charge's own line on screen: the wire, or the diameter of the sheet the cut is taken along.
     // Every wedge and every ray stops at it, because the piece it stands for does.
-    const chargeLine: Line = { point: O, dir: vsub(project(id === 'sheet' ? across : id === 'semi' ? { x: 1, y: 0, z: 0 } : { x: 0, y: 1, z: 0 }), project(zero)) };
+    const chargeLine: Line = { point: O, dir: vsub(project(id === 'sheet' ? across : { x: 0, y: 1, z: 0 }), project(zero)) };
     const wedges: { index: number; key: string; points: string; middle: Point | null }[] = [];
     const rays: { key: string; end: Point }[] = [];
     for (const side of sides) {
@@ -1432,7 +1432,7 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
       const base = project(pivot), tip = project({ x: pivot.x + axisDir.x, y: pivot.y + axisDir.y, z: pivot.z + axisDir.z });
       const dx = tip.x - base.x, dy = tip.y - base.y, dd = dx * dx + dy * dy;
       const alongAxis = dd > 1e-6 ? ((cursor.x - base.x) * dx + (cursor.y - base.y) * dy) / dd : p.distance;
-      const distance = inSpace ? alongAxis : perspective ? depthFromScreen(O.y - cursor.y, unit, view.pitch) : id === 'semi' ? (O.y - cursor.y) / unit : id === 'axial' ? p.distance + (cursor.x - P.x) / unit : (cursor.x - O.x) / unit;
+      const distance = inSpace ? alongAxis : perspective ? depthFromScreen(O.y - cursor.y, unit, view.pitch) : id === 'axial' ? p.distance + (cursor.x - P.x) / unit : (cursor.x - O.x) / unit;
       setParams({ distance: Math.round(clamp(distance, .5, 6) * 20) / 20 });
     } else {
       // Find the nearest coordinate along the projected distribution. Endpoints
@@ -1705,9 +1705,9 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
   })() : null;
   // A rod or ring is one object. Doubling N inserts mid-cuts on pieces that already
   // exist (stable intervalKey / seamKey), instead of remounting a newly indexed set.
-  const upright = id === 'bisector' || id === 'infinite' || footed;
+  const upright = id === 'bisector' || id === 'infinite' || id === 'semi' || footed;
   const along = (pt: Point) => upright ? pt.y : pt.x;
-  const rodEnds: [number, number] = id === 'bisector' ? [O.y - R * unit, O.y + R * unit] : footed ? [O.y - p.size * unit, O.y] : id === 'infinite' ? [55, 370] : id === 'axial' ? [O.x, O.x + p.size * unit] : [O.x, 640];
+  const rodEnds: [number, number] = id === 'bisector' ? [O.y - R * unit, O.y + R * unit] : footed ? [O.y - p.size * unit, O.y] : id === 'infinite' ? [55, 370] : id === 'semi' ? [55, O.y] : id === 'axial' ? [O.x, O.x + p.size * unit] : [O.x, 640];
   const rodLow = Math.min(...rodEnds), rodHigh = Math.max(...rodEnds);
   /** Where a line from a piece of a rod toward `to` leaves the rod, a little clear of its edge. The
    * dashed lines from a piece and its partner to P began at the piece's middle, which is where its +
@@ -1784,7 +1784,7 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
   // arrow into one corner.
   const breaks: [Point, Point][] = id === 'infinite'
     ? [80, 88, 348, 356].map(y => [{ x: O.x - 10, y }, { x: O.x + 10, y: y - 9 }] as [Point, Point])
-    : id === 'semi' ? [0, 17].map(dx => [{ x: rodHigh - 12 + dx, y: O.y - 10 }, { x: rodHigh - 21 + dx, y: O.y + 10 }] as [Point, Point]) : [];
+    : id === 'semi' ? [80, 88].map(y => [{ x: O.x - 10, y }, { x: O.x + 10, y: y - 9 }] as [Point, Point]) : [];
   // DRAWN AS A DRAFTSMAN DRAWS A BREAK: the ground between each pair of strokes, right across the rod, so the
   // line is plainly cut there -- and each stroke on a ring of the ground. Charge-coloured strokes laid on a piece
   // filled with the charge's colour vanished into it, all but their tips: on the endless line the run's piece is
@@ -1835,7 +1835,7 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
   const onFill = (v: number) => filledSpans.some(([a, b]) => v > a + 1 && v < b - 1);
   // Written as the derivation beside it writes it, in the lesson's own coordinate: a reader who
   // sees ΔQ = λΔy in the panel should not find ΔQ = λΔℓ under the figure and wonder what ℓ is.
-  const coordinate = id === 'axial' || id === 'semi' ? 'x' : 'y', d = continuum >= .999 ? 'd' : 'Δ';
+  const coordinate = id === 'axial' ? 'x' : 'y', d = continuum >= .999 ? 'd' : 'Δ';
   // Written as a symbol and what follows it, so the ramp's λ₀ is a real subscript: see SymbolText.
   // THE EQUAL-ANGLE LESSONS' PIECE, while it is a piece: what the board defines ΔQ as, the point charge at
   // the piece's middle angle -- λ r sec²α Δα -- not λΔy. The same symbol named two different charges, the
@@ -1953,7 +1953,7 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
       return { name: `${continuum >= .999 ? 'd' : '\u0394'}${surface ? 's' : coordinate}`, path: `M${A.x.toFixed(1)} ${A.y.toFixed(1)}L${B.x.toFixed(1)} ${B.y.toFixed(1)}${tick(A)}${tick(B)}`, label, mirror: M, ends: [A, B] as [Point, Point],
         alt: [besidePoint(A, ends[0], 5, size), besidePoint(B, ends[1], 5, size)].map(spot).join(';'), within: `${at(middle, 4).x.toFixed(1)} ${at(middle, 4).y.toFixed(1)} ${nrm.x.toFixed(3)} ${nrm.y.toFixed(3)}` };
     }
-    if (inSpace || !(upright || id === 'semi' || id === 'axial') || (shrinking && id === 'infinite')) return null;
+    if (inSpace || !(upright || id === 'axial') || (shrinking && id === 'infinite')) return null;
     let [lo, hi] = spanOf(selectedIndex);
     if (lo < rodLow - 1 || hi > rodHigh + 1) return null;
     if (hi - lo < 12) { if (!shrinking) return null; const c = (lo + hi) / 2; lo = c - 6; hi = c + 6; }
@@ -2086,8 +2086,8 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
   // drawn from P, so it jumped from stage to stage and in What cancels stood far out past ΔE_x's tip, while
   // the leg that IS r went unlettered.
   const rOnLeg = !inSpace && !scalar && (id === 'bisector' || id === 'infinite' || footed || id === 'semi') && components && hasDrop && showContribution
-    && building !== 'add' && building !== 'limit' && selectedOnFrame && (id === 'semi' ? O.y - P.y : P.x - O.x) >= rodHalf + 6;
-  if ((id === 'bisector' || id === 'infinite' || footed) && !rOnLeg && !spaceRod) {
+    && building !== 'add' && building !== 'limit' && selectedOnFrame && P.x - O.x >= rodHalf + 6;
+  if ((id === 'bisector' || id === 'infinite' || footed || id === 'semi') && !rOnLeg && !spaceRod) {
     // r, from the rod to P, on a bar below the axis that stops at P rather than running into it --
     // and below anything drawn down from P over that stretch, sixteen units clear of its lowest point.
     // From the rod's edge -- or its axis, for a P closer in than the edge's tick could stand.
@@ -2110,13 +2110,6 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
     // L and a on one baseline under the axis, each with its own bar and ticks.
     dims.push(dimBar('L', 'size', { x: O.x, y: barY }, { x: O.x + p.size * unit, y: barY }, 'L', 1));
     dims.push(dimBar('a', 'distance', { x: O.x + p.size * unit, y: barY }, { x: P.x, y: barY }, 'a', 1));
-  }
-  if (id === 'semi' && !rOnLeg) {
-    // Left of P's line, at one place in every stage. It used to stand left of whatever was drawn from P across
-    // that stretch, and so moved with every stage's arrows; the one stage whose arrow lies across it -- What
-    // cancels, ΔE_x along the level of P -- letters the leg r instead.
-    const x = O.x - 40;
-    dims.push(dimBar('r', 'distance', { x, y: O.y }, { x, y: P.y }, 'r', -1));
   }
   if (perspective && !inSpace) dims.push(dimBar('z', 'distance', { x: O.x - 30, y: O.y }, { x: O.x - 30, y: P.y }, 'z', -1));
   if (flatR !== null) dims.push({ ...dimBar('R', 'size', { x: O.x - R * unit, y: flatR }, { x: O.x, y: flatR }, 'R', 1), within: `0 ${flatR.toFixed(1)} 0 1;${(O.x - SYM * labelScale).toFixed(1)} 0 -1 0` });
@@ -2324,13 +2317,13 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
     if (showContribution && building !== 'limit' && selectedOnFrame) add(vsub(selectedPoint, P));
     if ((pairing && showContribution) || scalarPartner || pairLines) add(vsub(partnerPos, P));
     if (chainPoints.length > 1) { add(vsub(chainPoints[1], P)); add(vsub(chainPoints[chainPoints.length - 1], P)); }
-    const through: Vec[] = id === 'arc' ? [{ x: 1, y: 0, z: 0 }, { x: 0, y: 1, z: 0 }] : [perspective ? { x: 0, y: 0, z: 1 } : id === 'semi' ? { x: 0, y: 1, z: 0 } : { x: 1, y: 0, z: 0 }];
+    const through: Vec[] = id === 'arc' ? [{ x: 1, y: 0, z: 0 }, { x: 0, y: 1, z: 0 }] : [perspective ? { x: 0, y: 0, z: 1 } : { x: 1, y: 0, z: 0 }];
     for (const v of through) { const d = vsub(project(v), project(zero)); add(d); add({ x: -d.x, y: -d.y }); }
     // ...and the column itself, beside P and up or down from it: P = O set by the column on the arc stood
     // between the column's name and its blocks.
     if (gauge) { add({ x: gauge.leftSide ? -1 : 1, y: 0 }); add({ x: gauge.leftSide ? -1 : 1, y: gauge.up ? -1 : 1 }); add({ x: 0, y: gauge.up ? -1 : 1 }); }
     // The bars beneath P and beside it.
-    if (!inSpace && (id === 'bisector' || id === 'infinite' || footed || id === 'axial')) add({ x: 0, y: 1 });
+    if (!inSpace && (id === 'bisector' || id === 'infinite' || id === 'semi' || footed || id === 'axial')) add({ x: 0, y: 1 });
     if (!inSpace && perspective) add({ x: -1, y: 0 });
     // Up-left first, then the other diagonals, then the sides: the order a hand would letter a point.
     //
@@ -2485,7 +2478,7 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
       const end = { ...tip };
       let toward = inward;
       const place = () => {
-        const aside = onLine ? { x: 0, y: 0 } : id === 'infinite' ? { x: 22, y: 0 } : id === 'semi' ? { x: 0, y: 20 } : id === 'sheet' ? (inSpace ? (quiet ? { x: 0, y: 0 } : { x: toward.x * 18, y: toward.y * 18 }) : { x: -34, y: -18 }) : { x: 0, y: 0 };
+        const aside = onLine ? { x: 0, y: 0 } : id === 'infinite' || id === 'semi' ? { x: 22, y: 0 } : id === 'sheet' ? (inSpace ? (quiet ? { x: 0, y: 0 } : { x: toward.x * 18, y: toward.y * 18 }) : { x: -34, y: -18 }) : { x: 0, y: 0 };
         tip.x = end.x + aside.x; tip.y = end.y + aside.y;
       };
       const at = () => besidePoint({ x: tip.x - dir.x * 8, y: tip.y - dir.y * 8 }, toward, 12, size);
@@ -2624,11 +2617,10 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
     // rod and marked 180° − α, and the square and the leg stood on the wrong side of P. The angle's first
     // side is the true perpendicular toward the charge now, whatever the leg does; the leg comes in to
     // stay short of P, and where there is no room for it at all it is left out.
-    const flat = id === 'semi';
-    const side = flat ? (Math.sign(P.y - O.y) || -1) : (Math.sign(P.x - O.x) || 1);
-    const reach = flat ? Math.abs(P.y - O.y) : Math.abs(P.x - O.x), hasLeg = reach >= rodHalf + 6, off = Math.min(rodHalf + 5, reach - 4);
-    const foot = flat ? { x: P.x, y: O.y + side * off } : { x: O.x + side * off, y: P.y };
-    const towardCharge = flat ? { x: P.x, y: P.y - side * 40 } : { x: P.x - side * 40, y: P.y };
+    const side = Math.sign(P.x - O.x) || 1;
+    const reach = Math.abs(P.x - O.x), hasLeg = reach >= rodHalf + 6, off = Math.min(rodHalf + 5, reach - 4);
+    const foot = { x: O.x + side * off, y: P.y };
+    const towardCharge = { x: P.x - side * 40, y: P.y };
     // THE LEG IS THE PIECE'S COORDINATE: it runs from P's level to the piece's own, with a short extension line
     // across to the piece, the way a drawing dimensions a point. It used to stop where the line from the piece
     // met it, which for a steep line was well short -- the y drawn as eight or nine tenths of the piece's y,
@@ -2639,10 +2631,10 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
     // The leg stands off the rod, so the line from the piece met it short of the leg's end: the dashed leg ran on
     // past the hypotenuse to a tick, up to sixty units on the semi-infinite line, and with P close in r_i began
     // inside the rod and crossed the leg in an X. The board's r_i² = r² + y² is about a closed triangle.
-    const across = (q: Point) => flat ? q.y : q.x, legAt0 = across(foot), cross = (legAt0 - across(source)) / (across(P) - across(source));
+    const across = (q: Point) => q.x, legAt0 = across(foot), cross = (legAt0 - across(source)) / (across(P) - across(source));
     const met = hasLeg && cross > 0 && cross < 1 ? { x: source.x + (P.x - source.x) * cross, y: source.y + (P.y - source.y) * cross } : offRod(source, P, selectedIndex);
-    const start = flat ? { x: source.x, y: foot.y } : { x: foot.x, y: source.y };
-    const extension: [Point, Point] = flat ? [start, { x: source.x, y: O.y + side * rodHalf }] : [start, { x: O.x + side * rodHalf, y: source.y }];
+    const start = { x: foot.x, y: source.y };
+    const extension: [Point, Point] = [start, { x: O.x + side * rodHalf, y: source.y }];
     const legLength = hasLeg ? Math.hypot(foot.x - start.x, foot.y - start.y) : 0;
     const toP = direction(vsub(P, foot)), toStart = direction(vsub(start, foot));
     const square = hasLeg && toP && toStart && legLength > 12 ? `M${(foot.x + toP.x * 8).toFixed(1)} ${(foot.y + toP.y * 8).toFixed(1)}L${(foot.x + toP.x * 8 + toStart.x * 8).toFixed(1)} ${(foot.y + toP.y * 8 + toStart.y * 8).toFixed(1)}L${(foot.x + toStart.x * 8).toFixed(1)} ${(foot.y + toStart.y * 8).toFixed(1)}` : '';
@@ -2653,12 +2645,12 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
     const riSpot = besidePoint(hyp, normal, 7, termSize, .52);
     // The leg's own letter, beside its middle inside the triangle; failing that, across the charge.
     const legMid = { x: (start.x + foot.x) / 2, y: (start.y + foot.y) / 2 };
-    const legSpot = besidePoint(legMid, flat ? { x: 0, y: side } : { x: side, y: 0 }, 6, termSize);
+    const legSpot = besidePoint(legMid, { x: side, y: 0 }, 6, termSize);
     // Failing that, further along its own leg, a quarter and three quarters of the way, still inside the
     // triangle -- and never across the rod: there, with the + marks between, it named the rod's far side.
-    const legAt = (f: number) => besidePoint({ x: start.x + (foot.x - start.x) * f, y: start.y + (foot.y - start.y) * f }, flat ? { x: 0, y: side } : { x: side, y: 0 }, 6, termSize);
+    const legAt = (f: number) => besidePoint({ x: start.x + (foot.x - start.x) * f, y: start.y + (foot.y - start.y) * f }, { x: side, y: 0 }, 6, termSize);
     const legAlt = [legAt(.25), legAt(.75), legAt(.12), legAt(.88)].map(q => `${q.x.toFixed(1)} ${q.y.toFixed(1)} ${q.anchor}`).join(';');
-    const legWithin = flat ? `0 ${(O.y + side * rodHalf).toFixed(1)} 0 ${side}` : `${(O.x + side * rodHalf).toFixed(1)} 0 ${side} 0`;
+    const legWithin = `${(O.x + side * rodHalf).toFixed(1)} 0 ${side} 0`;
     // Its sides run to the leg, and along r_i to where the line to the piece starts.
     // Its first side runs all the way to the rod's axis, which is where the angle is measured from. Shorter,
     // the angle's letter could not stand inside it once P was within a metre or so, and went under the axis
@@ -2666,14 +2658,13 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
     // angle -- the arrows leave P the other way -- so its arc may stand closer in to P as well.
     // The rod, and everything past its near edge from P: the angle's letter on the rod, or under its foot on the far
     // side of it, read as the angle at O.
-    const edge = (flat ? O.y : O.x) + side * (rodHalf + 3), far = 1e4;
-    const beyond: Box = flat ? (side > 0 ? { x: -far, y: -far, width: 2 * far, height: far + edge } : { x: -far, y: edge, width: 2 * far, height: far })
-      : side > 0 ? { x: -far, y: -far, width: far + edge, height: 2 * far } : { x: edge, y: -far, width: far, height: 2 * far };
+    const edge = O.x + side * (rodHalf + 3), far = 1e4;
+    const beyond: Box = side > 0 ? { x: -far, y: -far, width: far + edge, height: 2 * far } : { x: edge, y: -far, width: far, height: 2 * far };
     const mark = scalar ? null : angleMark(P, towardCharge, source, 'α', stageCancel, { a: reach, b: Math.hypot(met.x - P.x, met.y - P.y), r0: p.charge > 0 ? Math.max(16, Math.min(34, .4 * reach)) : 34, avoid: beyond });
     // r on the leg from the foot to P, below it -- the far side from the angle -- when it replaces the bar.
     // A little nearer the rod than the middle: nearer P, the mirror piece's line to P has closed in under
     // the leg, and the angle's letter stands over it.
-    const at = (f: number) => ({ x: foot.x + (P.x - foot.x) * f, y: foot.y + (P.y - foot.y) * f }), under = flat ? { x: -1, y: 0 } : { x: 0, y: 1 };
+    const at = (f: number) => ({ x: foot.x + (P.x - foot.x) * f, y: foot.y + (P.y - foot.y) * f }), under = { x: 0, y: 1 };
     const baseMid = at(.5), rSpot = besidePoint(at(.38), under, 6, termSize);
     // ...and never past the mirror's line to P, which closes in under the leg toward P: set beyond it, on a phone, r
     // read as the length of that line -- the mirror's r_i. Between the two, or, failing that, above the leg inside the
@@ -2682,7 +2673,7 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
     const rAlt = [...[.25, .55, .2].map(f => besidePoint(at(f), under, 6, termSize)), besidePoint(at(.3), above, 6, termSize)].map(q => `${q.x.toFixed(1)} ${q.y.toFixed(1)} ${q.anchor}`).join(';');
     const mirrorFrom = pairing ? offRod(partnerPos, P, partnerIndex) : null, mirrorDir = mirrorFrom ? direction(vsub(mirrorFrom, P)) : null;
     const rWithin = mirrorDir ? (() => { let m = { x: -mirrorDir.y, y: mirrorDir.x }; if (m.x * (baseMid.x - P.x) + m.y * (baseMid.y - P.y) < 0) m = { x: -m.x, y: -m.y }; return `${P.x.toFixed(1)} ${P.y.toFixed(1)} ${m.x.toFixed(3)} ${m.y.toFixed(3)}`; })() : undefined;
-    return { kind: 'rod' as const, legs: (hasLeg ? [[met, foot], [foot, P], ...(Math.hypot(start.x - met.x, start.y - met.y) > 1 ? [[met, start]] : [])] : []) as [Point, Point][], arc: mark?.arc ?? [], mark, flat, foot, start, met, extension, square, riSpot, hyp, legMid, legSpot, legAlt, legWithin, legLength, hasLeg, baseMid, rSpot, rAlt, rWithin };
+    return { kind: 'rod' as const, legs: (hasLeg ? [[met, foot], [foot, P], ...(Math.hypot(start.x - met.x, start.y - met.y) > 1 ? [[met, start]] : [])] : []) as [Point, Point][], arc: mark?.arc ?? [], mark, foot, start, met, extension, square, riSpot, hyp, legMid, legSpot, legAlt, legWithin, legLength, hasLeg, baseMid, rSpot, rAlt, rWithin };
   })();
   // THE SAME ANGLE ON THE ARROWS' SIDE OF P. The board takes ΔE cos α as the part along the axis, "the side next to
   // α" -- and α was drawn only in the triangle, on the far side of P from the arrows, where the side next to it is the
@@ -2692,9 +2683,8 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
   // the triangle's own angle -- and only where its letter fits inside it: on a leader it would be one more line at P.
   const twinAngle = (() => {
     if (!triangle || (triangle.kind !== 'rod' && triangle.kind !== 'arc') || !triangle.mark || !stageCancel || !components || !hasDrop || p.charge <= 0 || !drawingPiece) return null;
-    // Its side along the axis: the part away from the charge -- along a rod's perpendicular, which on the half line,
-    // lying along x, is the y part.
-    const along = triangle.kind === 'rod' && triangle.flat ? dropScreen : keepScreen;
+    // Its side along the axis: the part away from the charge, along a rod's perpendicular.
+    const along = keepScreen;
     // On an arc wider than a half turn the piece can lie past a quarter turn, on the −x side of P. Its ΔE_x then
     // points to +x, and the angle between ΔE and ΔE_x is π − θ, not θ: marked and lettered θ it put two angles of
     // different sizes under one name, against the board's ΔE_x = −kΔQ cos θ / R². The true opposite angle there lies
@@ -2761,7 +2751,7 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
   // On the infinite line the triangle's leg is lettered y right under the axis' own y, inside the top wedge
   // beside ΔQ: two y's a few lines apart, naming the same coordinate. While the leg's is drawn -- it is the
   // one the board writes -- the axis' gives way; and while the piece's Δy is, which put the axis' y between
-  // Δy and ΔQ ("Δy y ΔQ"). The semi-infinite line's x does the same for its leg's x.
+  // Δy and ΔQ ("Δy y ΔQ"). The semi-infinite line's y does the same.
   const legLettered = triangle?.kind === 'rod' && triangle.legLength > 14;
   // WHAT LABELS MUST NOT SIT ON, beyond each other: the charge, every arrow, the chain, the axes, P
   // and the potential's column. A stroke is covered by small squares along it rather than by its
@@ -2926,7 +2916,7 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
     const boxAt = (spot: { x: number; y: number; anchor: string }): Box => ({ x: spot.x - (spot.anchor === 'end' ? width : spot.anchor === 'middle' ? width / 2 : 0), y: spot.y - .98 * size, width, height: 1.37 * size });
     const nearerP = (b: Box) => { if (!junction) return true; const c = { x: b.x + b.width / 2, y: b.y + b.height / 2 }; return Math.hypot(c.x - P.x, c.y - P.y) + 4 < Math.hypot(c.x - junction.x, c.y - junction.y); };
     // On P's own side of a rod: with P close in, a phone set P left of the rod, where it named the rod's far side.
-    const pSide = (b: Box) => !rodLike || inSpace || id === 'axial' ? true : id === 'semi' ? (P.y < O.y ? b.y + b.height < O.y - rodHalf : b.y > O.y + rodHalf) : P.x >= O.x ? b.x > O.x + rodHalf : b.x + b.width < O.x - rodHalf;
+    const pSide = (b: Box) => !rodLike || inSpace || id === 'axial' ? true : P.x >= O.x ? b.x > O.x + rodHalf : b.x + b.width < O.x - rodHalf;
     const clear = (b: Box) => b.x > 46 && b.y > 58 && b.x + b.width < 664 && b.y + b.height < 367 && nearerP(b) && pSide(b)
       && !obstacleBoxes.some(o => o.width !== 2 * haloR + 2 && b.x < o.x + o.width && o.x < b.x + b.width && b.y < o.y + o.height && o.y < b.y + b.height)
       // With the air the placer keeps between two names, not less: four units off r_i's spot, P left r_i too little
@@ -3196,7 +3186,7 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
       <g className="cd-axes" clipPath={inSpace ? `url(#${uid}clip)` : undefined}>
         {/* Projected axes whenever the view can turn, so they rotate with what they measure;
             the flat pair is only right when the camera is locked. */}
-        {inSpace ? <><path d={`M${2 * O.x - axisX.x} ${2 * O.y - axisX.y}L${axisX.x} ${axisX.y} M${2 * O.x - axisY.x} ${2 * O.y - axisY.y}L${axisY.x} ${axisY.y} M${O.x} ${O.y + 27}V60`} /><text data-anchor="fixed" data-axis="x" {...(axisLetters?.x ?? axisTip(axisX, 13, 5))}>x</text><text data-anchor="fixed" data-axis="y" {...(axisLetters?.y ?? axisTip(axisY, 13, 5))}>y</text><text data-anchor="fixed" x={O.x + 18} y={axisTop + 1}>z</text></> : <><path d={`M64 ${O.y}H656 M${O.x} 365V60`} />{!(id === 'semi' && legLettered) && <text data-anchor="fixed" x="662" y={id === 'axial' ? O.y + 24 : O.y - 9} textAnchor="middle">x</text>}{!(id === 'infinite' && (legLettered || pieceLength || bounds.some(b => b.name))) && <text data-anchor="fixed" data-axis={perspective ? 'z' : 'y'} x={yLeft ? O.x - 11 : O.x + (perspective ? 18 : id === 'infinite' ? 13 : 11)} textAnchor={yLeft ? 'end' : undefined} y={axisTop}>{perspective ? 'z' : 'y'}</text>}</>}
+        {inSpace ? <><path d={`M${2 * O.x - axisX.x} ${2 * O.y - axisX.y}L${axisX.x} ${axisX.y} M${2 * O.x - axisY.x} ${2 * O.y - axisY.y}L${axisY.x} ${axisY.y} M${O.x} ${O.y + 27}V60`} /><text data-anchor="fixed" data-axis="x" {...(axisLetters?.x ?? axisTip(axisX, 13, 5))}>x</text><text data-anchor="fixed" data-axis="y" {...(axisLetters?.y ?? axisTip(axisY, 13, 5))}>y</text><text data-anchor="fixed" x={O.x + 18} y={axisTop + 1}>z</text></> : <><path d={`M64 ${O.y}H656 M${O.x} 365V60`} /><text data-anchor="fixed" x="662" y={id === 'axial' ? O.y + 24 : O.y - 9} textAnchor="middle">x</text>{!((id === 'infinite' || id === 'semi') && (legLettered || pieceLength || bounds.some(b => b.name))) && <text data-anchor="fixed" data-axis={perspective ? 'z' : 'y'} x={yLeft ? O.x - 11 : O.x + (perspective ? 18 : id === 'infinite' || id === 'semi' ? 13 : 11)} textAnchor={yLeft ? 'end' : undefined} y={axisTop}>{perspective ? 'z' : 'y'}</text>}</>}
       </g>
       <g clipPath={`url(#${uid}clip)`}>
         {/* Painted first, under everything: it is the frame the rest of the figure sits in, not a
@@ -3312,7 +3302,7 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
             edge's arrows carry. Lit in the limits' colour as the board's α: −π/2 → π/2 lit beside them, they read as
             the integral's limits. */}
         <text className="cd-end cd-coordinate-end" x={O.x - 16} y={(80 + .3 * SYM * labelScale).toFixed(1)} textAnchor="end" {...endAttrs}>+∞</text><text className="cd-end cd-coordinate-end" x={O.x - 16} y={(348 + .3 * SYM * labelScale).toFixed(1)} textAnchor="end" {...endAttrs}>−∞</text></g>}
-      {id === 'semi' && <g className="cd-infinity">{breakGaps.map(g => <polygon key={g} className="cd-break-gap" points={g} />)}<path className="cd-break-under" d={breaks.map(([a, b]) => `M${a.x.toFixed(1)} ${a.y.toFixed(1)}L${b.x.toFixed(1)} ${b.y.toFixed(1)}`).join('')} /><path d={breaks.map(([a, b]) => `M${a.x.toFixed(1)} ${a.y.toFixed(1)}L${b.x.toFixed(1)} ${b.y.toFixed(1)}`).join('')} /><text className="cd-end" x={rodHigh - 4} y={O.y - 17} {...endAttrs}>∞</text></g>}
+      {id === 'semi' && <g className="cd-infinity">{breakGaps.map(g => <polygon key={g} className="cd-break-gap" points={g} />)}<path className="cd-break-under" d={breaks.map(([a, b]) => `M${a.x.toFixed(1)} ${a.y.toFixed(1)}L${b.x.toFixed(1)} ${b.y.toFixed(1)}`).join('')} /><path d={breaks.map(([a, b]) => `M${a.x.toFixed(1)} ${a.y.toFixed(1)}L${b.x.toFixed(1)} ${b.y.toFixed(1)}`).join('')} /><text className="cd-end" x={O.x - 16} y={(80 + .3 * SYM * labelScale).toFixed(1)} textAnchor="end" {...endAttrs}>∞</text></g>}
       {id === 'sheet' && !inSpace && <text x={sheetRim.right.x} y={sheetRim.right.y + 24} textAnchor="end" className="cd-end" {...GIVEN}>s → ∞</text>}
       {/* DIMENSIONS, drawn as a draftsman draws them: a bar beside what it measures, a tick at each
           end, its letter beside the bar's middle -- and every one of them off the axes, the charge
@@ -3593,14 +3583,14 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
             <path className="cd-ri-bar" d={triangle.riBar} />
             <text x={triangle.riName.x.toFixed(1)} y={triangle.riName.y.toFixed(1)} textAnchor={triangle.riName.anchor} data-mirror={`${((a.x + b.x) / 2).toFixed(1)} ${((a.y + b.y) / 2).toFixed(1)}`} {...termAttrs(distanceTerm)}><SymbolText symbol="r_i" tail=" = L + a − x" /></text>
           </>; })()}
-        {triangle.kind === 'rod' && (() => { const { start, foot, met, extension, square, riSpot, hyp, legMid, legSpot, legAlt, legWithin, legLength, flat, mark, hasLeg, baseMid, rSpot, rAlt, rWithin } = triangle;
+        {triangle.kind === 'rod' && (() => { const { start, foot, met, extension, square, riSpot, hyp, legMid, legSpot, legAlt, legWithin, legLength, mark, hasLeg, baseMid, rSpot, rAlt, rWithin } = triangle;
           return <>
             {hasLeg && <path data-leg="true" d={`M${met.x.toFixed(1)} ${met.y.toFixed(1)}L${foot.x.toFixed(1)} ${foot.y.toFixed(1)}L${P.x.toFixed(1)} ${P.y.toFixed(1)}`} />}
             {hasLeg && legLength > 4 && <path className="cd-extension-tick" data-leg-extension="true" d={`M${met.x.toFixed(1)} ${met.y.toFixed(1)}L${start.x.toFixed(1)} ${start.y.toFixed(1)}L${extension[1].x.toFixed(1)} ${extension[1].y.toFixed(1)}`} />}
             {square && <path className="cd-right-angle" d={square} />}
             <text x={riSpot.x.toFixed(1)} y={riSpot.y.toFixed(1)} textAnchor={riSpot.anchor} data-mirror={`${hyp.x.toFixed(1)} ${hyp.y.toFixed(1)}`} data-within={legWithin} className="cd-ri" {...termAttrs(distanceTerm)}><SymbolText symbol="r_i" /></text>
             {legLength > 14 && <text x={legSpot.x.toFixed(1)} y={legSpot.y.toFixed(1)} textAnchor={legSpot.anchor} data-mirror={`${legMid.x.toFixed(1)} ${legMid.y.toFixed(1)}`}
-              data-alt={legAlt} data-within={legWithin} data-shaft={lineOf(start, foot)} {...(distanceTerm ? termAttrs(true) : { 'data-priority': 1 })}>{flat ? 'x' : 'y'}</text>}
+              data-alt={legAlt} data-within={legWithin} data-shaft={lineOf(start, foot)} {...(distanceTerm ? termAttrs(true) : { 'data-priority': 1 })}>y</text>}
             {/* Each leg's letter held to its own leg, as a dimension's is to its bar: with P close in, the r leg is a few
                 units long, and r stood beside the y leg and y beside ΔE_y, each read as the other's name. */}
             {rOnLeg && hasLeg && <text x={rSpot.x.toFixed(1)} y={rSpot.y.toFixed(1)} textAnchor={rSpot.anchor} data-dim="distance" data-mirror={`${baseMid.x.toFixed(1)} ${baseMid.y.toFixed(1)}`} data-alt={rAlt} data-within={rWithin} data-shaft={lineOf(foot, P)} {...GIVEN}>r</text>}

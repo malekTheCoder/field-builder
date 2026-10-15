@@ -166,8 +166,8 @@ describe('small things said once, and said right', () => {
     expect(add).toContain('Here $y_2$ is where the bracket’s handle stands on the figure.');
     expect(step('bisector', 'add', ['y_1', 'y_2']).say).toContain('Here $y_1$ and $y_2$ are where the bracket’s handles stand on the figure.');
     const semi = step('semi', 'add', ['r', '\\infty']).say!;
-    expect(semi).toContain('from $x=r$ on to $\\infty$');
-    expect(semi).not.toContain('x=\\infty');
+    expect(semi).toContain('from $y=r$ on to $\\infty$');
+    expect(semi).not.toContain('y=\\infty');
     for (const p of PROBLEMS) expect(boardLines(p, ['a', 'b']).map(words).join(' '), p.id).not.toMatch(/counted once/);
   });
   it('r_i’s index is said where r_i first appears', () => {

@@ -66,11 +66,11 @@ function LimitFigure({id,mode,t,vector,scale,arrow}:{id:ProblemId;mode:Limit['mo
  // length in the proportion a = tL; walking in, the rod keeps its length and the gap closes on it.
  if(id==='axial'){const w=mode==='near'?85:Math.max(4,170/(1+t)),x=mode==='near'?129+85/t:214;return <><path d={`M${44+w} 25H${x-8}`} {...RAIL}/><path d={`M44 25h${w}`} {...CHARGE} strokeWidth="7"/>{P(x,25,false,undefined,44+w+5)}</>}
  // The half line moving P away: P walks out along the plot's own logarithmic axis, as on the whole
- // line, so P is where the dot on the curve is. P STARTS A CLEAR GAP ABOVE THE LINE'S END. It began
- // at y = 32, its dot touching the line's 7-unit stroke (top edge 34.5) at the start of the sweep and
- // grazing it at the slider's default -- P drawn on the line, in a lesson about P a distance r above
- // its end. A negative line's arrow, which points down at the line, stops at its top edge.
- if(id==='semi'){const y=24-16*Math.log(t)/Math.log(30);return <><path d="M108 38H246" {...CHARGE} strokeWidth="7"/><path d="M238 31l9 7-9 7" {...CHARGE}/><path d={`M108 38V${y+6}`} {...RAIL}/>{P(108,y,false,33)}</>}
+ // line, so P is where the dot on the curve is. The line stands up from its end, as the rod level with
+ // an end stands and as the lesson lays it, and P walks out level with that end; the line runs off the
+ // top with the rod grown without end's mark. A negative line's arrow, which points back up at the
+ // line, stops at its edge.
+ if(id==='semi'){const x=80+130*Math.log(t)/Math.log(30);return <><path d={`M64 34H${x}`} {...RAIL}/><path d="M64 34V-4" {...CHARGE} strokeWidth="7"/><path d="M57 12l7-6 7 6" {...CHARGE}/>{P(x,34,false,undefined,64+3.5+CLEAR)}</>}
  if(id==='endpoint'||id==='ramp'){
   const {length,gap,unbounded}=rodScale(mode,t,32,94,24),h=Math.max(3,length);
   return <><path d={`M104 34H${104+gap-8}`} {...RAIL}/>
@@ -115,7 +115,7 @@ function LimitFigure({id,mode,t,vector,scale,arrow}:{id:ProblemId;mode:Limit['mo
   {P(S+gap,Y,true,undefined,edge+CLEAR)}</>
 }
 /** Room above and below a thumbnail's 48-unit frame, for the arrows that lean out of it. */
-const THUMB_PAD:Partial<Record<ProblemId,[number,number]>>={semi:[18,4],endpoint:[0,20],ramp:[0,20]};
+const THUMB_PAD:Partial<Record<ProblemId,[number,number]>>={semi:[0,20],endpoint:[0,20],ramp:[0,20]};
 // The plot's frame, in the SVG's own units.
 const X0=40,X1=452,TOP=34,BASE=165,WIDTH=480;
 /** What the plotted curve is at one sample: the exact value over the reference, or, where the

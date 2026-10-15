@@ -111,7 +111,7 @@ describe('the limits\' arrows at the frame, in space', () => {
  // The scene draws each axis right through O; the SVG's own axes path gives the line on the screen.
  const axis = (view: View, k: 0 | 1) => svg(view).querySelector('.cd-axes path')!.getAttribute('d')!.split('M').filter(Boolean)[k].match(/[-\d.]+/g)!.map(Number);
  const fromLine = (q: {x: number; y: number}, [ax, ay, bx, by]: number[]) => Math.abs((bx - ax) * (q.y - ay) - (by - ay) * (q.x - ax)) / Math.hypot(bx - ax, by - ay);
- for (const [id, k] of [['infinite', 1], ['semi', 0]] as const) it(`${id}: on its line, longer than wide, and named`, async () => {
+ for (const [id, k] of [['infinite', 1], ['semi', 1]] as const) it(`${id}: on its line, longer than wide, and named`, async () => {
   const view = await openLesson(id, `?p=${id}&mode=integrate`);
   await toSpace(view);
   const all = edges(view);
@@ -120,7 +120,7 @@ describe('the limits\' arrows at the frame, in space', () => {
    expect(fromLine(e.tip, axis(view, k)), `${id}: its tip on the line`).toBeLessThan(2);
    expect(fromLine(e.base, axis(view, k)), `${id}: and its base`).toBeLessThan(2);
    expect(e.width, 'narrower than long').toBeLessThan(Math.hypot(e.tip.x - e.base.x, e.tip.y - e.base.y));
-   expect(e.name, 'named').toMatch(id === 'infinite' ? /^α → / : /^x → ∞$/);
+   expect(e.name, 'named').toMatch(id === 'infinite' ? /^α → / : /^y → ∞$/);
   }
  }, 60000);
  for (const [w, h] of [[1440, 900], [390, 844]] as const) it(`sheet at ${w}: the far limit and its name stay out of the "Same triangle" inset`, async () => {

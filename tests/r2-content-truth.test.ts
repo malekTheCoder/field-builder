@@ -27,7 +27,7 @@ describe('half an infinite line is not half the field',()=>{
   expect(m).toMatch(/other half cancels/);
  });
  it('agrees with the semi-infinite lesson, where each component of the half line is kλ/r',()=>{
-  expect(said('semi','result','-2*k*lambda/r')).toMatch(/Each component of this half line comes to kλ\/r/);
+  expect(said('semi','result','2*k*lambda/r')).toMatch(/Each component of this half line comes to kλ\/r/);
  });
 });
 describe('a single element or an integrand is never zero by symmetry; only a sum is',()=>{
@@ -47,7 +47,7 @@ describe('a single element or an integrand is never zero by symmetry; only a sum
   expect(said('bisector','component2','0')).toMatch(/is not zero/);
  });
  it('an integrand is odd on the symmetric geometry, not zero: only its integral vanishes',()=>{
-  for(const [id,field] of [['endpoint','kernel2'],['semi','kernel']] as const){
+  for(const [id,field] of [['endpoint','kernel2'],['semi','kernel2']] as const){
    const m=said(id,field,'0');
    expect(m,id).toMatch(/integrand is not zero/);
    expect(m,id).toMatch(/odd in [xy]/);
@@ -55,7 +55,7 @@ describe('a single element or an integrand is never zero by symmetry; only a sum
   }
  });
  it('the result-level entries, where zero really is the symmetric answer, stay',()=>{
-  expect(said('semi','result','0')).toMatch(/right for a line running both ways/);
+  expect(said('semi','result2','0')).toMatch(/right for a line running both ways/);
   expect(said('endpoint','result2','0')).toMatch(/Only a rod centred on P’s level/);
  });
 });

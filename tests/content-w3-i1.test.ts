@@ -44,12 +44,14 @@ describe('the Unfold the handout prints names no stage of the run',()=>{
  it('the semi-infinite line and the sheet put α back in their own words, and their algebra holds',()=>{
   for(const w of [...SEMI_UNFOLD,...SHEET_UNFOLD])expect(w.text).not.toMatch(/Cut it up|One piece|What cancels|Add them up|Shrink them/);
   // The panel's wording: the angle named by what it is, and the minus already outside said so.
-  expect(SEMI_UNFOLD[0].text).toMatch(/With \$-k\\lambda\$ outside, put .*the angle at.*from the perpendicular to the line/);
+  expect(SEMI_UNFOLD[0].text).toMatch(/With \$k\\lambda\$ outside, put .*the angle at.*from the perpendicular to the line/);
   expect(SHEET_UNFOLD[0].text).toMatch(/its angle \$\\alpha\$ at \$P\$, between the axis and the line to the ring/);
-  // x dx/(x² + r²)^{3/2} with x = r tan α is sin α dα/r; z s ds/(s² + z²)^{3/2} with s = z tan α is sin α dα.
+  // r dy/(y² + r²)^{3/2} with y = r tan α is cos α dα/r, and y dy/(y² + r²)^{3/2} is sin α dα/r;
+  // z s ds/(s² + z²)^{3/2} with s = z tan α is sin α dα.
   for(const a of [.1,.6,1.3]){
-   const r=.8,x=r*Math.tan(a),dx=r/Math.cos(a)**2;
-   expect(x*dx/(x*x+r*r)**1.5).toBeCloseTo(Math.sin(a)/r,12);
+   const r=.8,y=r*Math.tan(a),dy=r/Math.cos(a)**2;
+   expect(r*dy/(y*y+r*r)**1.5).toBeCloseTo(Math.cos(a)/r,12);
+   expect(y*dy/(y*y+r*r)**1.5).toBeCloseTo(Math.sin(a)/r,12);
    const z=1.7,s=z*Math.tan(a),ds=z/Math.cos(a)**2;
    expect(z*s*ds/(s*s+z*z)**1.5).toBeCloseTo(Math.sin(a),12);
   }

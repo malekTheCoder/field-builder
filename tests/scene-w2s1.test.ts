@@ -22,7 +22,7 @@ const UNBOUNDED = new Set<ProblemId>(['infinite', 'semi', 'sheet']);
 const fieldSamples = (id: ProblemId, p: Params) => sampleDistribution(id, p, Math.max(p.slices, UNBOUNDED.has(id) ? 400 : 96));
 const reachOf = (p: Params) => Math.round(Math.min(9, Math.max(3.5, p.size * 1.5)) * 2) / 2;
 /** Where ChargeDiagram stands P in space. */
-const pointOf = (id: ProblemId, p: Params): Vec => id === 'arc' ? {x: 0, y: 0, z: 0} : id === 'axial' ? {x: p.size + p.distance, y: 0, z: 0} : id === 'semi' ? {x: 0, y: p.distance, z: 0}
+const pointOf = (id: ProblemId, p: Params): Vec => id === 'arc' ? {x: 0, y: 0, z: 0} : id === 'axial' ? {x: p.size + p.distance, y: 0, z: 0}
  : ['ring', 'disk', 'sheet', 'v-ring', 'v-disk'].includes(id) ? {x: 0, y: 0, z: p.distance} : {x: p.distance, y: 0, z: 0};
 const LEN = (v: Vec) => Math.hypot(v.x, v.y, v.z);
 const deg = (a: Vec, b: Vec) => Math.acos(Math.max(-1, Math.min(1, (a.x * b.x + a.y * b.y + a.z * b.z) / (LEN(a) * LEN(b))))) * 180 / Math.PI;
@@ -129,7 +129,7 @@ describe('the semi-infinite line\'s field is its own, not its lumps\'', () => {
   expect(endlessRay(fieldSamples('axial', p), 10)).toBeNull();
   // Against a very fine partition of the same line, where its lumps are far finer than the distance.
   const fine = sampleDistribution('semi', p, 20000), E = rayField(ray);
-  for (const at of [{x: 0, y: distance, z: 0}, {x: 4, y: .7, z: .3}, {x: -1, y: 1, z: 0}, {x: 9, y: 2, z: -1}]) {
+  for (const at of [{x: distance, y: 0, z: 0}, {x: .7, y: 4, z: .3}, {x: 1, y: -1, z: 0}, {x: 2, y: 9, z: -1}]) {
    const exact = spaceField(fine, at), closed = E(at);
    expect(deg(exact, closed), JSON.stringify(at)).toBeLessThan(.3);
    expect(LEN(closed) / LEN(exact), JSON.stringify(at)).toBeCloseTo(1, 1);
@@ -150,14 +150,14 @@ describe('the semi-infinite line\'s field is its own, not its lumps\'', () => {
  });
  it('the flat lines are evenly spaced beside the line, with no hole and no doubled stroke', () => {
   const p = params({distance: .5}), ray = endlessRay(fieldSamples('semi', p), 12)!;
-  const window = {x0: -3, y0: -4, x1: 13, y1: 5};
+  const window = {x0: -4, y0: -3, x1: 5, y1: 13};
   const lines = rayLines(ray, 32, 12, 4 * .95 * .05, 0, {step: .1, maxSteps: 3200, outerLimit: 30, crowd: 4 * .95 * .012, far: v => v.x < window.x0 || v.x > window.x1 || v.y < window.y0 || v.y > window.y1}, true);
   expect(lines).toHaveLength(32);
-  // Where each line above the wire crosses y = 3, over the stretch where the line is the infinite one's.
+  // Where each line beside the wire crosses x = 3, over the stretch where the line is the infinite one's.
   const at: number[] = [];
   for (const l of lines) for (let i = 0; i + 1 < l.length; i++) {
    const a = l[i], b = l[i + 1];
-   if ((a.y - 3) * (b.y - 3) <= 0 && a.y !== b.y) {const x = a.x + (b.x - a.x) * (3 - a.y) / (b.y - a.y); if (x > 3 && x < 10) at.push(x);}
+   if ((a.x - 3) * (b.x - 3) <= 0 && a.x !== b.x) {const y = a.y + (b.y - a.y) * (3 - a.x) / (b.x - a.x); if (y > 3 && y < 10) at.push(y);}
   }
   at.sort((x, y) => x - y);
   const gaps = at.slice(1).map((x, i) => x - at[i]), median = [...gaps].sort((x, y) => x - y)[Math.floor(gaps.length / 2)];
@@ -180,7 +180,7 @@ describe('an endless charge\'s arrows stand round P', () => {
   const p = params(), reach = reachOf(p), source = fieldSamples('semi', p), P = pointOf('semi', p);
   const {centre, spacing} = latticeFrame(endlessBody('wire', source, P, reach), reach);
   const arrows = latticeCore(coarsen(source, 144), reach, 'wire', centre, spacing, rayField(endlessRay(source, 10)!));
-  expect(arrows.filter(a => a.at.x >= 5).length).toBeGreaterThan(0);
+  expect(arrows.filter(a => a.at.y >= 5).length).toBeGreaterThan(0);
  });
  it('the sheet\'s arrows stay half a step off the plane, all at full weight', () => {
   for (const distance of [.5, 3, 6]) {

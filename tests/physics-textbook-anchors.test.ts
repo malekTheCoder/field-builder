@@ -260,12 +260,12 @@ describe('Griffiths 2.3, the angle-bisector theorem, and the semi-infinite line'
   rel(E.x,k*nC/1,1e-5,'endpoint E_x as L → ∞');
   rel(E.y,-k*nC/1,1e-5,'endpoint E_y as L → ∞'); // deficit is r/L = 1e−6 here.
  });
- it('the semi-infinite line at the foot is exactly (−kλ/r, +kλ/r)',()=>{
-  // Same quarter-turn sweep, taken as its own lesson: P = (0, r) with the line
-  // along +x, so the app's signs are mirrored relative to the endpoint rod.
+ it('the semi-infinite line level with its end is exactly (+kλ/r, −kλ/r)',()=>{
+  // Same quarter-turn sweep, taken as its own lesson: P = (r, 0) with the line up +y,
+  // the endpoint rod's own frame, so the signs are the rod's as L → ∞ above.
   const E=field('semi',P({charge:1,distance:1}));
-  rel(E.x,-k*nC/1,TIGHT,'semi E_x');
-  rel(E.y,k*nC/1,TIGHT,'semi E_y');
+  rel(E.x,k*nC/1,TIGHT,'semi E_x');
+  rel(E.y,-k*nC/1,TIGHT,'semi E_y');
   expect(E.z).toBe(0);
   rel(magnitude(E),Math.SQRT2*k*nC/1,TIGHT,'semi |E| = √2 kλ/r');
  });

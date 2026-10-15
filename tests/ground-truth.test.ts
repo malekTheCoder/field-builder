@@ -53,8 +53,8 @@ function truth(id:ProblemId,p:Params):V3{
   case 'endpoint':{const lam=q/L;return simpson(y=>coulomb(lam,[0,y,0],[d,0,0]),0,L,4000);}
   // The same rod with λ(y) = λ₀ y/L; the slider is the peak density λ₀.
   case 'ramp':return simpson(y=>coulomb(q*y/L,[0,y,0],[d,0,0]),0,L,4000);
-  // Semi-infinite rod along +x from the origin; P = (0, r).
-  case 'semi':{const lam=q,g=(x:number)=>coulomb(lam,[x,0,0],[0,d,0]);
+  // Semi-infinite rod up the y-axis from the origin; P = (r, 0), level with its end.
+  case 'semi':{const lam=q,g=(y:number)=>coulomb(lam,[0,y,0],[d,0,0]);
    return add(simpson(g,0,Math.abs(d),256),toInfinity(g,Math.abs(d),Math.abs(d)));}
   // Disk of radius R in the xy-plane; honest two-dimensional surface integral.
   case 'disk':{const sig=q/(Math.PI*R*R);return double2d((s,t)=>coulomb(sig*s,[s*Math.cos(t),s*Math.sin(t),0],[0,0,d]),0,R,600,0,2*Math.PI,120);}
@@ -139,7 +139,7 @@ describe('the displayed derivation reproduces the displayed answer',()=>{
   {id:'infinite',path:'angular',lo:-Math.PI/2,hi:Math.PI/2,component:'x',element:'dy'},
   {id:'ring',lo:0,hi:2*Math.PI,component:'z',element:'R*dtheta'},
   {id:'disk',lo:0,hi:p.size/2,component:'z',element:'2*pi*s*ds'},
-  {id:'semi',lo:0,hi:'inf',component:'x',element:'dx',secondary:{kernelId:'kernel2',expected:'k*lambda/r',component:'y'}},
+  {id:'semi',lo:0,hi:'inf',component:'x',element:'dy',secondary:{kernelId:'kernel2',expected:'-k*lambda/r',component:'y'}},
   {id:'endpoint',lo:0,hi:p.size,component:'x',element:'dy',secondary:{kernelId:'kernel2',expected:'-k*lambda*(1/r-1/sqrt(r^2+L^2))',component:'y'}},
   {id:'ramp',lo:0,hi:p.size,component:'x',element:'dy',secondary:{kernelId:'kernel2',expected:'-k*lambda0/L*(log((L+sqrt(L^2+r^2))/r)-L/sqrt(L^2+r^2))',component:'y'}},
   {id:'arc',lo:-p.phi/2,hi:p.phi/2,component:'x',element:'R*dtheta'},

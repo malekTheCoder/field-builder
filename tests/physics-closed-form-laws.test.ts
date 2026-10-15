@@ -189,13 +189,13 @@ describe('one lesson against another: superposition of the closed forms',()=>{
   }
  });
  it('two mirrored semi-infinite lines make the infinite line',()=>{
-  // The semi lesson lays λ along +x from the origin with P at (0, r); its mirror image runs
-  // along −x. Together they are one infinite wire: the along-wire pushes cancel and the
+  // The semi lesson lays λ up +y from the origin with P at (r, 0); its mirror image runs
+  // down −y. Together they are one infinite wire: the along-wire pushes cancel and the
   // perpendicular ones add, so the semi rod carries exactly half the infinite line's field.
   for(const d of DS)for(const q of QS){
    const half=field('semi',P({distance:d,charge:q})),whole=field('infinite',P({distance:d,charge:q}));
-   close(half.y,whole.x/2,1e-13,`semi = ½ infinite · r ${d} q ${q}`);
-   close(half.x,-half.y,1e-13,`and the two halves cancel along the wire · r ${d} q ${q}`);
+   close(half.x,whole.x/2,1e-13,`semi = ½ infinite · r ${d} q ${q}`);
+   close(half.y,-half.x,1e-13,`and the two halves cancel along the wire · r ${d} q ${q}`);
   }
  });
  it('an arc is two rotated sub-arcs, each pointing along its own bisector',()=>{

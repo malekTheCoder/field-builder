@@ -62,7 +62,7 @@ afterAll(()=>{if(process.env.AUTHORED_REPORT)process.stderr.write('\n'+ledger.ma
 const OBSERVER:Record<string,(p:Params)=>[number,number,number]>={
  bisector:p=>[p.distance,0,0],axial:p=>[p.size+p.distance,0,0],infinite:p=>[p.distance,0,0],
  ring:p=>[0,0,p.distance],disk:p=>[0,0,p.distance],sheet:p=>[0,0,p.distance],
- semi:p=>[0,p.distance,0],arc:()=>[0,0,0],endpoint:p=>[p.distance,0,0],ramp:p=>[p.distance,0,0],
+ semi:p=>[p.distance,0,0],arc:()=>[0,0,0],endpoint:p=>[p.distance,0,0],ramp:p=>[p.distance,0,0],
 };
 
 // ===========================================================================
@@ -187,7 +187,7 @@ function scopeFor(p:Problem,o:Setting):Scope{
   case 'arc':sc.Q=charge;sc.lambda=charge/(R*phi);sc.ri=R;break;
   case 'disk':sc.Q=charge;sc.sigma=charge/(Math.PI*R*R);sc.ri=Math.hypot(sc.s,dist);break;
   case 'sheet':sc.sigma=charge;sc.ri=Math.hypot(sc.s,dist);break;              // no total Q exists
-  case 'semi':sc.lambda=charge;sc.ri=Math.hypot(sc.x,dist);break;              // no total Q exists
+  case 'semi':sc.lambda=charge;sc.ri=Math.hypot(sc.y,dist);break;              // no total Q exists
   case 'infinite':sc.lambda=charge;sc.Q=charge*L;                              // REGISTRY's scope convention
    if(angular){sc.y=dist*Math.tan(sc.alpha);sc.ri=dist/Math.cos(sc.alpha);sc.dy=dist/Math.cos(sc.alpha)**2*sc.dalpha;}
    else sc.ri=Math.hypot(sc.y,dist);break;
@@ -259,9 +259,9 @@ function builtKernel(p:Problem,projection:string):string{
 }
 describe('the kernel factorises into the Answer strings the student is asked for',()=>{
  for(const {key,p} of VARIANTS)it(`${key}: k·(dQ/element)·(element/dv)·projection/rᵢⁿ is the graded integrand`,()=>{
-  // The semi-infinite line is the exception, and an authored one: its `projection` Answer is
-  // labelled "Positive y-projection factor", so it factorises the SECONDARY kernel.
-  const target=p.geometry==='semi'?need(p,'kernel2').expected:p.kernel;
+  // The semi-infinite line was the exception, laid along x with its projection the y factor of its
+  // SECONDARY kernel. Stood up the y-axis as its parent rod stands, it factorises its own step's kernel.
+  const target=p.kernel;
   const built=builtKernel(p,answerOf(p,'projection')?.expected??'1');
   const check=equivalent(built,target,p);
   expect(check.error,`${key} parse: ${built}`).toBeUndefined();
@@ -271,24 +271,22 @@ describe('the kernel factorises into the Answer strings the student is asked for
  // the same right triangle, written here from the geometry rather than copied out of the lesson.
  const SECOND:Record<string,[string,'kernel'|'kernel2']>={
   endpoint:['-y/(sqrt(y^2+r^2))','kernel2'],ramp:['-y/(sqrt(y^2+r^2))','kernel2'],
-  semi:['-x/(sqrt(x^2+r^2))','kernel'],
+  semi:['-y/(sqrt(y^2+r^2))','kernel2'],
  };
  for(const [id,[projection,which]] of Object.entries(SECOND))it(`${id}: the other component factorises the same way`,()=>{
   const p=getProblem(id),built=builtKernel(p,projection);
   const target=which==='kernel'?p.kernel:need(p,'kernel2').expected;
   expect(equivalent(built,target,p).ok,`${id}\n  built ${built}\n  authored ${target}`).toBe(true);
  });
- it('the semi-infinite line grades a projection that belongs to its OTHER component',()=>{
+ it('the semi-infinite line grades the projection of its own step’s kernel, as its parent rod does',()=>{
   const p=getProblem('semi');
-  // Written out: the graded projection r/√(x²+r²) reproduces kernel2 (E_y) and the
-  // x-projection −x/√(x²+r²) reproduces kernel (E_x). Both hold. What does not hold is the
-  // step's own labelling, since `kernel` is the integrand that same step asks for.
-  expect(equivalent('k*lambda*(-x/sqrt(x^2+r^2))/(x^2+r^2)',p.kernel,p).ok,'x-projection ⇒ kernel').toBe(true);
-  expect(equivalent('k*lambda*(r/sqrt(x^2+r^2))/(x^2+r^2)',need(p,'kernel2').expected,p).ok,'y-projection ⇒ kernel2').toBe(true);
-  expect(need(p,'projection').expected).toBe('r/sqrt(x^2+r^2)');
-  expect(equivalent(`k*lambda*(${need(p,'projection').expected})/(x^2+r^2)`,p.kernel,p).ok,
-   'the graded projection does NOT factorise the graded kernel of its own step').toBe(false);
-  expect(need(p,'projection').label,'only the label says so').toMatch(/\by factor\b/);
+  // Written out: the graded projection r/√(y²+r²) reproduces kernel (E_x), the part across the line, and
+  // the y-projection −y/√(y²+r²) reproduces kernel2 (E_y), the part along it -- the rod level with an end's
+  // two factors, which is the lesson this line grows from.
+  expect(need(p,'projection').expected).toBe('r/sqrt(y^2+r^2)');
+  expect(equivalent(`k*lambda*(${need(p,'projection').expected})/(y^2+r^2)`,p.kernel,p).ok,'x-projection ⇒ kernel').toBe(true);
+  expect(equivalent('k*lambda*(-y/sqrt(y^2+r^2))/(y^2+r^2)',need(p,'kernel2').expected,p).ok,'y-projection ⇒ kernel2').toBe(true);
+  expect(need(p,'projection').label).toBe(need(getProblem('endpoint'),'projection').label);
  });
 });
 

@@ -98,9 +98,9 @@ const GEOMETRY:Record<string,Geom>={
  disk:{P:p=>[0,0,p.distance],component:'z',total:p=>p.charge*1e-9,centroid:()=>[0,0,0],
   E(p){const R=p.size/2,sigma=p.charge*1e-9/(Math.PI*R*R),P=this.P(p),eps=Math.abs(sigma)/(2*E0)*REL;return seg(s=>annulus(sigma,s,P),[0,R/2,R],eps);},
   V(p){const R=p.size/2,sigma=p.charge*1e-9/(Math.PI*R*R),P=this.P(p),eps=Math.abs(sigma)*R/(2*E0)*REL;return segS(s=>annulusV(sigma,s,P),[0,R/2,R],eps);}},
- // 'Positive uniform density λ extends from x = 0 to +∞. P = (0, r).'
- semi:{P:p=>[0,p.distance,0],component:'x',total:()=>Number.NaN,centroid:()=>null,
-  E(p){const lam=p.charge*1e-9,P=this.P(p),eps=ke*Math.abs(lam)/Math.abs(p.distance)*REL;return halfLine(x=>coulomb(lam,[x,0,0],P),Math.abs(p.distance),eps);}},
+ // 'Positive uniform density λ extends from y = 0 to +∞. P = (r, 0), level with the end.'
+ semi:{P:p=>[p.distance,0,0],component:'x',total:()=>Number.NaN,centroid:()=>null,
+  E(p){const lam=p.charge*1e-9,P=this.P(p),eps=ke*Math.abs(lam)/Math.abs(p.distance)*REL;return halfLine(y=>coulomb(lam,[0,y,0],P),Math.abs(p.distance),eps);}},
  // 'An arc of radius R … spans −φ/2 ≤ θ ≤ +φ/2 … P is the center of curvature.'
  arc:{P:()=>[0,0,0],component:'x',total:p=>p.charge*1e-9,centroid:p=>[p.size/2*Math.sin(p.phi/2)/(p.phi/2),0,0],
   E(p){const q=p.charge*1e-9,R=p.size/2,P=this.P(p),eps=ke*Math.abs(q)/(R*R)*REL;
@@ -255,7 +255,7 @@ const DIRECTION:Record<string,V3>={
  axial:[1,0,0],      // P is beyond the right end: pushed further right
  infinite:[1,0,0],
  ring:[0,0,1],disk:[0,0,1],sheet:[0,0,1], // P above the plane at z > 0
- semi:[-1,1,0],      // the rod runs along +x from below P, so P is pushed back and up
+ semi:[1,-1,0],      // the rod runs up +y from level with P, so P is pushed out and back down past the end
  arc:[-1,0,0],       // the charge is bunched toward +x, P at the centre is pushed to −x
  endpoint:[1,-1,0],  // the rod stands above P's level, so the transverse push is downward
  ramp:[1,-1,0],

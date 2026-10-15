@@ -143,7 +143,7 @@ export function EquationWorkbench({problem:p,derivationProblem,params,onModeChan
  // it, one above the other.
  const secondary=alongIntegralOf(q)?.tex??'';
  // Leading with the noun, as the board's sentences now do: a sentence never opens on a bare symbol.
- const surviving=!secondary?'':p.id==='semi'?raw`The other component, $E_y$, is the surviving $\Delta E_y$ added up the same way, with $\cos\alpha=r/\sqrt{x^2+r^2}$:`:raw`The other component, $E_y$, is the surviving $\Delta E_y$ added up the same way, with $\sin\alpha=y/\sqrt{y^2+r^2}$:`;
+ const surviving=!secondary?'':raw`The other component, $E_y$, is the surviving $\Delta E_y$ added up the same way, with $\sin\alpha=y/\sqrt{y^2+r^2}$:`;
  // WHERE THE ANSWER CAME FROM. On the ring and the two exact potentials Add ends "this sum is already
  // exact … The answer needs no integral", and the answer under it opened "Doing the integral gives this":
  // credit to the integral for what the card had just said the sum gave. There the integral agrees.

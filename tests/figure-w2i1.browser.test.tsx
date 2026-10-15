@@ -255,7 +255,7 @@ describe('the breaks of a line that never ends', () => {
   await hold(v, 5, .99);
   const gaps = [...svgOf(v).querySelectorAll<SVGPolygonElement>('.cd-break-gap')];
   expect(gaps.length, 'each break is drawn as a gap').toBeGreaterThan(0);
-  const upright = id === 'infinite';
+  const upright = id === 'infinite' || id === 'semi';
   for (const g of gaps) {
    const pts = g.getAttribute('points')!.split(' ').map(p => p.split(',').map(Number));
    const along = pts.map(([x, y]) => upright ? y : x), lo = Math.min(...along) - 7, hi = Math.max(...along) + 7;

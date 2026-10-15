@@ -130,7 +130,7 @@ describe('a line with no total charge is never promised a Q',()=>{
    for(const f of fields(p))for(const m of f.mistakes??[])expect(plain(m.message),`${id} ${f.id} ${m.expression}`).not.toMatch(/Q appears/);
   }
   expect(said('semi','field','k*Q/ri^2')).toMatch(/An endless line has no finite total charge/);
-  expect(said('semi','field','k*Q/ri^2')).toMatch(/dQ = λ dx/);
+  expect(said('semi','field','k*Q/ri^2')).toMatch(/dQ = λ dy/);
   // The finite lessons keep the old diagnosis: there, Q does appear once every element is added.
   expect(said('ring','field','k*Q/ri^2')).toMatch(/Q appears once every piece has been added up/);
  });
@@ -148,11 +148,11 @@ describe('a grown object says what is held fixed',()=>{
   const s=1e4,z=1,exact=2*Math.PI*z*s/(s*s+z*z)**1.5,approx=2*Math.PI*z/(s*s);
   expect(exact/approx).toBeCloseTo(1,6);
  });
- it('the endpoint’s line grows at fixed λ, and points to the semi-infinite lesson’s swapped axes',()=>{
+ it('the endpoint’s line grows at fixed λ, and points to the semi-infinite lesson, laid the same way',()=>{
   const l=limitOf('endpoint','infinite');
   expect(l.formula).toContain(String.raw`(\lambda\text{ fixed})`);
-  expect(plain(l.explanation)).toMatch(/x and y trade places and the same field reads \(kλ\/r\)\(−x̂ \+ ŷ\) there/);
-  expect(plain(getProblem('semi').setup)).toContain('This is the rod of the lesson “Field level with the end of a rod”, grown without end and laid along $x$');
+  expect(plain(l.explanation)).toMatch(/Semi-infinite line lesson’s field: its line runs up the y-axis from its end, with P level with the end, as here/);
+  expect(plain(getProblem('semi').setup)).toContain('This is the rod of the lesson “Field level with the end of a rod”, grown without end.');
   // The sidebar names the lesson it points at.
   expect(getProblem('endpoint').short).toBe('Line · level with an end');
   expect(getProblem('semi').sources[0].url).toMatch(/^https:\/\/openstax\.org\//);

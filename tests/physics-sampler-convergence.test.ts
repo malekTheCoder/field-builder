@@ -172,8 +172,8 @@ describe('Exact midpoint error laws at every n',()=>{
   // Infinite line: y = r tan θ over θ ∈ (−π/2, π/2), kernel kλ cos θ/r, h = π/n.
   CASES.push({name:`infinite E_x λ=${lamNC} r=${dist}`,id:'infinite',p:P({distance:dist,charge:lamNC}),pick:v=>v.x,h:n=>Math.PI/n,closed:2*ke*lam/dist});
   // Semi-infinite line from the origin, P = (0, r): kλ sin θ/r and kλ cos θ/r on [0, π/2].
-  CASES.push({name:`semi E_x λ=${lamNC} r=${dist}`,id:'semi',p:P({distance:dist,charge:lamNC}),pick:v=>v.x,h:n=>Math.PI/(2*n),closed:-ke*lam/dist});
-  CASES.push({name:`semi E_y λ=${lamNC} r=${dist}`,id:'semi',p:P({distance:dist,charge:lamNC}),pick:v=>v.y,h:n=>Math.PI/(2*n),closed:ke*lam/dist});
+  CASES.push({name:`semi E_x λ=${lamNC} r=${dist}`,id:'semi',p:P({distance:dist,charge:lamNC}),pick:v=>v.x,h:n=>Math.PI/(2*n),closed:ke*lam/dist});
+  CASES.push({name:`semi E_y λ=${lamNC} r=${dist}`,id:'semi',p:P({distance:dist,charge:lamNC}),pick:v=>v.y,h:n=>Math.PI/(2*n),closed:-ke*lam/dist});
  }
  for(const sigNC of [1,-7]) for(const z of [.5,3,6,-2]){
   // Sheet: s = |z| tan θ with the sec² Jacobian folded into dq; kernel 2πkσ sin θ.
@@ -203,7 +203,7 @@ describe('Exact midpoint error laws at every n',()=>{
    expect.soft(Math.abs(got-want),`${c.name} n=${n} ratio=${got.toPrecision(15)} law=${want.toPrecision(15)} kappa=${kappa.toPrecision(4)}`).toBeLessThan(tol);
   }
  });
- it('the semi-infinite line points at exactly 135 degrees at every n',()=>{
+ it('the semi-infinite line points at exactly −45 degrees, halfway between +x and −y, at every n',()=>{
   // Σ sin θ_i and Σ cos θ_i are the same multiset of terms walked in opposite order, so
   // they are equal in exact arithmetic but not bit for bit; 4√n·eps is the random-walk
   // bound on a sequential sum of n terms and is the tightest honest statement available.

@@ -25,22 +25,23 @@ const fieldSamples = (id: ProblemId, p: Params) => sampleDistribution(id, p, Mat
 const LEN = (v: Vec) => Math.hypot(v.x, v.y, v.z);
 
 describe('an endless line is seeded all along the part of it the picture shows', () => {
- /** The flat semi-infinite line: P at height d above O, the line running out along +x. The window it is
-  * traced for, by default and after three zoom-outs (each about 1.25 times wider), about the same middle. */
+ /** The flat semi-infinite line: P a distance d out from O, level with it, the line running up along +y. The
+  * window it is traced for, by default and after three zoom-outs (each about 1.25 times wider), about the
+  * same middle: the figure stands O left of centre and low, so the line runs up the frame's left part. */
  const p = params(), reach = Math.max(2.5, p.distance * 1.7, p.size);
- const windows = [1, 1.25 ** 3].map(k => ({x0: 2.25 - 8.5 * k, x1: 2.25 + 8.5 * k, y0: 1.5 - 4.6 * k, y1: 1.5 + 4.6 * k}));
+ const windows = [1, 1.25 ** 3].map(k => ({x0: 4.45 - 8.5 * k, x1: 4.45 + 8.5 * k, y0: 2.2 - 4.6 * k, y1: 2.2 + 4.6 * k}));
  it('every sixth of the visible line has a line leaving it, by default and zoomed out', () => {
   const coarse = coarsen(fieldSamples('semi', p), 192), span = Math.max(...coarse.map(s => LEN(s.position)), 1);
   for (const w of windows) {
    const shown = Math.max(Math.abs(w.x0), Math.abs(w.x1), Math.abs(w.y0), Math.abs(w.y1));
    const pool = seedPool(coarse, 15, reach * .95, shown);
    const lines = fieldLines(coarse, pool.count, {step: Math.min(reach, span) * .05, maxSteps: 900, outerLimit: shown * 1.6, seedLimit: reach * .95, seedPool: pool.pool, bounds: w, root: bodyFoot(coarse, 'wire')});
-   // Where each line meets the line of charge (y = 0, x >= 0).
-   const roots = lines.flatMap(l => [l[0], l[l.length - 1]]).filter(q => Math.abs(q.y) < .02 && q.x > -.05).map(q => q.x);
-   const visible = Math.min(w.x1, shown), spacing = visible / (pool.count / 2);
+   // Where each line meets the line of charge (x = 0, y >= 0).
+   const roots = lines.flatMap(l => [l[0], l[l.length - 1]]).filter(q => Math.abs(q.x) < .02 && q.y > -.05).map(q => q.y);
+   const visible = Math.min(w.y1, shown), spacing = visible / (pool.count / 2);
    for (let k = 0; k < 6; k++) {
     const a = visible * k / 6, b = visible * (k + 1) / 6;
-    expect(roots.some(x => x >= a - spacing && x <= b + spacing), `window ×${(w.x1 - 2.25) / 8.5}: sixth ${k} (${a.toFixed(1)} to ${b.toFixed(1)} m)`).toBe(true);
+    expect(roots.some(x => x >= a - spacing && x <= b + spacing), `window ×${(w.x1 - 4.45) / 8.5}: sixth ${k} (${a.toFixed(1)} to ${b.toFixed(1)} m)`).toBe(true);
    }
   }
  });
@@ -235,7 +236,7 @@ describe('a flat arrow is not drawn where the charge is a row of lumps', () => {
    for (const s of fine) {const dx = x - s.position.x, dy = y - s.position.y, r2 = dx * dx + dy * dy; if (r2 < 1e-12) continue; const k = s.dq / (r2 * Math.sqrt(r2)); ex += k * dx; ey += k * dy;}
    return Math.atan2(ey, ex);
   };
-  const arrows = vectorGrid(coarse, {x0: -3, y0: -3, x1: 11, y1: 3}, 4 / 7);
+  const arrows = vectorGrid(coarse, {x0: -3, y0: -3, x1: 3, y1: 11}, 4 / 7);
   expect(arrows.length).toBeGreaterThan(100);
   const off = arrows.map(a => {const d = Math.abs(Math.atan2(a.dir.y, a.dir.x) - truth(a.at.x, a.at.y)); return {a, deg: Math.min(d, 2 * Math.PI - d) * 180 / Math.PI};}).filter(o => o.deg > 10);
   expect(off.map(o => `(${o.a.at.x.toFixed(2)}, ${o.a.at.y.toFixed(2)}) ${o.deg.toFixed(1)}°`)).toEqual([]);
