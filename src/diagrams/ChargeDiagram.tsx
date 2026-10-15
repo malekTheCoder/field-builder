@@ -910,10 +910,15 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
       if (len < 1e-9) continue;
       // The stacked pair carries no name of its own past its tip: room for its head, and clear air under the
       // axis' letter -- ending against it, it read as the axis' own arrowhead.
-      const margin = stacked.includes(v) ? 24 : 34 * labelScale;
+      // IN SPACE, UP A POSITIVE RING'S AXIS, the letter stands beside the axis, not over it, and the axis runs on to the
+      // plot's top: there the pair runs up the axis to a little short of where the axis ends, which still runs on past
+      // its head. Held under the letter's foot as well, the stacked pair was what capped the ring's piece in What
+      // cancels at 73 pixels on a laptop; now it reaches the run's own readable length, 89 there, as a rod's does.
+      const upAxis = stacked.includes(v) && inSpace && roomy;
+      const margin = upAxis ? 14 : stacked.includes(v) ? 24 : 34 * labelScale;
       // The top of the plot less the vertical axis' own letter, which stands there: a part drawn up that
       // axis -- the ring's along its axis, the arc's across it -- put its name on the letter.
-      const top = axisTop + .39 * SYM * labelScale + 4;
+      const top = upAxis ? 60 : axisTop + .39 * SYM * labelScale + 4;
       const edge = rayToEdge(from, { x: gain * s.x / len, y: gain * s.y / len }, { x: 42, y: top, width: 626, height: 371 - top });
       cap = Math.min(cap, Math.max(40, Math.hypot(edge.x - from.x, edge.y - from.y) - margin) / len);
       // ...and drawn flat, short of the charge an arrow points at -- a negative charge's, with its parts standing side
