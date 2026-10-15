@@ -5,8 +5,9 @@ import { Button } from '@/components/ui/button';
 import { MathText, Prose } from './Math';
 import { DerivationBoard, type BoardState } from './DerivationBoard';
 import { equivalent, safeParse } from '../symbolic/equivalence';
-import { alongIntegralOf, backLead, boardLines, componentOf, exactSum, partHasAlso, partResult, resultLines, workedSteps, type Term } from '../workbench/derivation';
+import { alongIntegralOf, backLead, componentOf, exactSum, partHasAlso, partResult, resultLines, workedSteps, type Term } from '../workbench/derivation';
 import { buildStages } from '../explorer/buildRun';
+import { bracketLines, bracketOf, ratio } from '../workbench/bracket';
 import type { Params, Problem } from '../problems/types';
 import './workbench.css';
 type Mode = 'divide' | 'project' | 'sum' | 'integrate';
@@ -22,11 +23,6 @@ export type EquationWorkbenchProps = {problem:Problem;derivationProblem?:Problem
  highlight?:string};
 const raw=String.raw;
 const clamp=(n:number)=>Math.max(0,Math.min(1,n));
-/** n as a fraction with the smallest denominator that holds it. The handles snap to whole percents
- * and the half-turn lessons halve them, so 400 always does. There used to be a decimal fallback past
- * a denominator of 100, and the semi-infinite line and the sheet, whose t/2 wants 200, put "0.185π"
- * on the page. */
-function ratio(n:number):[number,number]{for(let d=1;d<=400;d++)if(Math.abs(n*d-Math.round(n*d))<1e-7)return[Math.round(n*d),d];return[Math.round(n*400),400];}
 /** n times a symbol, written as a reader writes it -- L/4, 3π/2, -φ/4 -- not "(1/4)*L" or "2*pi",
  * which is what the form's fields used to hold. The parser reads these back: π, φ, ∞ and implied
  * products included. The minus is the keyboard's, as a reader editing the field would type it. */
@@ -34,39 +30,15 @@ function scaled(n:number,s:string){if(n===0)return'0';const[a,d]=ratio(n),m=Math
 /** A lesson's own bound, from the parser's spelling to the page's. */
 const shown=(b:string)=>b.replace(/\*?\bphi\b/g,'φ').replace(/\*?\bpi\b/g,'π').replace(/Infinity/g,'∞');
 function boundExpression(p:Problem,percent:number){const t=clamp(percent/100),g=p.geometry;if(t===0)return shown(p.bounds[0]);if(t===1)return shown(p.bounds[1]);if(g==='bisector'||(p.id==='infinite'&&p.variable==='y'))return scaled(t-.5,'L');if(g==='axial'||g==='endpoint'||g==='ramp')return scaled(t,'L');if(g==='ring')return scaled(2*t,'π');if(g==='arc')return scaled(t-.5,'φ');if(g==='disk')return scaled(t,'R');if(p.id==='infinite')return scaled(t-.5,'π');if(Math.abs(t-.5)<1e-9)return g==='sheet'?'z':'r';return `${g==='sheet'?'z':'r'} tan(${scaled(t/2,'π')})`;}
-/** A dragged limit as the board writes it. Only an end of the charge, or a plain fraction of it --
- * the middle, a quarter, half a turn -- is written as a value. Anywhere else the handle has no name on
- * the figure, and the board calls it y₁ or y₂: the whole percents the handles snap to wrote
- * "−13L/100 → 31L/100" and "r tan(0.185π)", coefficients where the page writes symbols, and pushed
- * the last line off the side of the panel. The form's fields still hold the value. */
-/** n times a symbol as the board writes it, or nothing where that needs a denominator above 4. */
-function plain(n:number,s:string){const[a,d]=ratio(n);if(d>4)return null;if(a===0)return'0';const m=Math.abs(a)===1?'':`${Math.abs(a)}`;return`${a<0?'-':''}${m}${s}${d===1?'':`/${d}`}`;}
-function limitTex(p:Problem,percent:number,which:1|2){
- const t=clamp(percent/100),g=p.geometry;
- if(t<=1e-5)return p.boundTex[0];
- if(t>=1-1e-5)return p.boundTex[1];
- const nice=g==='bisector'||(p.id==='infinite'&&p.variable==='y')?plain(t-.5,'L')
-  :g==='axial'||g==='endpoint'||g==='ramp'?plain(t,'L')
-  :g==='ring'?plain(2*t,raw`\pi`)
-  :g==='arc'?plain(t-.5,raw`\varphi`)
-  :g==='disk'?plain(t,'R')
-  :p.id==='infinite'?plain(t-.5,raw`\pi`)
-  // Half way out in angle, the semi-infinite line's piece is r along it and the sheet's ring z out.
-  :Math.abs(t-.5)<1e-9?(g==='sheet'?'z':'r'):null;
- return nice??`${p.variableTex}_${which}`;
-}
 function boundPercent(p:Problem,value:string,params:Params){if(equivalent(value,p.bounds[0],p).ok)return 0;if(equivalent(value,p.bounds[1],p).ok)return 100;const x=safeParse(value).compile().evaluate({L:params.size,R:params.size/2,z:params.distance,r:params.distance,a:params.distance,pi:Math.PI,phi:params.phi,Infinity});if(typeof x!=='number'||!Number.isFinite(x))throw Error('Use a bound inside this distribution.');const g=p.geometry;if(g==='bisector'||(p.id==='infinite'&&p.variable==='y'))return 100*(x/params.size+.5);if(g==='axial'||g==='endpoint'||g==='ramp')return 100*x/params.size;if(g==='ring')return 100*x/(2*Math.PI);if(g==='arc')return 100*(x/params.phi+.5);if(g==='disk')return 200*x/params.size;if(p.id==='infinite')return 100*(x/Math.PI+.5);return 200*Math.atan(x/Math.abs(params.distance))/Math.PI;}
 /** Which factor a pointed-at feature of the figure, or a slider, stands behind. The length lights
  * the limits because the limits are written in it; the charge lights the piece's charge. */
 const LIGHTS:Record<string,Term>={element:'element',charge:'element',distance:'distance',projection:'projection',bounds:'bounds',size:'bounds',angle:'bounds'};
 const REST:BoardState={open:false,index:-1,playing:false,settled:true};
-/** How much angle a bracket on a ring or an arc takes, named as the board names a limit: a bracketed
- * integral of a constant finishes on it, and pasting the limits into "hi − lo" wrote (φ/4 − −φ/4). */
 // THE ANSWER, NAMED AS ONE. Its box was headed "The whole distribution": a first-year reader did not take it for
 // the answer, and "distribution" is a word they do not have yet. It says it is the answer, and for what, in the
 // figure's own noun; the bracketed part's box says the same of the part.
 const WHOLE:Record<string,string>={bisector:'rod',axial:'rod',endpoint:'rod',ramp:'rod',infinite:'line',semi:'line',ring:'ring',disk:'disk',sheet:'sheet',arc:'arc'};
-function spanTex(p:Problem,from:number,to:number){const g=p.geometry,n=(to-from)/100;return g==='ring'?plain(2*n,raw`\pi`)??undefined:g==='arc'?plain(n,raw`\varphi`)??undefined:undefined;}
 export function EquationWorkbench({problem:p,derivationProblem,params,onModeChange,onHighlight,boundRange,onBoundRangeChange,build=REST,onStep,highlight=''}:EquationWorkbenchProps){
  // THE PANEL RE-RENDERS EVERY FRAME OF THE RUN, because the page does: the figure has to move. What
  // is on the panel changes only when the run enters a stage, pauses or settles, or a bracket moves.
@@ -93,26 +65,14 @@ export function EquationWorkbench({problem:p,derivationProblem,params,onModeChan
  }
  const g=p.geometry,scalar=p.quantity==='V',allBounds=boundRange[0]<=.001&&boundRange[1]>=99.999;
  const[from,to]=boundRange;
- const lower=useMemo(()=>limitTex(q,from,1),[q,from]);
- const upper=useMemo(()=>limitTex(q,to,2),[q,to]);
- // Does the bracket still hold every piece's mirror partner? Off-centre it does not, and the part
- // across the axis survives: the board said E_y = 0 over a figure whose ΣΔE leaned 17° on the upper
- // half of the rod, 45° on a quarter of the arc. A ring needs the whole turn.
- const keeps=allBounds||(g!=='ring'&&Math.abs(from+to-100)<1e-6);
- // And does it hold none of them? Wholly on one side of the middle, or half the ring or less, no piece's
- // mirror is inside, and "some pieces' mirrors lie outside it" said too little.
- const oneSided=!allBounds&&(g==='ring'?to-from<=50+1e-6:to<=50+1e-6||from>=50-1e-6);
- const span=useMemo(()=>spanTex(q,from,to),[q,from,to]);
- // And does it reach below the middle, where an angle measured from it is negative? Wholly above it,
- // the card explained a negative α that never occurs.
- const below=from<50-1e-6;
+ // The bracket's limits, whether it keeps every piece's mirror, and its board, as the run's transport writes them
+ // too (see `bracketOf`): the limits in the last line follow the brackets in the figure, and dragging one rewrites
+ // the integral over the part of the charge it now covers.
+ const bracket=useMemo(()=>bracketOf(q,[from,to]),[q,from,to]);
+ const{lower,upper,keeps}=bracket;
  const stages=useMemo(()=>buildStages(q),[q]);
  const names=useMemo(()=>stages.map(s=>s.name),[stages]);
- // The limits in the last line follow the brackets in the figure: drag one and the integral is
- // rewritten over the part of the charge it now covers.
- // And above it: wholly below the middle, every bracketed piece's surviving part points the other way.
- const above=to>50+1e-6;
- const lines=useMemo(()=>boardLines(q,allBounds?undefined:[lower,upper],{keeps,span,oneSided,below,above}),[q,allBounds,lower,upper,keeps,span,oneSided,below,above]);
+ const lines=useMemo(()=>bracketLines(q,bracket),[q,bracket]);
  const results=useMemo(()=>resultLines(q),[q]);
  // The board's state is rebuilt only when one of its fields changes, not with every new object the
  // page passes down, and its callbacks are fixed for the panel's life and call whatever is current.

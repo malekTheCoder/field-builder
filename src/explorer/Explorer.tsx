@@ -17,7 +17,8 @@ import {partitionCount} from '../diagrams/subdivision';
 import {cleanParams,parseAssignment,serializeAssignment,type ExploreMode} from '../state/assignment';
 import {ChargeDiagram} from '../diagrams/ChargeDiagram';
 import {redrawLayer} from '../diagrams/snapshot';
-import {boardLines,exactSum,resultLines} from '../workbench/derivation';
+import {exactSum,resultLines} from '../workbench/derivation';
+import {bracketAnswer,bracketKeeps,bracketLines,bracketOf,wholeBracket} from '../workbench/bracket';
 import {buildStages,motionAt,stageAt,stageStart,totalSeconds} from './buildRun';
 import {BuildPlayer,drawingOnScreen,runClock} from './BuildPlayer';
 import {EquationWorkbench} from '../components/EquationWorkbench';
@@ -383,7 +384,17 @@ export default function Explorer({welcome}:{welcome?:boolean}={}){
  // tell a ring from a sheet.
  useEffect(()=>{document.title=`${p.title} · Field Builder`},[p.title]);
 
- const stages=useMemo(()=>buildStages(p),[p]);
+ // THE READER'S BRACKET, KEPT. The run used to open on the whole charge whatever was bracketed, so its lines could
+ // always speak of the whole; a reader who had dragged a bracket to half the rod and pressed Watch it build saw it
+ // thrown away. The run now adds up what is bracketed, and says so from What cancels on: whether every bracketed
+ // piece's mirror is bracketed too, and whether the run's own piece's is -- a ring's half a turn round, the others'
+ // across the middle -- which decides whether What cancels draws a mirror at all.
+ const runIndex=Math.min(count-1,Math.floor(runPiece*count));
+ const partBracket=!wholeBracket(bounds),bracketKept=partBracket&&bracketKeeps(p,bounds);
+ const mirrorIn=(()=>{if(!partBracket)return true;const t=100*(runIndex+.5)/count,m=geom==='ring'?(t+50)%100:100-t;return m>=bounds[0]-1e-6&&m<=bounds[1]+1e-6})();
+ const stages=useMemo(()=>buildStages(p,partBracket?{keeps:bracketKept,mirrorIn}:undefined),[p,partBracket,bracketKept,mirrorIn]);
+ // The board's lines over that bracket, for the transport to write what the panel writes.
+ const bracket=useMemo(()=>bracketOf(p,bounds),[p,bounds]);
  const buildNow=stages[Math.min(buildIndex,stages.length-1)];
  // Open is its own state, not inferred from the clock. It used to be `building || buildAt > 0`,
  // and the first stage starts at exactly zero -- so clicking the first stage's marker, or pausing
@@ -434,19 +445,20 @@ export default function Explorer({welcome}:{welcome?:boolean}={}){
  // only at the very start of the line, so on the ring and its potential the transport ended Add them up on a
  // gap the width of E_z, and its rows stood under nothing. The rows go to the transport one by one (`rows`).
  // And under each line, what its new symbol stands for, as the board says it (BuildPlayer).
- const playerSteps=useMemo(()=>{const lines=boardLines(p);return lines.map((line,i)=>[...(line.cancels?[{cancels:line.cancels}]:[]),line.tex,...(line.finish&&i<lines.length-1?[{finish:rows(line.finish),strut:strutOf(line.finish)}]:[]),...(line.where?[{where:line.where}]:[]),...(line.also?[{also:line.also}]:[])])},[p]);
+ const playerSteps=useMemo(()=>{const lines=bracketLines(p,bracket);return lines.map((line,i)=>[...(line.cancels?[{cancels:line.cancels}]:[]),line.tex,...(line.finish&&i<lines.length-1?[{finish:rows(line.finish),strut:strutOf(line.finish)}]:[]),...(line.where?[{where:line.where}]:[]),...(line.also?[{also:line.also}]:[])])},[p,bracket]);
  // And once the pieces have shrunk away, how the integral comes out and its answer -- every line of
  // the answer, not the first: on the lessons whose answer has two components, the figure's arrow
  // labelled E leans, and an answer of E_x alone said it pointed along x. The answer is stated whether
  // or not the last line has a step of its own to finish on: four potential lessons leave their
  // integral unsimplified on the board, and ended on it here, so on a screen without the panel the run
  // never said what V is. The two go separately because a short window has room for the answer alone.
- const playerChain=useMemo(()=>{const finish=boardLines(p).at(-1)?.finish;return settledRun&&finish?[finish]:NONE},[p,settledRun]);
- const playerAnswer=useMemo(()=>settledRun?resultLines(p):NONE,[p,settledRun]);
+ const playerChain=useMemo(()=>{const finish=bracketLines(p,bracket).at(-1)?.finish;return settledRun&&finish?[finish]:NONE},[p,bracket,settledRun]);
+ // A bracketed part's answer is the panel's for it: the bracket done between the handles' ends, where the board has one.
+ const playerAnswer=useMemo(()=>{if(!settledRun)return NONE;if(bracket.whole)return resultLines(p);const part=bracketAnswer(p,bracket);return part?[part]:NONE},[p,bracket,settledRun]);
  // Over the answer, where it came from, in the panel's words (EquationWorkbench): the pieces added up where
  // the sum was exact all along, the integral done everywhere else -- and, where the answer has an E_y the
  // run built no line for, that it is the surviving part added up the same way.
- const playerLead=useMemo(()=>{const two=['endpoint','ramp','semi'].includes(p.id);return (exactSum(p)?'Adding up the pieces gives this, exactly, however many there are.':two?'Doing the integrals gives this.':'Doing the integral gives this.')+(two?String.raw` $E_y$ is the surviving $\Delta E_y$ added up the same way.`:'')},[p]);
+ const playerLead=useMemo(()=>{if(!bracket.whole)return 'Done between the bracket’s ends, the integral gives the bracketed part’s answer.';const two=['endpoint','ramp','semi'].includes(p.id);return (exactSum(p)?'Adding up the pieces gives this, exactly, however many there are.':two?'Doing the integrals gives this.':'Doing the integral gives this.')+(two?String.raw` $E_y$ is the surviving $\Delta E_y$ added up the same way.`:'')},[p,bracket]);
  // What the figure and the board are told about the run, held still until it actually changes.
  // The run's clock goes with it, and where the stage on screen starts and how long it lasts: a stage
  // that moves within itself reads its own moment off the clock, so a pause or a seek holds it there.
@@ -558,10 +570,12 @@ export default function Explorer({welcome}:{welcome?:boolean}={}){
   * quarters of the way out was the ring 54 to 72 degrees below P, whose far edge ran through P in the
   * opening view, so P looked as if it lay in the sheet for the whole run.
   *
-  * And the run is the argument for the WHOLE distribution, so it opens on all of it. A bracket the
-  * reader had dragged to half the rod stayed on, and the run's piece could sit outside it -- the
-  * captions then said the sideways parts cancel and bend back to the axis, which a half-rod sum does
-  * not do.
+  * AND THE READER'S BRACKET STAYS. The run used to open on the whole charge, throwing away a bracket the
+  * reader had dragged: its captions spoke only of the whole, and with the bracket kept they said the
+  * sideways parts cancel and bend back to the axis, which a half-rod sum does not do. Now the run adds up
+  * what is bracketed and its lines say so (`buildStages`), and its piece is one inside the bracket --
+  * the rule's own if that is inside, or else the bracketed piece nearest it, one whose mirror is
+  * bracketed too where there is one, so What cancels still has a mirror to show.
   *
   * And never the piece with no far end. On the endless lines the outermost piece is the angle running off to
   * infinity, and with three or four pieces the three-quarters rule landed on it: Cut it up bracketed, and One
@@ -571,7 +585,14 @@ export default function Explorer({welcome}:{welcome?:boolean}={}){
   * have nothing to show -- there it keeps the outer angle, which has a partner. */
  function openRun(){if(buildShown)return;let i=geom==='ring'?Math.floor(count*(1-.5/(2*Math.PI)))%count:geom==='bisector'?count-1:geom==='sheet'?sheetPiece(count,params.distance):count-1-Math.floor((count-1)/4);
   if(geom==='semi'||geom==='infinite'&&count>3)i=Math.min(i,count-2);
-  setRunPiece((i+.5)/count);setBounds([0,100]);setBuildShown(true)}
+  if(!wholeBracket(bounds)){
+   const at=(k:number)=>100*(k+.5)/count,inside=(t:number)=>t>=bounds[0]-1e-6&&t<=bounds[1]+1e-6,mirror=(k:number)=>geom==='ring'?(at(k)+50)%100:100-at(k);
+   const open=[...Array(count).keys()].filter(k=>inside(at(k))&&!((geom==='semi'||geom==='infinite')&&k===count-1&&count>3));
+   // A piece that is its own mirror -- the middle one at an odd N -- has no sideways part to show cancelling.
+   const rank=(k:number)=>(Math.abs(mirror(k)-at(k))<1e-6?500:inside(mirror(k))?0:1e3)+Math.abs(k-i);
+   if(!inside(at(i)))i=open.length?open.reduce((a,b)=>rank(b)<rank(a)?b:a):Math.min(count-1,Math.floor((bounds[0]+bounds[1])/200*count));
+  }
+  setRunPiece((i+.5)/count);setBuildShown(true)}
  function playBuild(from:number,until:number){
   roomBack(from);
   build.current?.stop();build.current=null;setHighlight('');openRun();

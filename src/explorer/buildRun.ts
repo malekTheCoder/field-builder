@@ -161,14 +161,26 @@ const NB = '\u00a0';
 /** A line as plain text: its symbols unmarked, the few TeX names in them as the letters they are, and
  * the no-break space before a symbol an ordinary one -- only a line that is set needs it. */
 const plain = (text: string) => text.replace(/\u00a0\$/g, ' $').replace(/\$([^$]*)\$/g, (_, tex: string) => tex.replace(/\\Delta\s*/g, 'Δ').replace(/\\cos\s*/g, 'cos ').replace(/\\theta/g, 'θ').replace(/\\alpha/g, 'α').replace(/\\to\s*/g, '→').replace(/\\infty/g, '∞'));
-export function buildStages(p: Problem): BuildStage[] {
+/** THE PART OF THE CHARGE THE RUN IS ABOUT, where the reader bracketed one: the run used to throw the bracket away
+ * as it opened, so its lines could always speak of the whole charge. It keeps it now, and adds up what the reader
+ * chose -- so where only part is bracketed, every line from What cancels on is about that part. `keeps` says every
+ * bracketed piece's mirror is bracketed too; `mirrorIn` says the run's own piece's is. */
+export type RunBracket = {keeps: boolean; mirrorIn: boolean};
+export function buildStages(p: Problem, bracket?: RunBracket): BuildStage[] {
   const geometry = p.geometry, scalar = p.quantity === 'V';
   // A ring's field along its axis, and a ring's or an arc's potential, are exact at any cut: every
   // piece is the same distance from P (at the same angle), so each piece's share is exactly what the
   // sum says. The run said the chain and the column become the answer "once they shrink", teaching
   // that calculus corrects a ring's answer -- the opposite of the ring's lesson.
-  const exact = exactSum(p);
   const pairs = scalar ? SCALAR_PAIRS.has(geometry) : PAIRS.has(geometry);
+  // Part of the charge: its sum is no longer what the whole lesson's lines say it is. A field's part across the axis
+  // survives wherever a bracketed piece's mirror is outside, and then a ring's sum is exact only along the axis --
+  // the part across it is not -- so the bracketed ring is told as any other charge is. A potential has no part
+  // across, and every bit of a ring or an arc is still one distance from P: those stay exact.
+  const part = !!bracket;
+  const exact = exactSum(p) && (!part || scalar);
+  // The mirror is drawn in What cancels only where it lies inside the bracket.
+  const mirrored = pairs && (!part || bracket.mirrorIn);
   // How big a field a piece makes at P is where the geometries genuinely differ, so it is not said
   // once for all of them. "Further away is weaker" is true of a fixed amount of charge and false of
   // the pieces several lessons draw: cut at equal angles from P, every piece of an infinite line
@@ -252,9 +264,12 @@ export function buildStages(p: Problem): BuildStage[] {
       // why the answer is 2kλ sin(φ/2)/R.
       : geometry === 'arc' ? `Every piece is $R$ from${P} and holds the same charge: the arrows differ only in direction.`
       : `A piece’s field lies along the line to${P}: more charge, bigger; farther, smaller.`,
-    cancel: scalar ? (pairs ? geometry === 'ring' ? 'An equal length of ring opposite is just as far away and adds as much: nothing cancels.'
+    cancel: scalar ? (part && pairs && !bracket.mirrorIn ? 'Its mirror is outside the bracket, so it is not added; and a potential has no direction.'
+      : pairs ? geometry === 'ring' ? 'An equal length of ring opposite is just as far away and adds as much: nothing cancels.'
         : 'Each piece’s mirror is just as far away and adds exactly as much: nothing cancels.'
       : 'A potential has no direction, and this charge has one sign. Nothing cancels.')
+      : part && pairs && !bracket.mirrorIn ? `Its mirror is outside the bracket: nothing undoes its sideways part, and both survive.`
+      : part && pairs && !bracket.keeps ? `Its mirror is bracketed too, and their sideways parts cancel; unpaired pieces keep theirs.`
       : CANCEL_LINES[geometry] ?? `Nothing cancels: every piece is above the${NB}$x$-axis, so both parts of each survive.`,
     // At a finite N the chain is the N-piece estimate -- the figure labels it ΣΔE and the board writes
     // it with ≈ -- and it can be far off: at N = 3 beside a long rod it is nearly three times the field.
@@ -277,7 +292,10 @@ export function buildStages(p: Problem): BuildStage[] {
     //
     // "Once they shrink" made "they" the pairs, or the parts, and the sum seem to shrink: the sum is the
     // subject, and the pieces are what shrink.
-    add: pairs && !scalar ? (exact ? `Pairs half a turn apart: sideways parts cancel; $z$ parts sum to exactly the field at${P}.`
+    add: part ? (scalar ? (exact ? `Stack each bracketed piece’s number: the column is exactly that part’s potential at${P}.`
+        : `Stack each bracketed ${unit}’s number: it becomes that part’s potential at${P} as they shrink.`)
+        : `Bracketed ${unit}s’ arrows, tip to tail, add up to that part’s field at${P} as they shrink.`)
+      : pairs && !scalar ? (exact ? `Pairs half a turn apart: sideways parts cancel; $z$ parts sum to exactly the field at${P}.`
         // Ending on what the sum reaches, not on the lone middle piece: the board under the line and the
         // caption say why that piece needs no partner, and the line closed on that footnote without ever
         // saying where the sum goes.
@@ -294,7 +312,9 @@ export function buildStages(p: Problem): BuildStage[] {
     // Opened on the board's own N → ∞, not "Without end": two disclosures down, the bisector's limiting case
     // lets the rod "extend without end", and the sidebar's family is "Charge with no end". A reader took the
     // run's phrase for the rod growing endless, and "becomes exact" could not be followed from there.
-    limit: exact ? 'As $N\\to\\infty$, the sum becomes an integral, and the answer, already exact, does not move.'
+    limit: part ? (exact ? 'As $N\\to\\infty$, the sum becomes the integral over the bracket, already exact.'
+        : 'As $N\\to\\infty$, the sum becomes the integral over the bracket, exactly.')
+      : exact ? 'As $N\\to\\infty$, the sum becomes an integral, and the answer, already exact, does not move.'
       : geometry === 'arc' ? 'As $N\\to\\infty$, $\\cos\\theta$ stops changing across a piece: the sum is the integral, exactly.'
       : geometry === 'sheet' ? 'As $N\\to\\infty$, treating each ring as a thin ring becomes exact: the sum is the integral.'
       : surface ? 'As $N\\to\\infty$, counting each ring at one radius becomes exact: the sum is the integral.'
@@ -343,7 +363,9 @@ export function buildStages(p: Problem): BuildStage[] {
     : 'treating each piece as a point charge, which was only nearly right, becomes exact';
   // The pairs' order, said: from the middle out on a rod, a line or an arc; round the ring, where every piece is
   // as near as every other.
-  const adds = pairs && exact
+  const adds = part
+    ? `Now add the arrows of the bracketed ${unit}s, tip to tail.${pairs ? bracket.keeps ? ' Each one’s mirror is bracketed too, so the sideways parts undo each other along the way and the chain bends back to the axis.' : ' A piece whose mirror lies outside the bracket keeps its sideways part, so the chain leans.' : ''} Where it stops is the sum of the bracketed ${unit}s: that part’s field at P once they shrink.`
+    : pairs && exact
     ? 'Now add the pieces in pairs, each with the same length of ring straight across from it. In each pair the sideways parts cancel and the parts along the axis add, so the sum grows straight along the axis and ends exactly at the field at P: every piece is the same distance away at the same angle, so cutting finer changes nothing.'
     : pairs
     ? `Now add the pieces in mirror pairs from the middle out; a lone middle piece has no sideways part. In each pair ${PAIR_PARTS[geometry].parts} add, so the sum runs ${PAIR_PARTS[geometry].runs}, and ${stops}`
@@ -365,9 +387,12 @@ export function buildStages(p: Problem): BuildStage[] {
     {key: 'one', name: surface ? 'One ring' : 'One piece', seconds: 6, mode: 'project', components: false, pair: false, sum: [1, 1], continuum: [0, 0],
       moves: 1, pace: 'linear', term: 'distance', line: plain(lines.one), prose: lines.one,
       caption: piece},
-    {key: 'cancel', name: 'What cancels', seconds: pairs ? 6.5 : 5.5, mode: 'project', components: !scalar, pair: pairs, sum: [1, 1], continuum: [0, 0],
+    {key: 'cancel', name: 'What cancels', seconds: pairs ? 6.5 : 5.5, mode: 'project', components: !scalar, pair: mirrored, sum: [1, 1], continuum: [0, 0],
       moves: 1, pace: 'linear', term: scalar ? '' : 'projection', line: plain(lines.cancel), prose: lines.cancel,
-      caption: scalar ? (pairs ? geometry === 'ring' ? PARTNER_ADDS_V_RING : PARTNER_ADDS_V : NO_CANCEL_V(unit)) : CANCELS[geometry] ?? NO_CANCEL},
+      caption: scalar ? (part && pairs && !bracket.mirrorIn ? `${NO_CANCEL_V(unit)} This ${unit}’s mirror lies outside the bracket, so it is not part of the sum.` : pairs ? geometry === 'ring' ? PARTNER_ADDS_V_RING : PARTNER_ADDS_V : NO_CANCEL_V(unit))
+        : part && pairs && !bracket.mirrorIn ? 'Only the bracketed part of the charge is added, and this piece’s mirror lies outside the bracket. Nothing there undoes the piece’s sideways part, so both of its parts survive.'
+        : part && pairs && !bracket.keeps ? `${CANCELS[geometry]} But only the bracketed part is added, and a bracketed piece whose mirror lies outside it has nothing to undo its sideways part, which survives.`
+        : CANCELS[geometry] ?? NO_CANCEL},
     // The chain grows at an even pace -- easing would bunch the last pieces together -- and then
     // holds, finished, so the arrow it arrives at is seen before the pieces start to shrink.
     {key: 'add', name: 'Add them up', seconds: 8, mode: 'sum', components: false, pair: false, sum: [0, 1], continuum: [0, 0],
@@ -375,20 +400,22 @@ export function buildStages(p: Problem): BuildStage[] {
       // An arrow chain for a field and a column for a potential: the same sum, one dimension
       // down. The field's caption talked about arrows bending, which a scalar has none of.
       caption: scalar
-        ? exact
+        ? part
+          ? `Now stack the number of each bracketed ${unit} on top of the last. The column can only grow one way (there is no direction for it to bend back in), and its height is ${exact ? 'already exactly the bracketed part’s potential at P: every piece is the same distance away, so cutting finer changes nothing' : `the sum of the bracketed ${unit}s: that part’s potential at P once they shrink`}.`
+          : exact
           ? 'Now stack every piece’s number on top of the last. The column can only grow one way (there is no direction for it to bend back in), and its height is already exactly the potential at P: every piece is the same distance away, so cutting finer changes nothing.'
           : `Now stack every ${unit}’s number on top of the last. The column can only grow one way (there is no direction for it to bend back in), and its height is the sum of the N ${unit}s: the potential at P once they shrink.`
         : adds},
     // Eased: one picture turning into another. It finishes early and holds on the integral.
     {key: 'limit', name: 'Shrink them', seconds: 6.5, mode: 'integrate', components: false, pair: false, sum: [1, 1], continuum: [0, 1],
       moves: .7, pace: 'ease', term: 'bounds', line: plain(lines.limit), prose: lines.limit,
-      caption: exact
+      caption: (exact
         ? scalar
           ? 'Finally, as N → ∞ the pieces grow ever thinner. Each segment of the column gets too thin to see and the sum becomes the integral, but the height does not move: every piece was already the same distance from P, so the sum was exact all along.'
           : 'Finally, as N → ∞ the pieces grow ever thinner. Each piece’s arrow shrinks to nothing while there are ever more of them, and the sum becomes the integral. The answer does not move: every piece was already the same distance from P at the same angle, so the sum was exact all along.'
         : scalar
         ? `Finally, as N → ∞ the ${unit}s ${thinner}. Each segment of the column gets too thin to see, and the sum becomes the integral: ${exactNow}.`
-        : `Finally, as N → ∞ the ${unit}s ${thinner}. Each ${unit}’s arrow shrinks to nothing while there are ever more of them, and the sum becomes the integral: ${exactNow}.`},
+        : `Finally, as N → ∞ the ${unit}s ${thinner}. Each ${unit}’s arrow shrinks to nothing while there are ever more of them, and the sum becomes the integral: ${exactNow}.`) + (part ? ' The integral runs over the bracket only, and its answer is the bracketed part’s.' : '')},
   ];
 }
 /** How far a stage's motion has got, `local` of the way through the stage: the moving share

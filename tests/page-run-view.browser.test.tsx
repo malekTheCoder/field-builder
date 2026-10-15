@@ -92,16 +92,28 @@ describe('the run is about what the reader chose', () => {
   fireEvent.pointerDown(other);
   await waitFor(() => expect(chosen()).toBe(other.dataset.pieceKey));
  });
- it('opens on the whole distribution, whatever part of it was bracketed', async () => {
+ // The run used to throw a bracket away as it opened, so that its captions, written for the whole charge, were
+ // true. It keeps the reader's bracket now and says what a bracketed part does: on the upper half of the rod the
+ // run's piece has no mirror inside the bracket, and nothing undoes its sideways part.
+ it('keeps the reader\'s bracket, and talks about the bracketed part', async () => {
   const view = await openLesson('bisector');
   fireEvent.click(view.container.querySelector('.ew-bounds .ew-disclosure')!);
   fireEvent.change(await view.findByLabelText('Lower bound'), {target: {value: '0'}});
   fireEvent.click(view.getByRole('button', {name: 'Apply interval'}));
   await waitFor(() => expect(view.container.querySelector('.ew-result.is-partial')).toBeTruthy());
-  // The captions then said the sideways parts cancel, which a half-rod sum does not do.
   fireEvent.click(view.getByRole('button', {name: 'Watch it build'}));
-  await waitFor(() => expect(view.container.querySelector('.ew-result.is-partial')).toBeNull());
   fireEvent.click(view.getByRole('button', {name: 'Pause'}));
+  // Still bracketed, the panel still answering for the part.
+  await new Promise(r => setTimeout(r, 300));
+  expect(view.container.querySelector('.ew-result.is-partial'), 'the bracket was thrown away').toBeTruthy();
+  fireEvent.click(view.getByRole('button', {name: 'Stage 3: What cancels'}));
+  // The run's piece is inside the bracket, the upper half of the rod: its middle above the x-axis.
+  const piece = view.container.querySelector<SVGGElement>('.cd-piece.is-selected rect')!, axis = view.container.querySelector<SVGCircleElement>('.cd-point')!;
+  expect(Number(piece.getAttribute('y')) + Number(piece.getAttribute('height')) / 2, 'the run\'s piece is outside the bracket').toBeLessThan(Number(axis.getAttribute('cy')));
+  // And What cancels says its mirror is outside, and draws none.
+  await waitFor(() => expect(view.container.textContent).toContain('Its mirror is outside the bracket'));
+  expect(view.container.textContent).not.toContain('Mirror pieces cancel each other');
+  expect(view.container.querySelector('.cd-cancel-ghost'), 'a mirror drawn outside the bracket').toBeNull();
  });
 });
 describe('on a laptop the board follows the run beside the figure', () => {
