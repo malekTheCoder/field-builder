@@ -148,7 +148,7 @@ describe('P\'s name is never covered by the sum\'s', () => {
   const v = await openLesson('arc');
   for (const f of [.4, .5, .6]) {
    await hold(v, 4, f);
-   const p = svgOf(v).querySelector<SVGTextElement>('.cd-point-label')!, sum = [...svgOf(v).querySelectorAll<SVGTextElement>('.cd-vector-label')].find(t => t.dataset.symbol === 'Σ ΔE');
+   const p = svgOf(v).querySelector<SVGTextElement>('.cd-point-label')!, sum = [...svgOf(v).querySelectorAll<SVGTextElement>('.cd-vector-label')].find(t => /^(E [≈=] )?Σ ΔE$/.test(t.dataset.symbol ?? ''));
    if (sum && shown(sum)) expect(meet(box(v, p), box(v, sum)), `at ${f}`).toBe(false);
   }
  }, 60000);

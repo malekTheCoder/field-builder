@@ -49,7 +49,7 @@ function scrub(view: View, i: number, f: number) {
 const length = (line: Element) => Math.hypot(Number(line.getAttribute('x2')) - Number(line.getAttribute('x1')), Number(line.getAttribute('y2')) - Number(line.getAttribute('y1')));
 /** An arrow by the name it carries, and that name: present, and not hidden by the label placer. */
 function named(view: View, symbol: string, within = '') {
- const label = [...view.container.querySelectorAll<SVGTextElement>(`${within} .cd-vector-label`)].find(t => t.getAttribute('data-symbol') === symbol);
+ const label = [...view.container.querySelectorAll<SVGTextElement>(`${within} .cd-vector-label`)].find(t => (t.getAttribute('data-symbol') ?? '').replace(/^E [≈=] /, '') === symbol);
  expect(label, `${symbol} is named`).toBeTruthy();
  expect(label!.dataset.placerHidden, `${symbol} is not hidden`).toBeUndefined();
  return label!.closest('.cd-vector')!.querySelector('line')!;
@@ -120,7 +120,7 @@ describe('the sum is drawn to one scale, and the piece is seen to join it', () =
    scrub(view, 3, f);
    await new Promise(r => requestAnimationFrame(() => r(null)));
    const piece = view.container.querySelector('.cd-hand-over .cd-vector line');
-   const sum = [...view.container.querySelectorAll('.cd-vector-label')].find(t => t.getAttribute('data-symbol') === 'Σ ΔE')?.closest('.cd-vector')?.querySelector('line');
+   const sum = [...view.container.querySelectorAll('.cd-vector-label')].find(t => /^(E [≈=] )?Σ ΔE$/.test(t.getAttribute('data-symbol') ?? ''))?.closest('.cd-vector')?.querySelector('line');
    if (piece && sum) expect(length(piece), `at ${f}`).toBeLessThanOrEqual(length(sum) + .5);
   }
  }, 20000);

@@ -86,7 +86,7 @@ const texts = (view: View) => [...svgOf(view).querySelectorAll<SVGTextElement>('
 const named = (view: View, text: string) => texts(view).filter(t => t.textContent === text);
 /** The net arrow -- Σ ΔE or E -- with its length, and whether its name is drawn. */
 function net(view: View) {
- const label = [...view.container.querySelectorAll<SVGTextElement>('.cd-vector-label')].find(t => ['E', 'Σ ΔE'].includes(t.getAttribute('data-symbol') ?? ''));
+ const label = [...view.container.querySelectorAll<SVGTextElement>('.cd-vector-label')].find(t => /^(E|(E [≈=] )?Σ ΔE)$/.test(t.getAttribute('data-symbol') ?? ''));
  expect(label, 'the net arrow is named').toBeTruthy();
  const [x1, y1, x2, y2] = label!.closest<SVGGElement>('.cd-vector')!.dataset.shaft!.split(' ').map(Number);
  return {length: Math.hypot(x2 - x1, y2 - y1), shown: shown(label!), tip: {x: x2, y: y2}};
@@ -117,7 +117,7 @@ describe('the ghosts of the parts that cancel are seen however the stage is reac
   const view = await openLesson('bisector');
   await hold(view, 4, .99);
   await turn(view, '3D');
-  const line = [...view.container.querySelectorAll<SVGTextElement>('.cd-vector-label')].find(t => t.getAttribute('data-symbol') === 'Σ ΔE')!.closest('.cd-vector')!.querySelector('line')!;
+  const line = [...view.container.querySelectorAll<SVGTextElement>('.cd-vector-label')].find(t => /^(E [≈=] )?Σ ΔE$/.test(t.getAttribute('data-symbol') ?? ''))!.closest('.cd-vector')!.querySelector('line')!;
   expect(painted(line)).toBe(0);
  }, 30000);
 });

@@ -74,7 +74,7 @@ function reached(view: View) {
 }
 const P = (view: View) => { const c = view.container.querySelector<SVGCircleElement>('circle.cd-point')!; return {x: Number(c.getAttribute('cx')), y: Number(c.getAttribute('cy'))}; };
 function namedArrow(view: View, symbol: string) {
- const label = [...view.container.querySelectorAll<SVGTextElement>('.cd-vector-label')].find(t => t.getAttribute('data-symbol') === symbol);
+ const label = [...view.container.querySelectorAll<SVGTextElement>('.cd-vector-label')].find(t => (t.getAttribute('data-symbol') ?? '').replace(/^E [≈=] /, '') === symbol);
  expect(label, `${symbol} is drawn`).toBeTruthy();
  expect(label!.dataset.placerHidden, `${symbol} is not hidden`).toBeUndefined();
  return label!.closest<SVGGElement>('.cd-vector')!.dataset.shaft!.split(' ').map(Number);

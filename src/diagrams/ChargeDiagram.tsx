@@ -10,6 +10,7 @@
    accessible name, and that name now states the gestures, so what a screen reader is told
    matches what the keys do. */
 /* oxlint-disable jsx-a11y/no-noninteractive-tabindex */
+import { exactSum } from '../workbench/derivation';
 import { createContext, memo, useCallback, useContext, useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent, type PointerEvent } from 'react';
 import { animate, frame, motion, useMotionValue, useReducedMotion } from 'motion/react';
 import type { Params, Problem, ProblemId } from '../problems/types';
@@ -528,6 +529,12 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
   const full = boundRange[0]===0 && boundRange[1]===100;
   // The drawn arrow is the field itself only once every piece is in and the pieces are gone.
   const finished = continuum>=.999 && progress>=.999 && full;
+  // WHAT THE SUM IS, SAID ON IT. The column and the chain were named "Σ ΔV" and "Σ ΔE" from the first piece in to the
+  // last, and a reader asked what a sum of ΔV even was: nothing on the figure said it was the potential at P, nearly.
+  // Once every piece is in, it says so, in the board's own sign: ≈ while the pieces are finite (each one treated as a
+  // point charge), = where the sum is exact at any cut (a ring, an arc), and the bare V or E once the pieces have
+  // shrunk away. While the pieces are still going in, or over part of the charge, it is only a sum, and named as one.
+  const sumOf = (q: 'V' | 'E') => finished ? q : full && progress >= .999 ? `${q} ${exactSum(problem) ? '=' : '\u2248'} \u03a3 \u0394${q}` : `\u03a3 \u0394${q}`;
   const displayed = finished ? field(id,p) : partial;
   const summing = mode === 'sum' || mode === 'integrate';
   // A zero worth printing is a sum of every piece that comes to nothing -- the arc closed into a
@@ -2277,8 +2284,8 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
     }
     const top = stacked ? litRuns[litRuns.length - 1].hi : summing ? got : at;
     // What the column is, named as the stage has it: one piece's ΔV, then that and its mirror's, then
-    // the sum, then -- once the pieces are gone -- V.
-    const name = finished ? 'V' : stacked ? (litRuns.length > 1 ? '\u0394V + \u0394V' : '\u0394V') : '\u03a3 \u0394V';
+    // the sum, said to be V nearly once every piece is in (`sumOf`), then -- once the pieces are gone -- V.
+    const name = stacked && !finished ? (litRuns.length > 1 ? '\u0394V + \u0394V' : '\u0394V') : sumOf('V');
     const extent = stacked ? Math.abs(top) : Math.max(Math.abs(at), Math.abs(got));
     // Named past its far end, or beside it where the room is short -- and a column hanging down beside P over a ring or a
     // disk, beside its middle: its far end comes down by the far rim, where the limits' names stand in the last two
@@ -3512,7 +3519,7 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
           past its tip is where the pair arrives. */}
       {/* Kept, but not while a pair is going in: then the sum is short, its name's spots are the pair's, and with nowhere
           free it was set on P's own name. It is named as soon as there is room, and kept once the pairs are all in. */}
-      {netShown && <g className="cd-sum-arrow" data-sum-arrow="true"><Vector from={P} to={plus(P, net)} width={3.5} vector label={finished ? 'E' : pairNow && Math.hypot(net.x, net.y) < 34 * labelScale ? undefined : '\u03a3 \u0394E'} side={awayFrom(net, toCharge) ?? (pairNow ? awayFrom(net, { x: pLabel.dx, y: pLabel.dy }) : undefined)} reduced={still} ghost={inSpace} keep={!building || building === 'add' || building === 'limit'} priority={building === 'add' || building === 'limit' ? 2 : 1} clip={plotClip} /></g>}
+      {netShown && <g className="cd-sum-arrow" data-sum-arrow="true"><Vector from={P} to={plus(P, net)} width={3.5} vector label={finished ? 'E' : pairNow && Math.hypot(net.x, net.y) < 34 * labelScale ? undefined : sumOf('E')} side={awayFrom(net, toCharge) ?? (pairNow ? awayFrom(net, { x: pLabel.dx, y: pLabel.dy }) : undefined)} reduced={still} ghost={inSpace} keep={!building || building === 'add' || building === 'limit'} priority={building === 'add' || building === 'limit' ? 2 : 1} clip={plotClip} /></g>}
       {/* Where the held scale took the sum past the frame, a break across its shaft near the head, as a drawing marks
           a length too long for its sheet: two slashes with the shaft gone between them (see `netCut`). */}
       {netShown && netCut < 1 && (() => {
@@ -3564,8 +3571,8 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
             ? <rect className="cd-stack-fill" x={gauge.x} width={gauge.w} {...gauge.box(0, gauge.got)} />
             : gauge.filled.map(sl => <rect key={sl.i} className={'cd-stack-fill' + (gauge.lit.has(sl.i) ? ' is-lit' : '')} x={gauge.x} width={gauge.w} {...gauge.box(sl.lo, sl.hi)} />))}
           {!summing && showContribution && gauge.litRuns.map(run => <rect key={run.key} data-stack-lit={run.key} className="cd-stack-fill is-lit" x={gauge.x} width={gauge.w} {...gauge.box(run.lo, run.hi)} />)}
-          <text className={gauge.name === '\u03a3 \u0394V' ? 'is-sum' : undefined} x={gauge.leftSide ? gauge.x - 7 : gauge.x + gauge.w + 7} textAnchor={gauge.leftSide ? 'end' : 'start'} y={gauge.nameY}
-            data-gauge-name="true" data-within={`0 ${P.y.toFixed(1)} 0 ${gauge.up ? -1 : 1}`} {...(gauge.name === '\u03a3 \u0394V' && hideAnswer ? {} : { 'data-keep': 'true', 'data-priority': 2 })}>{setUpright(gauge.name)}</text>
+          <text className={gauge.name.includes('\u03a3') ? 'is-sum' : undefined} x={gauge.leftSide ? gauge.x - 7 : gauge.x + gauge.w + 7} textAnchor={gauge.leftSide ? 'end' : 'start'} y={gauge.nameY}
+            data-gauge-name="true" data-within={`0 ${P.y.toFixed(1)} 0 ${gauge.up ? -1 : 1}`} {...(gauge.name.includes('\u03a3') && hideAnswer ? {} : { 'data-keep': 'true', 'data-priority': 2 })}>{setUpright(gauge.name)}</text>
         </g>}
       {/* Leaders for names the placer had to take past their reach: filled by the placer, never by React. */}
       <g className="cd-label-leaders" aria-hidden="true" />

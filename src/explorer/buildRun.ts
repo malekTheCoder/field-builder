@@ -349,7 +349,9 @@ export function buildStages(p: Problem, bracket?: RunBracket): BuildStage[] {
           : `Start by cutting the charge into pieces short compared with their distance from P: small enough that each one is nearly a point charge, and for a point charge the ${scalar ? 'potential' : 'field'} is something we already know.`;
   // The chain is the arrows themselves, not their surviving parts: it is the sideways parts
   // undoing each other along the way that makes it bend back, where the geometry is symmetric.
-  const stops = `where it stops is the sum of the N ${unit}s: the field at P once they shrink.`;
+  // Named as the figure names it once every piece is in, so the caption says what the arrow's label means: the sum
+  // is the field at P only nearly, with N pieces treated as point charges, and exactly in the limit.
+  const stops = `where it stops, the sum E ≈ Σ ΔE, is nearly the field at P, and exactly it once they shrink.`;
   // WHY THE LIMIT IS THE ANSWER, IN THE CAPTION TOO. The line was changed to name each lesson's own
   // approximation, the one that shrinking makes exact; the caption read to a screen reader still ended
   // "the answer stops depending on how finely we chose to cut", the reason the line had dropped. And it
@@ -366,11 +368,11 @@ export function buildStages(p: Problem, bracket?: RunBracket): BuildStage[] {
   const adds = part
     ? `Now add the arrows of the bracketed ${unit}s, tip to tail.${pairs ? bracket.keeps ? ' Each one’s mirror is bracketed too, so the sideways parts undo each other along the way and the chain bends back to the axis.' : ' A piece whose mirror lies outside the bracket keeps its sideways part, so the chain leans.' : ''} Where it stops is the sum of the bracketed ${unit}s: that part’s field at P once they shrink.`
     : pairs && exact
-    ? 'Now add the pieces in pairs, each with the same length of ring straight across from it. In each pair the sideways parts cancel and the parts along the axis add, so the sum grows straight along the axis and ends exactly at the field at P: every piece is the same distance away at the same angle, so cutting finer changes nothing.'
+    ? 'Now add the pieces in pairs, each with the same length of ring straight across from it. In each pair the sideways parts cancel and the parts along the axis add, so the sum, E = Σ ΔE, grows straight along the axis to exactly the field at P: every piece is the same distance away at the same angle, so cutting finer changes nothing.'
     : pairs
     ? `Now add the pieces in mirror pairs from the middle out; a lone middle piece has no sideways part. In each pair ${PAIR_PARTS[geometry].parts} add, so the sum runs ${PAIR_PARTS[geometry].runs}, and ${stops}`
     : exact
-    ? 'Now add every piece’s arrow, tip to tail. The sideways parts undo each other along the way, so the chain bends back to the axis, and it ends exactly at the field at P: every piece is the same distance away at the same angle, so cutting finer changes nothing.'
+    ? 'Now add every piece’s arrow, tip to tail. The sideways parts undo each other along the way, so the chain bends back to the axis, and it ends exactly at the field at P, E = Σ ΔE: every piece is the same distance away at the same angle, so cutting finer changes nothing.'
     : geometry === 'axial' || surface
     ? `Now add every ${unit}’s arrow, tip to tail. They all point along the axis, so the chain runs straight, and ${stops}`
     : pairs
@@ -403,8 +405,8 @@ export function buildStages(p: Problem, bracket?: RunBracket): BuildStage[] {
         ? part
           ? `Now stack the number of each bracketed ${unit} on top of the last. The column can only grow one way (there is no direction for it to bend back in), and its height is ${exact ? 'already exactly the bracketed part’s potential at P: every piece is the same distance away, so cutting finer changes nothing' : `the sum of the bracketed ${unit}s: that part’s potential at P once they shrink`}.`
           : exact
-          ? 'Now stack every piece’s number on top of the last. The column can only grow one way (there is no direction for it to bend back in), and its height is already exactly the potential at P: every piece is the same distance away, so cutting finer changes nothing.'
-          : `Now stack every ${unit}’s number on top of the last. The column can only grow one way (there is no direction for it to bend back in), and its height is the sum of the N ${unit}s: the potential at P once they shrink.`
+          ? 'Now stack every piece’s ΔV on top of the last. The column can only grow one way (there is no direction for it to bend back in), and its height, marked V = Σ ΔV, is already exactly the potential at P: every piece is the same distance away, so cutting finer changes nothing.'
+          : `Now stack every ${unit}’s ΔV on top of the last. The column can only grow one way (there is no direction for it to bend back in), and its height, marked V ≈ Σ ΔV, is the sum of the N ${unit}s’ ΔV: nearly the potential at P, and exactly it once they shrink.`
         : adds},
     // Eased: one picture turning into another. It finishes early and holds on the integral.
     {key: 'limit', name: 'Shrink them', seconds: 6.5, mode: 'integrate', components: false, pair: false, sum: [1, 1], continuum: [0, 1],

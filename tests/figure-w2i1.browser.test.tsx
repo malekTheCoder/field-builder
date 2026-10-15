@@ -183,7 +183,7 @@ function sweep(id: ProblemId, key: 'distance' | 'charge', values: number[]) {
  for (const value of values) {
   const params = {...DEFAULT_PARAMS, [key]: value};
   view.rerender(<ChargeDiagram {...props(params)} />);
-  const label = [...view.container.querySelectorAll('.cd-vector-label')].find(t => t.getAttribute('data-symbol') === 'Σ ΔE');
+  const label = [...view.container.querySelectorAll('.cd-vector-label')].find(t => /^(E [≈=] )?Σ ΔE$/.test(t.getAttribute('data-symbol') ?? ''));
   const g2 = label?.closest('.cd-vector') ?? [...view.container.querySelectorAll<SVGGElement>('.cd-vector[data-shaft]')][0];
   const s = g2 ? shaftOf(g2) : {a: {x: 0, y: 0}, b: {x: 0, y: 0}};
   out.push({len: Math.hypot(s.b.x - s.a.x, s.b.y - s.a.y), e: magnitude(sumSamples(sampleDistribution(g, params, 5)))});
@@ -394,7 +394,7 @@ describe('the sum\'s chain beside the net, where every piece pushes nearly the s
   if (view) await turn(v, view);
   await hold(v, 4, .6);
   expect(svgOf(v).querySelector('.cd-sum-chain-ends'), 'laid beside, with its end ticks').toBeTruthy();
-  const label = [...svgOf(v).querySelectorAll('.cd-vector-label')].find(t => t.getAttribute('data-symbol') === 'Σ ΔE')!;
+  const label = [...svgOf(v).querySelectorAll('.cd-vector-label')].find(t => /^(E [≈=] )?Σ ΔE$/.test(t.getAttribute('data-symbol') ?? ''))!;
   const s = shaftOf(label.closest('.cd-vector')!), u = {x: s.b.x - s.a.x, y: s.b.y - s.a.y}, len = Math.hypot(u.x, u.y);
   const chain = svgOf(v).querySelector<SVGPathElement>('.cd-sum-chain:not(.cd-sum-chain-ends)')!.getAttribute('d')!;
   for (const [, x, y] of chain.matchAll(/[ML]([-\d.]+),([-\d.]+)/g)) expect(Math.abs((Number(x) - s.a.x) * u.y - (Number(y) - s.a.y) * u.x) / len).toBeGreaterThanOrEqual(8);
@@ -407,7 +407,7 @@ describe('at rest, with the parts drawn, the part that survives is not covered b
   await settle(v);
   const parts = [...svgOf(v).querySelectorAll<SVGTextElement>('.cd-vector-label')];
   expect(parts.some(t => t.getAttribute('data-symbol') === 'ΔE_x' && shown(t))).toBe(true);
-  expect(parts.some(t => t.getAttribute('data-symbol') === 'Σ ΔE')).toBe(false);
+  expect(parts.some(t => /^(E [≈=] )?Σ ΔE$/.test(t.getAttribute('data-symbol') ?? ''))).toBe(false);
  }, 30000);
 });
 
@@ -441,7 +441,7 @@ describe('Δ and Σ are set upright, as the board sets them', () => {
   await settle(v);
   const upright = (t: Element) => [...t.querySelectorAll('tspan[font-style="normal"]')].map(s => s.textContent);
   expect(upright(svgOf(v).querySelector('.cd-footer-math')!)).toContain('Δ');
-  const sum = [...svgOf(v).querySelectorAll('.cd-vector-label')].find(t => t.getAttribute('data-symbol') === 'Σ ΔE')!;
+  const sum = [...svgOf(v).querySelectorAll('.cd-vector-label')].find(t => /^(E [≈=] )?Σ ΔE$/.test(t.getAttribute('data-symbol') ?? ''))!;
   expect(upright(sum)).toEqual(['Σ', 'Δ']);
  }, 30000);
 });
