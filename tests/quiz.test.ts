@@ -30,9 +30,9 @@ const pointerIsReal = (p: Pointer) => {
 
 describe('the bank', () => {
  it('has eight to ten questions for each of its shapes, with unique ids, and all four kinds', () => {
-  // Every shape with a bank is a lesson; the banks written so far are all there.
-  for (const shape of QUIZ_SHAPES) expect(PROBLEMS.some(p => p.id === shape), shape).toBe(true);
-  expect(QUIZ_SHAPES).toEqual(expect.arrayContaining(['bisector', 'infinite', 'ring', 'axial', 'endpoint', 'ramp', 'semi', 'v-rod-bisector', 'v-rod-axial']));
+  // Every shape with a bank is a live lesson, and every lesson now has its bank.
+  for (const shape of QUIZ_SHAPES) expect(PROBLEMS.some(p => p.id === shape) && isReady(shape), shape).toBe(true);
+  expect([...QUIZ_SHAPES].sort()).toEqual(PROBLEMS.map(p => p.id).sort());
   for (const [shape, qs] of Object.entries(BANKS)) {
    expect(qs!.length, shape).toBeGreaterThanOrEqual(8); expect(qs!.length, shape).toBeLessThanOrEqual(10);
    expect(qs!.every(q => q.lesson === shape && q.id.startsWith(shape + '-')), shape).toBe(true);
@@ -71,10 +71,13 @@ describe('the bank', () => {
   for (const t of words) { expect(outsideMath(t), t).not.toMatch(/[0-9]/); expect(t, t).not.toMatch(/—/); }
   for (const q of BANK) for (const p of [q.review, ...q.choices.flatMap(() => [])]) expect(place(p).title + place(p).where).not.toMatch(/[0-9—]/);
  });
- it('uses every misconception in the catalogue, but the two kept for the potential and the sheet, whose banks come next', () => {
+ it('uses every misconception in the catalogue', () => {
   const used = new Set(BANK.flatMap(q => q.choices.flatMap(c => c.misconception ?? [])));
-  expect(MISCONCEPTIONS.map(m => m.id).filter(id => !used.has(id))).toEqual(['potential-power', 'sheet-far-pieces'].filter(id => !used.has(id)));
-  for (const id of ['potential-power', 'sheet-far-pieces']) expect(MISCONCEPTION.has(id)).toBe(true);
+  expect(MISCONCEPTIONS.map(m => m.id).filter(id => !used.has(id))).toEqual([]);
+ });
+ it('names the stage the lesson’s own run names: One ring for the shapes cut into rings', () => {
+  for (const id of ['disk', 'sheet', 'v-disk'] as const) expect(place({lesson: id, stage: 'piece'}).title).toBe(`${getProblem(id).short}, One ring`);
+  for (const id of ['ring', 'arc', 'v-ring', 'v-arc'] as const) expect(place({lesson: id, stage: 'piece'}).title).toBe(`${getProblem(id).short}, One piece`);
  });
 });
 

@@ -407,3 +407,262 @@ describe('the potential beyond the end of a rod', () => {
   expect(onAxis(.1, L, -lam).v).toBeLessThan(onAxis(1, L, -lam).v);
  });
 });
+
+/* THE RINGS', DISKS', ARCS' AND SHEET'S BANKS, and their potentials. Here the charge is a set of point charges in
+ * space, [x, y, z, q], and the field and the potential at P are their sums: the disk and the sheet are bands of
+ * rings, each ring cut into point charges round it; the arc and the ring are point charges round a circle. */
+type Charge = [number, number, number, number];
+const eps0 = 1 / (4 * Math.PI * k);
+/** The field and the potential at (px, py, pz) of point charges. */
+function at(px: number, py: number, pz: number, cs: Charge[]) {
+ let ex = 0, ey = 0, ez = 0, v = 0;
+ for (const [x, y, z, q] of cs) {
+  const dx = px - x, dy = py - y, dz = pz - z, r = Math.sqrt(dx * dx + dy * dy + dz * dz);
+  ex += k * q * dx / r ** 3; ey += k * q * dy / r ** 3; ez += k * q * dz / r ** 3; v += k * q / r;
+ }
+ return {ex, ey, ez, v};
+}
+/** A flat band of charge round the z-axis with density sigma, between the radii s(u0) and s(u1): nu rings, even in
+ * u, each holding sigma times its exact area, cut into nt point charges at its middle radius. */
+function band(sigma: number, s: (u: number) => number, u0: number, u1: number, nu = 3000, nt = 24): Charge[] {
+ const out: Charge[] = [], du = (u1 - u0) / nu, dt = 2 * Math.PI / nt;
+ for (let i = 0; i < nu; i++) {
+  const s1 = s(u0 + i * du), s2 = s(u0 + (i + 1) * du), sm = (s1 + s2) / 2, q = sigma * (s2 * s2 - s1 * s1) / 2 * dt;
+  for (let j = 0; j < nt; j++) { const t = (j + .5) * dt; out.push([sm * Math.cos(t), sm * Math.sin(t), 0, q]); }
+ }
+ return out;
+}
+/** A disk (or the band of it from a to R), cut finely near the axis below a point at height z. */
+const diskCharges = (R: number, sigma: number, z: number, a = 0, nu = 3000) => band(sigma, u => z * Math.sinh(u), Math.asinh(a / z), Math.asinh(R / z), nu);
+/** The sheet's rings between the angles a0 and a1 at P, at height z: s = z tan α. */
+const sheetCharges = (sigma: number, z: number, a0 = 0, a1 = Math.PI / 2 - 1e-7, nu = 3000) => band(sigma, u => z * Math.tan(u), a0, a1, nu);
+/** Point charges round a circle of radius R in the xy-plane, from the angle `from` to `to`, `perAngle` per radian. */
+function circle(R: number, perAngle: number, from: number, to: number, n: number): Charge[] {
+ const dt = (to - from) / n;
+ return Array.from({length: n}, (_, i) => { const t = from + (i + .5) * dt; return [R * Math.cos(t), R * Math.sin(t), 0, perAngle * dt] as Charge; });
+}
+/** The arc of the lessons: opening phi about the x-axis, charge Q, P at its centre. */
+const arcCharges = (R: number, Q: number, phi: number, n: number) => circle(R, Q / phi, -phi / 2, phi / 2, n);
+const total = (cs: Charge[]) => cs.reduce((t, c) => t + c[3], 0);
+
+describe('the disk, on its axis', () => {
+ const R = 1.5, Q = 2, sig = Q / (Math.PI * R * R);
+ const exact = (z: number) => sig / (2 * eps0) * (1 - z / Math.sqrt(R * R + z * z));
+ it('has the lesson’s field, along the axis only, with the sign of σ', () => {
+  for (const z of [.3, 1, 3]) {
+   const f = at(0, 0, z, diskCharges(R, sig, z));
+   close(f.ez, exact(z), 1e-4); expect(Math.hypot(f.ex, f.ey)).toBeLessThan(1e-9);
+   close(at(0, 0, z, diskCharges(R, -sig, z)).ez, -exact(z), 1e-4); // toward a negative disk
+  }
+ });
+ it('one thin ring makes k ΔQ z/(s² + z²)^{3/2}: not with R, not whole, not with s on top', () => {
+  const s = .6, dQ = .01, z = .8, f = ring(s, dQ, z, 64).ez;
+  close(f, k * dQ * z / (s * s + z * z) ** 1.5, 1e-12);
+  for (const wrong of [k * dQ * z / (R * R + z * z) ** 1.5, k * dQ / (s * s + z * z), k * dQ * s / (s * s + z * z) ** 1.5]) expect(Math.abs(wrong - f) / f).toBeGreaterThan(.1);
+ });
+ it('a ring of radius s and width ds has area 2πs ds, so the rings add to Q; σπs² ds or Q 2πs ds do not', () => {
+  const s = .7, ds = 1e-6; close((Math.PI * (s + ds) ** 2 - Math.PI * s * s) / ds, 2 * Math.PI * s, 1e-5);
+  const n = 100000, d = R / n; let right = 0, inner = 0, whole = 0;
+  for (let i = 0; i < n; i++) { const si = (i + .5) * d; right += sig * 2 * Math.PI * si * d; inner += sig * Math.PI * si * si * d; whole += Q * 2 * Math.PI * si * d; }
+  close(right, Q, 1e-8); expect(Math.abs(inner - Q) / Q).toBeGreaterThan(.1); close(whole, Math.PI * R * R * Q, 1e-8);
+ });
+ it('far up the axis tends to kQ/z², not σ/(2ε₀), zero or kQ/z', () => {
+  const z = 300, f = at(0, 0, z, diskCharges(R, sig, z, 0, 400)).ez;
+  close(f, k * Q / z ** 2, 1e-4);
+  expect(f / (sig / (2 * eps0))).toBeLessThan(1e-3); expect(f / (k * Q / z)).toBeLessThan(1e-2);
+ });
+ it('close to the centre tends to σ/(2ε₀): finite, not zero, and half of σ/ε₀', () => {
+  const f = at(0, 0, 1e-3, diskCharges(R, sig, 1e-3)).ez;
+  close(f, sig / (2 * eps0), 2e-3); expect(f).toBeLessThan(sig / (2 * eps0));
+  close(f / (sig / eps0), .5, 2e-3);
+ });
+ it('grown at fixed σ settles to σ/(2ε₀) at every height; at fixed Q it falls to zero; each ring added at the rim adds less', () => {
+  for (const z of [.5, 2]) close(at(0, 0, z, diskCharges(1e4, sig, z)).ez, sig / (2 * eps0), 1e-3);
+  expect(at(0, 0, 1, diskCharges(1e4, Q / (Math.PI * 1e8), 1)).ez).toBeLessThan(1e-6);
+  const e = (r: number) => at(0, 0, 1, diskCharges(r, sig, 1)).ez, [e10, e20, e30] = [e(10), e(20), e(30)];
+  expect(e20 - e10).toBeGreaterThan(e30 - e20); expect(e30 - e20).toBeGreaterThan(0);
+  expect(e30).toBeLessThan(sig / (2 * eps0));
+ });
+ it('with a hole of radius a, the band from a to R is the whole disk less a disk of radius a, not a disk of radius R − a', () => {
+  const a = .5, z = .7, rest = at(0, 0, z, diskCharges(R, sig, z, a)).ez;
+  close(rest, at(0, 0, z, diskCharges(R, sig, z)).ez - at(0, 0, z, diskCharges(a, sig, z)).ez, 1e-5);
+  expect(Math.abs(at(0, 0, z, diskCharges(R - a, sig, z)).ez - rest) / rest).toBeGreaterThan(.05);
+  expect(Math.abs(at(0, 0, z, diskCharges(a, sig, z)).ez - rest) / rest).toBeGreaterThan(.1);
+ });
+});
+
+describe('the infinite sheet', () => {
+ const sig = .8, E = sig / (2 * eps0);
+ const field = (z: number, a0?: number, a1?: number, nu?: number) => at(0, 0, z, sheetCharges(sig, z, a0, a1, nu)).ez;
+ it('is σ/(2ε₀) at every height, half of σ/ε₀: twice the height leaves it the same', () => {
+  for (const z of [.5, 1, 2, 4]) close(field(z), E, 1e-3);
+  close(field(2) / field(1), 1, 1e-6);
+ });
+ it('cut at equal angles, the far rings make the larger fields, each at most 2πkσΔα, adding to 2πkσ', () => {
+  const N = 12, d = Math.PI / 2 / N, parts = Array.from({length: N}, (_, i) => field(1, i * d, i === N - 1 ? Math.PI / 2 - 1e-7 : (i + 1) * d, 300));
+  for (let i = 1; i < N; i++) expect(parts[i]).toBeGreaterThan(parts[i - 1]);
+  for (const p of parts) expect(p).toBeLessThanOrEqual(2 * Math.PI * k * sig * d * (1 + 1e-9));
+  close(parts.reduce((a, b) => a + b, 0), 2 * Math.PI * k * sig, 1e-3);
+ });
+ it('a thin ring at α holds σ 2πs z sec²α Δα and makes 2πkσ sin α Δα; the other choices do not', () => {
+  const z = 1.3, a = 1, d = 1e-4, s = z * Math.tan(a), s1 = z * Math.tan(a - d / 2), s2 = z * Math.tan(a + d / 2);
+  const area = Math.PI * (s2 * s2 - s1 * s1), sec2 = 1 / Math.cos(a) ** 2;
+  close(area, 2 * Math.PI * s * z * sec2 * d, 1e-6);
+  expect(Math.abs(2 * Math.PI * s * z * d - area) / area).toBeGreaterThan(.5); // without the stretch
+  const f = field(z, a - d / 2, a + d / 2, 4), right = 2 * Math.PI * k * sig * Math.sin(a) * d;
+  close(f, right, 1e-6);
+  for (const wrong of [Math.tan(a), Math.sin(a) * Math.tan(a), Math.sin(a) * Math.cos(a) ** 2]) expect(Math.abs(2 * Math.PI * k * sig * wrong * d - f) / f).toBeGreaterThan(.1);
+ });
+ it('raised to twice the height, each equal-angle ring holds four times the charge and makes the same field', () => {
+  const low = sheetCharges(sig, 1, .4, 1.1, 200), high = sheetCharges(sig, 2, .4, 1.1, 200);
+  close(total(high) / total(low), 4, 1e-12);
+  close(at(0, 0, 2, high).ez, at(0, 0, 1, low).ez, 1e-9);
+ });
+ it('a disk as high above as its radius gives less than a third of the sheet’s field; close to its centre, nearly all of it', () => {
+  expect(at(0, 0, 1, diskCharges(1, sig, 1)).ez).toBeLessThan(E / 3);
+  expect(at(0, 0, 1e-3, diskCharges(1, sig, 1e-3)).ez / E).toBeGreaterThan(.998);
+ });
+ it('a negative sheet’s field points toward it, the same size at every height', () => {
+  const lo = at(0, 0, .5, sheetCharges(-sig, .5)).ez, hi = at(0, 0, 3, sheetCharges(-sig, 3)).ez;
+  expect(lo).toBeLessThan(0); close(hi, lo, 1e-6); close(lo, -E, 1e-3);
+ });
+});
+
+describe('the arc, at its centre', () => {
+ const R = 1.2, Q = 1.7;
+ const exact = (phi: number) => -2 * k * Q * Math.sin(phi / 2) / (R * R * phi);
+ const field = (q: number, phi: number, n = 20000) => at(0, 0, 0, arcCharges(R, q, phi, n));
+ it('has the lesson’s field, along x only', () => {
+  for (const phi of [.3, 1, Math.PI, 4, 5.5]) { const f = field(Q, phi); close(f.ex, exact(phi), 1e-6); expect(Math.abs(f.ey)).toBeLessThan(1e-9); }
+ });
+ it('closed, it is zero; very short, −kQ/R²; a semicircle, −2kQ/(πR²) = −2kλ/R, a point charge’s over π/2, and not half that', () => {
+  const full = field(Q, 2 * Math.PI); expect(Math.hypot(full.ex, full.ey)).toBeLessThan(1e-9);
+  close(field(Q, 1e-3).ex, -k * Q / R ** 2, 1e-6);
+  const semi = field(Q, Math.PI).ex;
+  close(semi, -2 * k * Q / (Math.PI * R * R), 1e-6); close((-k * Q / R ** 2) / semi, Math.PI / 2, 1e-6);
+  close(semi, -2 * k * (Q / (Math.PI * R)) / R, 1e-6);
+  expect(Math.abs(semi / 2 - semi) / Math.abs(semi)).toBeGreaterThan(.1);
+ });
+ it('needs short pieces: a semicircle as one or two point charges is far off, and a long piece is weaker than a point charge', () => {
+  const ex = exact(Math.PI);
+  expect(Math.abs(field(Q, Math.PI, 1).ex - ex) / Math.abs(ex)).toBeGreaterThan(.5);
+  expect(Math.abs(field(Q, Math.PI, 2).ex - ex) / Math.abs(ex)).toBeGreaterThan(.05);
+  close(field(Q, Math.PI, 400).ex, ex, 1e-5);
+  const piece = at(0, 0, 0, circle(R, 1, -.5, .5, 20000)); // one radian of arc holding one unit of charge
+  expect(Math.hypot(piece.ex, piece.ey)).toBeLessThan(k / R ** 2 * .99);
+ });
+ it('a piece at θ makes −k ΔQ cos θ/R² along x', () => {
+  for (const t of [.3, 2.2, -1]) close(at(0, 0, 0, [[R * Math.cos(t), R * Math.sin(t), 0, .1]]).ex, -k * .1 * Math.cos(t) / R ** 2, 1e-12);
+ });
+ it('needs −φ/2 to φ/2: 0 to φ leans off the axis, 0 to φ/2 gives half of E_x, and λR dθ over the arc is Q', () => {
+  const phi = 1.4, perAngle = Q / phi, whole = field(Q, phi).ex;
+  const up = at(0, 0, 0, circle(R, perAngle, 0, phi, 20000));
+  expect(Math.abs(up.ey)).toBeGreaterThan(.05); expect(Math.abs(up.ex - whole) / Math.abs(whole)).toBeGreaterThan(.05);
+  close(at(0, 0, 0, circle(R, perAngle, 0, phi / 2, 10000)).ex, whole / 2, 1e-6);
+  close(total(arcCharges(R, Q, phi, 1000)), Q, 1e-12);
+ });
+ it('a negative arc’s field points along +x, toward its middle', () => {
+  for (const phi of [1, Math.PI, 4.5]) { const f = field(-Q, phi, 4000); expect(f.ex).toBeGreaterThan(0); expect(Math.abs(f.ey)).toBeLessThan(1e-9); }
+ });
+ it('opened at fixed Q, its field only falls; at fixed λ it grows to the semicircle, then falls', () => {
+  const phis = Array.from({length: 31}, (_, i) => .2 + i * (2 * Math.PI - .2) / 30);
+  const atQ = phis.map(p => Math.abs(field(Q, p, 4000).ex));
+  for (let i = 1; i < atQ.length; i++) expect(atQ[i]).toBeLessThan(atQ[i - 1]);
+  const atLam = phis.map(p => Math.abs(field(R * p, p, 4000).ex)), top = phis[atLam.indexOf(Math.max(...atLam))];
+  expect(Math.abs(top - Math.PI)).toBeLessThan(.2);
+  expect(atLam[atLam.length - 1]).toBeLessThan(1e-9);
+ });
+});
+
+describe('the potential on the axis of a ring', () => {
+ const R = 1.3, Q = 2, ringOf = (q: number, n: number, from = 0, to = 2 * Math.PI) => circle(R, q / (2 * Math.PI), from, to, n);
+ const exact = (z: number) => k * Q / Math.sqrt(R * R + z * z);
+ it('is kQ/√(R² + z²), exactly, however few the pieces; one piece adds k ΔQ/rᵢ', () => {
+  for (const n of [1, 2, 3, 7]) close(at(0, 0, .8, ringOf(Q, n)).v, exact(.8), 1e-12);
+  const one = at(0, 0, .8, [[R, 0, 0, .1]]).v; close(one, k * .1 / Math.sqrt(R * R + .64), 1e-12);
+  for (const wrong of [k * .1 / (R * R + .64), k * .1 * .8 / (R * R + .64) ** 1.5, k * .1 / .8]) expect(Math.abs(wrong - one) / one).toBeGreaterThan(.1);
+ });
+ it('the half turn opposite adds as much; it does not cancel', () => {
+  const a = at(0, 0, .8, ringOf(Q, 50, 0, Math.PI)).v, b = at(0, 0, .8, ringOf(Q, 50, Math.PI, 2 * Math.PI)).v;
+  close(a, b, 1e-12); close(a + b, exact(.8), 1e-12);
+ });
+ it('at the centre the field is zero but V is kQ/R; far up it is kQ/z, not kQ/z²', () => {
+  const c = at(0, 0, 0, ringOf(Q, 400)); expect(Math.hypot(c.ex, c.ey, c.ez)).toBeLessThan(1e-12); close(c.v, k * Q / R, 1e-12);
+  const z = 500; close(at(0, 0, z, ringOf(Q, 40)).v, k * Q / z, 1e-5);
+ });
+ it('E_z = −dV/dz, along +z for a positive ring; V over a distance is not it', () => {
+  const cs = ringOf(Q, 64), z = .9, h = 1e-5, dVdz = (at(0, 0, z + h, cs).v - at(0, 0, z - h, cs).v) / (2 * h), ez = at(0, 0, z, cs).ez;
+  close(-dVdz, ez, 1e-7); expect(-dVdz).toBeGreaterThan(0);
+  expect(Math.abs(k * Q / (R * R + z * z) - ez) / ez).toBeGreaterThan(.1);
+ });
+ it('its size falls steadily up the axis, with no peak where the field’s is', () => {
+  let last = Infinity;
+  for (let z = 0; z <= 6 * R; z += .01) { const v = at(0, 0, z, ringOf(Q, 8)).v; expect(v).toBeLessThan(last); last = v; }
+ });
+ it('off the axis the field has a sideways part, which V on the axis cannot give', () => {
+  expect(Math.abs(at(.4, 0, .8, ringOf(Q, 2000)).ex)).toBeGreaterThan(1e-2);
+ });
+ it('a negative ring’s potential is negative, the same size', () => { close(at(0, 0, .8, ringOf(-Q, 16)).v, -exact(.8), 1e-12); });
+});
+
+describe('the potential on the axis of a disk', () => {
+ const R = 1.5, Q = 2, sig = Q / (Math.PI * R * R);
+ const exact = (z: number, a = 0) => sig / (2 * eps0) * (Math.sqrt(R * R + z * z) - Math.sqrt(a * a + z * z));
+ it('is (σ/2ε₀)(√(R² + z²) − z), and a thin ring adds k ΔQ/√(s² + z²), not with the rim’s distance', () => {
+  for (const z of [.2, 1, 3]) close(at(0, 0, z, diskCharges(R, sig, z)).v, exact(z), 1e-5);
+  const s = .6, z = .8, thin = at(0, 0, z, circle(s, .01 / (2 * Math.PI), 0, 2 * Math.PI, 8)).v;
+  close(thin, k * .01 / Math.sqrt(s * s + z * z), 1e-12); expect(Math.abs(k * .01 / Math.sqrt(R * R + z * z) - thin) / thin).toBeGreaterThan(.1);
+ });
+ it('∫ s ds/√(s² + z²) from 0 to R is √(R² + z²) − z: not twice it, not the upper end alone, not the field’s integral', () => {
+  const z = .8, n = 100000, d = R / n; let I = 0;
+  for (let i = 0; i < n; i++) { const s = (i + .5) * d; I += s * d / Math.sqrt(s * s + z * z); }
+  const right = Math.sqrt(R * R + z * z) - z; close(I, right, 1e-8);
+  for (const wrong of [2 * right, Math.sqrt(R * R + z * z), 1 / z - 1 / Math.sqrt(R * R + z * z)]) expect(Math.abs(wrong - I) / I).toBeGreaterThan(.1);
+ });
+ it('−dV/dz is the disk’s field: away from a positive disk, toward a negative one, where V is negative', () => {
+  for (const s of [sig, -sig]) {
+   const z = .7, cs = diskCharges(R, s, z), h = 1e-5, dVdz = (at(0, 0, z + h, cs).v - at(0, 0, z - h, cs).v) / (2 * h);
+   close(-dVdz, at(0, 0, z, cs).ez, 1e-6);
+   expect(Math.sign(-dVdz)).toBe(Math.sign(s)); expect(Math.sign(at(0, 0, z, cs).v)).toBe(Math.sign(s));
+  }
+  // holding the root still gives σ/(2ε₀), which is not the field
+  expect(Math.abs(sig / (2 * eps0) - at(0, 0, .7, diskCharges(R, sig, .7)).ez) / (sig / (2 * eps0))).toBeGreaterThan(.1);
+ });
+ it('far up the axis is kQ/z; at the centre σR/(2ε₀) = 2kQ/R, twice kQ/R and finite', () => {
+  close(at(0, 0, 400, diskCharges(R, sig, 400, 0, 400)).v, k * Q / 400, 1e-4);
+  const c = at(0, 0, 1e-6, diskCharges(R, sig, 1e-6)).v;
+  close(c, sig * R / (2 * eps0), 1e-4); close(c, 2 * k * Q / R, 1e-4);
+ });
+ it('grown at fixed σ, V grows without end while the field settles', () => {
+  const v = (r: number) => at(0, 0, 1, diskCharges(r, sig, 1)).v, [v10, v100, v1000] = [v(10), v(100), v(1000)];
+  expect(v100).toBeGreaterThan(5 * v10); expect(v1000).toBeGreaterThan(9 * v100);
+  expect(v1000).toBeGreaterThan(100 * sig / (2 * eps0));
+ });
+ it('with a hole of radius a, V is (σ/2ε₀)(√(R² + z²) − √(a² + z²)), not a smaller disk’s, and not with a for the root', () => {
+  const a = .5, z = .7, v = at(0, 0, z, diskCharges(R, sig, z, a)).v;
+  close(v, exact(z, a), 1e-5);
+  for (const wrong of [sig / (2 * eps0) * (Math.sqrt((R - a) ** 2 + z * z) - z), sig / (2 * eps0) * (Math.sqrt(R * R + z * z) - a)]) expect(Math.abs(wrong - v) / v).toBeGreaterThan(.05);
+ });
+});
+
+describe('the potential at the centre of an arc', () => {
+ const R = 1.2, Q = 1.7;
+ it('is kQ/R at every opening, exactly, however few the pieces', () => {
+  for (const phi of [.2, 1, Math.PI, 5, 2 * Math.PI]) for (const n of [1, 2, 5]) close(at(0, 0, 0, arcCharges(R, Q, phi, n)).v, k * Q / R, 1e-12);
+ });
+ it('closed into a ring, the field is zero and V is still kQ/R; a semicircle has the same V and a field', () => {
+  const closed = at(0, 0, 0, arcCharges(R, Q, 2 * Math.PI, 1000)), semi = at(0, 0, 0, arcCharges(R, Q, Math.PI, 20000));
+  expect(Math.hypot(closed.ex, closed.ey)).toBeLessThan(1e-9); close(closed.v, semi.v, 1e-12);
+  close(semi.ex, -2 * k * Q / (Math.PI * R * R), 1e-6);
+ });
+ it('at fixed λ, V = kλφ grows with the opening', () => {
+  const lam = .9, v = (phi: number) => at(0, 0, 0, arcCharges(R, lam * R * phi, phi, 50)).v;
+  close(v(1), k * lam, 1e-12); close(v(2 * Math.PI), k * lam * 2 * Math.PI, 1e-12);
+  expect(v(2)).toBeGreaterThan(v(1));
+ });
+ it('one piece adds kλΔθ; −dV/dR = kQ/R² is not the field at the centre', () => {
+  const lam = Q / (R * Math.PI), dt = .01; close(at(0, 0, 0, [[R, 0, 0, lam * R * dt]]).v, k * lam * dt, 1e-12);
+  for (const phi of [Math.PI, 2 * Math.PI]) expect(Math.abs(at(0, 0, 0, arcCharges(R, Q, phi, 4000)).ex + k * Q / R ** 2)).toBeGreaterThan(.1);
+ });
+ it('a negative arc’s potential is negative', () => { expect(at(0, 0, 0, arcCharges(R, -Q, 2, 10)).v).toBeLessThan(0); });
+});

@@ -11,6 +11,12 @@ import {bank as ramp} from './bank/ramp';
 import {bank as semi} from './bank/semi';
 import {bank as vRodBisector} from './bank/v-rod-bisector';
 import {bank as vRodAxial} from './bank/v-rod-axial';
+import {bank as disk} from './bank/disk';
+import {bank as sheet} from './bank/sheet';
+import {bank as arc} from './bank/arc';
+import {bank as vRing} from './bank/v-ring';
+import {bank as vDisk} from './bank/v-disk';
+import {bank as vArc} from './bank/v-arc';
 
 /* THE QUIZ'S ENGINE: pure functions, no React and no page, so every rule here is tested in node. It draws a
  * quiz from the shapes, kinds and length the student chose; scores it; finds the misconceptions behind the
@@ -21,6 +27,7 @@ import {bank as vRodAxial} from './bank/v-rod-axial';
 export const BANKS: Partial<Record<ProblemId, Question[]>> = {
   bisector, ring, infinite,
   axial, endpoint, ramp, semi, 'v-rod-bisector': vRodBisector, 'v-rod-axial': vRodAxial,
+  disk, sheet, arc, 'v-ring': vRing, 'v-disk': vDisk, 'v-arc': vArc,
 };
 export const BANK: Question[] = Object.values(BANKS).flat();
 export const QUESTION = new Map(BANK.map(q => [q.id, q]));
@@ -203,9 +210,15 @@ export function record(h: History, results: Result[]): History {
 export const STAGE_NAME: Record<StageWord, string> = {cut: 'Cut it up', piece: 'One piece', cancel: 'What cancels', add: 'Add them up', shrink: 'Shrink them'};
 /** The parts of a lesson's page below the build that a pointer may name, besides the lesson's own headings. */
 export const PAGE_SECTIONS = ['Limiting cases', 'Easy to confuse with'];
+/** A stage's name as that lesson's own run says it: a disk, a sheet and the disk's potential are cut into
+ * rings, and their second stage is One ring (src/explorer/buildRun.ts). */
+export function stageName(lesson: ProblemId, stage: StageWord): string {
+  const geometry = getProblem(lesson).geometry;
+  return stage === 'piece' && (geometry === 'disk' || geometry === 'sheet') ? 'One ring' : STAGE_NAME[stage];
+}
 export function place(p: Pointer): {href: string; title: string; where: string} {
   const short = getProblem(p.lesson).short;
-  if ('stage' in p) return {href: `?p=${p.lesson}&stage=${p.stage}`, title: `${short}, ${STAGE_NAME[p.stage]}`, where: 'Opens the lesson at this stage of Watch it build.'};
+  if ('stage' in p) return {href: `?p=${p.lesson}&stage=${p.stage}`, title: `${short}, ${stageName(p.lesson, p.stage)}`, where: 'Opens the lesson at this stage of Watch it build.'};
   return {href: `?p=${p.lesson}`, title: `${short}, ${p.section}`,
     where: PAGE_SECTIONS.includes(p.section) ? `Opens the lesson. Look under ${p.section}, below the build.` : `Opens the lesson. Press Read the lesson and look under ${p.section}.`};
 }

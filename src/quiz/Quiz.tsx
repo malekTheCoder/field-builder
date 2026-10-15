@@ -10,7 +10,7 @@ import {Brand} from '../explorer/Brand';
 import {STORAGE} from '../explorer/Explorer';
 import {MathText,Prose} from '../components/Math';
 import {Hint} from '../components/Hint';
-import {BANKS,DEFAULT_SETTINGS,KINDS,LENGTHS,QUESTION,STAGE_NAME,clearHistory,confidence,correctIndex,draw,drawAgain,drawWeak,grade,hasHistory,inWords,place,pointerFor,readHistory,record,score,toRevisit,weakSpots,writeHistory,type Drawn,type History,type Result,type Settings} from './engine';
+import {BANKS,DEFAULT_SETTINGS,KINDS,LENGTHS,QUESTION,stageName,clearHistory,confidence,correctIndex,draw,drawAgain,drawWeak,grade,hasHistory,inWords,place,pointerFor,readHistory,record,score,toRevisit,weakSpots,writeHistory,type Drawn,type History,type Result,type Settings} from './engine';
 import {MISCONCEPTION} from './misconceptions';
 import type {Answer,Choice,Kind,Pointer} from './types';
 import '../explorer/explorer.css';
@@ -286,7 +286,7 @@ function End({results,before,onRetry,onWeak,onNew,onForget,cleared,hist}:{result
    </div>
    {revisit.length>0&&<><h3 className="quiz-sub">Lessons to revisit</h3><ul className="quiz-revisit">{revisit.map(x=><li key={x.lesson}>
     <a className="quiz-lesson" href={`?p=${x.lesson}`} onClick={open}><span className="quiz-shape-glyph"><ShapeGlyph id={x.lesson} size={18}/></span><strong>{getProblem(x.lesson).title}</strong><ArrowRight size={15} aria-hidden="true"/></a>
-    <p className="quiz-revisit-where">Look at {x.pointers.map(p=>'stage' in p?STAGE_NAME[p.stage]:p.section).filter((v,i,a)=>a.indexOf(v)===i).join(', ')}.</p>
+    <p className="quiz-revisit-where">Look at {x.pointers.map(p=>'stage' in p?stageName(p.lesson,p.stage):p.section).filter((v,i,a)=>a.indexOf(v)===i).join(', ')}.</p>
    </li>)}</ul></>}
   </section>
   <HistoryNote hist={hist} onForget={onForget} cleared={cleared}/>
