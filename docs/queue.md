@@ -6,7 +6,10 @@ then to **Done**, with the commit. Newest requests are added at the bottom of **
 owner says they are urgent.
 
 ## In progress
-Nothing. (2026-10-15: everything below Done is on main and CI is green on 5465a3a.)
+- **Figure zoom** (owner, 2026-10-15, with a screenshot): zoomed in, parts of the figure bleed out of the
+  plot area onto the card: the y axis runs past the card's top and bottom into the controls, and the
+  rod's + marks sit above the header line and by the controls. And zooming in and out is not smooth.
+  One agent in a worktree.
 
 ## Next
 1. **New lessons**, deferred by the cloud round, for the owner to choose from: a non-uniform semicircle, a
