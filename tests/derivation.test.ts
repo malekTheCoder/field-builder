@@ -26,12 +26,12 @@ function points(n: number) {
     return {k: rand(.5, 9), lambda: rand(-5, 5), lambda0: rand(-5, 5), sigma: rand(-5, 5), Q: rand(-5, 5),
       r: rand(.5, 6), z: rand(.5, 6), a: rand(.5, 6), L, R, x: rand(0, L), y: rand(-L, L), s: rand(0, R),
       theta: rand(-1.4, 1.4), phi: rand(.2, 6.2)};
-  });
+  }).map(at => ({...at, alpha: at.theta}));
 }
 /** What changes from piece to piece in each lesson's sum, and what the shrink line writes it as in
  * where piece i sits, y_i: the TeX the board writes, and the same thing as an expression in the
  * lesson's variable, checked against the lesson's own distance or direction. A ring's bits are all one distance away at one
- * angle and an arc's pieces all R away, and the infinite line's charge and cosine are already in θ:
+ * angle and an arc's pieces all R away, and the infinite line's charge and cosine are already in α:
  * there nothing more is written. */
 type Swap = [tex: string, expr: string, against: 'distance^2' | 'distance' | 'projection' | 'none'];
 const ROD_SWAPS: Swap[] = [[String.raw`r_i^2=y_i^2+r^2`, 'y^2+r^2', 'distance^2'], [String.raw`\cos\alpha_i=r/\sqrt{y_i^2+r^2}`, 'r/sqrt(y^2+r^2)', 'projection']];
@@ -41,7 +41,7 @@ const SWAPS: Record<string, Swap[]> = {
   bisector: ROD_SWAPS, endpoint: ROD_SWAPS,
   ramp: [[String.raw`\lambda(y_i)=\lambda_0\,(y_i/L)`, 'lambda0*y/L', 'none'], ...ROD_SWAPS],
   axial: [[String.raw`r_i^2=(L+a-x_i)^2`, '(L+a-x)^2', 'distance^2']],
-  infinite: [[String.raw`r_i^2=r^2\sec^2\theta_i`, 'r^2/cos(theta)^2', 'distance^2']],
+  infinite: [[String.raw`r_i^2=r^2\sec^2\alpha_i`, 'r^2/cos(alpha)^2', 'distance^2']],
   semi: [[String.raw`r_i^2=x_i^2+r^2`, 'x^2+r^2', 'distance^2'], [String.raw`\sin\alpha_i=x_i/\sqrt{x_i^2+r^2}`, 'x/sqrt(x^2+r^2)', 'none']],
   ring: [], arc: [], 'v-ring': [], 'v-arc': [],
   disk: [RING_CHARGE, ...RING_SWAPS], sheet: RING_SWAPS,
@@ -163,8 +163,8 @@ describe('the derivation board', () => {
       for (const at of points(20)) {
         close(evaluate(f.r, at), evaluate(p.distance, at), `${p.id} distance`);
         // The lesson writes its charge element per unit of its own coordinate. The infinite line
-        // is integrated in the angle, so its dy carries the Jacobian of y = r tan θ.
-        const per = {dx: 1, dy: p.id === 'infinite' ? at.r / Math.cos(at.theta) ** 2 : 1, ds: 1, dtheta: 1};
+        // is integrated in the angle, so its dy carries the Jacobian of y = r tan α.
+        const per = {dx: 1, dy: p.id === 'infinite' ? at.r / Math.cos(at.alpha) ** 2 : 1, ds: 1, dtheta: 1};
         close(evaluate(f.dq, at), evaluate(p.dq, {...at, ...per}), `${p.id} charge element`);
       }
     });
@@ -213,10 +213,10 @@ describe('the derivation board', () => {
   }
   it('the equal-angle lessons give each piece the point charge the figure draws, so the sum on the board stays finite', () => {
     // Cut at equal angles, the outermost piece never ends. ΔQ = λΔy made the board's sum infinite at
-    // every N; what the figure gives a piece is the point charge at its middle angle, λ r sec²θ Δθ,
+    // every N; what the figure gives a piece is the point charge at its middle angle, λ r sec²α Δα,
     // and so does the board now. It is a definition of the stand-in, not "≈" of the piece's charge.
     for (const [id, tex, where, bracket] of [
-      ['infinite', String.raw`\lambda r\sec^2\theta\,\Delta\theta`, String.raw`y=r\tan\theta`, String.raw`$\Delta y$`],
+      ['infinite', String.raw`\lambda r\sec^2\alpha\,\Delta\alpha`, String.raw`y=r\tan\alpha`, String.raw`$\Delta y$`],
       ['semi', String.raw`\lambda r\sec^2\alpha\,\Delta\alpha`, String.raw`x=r\tan\alpha`, String.raw`$\Delta x$`],
       // Grouped as its sentence says it: σ times the circumference, times the width.
       ['sheet', String.raw`\sigma\,(2\pi s)(z\sec^2\alpha\,\Delta\alpha)`, String.raw`s=z\tan\alpha`, String.raw`$\Delta s$`],
@@ -229,7 +229,7 @@ describe('the derivation board', () => {
       // outermost's FIELD never ending.
       expect(pieces.say, id).toMatch(/\$\\Delta Q\$ stands for .* whose field at.*is nearly the (piece|ring)’s, even for the outermost (piece|ring), which never ends\./);
       // The figure brackets the piece in the lesson's own coordinate, and the board says how its
-      // r sec²θ Δθ relates to it: nearly the piece's own length, near P -- of the piece, not "bracketed on
+      // r sec²α Δα relates to it: nearly the piece's own length, near P -- of the piece, not "bracketed on
       // the figure", where the run's bracketed piece is never one near P and at three pieces none is drawn.
       expect(pieces.say, id).toContain(`is nearly its own ${id === 'sheet' ? 'width' : 'length'}, ${bracket}.`);
       expect(pieces.say, id).not.toContain('bracketed on the figure');
@@ -252,14 +252,14 @@ describe('the derivation board', () => {
     expect(Number.isFinite(board)).toBe(true);
     close(board, sampleDistribution('infinite', P, n).reduce((x, s) => x + s.field.x, 0), 'the board’s sum is the chain');
     // The limit brings in the lesson's own element, exactly.
-    expect(step('infinite', 'limit').where).toContain('dQ=\\lambda r\\sec^2\\theta\\,d\\theta');
+    expect(step('infinite', 'limit').where).toContain('dQ=\\lambda r\\sec^2\\alpha\\,d\\alpha');
   });
   it('the angle is said in words in the first line that uses it', () => {
-    // y = r tan θ and a sec² arrived in the first line of the infinite line with θ said two steps
+    // y = r tan α and a sec² arrived in the first line of the infinite line with α said two steps
     // later; α arrived in What cancels with no word for it at all.
     for (const p of PROBLEMS.filter(q => q.quantity === 'E' && q.id !== 'axial')) {
       // The rods index their piece's angle from its first appearance, α_i (see `HYPOTENUSE` on the board).
-      const angle = p.id === 'infinite' || p.id === 'arc' ? '\\theta' : ['bisector', 'endpoint', 'ramp'].includes(p.id) ? '\\alpha_i' : '\\alpha';
+      const angle = p.id === 'arc' ? '\\theta' : ['bisector', 'endpoint', 'ramp'].includes(p.id) ? '\\alpha_i' : '\\alpha';
       const lines = boardLines(p);
       const uses = (tex?: string) => !!tex && tex.replace(/\\Delta\\(theta|alpha)/g, '').includes(angle);
       const first = lines.findIndex(l => [l.tex, l.where, l.finish, l.cancels, l.also].some(uses));
@@ -292,9 +292,9 @@ describe('the derivation board', () => {
     }
     // "Hence the minus" points at the line that has it: the line above the sentence has none.
     for (const id of ['endpoint', 'ramp']) expect(say(id), id).toContain(String.raw`hence the minus in $\Delta E_y$ below`);
-    // The infinite line says why its part along x is ΔE cos θ.
+    // The infinite line says why its part along x is ΔE cos α.
     // Along the line of sight, named as a line: r_i is a distance on this board.
-    expect(say('infinite')).toMatch(/lies along the line of sight to the piece, so its part along \$x\$ is \$\\Delta E\\cos\\theta\$/);
+    expect(say('infinite')).toMatch(/lies along the line of sight to the piece, so its part along \$x\$ is \$\\Delta E\\cos\\alpha\$/);
     for (const id of ['bisector', 'endpoint', 'ramp', 'ring', 'disk', 'infinite', 'semi']) expect(say(id), id).not.toMatch(/between \$r_i\$ and|lies along \$r_i\$/);
     // A disk's ring adds up to its charge, ΔQ = Σδq, times one factor; the sheet's only nearly.
     expect(say('disk')).toContain(String.raw`$\Delta Q=\sum\delta q$`);
@@ -443,9 +443,9 @@ describe('the derivation board', () => {
       expect(limit.finish, id).toContain('^{3/2}');
     }
     for (const id of ['axial', 'arc']) expect(step(id, 'limit').merged, id).toBeUndefined();
-    // The infinite line's second row cancels a sec²θ, the lesson's whole claim, and says so.
+    // The infinite line's second row cancels a sec²α, the lesson's whole claim, and says so.
     // Inline, as every other gloss is: stacked, it was jammed between the gloss above and the rule below.
-    expect(step('infinite', 'limit').merged).toContain(String.raw`\lambda r\sec^2\theta/(r^2\sec^2\theta)=\lambda/r`);
+    expect(step('infinite', 'limit').merged).toContain(String.raw`\lambda r\sec^2\alpha/(r^2\sec^2\alpha)=\lambda/r`);
   });
   it('every answer contains the k its definition defines, and says it in k before ε₀', () => {
     for (const p of PROBLEMS) expect(resultLines(p).join(' '), p.id).toMatch(/k/);

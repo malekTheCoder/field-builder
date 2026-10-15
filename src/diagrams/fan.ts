@@ -3,7 +3,7 @@ export type Rect = {x: number; y: number; width: number; height: number};
 /** The angular fan a partition makes at the observation point.
  *
  * WHY THIS EXISTS. Three lessons cut a charge distribution that runs to infinity, and they cut it
- * the way the derivation does: equal steps in the angle θ of the substitution y = r tan θ. That is
+ * the way the derivation does: equal steps in the angle α of the substitution y = r tan α. That is
  * the right partition -- on the two line lessons it gives every piece an identical |ΔE|, which is
  * the whole reason the improper integral is tractable -- but it makes the OUTER PIECES ENORMOUS.
  * At five pieces the infinite line's first and last run from ±4.1 m out to the truncation, their

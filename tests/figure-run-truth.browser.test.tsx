@@ -220,8 +220,8 @@ describe('the limits are named in the stage that sets them', () => {
 });
 
 describe('the footer names the charge the board does', () => {
- // In the limit, in the variable the board integrates over: θ on the endless line, x and s on the others.
- for (const [id, want, limit] of [['infinite', 'ΔQ = λr sec²θ Δθ', 'dQ = λr sec²θ dθ'], ['semi', 'ΔQ = λr sec²α Δα', 'dQ = λ dx'], ['sheet', 'ΔQ = σ 2πs z sec²α Δα', 'dQ = σ 2πs ds']] as const) it(id, async () => {
+ // In the limit, in the variable the board integrates over: α on the endless line, x and s on the others.
+ for (const [id, want, limit] of [['infinite', 'ΔQ = λr sec²α Δα', 'dQ = λr sec²α dα'], ['semi', 'ΔQ = λr sec²α Δα', 'dQ = λ dx'], ['sheet', 'ΔQ = σ 2πs z sec²α Δα', 'dQ = σ 2πs ds']] as const) it(id, async () => {
   const v = await openLesson(id);
   await hold(v, 2, .5);
   const footer = v.container.querySelector<SVGTextElement>('.cd-footer-math')!;

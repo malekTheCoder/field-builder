@@ -58,7 +58,7 @@ describe('the panel opens on the problem', () => {
   it('the infinite line’s finite-rod route states its own problem', () => {
     const text = panel('infinite', 340, 'limit').container.querySelector('.ew-problem-text')!.textContent!;
     expect(text).toMatch(/Start with a rod of length L/);
-    expect(text).not.toMatch(/r tan θ/);
+    expect(text).not.toMatch(/r tan α/);
   });
 });
 

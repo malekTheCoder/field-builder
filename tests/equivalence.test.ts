@@ -56,8 +56,8 @@ describe('mathematical input',()=>{
   expect(eq('k*Q*z/ri^3','k*Q*z/(R^2+z^2)^(3/2)','ring')).toBe(true);
   expect(eq('k*lambda/ri^2','k*lambda/(L+a-x)^2','axial')).toBe(true);
   expect(eq('k*Q/(a*(a+L))',getProblem('axial').result,'axial')).toBe(true);
-  expect(eq('sqrt(r^2+y^2)','r/cos(theta)','infinite')).toBe(true);
-  expect(eq('k*lambda*cos(theta)/r',getProblem('infinite').kernel,'infinite')).toBe(true);
+  expect(eq('sqrt(r^2+y^2)','r/cos(alpha)','infinite')).toBe(true);
+  expect(eq('k*lambda*cos(alpha)/r',getProblem('infinite').kernel,'infinite')).toBe(true);
   expect(eq('2*k*lambda/r',getProblem('infinite').result,'infinite')).toBe(true);
   expect(eq('k*lambda/r^2',getProblem('infinite').kernel,'infinite')).toBe(false);
   expect(eq('k*Q/z^2',getProblem('ring').result,'ring')).toBe(false);

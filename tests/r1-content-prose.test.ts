@@ -30,9 +30,9 @@ describe('the confusions list says what each expression would describe',()=>{
  for(const p of PROBLEMS.filter(x=>x.quantity==='E'))it(`${p.id}: every field lesson has a confusions list to show`,()=>{
   expect(messages(p).length,`${p.id} would open an empty list`).toBeGreaterThanOrEqual(5);
  });
- it('the infinite line speaks of λ and θ, not of the finite rod’s Q, L and α',()=>{
+ it('the infinite line speaks of λ and its angle α, not of the finite rod’s Q and L, nor of θ',()=>{
   for(const p of [getProblem('infinite'),getProblem('infinite','limit')])for(const m of messages(p)){
-   expect(m).not.toMatch(/entire rod|Divide by L|α/);
+   expect(m).not.toMatch(/entire rod|Divide by L|θ/);
   }
   expect(fields(getProblem('infinite')).find(f=>f.id==='projection')!.hint).not.toContain('called α');
  });

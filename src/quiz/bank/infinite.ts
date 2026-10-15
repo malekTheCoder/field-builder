@@ -2,8 +2,8 @@ import type {Question} from '../types';
 const raw = String.raw;
 
 /* THE INFINITE LINE, in its lesson's symbols (src/lessons/infinite.ts): density λ on the whole y-axis,
- * P = (r, 0), cut at equal angles θ at P measured from the perpendicular, y = r tan θ, rᵢ = r sec θ,
- * ΔQ = λ r sec²θ Δθ, so every piece makes kλΔθ/r. θ, not α: the lesson integrates in θ. Every result and limit
+ * P = (r, 0), cut at equal angles α at P measured from the perpendicular, y = r tan α, rᵢ = r sec α,
+ * ΔQ = λ r sec²α Δα, so every piece makes kλΔα/r. α, the angle at P, as in every lesson. Every result and limit
  * here is checked by number in tests/quiz-physics.test.ts. */
 export const bank: Question[] = [
   {id: 'infinite-double-r', lesson: 'infinite', kind: 'predict',
@@ -21,17 +21,17 @@ export const bank: Question[] = [
     review: {lesson: 'infinite', section: 'What the answer says'}},
 
   {id: 'infinite-dq', lesson: 'infinite', kind: 'setup',
-    prompt: raw`Cut the line at equal angles $\Delta\theta$ seen from $P$. What charge does the piece at angle $\theta$ hold?`,
+    prompt: raw`Cut the line at equal angles $\Delta\alpha$ seen from $P$. What charge does the piece at angle $\alpha$ hold?`,
     choices: [
-      {correct: true, tex: raw`\Delta Q=\lambda r\sec^2\theta\,\Delta\theta`},
-      {tex: raw`\Delta Q=\lambda\,\Delta\theta`, misconception: 'piece-length',
-        why: raw`$\lambda$ is a charge per unit length, and $\Delta\theta$ is an angle. The piece’s charge is $\lambda$ times its length along the line.`},
-      {tex: raw`\Delta Q=\lambda r\,\Delta\theta`, misconception: 'jacobian',
-        why: raw`$r\,\Delta\theta$ is the length only of the piece straight across from $P$. Farther along, the same angle takes in a longer stretch of line, longer by $\sec^2\theta$.`},
-      {tex: raw`\Delta Q=\lambda r\sec\theta\,\Delta\theta`, misconception: 'jacobian',
-        why: raw`$r\sec\theta\,\Delta\theta$ is the width of the angle at the piece’s distance, square to the line of sight. The line crosses that line of sight on a slant, which makes the piece longer by one more $\sec\theta$.`},
+      {correct: true, tex: raw`\Delta Q=\lambda r\sec^2\alpha\,\Delta\alpha`},
+      {tex: raw`\Delta Q=\lambda\,\Delta\alpha`, misconception: 'piece-length',
+        why: raw`$\lambda$ is a charge per unit length, and $\Delta\alpha$ is an angle. The piece’s charge is $\lambda$ times its length along the line.`},
+      {tex: raw`\Delta Q=\lambda r\,\Delta\alpha`, misconception: 'jacobian',
+        why: raw`$r\,\Delta\alpha$ is the length only of the piece straight across from $P$. Farther along, the same angle takes in a longer stretch of line, longer by $\sec^2\alpha$.`},
+      {tex: raw`\Delta Q=\lambda r\sec\alpha\,\Delta\alpha`, misconception: 'jacobian',
+        why: raw`$r\sec\alpha\,\Delta\alpha$ is the width of the angle at the piece’s distance, square to the line of sight. The line crosses that line of sight on a slant, which makes the piece longer by one more $\sec\alpha$.`},
     ],
-    explanation: raw`The piece sits at $y=r\tan\theta$, so a step $\Delta\theta$ moves along the line by $\Delta y=r\sec^2\theta\,\Delta\theta$. It holds $\lambda$ times that: $\lambda r\sec^2\theta\,\Delta\theta$. Far pieces are far longer than near ones.`,
+    explanation: raw`The piece sits at $y=r\tan\alpha$, so a step $\Delta\alpha$ moves along the line by $\Delta y=r\sec^2\alpha\,\Delta\alpha$. It holds $\lambda$ times that: $\lambda r\sec^2\alpha\,\Delta\alpha$. Far pieces are far longer than near ones.`,
     review: {lesson: 'infinite', stage: 'cut'}},
 
   {id: 'infinite-equal-pieces', lesson: 'infinite', kind: 'predict',
@@ -39,37 +39,37 @@ export const bank: Question[] = [
     choices: [
       {correct: true, text: raw`All the same: a far piece holds more charge, and is farther away by exactly enough.`},
       {text: raw`The far pieces’ fields are weaker, by the inverse square of their distance.`, misconception: 'jacobian',
-        why: raw`That forgets that a far piece is longer and holds more charge: $\lambda r\sec^2\theta\,\Delta\theta$. Its extra charge exactly makes up for its extra distance.`},
+        why: raw`That forgets that a far piece is longer and holds more charge: $\lambda r\sec^2\alpha\,\Delta\alpha$. Its extra charge exactly makes up for its extra distance.`},
       {text: raw`The far pieces’ fields are stronger, since they hold more charge.`, misconception: 'fixed-distance',
-        why: raw`A far piece does hold more charge, but it is also farther away, $r_i=r\sec\theta$. The $\sec^2\theta$ in its charge cancels the one in $r_i^2$.`},
+        why: raw`A far piece does hold more charge, but it is also farther away, $r_i=r\sec\alpha$. The $\sec^2\alpha$ in its charge cancels the one in $r_i^2$.`},
     ],
-    explanation: raw`Each piece makes $\Delta E=k\,\Delta Q/r_i^2$. Its charge is $\lambda r\sec^2\theta\,\Delta\theta$ and its distance squared is $r^2\sec^2\theta$, so the secants cancel and $\Delta E=k\lambda\,\Delta\theta/r$, the same for every piece. That is what cutting by angle buys.`,
+    explanation: raw`Each piece makes $\Delta E=k\,\Delta Q/r_i^2$. Its charge is $\lambda r\sec^2\alpha\,\Delta\alpha$ and its distance squared is $r^2\sec^2\alpha$, so the secants cancel and $\Delta E=k\lambda\,\Delta\alpha/r$, the same for every piece. That is what cutting by angle buys.`,
     review: {lesson: 'infinite', stage: 'piece'}},
 
   {id: 'infinite-bounds', lesson: 'infinite', kind: 'setup',
-    prompt: raw`In the angle $\theta$ at $P$, what are the bounds that cover the whole line?`,
+    prompt: raw`In the angle $\alpha$ at $P$, what are the bounds that cover the whole line?`,
     choices: [
-      {correct: true, tex: raw`\int_{-\pi/2}^{\pi/2}\cdots\,d\theta`},
-      {tex: raw`\int_{-\infty}^{\infty}\cdots\,d\theta`, misconception: 'bounds',
-        why: raw`Those are the bounds in $y$. In the angle, the line’s two endless ends are at $\theta=\pm\pi/2$, where $\tan\theta$ runs off to infinity.`},
-      {tex: raw`\int_{0}^{\pi/2}\cdots\,d\theta`, misconception: 'bounds',
+      {correct: true, tex: raw`\int_{-\pi/2}^{\pi/2}\cdots\,d\alpha`},
+      {tex: raw`\int_{-\infty}^{\infty}\cdots\,d\alpha`, misconception: 'bounds',
+        why: raw`Those are the bounds in $y$. In the angle, the line’s two endless ends are at $\alpha=\pm\pi/2$, where $\tan\alpha$ runs off to infinity.`},
+      {tex: raw`\int_{0}^{\pi/2}\cdots\,d\alpha`, misconception: 'bounds',
         why: raw`That covers only the half of the line above $P$, so it gives half the field. The mirror half, below, adds the same again along $x$.`},
-      {tex: raw`\int_{0}^{2\pi}\cdots\,d\theta`, misconception: 'bounds',
+      {tex: raw`\int_{0}^{2\pi}\cdots\,d\alpha`, misconception: 'bounds',
         why: raw`That is a full turn round $P$, but the line lies on one side of $P$: seen from $P$ it fills only half a turn.`},
     ],
-    explanation: raw`With $y=r\tan\theta$, the whole $y$-axis is covered once as $\theta$ runs from $-\pi/2$ to $\pi/2$. An endless line becomes a finite angle, which is why the angle was chosen.`,
+    explanation: raw`With $y=r\tan\alpha$, the whole $y$-axis is covered once as $\alpha$ runs from $-\pi/2$ to $\pi/2$. An endless line becomes a finite angle, which is why the angle was chosen.`,
     review: {lesson: 'infinite', stage: 'shrink'}},
 
   {id: 'infinite-what-survives', lesson: 'infinite', kind: 'setup',
     prompt: raw`Which part of each piece’s field is added up, and with what factor?`,
     choices: [
-      {correct: true, text: raw`The part along $x$, perpendicular to the line, with $\cos\theta$.`},
-      {text: raw`The part along the line, with $\sin\theta$.`, misconception: 'wrong-part',
-        why: raw`The part along the line is the one the mirror piece, at $-\theta$, cancels. What survives is perpendicular to the line, adjacent to $\theta$.`},
+      {correct: true, text: raw`The part along $x$, perpendicular to the line, with $\cos\alpha$.`},
+      {text: raw`The part along the line, with $\sin\alpha$.`, misconception: 'wrong-part',
+        why: raw`The part along the line is the one the mirror piece, at $-\alpha$, cancels. What survives is perpendicular to the line, adjacent to $\alpha$.`},
       {text: raw`The whole field of each piece, with no factor.`, misconception: 'projection',
         why: raw`Each piece’s field leans along the line, and that part cancels against its mirror. Adding whole arrows counts the cancelled parts too.`},
     ],
-    explanation: raw`The piece at $-\theta$ mirrors the piece at $\theta$: their parts along the line are equal and opposite, and cancel, so $E_y=0$. Their parts along $x$ are $\Delta E\cos\theta$, and add.`,
+    explanation: raw`The piece at $-\alpha$ mirrors the piece at $\alpha$: their parts along the line are equal and opposite, and cancel, so $E_y=0$. Their parts along $x$ are $\Delta E\cos\alpha$, and add.`,
     review: {lesson: 'infinite', stage: 'cancel'}},
 
   {id: 'infinite-no-q', lesson: 'infinite', kind: 'setup',
@@ -85,17 +85,17 @@ export const bank: Question[] = [
     review: {lesson: 'infinite', stage: 'cut'}},
 
   {id: 'infinite-result', lesson: 'infinite', kind: 'check',
-    prompt: raw`Each piece adds $(k\lambda/r)\cos\theta\,d\theta$ along $x$. What is the field of the whole line at $P$?`,
+    prompt: raw`Each piece adds $(k\lambda/r)\cos\alpha\,d\alpha$ along $x$. What is the field of the whole line at $P$?`,
     choices: [
       {correct: true, tex: raw`E_x=\frac{2k\lambda}{r}`},
       {tex: raw`E_x=\frac{k\lambda}{r}`, misconception: 'bounds',
-        why: raw`That is the share of one half of the line, $\theta$ from $0$ to $\pi/2$. The half on the other side of $P$ adds the same again.`},
+        why: raw`That is the share of one half of the line, $\alpha$ from $0$ to $\pi/2$. The half on the other side of $P$ adds the same again.`},
       {tex: raw`E_x=\frac{\pi k\lambda}{r}`, misconception: 'projection',
-        why: raw`That adds every piece’s whole field, $k\lambda\,d\theta/r$, over the half turn. Only the part along $x$ survives, so the integrand keeps its $\cos\theta$.`},
+        why: raw`That adds every piece’s whole field, $k\lambda\,d\alpha/r$, over the half turn. Only the part along $x$ survives, so the integrand keeps its $\cos\alpha$.`},
       {tex: raw`E_x=\frac{2k\lambda}{r^2}`, misconception: 'line-falloff',
         why: raw`An endless line’s field falls as $1/r$, not $1/r^2$. And the units disagree: $k\lambda/r$ is already a field.`},
     ],
-    explanation: raw`The integral of $\cos\theta$ is $\sin\theta$, which rises from $-1$ to $1$ between $-\pi/2$ and $\pi/2$, a rise of two. So $E_x=2k\lambda/r=\lambda/(2\pi\varepsilon_0r)$.`,
+    explanation: raw`The integral of $\cos\alpha$ is $\sin\alpha$, which rises from $-1$ to $1$ between $-\pi/2$ and $\pi/2$, a rise of two. So $E_x=2k\lambda/r=\lambda/(2\pi\varepsilon_0r)$.`,
     review: {lesson: 'infinite', stage: 'shrink'}},
 
   {id: 'infinite-from-rod', lesson: 'infinite', kind: 'check',
@@ -129,8 +129,8 @@ export const bank: Question[] = [
       {text: raw`Half the field, still perpendicular to the line.`, misconception: 'cancel-survivor',
         why: raw`The parts along the line cancelled only between a piece and its mirror below $P$. Those mirrors are gone, so the parts along the line now add up.`},
       {text: raw`The same field: what is left is still endless.`, misconception: 'bounds',
-        why: raw`Half the line is gone. In the angle at $P$, $\theta$ now runs from $0$ to $\pi/2$, half the bounds, and so half of the perpendicular part.`},
+        why: raw`Half the line is gone. In the angle at $P$, $\alpha$ now runs from $0$ to $\pi/2$, half the bounds, and so half of the perpendicular part.`},
     ],
-    explanation: raw`With $\theta$ from $0$ to $\pi/2$, the part perpendicular to the line is $(k\lambda/r)\int\cos\theta\,d\theta=k\lambda/r$, half as much. Nothing is left to cancel the parts along the line, and they add to $(k\lambda/r)\int\sin\theta\,d\theta=k\lambda/r$ as well: two equal parts, so the field leans at $\pi/4$.`,
+    explanation: raw`With $\alpha$ from $0$ to $\pi/2$, the part perpendicular to the line is $(k\lambda/r)\int\cos\alpha\,d\alpha=k\lambda/r$, half as much. Nothing is left to cancel the parts along the line, and they add to $(k\lambda/r)\int\sin\alpha\,d\alpha=k\lambda/r$ as well: two equal parts, so the field leans at $\pi/4$.`,
     review: {lesson: 'semi', stage: 'cancel'}},
 ];

@@ -160,7 +160,7 @@ const PARTNER_ADDS_V_RING = 'Now the same length of ring straight across. For th
 const NB = '\u00a0';
 /** A line as plain text: its symbols unmarked, the few TeX names in them as the letters they are, and
  * the no-break space before a symbol an ordinary one -- only a line that is set needs it. */
-const plain = (text: string) => text.replace(/\u00a0\$/g, ' $').replace(/\$([^$]*)\$/g, (_, tex: string) => tex.replace(/\\Delta\s*/g, 'Δ').replace(/\\cos\s*/g, 'cos ').replace(/\\theta/g, 'θ').replace(/\\to\s*/g, '→').replace(/\\infty/g, '∞'));
+const plain = (text: string) => text.replace(/\u00a0\$/g, ' $').replace(/\$([^$]*)\$/g, (_, tex: string) => tex.replace(/\\Delta\s*/g, 'Δ').replace(/\\cos\s*/g, 'cos ').replace(/\\theta/g, 'θ').replace(/\\alpha/g, 'α').replace(/\\to\s*/g, '→').replace(/\\infty/g, '∞'));
 export function buildStages(p: Problem): BuildStage[] {
   const geometry = p.geometry, scalar = p.quantity === 'V';
   // A ring's field along its axis, and a ring's or an arc's potential, are exact at any cut: every

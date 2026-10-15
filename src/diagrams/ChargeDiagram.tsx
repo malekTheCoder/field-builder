@@ -62,7 +62,7 @@ export function cancelCurve(local: number): number {
 /** A limit of integration as plain text, from the TeX the lesson writes it in: −L/2, 2π, φ/2, ∞.
  * A true minus sign, not a hyphen. */
 export function plainBound(tex: string): string {
-  return tex.replace(/\\varphi/g, 'φ').replace(/\\phi/g, 'φ').replace(/\\pi/g, 'π').replace(/\\infty/g, '∞').replace(/\\theta/g, 'θ')
+  return tex.replace(/\\varphi/g, 'φ').replace(/\\phi/g, 'φ').replace(/\\pi/g, 'π').replace(/\\infty/g, '∞').replace(/\\theta/g, 'θ').replace(/\\alpha/g, 'α')
     .replace(/\\[,;!]/g, '').replace(/\s+/g, '').replace(/-/g, '−');
 }
 /** Which side of an arrow along `dir` is AWAY from `ref`, as Vector's `side` counts sides: a name
@@ -1814,16 +1814,16 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
   const coordinate = id === 'axial' || id === 'semi' ? 'x' : 'y', d = continuum >= .999 ? 'd' : 'Δ';
   // Written as a symbol and what follows it, so the ramp's λ₀ is a real subscript: see SymbolText.
   // THE EQUAL-ANGLE LESSONS' PIECE, while it is a piece: what the board defines ΔQ as, the point charge at
-  // the piece's middle angle -- λ r sec²θ Δθ -- not λΔy. The same symbol named two different charges, the
+  // the piece's middle angle -- λ r sec²α Δα -- not λΔy. The same symbol named two different charges, the
   // footer's infinite for the outermost piece, and a student computed λΔy. Once the pieces are gone the two
   // agree, and the limit's dQ is written in the variable the board integrates over: the coordinate again on the
-  // semi-infinite line and the sheet, whose boards integrate in x and s -- and on the endless line θ, whose
-  // board's integral is over θ: written dQ = λ dy there, two dQ's stood on one screen at the moment the
+  // semi-infinite line and the sheet, whose boards integrate in x and s -- and on the endless line α, whose
+  // board's integral is over α: written dQ = λ dy there, two dQ's stood on one screen at the moment the
   // student decides what to integrate over.
   // No middle dot in σ 2πs: the board sets the two side by side, and one definition was set two ways.
   const standIn = UNBOUNDED.has(id) && (continuum < .999 || id === 'infinite');
   const sourceLabel: { symbol: Sym; tail?: string } = standIn
-    ? (id === 'sheet' ? { symbol: `${elementSymbol} = σ 2πs z sec²α ${d}α` } : { symbol: `${elementSymbol} = λr sec²${id === 'infinite' ? `θ ${d}θ` : `α ${d}α`}` })
+    ? (id === 'sheet' ? { symbol: `${elementSymbol} = σ 2πs z sec²α ${d}α` } : { symbol: `${elementSymbol} = λr sec²α ${d}α` })
     : surface ? { symbol: `${elementSymbol} = σ 2πs ${d}s` } : id === 'ring' || id === 'arc' ? { symbol: `${elementSymbol} = λR ${d}θ` } : ramp ? { symbol: `${elementSymbol} = λ_0`, tail: `(y/L) ${d}y` } : { symbol: `${elementSymbol} = λ ${d}${coordinate}` };
   const sourceText = id === 'disk' ? 'One ring sweeps out the disk' : id === 'sheet' ? 'A section of a sheet that never ends · one ring is one angle at P' : surface ? 'Whole annulus · transverse fields cancel' : id === 'infinite' ? 'A section of a line that never ends · one piece is one angle at P' : id === 'semi' ? 'A section of a line with one end · one piece is one angle at P' : id === 'arc' ? 'Observation point fixed at the centre' : id === 'ring' ? 'One piece at a time · every piece is the same distance from P' : 'One piece at a time · the integral adds them all';
   // THE ARC'S φ, inside its own grey arc and on the far side of the axis from the run's piece -- whose angle θ
@@ -1896,7 +1896,7 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
   // AND IN SHRINK THEM, where the board says each Δy becomes dy: the step a student weak on calculus most needs
   // to see -- the piece becoming the differential -- was only in the footer. A piece too narrow to bracket by
   // then gets a bracket of a fixed, readable width centred on it, named dy. (Not on the endless line, whose
-  // board integrates over θ: its dθ is marked at P, below.)
+  // board integrates over α: its dα is marked at P, below.)
   const shrinking = building === 'limit';
   //
   // ON THE AXIS LESSON, AND ON THE DISK AND THE SHEET, TOO. Their footers and boards say "a piece Δx long" and "a ring
@@ -2000,7 +2000,7 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
   const yLeft = footed && !inSpace && O.y - p.size * unit - axisTop < 56;
   // The endless line's y stands at the axis' top as every other lesson's does, above the break. It stood under the +∞
   // break, mid-line beside the top piece and inside the wedge, where a reader took it for the piece's own y (the leg
-  // the triangle letters y in One piece). While θ's limits are named at the top it goes: "y ▲ θ → π/2" read as one
+  // the triangle letters y in One piece). While α's limits are named at the top it goes: "y ▲ α → π/2" read as one
   // phrase, and +∞ and −∞ already name y's ends there.
 
   const dims: Dim[] = [];
@@ -2355,9 +2355,9 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
     // where the closed ring says "θ = 0, 2π" and the arc "θ = …".
     const prefixed = ramp || id === 'arc' || id === 'disk' || id === 'ring', variable = plainBound(problem.variableTex);
     // The half line's near end is its origin too, and was left out: its board integrates ∫₀^∞ dx, and its handle at O
-    // carried only O while the axis lesson's identical end read "x = 0". And the endless line's ends are where θ goes:
+    // carried only O while the axis lesson's identical end read "x = 0". And the endless line's ends are where α goes:
     // its board's limits are −π/2 and π/2, and the figure lit two bare arrows and a ±∞ the board never writes. Named
-    // "θ → ±π/2", since no piece of the line is at either.
+    // "α → ±π/2", since no piece of the line is at either.
     const named = (i: number) => !ends[i].whole ? ''
       : id === 'sheet' ? (i === 0 ? `${variable} = 0` : inSpace ? `${variable} → ∞` : '')
       : id === 'axial' || id === 'semi' ? (i === 0 ? `${variable} = 0` : id === 'semi' && inSpace ? `${variable} → ∞` : '')
@@ -2608,7 +2608,7 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
     const edge = (flat ? O.y : O.x) + side * (rodHalf + 3), far = 1e4;
     const beyond: Box = flat ? (side > 0 ? { x: -far, y: -far, width: 2 * far, height: far + edge } : { x: -far, y: edge, width: 2 * far, height: far })
       : side > 0 ? { x: -far, y: -far, width: far + edge, height: 2 * far } : { x: edge, y: -far, width: far, height: 2 * far };
-    const mark = scalar ? null : angleMark(P, towardCharge, source, id === 'infinite' ? 'θ' : 'α', stageCancel, { a: reach, b: Math.hypot(met.x - P.x, met.y - P.y), r0: p.charge > 0 ? Math.max(16, Math.min(34, .4 * reach)) : 34, avoid: beyond });
+    const mark = scalar ? null : angleMark(P, towardCharge, source, 'α', stageCancel, { a: reach, b: Math.hypot(met.x - P.x, met.y - P.y), r0: p.charge > 0 ? Math.max(16, Math.min(34, .4 * reach)) : 34, avoid: beyond });
     // r on the leg from the foot to P, below it -- the far side from the angle -- when it replaces the bar.
     // A little nearer the rod than the middle: nearer P, the mirror piece's line to P has closed in under
     // the leg, and the angle's letter stands over it.
@@ -2640,18 +2640,18 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
     // between ΔE and the −x axis, away from every part the board writes, so the twin is left out.
     if (triangle.kind === 'arc' && sample.position.x < 0) return null;
     if (Math.hypot(along.x, along.y) < 30 || Math.hypot(contribution.x, contribution.y) < 30) return null;
-    const twin = angleMark(P, plus(P, along), plus(P, contribution), triangle.kind === 'arc' || id === 'infinite' ? 'θ' : 'α', false, { r0: 20, a: Math.hypot(along.x, along.y) * .7, b: Math.hypot(contribution.x, contribution.y) * .7 });
+    const twin = angleMark(P, plus(P, along), plus(P, contribution), triangle.kind === 'arc' ? 'θ' : 'α', false, { r0: 20, a: Math.hypot(along.x, along.y) * .7, b: Math.hypot(contribution.x, contribution.y) * .7 });
     return twin && !twin.leader ? twin : null;
   })();
-  // THE PIECE'S ANGLE, Δθ, where the lesson is cut by angle and the angle is what is integrated: across the
+  // THE PIECE'S ANGLE, Δα, where the lesson is cut by angle and the angle is what is integrated: across the
   // chosen wedge at P on the lines that never end, as Cut it up makes the cuts -- "one piece is one angle",
-  // and the board writes the piece's charge in Δθ -- and across the chosen piece at the arc's centre as it is
+  // and the board writes the piece's charge in Δα -- and across the chosen piece at the arc's centre as it is
   // cut, where the footer and the board write λR Δθ. Nothing on the figure named the variable
-  // being integrated over. After Cut it up the lines' wedge has θ itself at P, and the triangle, to carry; on
+  // being integrated over. After Cut it up the lines' wedge has α itself at P, and the triangle, to carry; on
   // the arc, the line to the piece's middle -- r_i -- halves the piece's angle and would run through its letter.
   //
-  // In Shrink them too, where the board's line is Δθ → dθ: on the arc, and on the endless line, whose board
-  // integrates over θ. The piece's angle by then is a degree or less, so the mark is drawn six degrees wide about
+  // In Shrink them too, where the board's line is Δα → dα (Δθ → dθ on the arc): on the arc, and on the endless
+  // line, whose board integrates over α. The piece's angle by then is a degree or less, so the mark is drawn six degrees wide about
   // it, a token of the piece's angle rather than a measure of it, and named dθ.
   //
   // THE SHEET'S Δα: its rings are cut by angle at P, and the footer and the board's first line write the ring's
@@ -2677,7 +2677,7 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
     }
     // On the endless line in the limit there is no fan: the angle's own sides are drawn, from P to the line.
     const toLine = (q: Point) => { const u = direction(vsub(q, P)); if (!u || Math.abs(u.x) < 1e-6) return q; const t = (O.x - P.x) / u.x; return t > 0 ? { x: P.x + u.x * t, y: P.y + u.y * t } : q; };
-    const name = `${continuum >= .999 ? 'd' : '\u0394'}${id === 'semi' || id === 'sheet' ? 'α' : 'θ'}`;
+    const name = `${continuum >= .999 ? 'd' : '\u0394'}${id === 'arc' ? 'θ' : 'α'}`;
     // The sheet's from its outer side: too narrow to hold Δα, its letter goes past the side it starts from, and from the
     // inner side that was across the z axis, beside the z bar's letter, with its arc on the other side of the axis.
     const mark = id === 'sheet' ? angleMark(P, b, a, name, shrinking, { r0: 58, w: 1.3 }) : angleMark(P, a, b, name, shrinking, { r0: arc ? Math.max(34, .45 * R * unit) : 58, w: 1.3 });
@@ -3247,8 +3247,8 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
       {id === 'infinite' && <g className="cd-infinity">{breakGaps.map(g => <polygon key={g} className="cd-break-gap" points={g} />)}<path className="cd-break-under" d={breaks.map(([a, b]) => `M${a.x.toFixed(1)} ${a.y.toFixed(1)}L${b.x.toFixed(1)} ${b.y.toFixed(1)}`).join('')} /><path d={breaks.map(([a, b]) => `M${a.x.toFixed(1)} ${a.y.toFixed(1)}L${b.x.toFixed(1)} ${b.y.toFixed(1)}`).join('')} />
         {/* Kept while the limits are the subject, and hidden together or not at all:
             on a phone +∞ gave way in What cancels and Shrink them while −∞ stood, and the line seemed to end at the top.
-            Never lit as the limits, though: they are y's ends, and the board's limits are θ's, −π/2 and π/2, which the
-            edge's arrows carry. Lit in the limits' colour as the board's θ: −π/2 → π/2 lit beside them, they read as
+            Never lit as the limits, though: they are y's ends, and the board's limits are α's, −π/2 and π/2, which the
+            edge's arrows carry. Lit in the limits' colour as the board's α: −π/2 → π/2 lit beside them, they read as
             the integral's limits. */}
         <text className="cd-end cd-coordinate-end" x={O.x - 16} y={(80 + .3 * SYM * labelScale).toFixed(1)} textAnchor="end" {...endAttrs}>+∞</text><text className="cd-end cd-coordinate-end" x={O.x - 16} y={(348 + .3 * SYM * labelScale).toFixed(1)} textAnchor="end" {...endAttrs}>−∞</text></g>}
       {id === 'semi' && <g className="cd-infinity">{breakGaps.map(g => <polygon key={g} className="cd-break-gap" points={g} />)}<path className="cd-break-under" d={breaks.map(([a, b]) => `M${a.x.toFixed(1)} ${a.y.toFixed(1)}L${b.x.toFixed(1)} ${b.y.toFixed(1)}`).join('')} /><path d={breaks.map(([a, b]) => `M${a.x.toFixed(1)} ${a.y.toFixed(1)}L${b.x.toFixed(1)} ${b.y.toFixed(1)}`).join('')} /><text className="cd-end" x={rodHigh - 4} y={O.y - 17} {...endAttrs}>∞</text></g>}

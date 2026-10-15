@@ -33,7 +33,7 @@ describe('a lopsided bracket says why its survivor is a sine, and why it has a m
       expect(step(id, 'cancel').say, id).not.toMatch(/hence the minus|Its part along \$y\$/);
     }
     // Off-centre over the middle, the angle's sign is said too.
-    expect(step('infinite', 'cancel', ['-\\pi/4', '\\pi/2'], {keeps: false, oneSided: false, below: true}).say).toMatch(/below it, where \$\\theta\$, like \$y\$, is negative/);
+    expect(step('infinite', 'cancel', ['-\\pi/4', '\\pi/2'], {keeps: false, oneSided: false, below: true}).say).toMatch(/below it, where \$\\alpha\$, like \$y\$, is negative/);
   });
   it('and the minus is the geometry’s: a positive piece above the axis pushes P down', () => {
     // The bisector and the infinite line: a charge q at (0, y) makes E_y = −k q y / r_i³ at P = (r, 0).
@@ -64,7 +64,7 @@ describe('the part of the distribution is a formula, not a promise of one', () =
   it('and what is in the bracket differentiates back to the lesson’s own integrand', () => {
     for (const p of PROBLEMS.filter(q => !exactSum(q))) {
       const F = antiderivativeOf(p)!, v = p.variable, h = 1e-5;
-      for (const x of v === 'theta' ? [-.7, .2, 1.1] : [.3, 1.1, 2.4]) {
+      for (const x of v === 'theta' || v === 'alpha' ? [-.7, .2, 1.1] : [.3, 1.1, 2.4]) {
         const d = (evaluate(F, {...at, [v]: x + h}) - evaluate(F, {...at, [v]: x - h})) / (2 * h);
         expect(d / evaluate(p.kernel, {...at, [v]: x}), `${p.id} at ${v} = ${x}`).toBeCloseTo(1, 6);
       }
@@ -202,8 +202,8 @@ describe('the board says what it had left unsaid', () => {
   });
   it('the infinite line names its distance one way, the way Cut it up defines sec for', () => {
     const lines = boardLines(lesson('infinite'));
-    expect(lines[1].where).toContain(String.raw`r_i=r\sec\theta`);
-    expect(lines.flatMap(l => [l.tex, l.where, l.finish, l.say]).join(' ')).not.toContain(String.raw`\frac{r}{\cos\theta}`);
+    expect(lines[1].where).toContain(String.raw`r_i=r\sec\alpha`);
+    expect(lines.flatMap(l => [l.tex, l.where, l.finish, l.say]).join(' ')).not.toContain(String.raw`\frac{r}{\cos\alpha}`);
   });
   it('a ring’s or an arc’s potential says why a piece of any size is exact', () => {
     expect(step('v-ring', 'one').say).toContain('A piece need not be small: all of it is $r_i$ from');
@@ -211,8 +211,8 @@ describe('the board says what it had left unsaid', () => {
     // Every point of a ring is √(R² + z²) from a point on its axis; of an arc, R from its centre.
     for (const t of [0, 1, 2.5]) expect(Math.hypot(at.R * Math.cos(t), at.R * Math.sin(t), at.z)).toBeCloseTo(Math.hypot(at.R, at.z), 12);
   });
-  it('the board refuses the infinite line’s finite-rod route rather than mixing θ with y', () => {
-    expect(() => boardLines(getProblem('infinite', 'limit'))).toThrow(/θ/);
+  it('the board refuses the infinite line’s finite-rod route rather than mixing α with y', () => {
+    expect(() => boardLines(getProblem('infinite', 'limit'))).toThrow(/α/);
   });
   it('no paragraph of a remark runs on: the longest ideas are set apart', () => {
     const plain = (t: string) => t.replace(/\$[^$]*\$/g, 'XX');

@@ -189,12 +189,12 @@ describe('set as the board sets them, and strong enough to read', () => {
 });
 
 describe('the endless line\'s ends are not its limits, and a disk is cut into rings', () => {
- it('Shrink them on the endless line: ±∞ in ink, the limits\' arrows named in θ', async () => {
+ it('Shrink them on the endless line: ±∞ in ink, the limits\' arrows named in α', async () => {
   await page.viewport(1440, 900);
   const v = await openLesson('infinite');
   await hold(v, 5, .98);
-  const end = named(v, '+∞')!, limit = [...svgOf(v).querySelectorAll<SVGTextElement>('.cd-bound text')].find(t => t.textContent?.includes('θ'));
-  expect(limit, 'a limit named in θ').toBeTruthy();
+  const end = named(v, '+∞')!, limit = [...svgOf(v).querySelectorAll<SVGTextElement>('.cd-bound text')].find(t => t.textContent?.includes('α'));
+  expect(limit, 'a limit named in α').toBeTruthy();
   expect(getComputedStyle(end).fill, '+∞ not in the limits\' colour').not.toBe(getComputedStyle(limit!).fill);
  }, 60000);
  for (const [id, note] of [['disk', 'Cut into rings'], ['sheet', 'Cut into rings'], ['v-disk', 'Cut into rings'], ['bisector', 'Cut into pieces']] as const) it(`${id}: "${note}"`, async () => {

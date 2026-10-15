@@ -120,7 +120,7 @@ describe('the limits\' arrows at the frame, in space', () => {
    expect(fromLine(e.tip, axis(view, k)), `${id}: its tip on the line`).toBeLessThan(2);
    expect(fromLine(e.base, axis(view, k)), `${id}: and its base`).toBeLessThan(2);
    expect(e.width, 'narrower than long').toBeLessThan(Math.hypot(e.tip.x - e.base.x, e.tip.y - e.base.y));
-   expect(e.name, 'named').toMatch(id === 'infinite' ? /^θ → / : /^x → ∞$/);
+   expect(e.name, 'named').toMatch(id === 'infinite' ? /^α → / : /^x → ∞$/);
   }
  }, 60000);
  for (const [w, h] of [[1440, 900], [390, 844]] as const) it(`sheet at ${w}: the far limit and its name stay out of the "Same triangle" inset`, async () => {

@@ -63,7 +63,7 @@ export type LessonArtifact = {
  *
  * These are the steps the panel unfolds: on the bisector and the rod level with an end, the
  * substitution written out in full from the board's last line, then the lesson's own steps from its
- * evaluation; on the infinite line's angular route, kλ/r taken out and ∫cos θ dθ = sin θ, then the
+ * evaluation; on the infinite line's angular route, kλ/r taken out and ∫cos α dα = sin α, then the
  * evaluation; on the semi-infinite line, both components in the angle One piece set up; on the disk,
  * the arc and the rod on its axis, the constant coming out, the power rule and the turned-round ends,
  * then the lesson's last steps. `algebra` is the route the panel derives on -- the infinite line's
@@ -93,7 +93,7 @@ export function lessonWorking(p: Problem, algebra: Problem = p): {worked: Worked
  * page seven hundred wide as they do in the panel.
  *
  * The setup and the integral are the route's, as the working is: on the infinite line's finite-rod
- * route the copy said "use y = r tan θ to sweep the whole line" and printed the θ integral, and then
+ * route the copy said "use y = r tan α to sweep the whole line" and printed the α integral, and then
  * worked a rod of length L that neither had mentioned. The page's own references show the route's
  * setup too. And the copy carries the lesson's limiting cases and its sources, which a handout is
  * the place for: it had neither, so a student holding it could check nothing and look nothing up.
@@ -104,13 +104,13 @@ export function lessonWorking(p: Problem, algebra: Problem = p): {worked: Worked
  * writes, what the run is for, and what a problem set marks. So the copy prints them, from the board's
  * own lines and the run's own stage names and sentences -- read here, not written again, so the paper
  * says whatever the panel says -- and E_y's integral where it survives, as the panel's answer sets it.
- * The board is always the lesson's own: the infinite line's is built in θ whichever route is unfolded.
+ * The board is always the lesson's own: the infinite line's is built in α whichever route is unfolded.
  *
  * `address` is the live lesson's, values and all, as the page's own "Copy a link" writes it. */
 export function lessonArtifact(p: Problem, algebra: Problem = p, address?: string): LessonArtifact {
   const {worked, back} = lessonWorking(p, algebra);
   // Handed the infinite line's finite-rod route as the lesson itself, the board is still the angular one.
-  const q = p.id === 'infinite' && p.variable !== 'theta' ? getProblem('infinite') : p;
+  const q = p.id === 'infinite' && p.variable !== 'alpha' ? getProblem('infinite') : p;
   const stages = buildStages(q), lines = boardLines(q), along = alongIntegralOf(q), lesson = lessonFor(p.id);
   return {title: p.title, subtitle: p.subtitle, ...(address ? {address} : {}),
     ...(lesson ? {lesson: {lead: lesson.lead, sections: lesson.sections, read: lesson.read}} : {}), setup: algebra.setup,
@@ -123,7 +123,7 @@ export function lessonArtifact(p: Problem, algebra: Problem = p, address?: strin
     ...(algebra.variable !== q.variable ? {route: ROUTE} : {})};
 }
 /** TWO ROUTES, SAID TO BE TWO. On the infinite line's finite-rod route the copy built the integral by angle,
- * ending on ∫(kλ/r) cos θ dθ, and the next heading printed lim_{L→∞} kλ∫ r dy/(y² + r²)^{3/2} with working in
+ * ending on ∫(kλ/r) cos α dα, and the next heading printed lim_{L→∞} kλ∫ r dy/(y² + r²)^{3/2} with working in
  * L, and nothing between them. The page says it is an alternate derivation; on paper that sentence was
  * missing, and the second integral read as a different problem or a printing error. */
 const ROUTE = String.raw`This is the finite-line route: start with a rod of length $L$, then let $L$ grow at fixed $\lambda$. Above, the field is built by angle instead; both routes arrive at the same field.`;

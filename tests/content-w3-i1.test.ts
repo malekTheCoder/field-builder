@@ -81,16 +81,16 @@ describe('“Easy to confuse with” names each quantity once, its symbol last, 
  it('one name for each kind of quantity',()=>{
   for(const p of lessons)for(const f of shown(p)){
    if(f.id==='projection')expect(f.label,p.id).toMatch(/^The (?:y )?factor cos [αθ]$/);
-   if(f.id==='kernel'&&p.quantity==='E')expect(f.label,p.id).toMatch(/^(?:x-component integrand dEₓ\/d[xyθs]|z-component integrand)$/);
+   if(f.id==='kernel'&&p.quantity==='E')expect(f.label,p.id).toMatch(/^(?:x-component integrand dEₓ\/d[xyθαs]|z-component integrand)$/);
    if(f.id==='kernel2')expect(f.label,p.id).toMatch(/^y-component integrand dEᵧ\/d[xy]$/);
    if(f.id==='kernel'&&p.quantity==='V')expect(f.label,p.id).toMatch(/^Integrand dV\/d[xyθs]$/);
    if(f.id==='result'&&p.quantity==='E')expect(f.label,p.id).toMatch(/^Total (?:x-component Eₓ|z-component)$/);
    if(f.id==='result2')expect(f.label,p.id).toBe('Total y-component Eᵧ');
   }
   expect(label('bisector','projection')).toBe('The factor cos α');
-  expect(label('infinite','projection')).toBe('The factor cos θ');
-  expect(fields(getProblem('infinite','linear')).find(f=>f.id==='projection')!.label).toBe('The factor cos θ');
-  expect(label('infinite','kernel')).toBe('x-component integrand dEₓ/dθ');
+  expect(label('infinite','projection')).toBe('The factor cos α');
+  expect(fields(getProblem('infinite','linear')).find(f=>f.id==='projection')!.label).toBe('The factor cos α');
+  expect(label('infinite','kernel')).toBe('x-component integrand dEₓ/dα');
   expect(label('v-rod-bisector','kernel')).toBe('Integrand dV/dy');
  });
  it('no diagnosis tells the reader what to do',()=>{

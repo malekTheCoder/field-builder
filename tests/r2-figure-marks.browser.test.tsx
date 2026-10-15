@@ -168,7 +168,7 @@ describe('a line that never ends', () => {
  for (const at of ['rest', 'Shrink them'] as const) it(`keeps its ±∞, its y and the limits' arrows apart, and off the break marks: ${at}`, async () => {
   const view = await openLesson('infinite');
   if (at !== 'rest') await stage(view, 5);
-  // The y letter stands at the axis' top as other lessons' do, and goes while θ's limits are named there (wave 5).
+  // The y letter stands at the axis' top as other lessons' do, and goes while α's limits are named there (wave 5).
   if (at !== 'rest') expect(textNamed(view, 'y'), 'y beside the named limits').toBeFalsy();
   const named = (at === 'rest' ? ['+∞', '−∞', 'y'] : ['+∞', '−∞']).map(n => ({n, b: box(view, textNamed(view, n)!)}));
   const handles = [...svgOf(view).querySelectorAll<SVGPathElement>('.cd-bound.is-edge path')].map((h, i) => ({n: `limit ${i}`, b: box(view, h)}));

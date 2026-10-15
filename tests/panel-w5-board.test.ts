@@ -52,7 +52,7 @@ describe('piece i is at y_i from One piece on', () => {
       expect(cancel.where, id).toContain(String.raw`\cos\alpha_i=\frac{r}{\sqrt{y_i^2+r^2}}`);
     }
     // The lessons cut in an angle keep their letters: their sec² cancels only while ΔQ and r_i are alike.
-    expect(step('infinite', 'one').where).toContain(String.raw`r_i=r\sec\theta}`);
+    expect(step('infinite', 'one').where).toContain(String.raw`r_i=r\sec\alpha}`);
     expect(step('semi', 'one').say).toContain('The piece is $x$ along the line');
   });
   it('and the sine the rods level with an end build E_y with is glossed beside the cosine, and is right', () => {
@@ -93,7 +93,7 @@ describe('the sum’s range, the cancellation and the exact sums', () => {
   it('the range is a range, never "y: …", and an endless end is not reached', () => {
     expect(step('bisector', 'add').where).toBe(String.raw`\htmlClass{fx fx-bounds}{{-L/2}\le y\le {L/2}}`);
     expect(step('sheet', 'add').where).toBe(String.raw`\htmlClass{fx fx-bounds}{{0}\le s<{\infty}}`);
-    expect(step('infinite', 'add').where).toMatch(/<\\theta</);
+    expect(step('infinite', 'add').where).toMatch(/<\\alpha</);
     for (const p of PROBLEMS) expect(step(p.id, 'add').where, p.id).not.toContain('\\colon');
   });
   it('a ring’s bits cancel to that ring’s ΔE⊥, and every ring’s to the whole E⊥', () => {

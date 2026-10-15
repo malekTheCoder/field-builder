@@ -117,7 +117,7 @@ describe('the endless line in the run', () => {
   expect(rays().length, 'Add them up').toBe(2);
   for (const r of rays()) expect(r.classList.contains('is-chosen')).toBe(true);
  }, 40000);
- it('names its ends where θ goes as the board sums, and on a phone both ∞ or neither', async () => {
+ it('names its ends where α goes as the board sums, and on a phone both ∞ or neither', async () => {
   await page.viewport(390, 844);
   try {
    const v = await openLesson('infinite');
@@ -126,7 +126,7 @@ describe('the endless line in the run', () => {
     expect(shown(named(v, '+∞')), `stage ${n}: +∞ and −∞ go together`).toBe(shown(named(v, '−∞')));
    }
    await hold(v, 4, at(.5));
-   for (const name of ['θ → π/2', 'θ → −π/2']) expect(shown(named(v, name)), name).toBe(true);
+   for (const name of ['α → π/2', 'α → −π/2']) expect(shown(named(v, name)), name).toBe(true);
   } finally { await page.viewport(1440, 900); }
  }, 40000);
 });

@@ -1,9 +1,10 @@
 import type {Lesson} from './types';
 const raw = String.raw;
-/* The infinite line, taught as its page builds it: cut at equal angles θ at P, the angle measured from the
- * perpendicular, y = r tan θ, rᵢ = r sec θ, ΔQ = λ r sec²θ Δθ for the point charge that stands in for a piece.
- * θ here, not α: the lesson itself integrates in θ. The centre of it is the board's own claim, that every
- * equal-angle piece makes the same kλΔθ/r at P, which is also the reason the field falls as 1/r. Its integral
+/* The infinite line, taught as its page builds it: cut at equal angles α at P, the angle measured from the
+ * perpendicular, y = r tan α, rᵢ = r sec α, ΔQ = λ r sec²α Δα for the point charge that stands in for a piece.
+ * α, as the angle at P is called in every lesson (the arc's θ is a piece's angle round the arc, not one at
+ * P). The centre of it is the board's own claim, that every
+ * equal-angle piece makes the same kλΔα/r at P, which is also the reason the field falls as 1/r. Its integral
  * is written as the board's Shrink them writes it, with the secants still in, not as the page's integralTex. */
 export const lesson: Lesson = {
   id: 'infinite',
@@ -14,28 +15,28 @@ export const lesson: Lesson = {
       raw`An endless line cannot be cut into pieces of equal length: there would be no last one. Seen from $P$, though, it spans only half a turn, and an angle can be cut.`,
     ]},
     {heading: 'Cut it up', body: [
-      raw`Let $\theta$ be the angle at $P$ between the perpendicular to the line and the line of sight to a piece. The piece sits at $y=r\tan\theta$, a distance $r\sec\theta$ from $P$. Cut the half turn into $N$ equal angles $\Delta\theta$. Such a piece is about $r\sec^2\theta\,\Delta\theta$ long, the far ones far longer than the near ones, so it holds`,
-      {tex: raw`\Delta Q=\lambda r\sec^2\theta\,\Delta\theta`},
+      raw`Let $\alpha$ be the angle at $P$ between the perpendicular to the line and the line of sight to a piece. The piece sits at $y=r\tan\alpha$, a distance $r\sec\alpha$ from $P$. Cut the half turn into $N$ equal angles $\Delta\alpha$. Such a piece is about $r\sec^2\alpha\,\Delta\alpha$ long, the far ones far longer than the near ones, so it holds`,
+      {tex: raw`\Delta Q=\lambda r\sec^2\alpha\,\Delta\alpha`},
       raw`Thin enough in angle, every piece, even the outermost, which never ends, makes nearly the field of a point charge at its middle angle.`,
     ]},
     {heading: 'One piece', body: [
-      raw`Coulomb’s law, with $k=1/(4\pi\varepsilon_0)$, gives that field, and here the angle pays off. The distance is $r_i=r\sec\theta$, so the $\sec^2\theta$ in the charge cancels the one in $r_i^2$:`,
-      {tex: raw`\Delta E=\frac{k\,\Delta Q}{r_i^2}=\frac{k\lambda\,\Delta\theta}{r}`},
+      raw`Coulomb’s law, with $k=1/(4\pi\varepsilon_0)$, gives that field, and here the angle pays off. The distance is $r_i=r\sec\alpha$, so the $\sec^2\alpha$ in the charge cancels the one in $r_i^2$:`,
+      {tex: raw`\Delta E=\frac{k\,\Delta Q}{r_i^2}=\frac{k\lambda\,\Delta\alpha}{r}`},
       raw`Every piece makes the same size of field at $P$: a far piece holds more charge, and is farther away by exactly enough. The field lies along the line of sight, away from the piece for a positive charge and toward it for a negative one.`,
     ]},
     {heading: 'What cancels', body: [
-      raw`Its part along $x$ is $\Delta E\cos\theta$. The mirror piece, at $-\theta$, makes the same part along $x$ and the opposite part along the line, so the parts along the line cancel in pairs:`,
+      raw`Its part along $x$ is $\Delta E\cos\alpha$. The mirror piece, at $-\alpha$, makes the same part along $x$ and the opposite part along the line, so the parts along the line cancel in pairs:`,
       {tex: raw`E_y=0`},
       raw`and the field at $P$ is perpendicular to the line.`,
     ]},
     {heading: 'Add them up', body: [
-      raw`Adding the $x$-parts of all $N$ pieces, from $\theta=-\pi/2$ to $\theta=\pi/2$, gives the field, nearly:`,
-      {tex: raw`E_x\approx\sum_i\frac{k\,\Delta Q_i}{r_i^2}\cos\theta_i`},
+      raw`Adding the $x$-parts of all $N$ pieces, from $\alpha=-\pi/2$ to $\alpha=\pi/2$, gives the field, nearly:`,
+      {tex: raw`E_x\approx\sum_i\frac{k\,\Delta Q_i}{r_i^2}\cos\alpha_i`},
     ]},
     {heading: 'Shrink them', body: [
-      raw`As $\Delta\theta$ becomes $d\theta$ the sum becomes an integral over the angle, finite although the line is not, and exact:`,
-      {tex: raw`E_x=\int_{-\pi/2}^{\pi/2}\frac{k\lambda r\sec^2\theta\,d\theta}{r^2\sec^2\theta}\cos\theta`},
-      raw`The secants cancel, the integral of $\cos\theta$ is $\sin\theta$, and from $-\pi/2$ to $\pi/2$ that rises by two:`,
+      raw`As $\Delta\alpha$ becomes $d\alpha$ the sum becomes an integral over the angle, finite although the line is not, and exact:`,
+      {tex: raw`E_x=\int_{-\pi/2}^{\pi/2}\frac{k\lambda r\sec^2\alpha\,d\alpha}{r^2\sec^2\alpha}\cos\alpha`},
+      raw`The secants cancel, the integral of $\cos\alpha$ is $\sin\alpha$, and from $-\pi/2$ to $\pi/2$ that rises by two:`,
       {tex: raw`E_x=\frac{2k\lambda}{r}=\frac{\lambda}{2\pi\varepsilon_0r}`},
     ]},
     {heading: 'What the answer says', body: [

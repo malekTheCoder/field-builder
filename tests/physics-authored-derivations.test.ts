@@ -156,7 +156,7 @@ const BASE:Setting={kk:K,eps0:EPS0,L:4,R:2,dist:3,phi:2.3,charge:1,diff:.017};
  * that scaling every length by one factor moves it too. */
 function spotOf(p:Problem,o:Setting):number{
  const g=p.geometry;
- if(g==='infinite')return p.variable==='theta'?.43:.23*o.L;
+ if(g==='infinite')return p.variable==='alpha'?.43:.23*o.L;
  switch(g){
   case 'bisector':return .23*o.L;
   case 'endpoint':case 'ramp':return .37*o.L;
@@ -171,13 +171,13 @@ function spotOf(p:Problem,o:Setting):number{
 /** `charge` is whatever that lesson's slider carries: Q, λ, λ₀ or σ, in coulombs. */
 function scopeFor(p:Problem,o:Setting):Scope{
  const g=p.geometry,{kk,eps0,L,R,dist,phi,charge,diff}=o;
- const angular=p.variable==='theta'&&g==='infinite';
+ const angular=p.variable==='alpha'&&g==='infinite';
  const sc:Scope={pi:Math.PI,Infinity,k:kk,eps0,L,R,phi,r:dist,z:dist,a:dist,d:dist,
-  dx:diff,dy:diff,dz:diff,ds:diff,dr:diff,dl:diff,dtheta:.011,dA:diff*diff,
+  dx:diff,dy:diff,dz:diff,ds:diff,dr:diff,dl:diff,dtheta:.011,dalpha:.011,dA:diff*diff,
   Q:Number.NaN,lambda:Number.NaN,lambda0:Number.NaN,sigma:Number.NaN,
   x:0,y:0,s:0,theta:0,alpha:0,ri:0,dQ:0,dE:0,dV:0,V:0};
  const v=spotOf(p,o);
- if(p.variable==='theta')sc.theta=v;else if(p.variable==='x')sc.x=v;else if(p.variable==='y')sc.y=v;else sc.s=v;
+ if(p.variable==='theta')sc.theta=v;else if(p.variable==='alpha')sc.alpha=v;else if(p.variable==='x')sc.x=v;else if(p.variable==='y')sc.y=v;else sc.s=v;
  switch(g){
   case 'bisector':sc.Q=charge;sc.lambda=charge/L;sc.ri=Math.hypot(sc.y,dist);break;
   case 'axial':sc.Q=charge;sc.lambda=charge/L;sc.ri=L+dist-sc.x;break;
@@ -189,10 +189,10 @@ function scopeFor(p:Problem,o:Setting):Scope{
   case 'sheet':sc.sigma=charge;sc.ri=Math.hypot(sc.s,dist);break;              // no total Q exists
   case 'semi':sc.lambda=charge;sc.ri=Math.hypot(sc.x,dist);break;              // no total Q exists
   case 'infinite':sc.lambda=charge;sc.Q=charge*L;                              // REGISTRY's scope convention
-   if(angular){sc.y=dist*Math.tan(sc.theta);sc.ri=dist/Math.cos(sc.theta);sc.dy=dist/Math.cos(sc.theta)**2*sc.dtheta;}
+   if(angular){sc.y=dist*Math.tan(sc.alpha);sc.ri=dist/Math.cos(sc.alpha);sc.dy=dist/Math.cos(sc.alpha)**2*sc.dalpha;}
    else sc.ri=Math.hypot(sc.y,dist);break;
  }
- sc.alpha=Math.acos(Math.min(1,Math.abs(dist)/sc.ri));   // the adjacent side is always the standoff
+ if(!angular)sc.alpha=Math.acos(Math.min(1,Math.abs(dist)/sc.ri));   // the adjacent side is always the standoff
  // The dependent differentials, derived rather than assigned, so they scale on their own.
  sc.dQ=g==='disk'||g==='sheet'?sc.sigma*2*Math.PI*sc.s*sc.ds:(Number.isFinite(sc.lambda0)?sc.lambda0*sc.y/L:sc.lambda)*sc.dl;
  sc.dE=kk*sc.dQ/(sc.ri*sc.ri);sc.dV=kk*sc.dQ/sc.ri;sc.V=sc.dV;
@@ -602,7 +602,7 @@ describe('dimensional consistency of every authored formula, by simultaneous sca
  for(const {key,p} of VARIANTS)it(`${key}: every authored string carries the units it claims`,()=>{
   const answer=p.quantity==='E'?E:V;
   // dE/dv drops one power of length when the sweep variable is a length, none when it is an angle.
-  const kernel:Dim=[answer[0],answer[1],answer[2]-(p.variable==='theta'?0:1)];
+  const kernel:Dim=[answer[0],answer[1],answer[2]-(p.variable==='theta'||p.variable==='alpha'?0:1)];
   const area=p.geometry==='disk'||p.geometry==='sheet';
   expectDimension(p.result,p,answer,`${key} result`);
   if(p.secondaryResult)expectDimension(p.secondaryResult,p,answer,`${key} secondaryResult`);
@@ -1094,7 +1094,7 @@ describe('the infinite lesson’s inherited finite path, and its inherited prose
  });
  it('the frame-of-reference step names the bounds the angular path actually uses',()=>{
   const p=getProblem('infinite');
-  expect(p.variable,'the angular path is the default').toBe('theta');
+  expect(p.variable,'the angular path is the default').toBe('alpha');
   expect(p.boundTex,'and it really does sweep ±π/2').toEqual(['-\\pi/2','\\pi/2']);
   expect(p.steps[0].hint,`inherited from the bisector: "${p.steps[0].hint}"`).not.toContain('−L/2 to +L/2');
  });

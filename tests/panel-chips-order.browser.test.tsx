@@ -115,7 +115,7 @@ describe('the shelf answers for the route and the reader', () => {
     // The problem now opens the panel, out of the closed disclosure it used to hide in.
     const note = view.container.querySelector('.ew-problem-text')!.textContent!;
     expect(note).toMatch(/Start with a rod of length L/);
-    expect(note).not.toMatch(/r tan θ/);
+    expect(note).not.toMatch(/r tan α/);
   });
   it('the summary takes the page’s focus ring, not the browser’s', () => {
     const summary = panel('bisector').container.querySelector<HTMLElement>('.ew-references > summary')!;

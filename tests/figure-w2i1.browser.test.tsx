@@ -290,7 +290,7 @@ describe('a rod\'s limits are named in the stages about them', () => {
 });
 
 describe('Shrink them shows the piece becoming the differential', () => {
- for (const [w, h] of [[1280, 800], [390, 844]] as const) for (const [id, sel, name] of [['bisector', '[data-piece-length] text', 'dy'], ['endpoint', '[data-piece-length] text', 'dy'], ['arc', '.cd-piece-angle text', 'dθ'], ['infinite', '.cd-piece-angle text', 'dθ']] as const) it(`${id} at ${w}`, async () => {
+ for (const [w, h] of [[1280, 800], [390, 844]] as const) for (const [id, sel, name] of [['bisector', '[data-piece-length] text', 'dy'], ['endpoint', '[data-piece-length] text', 'dy'], ['arc', '.cd-piece-angle text', 'dθ'], ['infinite', '.cd-piece-angle text', 'dα']] as const) it(`${id} at ${w}`, async () => {
   await page.viewport(w, h);
   const v = await openLesson(id);
   await hold(v, 5, .99);

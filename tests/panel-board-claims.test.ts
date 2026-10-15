@@ -128,10 +128,10 @@ describe('the sheet sets its one ΔE one way', () => {
 
 describe('the equal-angle lines show why every piece makes the same field', () => {
   it('the sec² in the charge cancels the sec² in the distance, said on One piece and glossed on Shrink them', () => {
-    expect(step('infinite', 'one').say).toMatch(/the \$\\sec\^2\\theta\$ in \$\\Delta Q\$ cancels: every piece’s \$\\Delta E\$ is \$k\\lambda\\,\\Delta\\theta\/r\$/);
+    expect(step('infinite', 'one').say).toMatch(/the \$\\sec\^2\\alpha\$ in \$\\Delta Q\$ cancels: every piece’s \$\\Delta E\$ is \$k\\lambda\\,\\Delta\\alpha\/r\$/);
     expect(step('semi', 'one').say).toMatch(/the \$\\sec\^2\\alpha\$ in \$\\Delta Q\$ cancels: every piece’s \$\\Delta E\$ is \$k\\lambda\\,\\Delta\\alpha\/r\$/);
     expect(step('infinite', 'limit').merged).toBeTruthy();
-    // k λ r sec²θ Δθ / (r² sec²θ) = k λ Δθ / r, for every θ.
+    // k λ r sec²α Δα / (r² sec²α) = k λ Δα / r, for every α.
     const k = 2, lambda = 1.1, r = .8, d = .02;
     for (const t of [-1.4, -.3, 0, .9, 1.5]) {
       const sec2 = 1 / Math.cos(t) ** 2;
@@ -139,8 +139,8 @@ describe('the equal-angle lines show why every piece makes the same field', () =
     }
   });
   it('sec is said where it first appears', () => {
-    for (const [id, a] of [['infinite', 'theta'], ['semi', 'alpha'], ['sheet', 'alpha']]) {
-      // The cosine braced, so KaTeX sets no operator space after the slash: "1/ cos θ" otherwise.
+    for (const [id, a] of [['infinite', 'alpha'], ['semi', 'alpha'], ['sheet', 'alpha']]) {
+      // The cosine braced, so KaTeX sets no operator space after the slash: "1/ cos α" otherwise.
       expect(step(id, 'pieces').say, id).toContain(`with $\\sec\\${a}=1/{\\cos\\${a}}$`);
     }
   });
@@ -214,9 +214,9 @@ describe('the answer in one rhythm, in the board’s order', () => {
 });
 
 describe('Unfold starts from the board’s own last line', () => {
-  it('the infinite line in θ, with kλ/r taken out and ∫cos θ dθ written', () => {
-    expect(INFINITE_UNFOLD[0].tex).toBe(String.raw`E_x=\frac{k\lambda}{r}\int_{-\pi/2}^{\pi/2}\cos\theta\,d\theta`);
-    expect(INFINITE_UNFOLD.map(s => s.text).join(' ')).toContain(String.raw`$\int\cos\theta\,d\theta=\sin\theta$`);
+  it('the infinite line in α, with kλ/r taken out and ∫cos α dα written', () => {
+    expect(INFINITE_UNFOLD[0].tex).toBe(String.raw`E_x=\frac{k\lambda}{r}\int_{-\pi/2}^{\pi/2}\cos\alpha\,d\alpha`);
+    expect(INFINITE_UNFOLD.map(s => s.text).join(' ')).toContain(String.raw`$\int\cos\alpha\,d\alpha=\sin\alpha$`);
     expect(INFINITE_UNFOLD.map(s => s.tex).join(' ')).not.toMatch(/dy|y\^2/);
   });
   it('the rod level with one end takes the bisector’s four steps between 0 and L, then evaluates', () => {

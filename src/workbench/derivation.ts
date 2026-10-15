@@ -411,33 +411,33 @@ const PARTS: Record<ProblemId, Parts> = {
   axial: {...ROD_X, nothing: String.raw`Every piece lies on the axis through${NB}$P$, short of it, so $\hat{\mathbf r}_i$ is the $+x$ direction for every piece and $\Delta E_x$ is the whole of $\Delta E$: there is nothing sideways to cancel.`,
     anti: {pre: String.raw`k\lambda`, inner: String.raw`\frac1{L+a-x}`, check: 'k*lambda/(L+a-x)'},
     simplify: false, check: {dq: 'lambda', r: 'L+a-x', dir: '1'}},
-  // r sec θ, the name Cut it up gives this distance and the one it defines sec for: One piece's gloss
-  // wrote r/cos θ, stacked, between a Cut it up that said "r sec θ from P" and a remark and a Shrink
-  // them that said r² sec²θ -- one distance three ways in three adjacent steps.
-  infinite: {dq: String.raw`\lambda r\sec^2\theta\,d\theta`, piece: String.raw`\lambda r\sec^2\theta\,\Delta\theta`,
-    r: String.raw`r\sec\theta`, r2: String.raw`r^2\sec^2\theta`, dir: String.raw`\cos\theta`, dirOf: String.raw`\cos\theta`, pieceIs: String.raw`y=r\tan\theta`,
+  // r sec α, the name Cut it up gives this distance and the one it defines sec for: One piece's gloss
+  // wrote r/cos α, stacked, between a Cut it up that said "r sec α from P" and a remark and a Shrink
+  // them that said r² sec²α -- one distance three ways in three adjacent steps.
+  infinite: {dq: String.raw`\lambda r\sec^2\alpha\,d\alpha`, piece: String.raw`\lambda r\sec^2\alpha\,\Delta\alpha`,
+    r: String.raw`r\sec\alpha`, r2: String.raw`r^2\sec^2\alpha`, dir: String.raw`\cos\alpha`, dirOf: String.raw`\cos\alpha`, pieceIs: String.raw`y=r\tan\alpha`,
     // Led by the noun, not a second "Here": the sentence before it, `COULOMB`'s, already opens "Here r_i is".
-    at: String.raw`The perpendicular from $P$ to the line, of length $r$, is the side next to${NB}$\theta$, and $r_i$ is the hypotenuse.`,
-    dirIs: String.raw`${ARROW} lies along the line of sight to the piece, so its part along $x$ is $\Delta E\cos\theta$, the side next to${NB}$\theta$.`, mirrorSay: MIRROR(String.raw`\theta`),
-    pairSay: PAIR('along the line'), mirror: {across: String.raw`\sin\theta`, lost: 'along the line'},
-    survivor: SURVIVOR(String.raw`\theta`, 'along the line'),
-    anti: {pre: String.raw`\frac{k\lambda}{r}`, inner: String.raw`\sin\theta`, check: 'k*lambda/r*sin(theta)'},
-    antiAlso: {pre: String.raw`\frac{k\lambda}{r}`, inner: String.raw`\cos\theta`, check: 'k*lambda/r*cos(theta)'},
-    holds: String.raw`${BRIDGE(String.raw`\theta`, String.raw`y=r\tan\theta`, 'y', String.raw`r\sec^2\theta`, ON_LINE(String.raw`\theta`, 'half a turn'))}${BREAK}The density $\lambda$ is the charge per unit length. ${STAND_IN('piece')}`,
+    at: String.raw`The perpendicular from $P$ to the line, of length $r$, is the side next to${NB}$\alpha$, and $r_i$ is the hypotenuse.`,
+    dirIs: String.raw`${ARROW} lies along the line of sight to the piece, so its part along $x$ is $\Delta E\cos\alpha$, the side next to${NB}$\alpha$.`, mirrorSay: MIRROR(String.raw`\alpha`),
+    pairSay: PAIR('along the line'), mirror: {across: String.raw`\sin\alpha`, lost: 'along the line'},
+    survivor: SURVIVOR(String.raw`\alpha`, 'along the line'),
+    anti: {pre: String.raw`\frac{k\lambda}{r}`, inner: String.raw`\sin\alpha`, check: 'k*lambda/r*sin(alpha)'},
+    antiAlso: {pre: String.raw`\frac{k\lambda}{r}`, inner: String.raw`\cos\alpha`, check: 'k*lambda/r*cos(alpha)'},
+    holds: String.raw`${BRIDGE(String.raw`\alpha`, String.raw`y=r\tan\alpha`, 'y', String.raw`r\sec^2\alpha`, ON_LINE(String.raw`\alpha`, 'half a turn'))}${BREAK}The density $\lambda$ is the charge per unit length. ${STAND_IN('piece')}`,
     // THE LESSON'S CLAIM, ON THE BOARD. The run says every equal-angle piece makes exactly as much
-    // field at P, and the chain at Add is N equal links; the algebra that proves it -- the sec²θ in
-    // the charge over the sec²θ in the distance -- happened only inside Shrink them's second row, with
+    // field at P, and the chain at Add is N equal links; the algebra that proves it -- the sec²α in
+    // the charge over the sec²α in the distance -- happened only inside Shrink them's second row, with
     // no word, while the bisector's three-halves power had a gloss of its own.
-    equal: String.raw`With $r_i^2=r^2\sec^2\theta$, the $\sec^2\theta$ in $\Delta Q$ cancels: every piece’s $\Delta E$ is $k\lambda\,\Delta\theta/r$. A far piece holds more charge, and is farther away by exactly enough.`,
+    equal: String.raw`With $r_i^2=r^2\sec^2\alpha$, the $\sec^2\alpha$ in $\Delta Q$ cancels: every piece’s $\Delta E$ is $k\lambda\,\Delta\alpha/r$. A far piece holds more charge, and is farther away by exactly enough.`,
     // Inline, as every other gloss is: stacked, it was the one display fraction among the glosses, set
     // ten pixels under the Σ → ∫ gloss with the rule's paragraph four pixels under its denominator.
-    merged: String.raw`\lambda r\sec^2\theta/(r^2\sec^2\theta)=\lambda/r`,
-    tail: String.raw`, while $\Delta Q_i$ and $\cos\theta_i$ already are`,
+    merged: String.raw`\lambda r\sec^2\alpha/(r^2\sec^2\alpha)=\lambda/r`,
+    tail: String.raw`, while $\Delta Q_i$ and $\cos\alpha_i$ already are`,
     simplify: true,
-    check: {dq: 'lambda*r/cos(theta)^2', r: 'r/cos(theta)', dir: 'cos(theta)'}},
+    check: {dq: 'lambda*r/cos(alpha)^2', r: 'r/cos(alpha)', dir: 'cos(alpha)'}},
   // P sits above the end of the line, so the component along the line survives and points back
   // toward the end: a minus sign and the sine of the angle at P, measured from the perpendicular
-  // P drops to the line -- as the lesson's own text measures it, and as the infinite line's θ is.
+  // P drops to the line -- as the lesson's own text measures it, and as the infinite line's α is.
   semi: {dq: String.raw`\lambda\,dx`, piece: String.raw`\lambda r\sec^2\alpha\,\Delta\alpha`, r: String.raw`\sqrt{x^2+r^2}`, r2: String.raw`x^2+r^2`, pieceIs: String.raw`x=r\tan\alpha`,
     holds: String.raw`${BRIDGE(String.raw`\alpha`, String.raw`x=r\tan\alpha`, 'x', String.raw`r\sec^2\alpha`, ON_LINE(String.raw`\alpha`, 'a quarter turn'))}${BREAK}The density $\lambda$ is the charge per unit length. ${STAND_IN('piece')}`,
     at: HYPOTENUSE('x', 'r', 'line', false),
@@ -567,8 +567,8 @@ const SPANS: Record<string, {each: string; run: (lo: string, hi: string) => stri
   axial: {each: 'piece $i$ sits at $x_i$', run: (lo, hi) => `from one end, ${lo}, to the other, ${hi}`},
   endpoint: {each: 'piece $i$ sits at $y_i$', run: (lo, hi) => `from one end, ${lo}, to the other, ${hi}`},
   ramp: {each: 'piece $i$ sits at $y_i$', run: (lo, hi) => `from one end, ${lo}, to the other, ${hi}`},
-  // In the angle the infinite line is finite: its far ends are where θ reaches a right angle.
-  infinite: {each: String.raw`piece $i$ sits at the angle $\theta_i$`, run: (lo, hi) => `from ${lo}, far along the line one way, to ${hi}, far along it the other`},
+  // In the angle the infinite line is finite: its far ends are where α reaches a right angle.
+  infinite: {each: String.raw`piece $i$ sits at the angle $\alpha_i$`, run: (lo, hi) => `from ${lo}, far along the line one way, to ${hi}, far along it the other`},
   semi: {each: 'piece $i$ sits at $x_i$', run: lo => String.raw`from the end, ${lo}, on to $\infty$`},
   ring: {each: String.raw`piece $i$ sits at the angle $\theta_i$ round the ring`, run: (lo, hi) => `from ${lo} once round to ${hi}`},
   arc: {each: String.raw`piece $i$ sits at the angle $\theta_i$`, run: (lo, hi) => `from one end of the arc, ${lo}, to the other, ${hi}`},
@@ -592,11 +592,11 @@ const slash = (tex: string) => tex.replace(/^\\frac\{([^{}]*)\}\{(.*)\}$/, '$1/$
  * its lower limit is negative or a handle's name. `above` says the same of the half above the middle;
  * left out, a bracket reaches above it unless its upper limit is the middle or below. */
 export function boardLines(p: Problem, bounds?: [string, string], opts: {keeps?: boolean; span?: string; oneSided?: boolean; below?: boolean; above?: boolean} = {}): BoardLine[] {
-  // The infinite line's board is written in θ, the angle it is cut by. Handed the finite-rod route,
-  // which integrates in y between −L/2 and L/2, it wrote a θ integrand between y's limits and said
-  // "written in terms of y: r_i² = r² sec²θ". The panel always hands it the angular lesson; this says
+  // The infinite line's board is written in α, the angle it is cut by. Handed the finite-rod route,
+  // which integrates in y between −L/2 and L/2, it wrote a α integrand between y's limits and said
+  // "written in terms of y: r_i² = r² sec²α". The panel always hands it the angular lesson; this says
   // so loudly, rather than mixing the two the day a route tab is wired to the board.
-  if (p.id === 'infinite' && p.variable !== 'theta') throw Error('The board builds the infinite line in θ; pass the angular lesson.');
+  if (p.id === 'infinite' && p.variable !== 'alpha') throw Error('The board builds the infinite line in α; pass the angular lesson.');
   const t = PARTS[p.id], scalar = p.quantity === 'V', lhs = componentOf(p), v = p.variableTex;
   const surface = p.geometry === 'disk' || p.geometry === 'sheet', unit = surface ? 'ring' : 'piece';
   const [lo, hi] = bounds ?? p.boundTex;
@@ -617,7 +617,7 @@ export function boardLines(p: Problem, bounds?: [string, string], opts: {keeps?:
   const angleVaries = !!t.dir && p.geometry !== 'ring';
   const nth = (tex: string) => angleVaries ? tex.replace(/\\(alpha|theta)$/, '\\$1_i') : tex;
   // Where piece i sits, written y_i: the variable indexed wherever it stands alone (see `SPANS`).
-  const indexed = (tex: string) => v === String.raw`\theta` ? tex.replace(/\\theta(?!_)/g, String.raw`\theta_i`)
+  const indexed = (tex: string) => /^\\(theta|alpha)$/.test(v) ? tex.replace(new RegExp('\\' + v + '(?!_)', 'g'), `${v}_i`)
     : tex.replace(new RegExp(String.raw`(?<![\\a-zA-Z]|\\Delta\s?)${v}(?![a-zA-Z_])`, 'g'), `${v}_i`);
   // The rods index piece i's position, and its angle, from One piece on (see `HYPOTENUSE`).
   const rod = ['bisector', 'endpoint', 'ramp', 'axial', 'v-rod-bisector', 'v-rod-axial'].includes(p.id);
@@ -1090,18 +1090,18 @@ export const BISECTOR_UNFOLD = rodUnfold('-L/2', 'L/2');
 export const ENDPOINT_UNFOLD: WorkedStep[] = [...rodUnfold('0', 'L'),
   {text: 'Evaluate that between the ends.', tex: String.raw`E_x=k\lambda\left[\frac{y}{r\sqrt{y^2+r^2}}\right]_0^L`}];
 /** The infinite line's integral from the board's own last line. Unfold opened on "Substitute
- * y = r tan θ" applied to r dy/(r² + y²)^{3/2}, a y-integral the board never wrote -- it was in θ from
- * its first line -- and folded the two steps a student needs, kλ/r coming out and ∫cos θ dθ = sin θ,
+ * y = r tan α" applied to r dy/(r² + y²)^{3/2}, a y-integral the board never wrote -- it was in α from
+ * its first line -- and folded the two steps a student needs, kλ/r coming out and ∫cos α dα = sin α,
  * into "the entire y-axis maps to −π/2 to +π/2". The lesson's own last step, the evaluation, follows. */
 export const INFINITE_UNFOLD: WorkedStep[] = [
   {text: String.raw`The factor $k\lambda/r$ is the same for every piece, so it comes outside the integral.`,
-    tex: String.raw`E_x=\frac{k\lambda}{r}\int_{-\pi/2}^{\pi/2}\cos\theta\,d\theta`},
-  {text: String.raw`Integrate: $\int\cos\theta\,d\theta=\sin\theta$.`,
-    tex: String.raw`E_x=\frac{k\lambda}{r}\Big[\sin\theta\Big]_{-\pi/2}^{\pi/2}`},
+    tex: String.raw`E_x=\frac{k\lambda}{r}\int_{-\pi/2}^{\pi/2}\cos\alpha\,d\alpha`},
+  {text: String.raw`Integrate: $\int\cos\alpha\,d\alpha=\sin\alpha$.`,
+    tex: String.raw`E_x=\frac{k\lambda}{r}\Big[\sin\alpha\Big]_{-\pi/2}^{\pi/2}`},
 ];
 /** THE SEMI-INFINITE LINE, IN THE ANGLE IT WAS BUILT IN. One piece proves the lesson's claim in α --
  * the sec²α in ΔQ cancels the one in the distance, so every piece makes kλΔα/r -- and the infinite line,
- * its sibling, finishes on ∫cos θ dθ. This one's Unfold did E_x by u = x² + r² and then, for E_y, put
+ * its sibling, finishes on ∫cos α dα. This one's Unfold did E_x by u = x² + r² and then, for E_y, put
  * x = r tan α back: α to x to α, two methods for two components of one integral, and never the
  * one-line α integral One piece set up. So both components are done in α, and the lesson's own last
  * step, combining them, follows. (x dx/(x² + r²)^{3/2} = r tan α · r sec²α dα / r³ sec³α = sin α dα/r.)

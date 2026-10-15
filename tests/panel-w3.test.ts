@@ -23,7 +23,7 @@ const DE_Y: Record<string, string> = {
   endpoint: '-k*lambda/(y^2+r^2)*y/sqrt(y^2+r^2)',
   ramp: '-k*lambda0*y/L/(y^2+r^2)*y/sqrt(y^2+r^2)',
   semi: 'k*lambda/(x^2+r^2)*r/sqrt(x^2+r^2)',
-  infinite: '-k*(lambda*r/cos(theta)^2)/(r^2/cos(theta)^2)*sin(theta)',
+  infinite: '-k*(lambda*r/cos(alpha)^2)/(r^2/cos(alpha)^2)*sin(alpha)',
   arc: '-k*lambda*R/R^2*sin(theta)',
 };
 const ends = (id: string): [number, number] => ({bisector: [-at.L / 2, at.L / 2], endpoint: [0, at.L], ramp: [0, at.L], semi: [0, 1e9],
@@ -34,7 +34,7 @@ describe('the part of a charge gives E_y wherever the board says ΔE_y survives'
     for (const [id, integrand] of Object.entries(DE_Y)) {
       const p = getProblem(id), F = alongAntiderivativeOf(p)!, v = p.variable, h = 1e-5;
       expect(F, id).toBeTruthy();
-      for (const x of v === 'theta' ? [-.9, .3, 1.1] : [.2, .9, 2.3]) {
+      for (const x of v === 'theta' || v === 'alpha' ? [-.9, .3, 1.1] : [.2, .9, 2.3]) {
         const d = (evaluate(F, {...at, [v]: x + h}) - evaluate(F, {...at, [v]: x - h})) / (2 * h);
         expect(d / evaluate(integrand, {...at, [v]: x}), `${id} at ${v} = ${x}`).toBeCloseTo(1, 6);
       }
@@ -132,7 +132,7 @@ describe('formulas are never separated by punctuation alone, and no sentence ope
     }
     expect(step('bisector', 'one').say).toContain(String.raw`with $k=1/(4\pi\varepsilon_0)$. Here $r_i$ is`);
     expect(step('bisector', 'one').say).toContain(String.raw`out from $y=0$, so $r_i$ is the hypotenuse`);
-    expect(step('infinite', 'pieces').say).toContain(String.raw`a distance $r\sec\theta$ from`);
+    expect(step('infinite', 'pieces').say).toContain(String.raw`a distance $r\sec\alpha$ from`);
   });
 });
 

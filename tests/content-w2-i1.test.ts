@@ -42,13 +42,13 @@ describe('the offline copy prints the derivation the panel unfolds',()=>{
   const a=lessonArtifact(p,route);
   expect(a.setup).toBe(route.setup);
   expect(plain(a.setup)).toMatch(/Start with a rod of length \$L\$/);
-  expect(a.setup).not.toMatch(/tan\\theta/);
+  expect(a.setup).not.toMatch(/tan\\alpha/);
   expect(a.integralTex).toContain(String.raw`\lim_{L\to\infty}`);
   // It opens by evaluating the rod's integral it has just printed, not by quoting the rod's answer.
   expect(a.worked![0].text).toMatch(/Evaluate it between/);
   expect(a.worked![0].tex).toContain(String.raw`\right]_{-L/2}^{L/2}`);
   // The angular route keeps its own.
-  expect(lessonArtifact(p).integralTex).toContain(String.raw`\cos\theta`);
+  expect(lessonArtifact(p).integralTex).toContain(String.raw`\cos\alpha`);
  });
  it('the copy carries the checks and the sources, and says what k is under the integral',()=>{
   for(const p of PROBLEMS){
@@ -205,7 +205,7 @@ describe('the words around the lessons',()=>{
    expect(text,id).toMatch(/positive charge/);
   }
   const kernel=fields(getProblem('infinite','limit')).find(f=>f.id==='kernel')!;
-  expect(plain(kernel.hint)).toMatch(/cos θ/);
-  expect(kernel.hint).not.toMatch(/α/);
+  expect(plain(kernel.hint)).toMatch(/cos α/);
+  expect(kernel.hint).not.toMatch(/θ/);
  });
 });

@@ -113,13 +113,13 @@ describe('Cut it up is one chip', () => {
 });
 
 describe('Unfold starts where the board ends', () => {
-  it('the infinite line, in θ', () => {
+  it('the infinite line, in α', () => {
     const view = panel('infinite');
     fireEvent.click(view.getByRole('button', {name: 'Show every step'}));
     const first = view.container.querySelector('.ew-worked-step')!;
     expect(first.textContent).toMatch(/is the same for every piece, so it comes outside the integral/);
-    expect(first.querySelector('.katex-display annotation')?.textContent).toContain('\\cos\\theta\\,d\\theta');
-    expect(view.container.querySelector('.ew-worked-body')!.textContent).not.toMatch(/Substitute y = r tan θ/);
+    expect(first.querySelector('.katex-display annotation')?.textContent).toContain('\\cos\\alpha\\,d\\alpha');
+    expect(view.container.querySelector('.ew-worked-body')!.textContent).not.toMatch(/Substitute y = r tan α/);
   });
   it('the rod level with one end, in the bisector’s steps, with "step" for a step', () => {
     const view = panel('endpoint');

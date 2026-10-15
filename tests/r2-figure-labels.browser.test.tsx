@@ -110,7 +110,7 @@ function flatTerms(id: string, n: 2 | 3): string[] {
   return n === 2 ? ['ΔV', ...ri, ...(g === 'bisector' ? ['y'] : []), surface ? 'ring ΔQ' : 'ΔQ'] : [pairs ? 'ΔV + ΔV' : 'ΔV'];
  }
  if (n === 2) return [surface ? 'ΔEz' : 'ΔE', ...ri, surface ? 'ring ΔQ' : 'ΔQ'];
- const angle = g === 'infinite' || g === 'arc' ? 'θ' : 'α';
+ const angle = g === 'arc' ? 'θ' : 'α';
  if (g === 'axial') return ['ΔE', ...ri];
  if (surface) return ['ΔEz', angle, ...ri];
  // The piece's own whole arrow too, which What cancels' line says "lies along that line" -- and not the mirror's part
