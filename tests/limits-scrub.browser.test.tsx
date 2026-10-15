@@ -9,7 +9,7 @@ import {DEFAULT_PARAMS} from '../src/problems/types';
  *
  * Shut, the two endnotes were two grey lines at the foot of the lesson, and the plot they close on was
  * never seen. They start open now, and still fold away. And the plot moved only from a slider under it:
- * now a press anywhere on it brings the dot there, a drag carries it, a mouse scrubs it without a press,
+ * now a press anywhere on it brings the dot there, a drag carries it (hovering moves nothing),
  * the arrow keys walk it, and the slider, the thumbnail and a sentence for where the dot is all follow. */
 afterEach(async () => {
  cleanup();
@@ -74,10 +74,13 @@ describe('the plot is the control', () => {
   await act(async () => { fireEvent.pointerMove(c.handle, {...c.at(.9), pointerId: 1, pointerType: 'touch'}); });
   expect(value(c.handle)).toBe(held);
  });
- it('a mouse scrubs it without a press, and a press past either end stops at that end', async () => {
+ it('a mouse passing over it moves nothing, and a press past either end stops at that end', async () => {
   const c = card('ring', 'far');
+  const before = value(c.slider);
+  // Crossing the plot on the way to the slider, from its left edge, used to set the dot at the far left.
+  await act(async () => { fireEvent.pointerMove(c.handle, {...c.at(-.2), pointerType: 'mouse', pointerId: 2}); });
   await act(async () => { fireEvent.pointerMove(c.handle, {...c.at(.6), pointerType: 'mouse', pointerId: 2}); });
-  expect(value(c.slider)).toBeCloseTo(1 + 29 * .6, 0);
+  expect(value(c.slider)).toBe(before);
   await act(async () => { fireEvent.pointerDown(c.handle, {...c.at(1.08), button: 0, pointerType: 'mouse', pointerId: 2}); });
   expect(value(c.slider)).toBe(30);
   await act(async () => { fireEvent.pointerMove(c.handle, {...c.at(-.2), buttons: 1, pointerType: 'mouse', pointerId: 2}); });

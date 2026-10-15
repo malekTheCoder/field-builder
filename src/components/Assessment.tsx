@@ -354,7 +354,7 @@ function AssessmentView({problem,params:live,limit}:{problem:Problem;params:Para
  const atMarks=useMemo(()=>plot.kind==='law'?(plot.marks??[]).map(m=>sampleLimit(problem,params,limit,m.t).actual):[],[plot,problem,params,limit]),levels=atMarks.map(v=>v/largest);
  // What the plot's two numbers are, for a screen reader: on the half line they are its two components.
  // THE PLOT IS THE CONTROL. Press anywhere on it and the dot comes to that point of the sweep; drag
- // and it follows, the slider under it in step; with a mouse it follows the pointer without a press.
+ // and it follows, the slider under it in step.
  // Focused, the arrow keys walk it, Shift or Page for a tenth of the sweep at a time.
  // On a touch screen a sideways drag scrubs and an upward one still scrolls the page.
  // The handle lies over the plot; the plot's own matrix turns a pointer's x into the SVG's units.
@@ -363,7 +363,10 @@ function AssessmentView({problem,params:live,limit}:{problem:Problem;params:Para
   // A pointer the browser no longer tracks cannot be captured; the press still moves the dot.
   try{e.currentTarget.setPointerCapture(e.pointerId);}catch{/* no live pointer */}
   setScrubbing(true);setS(sAt(e.currentTarget,e.clientX));};
- const move=(e:PointerEvent<HTMLDivElement>)=>{if(scrubbing||e.pointerType==='mouse')setS(sAt(e.currentTarget,e.clientX));};
+ // ONLY A PRESS MOVES IT. A mouse used to scrub it by hovering, so a pointer crossing the plot on its way
+ // to the slider dragged the dot along, and one that came in from the left set it at the far end: the
+ // owner read that as the slider sticking at the left. Hovering now moves nothing.
+ const move=(e:PointerEvent<HTMLDivElement>)=>{if(scrubbing)setS(sAt(e.currentTarget,e.clientX));};
  const release=(e:PointerEvent<HTMLDivElement>)=>{if(e.currentTarget.hasPointerCapture?.(e.pointerId))e.currentTarget.releasePointerCapture(e.pointerId);setScrubbing(false);};
  const key=(e:KeyboardEvent<HTMLDivElement>)=>{
   const fine=.5,coarse=(S_MAX-S_MIN)/10,step=e.shiftKey?coarse:fine;
