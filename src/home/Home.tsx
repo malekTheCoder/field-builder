@@ -51,7 +51,7 @@ const STEPS:{name:string;text:string}[]=[
  {name:'One piece',text:'Find one piece’s field or potential at P, using Coulomb’s law or a result already built.'},
  {name:'What cancels',text:'Pair each piece with its mirror, where it has one, and see what cancels.'},
  {name:'Add them up',text:'Add what survives, piece by piece along the charge.'},
- {name:'Shrink them',text:'Make the pieces smaller without end. The sum becomes the integral.'}];
+ {name:'Shrink them',text:'As N → ∞ the pieces grow ever thinner, and the sum becomes the integral.'}];
 
 /** The picture the site is about, drawn once: a rod cut into pieces, and the argument of every lesson in one
  * frame. The top piece and its mirror at the bottom are the same distance from P, so their arrows there are
