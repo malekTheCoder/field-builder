@@ -57,7 +57,7 @@ export const GAUSS:{key:'gauss';label:string;note:string;lessons:PlannedLesson[]
   {key:'line',name:'Line, by Gauss',about:'A cylinder round the infinite line, checked against the integral you built.'},
   {key:'sheet',name:'Sheet, by Gauss',about:'A pillbox through the sheet, and why the distance drops out.'},
   {key:'coax',name:'Cylinders and slabs',about:'Coaxial cylinders and a thick slab, a surface placed in each region.'},
-  {key:'fails',name:'When it fails',about:'The finite rod: Gauss’s law is still true, and no help at all.'}]};
+  {key:'symmetry',name:'When symmetry runs out',about:'The finite rod: Gauss’s law still holds, but no surface makes it solvable, so you build the integral.'}]};
 /** The planned lessons' shapes, drawn as the lessons' are: the charge in ink, the closed surface dashed. */
 const PLANNED_GLYPHS:Record<string,React.ReactNode>={
  flux:<><path d="M6 4.2 12 2v11.8L6 16Z"/><path d="M1.6 9h14.6M14.2 7l2 2-2 2"/></>,
@@ -66,5 +66,5 @@ const PLANNED_GLYPHS:Record<string,React.ReactNode>={
  line:<><path d="M9 1.6v14.8"/><ellipse cx="9" cy="4.6" rx="4.6" ry="1.6" strokeDasharray="2 2"/><ellipse cx="9" cy="13.4" rx="4.6" ry="1.6" strokeDasharray="2 2"/><path d="M4.4 4.6v8.8M13.6 4.6v8.8" strokeDasharray="2 2"/></>,
  sheet:<><path d="M1.8 12.4 6.6 6.6h9.6l-4.8 5.8Z"/><rect x="7" y="4.4" width="4" height="8.6" rx="1" strokeDasharray="2 1.8"/></>,
  coax:<><circle cx="9" cy="9" r="2.6"/><circle cx="9" cy="9" r="6.6"/><circle cx="9" cy="9" r="4.6" strokeDasharray="1.6 1.8"/></>,
- fails:<><path d="M9 4v10M6.6 4h4.8M6.6 14h4.8"/><circle cx="9" cy="9" r="7.2" strokeDasharray="2 2.2"/></>};
+ symmetry:<><path d="M9 4v10M6.6 4h4.8M6.6 14h4.8"/><circle cx="9" cy="9" r="7.2" strokeDasharray="2 2.2"/></>};
 export function PlannedGlyph({id,size=18}:{id:string;size?:number}){return <svg width={size} height={size} viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" data-glyph={`gauss-${id}`}>{PLANNED_GLYPHS[id]}</svg>}

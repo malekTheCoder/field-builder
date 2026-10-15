@@ -30,8 +30,9 @@ gets nothing, and seeing why is the lesson.
 5. **Infinite sheet.** A pillbox. Check against σ/2ε₀ from the sheet lesson. Explain why the
    distance drops out.
 6. **Coaxial cylinders / a thick slab.** The surface placed in each region.
-7. **When it fails.** The finite rod: no surface has E constant over it, so Gauss's law is still
-   true but useless. Send the reader to "Build the integral".
+7. **When symmetry runs out.** The finite rod: no surface has E constant over it, so Gauss's law
+   still holds but cannot be solved for E. (Not "when it fails": the law never fails; the owner asked
+   that the name not suggest it does.) Send the reader to "Build the integral".
 8. **Conductors** (optional): E = 0 inside, and charge on the surface.
 
 ## Interaction and visuals
