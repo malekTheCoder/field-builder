@@ -970,3 +970,17 @@
    header, and at 320 pixels the name, four buttons and their eight-pixel spacing ran a pixel past the window
    with the CI's fonts: the page scrolled sideways. Below 360 the guide is reached from the home page. */
 @media(max-width:360px){.exp-header .guide-link{display:none}}
+/* GAUSS'S LAW, COMING SOON (lessons.tsx, GAUSS). Its planned lessons are names, not controls: a row laid out as the
+   lesson rows are, in the list's dim ink (AA on the ground), with no hover and no pointer, and the family's name
+   carries the mark. In the library the cards sit on the ground with a dashed hairline instead of a white face. */
+.exp-soon-tag{display:inline-flex;align-items:center;height:20px;margin-left:6px;padding:0 8px;border:1px solid var(--border-strong);border-radius:999px;
+ font-size:11px;font-weight:600;line-height:1;letter-spacing:.005em;color:var(--sidebar-dim);white-space:nowrap;vertical-align:1px}
+.exp-planned-row{display:flex;align-items:center;gap:10px;min-height:36px;padding:7px 10px;font-size:var(--type-meta);line-height:1.25;color:var(--sidebar-dim);cursor:default}
+.exp-planned-row .shape-icon{width:20px;height:20px}
+.exp-library-grid>.exp-library-card.is-planned{background:transparent;border-style:dashed;border-color:var(--border-strong);cursor:default}
+.exp-library-grid>.exp-library-card.is-planned:hover{background:transparent;border-color:var(--border-strong)}
+.exp-library-grid>.exp-library-card.is-planned>strong{color:var(--ink-2)}
+.exp-library-grid>.exp-library-card.is-planned>svg{color:var(--muted-foreground)}
+.exp-library-family .exp-soon-tag{color:var(--muted-foreground)}
+@media(max-width:1250px){.exp-planned-row{padding:7px 9px;gap:9px}}
+@media(forced-colors:active){.exp-soon-tag,.exp-library-grid>.exp-library-card.is-planned{border-color:GrayText;color:GrayText}.exp-planned-row{color:GrayText}}

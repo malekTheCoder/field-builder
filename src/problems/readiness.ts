@@ -45,3 +45,10 @@ export const COMING_SOON: ReadonlySet<ProblemId> = new Set<ProblemId>([
 export const isReady = (id: ProblemId) => !COMING_SOON.has(id);
 /** Said once, in the one place a reader meets it, and kept short enough to sit under a name. */
 export const SOON_NOTE = 'Being redrawn, and not ready to be read yet.';
+/** WHOLE SECTIONS THAT ARE PLANNED BUT NOT BUILT, shown as coming soon on the home page, in the lesson list and in
+ * the library. COMING_SOON above holds lessons that exist and are being redrawn; a planned section has no lesson
+ * behind any of its names yet (Gauss's law, docs/gauss-law-plan.md, listed in explorer/lessons.tsx), so its
+ * entries are never links, only names marked "Coming soon". Removing a section here takes it off every page. */
+export const PLANNED_SECTIONS: ReadonlySet<'gauss'> = new Set(['gauss'] as const);
+/** The mark a planned lesson carries, in the words a reader sees and a screen reader hears. */
+export const PLANNED_LABEL = 'Coming soon';

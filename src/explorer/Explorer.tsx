@@ -23,14 +23,14 @@ import {BuildPlayer,drawingOnScreen,runClock} from './BuildPlayer';
 import {EquationWorkbench} from '../components/EquationWorkbench';
 import {Onboarding} from '../components/Onboarding';
 import {StartHere} from '../components/StartHere';
-import {isReady,SOON_NOTE} from '../problems/readiness';
+import {isReady,PLANNED_LABEL,PLANNED_SECTIONS,SOON_NOTE} from '../problems/readiness';
 import {MathText,Prose} from '../components/Math';
 import {symbolic} from '../problems/prose';
 import {Assessment} from '../components/Assessment';
 import {artifactHtml,downloadArtifact,figureCopy,lessonArtifact,printLesson} from '../state/artifact';
 import {Hint} from '../components/Hint';
 import {LawsDialog,LawsReference} from '../components/Laws';
-import {ShapeGlyph,families} from './lessons';
+import {GAUSS,PlannedGlyph,ShapeGlyph,families} from './lessons';
 import {Brand} from './Brand';
 import {LessonIntro} from './LessonIntro';
 import {lessonFor} from '../lessons';
@@ -991,7 +991,10 @@ export default function Explorer({welcome}:{welcome?:boolean}={}){
    // was read twice down the column -- "Straight rods, heading level 2", then "list, Straight rods".
    const group=(label:string,items:typeof PROBLEMS,soon=false)=><div className="exp-family" key={label}><h2 className="exp-family-name">{label}</h2><SidebarMenu className={soon?'exp-soon-group':undefined}>{items.map(item)}</SidebarMenu></div>;
    const soon=PROBLEMS.filter(pr=>!isReady(pr.id));
-   return <>{families(PROBLEMS.filter(pr=>isReady(pr.id))).map(g=>group(g.label,g.items))}{soon.length>0&&group('Coming soon',soon,true)}</>;
+   // GAUSS'S LAW, COMING SOON: its planned lessons by name, as text. Not links and not disabled buttons, so Tab
+   // goes from the last lesson straight on past them, and a screen reader reads a list of what is coming.
+   const planned=PLANNED_SECTIONS.has(GAUSS.key)&&<div className="exp-family exp-planned" key={GAUSS.key}><h2 className="exp-family-name">{GAUSS.label} <span className="exp-soon-tag">{PLANNED_LABEL}</span></h2><SidebarMenu>{GAUSS.lessons.map(l=><SidebarMenuItem key={l.key}><div className="exp-planned-row" aria-disabled="true"><span className="shape-icon"><PlannedGlyph id={l.key}/></span><span>{l.name}</span></div></SidebarMenuItem>)}</SidebarMenu></div>;
+   return <>{families(PROBLEMS.filter(pr=>isReady(pr.id))).map(g=>group(g.label,g.items))}{planned}{soon.length>0&&group('Coming soon',soon,true)}</>;
   },[id,choose]);
  const libraryCards=useMemo(()=>{
     // Named by the lesson's name alone, described by its sentence: read as one string, a card was
@@ -1002,7 +1005,9 @@ export default function Explorer({welcome}:{welcome?:boolean}={}){
     // Grouped exactly as the lesson list is, so the two pickers tell one story about the subject.
     const block=(label:string,items:typeof PROBLEMS)=><div className="exp-library-family" key={label}><h3 className="exp-family-name">{label}</h3><div className="exp-library-grid">{items.map(card)}</div></div>;
     const soon=PROBLEMS.filter(pr=>!isReady(pr.id));
-    return <>{families(PROBLEMS.filter(pr=>isReady(pr.id))).map(g=>block(g.label,g.items))}{soon.length>0&&block('Coming soon',soon)}</>;
+    // Gauss's law, as in the list: named, marked, and never a link.
+    const planned=PLANNED_SECTIONS.has(GAUSS.key)&&<div className="exp-library-family exp-planned" key={GAUSS.key}><h3 className="exp-family-name">{GAUSS.label} <span className="exp-soon-tag">{PLANNED_LABEL}</span></h3><div className="exp-library-grid">{GAUSS.lessons.map(l=><div key={l.key} className="exp-library-card is-planned" aria-disabled="true"><PlannedGlyph id={l.key} size={26}/><strong>{l.name}</strong><span>{l.about}</span></div>)}</div></div>;
+    return <>{families(PROBLEMS.filter(pr=>isReady(pr.id))).map(g=>block(g.label,g.items))}{planned}{soon.length>0&&block('Coming soon',soon)}</>;
    },[id,choose]);
  const {distance,size,charge,phi,slices}=params;
  const parameterGrid=useMemo(()=><div className="parameter-grid">{geom!=='arc'&&<Range describe="distance" onDescribe={setHighlight} label={['ring','disk','sheet'].includes(geom)?'Height z':geom==='axial'?'End distance a':'Distance r'} format={METERS} value={distance} min={.5} max={6} step={.05} onChange={distance=>updateParams({distance})}/>} {!isInfinite&&<Range describe="size" onDescribe={setHighlight} label={isRound?'Radius R':'Length L'} format={METERS} value={isRound?size/2:size} min={isRound?.5:1} max={isRound?4:8} step={.05} onChange={v=>updateParams({size:isRound?v*2:v})}/>}<Range describe="charge" onDescribe={setHighlight} label={geom==='sheet'?'Surface density σ':geom==='ramp'?'Peak density λ₀':['infinite','semi'].includes(geom)?'Line density λ':'Total charge Q'} unit={geom==='sheet'?PER_SQUARE_METER:geom==='ramp'||['infinite','semi'].includes(geom)?PER_METER:NANOCOULOMBS} value={charge} min={-5} max={5} step={.1} onChange={(next,reason)=>updateParams({charge:snapCharge(next,charge,reason)})}/>{/* In degrees, on the same grid as before (a tenth of π to 2π in hundredths of π): run in

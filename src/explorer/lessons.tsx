@@ -42,3 +42,29 @@ export function families(list:Problem[]){const rest=new Set(list.map(p=>p.id));
  const groups=FAMILIES.map(f=>({label:f.label,items:f.ids.flatMap(id=>{const p=list.find(x=>x.id===id);if(!p)return[];rest.delete(id);return[p]})})).filter(g=>g.items.length>0);
  const extra=list.filter(p=>rest.has(p.id));
  return extra.length>0?[...groups,{label:'More geometries',items:extra}]:groups}
+/** GAUSS'S LAW, COMING SOON (docs/gauss-law-plan.md). The other half of the unit, planned and not built: shown
+ *  as a family of its own wherever the lessons are offered, its lessons named and marked, none of them a link.
+ *  A reader sees where the subject goes next, and that the gap is deliberate. These are not Problems, so they
+ *  have no ProblemId and no lesson behind them; `PLANNED_SECTIONS` in problems/readiness.ts is the switch.
+ *  When a Gauss lesson is built it becomes a Problem and leaves this list. */
+export type PlannedLesson={key:string;name:string;about:string};
+export const GAUSS:{key:'gauss';label:string;note:string;lessons:PlannedLesson[]}={key:'gauss',label:'Gauss’s law',
+ note:'The shortcut, where symmetry already gives the field’s direction: one closed surface instead of the whole integral.',
+ lessons:[
+  {key:'flux',name:'Flux, the idea',about:'A field through a tilted patch, then through any closed surface round a point charge.'},
+  {key:'shell',name:'Shell and point charge',about:'A sphere: no field inside the shell, and outside it a point charge’s.'},
+  {key:'ball',name:'Solid sphere',about:'The field grows inside the ball, then falls away outside it.'},
+  {key:'line',name:'Line, by Gauss',about:'A cylinder round the infinite line, checked against the integral you built.'},
+  {key:'sheet',name:'Sheet, by Gauss',about:'A pillbox through the sheet, and why the distance drops out.'},
+  {key:'coax',name:'Cylinders and slabs',about:'Coaxial cylinders and a thick slab, a surface placed in each region.'},
+  {key:'fails',name:'When it fails',about:'The finite rod: Gauss’s law is still true, and no help at all.'}]};
+/** The planned lessons' shapes, drawn as the lessons' are: the charge in ink, the closed surface dashed. */
+const PLANNED_GLYPHS:Record<string,React.ReactNode>={
+ flux:<><path d="M6 4.2 12 2v11.8L6 16Z"/><path d="M1.6 9h14.6M14.2 7l2 2-2 2"/></>,
+ shell:<><circle cx="9" cy="9" r="4.4"/><circle cx="9" cy="9" r="7.2" strokeDasharray="2 2.2"/></>,
+ ball:<><circle cx="9" cy="9" r="4.4" fill="currentColor" fillOpacity=".28"/><circle cx="9" cy="9" r="7.2" strokeDasharray="2 2.2"/></>,
+ line:<><path d="M9 1.6v14.8"/><ellipse cx="9" cy="4.6" rx="4.6" ry="1.6" strokeDasharray="2 2"/><ellipse cx="9" cy="13.4" rx="4.6" ry="1.6" strokeDasharray="2 2"/><path d="M4.4 4.6v8.8M13.6 4.6v8.8" strokeDasharray="2 2"/></>,
+ sheet:<><path d="M1.8 12.4 6.6 6.6h9.6l-4.8 5.8Z"/><rect x="7" y="4.4" width="4" height="8.6" rx="1" strokeDasharray="2 1.8"/></>,
+ coax:<><circle cx="9" cy="9" r="2.6"/><circle cx="9" cy="9" r="6.6"/><circle cx="9" cy="9" r="4.6" strokeDasharray="1.6 1.8"/></>,
+ fails:<><path d="M9 4v10M6.6 4h4.8M6.6 14h4.8"/><circle cx="9" cy="9" r="7.2" strokeDasharray="2 2.2"/></>};
+export function PlannedGlyph({id,size=18}:{id:string;size?:number}){return <svg width={size} height={size} viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" data-glyph={`gauss-${id}`}>{PLANNED_GLYPHS[id]}</svg>}
