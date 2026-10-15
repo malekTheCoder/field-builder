@@ -25,16 +25,8 @@ owner says they are urgent.
 1. **Gauss's law, "coming soon" on the site.** A Gauss's law section shown as coming soon on the
    home page, in the lesson list and in the library. Do this after the home page lands. The plan is
    in [gauss-law-plan.md](gauss-law-plan.md); the section itself is not started.
-4. **Wide arc (φ ≈ 1.8π), What cancels.** The label placer hides ΔE and "r_i = R", and the ghost
-   names crowd.
-5. **Ring's ΔE_z name** sits next to the stacked mirror survivor in a narrow fan (R small, z large,
-   N large).
 7. **Deferred by the cloud round (w4).** Not done in the round; still to do.
    - New lessons: a non-uniform semicircle, a spherical shell, an annulus, an off-bisector rod.
-   - The offline copy's figure at the One-piece frame.
-   - Keep a dragged bracket when Watch it build starts.
-   - Partial: the ring's What-cancels piece is 73 px (target 90).
-   - Partial: Q<0 rods' ΔE_x on the r leg.
 8. **Quiz yourself** (owner, 2026-10-13): its own page, not inside the lessons. The student picks the
    shapes, questions come from a bank, and personalized feedback follows. Plan:
    [quiz-plan.md](quiz-plan.md), waiting for the owner's OK.
@@ -44,6 +36,20 @@ owner says they are urgent.
    Do it after the Codex round.
 
 ## Done
+- 2D-figure leftovers (2026-10-15; was Next 4, 5 and four of Next 7's bullets), five commits. A negative rod's
+  ΔE_x lay on the r leg and the leg was painted over it: the leg now stops at the arrow's point, ΔE_x is named
+  beside its own shaft and r beside the bare leg, y kept on its own leg (4b644fb). The ring's What-cancels piece
+  73 → 89 px at 1280 × 720, the run's own readable length (105 at 1440 × 900): the stacked pair up its axis was
+  held under the axis' letter, which in space stands beside the axis; P, the ring and the scale unmoved
+  (fe6b6ec). Watch it build keeps a dragged bracket: the run's piece is inside it, What cancels draws a mirror
+  only where it is bracketed too, Add them up and Shrink them are the bracketed part's, and the transport writes
+  the panel's bracketed board and answer (src/workbench/bracket.ts, shared) (28c6d7a). The semi-infinite line's
+  ∞ is kept beside ΔQ at the top break on a phone (3d3b9ff). The offline copy's figure is One piece's, the run's
+  piece with its rᵢ and ΔE, drawn off screen (ac877f8). Not reproduced, at φ 1.8π, 1.9π and 2π (R ½, N 30, either
+  sign, laptop and phone) and the ring at R ½, z 4 to 6, N 20 to 30: the wide arc's ΔE and rᵢ = R are never
+  hidden and its ghost names do not crowd (at φ = 2π, Q < 0 on a phone rᵢ = R stands just over P, touching,
+  readable); the ring's ΔE_z stands beside its own part, below the stacked mirror survivor. Shots in the session
+  scratchpad, fig/.
 - Line family consistency (2026-10-15), three commits: the infinite line's angle at P is α everywhere, as in
   every other lesson (a66b6d2); the semi-infinite line stands up the y-axis from its end with P = (r, 0) level
   with it, the endpoint rod grown long, E = (kλ/r)(x̂ − ŷ), checked against a brute-force point-charge sum for
