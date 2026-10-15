@@ -936,10 +936,11 @@ export function boardLines(p: Problem, bounds?: [string, string], opts: {keeps?:
   // WHAT SHRINKING IS. The step named for it said only "Σᵢ → ∫, ΔQᵢ → dQ" and "then the sum becomes
   // an integral": the pieces never got thinner, Δy → dy was never written and N → ∞ never said, so
   // the integral read as a renaming rule rather than a limit, and dy arrived from nowhere. So the rule
-  // opens on the limit. The semi-infinite line and the sheet are cut in an angle but integrated in x
+  // opens on the limit, N → ∞, as the run's Shrink them line does: "Make the pieces thinner without end"
+  // read as the rod growing endless, the reading the run's line was rid of. The semi-infinite line and the sheet are cut in an angle but integrated in x
   // and s: their own tail says what the piece's width becomes, so here they say N → ∞ alone.
   const ownCut = p.id !== 'semi' && p.id !== 'sheet';
-  const thinner = `Make the ${unit}s thinner without end, $N\\to\\infty$: ${ownCut ? `each $\\Delta ${v}$ becomes $d${v}$, ` : ''}${unit}${NB}$i$’s position $${v}_i$ becomes the integral’s $${v}$, and ${becomes}.`;
+  const thinner = `As $N\\to\\infty$ the ${unit}s grow ever thinner: ${ownCut ? `each $\\Delta ${v}$ becomes $d${v}$, ` : ''}${unit}${NB}$i$’s position $${v}_i$ becomes the integral’s $${v}$, and ${becomes}.`;
   // An exact lesson's rule said "Nothing changes from piece to piece … So the sum becomes an integral
   // of a term that never changes": it never said the pieces got thinner, and its "So" credited the
   // integral to the term being constant. The sum becomes an integral because Δθ → dθ, as everywhere;

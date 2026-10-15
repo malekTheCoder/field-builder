@@ -30,7 +30,7 @@ export const lesson: Lesson = {
       raw`That is exact, however the arc is cut.`,
     ]},
     {heading: 'Shrink them', body: [
-      raw`Make the pieces thinner without end and the sum becomes an integral over $\theta$; nothing in it changes with $\theta$, so the height of the column does not move:`,
+      raw`As $N\to\infty$ the pieces grow ever thinner and the sum becomes an integral over $\theta$; nothing in it changes with $\theta$, so the height of the column does not move:`,
       {tex: raw`V=\int_{-\varphi/2}^{\varphi/2}\frac{k\lambda R\,d\theta}{R}=k\lambda\varphi=\frac{kQ}{R}`},
     ]},
     {heading: 'What the answer says', body: [

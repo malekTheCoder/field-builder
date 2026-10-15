@@ -47,7 +47,7 @@ const IDEA:{name:string;text:string}[]=[
  {name:'One piece',text:String.raw`Coulomb’s law for that one piece: $\Delta E=k\,\Delta Q/r_i^2$, along the line from the piece through $P$.`},
  {name:'What cancels',text:'Pair each piece with its mirror, where it has one. The parts that are equal and opposite drop out.'},
  {name:'Add them up',text:String.raw`Add what survives, piece by piece, with its projection: $\sum k\,\Delta Q\cos\alpha/r_i^2$.`},
- {name:'Shrink them',text:String.raw`Let the pieces shrink without end. $\Delta y$ becomes $dy$, and the sum becomes the integral.`}];
+ {name:'Shrink them',text:String.raw`As $N\to\infty$ the pieces shrink. $\Delta y$ becomes $dy$, and the sum becomes the integral.`}];
 
 /** THE STUDY LOOP. Each step is an action, then where on the lesson page it happens. Ordered as a first
  * session runs, so the list is also the plan for one sitting. */

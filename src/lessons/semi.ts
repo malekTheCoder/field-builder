@@ -34,7 +34,7 @@ export const lesson: Lesson = {
       {tex: raw`E_x\approx\sum_i\frac{k\,\Delta Q_i}{r_i^2}\cos\alpha_i`},
     ]},
     {heading: 'Shrink them', body: [
-      raw`As the pieces shrink the sums become exact integrals. Written in $y$, as the page writes them, $r\sec^2\alpha\,\Delta\alpha$ becomes the length $dy$ and $\cos\alpha=r/\sqrt{y^2+r^2}$:`,
+      raw`As $N\to\infty$ the pieces shrink and the sums become exact integrals. Written in $y$, as the page writes them, $r\sec^2\alpha\,\Delta\alpha$ becomes the length $dy$ and $\cos\alpha=r/\sqrt{y^2+r^2}$:`,
       {tex: raw`E_x=\int_0^\infty\frac{k\lambda\,dy}{y^2+r^2}\cdot\frac{r}{\sqrt{y^2+r^2}}`},
       raw`and $y=r\tan\alpha$ makes it $k\lambda/r$. In the angle, where each piece is worth $k\lambda\,d\alpha/r$, the two components are one picture:`,
       {tex: raw`\begin{aligned}E_x&=\frac{k\lambda}{r}\int_0^{\pi/2}\cos\alpha\,d\alpha=\frac{k\lambda}{r}\\E_y&=-\frac{k\lambda}{r}\int_0^{\pi/2}\sin\alpha\,d\alpha=-\frac{k\lambda}{r}\end{aligned}`},

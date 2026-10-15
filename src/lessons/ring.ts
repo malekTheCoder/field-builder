@@ -30,7 +30,7 @@ export const lesson: Lesson = {
       raw`That is exact however coarsely the ring was cut.`,
     ]},
     {heading: 'Shrink them', body: [
-      raw`Make the pieces thinner without end and the sum becomes an integral over $\theta$ from $0$ to $2\pi$. Nothing in it changes with $\theta$, and the integral of $\lambda R\,d\theta$ once round is $Q$, so the answer does not move. With $\cos\alpha$ written out:`,
+      raw`As $N\to\infty$ the pieces grow ever thinner and the sum becomes an integral over $\theta$ from $0$ to $2\pi$. Nothing in it changes with $\theta$, and the integral of $\lambda R\,d\theta$ once round is $Q$, so the answer does not move. With $\cos\alpha$ written out:`,
       {tex: raw`E_z=\frac{kQz}{(R^2+z^2)^{3/2}}`},
     ]},
     {heading: 'What the answer says', body: [

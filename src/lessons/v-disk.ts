@@ -28,7 +28,7 @@ export const lesson: Lesson = {
       {tex: raw`V\approx\sum_i\frac{k\,\Delta Q_i}{r_i}`},
     ]},
     {heading: 'Shrink them', body: [
-      raw`Make the rings thinner without end and the sum becomes an exact integral over $s$. With $u=s^2+z^2$, $s\,ds$ is $du/2$, and the integral of $u^{-1/2}/2$ is $\sqrt u$:`,
+      raw`As $N\to\infty$ the rings grow ever thinner and the sum becomes an exact integral over $s$. With $u=s^2+z^2$, $s\,ds$ is $du/2$, and the integral of $u^{-1/2}/2$ is $\sqrt u$:`,
       {tex: raw`V=\int_0^R\frac{k\,\sigma\,2\pi s\,ds}{\sqrt{s^2+z^2}}=\frac{\sigma}{2\varepsilon_0}\left(\sqrt{R^2+z^2}-z\right)`},
       raw`using $2\pi k\sigma=\sigma/(2\varepsilon_0)$.`,
     ]},

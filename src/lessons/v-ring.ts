@@ -30,7 +30,7 @@ export const lesson: Lesson = {
       raw`That is exact, however the ring is cut.`,
     ]},
     {heading: 'Shrink them', body: [
-      raw`Make the pieces thinner without end: the sum becomes an integral over $\theta$, once round, and since nothing in it changes with $\theta$ the answer does not move.`,
+      raw`As $N\to\infty$ the pieces grow ever thinner: the sum becomes an integral over $\theta$, once round, and since nothing in it changes with $\theta$ the answer does not move.`,
     ]},
     {heading: 'Differentiate back', body: [
       raw`The field points the way $V$ falls fastest, and on the axis symmetry leaves it only its part along the axis. So the field there is minus the rate $V$ changes with $z$:`,

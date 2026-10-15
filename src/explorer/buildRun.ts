@@ -381,11 +381,11 @@ export function buildStages(p: Problem): BuildStage[] {
       moves: .7, pace: 'ease', term: 'bounds', line: plain(lines.limit), prose: lines.limit,
       caption: exact
         ? scalar
-          ? 'Finally, make the pieces thinner without end. Each segment of the column gets too thin to see and the sum becomes the integral, but the height does not move: every piece was already the same distance from P, so the sum was exact all along.'
-          : 'Finally, make the pieces thinner without end. Each piece’s arrow shrinks to nothing while there are ever more of them, and the sum becomes the integral. The answer does not move: every piece was already the same distance from P at the same angle, so the sum was exact all along.'
+          ? 'Finally, as N → ∞ the pieces grow ever thinner. Each segment of the column gets too thin to see and the sum becomes the integral, but the height does not move: every piece was already the same distance from P, so the sum was exact all along.'
+          : 'Finally, as N → ∞ the pieces grow ever thinner. Each piece’s arrow shrinks to nothing while there are ever more of them, and the sum becomes the integral. The answer does not move: every piece was already the same distance from P at the same angle, so the sum was exact all along.'
         : scalar
-        ? `Finally, make the ${unit}s thinner without end. Each segment of the column gets too thin to see, and the sum becomes the integral: ${exactNow}.`
-        : `Finally, make the ${unit}s thinner without end. Each ${unit}’s arrow shrinks to nothing while there are ever more of them, and the sum becomes the integral: ${exactNow}.`},
+        ? `Finally, as N → ∞ the ${unit}s grow ever thinner. Each segment of the column gets too thin to see, and the sum becomes the integral: ${exactNow}.`
+        : `Finally, as N → ∞ the ${unit}s grow ever thinner. Each ${unit}’s arrow shrinks to nothing while there are ever more of them, and the sum becomes the integral: ${exactNow}.`},
   ];
 }
 /** How far a stage's motion has got, `local` of the way through the stage: the moving share

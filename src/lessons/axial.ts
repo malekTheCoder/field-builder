@@ -31,7 +31,7 @@ export const lesson: Lesson = {
       {tex: raw`E_x\approx\sum_i\frac{k\,\Delta Q_i}{r_i^2}`},
     ]},
     {heading: 'Shrink them', body: [
-      raw`Make the pieces thinner without end. Each $\Delta x$ becomes $dx$, the sum becomes an integral over $x$, and the approximation becomes exact:`,
+      raw`As $N\to\infty$ the pieces grow ever thinner. Each $\Delta x$ becomes $dx$, the sum becomes an integral over $x$, and the approximation becomes exact:`,
       {tex: raw`E_x=\int_0^L\frac{k\lambda\,dx}{(L+a-x)^2}`},
       raw`Put $u=L+a-x$, the piece’s distance from $P$, so $du=-dx$. The integral of $1/u^2$ is $-1/u$, and the two minus signs cancel, leaving $1/(L+a-x)$. At $x=L$ the distance is $a$ and at $x=0$ it is $L+a$, so with $\lambda L=Q$:`,
       {tex: raw`E_x=k\lambda\left(\frac1a-\frac1{L+a}\right)=\frac{kQ}{a(L+a)}`},

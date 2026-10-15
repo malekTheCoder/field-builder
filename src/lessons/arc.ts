@@ -28,7 +28,7 @@ export const lesson: Lesson = {
       {tex: raw`E_x\approx-\sum_i\frac{k\,\Delta Q_i}{R^2}\cos\theta_i`},
     ]},
     {heading: 'Shrink them', body: [
-      raw`Make the pieces thinner without end. Then $\cos\theta$ stops changing across a piece, and the sum becomes an exact integral over $\theta$:`,
+      raw`As $N\to\infty$ the pieces grow ever thinner. Then $\cos\theta$ stops changing across a piece, and the sum becomes an exact integral over $\theta$:`,
       {tex: raw`E_x=-\int_{-\varphi/2}^{\varphi/2}\frac{k\lambda R\,d\theta}{R^2}\cos\theta`},
       raw`The integral of $\cos\theta$ is $\sin\theta$, and since $\sin(-\varphi/2)=-\sin(\varphi/2)$ the two ends add:`,
       {tex: raw`E_x=-\frac{2k\lambda}{R}\sin\frac{\varphi}{2}=-\frac{2kQ}{R^2\varphi}\sin\frac{\varphi}{2}`},

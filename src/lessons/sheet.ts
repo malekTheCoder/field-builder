@@ -30,7 +30,7 @@ export const lesson: Lesson = {
       raw`Each term has magnitude at most $2\pi k|\sigma|\,\Delta\alpha$. Since $N\Delta\alpha=\pi/2$, the sum’s magnitude is at most $\pi^2 k|\sigma|$, a finite bound that stays fixed as the rings get thinner.`,
     ]},
     {heading: 'Shrink them', body: [
-      raw`Make the rings thinner in angle without end, and treating each as a thin ring becomes exact. The integral of $\sin\alpha$ is $-\cos\alpha$, which rises by exactly one from $\alpha=0$ to $\alpha=\pi/2$:`,
+      raw`As $N\to\infty$ the rings grow ever thinner in angle, and treating each as a thin ring becomes exact. The integral of $\sin\alpha$ is $-\cos\alpha$, which rises by exactly one from $\alpha=0$ to $\alpha=\pi/2$:`,
       {tex: raw`E_z=2\pi k\sigma\int_0^{\pi/2}\sin\alpha\,d\alpha=2\pi k\sigma=\frac{\sigma}{2\varepsilon_0}`},
       raw`The board below writes the same integral first in $s$, from $0$ to $\infty$, the width $z\sec^2\alpha\,\Delta\alpha$ becoming $ds$; putting $s=z\tan\alpha$ back in turns it into this one.`,
     ]},

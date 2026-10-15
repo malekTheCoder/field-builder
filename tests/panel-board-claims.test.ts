@@ -151,7 +151,7 @@ describe('an exact sum needs no integral, and the board says why it gets one any
     for (const p of PROBLEMS.filter(exactSum)) {
       const add = step(p.id, 'add').say!, limit = step(p.id, 'limit').say!;
       expect(add, p.id).toMatch(/(is the same in every term and comes out of the sum|every \$r_i\$ is the same, .* comes out of the sum), and \$\\sum_i\\Delta Q_i\$ is the whole charge \$Q\$\. The answer needs no integral\./);
-      expect(limit, p.id).toMatch(/^Make the pieces thinner without end, \$N\\to\\infty\$: each \$\\Delta ?\\theta\$ becomes \$d\\theta\$/);
+      expect(limit, p.id).toMatch(/^As \$N\\to\\infty\$ the pieces grow ever thinner: each \$\\Delta ?\\theta\$ becomes \$d\\theta\$/);
       expect(limit, p.id).toContain(String.raw`just as $\sum_i\Delta\theta_i$ did`);
       expect(limit, p.id).not.toMatch(/So the sum/);
     }
