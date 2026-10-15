@@ -60,7 +60,7 @@
 .home-net path{stroke:var(--field);stroke-width:3.4;stroke-linecap:round;fill:none}
 .home-net .home-head{fill:var(--field);stroke:none}
 .home-p{fill:var(--foreground)}
-.home-label{font-family:var(--font-math);font-style:italic;font-size:20px;fill:var(--foreground)}
+.home-label{font-family:var(--font-display),Georgia,serif;font-style:italic;font-size:20px;fill:var(--foreground)}
 .home-label tspan.is-upright{font-style:normal}
 .home-dq,.home-r{fill:var(--charge)}
 

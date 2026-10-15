@@ -4,6 +4,7 @@ import {page} from 'vitest/browser';
 // The page's own type: the placer measures every name, and a name measured in a fallback face is another size.
 import 'katex/dist/katex.min.css';
 import '@fontsource-variable/hanken-grotesk';
+import '@fontsource-variable/source-serif-4';
 import '@fontsource-variable/geist-mono';
 import '../app/globals.css';
 import '../src/static-fonts.css';

@@ -4,6 +4,7 @@ import {afterEach, beforeAll, describe, expect, it, vi} from 'vitest';
 // stylesheet and the page's type scale lay out, and without them there is nothing true to measure.
 import 'katex/dist/katex.min.css';
 import '@fontsource-variable/hanken-grotesk';
+import '@fontsource-variable/source-serif-4';
 import '@fontsource-variable/geist-mono';
 import '../app/globals.css';
 import '../src/static-fonts.css';
@@ -101,7 +102,7 @@ describe('the card speaks in one face', () => {
     const say = view.container.querySelector<HTMLElement>('.db-step[data-step="cancel"] .db-say')!;
     // With its reason: the field's twin cancelled the same partner one lesson earlier.
     expect(say.textContent).toMatch(/^The same length of ring straight across is just as far away and its charge has the same sign, so it adds the same .*nothing cancels, since a number has no sideways part, and .* is unchanged from the step before\.$/);
-    expect(getComputedStyle(say).fontFamily).toMatch(/Geist/);
+    expect(getComputedStyle(say).fontFamily).toMatch(/Hanken Grotesk/);
     expect(getComputedStyle(say).fontFamily).not.toMatch(/KaTeX/);
     // As the note under it is, and the stage's caption.
     expect(getComputedStyle(say).fontFamily).toBe(getComputedStyle(view.container.querySelector('.ew-lede')!).fontFamily);

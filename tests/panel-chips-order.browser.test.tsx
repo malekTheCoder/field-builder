@@ -3,6 +3,7 @@ import {afterEach, beforeAll, describe, expect, it, vi} from 'vitest';
 // The page's own styles: a chip, a colour and a face are what these measure.
 import 'katex/dist/katex.min.css';
 import '@fontsource-variable/hanken-grotesk';
+import '@fontsource-variable/source-serif-4';
 import '@fontsource-variable/geist-mono';
 import '../app/globals.css';
 import '../src/static-fonts.css';
@@ -119,7 +120,8 @@ describe('the shelf answers for the route and the reader', () => {
   it('the summary takes the page’s focus ring, not the browser’s', () => {
     const summary = panel('bisector').container.querySelector<HTMLElement>('.ew-references > summary')!;
     summary.focus({focusVisible: true} as FocusOptions);
-    expect(getComputedStyle(summary).outlineWidth).toBe('3px');
+    // The page's ring, in the accent: two pixels set three off the control (app/globals.css).
+    expect(getComputedStyle(summary).outlineWidth).toBe('2px');
   });
 });
 

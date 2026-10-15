@@ -60,7 +60,7 @@
  border:1px solid var(--border);border-radius:var(--radius-card);corner-shape:squircle;background:var(--card);
  box-shadow:none}
 .ob-visual{border:1px solid var(--border);border-radius:var(--radius-control);corner-shape:squircle;margin-top:0;background:var(--diagram);box-shadow:none}
-.ob-math{font-family:var(--font-math);font-size:19px;font-style:italic;font-weight:600}
+.ob-math{font-family:var(--font-display),Georgia,serif;font-size:19px;font-style:italic;font-weight:600}
 .ob-plus{font-size:15px}
 .ob-label{font-family:var(--font-ui),system-ui,sans-serif;font-size:12px;letter-spacing:.005em;font-weight:600}
 .ob-mini-control{background:none;border-top:1px solid var(--surface-rule);padding:14px 18px;gap:14px}

@@ -5,6 +5,7 @@ import {page} from 'vitest/browser';
 // run's line of algebra under the figure on a narrow screen.
 import 'katex/dist/katex.min.css';
 import '@fontsource-variable/hanken-grotesk';
+import '@fontsource-variable/source-serif-4';
 import '@fontsource-variable/geist-mono';
 import '../app/globals.css';
 import '../src/static-fonts.css';

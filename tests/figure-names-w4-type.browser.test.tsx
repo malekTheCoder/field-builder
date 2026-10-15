@@ -4,6 +4,7 @@ import {page} from 'vitest/browser';
 // The page's own type and colours: what is measured here is what a reader sees.
 import 'katex/dist/katex.min.css';
 import '@fontsource-variable/hanken-grotesk';
+import '@fontsource-variable/source-serif-4';
 import '@fontsource-variable/geist-mono';
 import '../app/globals.css';
 import '../src/static-fonts.css';

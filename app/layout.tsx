@@ -1,12 +1,14 @@
 import type { Metadata } from 'next';
 import '@fontsource-variable/hanken-grotesk';
+import '@fontsource-variable/source-serif-4';
 import '@fontsource-variable/geist-mono';
 import 'katex/dist/katex.min.css';
 import './globals.css';
 import '../src/static-fonts.css';
 
 // One family outside the maths, Hanken Grotesk, self-hosted from the same package the static site loads
-// (src/main.tsx), so the two entries set the same face; the maths keeps KaTeX's serif.
+// (src/main.tsx), so the two entries set the same face; the maths keeps KaTeX's serif, and the symbols
+// drawn on the figure keep Source Serif.
 
 export const metadata: Metadata = {
   title: 'Field Builder · Electric fields and potential, derived',

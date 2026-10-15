@@ -4,6 +4,7 @@ import {cdp, page, userEvent} from 'vitest/browser';
 // Measured with the page's own type and sheet: what fits in a window depends on both.
 import 'katex/dist/katex.min.css';
 import '@fontsource-variable/hanken-grotesk';
+import '@fontsource-variable/source-serif-4';
 import '@fontsource-variable/geist-mono';
 import '../app/globals.css';
 import '../src/static-fonts.css';

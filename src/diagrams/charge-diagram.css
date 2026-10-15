@@ -108,7 +108,7 @@
 .charge-diagram{--cd-sym:17.5px;--cd-sym-p:20.5px}
 .cd-axes text,.cd-dimension text,.cd-triangle text,.cd-svg .cd-origin,.cd-svg .cd-end,.cd-svg .cd-vector-label,.cd-svg .cd-point-label,
 .cd-svg .cd-source-tag text,.cd-svg .cd-bound text,.cd-svg .cd-gauge text,.cd-svg .cd-zero{
- font-family:var(--font-math);font-style:italic;font-weight:600;font-size:calc(var(--cd-sym) * var(--cd-k,1))}
+ font-family:var(--font-display),Georgia,serif;font-style:italic;font-weight:600;font-size:calc(var(--cd-sym) * var(--cd-k,1))}
 .cd-svg .cd-point-label{font-size:calc(var(--cd-sym-p) * var(--cd-k,1));stroke-width:6px}
 /* Lining figures: the display serif's italic sets its figures old-style by default, and "y = 0" read as
    "y = o", the ring's limit as "θ = o, 2π", λ₀ as λₒ. */
@@ -125,7 +125,7 @@
 .cd-svg .cd-footer{font-size:calc(12px * var(--cd-k,1))}
 /* The charge element's formula, set as the figure sets its symbols: the display serif, a real subscript
    on λ₀. In the upright sans the Unicode ₀ fell back to a tiny ring and the ramp read "λ°". */
-.cd-svg .cd-footer-math{font-family:var(--font-math);font-style:italic;font-weight:600;font-size:calc(14px * var(--cd-k,1));fill:var(--cd-ink)}
+.cd-svg .cd-footer-math{font-family:var(--font-display),Georgia,serif;font-style:italic;font-weight:600;font-size:calc(14px * var(--cd-k,1));fill:var(--cd-ink)}
 /* On a phone the figure is drawn at half size: at the desktop's 12px the footer came out under nine. */
 .cd-narrow .cd-svg .cd-footer{font-size:calc(15px * var(--cd-k,1))}
 .cd-narrow .cd-svg .cd-footer-math{font-size:calc(15.5px * var(--cd-k,1))}
@@ -416,7 +416,7 @@
 
 /* The stage's name, inside the figure where the reader is looking. Re-keyed per stage so it
    fades in afresh each time the run moves on. */
-.cd-svg .cd-stage-label{font-family:var(--font-ui),Arial,sans-serif;font-size:calc(17px * var(--cd-k,1));font-weight:600;fill:var(--field);paint-order:stroke;stroke:var(--diagram,#fff);stroke-width:5px;animation:cd-stage-in .5s ease-out both}
+.cd-svg .cd-stage-label{font-family:var(--font-display),Georgia,serif;font-size:calc(17px * var(--cd-k,1));font-weight:600;fill:var(--field);paint-order:stroke;stroke:var(--diagram,#fff);stroke-width:5px;animation:cd-stage-in .5s ease-out both}
 @keyframes cd-stage-in{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
 
 /* The field is background to the argument while it runs. At full strength its lines drown the
@@ -636,14 +636,14 @@
 /* The chosen piece's own length, bracketed beside it on the side away from P: the charge's colour, since
    it is the piece's, and lit with the charge element when the board points there. */
 .cd-piece-length path{fill:none;stroke:color-mix(in oklab,var(--charge,#b8460f) 72%,var(--cd-ink));stroke-width:1.6}
-.cd-svg .cd-piece-length text{font-family:var(--font-math);font-style:italic;font-weight:600;font-size:calc(var(--cd-sym) * var(--cd-k,1));
+.cd-svg .cd-piece-length text{font-family:var(--font-display),Georgia,serif;font-style:italic;font-weight:600;font-size:calc(var(--cd-sym) * var(--cd-k,1));
  fill:var(--charge,#b8460f);paint-order:stroke;stroke:var(--diagram,#fff);stroke-width:4px;stroke-linejoin:round}
 .cd-focus-element .cd-piece-length path{stroke:var(--term-element);stroke-width:2.4}
 .cd-building .cd-piece-length{animation:cd-fade .5s ease-out .2s both}
 /* The piece's angle at P, in the piece's own colour, as its length bracket is. */
 .cd-svg .cd-piece-angle .cd-angle-arc{fill:none;stroke:color-mix(in oklab,var(--charge,#b8460f) 72%,var(--cd-ink));stroke-width:1.6}
 .cd-svg .cd-piece-angle .cd-angle-leader,.cd-svg .cd-piece-angle .cd-piece-ray{stroke:color-mix(in oklab,var(--charge,#b8460f) 60%,var(--diagram,#fff));stroke-width:1}
-.cd-svg .cd-piece-angle text{font-family:var(--font-math);font-style:italic;font-weight:600;font-size:calc(var(--cd-sym) * var(--cd-k,1));
+.cd-svg .cd-piece-angle text{font-family:var(--font-display),Georgia,serif;font-style:italic;font-weight:600;font-size:calc(var(--cd-sym) * var(--cd-k,1));
  fill:var(--charge,#b8460f);paint-order:stroke;stroke:var(--diagram,#fff);stroke-width:4px;stroke-linejoin:round}
 .cd-focus-element .cd-piece-angle .cd-angle-arc{stroke:var(--term-element);stroke-width:2.4}
 .cd-building .cd-piece-angle{animation:cd-fade .5s ease-out .2s both}
@@ -653,10 +653,10 @@
 /* The axis lesson's piece coordinate, x, from O to the piece on r_i's own line: a plain dimension in ink. */
 .cd-svg .cd-triangle .cd-x-bar{stroke:color-mix(in oklab,var(--cd-ink) 46%,transparent);stroke-dasharray:none;stroke-width:1.6}
 /* The scene's r_i, on the line from P to the piece: set as the schematic's letters are. */
-.cd-svg .cd-ri-line text{font-family:var(--font-math);font-style:italic;font-weight:600;font-size:calc(var(--cd-sym) * var(--cd-k,1));fill:var(--foreground);paint-order:stroke;stroke:var(--diagram,#fff);stroke-width:4px;stroke-linejoin:round}
+.cd-svg .cd-ri-line text{font-family:var(--font-display),Georgia,serif;font-style:italic;font-weight:600;font-size:calc(var(--cd-sym) * var(--cd-k,1));fill:var(--foreground);paint-order:stroke;stroke:var(--diagram,#fff);stroke-width:4px;stroke-linejoin:round}
 /* α and φ in the board's own face (see `setUpright`): the serif's italic α is an "a" with a tail, and its φ the
    stroked form beside the board's curly \varphi. */
-.cd-svg .cd-greek{font-family:var(--font-math);font-style:italic}
+.cd-svg .cd-greek{font-family:KaTeX_Math,var(--font-display),Georgia,serif;font-style:italic}
 /* A whole vector's E, bold and upright as the board's \mathbf E: see `SymbolText`. */
 .cd-svg .cd-bold{font-style:normal;font-weight:800}
 /* The angle again, on the arrows' side of P: lighter than the triangle's own, which it repeats. */

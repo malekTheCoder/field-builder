@@ -4,6 +4,7 @@ import {cdp} from 'vitest/browser';
 // The page's own styles: a size and a display are what these measure.
 import 'katex/dist/katex.min.css';
 import '@fontsource-variable/hanken-grotesk';
+import '@fontsource-variable/source-serif-4';
 import '../app/globals.css';
 import '../src/static-fonts.css';
 import {EquationWorkbench} from '../src/components/EquationWorkbench';

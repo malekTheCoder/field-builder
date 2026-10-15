@@ -4,6 +4,7 @@ import {afterEach, expect, it} from 'vitest';
 // its maths in the body size, and measured in a default font a line fits or not for no real reason.
 import 'katex/dist/katex.min.css';
 import '@fontsource-variable/hanken-grotesk';
+import '@fontsource-variable/source-serif-4';
 import '@fontsource-variable/geist-mono';
 import '../app/globals.css';
 import '../src/static-fonts.css';

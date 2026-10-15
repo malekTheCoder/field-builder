@@ -3,6 +3,7 @@ import {afterEach, beforeAll, describe, expect, it, vi} from 'vitest';
 // The page's own styles: a face, a chip and a padding are what these measure.
 import 'katex/dist/katex.min.css';
 import '@fontsource-variable/hanken-grotesk';
+import '@fontsource-variable/source-serif-4';
 import '@fontsource-variable/geist-mono';
 import '../app/globals.css';
 import '../src/static-fonts.css';
@@ -146,7 +147,7 @@ describe('the answer and the shelf speak as the board does', () => {
   it('"with" is the page’s word, the definition KaTeX’s; and the steps are one click from the answer', () => {
     const view = panel('disk');
     const k = view.container.querySelector<HTMLElement>('.ew-result-k')!;
-    expect(getComputedStyle(k).fontFamily).toMatch(/Geist/);
+    expect(getComputedStyle(k).fontFamily).toMatch(/Hanken Grotesk/);
     expect(k.querySelector('.katex')).not.toBeNull();
     expect(view.container.querySelector('.ew-worked-body')).toBeNull();
     fireEvent.click(view.getByRole('button', {name: 'Show every step'}));

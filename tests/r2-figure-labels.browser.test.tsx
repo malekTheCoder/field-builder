@@ -5,6 +5,7 @@ import {page} from 'vitest/browser';
 // label measured in a fallback face is a different size from the one a reader sees.
 import 'katex/dist/katex.min.css';
 import '@fontsource-variable/hanken-grotesk';
+import '@fontsource-variable/source-serif-4';
 import '@fontsource-variable/geist-mono';
 import '../app/globals.css';
 import '../src/static-fonts.css';

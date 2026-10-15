@@ -1,4 +1,5 @@
 /* One family outside the maths: Hanken Grotesk for everything a reader reads, headings included. The
-   maths keeps KaTeX's serif, and a symbol drawn on the figure is set in KaTeX's own italic (--font-math), so
-   the r on the drawing is the r in the formula. Geist Mono stays for the few typed values. */
-:root{--font-ui:"Hanken Grotesk Variable","Hanken Grotesk","Helvetica Neue",Arial,sans-serif;--font-geist-mono:"Geist Mono Variable",ui-monospace,monospace;--font-math:KaTeX_Math,"Times New Roman",serif}body{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}
+   maths keeps KaTeX's serif (--font-math sets a symbol in a sentence as KaTeX does). The figure keeps its
+   own serif for the symbols drawn on it (--font-display): the figure is not chrome, and its label placer is
+   measured against that face. Geist Mono stays for the few typed values. */
+:root{--font-ui:"Hanken Grotesk Variable","Hanken Grotesk","Helvetica Neue",Arial,sans-serif;--font-geist-mono:"Geist Mono Variable",ui-monospace,monospace;--font-math:KaTeX_Math,"Times New Roman",serif;--font-display:"Source Serif 4 Variable",Georgia,serif}body{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}

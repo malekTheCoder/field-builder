@@ -6,6 +6,7 @@ import {afterEach, describe, expect, it} from 'vitest';
 // have nothing to do with what ships.
 import 'katex/dist/katex.min.css';
 import '@fontsource-variable/hanken-grotesk';
+import '@fontsource-variable/source-serif-4';
 import '@fontsource-variable/geist-mono';
 import '../app/globals.css';
 import '../src/static-fonts.css';
