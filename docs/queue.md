@@ -31,13 +31,10 @@ owner says they are urgent.
    N large).
 7. **Deferred by the cloud round (w4).** Not done in the round; still to do.
    - New lessons: a non-uniform semicircle, a spherical shell, an annulus, an off-bisector rod.
-   - Lay the semi-infinite line along y, like its parent rod.
-   - Infinite line's angle θ → α.
    - The offline copy's figure at the One-piece frame.
    - Keep a dragged bracket when Watch it build starts.
    - Partial: the ring's What-cancels piece is 73 px (target 90).
    - Partial: Q<0 rods' ΔE_x on the r leg.
-   - Partial: Shrink's rule still says "thinner without end".
 8. **Quiz yourself** (owner, 2026-10-13): its own page, not inside the lessons. The student picks the
    shapes, questions come from a bank, and personalized feedback follows. Plan:
    [quiz-plan.md](quiz-plan.md), waiting for the owner's OK.
@@ -47,6 +44,11 @@ owner says they are urgent.
    Do it after the Codex round.
 
 ## Done
+- Line family consistency (2026-10-15), three commits: the infinite line's angle at P is α everywhere, as in
+  every other lesson (a66b6d2); the semi-infinite line stands up the y-axis from its end with P = (r, 0) level
+  with it, the endpoint rod grown long, E = (kλ/r)(x̂ − ŷ), checked against a brute-force point-charge sum for
+  both signs (f2576d1); Shrink them opens on N → ∞ in the board's rule, the captions and the lessons, as its run
+  line does (695ee83). The home page's "Make the pieces smaller without end" (src/home) is left as it is.
 - Redesign QA fixes (2026-10-15): the report's findings in .claude/loop/reports/redesign-qa.md, worst first. One type
   scale in the chrome (14 for labels, 16 for reading, 600 for headings and labels only), one link (ink, a teal
   hairline under it, teal on hover), one dialog (600 wide, one padding, a 24 title, the Close in its own row), one
