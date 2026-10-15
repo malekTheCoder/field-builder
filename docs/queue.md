@@ -6,36 +6,25 @@ then to **Done**, with the commit. Newest requests are added at the bottom of **
 owner says they are urgent.
 
 ## In progress
-- **Quiz: all fifteen shapes have questions** (8b172fb, b04aa49). Two physics reviewers are checking every
-  question now (rods and lines; rings, disks, arcs and the sheet).
-- **Redesign** ([redesign-plan.md](redesign-plan.md)): one agent in a worktree, in steps: fonts and tokens,
-  chrome, a visual pass, the whole suite.
-- Agents don't watch CI; Claude checks it every so often. The projector check got CI time (94ca8e3).
+Nothing. (2026-10-15: everything below Done is on main and CI is green on 5465a3a.)
 
 ## Next
-- **Lesson-to-lesson links feel broken** (e.g. "Take this rod to infinity" on the finite line). Clicking
-  swaps the page to the related lesson (Explorer.tsx `related`, `exp-related`) with no visible
-  sign: it jumps to the top, and the lesson list's highlight may be scrolled out of sight. Make it a
-  clear "Next: <lesson> →" card with its glyph at the end of the lesson. On click, the new lesson
-  visibly takes over: the lesson list scrolls to and highlights it, a short line says where you
-  came from and why ("From the finite rod: let it run to infinity"), and there is a way back. This
-  applies to every `link` in src/problems/*.ts (about a dozen). Start it after the Codex round,
-  because both touch Explorer.tsx.
-
-1. **Gauss's law, "coming soon" on the site.** A Gauss's law section shown as coming soon on the
-   home page, in the lesson list and in the library. Do this after the home page lands. The plan is
-   in [gauss-law-plan.md](gauss-law-plan.md); the section itself is not started.
-7. **Deferred by the cloud round (w4).** Not done in the round; still to do.
-   - New lessons: a non-uniform semicircle, a spherical shell, an annulus, an off-bisector rod.
-8. **Quiz yourself** (owner, 2026-10-13): its own page, not inside the lessons. The student picks the
-   shapes, questions come from a bank, and personalized feedback follows. Plan:
-   [quiz-plan.md](quiz-plan.md), waiting for the owner's OK.
-9. **Design language redo** (owner, 2026-10-14): carry over the hiketalkstay rebuild's look (one grotesque,
-   pure greys, an ink button, hairlines and no shadows, a rare accent) while the figure keeps its physics
-   colours. Plan: [redesign-plan.md](redesign-plan.md), approved (Hanken Grotesk, teal accent, ink logo).
-   Do it after the Codex round.
+1. **New lessons**, deferred by the cloud round, for the owner to choose from: a non-uniform semicircle, a
+   spherical shell, an annulus, a rod with P off its bisector.
+2. **Gauss's law lessons**: plan in [gauss-law-plan.md](gauss-law-plan.md); shown as coming soon on the
+   site. Not started until the owner says so.
+3. A critique round on the redesigned site, when the owner wants one.
 
 ## Done
+- 2026-10-15 batch (all on main, CI green on 5465a3a):
+  - Quiz yourself: all fifteen shapes (8b172fb, b04aa49), physics-reviewed (518c953, 95e7b3e).
+  - Redesign after hiketalkstay (232457a..9de4823) and its QA fixes (8193c49, 7116ede, 8820410).
+  - The Next card and the came-from line (4420bba); Gauss's law coming soon (9841729).
+  - 3D: ring pairs, rod labels in space, context loss, view=2d|3d links (4ee46c8..65b9ef2, 7662658).
+  - The infinite line's α (a66b6d2), the semi-infinite line along y (f2576d1), Shrink's wording (695ee83,
+    a14b334), and their physics review (10dc727).
+  - 2D figure: negative rods' legs, the ring's What-cancels piece, a dragged bracket kept, the handout at
+    One piece, semi's ∞ on phones (4b644fb..3d3b9ff); wide arc and narrow ring not reproduced (5465a3a).
 - 2D-figure leftovers (2026-10-15; was Next 4, 5 and four of Next 7's bullets), five commits. A negative rod's
   ΔE_x lay on the r leg and the leg was painted over it: the leg now stops at the arrow's point, ΔE_x is named
   beside its own shaft and r beside the bare leg, y kept on its own leg (4b644fb). The ring's What-cancels piece
