@@ -1,6 +1,7 @@
 'use client';
 import {memo,useCallback,useId,useInsertionEffect,useMemo,useState,useEffect,useRef,type CSSProperties,type ReactNode} from 'react';
 import {flushSync} from 'react-dom';
+import {createRoot} from 'react-dom/client';
 import {useReducedMotion} from 'motion/react';
 import {ArrowLeft,ArrowRight,BookOpen,ChevronLeft,CircleHelp,Download,GitBranch,GraduationCap,Link as LinkIcon,Play,Printer,RotateCcw,Sun,Moon,PanelLeft,MoreHorizontal} from 'lucide-react';
 import {DropdownMenu,DropdownMenuTrigger,DropdownMenuContent,DropdownMenuItem} from '@/components/ui/dropdown-menu';
@@ -583,7 +584,8 @@ export default function Explorer({welcome}:{welcome?:boolean}={}){
   * line takes the one inside it. So does the infinite line from four pieces up, where that one's mirror is
   * another piece; at three its only bounded piece is the middle one, its own mirror, and What cancels would
   * have nothing to show -- there it keeps the outer angle, which has a partner. */
- function openRun(){if(buildShown)return;let i=geom==='ring'?Math.floor(count*(1-.5/(2*Math.PI)))%count:geom==='bisector'?count-1:geom==='sheet'?sheetPiece(count,params.distance):count-1-Math.floor((count-1)/4);
+ /** The piece the run talks about: see above. The offline copy draws it too, as One piece shows it. */
+ function runPieceAt(){let i=geom==='ring'?Math.floor(count*(1-.5/(2*Math.PI)))%count:geom==='bisector'?count-1:geom==='sheet'?sheetPiece(count,params.distance):count-1-Math.floor((count-1)/4);
   if(geom==='semi'||geom==='infinite'&&count>3)i=Math.min(i,count-2);
   if(!wholeBracket(bounds)){
    const at=(k:number)=>100*(k+.5)/count,inside=(t:number)=>t>=bounds[0]-1e-6&&t<=bounds[1]+1e-6,mirror=(k:number)=>geom==='ring'?(at(k)+50)%100:100-at(k);
@@ -592,7 +594,8 @@ export default function Explorer({welcome}:{welcome?:boolean}={}){
    const rank=(k:number)=>(Math.abs(mirror(k)-at(k))<1e-6?500:inside(mirror(k))?0:1e3)+Math.abs(k-i);
    if(!inside(at(i)))i=open.length?open.reduce((a,b)=>rank(b)<rank(a)?b:a):Math.min(count-1,Math.floor((bounds[0]+bounds[1])/200*count));
   }
-  setRunPiece((i+.5)/count);setBuildShown(true)}
+  return i}
+ function openRun(){if(buildShown)return;setRunPiece((runPieceAt()+.5)/count);setBuildShown(true)}
  function playBuild(from:number,until:number){
   roomBack(from);
   build.current?.stop();build.current=null;setHighlight('');openRun();
@@ -1046,13 +1049,33 @@ export default function Explorer({welcome}:{welcome?:boolean}={}){
      the disk, the sheet and the disk's potential are cut into rings -- the stage is "One ring", the board says
      "the N rings" -- and the slider under them alone said Pieces. */}<Range describe="pieces" onDescribe={setHighlight} label={geom==='disk'||geom==='sheet'?'Rings N':'Pieces N'} value={slices} min={3} max={30} onChange={recut}/><button onClick={resetGeometry} className="text-button exp-reset" aria-label="Reset geometry" title="Reset geometry"><RotateCcw size={13}/></button></div>,[geom,isInfinite,isRound,distance,size,charge,phi,slices,updateParams,recut,resetGeometry]);
  /** The offline copy, made in the light theme whatever the screen is in -- it is for paper, as the
-  * print sheet is -- and put back the moment the figure has been read. */
- function saveCopy(){
-  const root=document.documentElement,wasDark=root.classList.contains('dark');
+  * print sheet is -- and put back the moment the figure has been read.
+  *
+  * ITS FIGURE IS ONE PIECE'S. The copy used to carry the figure as it stood, which at rest is the lesson's resting
+  * frame: the field, P and the cut, with no piece singled out. The paper teaches the method -- one piece, its
+  * distance, its arrow, then the integral -- and its figure showed none of the three the first line is written in.
+  * It is drawn as One piece draws it: the run's piece, its rᵢ and its ΔE, with the reader's own values and view.
+  * Drawn apart from the page, off screen and still, so the live figure never changes under the reader. */
+ async function saveCopy(){
+  const live=document.querySelector<HTMLElement>('.explorer-app .cd-stage');
+  const host=document.createElement('div');host.className='explorer-app symbolic-view fb-copy-figure';host.setAttribute('aria-hidden','true');
+  host.style.cssText=`position:fixed;left:-30000px;top:0;width:${Math.round(live?.getBoundingClientRect().width||720)}px;pointer-events:none`;
+  const card=document.createElement('div');card.className='exp-diagram-card';host.appendChild(card);document.body.appendChild(host);
+  // Every animation and transition at its end: a copy is the finished frame, never a frame on its way in.
+  const still=document.createElement('style');still.textContent='.fb-copy-figure *{animation:none!important;transition:none!important}';document.head.appendChild(still);
+  const root=createRoot(card),piece=runPieceAt(),one=stages[1];
+  const frame=()=>new Promise<void>(r=>requestAnimationFrame(()=>r()));
   let figure='';
-  if(wasDark)root.classList.remove('dark');
-  try{const stage=document.querySelector('.explorer-app .cd-stage');figure=stage?figureCopy(stage):''}
-  finally{if(wasDark)root.classList.add('dark')}
+  try{
+   flushSync(()=>root.render(<ChargeDiagram compact problem={p} params={{...params,continuum:0}} setParams={()=>{}} count={partitionCount(params.slices,0)} continuum={0} selected={piece} onSelect={()=>{}} progress={1} components={false} pair={false} mode="project" boundRange={bounds} build={{key:one.key,name:one.name,index:1,count:stages.length,paused:true,piece}} view={inSpace===null?undefined:inSpace?'3d':'2d'}/>));
+   // Until its names are placed and, in space, its scene is up: a few frames, never more than a second.
+   for(let k=0;k<60;k++){await frame();const d=card.querySelector<HTMLElement>('.charge-diagram');if(k>=3&&d?.dataset.moving!=='true'&&(!card.querySelector('.cd-field-stage')||card.querySelector('.cd-field-stage canvas')))break}
+   await frame();
+   const html=document.documentElement,wasDark=html.classList.contains('dark');
+   if(wasDark)html.classList.remove('dark');
+   try{const stage=card.querySelector('.cd-stage');figure=stage?figureCopy(stage):''}
+   finally{if(wasDark)html.classList.add('dark')}
+  }finally{root.unmount();host.remove();still.remove()}
   // The paper names the live lesson it came from, values and all -- the same address "Copy a link" writes --
   // so a student holding it can open the setup it describes rather than the lesson's defaults.
   downloadArtifact(`field-builder-${id}.html`,artifactHtml({...lessonArtifact(p,derivationProblem,location.origin+location.pathname+address),svg:figure}));
