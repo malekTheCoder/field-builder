@@ -5,10 +5,12 @@ import '../app/globals.css';
 import Site, {newVisit} from '../src/home/Site';
 import {getProblem} from '../src/problems/definitions';
 import {GAUSS} from '../src/explorer/lessons';
+import {GAUSS_READY} from '../src/problems/readiness';
 
-/* GAUSS'S LAW, COMING SOON. The next part of the subject is shown where the lessons are offered -- the home
- * page, the lesson list and the library -- with its planned lessons named and marked, and none of them is a
- * link or a stop for Tab: they are words, and the lessons around them keep working as before. */
+/* GAUSS'S LAW, PART BUILT. The section is shown where the lessons are offered -- the home page, the lesson list and
+ * the library -- with all its planned lessons named. The ready ones (GAUSS_READY) are links to `?g=<id>`; the rest
+ * are marked "Coming soon", and none of those is a link or a stop for Tab: they are words, and the lessons around
+ * them keep working as before. */
 const STORE = 'field-builder:explorer:v1';
 const seen = (extra: object = {}) => localStorage.setItem(STORE, JSON.stringify({id: 'bisector', hideTour: true, cued: true, dark: false, sidebarOpen: true, params: {}, ...extra}));
 beforeEach(() => newVisit());
@@ -19,38 +21,45 @@ afterEach(async () => {
  await page.viewport(1280, 800);
 });
 const FOCUSABLE = 'a[href],button,input,select,textarea,[tabindex]';
-function expectInert(section: Element) {
- expect(section.querySelectorAll(FOCUSABLE).length, 'a planned lesson can take the focus').toBe(0);
- for (const row of section.querySelectorAll('[aria-disabled=true]')) expect(row.closest('a,button')).toBeNull();
+const READY = GAUSS.lessons.filter(l => GAUSS_READY.has(l.key)), SOON = GAUSS.lessons.filter(l => !GAUSS_READY.has(l.key));
+function expectInert(el: Element) {
+ expect(el.matches(FOCUSABLE) || el.querySelectorAll(FOCUSABLE).length > 0, 'a planned lesson can take the focus').toBe(false);
+ expect(el.closest('a,button')).toBeNull();
 }
 
 describe('Gauss\'s law on the home page', () => {
- it('is a family of its own, marked coming soon, its lessons named and not links', async () => {
+ it('is a family of its own, its ready lessons links and the rest marked coming soon', async () => {
   seen();
   const view = render(<Site />);
   await view.findByRole('heading', {level: 1, name: 'One law, every geometry.'});
   const heading = view.getByRole('heading', {level: 3, name: /^Gauss’s law/});
-  expect(heading.textContent).toContain('Coming soon');
   const family = heading.closest('.home-family')!;
-  const cards = family.querySelectorAll('.home-card');
+  const cards = [...family.querySelectorAll('.home-card')];
   expect(cards.length).toBe(GAUSS.lessons.length);
-  for (const [i, card] of [...cards].entries()) {
-   expect(card.getAttribute('aria-disabled')).toBe('true');
-   expect(card.textContent).toContain(GAUSS.lessons[i].name);
-   expect(card.textContent).toContain('Coming soon');
+  for (const l of READY) {
+   const link = view.getByRole('link', {name: new RegExp(l.name)});
+   expect(link.getAttribute('href')).toBe(`?g=${l.key}`);
+   expect(family.contains(link)).toBe(true);
   }
-  expectInert(family);
-  // None of its names is offered as a link anywhere on the page.
-  for (const l of GAUSS.lessons) expect(view.queryByRole('link', {name: new RegExp(l.name)})).toBeNull();
+  const soon = cards.filter(c => c.getAttribute('aria-disabled') === 'true');
+  expect(soon.length).toBe(SOON.length);
+  for (const [i, card] of soon.entries()) {
+   expect(card.textContent).toContain(SOON[i].name.replace('Q_enc', 'Qenc'));
+   expect(card.textContent).toContain('Coming soon');
+   expectInert(card);
+  }
   // After the families that are open, and the page still prints no numerals.
   const families = [...view.container.querySelectorAll('.home-family')];
   expect(families.at(-1)).toBe(family);
   expect(view.container.textContent).not.toMatch(/[0-9]/);
- }, 15000);
+  // A ready lesson opens.
+  fireEvent.click(view.getByRole('link', {name: new RegExp(READY[0].name)}));
+  await waitFor(() => expect(document.querySelector('h1')?.textContent).toBe(READY[0].name));
+ }, 20000);
 });
 
 describe('Gauss\'s law in the lesson', () => {
- it('is a group in the lesson list that Tab passes over', async () => {
+ it('is a group in the lesson list: the ready lessons are links, and Tab passes over the rest', async () => {
   seen();
   window.history.replaceState(null, '', '/?p=bisector');
   const view = render(<Site />);
@@ -58,24 +67,25 @@ describe('Gauss\'s law in the lesson', () => {
   await waitFor(() => expect(document.querySelector('h1')?.textContent).toBe(getProblem('bisector').title));
   const list = view.getByRole('navigation', {name: 'Lessons'});
   const heading = within(list).getByRole('heading', {level: 2, name: /^Gauss’s law/});
-  expect(heading.textContent).toContain('Coming soon');
   const group = heading.closest('.exp-family')!;
-  expect(group.querySelectorAll('[aria-disabled=true]').length).toBe(GAUSS.lessons.length);
-  expectInert(group);
-  // The lessons before it are still links, and Tab goes from the last of them out of the list, past Gauss.
-  const links = within(list).getAllByRole('link');
+  expect(group.textContent).toContain('Coming soon');
+  const rows = group.querySelectorAll('[aria-disabled=true]');
+  expect(rows.length).toBe(SOON.length);
+  for (const row of rows) expectInert(row);
+  const links = within(group as HTMLElement).getAllByRole('link');
+  expect(links.map(a => a.getAttribute('href'))).toEqual(READY.map(l => `?g=${l.key}`));
+  // Tab goes from the last ready Gauss lesson out of the list, past the planned ones.
   const last = links.at(-1)!;
-  expect(last.textContent).toBe(getProblem('v-rod-axial').short);
   last.focus();
   await userEvent.tab();
-  expect(group.contains(document.activeElement), 'Tab stopped on a planned lesson').toBe(false);
+  expect([...rows].some(r => r.contains(document.activeElement)), 'Tab stopped on a planned lesson').toBe(false);
   expect(document.activeElement).not.toBe(last);
   // And a lesson in the list still opens.
   fireEvent.click(within(list).getByRole('link', {name: getProblem('ring').short}));
   await waitFor(() => expect(document.querySelector('h1')?.textContent).toBe(getProblem('ring').title));
  }, 20000);
 
- it('is a block in the library, its cards not links', async () => {
+ it('is a block in the library, its ready cards links and the rest not', async () => {
   seen();
   window.history.replaceState(null, '', '/?p=bisector');
   const view = render(<Site />);
@@ -84,7 +94,9 @@ describe('Gauss\'s law in the lesson', () => {
   const dialog = await view.findByRole('dialog');
   const heading = within(dialog).getByRole('heading', {level: 3, name: /^Gauss’s law/});
   const block = heading.closest('.exp-library-family')!;
-  expect(block.querySelectorAll('.exp-library-card[aria-disabled=true]').length).toBe(GAUSS.lessons.length);
-  expectInert(block);
+  const planned = block.querySelectorAll('.exp-library-card[aria-disabled=true]');
+  expect(planned.length).toBe(SOON.length);
+  for (const card of planned) expectInert(card);
+  expect(within(block as HTMLElement).getAllByRole('link').map(a => a.getAttribute('href'))).toEqual(READY.map(l => `?g=${l.key}`));
  }, 20000);
 });
