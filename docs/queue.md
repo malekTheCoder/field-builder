@@ -6,13 +6,17 @@ then to **Done**, with the commit. Newest requests are added at the bottom of **
 owner says they are urgent.
 
 ## In progress
-Usage stop raised to 68% weekly (owner, 2026-10-16, from 58%).
-- **Gauss quiz, part 1:** the quiz engine learns Gauss lessons (?g= review links, a Gauss family on the
-  set-up screen) and banks for symmetry, flux, inside, qenc, spheres. Then part 2 (the other six), then
-  one physics review of all the Gauss questions.
-- **Visual QA of the eleven Gauss pages** (Sonnet, read-only), then a fixer for its findings.
+Nothing. Stopped at 62% weekly (stop at 70%) on 2026-10-16; CI green on 42fd122.
 
 ## Next
+- **Owner's calls:** (1) Symmetry first runs all five stages, Solve included, before flux is taught: stop it
+  at The surface? (2) Knight is cited as ch. 27 (§27.1–27.6, the study guide's edition): confirm the edition.
+  (3) The negative ring's stacked ΔE_z through the empty middle in 3D (from wave 6).
+- **Gauss leftovers** (gauss-qa.md and the round's reports): the unlit thin shell still a full translucent
+  sphere; the case picker's alignment and highlight; the Gauss caption footer and Keyboard help; the holes
+  instrument's naming; tap targets under 44 px; spheres still small in their card (the slider's maximum
+  radius limits the fit: smaller maximums or a zoom); 3D density shading for graded balls; a "Choose the
+  surface" instrument; Gauss pages opening at a case and stage from the address (&case=, &stage=).
 0. **Owner's call (from wave 6):** a negative ring seen in space draws its stacked ΔE_z running through the
    empty middle O. The fixer left it: an earlier deliberate choice, and capping it would make a negative
    ring's arrows half a positive's. Leftovers from wave 6 are in .claude/loop/reports/LOG.md.
@@ -20,6 +24,11 @@ Usage stop raised to 68% weekly (owner, 2026-10-16, from 58%).
    spherical shell, an annulus, a rod with P off its bisector.
 
 ## Done
+- 2026-10-16, Gauss's quiz and polish: quiz engine for Gauss lessons and all eleven banks (646f9ab, 685dcb6,
+  1ee5f32), physics review (08533f5), perpendicular wording (93517a4); Gauss critique round (84 findings;
+  d844f24 content, 41c4384 figure: foreshortened arrows, see-through shells, signs, subscripts); case
+  pickers that say what each case is (5198d07); the board follows the run, the figure fits, labels off the
+  arrows, twelve-pixel floor (17b7188, 9679001, 42fd122).
 - Critique round wave 6 on the redesigned site, published 41b8ef2 (+ CI fixes 73c17dc, 87b8d5d).
 - Gauss's law, all eleven lessons, on main (2026-10-16): foundation 0ff7e76; Symmetry first and Flux
   (777a864, 37dafe4); Why only the charge inside, Q_enc from a density, Spheres (255376e, 0e2c827, d5d0e9e);
