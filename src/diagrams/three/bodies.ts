@@ -81,8 +81,8 @@ export const farAlpha=(depth:number,fade:FarFade)=>{const low=fade.low??SHEET_FA
  * sheet's chosen ring and the summed shading under P and the foot of the sum, the ring's far arc through P
  * and the chain, the disk's far rim through P's halo. P read as lying on the charge, or in it -- the one
  * thing each of those lessons says it is not. A translucent surface keeps `low` of itself within `inner`
- * and all of it from `outer`, smoothly between; an opaque wire, which cannot be faded, is cut clean within
- * `hard`. Wide enough to clear P's halo and the root of the net arrow with paper round them; narrow enough
+ * and all of it from `outer`, smoothly between; an opaque wire, which cannot be faded, is mixed toward the
+ * paper within `hard`. Wide enough to clear P's halo and the root of the net arrow with paper round them; narrow enough
  * that the charge is plainly still there, going on behind. The scene's shader draws exactly this curve
  * (see FieldStage's `patch`); `behindGap` is it, for the tests.
  *
@@ -98,18 +98,23 @@ export const farAlpha=(depth:number,fade:FarFade)=>{const low=fade.low??SHEET_FA
  * disk, the washer drawn as a U. Now the gap comes in over `depth` metres behind that depth (see
  * `gapDepth`), the outer radius' worth, so it has no edge in any direction. */
 export const BEHIND_GAP={inner:22,outer:38,low:.08,hard:22} as const;
-/** HOW MUCH OF ITS SIZE THE GAP ROUND P KEEPS ON A DISK SEEN FROM ABOVE, as a factor on its soft radii: all of
- * it up to a pitch of .85, falling smoothly to two fifths by 1.25 and beyond, about the size of P's own halo. A
- * wire keeps its gap whole, cut clean, and so does the sheet, whose rings' far rims run on far behind P from above
- * as from the side: there the gap is still the notch that keeps P off a rim passing behind it.
+/** HOW MUCH OF ITS SIZE THE GAP ROUND P KEEPS ON A SURFACE SEEN FROM ABOVE, as a factor on its soft radii: all of
+ * it up to a pitch of .85, falling smoothly to two fifths by 1.25 and beyond, about the size of P's own halo. A wire
+ * keeps its gap whole, cut clean.
  *
  * The gap is the drafting gap a far line is given where it passes behind a near point, sized for a view from the
  * side, where it is a notch in a far rim. Tipped up over the disk, P stands over the face and the chosen washer, and
  * the same thirty-eight units round it whitened a wide patch of both: the washer's far arc ran into a white glare,
  * which read as a hole in the charge, or as a highlight that was not there. From above, the charge under P is not
- * a line passing behind it but the ground it stands over, and only P's halo needs clearing. */
+ * a line passing behind it but the ground it stands over, and only P's halo needs clearing.
+ *
+ * THE SHEET TOO. It was left whole there, on the grounds that its rings' far rims run on behind P from above as from
+ * the side -- but from above, P stands over the sheet's face and its chosen ring exactly as it does over the disk's,
+ * and the full gap bleached a pale disc fifty-odd units across into the orange washer and the summed wash: P and its
+ * leader stood in a hole in a sheet whose lesson is that its charge goes on everywhere. From the side, below a pitch
+ * of .85, the notch is whole, as before. */
 export function gapShrink(pitch:number,kind:BodyKind):number{
- if(kind!=='disk')return 1;
+ if(kind==='wire')return 1;
  const t=Math.min(1,Math.max(0,(Math.abs(pitch)-.85)/.4));
  return 1-.6*t*t*(3-2*t);
 }
@@ -144,12 +149,13 @@ export const gapStart=(wr:number)=>2*4.2*wr;
 export const gapRamp=(px:number)=>BEHIND_GAP.outer*px;
 /** What is left of a point of the charge `distance` figure units from P on the screen, with `behind` the
  * share of the gap its depth gives it (see `gapDepth`; true is all of it, false none). An opaque wire is
- * cut once it is more than half behind; a translucent part keeps `low` of itself at the middle, or `keep`
+ * dimmed to PIECE_FAR_LOW within the hard radius once it is more than half behind -- it was cut, and a ring
+ * tipped up read as an open C; a translucent part keeps `low` of itself at the middle, or `keep`
  * where it is the chosen piece (PIECE_FAR_LOW). */
 export function behindGap(distance:number,behind:boolean|number,wire=false,gap:{inner:number;outer:number;low:number;hard:number}=BEHIND_GAP,keep:number|null=null):number{
  const k=behind===true?1:behind===false?0:Math.min(1,Math.max(0,behind));
  if(!(k>0))return 1;
- if(wire&&keep===null)return k>.5&&distance<gap.hard?0:1;
+ if(wire&&keep===null)return k>.5&&distance<gap.hard?PIECE_FAR_LOW:1;
  const t=Math.min(1,Math.max(0,(distance-gap.inner)/(gap.outer-gap.inner))),low=keep??gap.low;
  return 1+(low+(1-low)*t*t*(3-2*t)-1)*k;
 }
@@ -213,7 +219,21 @@ export const surfaceOpacity=(kind:BodyKind)=>kind==='sheet'?.22:.42;
  * lost its charge colour and looked like a shadow under the orange ring. A brown under-glow was tried before and
  * made it a khaki slab. So in the dark it is drawn unlit, in the charge colour itself, a little stronger: rgb about
  * 104, 81, 70 over the ground, the warm tint the disk's face has there, not grey. In the light it is as it was. */
-export const sheetInk=(dark:boolean)=>dark?{opacity:.36,unlit:true}:{opacity:surfaceOpacity('sheet'),unlit:false};
+//
+// AND IN A DEEPER ORANGE, A LITTLE LESS STRONGLY. Laid in the charge colour itself the dark sheet was still a grey-brown
+// slab: a pale orange over a blue-grey ground at a third comes out rgb 101, 80, 68, a third as saturated as the charge.
+// Thinner ink of the same orange would only be greyer. A deeper orange at .3 comes out rgb 93, 61, 46: as dark, half
+// again as saturated, and plainly the charge's colour beside the disk's face and the chosen ring.
+export const SHEET_DARK_INK=0xff6a1a;
+export const sheetInk=(dark:boolean):{opacity:number;unlit:boolean;colour?:number}=>dark?{opacity:.3,unlit:true,colour:SHEET_DARK_INK}:{opacity:surfaceOpacity('sheet'),unlit:false};
+/** HOW MUCH OF THE SHEET IS DRAWN TO EITHER SIDE, at a point `across` metres to the side of O on the screen and `depth`
+ * metres along the camera's far direction: an ellipse about O, out to `wide` metres to either side and two and a half
+ * times that ahead and behind, so it ends inside the window on a curve. The plane went on past the window's sides and
+ * was stopped by the window's own fade, which is a rectangle: in the dark it was a brown slab with straight vertical
+ * sides at the window's edges. Ahead of P it is the far fade that dims it (see `sheetFarFade`); this only shapes it. */
+export function sheetSides(across:number,depth:number,wide:number):number{
+ return fadeOut(Math.hypot(across/Math.max(1e-6,wide),depth/Math.max(1e-6,2.5*wide)),.6,1);
+}
 /** The points a wire's body runs through: the sample positions, thinned so the tube stays
  * cheap when the partition is fine. The ends are always kept so the wire is never shortened. */
 export function wirePath(samples:readonly ChargeSample[],limit=160):{x:number;y:number;z:number}[]{
@@ -254,6 +274,26 @@ export function arrowHead(length:number,thick:number,px:number,screen:number=px)
  const floor=Math.max(l,Math.min(6*screen,length*.5));
  return {length:floor,half:Math.max(Math.min(thick*2.2,floor*.32),Math.min(2.5*screen,floor/3))};
 }
+/** HOW LONG AN ARROW FROM P IS DRAWN SO ITS HEAD STAYS IN THE WINDOW, in metres: `length`, or less where that would
+ * carry the tip past `inset` units inside `rect` (the figure's viewBox units). `from` is P on the screen and `along`
+ * how far the tip moves on the screen per metre of the arrow; `least` is the shortest it is cut to, a head and a little
+ * shaft. A P outside the window is left as it is: there is nothing inside to keep the head in.
+ *
+ * At rest the field's arrow has a length fixed by the lesson's own scale, chosen in the view the figure opens in. Turn
+ * the view up over the bisector and P rises to the top of the picture, and the arrow ran on out of it upward: the
+ * window's clip cut its head off, and the sum's name stood beside a headless shaft -- the one thing the arrow is there
+ * to say, which way E points, was gone. Cut short, the arrow still says it, and its head is where its name is. */
+export function fitInWindow(from:{x:number;y:number},along:{x:number;y:number},length:number,rect:{x:number;y:number;width:number;height:number},inset:number,least:number):number{
+ const x0=rect.x+inset,x1=rect.x+rect.width-inset,y0=rect.y+inset,y1=rect.y+rect.height-inset;
+ if(!(length>0)||from.x<x0||from.x>x1||from.y<y0||from.y>y1)return length;
+ let t=Infinity;
+ if(along.x>1e-12)t=Math.min(t,(x1-from.x)/along.x);else if(along.x<-1e-12)t=Math.min(t,(x0-from.x)/along.x);
+ if(along.y>1e-12)t=Math.min(t,(y1-from.y)/along.y);else if(along.y<-1e-12)t=Math.min(t,(y0-from.y)/along.y);
+ return Math.min(length,Math.max(Math.min(least,length),t));
+}
+/** How far in from the window's edge the head of an arrow from P is kept, in units of the figure: clear of the window's
+ * rounded corners and its feathered edge. See `fitInWindow`. */
+export const ARROW_INSET=12;
 /** How strongly each point of a field line is drawn: full near the charge, fading out by a little
  * past the field's reach -- measured from the CHARGE, not from O. From O, the field of an infinite
  * line was drawn weaker along the line, which its symmetry forbids, and the axial rod's field was

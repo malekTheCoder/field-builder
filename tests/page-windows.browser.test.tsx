@@ -1,5 +1,5 @@
 import {cleanup, fireEvent, render, waitFor, within} from '@testing-library/react';
-import {afterEach, describe, expect, it} from 'vitest';
+import {afterEach, describe, expect, it, onTestFinished} from 'vitest';
 import {cdp, page, userEvent} from 'vitest/browser';
 // Measured with the page's own type and sheet: what fits in a window depends on both.
 import 'katex/dist/katex.min.css';
@@ -58,8 +58,22 @@ describe('a phone held sideways', () => {
    expect(inkBottom(line), `${name}: the sentence runs under the window`).toBeLessThanOrEqual(innerHeight + 1);
   });
  }, 40000);
+ /** A phone's touch screen, as its sheet sees one: the rules for a phone on its side are for a touch screen only (a laptop
+  * zoomed to 200% is the same size and keeps the stage's sentence, page-w6-reach), so they are applied here without
+  * that condition rather than by emulating touch, which Chromium keeps after it is switched off. */
+ const asIfTouch = () => {
+  const rules = [...document.styleSheets].flatMap(sheet => { try { return [...sheet.cssRules]; } catch { return []; } })
+   .filter((r): r is CSSMediaRule => r instanceof CSSMediaRule && /and \(any-pointer:\s*coarse\)/.test(r.conditionText))
+   .map(r => `@media ${r.conditionText.replace(/\s*and \(any-pointer:\s*coarse\)/, '')}{${[...r.cssRules].map(x => x.cssText).join('\n')}}`);
+  expect(rules.length, 'no rules for a phone on its side').toBeGreaterThan(0);
+  const style = document.createElement('style');
+  style.textContent = rules.join('\n');
+  document.head.appendChild(style);
+  onTestFinished(() => { style.remove(); });
+ };
  for (const [w, h] of [[640, 360], [667, 375]] as const) it(`at ${w} by ${h}, the run's algebra is on screen at every stage`, async () => {
   const view = await openLesson('bisector', w, h);
+  asIfTouch();
   await eachStage(view, name => {
    const step = view.container.querySelector('.bp-math-step.is-here')!;
    const shown = [...step.children].filter(c => c.checkVisibility());

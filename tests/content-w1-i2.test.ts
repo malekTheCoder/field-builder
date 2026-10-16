@@ -151,7 +151,7 @@ describe('a grown object says what is held fixed',()=>{
  it('the endpoint’s line grows at fixed λ, and points to the semi-infinite lesson, laid the same way',()=>{
   const l=limitOf('endpoint','infinite');
   expect(l.formula).toContain(String.raw`(\lambda\text{ fixed})`);
-  expect(plain(l.explanation)).toMatch(/Semi-infinite line lesson’s field: its line runs up the y-axis from its end, with P level with the end, as here/);
+  expect(plain(l.explanation)).toMatch(/the field of the lesson “Field level with the end of a semi-infinite line”: its line runs up the y-axis from its end, with P level with the end, as here/);
   expect(plain(getProblem('semi').setup)).toContain('This is the rod of the lesson “Field level with the end of a rod”, grown without end.');
   // The sidebar names the lesson it points at.
   expect(getProblem('endpoint').short).toBe('Line · level with an end');

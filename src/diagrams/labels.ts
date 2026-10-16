@@ -48,6 +48,9 @@ export type Label={
  /** Where the label's centre has to stay: the side of an axis its arrow lies on, say. A name moved
   * across the axis reads as naming whatever is on the other side of it. */
  within?:readonly HalfPlane[];
+ /** Sides it keeps like `within`, except on the last resort of a leader that has to cross a stroke: the side of a
+  * dimension's bar an arrow is on, say, which a name on a leader back to its arrow no longer needs. */
+ soft?:readonly HalfPlane[];
  /** Where a leader back to what it names would start, if it has to be placed past its reach. The leader
   * is a stroke like any other: a spot whose leader would cross another name is not offered, and once it
   * is drawn later names keep off it. A placer that knew only label boxes ran an angle's leader straight
@@ -211,9 +214,12 @@ export function placeLabels(labels:readonly Label[],options:PlaceOptions={}):Nud
   // it must not cross.
   // How far a spot is from honest: nothing where it is nearer its own arrow than any other, by how much
   // nearer another arrow it stands where it is not.
+  // `across`: the last resort for a kept name, a leader that may cross a stroke (never a name) to reach a free spot.
+  let across=false;
   const dishonesty=(b:Box)=>{
    const c={x:b.x+b.width/2,y:b.y+b.height/2};
    if(label.within?.some(h=>(c.x-h.x)*h.nx+(c.y-h.y)*h.ny<0))return 1e3;
+   if(!across&&label.soft?.some(h=>(c.x-h.x)*h.nx+(c.y-h.y)*h.ny<0))return 1e3;
    if(!own||!others.length)return 0;
    const mine=boxSegmentDistance(b,own);
    // Not merely no nearer: plainly further, or the name reads as belonging to either.
@@ -228,7 +234,9 @@ export function placeLabels(labels:readonly Label[],options:PlaceOptions={}):Nud
    }
    return worst;
   };
-  const honest=(b:Box)=>dishonesty(b)<=0;
+  // On a leader that had to cross a stroke (`across`, below), the leader says which arrow the name is: only the sides it
+  // must keep to still hold.
+  const honest=(b:Box)=>across?dishonesty(b)<1e3:dishonesty(b)<=0;
   // Search from where the label asks to be -- unless that is outside the picture, in which
   // case search from the nearest spot inside it. Every candidate is rejected for leaving the
   // frame, so a label that STARTS outside has no candidate at all and would otherwise be left
@@ -253,6 +261,8 @@ export function placeLabels(labels:readonly Label[],options:PlaceOptions={}):Nud
    others=allOthers.filter(s=>boxSegmentDistance(region,s)<furthest+3);
   }
   let best:Nudge={dx:homes[0].x-label.box.x,dy:homes[0].y-label.box.y},bestCost=Infinity,placed=false,leader=false;
+  // Whether the least-bad spot so far lies across another arrow or line, or on another name: not merely bad, unreadable.
+  let bestUnreadable=false;
   // Near before far across EVERY place the label may stand, not one place at a time: a name that fits
   // as it is on the far side of its arrow, or past its tip, is better than one pushed a long way off
   // its first spot -- pushed far enough, it ends up beside some other arrow.
@@ -266,7 +276,7 @@ export function placeLabels(labels:readonly Label[],options:PlaceOptions={}):Nud
    const seg={a:from,b:nearestOnBox(grow(moved,2,2),from)};
    if(near.some(t=>t.label&&boxSegmentDistance(t.box,seg)<labelPad/2))return false;
    const len=Math.hypot(seg.b.x-seg.a.x,seg.b.y-seg.a.y);
-   if(len<6)return true;
+   if(len<6||across)return true;
    const k=Math.min(.5,4/len),tail={a:{x:seg.a.x+(seg.b.x-seg.a.x)*k,y:seg.a.y+(seg.b.y-seg.a.y)*k},b:seg.b};
    return ![...lines,...(own?others:shafts)].some(l=>segmentsCross(tail,l));
   };
@@ -324,8 +334,9 @@ export function placeLabels(labels:readonly Label[],options:PlaceOptions={}):Nud
      // And across a stroke is worse than a little nearer another arrow than its own -- worst across another arrow,
      // whose head it may hide and whose name it then reads as: in a ring's narrow fan, kept from passing its own tip,
      // ΔE_z was set over ΔE's head when a spot across its own column was there to take.
-     const cost=sum+Math.hypot(at.dx,at.dy)*.01+(bad?1e6+100*Math.min(1e3,Math.max(0,dishonesty(moved)))+(crossing?1e3:0)+(crossing&&crossesOther(moved)?1e3:0):0);
-     if(cost<bestCost){bestCost=cost;best=at;}
+     const overOther=crossing&&crossesOther(moved);
+     const cost=sum+Math.hypot(at.dx,at.dy)*.01+(bad?1e6+100*Math.min(1e3,Math.max(0,dishonesty(moved)))+(crossing?1e3:0)+(overOther?1e3:0):0);
+     if(cost<bestCost){bestCost=cost;best=at;bestUnreadable=overOther||onName;}
     }
    }
    return false;
@@ -342,6 +353,15 @@ export function placeLabels(labels:readonly Label[],options:PlaceOptions={}):Nud
   if(!placed)placed=search(tries,homes);
   // A label it must keep, with nowhere free within reach: further out, on a leader back to it.
   if(!placed&&capped&&label.keep&&far.length){const keepBest=best,keepCost=bestCost;placed=search(far,homes.slice(0,1),true,true);if(placed)leader=true;else{best=keepBest;bestCost=keepCost;}}
+  // And failing that, a free spot whose leader has to cross a stroke to get there. A hairline crossing an arrow is
+  // still a clean drawing; the least-bad spot is not: in a ring's narrow fan on a phone, ΔE_z with nowhere clean to go
+  // was set across ΔE's shaft and the mirror's, its letters cut by two lines, and nobody could say which arrow it named.
+  // Only for a name whose least-bad spot would lie across another arrow or line, or on another name: one merely a little
+  // nearer another arrow than its own, or touching its own, still reads, and stays by what it names.
+  if(!placed&&capped&&label.keep&&far.length&&label.from&&bestUnreadable){
+   const keepBest=best,keepCost=bestCost;across=true;placed=search(far,homes.slice(0,1),true,true);across=false;
+   if(placed)leader=true;else{best=keepBest;bestCost=keepCost;}
+  }
   if(!placed&&capped&&!label.keep){out.push({dx:0,dy:0,hidden:true});continue;}
   out.push(leader?{...best,leader:true}:best);
   const at=shift(label.box,best);

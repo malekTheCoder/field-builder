@@ -117,6 +117,9 @@ export function ViewCube({view, at, size = 22, minFont = 0, onPick, onSpin, onSp
   // Back to front, so a nearer face paints over one behind it.
   const ordered = [...CUBE_FACES].sort((a, b) => facing(a, d) - facing(b, d)).filter(f => facing(f, d) > .06);
   const ring = size * 2.15;
+  // The steps' hit circles, in their own units before the step's scale: twelve pixels of radius at the least, and a half
+  // to spare, since the pixel size `minFont` was worked from is rounded to a fiftieth.
+  const hitR = minFont > 0 ? Math.max(12.5, 12.5 * (minFont / 11) / (size / 22)) : 12.5;
   const steps = [
     {key: 'ArrowLeft' as const, at: {x: -ring, y: 0}, path: 'M3.5 -4.5 L-3 0 L3.5 4.5', title: 'Turn left'},
     {key: 'ArrowRight' as const, at: {x: ring, y: 0}, path: 'M-3.5 -4.5 L3 0 L-3.5 4.5', title: 'Turn right'},
@@ -212,8 +215,10 @@ export function ViewCube({view, at, size = 22, minFont = 0, onPick, onSpin, onSp
       onClick={ev => { ev.stopPropagation(); onStep(st.key); }}
       onKeyDown={ev => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); onStep(st.key); } }}>
       <title>{st.title}</title>
-      {/* A target a finger can hit: the drawn step is fourteen pixels across on a phone. */}
-      <circle className="cd-cube-hit" r="12.5" />
+      {/* A target a finger can hit: the drawn step is fourteen pixels across on a phone. And at least 24 pixels across
+          wherever the figure is drawn small: at 12.5 units it was 20 pixels on a phone, under the 24 a touch target
+          needs (WCAG 2.5.8). `minFont` is eleven pixels in the drawing's units, so it says how large a pixel is. */}
+      <circle className="cd-cube-hit" r={hitR.toFixed(2)} />
       <circle r="8.4" />
       <path d={st.path} />
     </g>)}

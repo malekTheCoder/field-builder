@@ -52,14 +52,15 @@ describe('the gap behind P comes in with depth, keeps the chosen piece, and is t
   // Through the shader's curve: a surface point at the middle of the gap, stepped across the ramp's depth.
   for (let b = 0; b < ramp; b += ramp / 200) expect(Math.abs(behindGap(0, gapDepth(b + ramp / 200, ramp)) - behindGap(0, gapDepth(b, ramp)))).toBeLessThan(.02);
  });
- it('the chosen piece keeps PIECE_FAR_LOW of itself, a wire\'s too; everything else keeps a trace or is cut', () => {
+ it('the chosen piece keeps PIECE_FAR_LOW of itself, a wire\'s too; everything else keeps a trace, a wire PIECE_FAR_LOW', () => {
   expect(behindGap(0, 1, false, BEHIND_GAP, PIECE_FAR_LOW)).toBeCloseTo(PIECE_FAR_LOW, 9);
   expect(behindGap(0, 1, true, BEHIND_GAP, PIECE_FAR_LOW)).toBeCloseTo(PIECE_FAR_LOW, 9);
   expect(behindGap(0, 1)).toBeCloseTo(BEHIND_GAP.low, 9);
-  expect(behindGap(0, 1, true)).toBe(0);
-  // A wire half behind is still whole; more than half, cut.
+  // A wire is dimmed, not cut: cut, a ring tipped up read as an open C (wave 6).
+  expect(behindGap(0, 1, true)).toBe(PIECE_FAR_LOW);
+  // A wire half behind is still whole; more than half, dimmed.
   expect(behindGap(0, .4, true)).toBe(1);
-  expect(behindGap(0, .6, true)).toBe(0);
+  expect(behindGap(0, .6, true)).toBe(PIECE_FAR_LOW);
   // Nothing at all in front of the gap's start.
   expect(behindGap(0, 0, false, BEHIND_GAP, PIECE_FAR_LOW)).toBe(1);
  });

@@ -325,7 +325,7 @@ export function buildStages(p: Problem, bracket?: RunBracket): BuildStage[] {
     : geometry === 'sheet' ? 'Each ring is cut to cover the same angle at P. The far rings are farther away, but they are so much bigger that each makes a bigger field at P, not a smaller one.'
     : geometry === 'disk' ? 'One thin ring at a time. Every bit of it is the same distance from P and makes the same angle with the axis, which is what lets the whole ring be added up at once in the next step.'
     : exact ? 'Each piece is drawn as a point charge at its middle, its field along the line joining them. A large piece’s own field leans a little closer to the axis, but its part along the axis is exactly this one’s, and that is the only part that will count.'
-    : geometry === 'arc' ? 'Each piece makes a field at P along the radius, pointing back through the centre for positive charge. Every piece is the same distance away and holds the same charge, so every arrow is the same size; only its direction changes round the arc.'
+    : geometry === 'arc' ? 'Each piece makes a field at P along the radius, pointing from the piece through P and on, for positive charge. Every piece is the same distance away and holds the same charge, so every arrow is the same size; only its direction changes round the arc.'
     : 'Each piece makes a field at P along the line joining them. How big depends on how much charge it holds and how far away it is.';
   // A ring is not a point charge, and saying so is the honest start for a disk or a sheet: what
   // makes a ring easy is not that it is small, but that all of it is the same distance away.

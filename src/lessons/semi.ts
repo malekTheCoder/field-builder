@@ -8,7 +8,7 @@ const raw = String.raw;
  * E_y = −kλ/r (back past the end), so the field leans at π/4. */
 export const lesson: Lesson = {
   id: 'semi',
-  lead: raw`Nothing beyond the end cancels the part along the line, so the field leans, at exactly $\pi/4$.`,
+  lead: raw`Find the field of a semi-infinite line at a point $P$ level with its end. Nothing on the far side of the end cancels the part along the line, so the field leans at exactly $\pi/4$ to the perpendicular.`,
   sections: [
     {heading: 'The setup', body: [
       raw`A line of charge with uniform density $\lambda$, the charge per unit length, runs up the $y$-axis from its end at $y=0$ to $+\infty$. The point $P=(r,0)$ is level with the end, a distance $r$ from it.`,
@@ -47,7 +47,7 @@ export const lesson: Lesson = {
   ],
   read: [
     {book: 'OpenStax, University Physics Volume 2', where: '§5.5, Calculating Electric Fields of Charge Distributions', url: 'https://openstax.org/books/university-physics-volume-2/pages/5-5-calculating-electric-fields-of-charge-distributions'},
-    {book: 'Griffiths, Introduction to Electrodynamics', where: '§2.1, The Electric Field: continuous charge distributions'},
+    {book: 'Griffiths, Introduction to Electrodynamics', where: '§2.1.4, Continuous Charge Distributions'},
     {book: 'Purcell and Morin, Electricity and Magnetism', where: 'Chapter 1, Electrostatics'},
   ],
 };

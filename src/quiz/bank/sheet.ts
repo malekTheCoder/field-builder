@@ -18,7 +18,7 @@ export const bank: Question[] = [
       {text: raw`The near ring: the far ring’s field is nearly sideways, so most of it cancels round the ring.`, misconception: 'sheet-far-pieces',
         why: raw`Only $\cos\alpha$ of each bit’s field survives along the axis, and for a far ring that fraction is small. But the far ring holds so much more charge that its part along the axis is still the larger: $2\pi k\sigma\sin\alpha\,\Delta\alpha$ grows with $\alpha$.`},
     ],
-    explanation: raw`A ring at the angle $\alpha$ holds $\sigma(2\pi s)(z\sec^2\alpha\,\Delta\alpha)$, and its field at $P$ comes to $2\pi k\sigma\sin\alpha\,\Delta\alpha$, which grows with $\alpha$. A far ring is farther away, and its field meets the axis more slantwise, but it is so much bigger that it pushes harder: here the far parts of the charge matter most.`,
+    explanation: raw`A ring at the angle $\alpha$ holds $\sigma(2\pi s)(z\sec^2\alpha\,\Delta\alpha)$, and its field at $P$ comes to $2\pi k\sigma\sin\alpha\,\Delta\alpha$, which grows with $\alpha$. A far ring is farther away, and its field meets the axis more slantwise, but it is so much bigger that its share of the field is larger: here the far parts of the charge matter most.`,
     review: {lesson: 'sheet', stage: 'piece'}},
 
   {id: 'sheet-dq', lesson: 'sheet', kind: 'setup',

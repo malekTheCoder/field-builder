@@ -41,7 +41,7 @@ export const lesson: Lesson = {
   ],
   read: [
     {book: 'OpenStax, University Physics Volume 2', where: '§5.5, Calculating Electric Fields of Charge Distributions: an infinite plane', url: 'https://openstax.org/books/university-physics-volume-2/pages/5-5-calculating-electric-fields-of-charge-distributions'},
-    {book: 'Griffiths, Introduction to Electrodynamics', where: '§2.1, continuous distributions; §2.2, the infinite plane by Gauss’s law'},
+    {book: 'Griffiths, Introduction to Electrodynamics', where: '§2.1.4, Continuous Charge Distributions; §2.2.3, Applications of Gauss’s Law: the infinite plane'},
     {book: 'Purcell and Morin, Electricity and Magnetism', where: 'Chapter 1, Electrostatics'},
   ],
 };

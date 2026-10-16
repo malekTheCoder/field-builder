@@ -109,8 +109,10 @@ describe('the charge behind P leaves a gap round it', () => {
   const view = await openLesson('sheet');
   await inSpace(view);
   await turn(view, 'ArrowUp', 6);
-  // The gap is measured in the figure's own units now (see BEHIND_GAP), so the arcs are too.
-  const k = unitPx(view), near = await inkRound(view, arc(18 * k), true), far = await inkRound(view, arc(60 * k), true);
+  // The gap is measured in the figure's own units now (see BEHIND_GAP), so the arcs are too -- and tipped up it
+  // shrinks toward P's halo, as the disk's does (see `gapShrink`), so the near arc is taken within what is left of it.
+  const shrink = Number(stage(view)!.dataset.gapShrink) || 1;
+  const k = unitPx(view), near = await inkRound(view, arc(18 * shrink * k), true), far = await inkRound(view, arc(60 * k), true);
   expect(median(near), `darkness round P: ${near.map(v => v.toFixed(0)).join(' ')}; away: ${far.map(v => v.toFixed(0)).join(' ')}`).toBeLessThan(.6 * Math.max(...far));
   // Further from P the chosen ring is drawn as strongly as ever.
   const away = await inkRound(view, arc(60 * k));
@@ -124,7 +126,7 @@ describe('the charge behind P leaves a gap round it', () => {
   const k = unitPx(view), near = await inkRound(view, arc(18 * k), true), far = await inkRound(view, arc(60 * k), true);
   expect(median(near), `darkness round P: ${near.map(v => v.toFixed(0)).join(' ')}; away: ${far.map(v => v.toFixed(0)).join(' ')}`).toBeLessThan(.6 * Math.max(...far));
  }, HEAVY);
- it('the ring of the potential seen from above: its far arc is cut where it passes behind P', async () => {
+ it('the ring of the potential seen from above: its far arc is dimmed where it passes behind P', async () => {
   // The view the critic found it in: the far arc passed about seventeen pixels above P, on its halo.
   await page.viewport(1440, 900);
   const view = await openLesson('v-ring');
@@ -134,8 +136,10 @@ describe('the charge behind P leaves a gap round it', () => {
   // one the tube paints is just outside the gap, so the tube does pass close by P, and is cut there.
   const grid: [number, number][] = [];
   for (let dy = -40; dy <= 40; dy += 1) for (let dx = -40; dx <= 40; dx += 1) if (Math.abs(dx) >= 3 && Math.hypot(dx, dy) >= 9 && Math.hypot(dx, dy) <= 40) grid.push([dx, dy]);
-  const ink = await inkRound(view, grid);
-  const nearest = Math.min(...grid.filter((_, i) => ink[i] > 230).map(([dx, dy]) => Math.hypot(dx, dy)));
+  // Opaque, and dark as the tube is at full strength: since wave 6 the tube behind P is not cut but mixed into the
+  // paper to PIECE_FAR_LOW of itself, still opaque and much paler, so the ring reads as closed (it read as an open C).
+  const ink = await inkRound(view, grid), dark = await inkRound(view, grid, true);
+  const nearest = Math.min(...grid.filter((_, i) => ink[i] > 230 && dark[i] > 60).map(([dx, dy]) => Math.hypot(dx, dy)));
   expect(nearest).toBeGreaterThanOrEqual(21);
   expect(nearest).toBeLessThanOrEqual(30);
  }, HEAVY);

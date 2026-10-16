@@ -3,7 +3,7 @@ import {useEffect,useRef,useState} from 'react';
 import type {ChargeSample} from '../../distributions/types';
 import type {Vec} from '../../symbolic/physics';
 import {cameraBasis,cameraPosition,frameTarget,frustum,tickStep} from './orthoCamera';
-import {apartOnScreen,arrowHead,besideWire,LEVEL_MARGIN,slabCovers,BEHIND_GAP,gapDepth,gapLift,gapShrink,gapRamp,gapStart,NAME_MARGIN,PIECE_FAR_LOW,SHEET_SIGN_GAP,bodyReach,CHAIN_ASIDE,chainAside,keepAside,diskSignMarks,drawOrder,fadeOut,farAlpha,fillAlpha,fillFade,frameExtent,latticeClear,lineReach,segmentGap,lineStrength,pieceFade,SHEET_FADE,sheetSignRoots,sheetSigns,signMarks,strokeSide,tickGaps,SHEET_UNDER,sheetColumns,sheetFarFade,sheetInk,surfaceOpacity,visibleRadii,washerHalf,washWall,wirePath,wireRadius,writesDepth,type BodyKind,type FarFade} from './bodies';
+import {apartOnScreen,ARROW_INSET,arrowHead,fitInWindow,besideWire,LEVEL_MARGIN,slabCovers,BEHIND_GAP,gapDepth,gapLift,gapShrink,gapRamp,gapStart,NAME_MARGIN,PIECE_FAR_LOW,SHEET_SIGN_GAP,bodyReach,CHAIN_ASIDE,chainAside,keepAside,diskSignMarks,drawOrder,fadeOut,farAlpha,fillAlpha,fillFade,frameExtent,latticeClear,lineReach,segmentGap,lineStrength,pieceFade,SHEET_FADE,sheetSignRoots,sheetSigns,signMarks,strokeSide,tickGaps,SHEET_UNDER,sheetColumns,sheetFarFade,sheetInk,sheetSides,surfaceOpacity,visibleRadii,washerHalf,washWall,wirePath,wireRadius,writesDepth,type BodyKind,type FarFade} from './bodies';
 import {endlessAxis,endlessBody,endlessRay,latticeBody,latticeCore,latticeFrame,radialLines,rayField,rayLines,sheetLines,spaceLines,traceTo,type Layout} from '../field3d';
 import {boxGap,controlBox,HEAD_ROOM,LINE_HEAD,lineHeads,meetsBoxes,paintedLabels,seedPool,touchesLabels,type Box} from '../fieldlines';
 import {coarsen} from '../sampling';
@@ -262,7 +262,7 @@ export function FieldStage(props:FieldStageProps){
     * is. It is given the thickness of the wire lesson's element tube instead, so it is the
     * same kind of object: a piece of the charge, lifted enough to be seen, with walls that
     * catch the light at any angle the camera can reach. */
-   let washerInk:{face:number;wall:number}|null=null;
+   let washerInk:{face:number;wall:number;edge:number}|null=null;
    const washer=(inner:number,outer:number,half:number,fade:{inner:number;outer:number}|null,frameWorld:number,far:FarFade|null)=>{
     const ri=Math.max(1e-3,inner),ro=Math.max(ri+half*.6,outer),segments=128;
     // A band you can see across is drawn solid. A band wider than the picture is drawn as its
@@ -289,10 +289,16 @@ export function FieldStage(props:FieldStageProps){
     const wash=faceAlpha<.5;
     // ...and a wash's walls are laid no stronger than its face, dissolving as the shading round it does (see `washWall`).
     const wall=wash&&far?(x:number,y:number)=>washWall(faceAlpha,x,y,frameWorld*.45,far):null;
-    parts.forEach(([g,alpha],i)=>fadeGeometry(g,fade?.inner??0,fade?.outer??0,i>1&&wall?1:alpha,far&&(i>1||wash)?pieceFade(far,'outline'):far,1,i>1?wall:null));
-    // The strongest each is laid, for the tests: a wall stronger than its face is a dark mark over a light wash.
-    const peak=(g:Geometry)=>{const c=g.getAttribute('color') as Attribute;let m=0;for(let i=0;i<c.count;i++)m=Math.max(m,c.getW(i));return m;};
-    washerInk={face:Math.max(peak(parts[0][0]),peak(parts[1][0])),wall:Math.max(peak(parts[2][0]),peak(parts[3][0]))};
+    // AND A WASH'S FACE ENDS ON THE SAME ELLIPSE (see `fillFade`). Faded only behind P, a ring wider than the picture
+    // filled it to the window's sides, where the window's own fade cut it square: a rounded-rectangle slab with the
+    // ring's outline inside it, not a ring. Dissolving as the shading round it does, it ends on a curve in the plane.
+    const side=wash&&far?(x:number,y:number)=>fillFade(x,y,frameWorld*.45,far):null;
+    parts.forEach(([g,alpha],i)=>fadeGeometry(g,fade?.inner??0,fade?.outer??0,i>1&&wall?1:alpha,far&&(i>1||wash)?pieceFade(far,'outline'):far,1,i>1?wall:side));
+    // The strongest each is laid, for the tests: a wall stronger than its face is a dark mark over a light wash. And the
+    // strongest the face is laid at the window's sides, which a wash must not reach (in local units, which are metres).
+    const peak=(g:Geometry,beyond=0)=>{const c=g.getAttribute('color') as Attribute,q=g.getAttribute('position') as Attribute;let m=0;for(let i=0;i<c.count;i++)if(Math.abs(q.getX(i))>=beyond)m=Math.max(m,c.getW(i));return m;};
+    const sideAt=frameWorld*.45;
+    washerInk={face:Math.max(peak(parts[0][0]),peak(parts[1][0])),wall:Math.max(peak(parts[2][0]),peak(parts[3][0])),edge:Math.max(peak(parts[0][0],sideAt),peak(parts[1][0],sideAt))};
     const merged=mergeGeometries(parts.map(([g])=>g));
     parts.forEach(([g])=>g.dispose());
     return merged??new THREE.BufferGeometry();
@@ -320,7 +326,7 @@ export function FieldStage(props:FieldStageProps){
     element.geometry.dispose();
     if('annulus' in e){
      element.geometry=washer(e.annulus.inner,e.annulus.outer,washerHalf(radius,e.annulus.inner,e.annulus.outer,px),fade,frameWorld,far);
-     if(washerInk)mount.parentElement?.setAttribute('data-scene-washer-ink',`${washerInk.face.toFixed(4)} ${washerInk.wall.toFixed(4)}`);
+     if(washerInk)mount.parentElement?.setAttribute('data-scene-washer-ink',`${washerInk.face.toFixed(4)} ${washerInk.wall.toFixed(4)} ${washerInk.edge.toFixed(4)}`);
      return;
     }
     mount.parentElement?.removeAttribute('data-scene-washer-ink');
@@ -482,28 +488,45 @@ export function FieldStage(props:FieldStageProps){
    // what the chosen piece keeps of itself in the gap (PIECE_FAR_LOW), and below zero for everything else.
    const gap={uGapP:{value:new THREE.Vector3(0,0,2)},uGapOn:{value:0},uGapLift:{value:1},uGapDepth:{value:1e-3},uGapRamp:{value:new THREE.Vector4(BEHIND_GAP.inner,BEHIND_GAP.outer,BEHIND_GAP.low,BEHIND_GAP.hard)}};
    const EDGE_GLSL='if(uEdgeOn>.5){vec2 fc=gl_FragCoord.xy;float e=clamp(min(min(fc.x-uEdgeRect.x,uEdgeRect.z-fc.x),min(fc.y-uEdgeRect.y,uEdgeRect.w-fc.y))/uEdgeFeather,0.,1.);gl_FragColor.a*=e*e*(3.-2.*e);}';
+   // A WIRE IN THE GAP IS DIMMED, NOT CUT. It was cut clean within the hard radius, the drafting gap a far line is given
+   // behind a near point -- and a ring tipped up, with P over its far rim, came out as an open C, a closed loop of charge
+   // with a piece missing. An opaque tube cannot be faded, so where it has the paper's colour to hand (the charge's own
+   // body and pieces: see `cubeFade`) it is mixed toward the paper, to PIECE_FAR_LOW of itself, as the chosen piece is:
+   // still plainly behind P, still plainly closed. `WIRE_GAP` is replaced per material.
    const GAP_GLSL='if(uGapOn>.5){float k=smoothstep(uGapP.z,uGapP.z+uGapDepth,gl_FragCoord.z)*uGapLift;if(k>0.){float d=distance(gl_FragCoord.xy,uGapP.xy);'
-    +'if(uGapOn>1.5&&uGapKeep<0.){if(k>.5&&d<uGapRamp.w)discard;}else gl_FragColor.a*=mix(1.,mix(uGapKeep<0.?uGapRamp.z:uGapKeep,1.,smoothstep(uGapRamp.x,uGapRamp.y,d)),k);}}';
+    +'if(uGapOn>1.5&&uGapKeep<0.){WIRE_GAP}else gl_FragColor.a*=mix(1.,mix(uGapKeep<0.?uGapRamp.z:uGapKeep,1.,smoothstep(uGapRamp.x,uGapRamp.y,d)),k);}}';
+   const WIRE_CUT='if(k>.5&&d<uGapRamp.w)discard;',WIRE_DIM=`if(k>.5&&d<uGapRamp.w)gl_FragColor.rgb=mix(uPaper,gl_FragColor.rgb,${PIECE_FAR_LOW.toFixed(3)});`;
+   // THE CHARGE GOES UNDER THE VIEW CUBE BY FADING INTO THE PAPER. The cube and its four buttons stand inside the
+   // window at its top-left corner, and the infinite and the semi-infinite lines run up the picture into that corner:
+   // an orange rod passing under a grey control, its end cut by the cube's face, looked unfinished, as a mark drawn
+   // under a button does. The window's own edge fade does not reach it -- the cube is inside the window -- so the charge
+   // has a fade of its own round the cube's box (see `controlBox`): mixed into the paper over twenty-four units of the
+   // figure as it comes up to the box, and gone under it, as the rod's far end dissolves at the window's edge. A solid
+   // wire cannot be made see-through, so it is mixed with the paper; a translucent piece loses its alpha too.
+   // `uCubeRect` is the box in drawing-buffer pixels, upward as gl_FragCoord counts them; off (`uCubeOn` 0) in 2D.
+   const cubeFade={uCubeRect:{value:new THREE.Vector4(0,0,0,0)},uCubeFeather:{value:1},uCubeOn:{value:0},uPaper:{value:new THREE.Color(1,1,1)}};
+   const CUBE_GLSL='if(uCubeOn>.5){vec2 fc=gl_FragCoord.xy;vec2 o=max(max(uCubeRect.xy-fc,fc-uCubeRect.zw),vec2(0.));float c=smoothstep(0.,uCubeFeather,length(o));gl_FragColor.rgb=mix(uPaper,gl_FragColor.rgb,c);gl_FragColor.a*=c;}';
    /** Patch a material's fragment shader with the window's edge fade and the gap round P, or only the gap,
-    * and what it keeps of itself there (`keep`, below zero for all but the chosen piece). Named in the
-    * program cache by which, since three would otherwise share one compiled program between materials
-    * whose patches differ only in what they capture. */
-   const patch=(m:InstanceType<typeof THREE.Material>,edgeFade:boolean,keep=-1)=>{
+    * and what it keeps of itself there (`keep`, below zero for all but the chosen piece); and, for the charge's
+    * own body and pieces, the fade round the view cube (`cube`). Named in the program cache by which, since three
+    * would otherwise share one compiled program between materials whose patches differ only in what they capture. */
+   const patch=(m:InstanceType<typeof THREE.Material>,edgeFade:boolean,keep=-1,cube=false)=>{
     const own={uGapKeep:{value:keep}};
     m.onBeforeCompile=shader=>{
-     Object.assign(shader.uniforms,gap,own,edgeFade?edge:{});
-     shader.fragmentShader=shader.fragmentShader.replace('void main() {',`${edgeFade?'uniform vec4 uEdgeRect;\nuniform float uEdgeFeather;\nuniform float uEdgeOn;\n':''}uniform vec3 uGapP;\nuniform float uGapOn;\nuniform float uGapLift;\nuniform float uGapDepth;\nuniform float uGapKeep;\nuniform vec4 uGapRamp;\nvoid main() {`)
-      .replace('#include <opaque_fragment>',`#include <opaque_fragment>\n${edgeFade?EDGE_GLSL:''}\n${GAP_GLSL}`);
+     Object.assign(shader.uniforms,gap,own,edgeFade?edge:{},cube?cubeFade:{});
+     shader.fragmentShader=shader.fragmentShader.replace('void main() {',`${edgeFade?'uniform vec4 uEdgeRect;\nuniform float uEdgeFeather;\nuniform float uEdgeOn;\n':''}${cube?'uniform vec4 uCubeRect;\nuniform float uCubeFeather;\nuniform float uCubeOn;\nuniform vec3 uPaper;\n':''}uniform vec3 uGapP;\nuniform float uGapOn;\nuniform float uGapLift;\nuniform float uGapDepth;\nuniform float uGapKeep;\nuniform vec4 uGapRamp;\nvoid main() {`)
+      .replace('#include <opaque_fragment>',`#include <opaque_fragment>\n${edgeFade?EDGE_GLSL:''}\n${GAP_GLSL.replace('WIRE_GAP',cube?WIRE_DIM:WIRE_CUT)}\n${cube?CUBE_GLSL:''}`);
     };
-    m.customProgramCacheKey=()=>`field-stage:${edgeFade?'edge+gap':'gap'}:${keep<0?'cut':'keep'}`;
+    m.customProgramCacheKey=()=>`field-stage:${edgeFade?'edge+gap':'gap'}:${keep<0?'cut':'keep'}${cube?':cube':''}`;
    };
    // And the chosen piece: the sheet's outermost ring reaches past every edge of the window, and its face
    // painted the whole top of the picture out to the window's rounded corners. It, and the mirror piece
    // drawn in its material, keep PIECE_FAR_LOW of themselves in the gap behind P (see BEHIND_GAP).
-   patch(sheetMaterial,true);patch(fillMaterial,true);patch(elementMaterial,true,PIECE_FAR_LOW);
+   patch(sheetMaterial,true);patch(fillMaterial,true);patch(elementMaterial,true,PIECE_FAR_LOW,true);
    // The body itself -- a disk, its rim and its rings, or a wire's tube -- and the cuts made across a surface
-   // in the run: only the gap.
-   for(const m of [bodyMaterial,sliceMaterial,pickedMaterial,pieceMaterial,ghostMaterial])patch(m,false);
+   // in the run: only the gap. And the charge's own body and its pieces, the fade round the view cube.
+   for(const m of [sliceMaterial,pickedMaterial])patch(m,false);
+   for(const m of [bodyMaterial,pieceMaterial,ghostMaterial])patch(m,false,-1,true);
    /** The sheet's summed shading out to radius `r`: a disc faded by an ellipse about O (see `fillFade`),
     * in the mesh's own frame, which is turned by the yaw so its +y is the camera's far direction. */
    const fillGeometry=(r:number,wide:number,far:FarFade|null,peak:number)=>{
@@ -1497,8 +1520,12 @@ export function FieldStage(props:FieldStageProps){
     const far=p.kind==='sheet'?sheetFarFade(p.point.z,view.pitch,p.unit):null;
     body.rotation.z=far?view.yaw:0;
     const sheet=far?body.children[0] as InstanceType<typeof THREE.Mesh>|undefined:undefined;
-    const nextFar=far?`${(far.inner/spread).toFixed(3)}:${(far.outer/spread).toFixed(3)}`:'';
-    if(sheet&&far&&nextFar!==sheetFarKey){fadeGeometry(sheet.geometry,SHEET_FADE.inner,SHEET_FADE.outer,1,far,spread);sheetFarKey=nextFar;}
+    // And to either side it ends on an ellipse, inside the window, not on the window's square edge (see `sheetSides`):
+    // about the window's middle, which is not O's, and dissolved by twenty units short of its sides. Local x on the
+    // turned sheet is the screen's right in the plane, in units of the sheet's own scale.
+    const middle=far?(PLOT.x+PLOT.width/2-360)/p.unit+(target.x*basis.right.x+target.y*basis.right.y+target.z*basis.right.z):0,sides=(PLOT.width/2-20)/p.unit;
+    const nextFar=far?`${(far.inner/spread).toFixed(3)}:${(far.outer/spread).toFixed(3)}:${middle.toFixed(3)}:${sides.toFixed(3)}`:'';
+    if(sheet&&far&&nextFar!==sheetFarKey){fadeGeometry(sheet.geometry,SHEET_FADE.inner,SHEET_FADE.outer,1,far,spread,(x,y)=>sheetSides(x-middle,y,sides));sheetFarKey=nextFar;}
     // Rebuild the rings only when the partition actually changes; scaling is free, geometry
     // is not, and this runs on every camera frame during an orbit.
     const radii=p.kind==='disk'?visibleRadii(p.samples,p.selected):[];
@@ -1596,10 +1623,30 @@ export function FieldStage(props:FieldStageProps){
      const made=`${ts.filter(t=>cutShown(t,now)>.5).length}/${ts.length}:${unnamed?'cutting':'named'}`;
      if(mount.parentElement?.getAttribute('data-run-cutting')!==made)mount.parentElement?.setAttribute('data-run-cutting',made);
     }else mount.parentElement?.removeAttribute('data-run-cutting');
-    if(p.net)layArrow(netArrow,p.point,p.net,Math.hypot(p.net.x,p.net.y,p.net.z),wr*.75);else netArrow.group.visible=false;
+    // AT REST, CUT SHORT RATHER THAN CUT OFF: an arrow from P whose tip the view has turned out of the window is drawn
+    // only as long as keeps its head inside it (see `fitInWindow`). Not in the run, where the arrows are laid tip to
+    // tail -- the chain ends on the sum's head -- and one of them shortened alone would come apart from the others.
+    const Rs=screenRight,Us=screenUp,onScreen=(v:Vec)=>{const dx=v.x-target.x,dy=v.y-target.y,dz=v.z-target.z;return {x:360+(dx*Rs.x+dy*Rs.y+dz*Rs.z)*p.unit,y:215-(dx*Us.x+dy*Us.y+dz*Us.z)*p.unit};};
+    const fitted=(from:Vec,v:Vec,thickness:number)=>{
+     const l=Math.hypot(v.x,v.y,v.z);
+     if(p.run||!(l>1e-9))return l;
+     const u={x:v.x/l,y:v.y/l,z:v.z/l},along={x:(u.x*Rs.x+u.y*Rs.y+u.z*Rs.z)*p.unit,y:-(u.x*Us.x+u.y*Us.y+u.z*Us.z)*p.unit};
+     return fitInWindow(onScreen(from),along,l,PLOT,ARROW_INSET,headSize(l,thickness).l*1.25+3*thickness);
+    };
+    if(p.net){
+     const l=fitted(p.point,p.net,wr*.75),full=Math.hypot(p.net.x,p.net.y,p.net.z);
+     layArrow(netArrow,p.point,p.net,l,wr*.75);
+     // Where the net arrow's tip is drawn, in units of the figure, and how much of it is drawn: for the tests.
+     const k=full>0?l/full:1,tip=onScreen({x:p.point.x+p.net.x*k,y:p.point.y+p.net.y*k,z:p.point.z+p.net.z*k});
+     mount.parentElement?.setAttribute('data-scene-net-tip',`${tip.x.toFixed(1)} ${tip.y.toFixed(1)}`);
+     mount.parentElement?.setAttribute('data-scene-net-fit',k.toFixed(3));
+    }else{netArrow.group.visible=false;mount.parentElement?.removeAttribute('data-scene-net-tip');mount.parentElement?.removeAttribute('data-scene-net-fit');}
     // One element's contribution is the field AT P due to that element, so it is laid from P.
     // While a mirror pair goes into the sum the run draws the piece's whole arrow itself, fading (see `wholeArrow`).
-    if(p.contribution&&!p.run?.arrows?.pair)layArrow(partArrow,p.contributionFrom?{x:p.point.x+p.contributionFrom.x,y:p.point.y+p.contributionFrom.y,z:p.point.z+p.contributionFrom.z}:p.point,p.contribution,Math.hypot(p.contribution.x,p.contribution.y,p.contribution.z),wr*.55);else partArrow.group.visible=false;
+    if(p.contribution&&!p.run?.arrows?.pair){
+     const from=p.contributionFrom?{x:p.point.x+p.contributionFrom.x,y:p.point.y+p.contributionFrom.y,z:p.point.z+p.contributionFrom.z}:p.point;
+     layArrow(partArrow,from,p.contribution,fitted(from,p.contribution,wr*.55),wr*.55);
+    }else partArrow.group.visible=false;
     for(const m of [bodyMaterial,sheetMaterial]){
      m.color.set(CHARGE.body);
      m.emissive.set(CHARGE.glow);
@@ -1607,7 +1654,7 @@ export function FieldStage(props:FieldStageProps){
     }
     // In the dark the sheet is the charge colour itself, unlit, not a lit tan greyed by the navy: see `sheetInk`.
     const ink=sheetInk(dark);
-    if(ink.unlit){sheetMaterial.color.set(0x000000);sheetMaterial.emissive.set(CHARGE.body);sheetMaterial.emissiveIntensity=1;}
+    if(ink.unlit){sheetMaterial.color.set(0x000000);sheetMaterial.emissive.set(ink.colour??CHARGE.body);sheetMaterial.emissiveIntensity=1;}
     bodyMaterial.transparent=p.kind!=='wire';bodyMaterial.depthWrite=writesDepth(p.kind);
     bodyMaterial.opacity=p.kind==='wire'?1:surfaceOpacity(p.kind);
     sheetMaterial.opacity=ink.opacity;
@@ -1640,6 +1687,10 @@ export function FieldStage(props:FieldStageProps){
     gap.uGapLift.value=p.kind==='wire'?1:gapLift(Math.abs(p.point.z)*p.unit);
     mount.parentElement?.setAttribute('data-gap-lift',gap.uGapLift.value.toFixed(3));
     edge.uEdgeOn.value=p.kind==='sheet'?1:0;
+    // The view cube's box, for the charge's fade under it (see `cubeFade`); `cube` was read with the names above.
+    cubeFade.uCubeOn.value=cube?1:0;cubeFade.uPaper.value.copy(paper);cubeFade.uCubeFeather.value=24*sx;
+    if(cube)cubeFade.uCubeRect.value.set(cube.x*sx,H-(cube.y+cube.height)*sy,(cube.x+cube.width)*sx,H-cube.y*sy);
+    mount.parentElement?.setAttribute('data-cube-fade',cube?`${cube.x.toFixed(1)} ${cube.y.toFixed(1)} ${cube.width.toFixed(1)} ${cube.height.toFixed(1)}`:'off');
     mount.parentElement?.setAttribute('data-edge-fade',String(edge.uEdgeOn.value));
     // And O, in the same CSS pixels, for the tests that keep the marks off the line from O up to P.
     const o=gapAt.set(0,0,0).project(camera);

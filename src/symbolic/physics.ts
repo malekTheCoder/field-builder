@@ -70,7 +70,9 @@ export function sampleLimit(problem:Problem,p:Params,limit:Limit,t:number):Limit
   case 'infinite':if(scalar&&geom==='disk'){const sigma=p.charge/(Math.PI*R*R);copy.size=2*t*p.distance;copy.charge=sigma*Math.PI*(copy.size/2)**2;actual=Math.abs(potential('disk',copy));target=Math.abs(sigma)*1e-9*(copy.size/2)/(2*EPS0);}
    else if(scalar){const lambda=p.charge/p.size;copy.size=t*p.distance;copy.charge=lambda*copy.size;actual=Math.abs(potential('bisector',copy));target=2*K*Math.abs(lambda)*1e-9*Math.log(Math.max(copy.size/p.distance,1));}
    else if(geom==='bisector'||geom==='infinite'){const lambda=geom==='infinite'?p.charge:p.charge/p.size;copy.size=t*p.distance;copy.charge=lambda*copy.size;actual=fieldOf('bisector',copy);target=2*K*Math.abs(lambda)*1e-9/p.distance;}
-   else if(geom==='endpoint'){const lambda=p.charge/p.size;copy.size=t*p.distance;copy.charge=lambda*copy.size;actual=fieldOf('endpoint',copy);target=Math.SQRT2*K*Math.abs(lambda)*1e-9/p.distance;}
+   // The half line's own case is the same rod grown from its end, read from the line's side: its charge
+   // slider is λ itself, as the infinite line's is, and the rod beside P carries that λ.
+   else if(geom==='endpoint'||geom==='semi'){const lambda=geom==='semi'?p.charge:p.charge/p.size;copy.size=t*p.distance;copy.charge=lambda*copy.size;actual=fieldOf('endpoint',copy);target=Math.SQRT2*K*Math.abs(lambda)*1e-9/p.distance;}
    else{const sigma=geom==='sheet'?p.charge:p.charge/(Math.PI*R*R);copy.size=2*t*p.distance;copy.charge=sigma*Math.PI*(copy.size/2)**2;actual=fieldOf('disk',copy);target=Math.abs(sigma)*1e-9/(2*EPS0);}
    break;
   // The field is swept down from its peak at R/√2, so the curve only falls: started beyond the peak
@@ -134,7 +136,9 @@ export function limitPlot(problem:Problem,limit:Limit):LimitPlot{
    // the caption under it, "the exact field equals an infinite line's", in the lesson whose exact
    // field IS the infinite line's. There the caption names the rod or the disk, as the legend does.
    if(g==='disk'||g==='sheet')return{kind:'ratio',y:'|E| ÷ infinite-sheet field',axis:'disk radius R, with σ fixed',from:'R ∼ z',to:'R ≫ z',line:'infinite sheet',...g==='sheet'?{solid:'A disk of radius R',caption:'On the dashed line a disk’s field equals the infinite sheet’s. The curve settles onto it as R ≫ z.'}:{caption:settles('an infinite sheet’s','R ≫ z')}};
-   return{kind:'ratio',y:`|E| ÷ ${g==='endpoint'?'semi-infinite':'infinite'}-line field`,axis:'rod length L, with λ fixed',from:'L ∼ r',to:'L ≫ r',line:g==='endpoint'?'semi-infinite line':'infinite line',...g==='infinite'?{solid:'A rod of length L',caption:'On the dashed line a rod’s field equals the infinite line’s. The curve settles onto it as L ≫ r.'}:{caption:settles(g==='endpoint'?'a semi-infinite line’s':'an infinite line’s','L ≫ r')}};
+   // The half line's case is the infinite line's, from its end: the curve is a rod's, not the lesson's.
+   {const half=g==='endpoint'||g==='semi';
+   return{kind:'ratio',y:`|E| ÷ ${half?'semi-infinite':'infinite'}-line field`,axis:'rod length L, with λ fixed',from:'L ∼ r',to:'L ≫ r',line:half?'semi-infinite line':'infinite line',...g==='infinite'||g==='semi'?{solid:'A rod of length L',caption:`On the dashed line a rod’s field equals the ${half?'semi-infinite':'infinite'} line’s. The curve settles onto it as L\u00a0≫\u00a0r.`}:{caption:settles(half?'a semi-infinite line’s':'an infinite line’s','L ≫ r')}};}
   // The ring's potential arrives level, the disk's still sloping: one caption said the same thing of
   // both, and so pointed at neither. The slope of V along the axis is minus the field there.
   //

@@ -34,17 +34,17 @@ export const lesson: Lesson = {
       raw`Put $u=L+a-x$, the piece’s distance from $P$. As $x$ runs from $0$ to $L$, $u$ runs from $L+a$ down to $a$, and the minus in $du=-dx$ turns the ends round. The integral of $1/u$ is a logarithm:`,
       {tex: raw`V=k\lambda\int_a^{L+a}\frac{du}{u}=k\lambda\ln\frac{L+a}{a}`},
     ]},
-    {heading: 'What the answer says', body: [
-      raw`The logarithm’s argument is a ratio of lengths greater than one, so $V$ has the sign of $\lambda$. Far away, $a\gg L$, $\ln(1+L/a)$ is nearly $L/a-L^2/(2a^2)$, and $V$ approaches $kQ/(a+L/2)$, the potential of a point charge at the rod’s centre. As $P$ walks onto the end, $a\to0$, $|V|$ grows without bound, but only as $\ln(L/a)$, far more slowly than the field’s $1/a$.`,
-    ]},
     {heading: 'Differentiate back', body: [
       raw`On the rod’s line every piece’s arrow points along it, so the field does, and it is minus the rate at which $V$ changes as $P$ moves out. The logarithm of a quotient differentiates to $1/(L+a)-1/a$, so`,
       {tex: raw`E_x=-\frac{dV}{da}=k\lambda\left(\frac1a-\frac1{L+a}\right)`},
       raw`which is the field beyond the end of this rod, found without a single arrow.`,
     ]},
+    {heading: 'What the answer says', body: [
+      raw`The logarithm’s argument is a ratio of lengths greater than one, so $V$ has the sign of $\lambda$. Far away, $a\gg L$, $\ln(1+L/a)$ is nearly $L/a-L^2/(2a^2)$, and $V$ approaches $kQ/(a+L/2)$, the potential of a point charge at the rod’s centre. As $P$ walks onto the end, $a\to0$, $|V|$ grows without bound, but only as $\ln(L/a)$, far more slowly than the field’s $1/a$.`,
+    ]},
   ],
   read: [
-    {book: 'OpenStax, University Physics Volume 2', where: '§7.3, Calculations of Electric Potential; and §7.4, Determining Field from Potential', url: 'https://openstax.org/books/university-physics-volume-2/pages/7-3-calculations-of-electric-potential'},
+    {book: 'OpenStax, University Physics Volume 2', where: '§7.3, Calculations of Electric Potential; §7.4, Determining Field from Potential', url: 'https://openstax.org/books/university-physics-volume-2/pages/7-3-calculations-of-electric-potential'},
     {book: 'Griffiths, Introduction to Electrodynamics', where: '§2.3, Electric Potential'},
     {book: 'Purcell and Morin, Electricity and Magnetism', where: 'Chapter 2, The electric potential'},
   ],

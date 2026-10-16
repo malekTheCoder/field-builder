@@ -65,10 +65,11 @@ describe('the lessons', () => {
     shown.sections.forEach((s, i) => s.body.forEach((b, j) => expect(b).toEqual(typeof b === 'string' ? hold(bisector.sections[i].body[j] as string) : bisector.sections[i].body[j])));
     expect(hold('so E = 0 here')).toContain('\u00a0');
   });
-  it('leads the offline copy: the lead, the sections, their equations and the books, before the setup', () => {
+  // The problem box is stated first, then the lesson solves it (wave 6): a handout asks before it answers.
+  it('teaches the offline copy: the lead, the sections, their equations and the books, after the problem', () => {
     const l = lessonFor('bisector')!, html = artifactHtml(lessonArtifact(getProblem('bisector'))), at = (t: string) => html.indexOf(t);
     expect(at('<h2>The lesson</h2>')).toBeGreaterThan(at('<p class="lede">'));
-    expect(at('<h2>The lesson</h2>')).toBeLessThan(at('<p class="problem">'));
+    expect(at('<h2>The lesson</h2>')).toBeGreaterThan(at('<p class="problem">'));
     for (const s of l.sections) expect(html).toContain(`<h3 class="taught">${s.heading}</h3>`);
     for (const r of l.read) expect(html).toContain(escapeHtml(r.where));
     // Every display, set as MathML with its TeX riding along.

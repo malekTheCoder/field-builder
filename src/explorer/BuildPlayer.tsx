@@ -220,7 +220,11 @@ export const BuildPlayer = memo(function BuildPlayer({stages, clock, index, play
   // clicker pressed once more at the climax -- or Arrow Right on Play -- replayed Shrink them from its start:
   // the answer left the board and the figure went back to "Cut into pieces". Next is marked unavailable there,
   // and the keys now agree with it; the focus stays where it is.
+  //
+  // ESCAPE CLOSES THE RUN, as Close does, and the focus goes back to Watch it build (the page's onClose). It
+  // closes the tour and the library; here it did nothing, and a presenter at the keyboard was left in the run.
   const keys = (ev: KeyboardEvent<HTMLDivElement>) => {
+    if (ev.key === 'Escape' && !ev.ctrlKey && !ev.metaKey && !ev.altKey) { ev.preventDefault(); onClose(); return; }
     const forward = ev.key === 'ArrowRight' || ev.key === 'PageDown';
     if (!forward && ev.key !== 'ArrowLeft' && ev.key !== 'PageUp') return;
     const paging = ev.key.startsWith('Page');

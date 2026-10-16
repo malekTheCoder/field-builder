@@ -35,7 +35,12 @@ describe('a copy led by a lesson teaches the method once', () => {
       const html = artifactHtml(lessonArtifact(p)), books = html.slice(html.indexOf('Read it in a textbook</h3>'), html.indexOf('</section>'));
       expect(html, p.id).not.toContain('<h2>Sources</h2>');
       for (const href of new Set([...html.matchAll(/href="([^"]+)"/g)].map(m => m[1]))) expect(count(html, `href="${href}"`), `${p.id}: ${href}`).toBe(1);
-      for (const s of p.sources) expect(books, `${p.id}: ${s.title}`).toContain(`href="${s.url}"`);
+      // A source whose section a lesson row already names (the potentials' §7.4) is that row, not a second line.
+      for (const s of p.sources) {
+        const section = /§\d+\.\d+/.exec(s.title)?.[0];
+        if (section && lessonFor(p.id)!.read.some(r => r.where.includes(section))) expect(books, `${p.id}: ${s.title}`).toContain(section);
+        else expect(books, `${p.id}: ${s.title}`).toContain(`href="${s.url}"`);
+      }
     }
   });
   it('k is said once: where the lesson says it, or under the integral', () => {

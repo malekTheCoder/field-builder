@@ -22,7 +22,10 @@ export const metadata: Metadata = {
 // a flash in a dark room -- for as long as the bundle took to arrive and run. This reads the same saved
 // setting (Explorer.tsx, STORAGE) before the body is drawn; the Explorer's own effect then only confirms it.
 // index.html, the static entry the site is published from, carries the same line.
-const EARLY_THEME = "try{if(JSON.parse(localStorage.getItem('field-builder:explorer:v1')||'{}').dark===true)document.documentElement.classList.add('dark')}catch(e){}";
+// With no choice saved it follows the system's theme, as the Explorer does: a student on a phone set to dark met a
+// white page until they found the moon. Storage that cannot be read is no choice, and the system decides.
+// The theme-color tags tint a phone's browser bar to match the page's ground in either theme.
+const EARLY_THEME = "(function(){var d;try{d=JSON.parse(localStorage.getItem('field-builder:explorer:v1')||'{}').dark}catch(e){}try{if(d===true||typeof d!=='boolean'&&matchMedia('(prefers-color-scheme: dark)').matches)document.documentElement.classList.add('dark')}catch(e){}})()";
 
 export default function RootLayout({
   children,
@@ -32,6 +35,8 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
+        <meta name="theme-color" media="(prefers-color-scheme: light)" content="#f2f2f2" />
+        <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#101010" />
         <script dangerouslySetInnerHTML={{ __html: EARLY_THEME }} />
       </head>
       <body className="antialiased">

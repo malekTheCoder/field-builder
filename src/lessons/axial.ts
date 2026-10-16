@@ -22,7 +22,7 @@ export const lesson: Lesson = {
       {tex: raw`\Delta E=\frac{k\,\Delta Q}{r_i^2},\qquad r_i=L+a-x`},
       raw`The field lies along the axis: away from the piece, toward $+x$, for a positive charge, and back toward it for a negative one.`,
     ]},
-    {heading: 'Nothing to cancel', body: [
+    {heading: 'Nothing cancels', body: [
       raw`On the bisector this was the step where a mirror piece removed a part. Here there is no part to remove. Every piece sits on the axis through $P$, short of it, so every arrow lies along $x$: the part along $x$ is the whole field, there is no angle and no projection factor, and $E_y=0$ with no pairing at all.`,
       raw`Nor does any piece undo another, since every arrow points the same way. The near pieces simply count for more than the far ones.`,
     ]},
@@ -43,7 +43,7 @@ export const lesson: Lesson = {
   ],
   read: [
     {book: 'OpenStax, University Physics Volume 2', where: '§5.5, Calculating Electric Fields of Charge Distributions', url: 'https://openstax.org/books/university-physics-volume-2/pages/5-5-calculating-electric-fields-of-charge-distributions'},
-    {book: 'Griffiths, Introduction to Electrodynamics', where: '§2.1, The Electric Field: continuous charge distributions'},
+    {book: 'Griffiths, Introduction to Electrodynamics', where: '§2.1.4, Continuous Charge Distributions'},
     {book: 'Purcell and Morin, Electricity and Magnetism', where: 'Chapter 1, Electrostatics'},
   ],
 };

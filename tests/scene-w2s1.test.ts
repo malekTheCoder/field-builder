@@ -2,7 +2,7 @@ import {describe, expect, it} from 'vitest';
 import type {Vec} from '../src/symbolic/physics';
 import {boxGap, fieldLines, lineHeads, LINE_HEAD, meetsBoxes, seedPool, traceLimit, type Box} from '../src/diagrams/fieldlines';
 import {endlessAxis, endlessBody, endlessRay, latticeCore, latticeFrame, meridianLines, meridianLaunch, rayField, rayLines, spaceField, spaceLines, spaceSeeds, surfaceRoots, traceTo} from '../src/diagrams/field3d';
-import {apartOnScreen, behindGap, BEHIND_GAP, chainAside, CHAIN_ASIDE, diskSignMarks, lineReach, lineStrength, SHEET_SIGN_GAP, sheetFarFade, sheetSignRoots, sheetSigns, signMarks, washerHalf, wireRadius} from '../src/diagrams/three/bodies';
+import {apartOnScreen, behindGap, BEHIND_GAP, PIECE_FAR_LOW, chainAside, CHAIN_ASIDE, diskSignMarks, lineReach, lineStrength, SHEET_SIGN_GAP, sheetFarFade, sheetSignRoots, sheetSigns, signMarks, washerHalf, wireRadius} from '../src/diagrams/three/bodies';
 import {cameraBasis} from '../src/diagrams/three/orthoCamera';
 import {coarsen, sampleDistribution} from '../src/diagrams/sampling';
 import {bodyDistance, bodyFoot, PLOT} from '../src/diagrams/vectorfield';
@@ -200,7 +200,7 @@ describe('an endless charge\'s arrows stand round P', () => {
 });
 
 describe('the charge behind P leaves a gap round it', () => {
- it('a surface keeps a trace within the inner radius and all of itself from the outer; a wire is cut clean; nothing in front is touched', () => {
+ it('a surface keeps a trace within the inner radius and all of itself from the outer; a wire is dimmed; nothing in front is touched', () => {
   expect(behindGap(0, true)).toBeCloseTo(BEHIND_GAP.low, 9);
   expect(behindGap(BEHIND_GAP.inner, true)).toBeCloseTo(BEHIND_GAP.low, 9);
   expect(behindGap(BEHIND_GAP.outer, true)).toBe(1);
@@ -209,9 +209,10 @@ describe('the charge behind P leaves a gap round it', () => {
   expect(behindGap(22, true)).toBeLessThan(.1);
   for (const d of [0, 10, 22, 30]) {expect(behindGap(d, false)).toBe(1); expect(behindGap(d, false, true)).toBe(1);}
   for (let d = 0; d < 40; d += .5) expect(behindGap(d + .5, true)).toBeGreaterThanOrEqual(behindGap(d, true));
-  // A wire: gone within the hard radius, whole outside it -- wider than P's halo, about eleven pixels.
+  // A wire: dimmed within the hard radius, not cut (a ring tipped up read as an open C), whole outside it -- wider
+  // than P's halo, about eleven pixels.
   expect(BEHIND_GAP.hard).toBeGreaterThanOrEqual(18);
-  expect(behindGap(BEHIND_GAP.hard - .5, true, true)).toBe(0);
+  expect(behindGap(BEHIND_GAP.hard - .5, true, true)).toBe(PIECE_FAR_LOW);
   expect(behindGap(BEHIND_GAP.hard + .5, true, true)).toBe(1);
  });
 });

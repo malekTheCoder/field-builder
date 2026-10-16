@@ -70,8 +70,10 @@ function LimitFigure({id,mode,t,vector,scale,arrow}:{id:ProblemId;mode:Limit['mo
  // an end stands and as the lesson lays it, and P walks out level with that end; the line runs off the
  // top with the rod grown without end's mark. A negative line's arrow, which points back up at the
  // line, stops at its edge.
- if(id==='semi'){const x=80+130*Math.log(t)/Math.log(30);return <><path d={`M64 34H${x}`} {...RAIL}/><path d="M64 34V-4" {...CHARGE} strokeWidth="7"/><path d="M57 12l7-6 7 6" {...CHARGE}/>{P(x,34,false,undefined,64+3.5+CLEAR)}</>}
- if(id==='endpoint'||id==='ramp'){
+ if(id==='semi'&&mode==='scale'){const x=80+130*Math.log(t)/Math.log(30);return <><path d={`M64 34H${x}`} {...RAIL}/><path d="M64 34V-4" {...CHARGE} strokeWidth="7"/><path d="M57 12l7-6 7 6" {...CHARGE}/>{P(x,34,false,undefined,64+3.5+CLEAR)}</>}
+ // The half line grown from a rod of length L (its case "Near the end of a long rod") is the rod level
+ // with its end, drawn as that lesson draws it.
+ if(id==='endpoint'||id==='ramp'||id==='semi'){
   const {length,gap,unbounded}=rodScale(mode,t,32,94,24),h=Math.max(3,length);
   return <><path d={`M104 34H${104+gap-8}`} {...RAIL}/>
    {/* The ramp is a wedge: empty at the foot, widest at the top. */}
@@ -215,7 +217,7 @@ export function limitNow(problem:Problem,limit:Limit,plot:LimitPlot,here:number,
    'Farther out, how the charge is spread matters less and less: the curve is closing on the dashed line.',
    'Far away, only the rod’s charge and its centre of charge matter: the vertical field is the first-moment field.']);
   case 'infinite':{
-   const disk=g==='disk'||g==='sheet',grown=disk?'disk':'rod',big=disk?'Wider and wider':'Longer and longer',ideal=disk?'an infinite sheet':g==='endpoint'?'a semi-infinite line':'an infinite line';
+   const disk=g==='disk'||g==='sheet',grown=disk?'disk':'rod',big=disk?'Wider and wider':'Longer and longer',ideal=disk?'an infinite sheet':g==='endpoint'||g==='semi'?'a semi-infinite line':'an infinite line';
    if(scalar)return pick(along,[
     `A ${disk?'small disk':'short rod'}: V and its dashed growth law have only begun to climb.`,
     `As the ${grown} grows, V keeps growing, and so does the law beside it.`,
