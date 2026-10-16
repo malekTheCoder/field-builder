@@ -488,3 +488,59 @@ describe('the figure’s round of fixes', () => {
     await waitFor(() => { const r = document.querySelector('.gs-page .exp-diagram-card .cd-stage')!.getBoundingClientRect(); expect(r.top).toBeGreaterThanOrEqual(-1); expect(r.bottom).toBeLessThanOrEqual(845); }, {timeout: 4000});
   }, 20000);
 });
+
+describe('the board follows the run, and the figure fits its card', () => {
+  /** Whether `el` lies inside the part of the board on screen. */
+  const inBoard = (el: Element | null) => {
+    const board = document.querySelector('.gs-board')!, b = board.getBoundingClientRect(), r = el!.getBoundingClientRect();
+    return r.top >= Math.max(b.top, 0) - 1 && r.bottom <= Math.min(b.bottom, window.innerHeight) + 1;
+  };
+  for (const id of ['symmetry', 'conductors'] as const) it(`${id}: beside the figure the step being written, and at the end the answer, are in the board's window`, async () => {
+    const f = frames();
+    try {
+      const view = await open(id, 1280, 720);
+      fireEvent.click(view.getByRole('button', {name: 'Watch it build'}));
+      // Each stage in turn: Symmetry, The surface, Left side, Right side, Solve.
+      for (const seconds of [2, 5, 5.5, 6.5, 4.5]) {
+        f.run(seconds);
+        await waitFor(() => expect(inBoard(document.querySelector('.gs-board .db-step.is-here'))).toBe(true), {timeout: 4000});
+      }
+      f.run(6);
+      await waitFor(() => { const result = document.querySelector('.gs-board .ew-result.is-shown'); expect(result).toBeTruthy(); expect(inBoard(result)).toBe(true); }, {timeout: 4000});
+      expect(document.querySelector<HTMLElement>('.gs-board')!.scrollTop).toBeGreaterThan(0);
+    } finally { f.restore(); }
+  }, 40000);
+  it('on a phone the transport, which carries the algebra there, stays in the window to the end', async () => {
+    const f = frames();
+    try {
+      const view = await open('symmetry', 390, 844);
+      fireEvent.click(view.getByRole('button', {name: 'Watch it build'}));
+      for (const seconds of [5, 5, 6.5, 4.5, 6]) {
+        f.run(seconds);
+        await waitFor(() => { const r = document.querySelector('.gs-page .exp-walk')!.getBoundingClientRect(); expect(r.bottom).toBeLessThanOrEqual(window.innerHeight + 1); expect(r.top).toBeGreaterThanOrEqual(-1); }, {timeout: 4000});
+      }
+    } finally { f.restore(); }
+  }, 40000);
+  // The whole drawing on a 1366 by 657 Chromebook's first screen is checked with the site's styles (this project
+  // runs without its fonts and Tailwind, where the page above the figure is taller than the site's).
+  it('a laptop’s first screen holds Watch it build and the board’s first step', async () => {
+    for (const id of ['symmetry', 'spheres', 'lines', 'sheets', 'hard']) {
+      await open(id, 1280, 720);
+      expect(rect('.gs-page .exp-watch-button').bottom).toBeLessThanOrEqual(720);
+      expect(rect('.gs-board .db-step').top).toBeLessThan(720);
+      cleanup(); newVisit(); window.history.replaceState(null, '', '/');
+    }
+  }, 60000);
+  it('the names on the figure stand clear of one another', async () => {
+    for (const id of ['qenc', 'lines', 'sheets', 'conductors', 'holes', 'runs-out', 'hard']) {
+      await open(id, 1280, 800);
+      const boxes = [...document.querySelectorAll<SVGTextElement>('.gs-svg > g > text.gs-name')].map(t => t.getBoundingClientRect()).filter(r => r.width > 0);
+      for (let i = 0; i < boxes.length; i++) for (let j = i + 1; j < boxes.length; j++) {
+        const a = boxes[i], b = boxes[j], across = Math.min(a.right, b.right) - Math.max(a.left, b.left), down = Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top);
+        expect(across > 2 && down > 2, `${id}: two names overlap`).toBe(false);
+      }
+      cleanup(); newVisit(); window.history.replaceState(null, '', '/');
+    }
+  }, 60000);
+});
+const rect = (selector: string) => document.querySelector(selector)!.getBoundingClientRect();

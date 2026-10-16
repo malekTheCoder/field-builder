@@ -4,7 +4,7 @@
 import {useCallback, useEffect, useInsertionEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore, type CSSProperties} from 'react';
 import {flushSync} from 'react-dom';
 import {useReducedMotion} from 'motion/react';
-import {ArrowRight, ChevronLeft, CircleHelp, ClipboardCheck, GraduationCap, House, Link as LinkIcon, Moon, MoreHorizontal, PanelLeft, Play, Printer, Sun} from 'lucide-react';
+import {ArrowRight, ChevronLeft, ChevronRight, CircleHelp, ClipboardCheck, GraduationCap, House, Link as LinkIcon, Moon, MoreHorizontal, PanelLeft, Play, Printer, Sun} from 'lucide-react';
 import {DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger} from '@/components/ui/dropdown-menu';
 import {Sidebar, SidebarContent, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarProvider} from '@/components/ui/sidebar';
 import {Dialog, DialogContent, DialogDescription, DialogTitle} from '@/components/ui/dialog';
@@ -22,7 +22,9 @@ import {gaussHref, gaussIdOf, gaussLesson, isGaussReady, type GaussId} from './i
 import {gaussStages, moment, runSeconds, stageStart} from './run';
 import {GaussFigure, type FigureView} from './GaussFigure';
 import {GaussBoard} from './GaussBoard';
+import {BOARD, useBoardFollowsRun} from './useBoardFollow';
 import {GaussRange} from './GaussRange';
+import {useRenderedWidth} from '../components/useRenderedWidth';
 import {SymmetryTest} from './SymmetryTest';
 import {FluxInstrument} from './FluxInstrument';
 import {FieldProfile} from './FieldProfile';
@@ -116,12 +118,22 @@ export default function GaussLesson() {
     document.getElementById(LESSON_TITLE)?.focus({preventScroll: true});
   }, [id]);
 
+  // THE OPEN LESSON IS IN VIEW IN THE LIST, which scrolls on its own beside the page: a lesson far down it could be open
+  // with nothing in the column saying which. Only the list moves, never the page, and only when the row is out of view.
+  useEffect(() => {
+    const row = document.querySelector<HTMLElement>('.gs-page .exp-lessons [aria-current=page]'), list = row?.closest<HTMLElement>('[data-slot=sidebar-content]');
+    if (!row || !list || list.scrollHeight <= list.clientHeight + 1) return;
+    const r = row.getBoundingClientRect(), l = list.getBoundingClientRect(), shown = Math.min(l.bottom, window.innerHeight) - Math.max(l.top, 0);
+    if (r.top >= Math.max(l.top, 0) && r.bottom <= Math.max(l.top, 0) + shown) return;
+    list.scrollTo({top: Math.max(0, list.scrollTop + r.top - l.top - Math.max(80, shown / 2 - r.height)), behavior: 'auto'});
+  }, [id, sidebarOpen]);
+
   // ---- WATCH IT BUILD: the recipe as a run of five stages, on the integral lessons' transport ----
   const stages = useMemo(() => gaussStages(kase), [kase]);
   const total = runSeconds(stages);
   const [clock] = useState(runClock);
   const [runOpen, setRunOpen] = useState(false), [playing, setPlaying] = useState(false), [index, setIndex] = useState(0), [settled, setSettled] = useState(false);
-  const loop = useRef<{stop: () => void} | null>(null), at = useRef({at: 0, stopAt: 0}), said = useRef(-1), quiet = useRef(false), reveal = useRef(false);
+  const loop = useRef<{stop: () => void} | null>(null), at = useRef({at: 0, stopAt: 0}), said = useRef(-1), quiet = useRef(false), reveal = useRef(false), stoppedByRun = useRef(false);
   const apply = (t: number) => {
     clock.set(t);
     const m = moment(stages, t);
@@ -129,12 +141,12 @@ export default function GaussLesson() {
     if (m.index !== said.current) { said.current = m.index; if (!quiet.current) setStatus(`${stages[m.index].name}. ${stages[m.index].line}`); }
   };
   const holdStatus = (ended = false) => { const m = moment(stages, clock.get()); setStatus(ended ? `${stages[m.index].caption} The answer is now at the foot of the board.` : stages[m.index].caption); };
-  const stop = () => { loop.current?.stop(); loop.current = null; setPlaying(false); };
+  const stop = () => { loop.current?.stop(); loop.current = null; stoppedByRun.current = false; setPlaying(false); };
   function play(from: number, until: number) {
-    loop.current?.stop(); loop.current = null;
+    loop.current?.stop(); loop.current = null; stoppedByRun.current = false;
     setRunOpen(true); setPlaying(true);
     at.current = {at: from, stopAt: until};
-    const done = () => { loop.current = null; setPlaying(false); holdStatus(at.current.at >= total - .01); };
+    const done = () => { loop.current = null; stoppedByRun.current = true; setPlaying(false); holdStatus(at.current.at >= total - .01); };
     // REDUCED MOTION STEPS, NEVER SKIPS: the same stages over the same time, in beats with nothing gliding between.
     if (reduced) {
       apply(from);
@@ -171,15 +183,38 @@ export default function GaussLesson() {
   const close = useSteady(() => { stop(); setRunOpen(false); clock.set(0); setIndex(0); setSettled(false); said.current = -1; requestAnimationFrame(() => watchButton.current?.focus({preventScroll: true})); });
   const watch = () => { reveal.current = true; play(0, total); };
   // Opened from the button, the focus goes to the play button, the control just pressed in its new place, and the
-  // transport is brought into view if it opened below the window.
+  // transport is brought into view if it opened below the window. And beside the board, the page goes up until the
+  // board reaches its sticky top, as far as the drawing can spare: lower, the board's foot (and the answer, at the
+  // end) was under the window, where its own scrolling could not bring it. As the integral lessons' run opens.
   useLayoutEffect(() => {
     if (!runOpen || !reveal.current) return;
     reveal.current = false;
     const player = walk.current;
     player?.querySelector<HTMLButtonElement>('.bp-play')?.focus({preventScroll: true});
     const over = (player?.getBoundingClientRect().bottom ?? 0) + 16 - window.innerHeight;
-    if (over > 1) window.scrollBy({top: over, behavior: reduced ? 'auto' : 'smooth'});
+    const panel = document.querySelector<HTMLElement>(BOARD), style = panel ? getComputedStyle(panel) : null;
+    const lift = panel && style?.overflowY === 'auto' ? panel.getBoundingClientRect().top - (parseFloat(style.top) || 0) : 0;
+    const drawing = player?.closest('.exp-diagram-card')?.querySelector('.cd-stage'), room = Math.max(0, (drawing?.getBoundingClientRect().top ?? 0) - 12);
+    const want = room > 0 ? Math.min(Math.max(over, lift), room) : over;
+    if (want > 1) window.scrollBy({top: want, behavior: reduced ? 'auto' : 'smooth'});
   }, [runOpen, reduced]);
+  // UNDER THE FIGURE (a phone, a narrow window) the transport carries the stage's algebra and grows with it: it is
+  // looked at again at every stage and at the settle, and the page goes down only while it runs off the window's foot,
+  // never so far that the drawing's top goes, so a reader who scrolled away to read is left there.
+  useEffect(() => {
+    if (!runOpen) return;
+    const player = walk.current;
+    const board = document.querySelector<HTMLElement>(BOARD);
+    if (!player || (board && getComputedStyle(board).overflowY === 'auto')) return;
+    const t = window.setTimeout(() => {
+      const over = player.getBoundingClientRect().bottom + 16 - window.innerHeight;
+      const drawing = player.closest('.exp-diagram-card')?.querySelector('.cd-stage'), room = Math.max(0, (drawing?.getBoundingClientRect().top ?? 0) - 12);
+      const by = Math.min(over, room);
+      if (by > 1 && over < window.innerHeight) window.scrollBy({top: by, behavior: reduced ? 'auto' : 'smooth'});
+    }, reduced ? 0 : 120);
+    return () => window.clearTimeout(t);
+  }, [runOpen, index, settled, reduced]);
+  useBoardFollowsRun({open: runOpen, index, settled, playing, reduced: !!reduced, stoppedByRun});
   // A change of lesson or case closes the run: its lines are another case's.
   useEffect(() => () => loop.current?.stop(), []);
   // oxlint-disable-next-line react/react-compiler -- A new case closes the run, stopping its clock: its lines are another case's.
@@ -244,6 +279,10 @@ export default function GaussLesson() {
   const toBuild = useSteady(() => { const t = watchButton.current; if (!t) return; t.scrollIntoView({block: 'center', behavior: reduced ? 'auto' : 'smooth'}); t.focus({preventScroll: true}); });
   const toggleLesson = useSteady(() => setLessonOpen(v => !v));
   const running = runOpen ? ' is-running' + (settled ? ' is-settled' : '') : '';
+  // The instruments draw in a viewBox about six hundred and forty units wide: their names are held to twelve pixels
+  // on screen at the least, the smallest of them (fourteen units) scaled up as the card narrows.
+  const [instrumentsRef, instrumentsWidth] = useRenderedWidth(720);
+  const instrumentK = Math.max(1, Math.min(2.2, .86 * 640 / Math.max(1, instrumentsWidth - (instrumentsWidth < 560 ? 28 : 50))));
   return <div className={'explorer-app symbolic-view gs-page'}>
     <a className="skip-link" href="#lesson" onClick={e => { e.preventDefault(); document.getElementById(LESSON_TITLE)?.focus(); }}>Skip to the lesson</a>
     <header className="exp-header"><Brand />
@@ -264,8 +303,11 @@ export default function GaussLesson() {
         <div className="exp-nav-bottom"><p>One law.<br />Every geometry.</p><MathText tex={String.raw`\oint\vec E\cdot d\vec A=\frac{Q_{\text{enc}}}{\varepsilon_0}`} /><span>Your settings stay on this device.</span></div></SidebarContent></Sidebar>}
       <main id="lesson" className="exp-main">
         <div className="exp-breadcrumb"><Hint label={sidebarOpen ? 'Hide the lesson list' : 'Show the lesson list'}><button type="button" className="exp-library-toggle" aria-expanded={sidebarOpen} aria-label={sidebarOpen ? 'Hide the lesson list' : 'Show the lesson list'} onClick={() => setSidebarOpen(v => !v)}><PanelLeft size={16} /></button></Hint>
-          <div className="exp-crumbs"><button type="button" className="exp-crumb-link" aria-haspopup="dialog" aria-expanded={library} onClick={() => setLibrary(true)}><ChevronLeft size={13} aria-hidden="true" />Charge library</button></div></div>
-        <div className="exp-heading has-lesson"><div><p className="gs-kicker">{GAUSS.label}</p><h1 id={LESSON_TITLE} tabIndex={-1}>{plannedName(lesson.title)}</h1></div></div>
+          <div className="exp-crumbs"><button type="button" className="exp-crumb-link" aria-haspopup="dialog" aria-expanded={library} onClick={() => setLibrary(true)}><ChevronLeft size={13} aria-hidden="true" />Charge library</button>
+            {/* The section is said in the crumb row, as a family is placed, not as a line of its own above the title:
+                that line cost the figure thirty pixels of the first screen, and no other page on the site has one. */}
+            <ChevronRight size={13} aria-hidden="true" /><span className="gs-crumb-here">{GAUSS.label}</span></div></div>
+        <div className="exp-heading has-lesson"><div><h1 id={LESSON_TITLE} tabIndex={-1}>{plannedName(lesson.title)}</h1></div></div>
         <LessonIntro lesson={lesson} open={lessonOpen} onToggle={toggleLesson} onBuild={toBuild} />
         <div className={'exp-workspace' + running}>
           <div className="exp-visual-column">
@@ -283,6 +325,7 @@ export default function GaussLesson() {
               <GaussRange label={kase.figure.surface.label} value={size} min={kase.figure.surface.size.min} max={kase.figure.surface.size.max} step={.01} onChange={setSize} valueText={n => sizeText(kase, n)} />
               {signRow}
             </div></section>
+            <div className="gs-instruments" ref={instrumentsRef as unknown as React.Ref<HTMLDivElement>} style={{'--cd-k': instrumentK} as CSSProperties}>
             {lesson.instrument === 'symmetry' && <SymmetryTest sym={sym} sign={sign} />}
             {lesson.instrument === 'flux' && <FluxInstrument />}
             {lesson.instrument === 'profile' && <FieldProfile kase={kase} size={size} sign={sign} />}
@@ -292,6 +335,7 @@ export default function GaussLesson() {
             {lesson.instrument === 'plot' && <FieldPlot kase={kase} size={size} sign={sign} />}
             {lesson.instrument === 'hole' && <HoleInstrument sign={sign} />}
             {lesson.instrument === 'cube' && <CubeInstrument sign={sign} />}
+            </div>
           </div>
           <GaussBoard kase={kase} flux={lesson.id === 'flux' || lesson.id === 'inside' || lesson.id === 'runs-out'} build={boardBuild} onStep={boardStep} />
         </div>
