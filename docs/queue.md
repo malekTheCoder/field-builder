@@ -6,14 +6,16 @@ then to **Done**, with the commit. Newest requests are added at the bottom of **
 owner says they are urgent.
 
 ## In progress
-Nothing. Paused at 58% weekly usage (stop at 60%) on 2026-10-16; CI green on 87b8d5d.
+Usage stop raised to 68% weekly (owner, 2026-10-16, from 58%).
+- **Gauss quiz, part 1:** the quiz engine learns Gauss lessons (?g= review links, a Gauss family on the
+  set-up screen) and banks for symmetry, flux, inside, qenc, spheres. Then part 2 (the other six), then
+  one physics review of all the Gauss questions.
+- **Visual QA of the eleven Gauss pages** (Sonnet, read-only), then a fixer for its findings.
 
 ## Next
 0. **Owner's call (from wave 6):** a negative ring seen in space draws its stacked ΔE_z running through the
    empty middle O. The fixer left it: an earlier deliberate choice, and capping it would make a negative
    ring's arrows half a positive's. Leftovers from wave 6 are in .claude/loop/reports/LOG.md.
-1. **Gauss quiz banks** for the eleven Gauss lessons (the study lab's "mistakes graders see most" and its
-   five misconceptions), then their physics review. Waiting for the weekly usage to reset (2026-10-20).
 2. **New lessons**, deferred by the cloud round, for the owner to choose from: a non-uniform semicircle, a
    spherical shell, an annulus, a rod with P off its bisector.
 
