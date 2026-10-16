@@ -1356,3 +1356,37 @@ describe('Gauss: the hard cases', () => {
   });
  }
 });
+
+/* THE REVIEW OF THE FIRST FIVE GAUSS BANKS: each claim a reviewer corrected, checked by number for both signs. */
+describe('Gauss: the review of the first five banks', () => {
+ for (const s of [1, -1]) {
+  it(`off the centre, the nearest patch sees a stronger field than the flux over the area, with q’s sign (sign ${s})`, () => {
+   const q = 1.1 * s, R = 1, at = .6, E = (p: P3) => pointsE([[0, 0, at, q]], p);
+   const avg = sphereFlux(E, [0, 0, 0], R).flux / (4 * Math.PI * R * R);
+   close(avg, q / (4 * Math.PI * eps0 * R * R), 2e-4);
+   const near = E([0, 0, R])[2];
+   expect(Math.sign(near)).toBe(s); expect(Math.abs(near)).toBeGreaterThan(2 * Math.abs(avg));
+  });
+  it(`inside a uniform ball E_r is proportional to r: its size grows outward, its value only for a positive Q (sign ${s})`, () => {
+   const R = 1, Q = 1.4 * s, rho = () => Q / (4 / 3 * Math.PI * R ** 3), Er = (r: number) => k * shells(rho, r) / r ** 2;
+   for (const r of [.2, .5, .9]) { close(Er(r) / r, k * Q / R ** 3, 1e-6); expect(Math.sign(Er(r))).toBe(s); }
+   expect(Math.abs(Er(.9))).toBeGreaterThan(Math.abs(Er(.5)));
+   expect(Math.sign(Er(.9) - Er(.5))).toBe(s);
+  });
+  it(`the falling density’s formula changes sign past R, so carrying it on adds charge of the other sign; its size is greatest at the centre (sign ${s})`, () => {
+   const R = 1, Q = 1.2 * s, rho0 = 3 * Q / (Math.PI * R ** 3), rho = (r: number) => rho0 * (1 - r / R);
+   for (const x of [1.1, 1.4]) { expect(Math.sign(rho(x * R))).toBe(-s); expect(Math.sign(shells(rho, x * R) - shells(rho, R))).toBe(-s); }
+   for (const x of [.1, .5, .9]) expect(Math.abs(rho(x * R))).toBeLessThan(Math.abs(rho0));
+  });
+  it(`the line outside a coaxial cylinder makes field on its wall, changing along it, yet no net flux; the whole field is the same all along (sign ${s})`, () => {
+   const lam = .8 * s, r = .6, h = .9;
+   // The rest of the line is the endless line less the piece inside, from −h to h.
+   const outEs = (z: number) => 2 * k * lam / r - rodEs(lam, h, r, z);
+   expect(Math.abs(outEs(0))).toBeGreaterThan(.1 * Math.abs(2 * k * lam / r));
+   expect(Math.abs(outEs(.8 * h) - outEs(0))).toBeGreaterThan(.1 * Math.abs(outEs(0)));
+   const outFlux = 2 * k * lam / r * 2 * Math.PI * r * 2 * h - rodCylinderFlux(lam, h, r, h).total;
+   expect(Math.abs(outFlux)).toBeLessThan(2e-3 * Math.abs(lam * 2 * h / eps0));
+   for (const z of [0, .5, .85]) close(line(r, z, -1e5, 1e5, () => lam).ex, 2 * k * lam / r, 2e-3);
+  });
+ }
+});

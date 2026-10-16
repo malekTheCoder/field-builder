@@ -72,7 +72,7 @@ export const bank: Question[] = [
       {correct: true, text: raw`The net flux is zero, but the field on the surface is not: it goes in on one side and out on the other.`},
       {text: raw`The flux is zero because the charge’s field does not reach the surface.`, misconception: 'zero-flux-zero-field',
         why: raw`A point charge’s field reaches everywhere, weaker with distance. It crosses the surface; it only crosses it in as much as out.`},
-      {text: raw`The flux is not zero: the side facing the charge sees a stronger field than the far side.`, misconception: 'bigger-surface',
+      {text: raw`The flux is not zero: the side facing the charge sees a stronger field than the far side.`, misconception: 'outside-counts',
         why: raw`The near side does see a stronger field, but seen from the charge it fills the same cone of directions as the far side. Equal cones carry equal flux, in on one side and out on the other.`},
     ],
     explanation: raw`Every cone of directions from the charge that meets the surface crosses it twice, once going in and once coming out, and carries equal flux of opposite sign at the two crossings. The net flux is zero, though the field is nowhere zero on the surface.`,

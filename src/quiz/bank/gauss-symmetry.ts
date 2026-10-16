@@ -28,7 +28,7 @@ export const bank: Question[] = [
         why: raw`A mirror perpendicular to the rod through $P$ leaves an infinite line unchanged, but not a rod unless $P$ is level with its middle. Away from there the field has a part along the rod, and on the cylinder’s wall it is stronger near the middle than near the ends.`},
       {text: raw`Yes, as long as the cylinder is long enough to enclose the whole rod.`, misconception: 'surface-real',
         why: raw`Enclosing all the charge is not what the surface needs. It needs the field perpendicular to it and the same all over, and the rod’s field is neither on that cylinder: it leans, and it also crosses the cylinder’s ends.`},
-      {text: raw`No, because Gauss’s law is false for a rod with ends.`, misconception: 'false-symmetry',
+      {text: raw`No, because Gauss’s law is false for a rod with ends.`, misconception: 'law-fails',
         why: raw`Gauss’s law is true for every closed surface and every charge: the flux through that cylinder is still the charge inside over $\varepsilon_0$. What fails is pulling $E$ out of the integral to solve for it.`},
     ],
     explanation: raw`A finite rod survives too few of the moves that made the infinite line’s field straight out and the same along a cylinder’s wall. The flux through any closed surface round it is still $Q_{\text{enc}}/\varepsilon_0$, but on no surface is $\vec E$ the same and perpendicular to it all over, so no division gives $E$. Its field comes from adding up its pieces, as the integral lessons do.`,
@@ -109,7 +109,7 @@ export const bank: Question[] = [
     choices: [
       {correct: true, text: raw`Nothing more. How big $E_r$ is at each $r$ comes from Gauss’s law: the flux set equal to the charge inside.`},
       {text: raw`That $E_r$ falls as $1/r^2$, since the ball is spherical.`, misconception: 'symmetry-size',
-        why: raw`Symmetry allows any size that depends on $r$ alone. The $1/r^2$ outside comes from the law: the charge inside stays $Q$ while the area grows as $r^2$. Inside the ball the same symmetry goes with a field that grows as $r$.`},
+        why: raw`Symmetry allows any size that depends on $r$ alone. The $1/r^2$ outside comes from the law: the charge inside stays $Q$ while the area grows as $r^2$. Inside the ball the same symmetry goes with a field proportional to $r$.`},
       {text: raw`That $E_r$ is the same at every $r$.`, misconception: 'symmetry-size',
         why: raw`Symmetry says the size is the same over each sphere, at one $r$, not that it is the same from one $r$ to the next. Turns about the centre never carry a point to a different distance.`},
     ],
@@ -119,7 +119,7 @@ export const bank: Question[] = [
   {id: 'symmetry-negative-sheet', lesson: 'symmetry', kind: 'transfer',
     prompt: raw`Give the infinite sheet a negative charge. Which way does its field point?`,
     choices: [
-      {correct: true, text: raw`Square to the sheet and toward it, on both sides: $E_\perp=\sigma/(2\varepsilon_0)$ is now negative.`},
+      {correct: true, text: raw`Perpendicular to the sheet and toward it, on both sides: $E_\perp=\sigma/(2\varepsilon_0)$ is now negative.`},
       {text: raw`Toward the sheet above it, and away from it below.`, misconception: 'symmetry-forbids',
         why: raw`A mirror in the sheet’s own plane leaves the sheet unchanged and swaps its two sides, so the field below must be the mirror of the field above. If it points toward the sheet above, it points toward it below as well.`},
       {text: raw`Nowhere: on each side the sheet’s field cancels itself.`, misconception: 'sign',
@@ -131,7 +131,7 @@ export const bank: Question[] = [
   {id: 'symmetry-sample', lesson: 'symmetry', kind: 'check',
     prompt: raw`The cylinder round the infinite line encloses only a length $L$ of it, and the rest of the line lies outside. Does that spoil the answer?`,
     choices: [
-      {correct: true, text: raw`No. The surface only has to pass through $P$ with the field perpendicular to its wall. The line outside helps make that field, and adds nothing to the net flux.`},
+      {correct: true, text: raw`No. The surface only has to pass through $P$ with the field the same all over its wall and perpendicular to it. The line outside helps make that field, and adds nothing to the net flux.`},
       {text: raw`Yes: Gauss’s law needs a surface that encloses all the charge, so it cannot be used on an infinite line.`, misconception: 'surface-real',
         why: raw`No surface could enclose all of an infinite line, and none needs to. Round a line or a sheet the surface only ever encloses a sample, and the law still gives the field.`},
       {text: raw`Yes: the line outside adds to the field, so the answer is too small.`, misconception: 'only-inside-field',

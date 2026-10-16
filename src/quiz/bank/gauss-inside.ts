@@ -9,7 +9,7 @@ export const bank: Question[] = [
   {id: 'inside-off-centre', lesson: 'inside', kind: 'predict',
     prompt: raw`Move the point charge from the centre of the sphere to a place near its surface, still inside. What happens to the flux out through the sphere?`,
     choices: [
-      {correct: true, text: raw`Nothing: it stays $q/\varepsilon_0$, though the patches near the charge now carry more of it.`},
+      {correct: true, text: raw`Nothing: it stays $q/\varepsilon_0$, though the patches near the charge now carry a bigger share of it.`},
       {text: raw`It grows, since the charge is now close to part of the surface.`, misconception: 'bigger-surface',
         why: raw`The near patches do carry more, but the far ones carry less. Seen from the charge the sphere still fills every direction once, and the total is the same.`},
       {text: raw`It shrinks, since most of the sphere is now farther from the charge.`, misconception: 'bigger-surface',
@@ -88,7 +88,7 @@ export const bank: Question[] = [
         why: raw`Each does, with its own sign: $q/\varepsilon_0$ and $-q/\varepsilon_0$. Fluxes add like the charges, and these add to zero.`},
     ],
     explanation: raw`Fluxes add: the two charges inside give $q/\varepsilon_0$ and $-q/\varepsilon_0$, so the net flux is zero. Their field is not zero on the sphere: it crosses out on one side and in on the other in equal amounts.`,
-    review: {lesson: 'inside', section: 'Check the answer', case: 'outside'}},
+    review: {lesson: 'inside', section: 'Step four: many charges'}},
 
   {id: 'inside-shells-outside', lesson: 'inside', kind: 'check',
     prompt: raw`Inside a uniform ball, a Gaussian sphere of radius $r$ gives $E_r=kQ_{\text{enc}}/r^2$, as if the ball’s charge outside $r$ made no field there. Why is that right?`,
@@ -121,7 +121,7 @@ export const bank: Question[] = [
       {text: raw`Yes: the field is $q/(4\pi\varepsilon_0r^2)$ on every patch, as it was with the charge at the centre.`, misconception: 'false-symmetry',
         why: raw`That needed the field perpendicular to the sphere and the same all over it, which only a charge at the centre gives. Off the centre it is stronger near the charge and slanted to most patches.`},
       {text: raw`Yes, but only on the patch nearest the charge.`, misconception: 'false-symmetry',
-        why: raw`Dividing the total flux by the area gives an average of the field’s outward part, not its value on any one patch. The nearest patch sees more than that average.`},
+        why: raw`Dividing the total flux by the area gives an average of the field’s outward part, not its value on any one patch. On the nearest patch the field is stronger than that average.`},
     ],
     explanation: raw`The law still holds: the flux is $q/\varepsilon_0$. But the field is radial from the charge, not from the centre, so on the sphere it has a different size and a different angle on each patch. Without the symmetry, $E$ cannot be pulled out of $\oint\vec E\cdot d\vec A$.`,
     review: {lesson: 'inside', stage: 'symmetry', case: 'off'}},

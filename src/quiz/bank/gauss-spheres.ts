@@ -23,11 +23,11 @@ export const bank: Question[] = [
     choices: [
       {correct: true, tex: raw`\frac{kQr}{R^3}`},
       {tex: raw`\frac{kQ}{r^2}`, misconception: 'qenc-total',
-        why: raw`That counts the whole ball’s charge, but a sphere of radius $r$ inside the ball encloses only $Qr^3/R^3$ of it. The field would then grow without end toward the centre, where it is in fact zero.`},
+        why: raw`That counts the whole ball’s charge, but a sphere of radius $r$ inside the ball encloses only $Qr^3/R^3$ of it. Its size would then grow without end toward the centre, where the field is in fact zero.`},
       {tex: raw`\frac{kQ}{R^2}`, misconception: 'ratio-power',
-        why: raw`That follows from taking $Qr^2/R^2$ inside, the fraction of the area. The charge fills the volume, so the fraction is $r^3/R^3$, and the field grows as $r$ instead of staying level.`},
+        why: raw`That follows from taking $Qr^2/R^2$ inside, the fraction of the area. The charge fills the volume, so the fraction is $r^3/R^3$, and the field is proportional to $r$ instead of staying level.`},
     ],
-    explanation: raw`The sphere of radius $r$ encloses $Q_{\text{enc}}=Qr^3/R^3$, so $E_r(4\pi r^2)=Qr^3/(R^3\varepsilon_0)$ and $E_r=kQr/R^3$: zero at the centre, growing in proportion to $r$, reaching $kQ/R^2$ at the surface.`,
+    explanation: raw`The sphere of radius $r$ encloses $Q_{\text{enc}}=Qr^3/R^3$, so $E_r(4\pi r^2)=Qr^3/(R^3\varepsilon_0)$ and $E_r=kQr/R^3$: zero at the centre, proportional to $r$, reaching $kQ/R^2$ at the surface.`,
     review: {lesson: 'spheres', stage: 'right', case: 'ball'}},
 
   {id: 'spheres-rising-qenc', lesson: 'spheres', kind: 'setup',
@@ -39,7 +39,7 @@ export const bank: Question[] = [
       {tex: raw`\frac{\pi\rho_0r^4}{R}`, misconception: 'rho0-unknown',
         why: raw`That is right in $\rho_0$, but $\rho_0$ was not given. Out to $R$ the same integral is $\pi\rho_0R^3$, which must be $Q$; put $\rho_0=Q/(\pi R^3)$ in.`},
       {tex: raw`Q\,\frac{r^2}{R^2}`, misconception: 'rho-dr',
-        why: raw`That is what $\int\rho\,dr'$ gives once fixed to reach $Q$ at $R$. It leaves out each shell’s area, $4\pi r'^2$, which is why it grows too fast near the centre.`},
+        why: raw`That is what $\int\rho\,dr'$ gives once fixed to reach $Q$ at $R$. It leaves out each shell’s area, $4\pi r'^2$, which is why it puts too large a share of $Q$ near the centre.`},
     ],
     explanation: raw`By thin shells, $\int_0^r\rho_0\frac{r'}{R}\,4\pi r'^2\,dr'=\pi\rho_0r^4/R$. At $r=R$ that is $\pi\rho_0R^3=Q$, so $\rho_0=Q/(\pi R^3)$ and $Q_{\text{enc}}=Qr^4/R^4$. Then $E_r=kQr^2/R^4$ inside.`,
     review: {lesson: 'spheres', stage: 'right', case: 'rising'}},
