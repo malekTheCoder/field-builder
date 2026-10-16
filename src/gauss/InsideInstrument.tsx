@@ -37,7 +37,7 @@ export function InsideInstrument({sign, start = .48}: {sign: 1 | -1; start?: num
   // Its names held at a readable size as it shrinks on a phone, as the figure's are.
   const [measure, width] = useRenderedWidth(640);
   const setSvg = useCallback((el: SVGSVGElement | null) => { svg.current = el; return measure(el); }, [measure]);
-  const k = Math.max(1, Math.min(1.8, 640 / Math.max(1, width) * .8));
+  const k = Math.max(1, Math.min(2.2, 640 / Math.max(1, width) * .86));
   const uid = useId();
   const place = (next: number) => {
     // On the slider's own grid, so a drag never stops on the sphere either.

@@ -38,7 +38,7 @@ export function QencInstrument() {
   const [r, setR] = useState(.6);
   const uid = useId();
   const [measure, width] = useRenderedWidth(640);
-  const k = Math.max(1, Math.min(1.8, 640 / Math.max(1, width) * .8));
+  const k = Math.max(1, Math.min(2.2, 640 / Math.max(1, width) * .86));
   const rho = (x: number) => density(profile, x), dq = (x: number) => shellCharge(profile, x);
   const rhoPeak = peakOf(rho), dqPeak = peakOf(dq);
   const upTo = Math.min(r, 1), frac = qencFraction(profile, r);

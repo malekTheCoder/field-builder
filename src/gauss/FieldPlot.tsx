@@ -33,7 +33,7 @@ function region(k: SphereKind, x: number): {tex: string; words: string} {
 export function FieldPlot({kase, size, sign}: {kase: GaussCase; size: number; sign: 1 | -1}) {
   const uid = useId(), clipId = `${uid.replace(/:/g, '')}-clip`;
   const [measure, width] = useRenderedWidth(640);
-  const k = Math.max(1, Math.min(1.8, 640 / Math.max(1, width) * .8));
+  const k = Math.max(1, Math.min(2.2, 640 / Math.max(1, width) * .86));
   const kind = (SPHERE_KINDS as readonly string[]).includes(kase.figure.charge.kind) ? kase.figure.charge.kind as SphereKind : 'ball';
   // The point charge has no R of its own: it is drawn against the others', the radius the figure gives them.
   const R = kase.figure.charge.size || 1.1, x = size / R;

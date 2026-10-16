@@ -4,8 +4,7 @@
 
 /* The lesson list: the lessons still to come, under a line of their own once some are ready. */
 .gs-soon-sub{margin:14px 10px 4px;font-size:var(--type-meta);font-weight:600;color:var(--sidebar-dim);letter-spacing:0}
-.gs-kicker{margin:0 0 4px;font-size:var(--type-meta);font-weight:600;color:var(--muted-foreground)}
-.exp-heading .gs-kicker{margin-top:0}
+.gs-crumb-here{font-size:var(--type-meta);color:var(--muted-foreground);white-space:nowrap}
 
 /* ---- the figure ---- */
 .gs-figure{display:flex;flex-direction:column}
@@ -16,19 +15,45 @@
 /* On a touch screen a vertical swipe over the figure scrolls the page, as on the integral lessons' figure
    (camera.css): this sheet's own rule above outweighed that one, and a thumb landing on the figure trapped the page. */
 @media(any-pointer:coarse){.gs-svg.cd-orbitable{touch-action:pan-y}}
+/* THE DRAWING IS HELD TO A SHORT WINDOW AS THE INTEGRAL LESSONS' IS (explorer.css): with only the wide rule, a 1366 by
+   657 Chromebook drew the Gauss figure fifty pixels taller than an integral lesson's, and its foot, the toolbar and
+   Watch it build's transport went under the window. The same budgets, at the same sizes. */
+@media(min-width:1001px) and (max-height:820px){
+ .exp-diagram-card .gs-figure>.gs-stage{width:min(100% + 2 * var(--card-gutter,0px),calc(min(62vh,100dvh - 272px,700px) * 720 / 430))}
+}
+@media(min-width:1001px) and (min-height:421px) and (max-height:820px){
+ .exp-diagram-card:not(.is-running) .gs-figure>.gs-stage{width:min(100% + 2 * var(--card-gutter,0px),calc(min(62vh,100dvh - 272px - max(min(var(--lesson-room,0px),40px),var(--lesson-room,0px) - 52px),700px) * 720 / 430))}
+}
+@media(max-height:420px) and (orientation:landscape){
+ .exp-diagram-card .gs-figure>.gs-stage{width:min(100% + 2 * var(--card-gutter,0px),calc((100dvh - 150px) * 720 / 430))}
+}
+@media(max-width:1000px) and (min-height:621px) and (max-height:760px) and (orientation:landscape){
+ .exp-diagram-card .gs-figure>.gs-stage{width:min(100% + 2 * var(--card-gutter,0px),calc((100dvh - 290px) * 720 / 430))}
+}
+/* The toolbar keeps to one row beside the board: the turning hint takes what the view buttons and Reset view leave,
+   wrapping inside its own cell, rather than pushing Reset view onto a second row of its own and the card taller. */
+@media(min-width:601px){
+ .gs-figure>.cd-toolbar{flex-wrap:nowrap}
+ .gs-figure>.cd-toolbar>.gs-turn-hint{flex:1 1 auto;min-width:0;line-height:1.35}
+ .gs-figure>.cd-toolbar>.cd-view-modes,.gs-figure>.cd-toolbar>.cd-pad{flex:none}
+}
 .gs-svg.cd-orbitable:active{cursor:grabbing}
 .gs-svg:focus-visible{outline:2px solid var(--primary);outline-offset:-2px;border-radius:12px}
 .gs-name{font-family:var(--font-display),Georgia,serif;font-style:italic;font-weight:600;font-size:calc(17.5px * var(--cd-k,1));fill:var(--foreground);
  font-variant-numeric:lining-nums;font-feature-settings:'lnum';
  paint-order:stroke;stroke:var(--diagram);stroke-width:5px;stroke-linejoin:round;pointer-events:none}
 .gs-name .gs-sub{font-size:68%;font-style:normal}
+/* The names the figure is about carry a wider halo of paper, so an arrow that runs under one never reads through it;
+   a name placed off what it names hangs from a hairline back to it. */
+.gs-name.gs-field-name,.gs-name.gs-inside-name,.gs-name.gs-p-name{stroke-width:6px}
+.gs-leader{stroke:var(--muted-foreground);stroke-width:1;stroke-opacity:.7}
 .gs-p-name{font-size:calc(20.5px * var(--cd-k,1))}
 .gs-field-name{fill:var(--field)}
 .gs-field-name.is-answer{font-size:calc(21px * var(--cd-k,1))}
 .gs-normal-name{fill:var(--ink-2)}
 /* A zero in a name, upright: the serif's italic zero reads as a letter o. */
 .gs-zero{font-family:var(--font-ui),system-ui,sans-serif;font-style:normal;font-weight:600}
-.gs-zero-name{font-size:calc(15px * var(--cd-k,1));fill:var(--ghost)}
+.gs-zero-name{font-size:calc(16px * var(--cd-k,1));fill:var(--ghost)}
 .gs-inside-name,.gs-charge-name{fill:var(--charge)}
 .gs-sign{font-family:var(--font-ui),system-ui,sans-serif;font-weight:700;font-size:calc(18px * var(--cd-k,1));fill:var(--charge);paint-order:stroke;stroke:var(--diagram);stroke-width:4px;pointer-events:none}
 /* A point charge's sign on its own disc, in the paper's colour, as the instruments draw q. */
@@ -132,9 +157,9 @@
 .gs-q-hit{fill:transparent}
 .gs-q-body{fill:var(--charge-fill);stroke:var(--charge);stroke-width:2}
 .gs-q.is-inside .gs-q-body{fill:var(--charge)}
-.gs-q-sign{font:700 19px/1 var(--font-ui),system-ui,sans-serif;fill:var(--charge);pointer-events:none}
+.gs-q-sign{font:700 calc(19px * min(var(--cd-k,1),1.25))/1 var(--font-ui),system-ui,sans-serif;fill:var(--charge);pointer-events:none}
 .gs-q.is-inside .gs-q-sign{fill:var(--diagram)}
-.gs-q-name{font-size:17px}
+.gs-q-name{font-size:calc(17px * var(--cd-k,1))}
 .gs-q:focus-visible .gs-q-hit{fill:none;stroke:var(--primary);stroke-width:2.5}
 .gs-range{max-width:420px}
 .gs-checks{display:grid;gap:14px}
@@ -202,7 +227,7 @@
 .gs-metal{fill:var(--muted-foreground);fill-opacity:.16;stroke:none}
 .gs-surface-line{fill:none;stroke:var(--charge);stroke-width:2.4}
 .gs-metal-name{fill:var(--muted-foreground)}
-.gs-sign.gs-sign-small{font-size:15px;stroke-width:3px}
+.gs-sign.gs-sign-small{font-size:calc(15px * var(--cd-k,1));stroke-width:3px}
 .gs-mark-dot{fill:var(--charge)}
 .gs-cavity-line{fill:none;stroke:var(--field);stroke-width:1.6;stroke-opacity:.82}
 .gs-cavity-head{fill:var(--field)}
@@ -213,7 +238,7 @@
 .gs-reach{stroke:var(--field);stroke-opacity:.22;stroke-width:7;stroke-linecap:round}
 .gs-curve{fill:none;stroke:var(--field);stroke-width:2.8;stroke-linejoin:round;stroke-linecap:round}
 .gs-curve.is-added{stroke-dasharray:7 6;stroke-linecap:butt}
-.gs-added-name{font-size:14px;fill:var(--muted-foreground)}
+.gs-added-name{font-size:calc(14px * var(--cd-k,1));fill:var(--muted-foreground)}
 .gs-drop{stroke:var(--foreground);stroke-opacity:.7;stroke-width:1.2;stroke-dasharray:3 3}
 .gs-dot{fill:var(--foreground);stroke:var(--diagram);stroke-width:2}
 .gs-related{margin:12px 0 0;font-size:var(--type-meta)}
@@ -237,13 +262,31 @@
 /* Every charge an instrument lets the reader drag takes the touch itself: left to the page, a drag scrolled it and
    cancelled the move. */
 .gs-q,.gs-holes .gs-q,.gs-cube .gs-q{touch-action:none}
-@media (max-width:600px){.gs-cube .gs-bar-name{font-size:22px}}
+
 .gs-hole-grip{fill:var(--foreground);fill-opacity:.55}
 /* When symmetry runs out: the cube cut through its middle, its edges as thick as their faces' shares, and the bars. */
 .gs-cube-face{fill:var(--field);fill-opacity:.05;stroke:none}
 .gs-cube-edge{stroke:var(--field);stroke-opacity:.75;stroke-linecap:round}
-.gs-bar-name{font-family:var(--font-ui),system-ui,sans-serif;font-size:14px;fill:var(--muted-foreground)}
+.gs-bar-name{font-family:var(--font-ui),system-ui,sans-serif;font-size:calc(14px * var(--cd-k,1));fill:var(--muted-foreground)}
 .gs-bar-track{fill:var(--muted-foreground);fill-opacity:.1}
 .gs-bar{fill:var(--field);fill-opacity:.8}
 .gs-bar.is-sum.is-alt{fill-opacity:.5}
 .gs-bar-sixth{stroke:var(--foreground);stroke-width:1.2;stroke-dasharray:3 3;stroke-opacity:.6}
+
+/* THE INSTRUMENTS' TYPE HAS A FLOOR. Drawn in a fixed viewBox, it shrank with the card: on a phone the flux
+   instrument's q₁ to q₄ came out under nine pixels, a conductor's charge marks under eight. The instruments' box sets
+   --cd-k from its rendered width (GaussLesson) so the smallest of their names is twelve pixels on screen. */
+.gs-instruments{display:block}
+.gs-arrow.gs-e.is-piece line{stroke:var(--contribution)}
+.gs-arrow.gs-e.is-piece path{fill:var(--contribution)}
+/* On a phone a segmented choice is a grid of equal cells, wrapping as whole cells with clean rules between them,
+   never a bar broken into a ragged second line inside one border. */
+@media(max-width:520px){
+ .gs-instrument .cd-view-modes,.gs-page .gs-parameters .gs-choice:not(.is-cases) .cd-view-modes{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,8.5em),1fr));gap:0}
+ .gs-instrument .cd-view-modes>.cd-view-mode,.gs-page .gs-parameters .gs-choice:not(.is-cases) .cd-view-modes>.cd-view-mode{border:0;box-shadow:-1px 0 0 var(--border),0 -1px 0 var(--border);white-space:normal;text-align:center;min-height:40px}
+ .gs-moves{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,8.5em),1fr))}
+ .gs-moves>.gs-move{white-space:normal;min-height:40px}
+}
+/* The view cube's face words come out at four pixels on a phone: there the cube is turned by its arrows and its
+   shading alone. */
+@media(max-width:600px){.gs-page .gs-stage .cd-cube-label{display:none}}

@@ -7,6 +7,7 @@ import {Tabs, TabsContent, TabsList, TabsTrigger} from '@/components/ui/tabs';
 import {MathText} from '../components/Math';
 import {blob, enclosedOf, fluxTex, fluxWords, flowRound, isInside, START, type Charged, type Pt} from './instruments';
 import {GaussRange} from './GaussRange';
+import {useRenderedWidth} from '../components/useRenderedWidth';
 /* THE FLUX INSTRUMENTS. A flat patch in a uniform field, turned through an angle from the normal, with its flux
  * read out in symbols; and a closed surface, dashed, with charges of either sign to drag in and out of it. The
  * closed surface's readout names the charges inside and nothing else, so it changes only when a charge crosses
@@ -28,6 +29,8 @@ function Arrow({a, b, className, head = 8}: {a: Pt; b: Pt; className: string; he
 /** A flat patch, seen edge on, in a uniform field: Φ = EA cos θ, θ measured from the normal. */
 function Patch() {
   const [deg, setDeg] = useState(35);
+  // The names grow as the card narrows (the instruments' --cd-k, GaussLesson): their offsets grow with them.
+  const [measure, width] = useRenderedWidth(640), k = Math.max(1, Math.min(2.2, .86 * 640 / Math.max(1, width)));
   const th = deg * Math.PI / 180, cx = 320, cy = 150, half = 92;
   // The normal at θ from the field (which runs to the right); the patch square to it.
   const n = {x: Math.cos(th), y: -Math.sin(th)}, along = {x: -n.y, y: n.x};
@@ -36,19 +39,19 @@ function Patch() {
   const at = Math.abs(deg) < .5 ? String.raw`\Phi=EA` : Math.abs(deg - 90) < .5 ? String.raw`\Phi=0` : Math.abs(deg - 180) < .5 ? String.raw`\Phi=-EA` : deg < 90 ? String.raw`0<\Phi<EA` : String.raw`-EA<\Phi<0`;
   const said = Math.abs(deg - 90) < .5 ? 'The field slides along the patch: no flux.' : deg < 90 ? 'The field goes through the way the normal points: the flux is positive.' : 'The field goes through against the normal: the flux is negative.';
   return <div className="gs-patch">
-    <svg className="gs-instrument-svg" viewBox="0 0 640 300" role="img" aria-label={`A flat patch, seen edge on, in a uniform field pointing right. ${said}`}>
+    <svg ref={measure} className="gs-instrument-svg" viewBox="0 0 640 300" role="img" aria-label={`A flat patch, seen edge on, in a uniform field pointing right. ${said}`}>
       {[-2, -1, 0, 1, 2].map(i => <Arrow key={i} a={{x: 40, y: cy + i * 46}} b={{x: 600, y: cy + i * 46}} className="gs-arrow gs-uniform" head={9} />)}
       <line className="gs-patch-edge" x1={a.x} y1={a.y} x2={b.x} y2={b.y} />
       <Arrow a={{x: cx, y: cy}} b={{x: cx + n.x * 78, y: cy + n.y * 78}} className="gs-arrow gs-n" head={9} />
       {/* E's part along the normal, E cos θ, laid along it: the only part that crosses. */}
       {Math.abs(perp) > .02 && <Arrow a={{x: cx, y: cy}} b={{x: cx + n.x * 112 * perp, y: cy + n.y * 112 * perp}} className="gs-arrow gs-e is-part" head={9} />}
       {/* E cos θ and n̂ are named on either side of the normal, so neither name sits on the other's arrowhead. */}
-      {Math.abs(perp) > .25 && <text className="gs-name gs-field-name" x={cx + n.x * 112 * perp - n.y * 30 * Math.sign(perp)} y={cy + n.y * 112 * perp + n.x * 30 * Math.sign(perp)} textAnchor="middle" dominantBaseline="middle">E cos θ</text>}
-      <text className="gs-name gs-normal-name" x={cx + n.x * 90 + n.y * 18 * Math.sign(perp || 1)} y={cy + n.y * 90 - n.x * 18 * Math.sign(perp || 1)} textAnchor="middle" dominantBaseline="middle">n̂</text>
+      {Math.abs(perp) > .25 && <text className="gs-name gs-field-name" x={cx + n.x * (112 * perp + 22 * k * Math.sign(perp)) - n.y * 30 * Math.sign(perp)} y={cy + n.y * (112 * perp + 22 * k * Math.sign(perp)) + n.x * 30 * Math.sign(perp)} textAnchor="middle" dominantBaseline="middle">E cos θ</text>}
+      <text className="gs-name gs-normal-name" x={cx + n.x * (78 + 12 * k) + n.y * 18 * k * Math.sign(perp || 1)} y={cy + n.y * (78 + 12 * k) - n.x * 18 * k * Math.sign(perp || 1)} textAnchor="middle" dominantBaseline="middle">n̂</text>
       <text className="gs-name gs-field-name" x={610} y={cy - 2 * 46 - 14} textAnchor="end">E</text>
       {/* The angle, from the field's direction to the normal. */}
       {deg > 3 && <path className="gs-angle" d={`M${cx + 40} ${cy}A40 40 0 ${deg > 180 ? 1 : 0} 0 ${(cx + 40 * Math.cos(th)).toFixed(1)} ${(cy - 40 * Math.sin(th)).toFixed(1)}`} />}
-      {deg > 3 && <text className="gs-name" x={cx + 56 * Math.cos(th / 2)} y={cy - 56 * Math.sin(th / 2)} textAnchor="middle" dominantBaseline="middle">θ</text>}
+      {deg > 3 && <text className="gs-name" x={cx + (44 + 12 * k) * Math.cos(th / 2)} y={cy - (44 + 12 * k) * Math.sin(th / 2)} textAnchor="middle" dominantBaseline="middle">θ</text>}
     </svg>
     <div className="gs-readout"><MathText tex={String.raw`\Phi=\vec E\cdot\vec A=EA\cos\theta`} block /><MathText tex={at} block /><p aria-live="polite">{said}</p></div>
     <GaussRange label="Angle from the normal θ" value={deg} min={0} max={180} step={1} onChange={setDeg} format={DEGREES} />
