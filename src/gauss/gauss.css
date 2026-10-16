@@ -180,6 +180,7 @@
 /* Holes by superposition: a hole is a gap the paper shows through, its rim dashed; the plug lit at the right side is
    the charge's colour, thinner; the instrument's arrows round the hole faint, the ones in it bold, and d in ink. */
 .gs-hole{fill:var(--diagram);fill-opacity:.92;stroke:var(--charge);stroke-width:1.6;stroke-dasharray:5 4}
+.gs-charge.is-cloud{stroke:none}
 .gs-plug-line{stroke:var(--ghost);stroke-width:2;stroke-dasharray:5 5}
 .gs-arrow.gs-e.is-piece line{stroke-width:1.8;stroke-opacity:.8}
 .gs-arrow.gs-e.is-piece path{fill-opacity:.85}

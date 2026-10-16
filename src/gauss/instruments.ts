@@ -147,15 +147,18 @@ export function profileReach(c: GaussCase): number {
   const b = boundaries(c.figure.charge), s = c.figure.surface.size.max;
   return c.figure.charge.kind === 'plates' ? Math.max(s, ...b) * 1.45 : Math.max(s, ...b) * 1.15;
 }
+/** Where the profile starts: zero, or a pillbox's fixed bottom face where the slider can go below the middle. */
+export const profileStart = (c: GaussCase) => c.figure.surface.low !== undefined ? c.figure.surface.low + 1e-3 : 0;
 /** Which region a size is in: how many of the charge's surfaces lie inside it. */
 export const regionOf = (c: GaussCase, x: number) => boundaries(c.figure.charge).filter(b => x > b).length;
 export type ProfilePiece = {from: number; to: number; points: {x: number; e: number}[]};
 /** The curve, region by region. A field that grows without end at the axis (a line's) starts a little out. */
 export function profile(c: GaussCase, sign: 1 | -1, n = 160): ProfilePiece[] {
-  const X = profileReach(c), cuts = [0, ...boundaries(c.figure.charge).filter(b => b < X), X], out: ProfilePiece[] = [];
+  // A slider that starts below the charge (a pillbox's top face below a slab) starts the curve there.
+  const X = profileReach(c), start = profileStart(c), cuts = [start, ...boundaries(c.figure.charge).filter(b => b > start && b < X), X], out: ProfilePiece[] = [];
   const singular = c.figure.charge.kind === 'line';
   for (let i = 0; i + 1 < cuts.length; i++) {
-    const a = i === 0 && singular ? X * .06 : cuts[i], b = cuts[i + 1], m = Math.max(8, Math.round(n * (b - a) / X)), eps = (b - a) * 1e-6;
+    const a = i === 0 && singular ? X * .06 : cuts[i], b = cuts[i + 1], m = Math.max(8, Math.round(n * (b - a) / (X - start))), eps = (b - a) * 1e-6;
     const points = Array.from({length: m + 1}, (_, k) => { const x = a + eps + (b - a - 2 * eps) * k / m; return {x, e: fieldAlong(c, sign, x)}; });
     out.push({from: a, to: b, points});
   }

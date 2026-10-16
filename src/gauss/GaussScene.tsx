@@ -58,6 +58,7 @@ export function GaussScene(props: SceneProps) {
       // A hole is empty: the paper's colour over the charge round it, so it reads as a gap, never as more charge.
       const holeMaterial = new THREE.MeshBasicMaterial({transparent: true, opacity: .62, side: THREE.BackSide, depthWrite: false});
       // A charge with a hole is drawn thinner than a solid one, so both its surfaces and the arrows on them show through it.
+      const cloudMaterial = new THREE.MeshStandardMaterial({color: CHARGE.body, roughness: .9, metalness: 0, transparent: true, opacity: .14, side: THREE.DoubleSide, depthWrite: false});
       const holedMaterial = new THREE.MeshStandardMaterial({color: CHARGE.body, roughness: .9, metalness: 0, transparent: true, opacity: .22, side: THREE.DoubleSide, depthWrite: false});
       // The plug a hole is filled with, lit at the right side: the charge's colour, thinner than the whole charge's.
       const plugMaterial = new THREE.MeshStandardMaterial({color: CHARGE.body, emissive: CHARGE.glow, roughness: .7, metalness: 0, transparent: true, opacity: .5, side: THREE.DoubleSide, depthWrite: false});
@@ -160,7 +161,10 @@ export function GaussScene(props: SceneProps) {
         if (c.kind === 'shell') charge.add(new THREE.Mesh(new THREE.SphereGeometry(c.size, 48, 32), sheetMaterial));
         if (c.kind === 'line') { const m = new THREE.Mesh(new THREE.CylinderGeometry(.045, .045, reach * 2, 16), bodyMaterial); m.rotation.x = Math.PI / 2; charge.add(m); }
         if (c.kind === 'sheet') charge.add(new THREE.Mesh(new THREE.PlaneGeometry(reach * 1.4, reach * 1.4), sheetMaterial));
-        if (c.kind === 'slab' || c.kind === 'tent') { const m = new THREE.Mesh(new THREE.BoxGeometry(reach * 1.4, reach * 1.4, 2 * c.size), sheetMaterial); charge.add(m); }
+        if (c.kind === 'slab' || c.kind === 'tent' || c.kind === 'oddslab') { const m = new THREE.Mesh(new THREE.BoxGeometry(reach * 1.4, reach * 1.4, 2 * c.size), sheetMaterial); charge.add(m); }
+        // Charge with no edge: shells of it, past the frame's edges, overlapping so the inside is the densest.
+        if (c.kind === 'halo') for (const k of [1.5, 3, 5, 9]) charge.add(new THREE.Mesh(new THREE.SphereGeometry(c.size * k, 40, 28), cloudMaterial));
+        if (c.kind === 'cusp') charge.add(new THREE.Mesh(new THREE.SphereGeometry(c.size, 48, 32), g.r < c.size ? cutMaterial : bodyMaterial));
         const outer = c.outer ?? c.size * 2;
         if (c.kind === 'rod') charge.add(tube(c.size, reach * 2, rodMaterial));
         if (c.kind === 'tube') charge.add(tube(c.size, reach * 2, sheetMaterial));
@@ -208,6 +212,11 @@ export function GaussScene(props: SceneProps) {
           if (g.r > c.size) grp.add(cutSphere(0, c.size * .99, insideMaterial, false));
           if (g.r > outer) grp.add(cutSphere(0, outer * 1.012, insideMaterial, false));
           insideMesh = grp;
+        }
+        if (c.kind === 'halo' || c.kind === 'cusp') insideMesh = new THREE.Mesh(new THREE.SphereGeometry((c.kind === 'cusp' ? Math.min(c.size * 1.01, g.r * .985) : g.r * .985), 48, 32), insideMaterial);
+        if (c.kind === 'oddslab') {
+          const z1 = Math.max(-c.size, Math.min(c.size, g.h)), z0 = Math.max(-c.size, Math.min(c.size, g.low ?? -g.h));
+          if (z1 - z0 > 1e-3) { const m = new THREE.Mesh(new THREE.CylinderGeometry(g.r * .985, g.r * .985, z1 - z0, 48), pieceMaterial); m.rotation.x = Math.PI / 2; m.position.z = (z0 + z1) / 2; inside.add(m); }
         }
         if (insideMesh) { if (c.kind === 'slab' || c.kind === 'tent') insideMesh.rotation.x = Math.PI / 2; inside.add(insideMesh); }
         // A superposition's two pieces, each the part of it its own surface holds: the whole charge's, and the plug's.
@@ -336,7 +345,7 @@ export function GaussScene(props: SceneProps) {
           disposed = true; canvas.removeEventListener('webglcontextlost', onLost); observer.disconnect(); themeWatch.disconnect();
           for (const g of [charge, inside, skin, tints, arrows, spokes, marks]) clear(g);
           shaft.dispose(); head.dispose();
-          for (const m of [bodyMaterial, cutMaterial, sheetMaterial, insideMaterial, rodMaterial, metalMaterial, holeMaterial, holedMaterial, plugMaterial, pieceMaterial, partMaterial, rimMaterial, skinMaterial, edgeMaterial, litMaterial, zeroMaterial, fieldFront, fieldBack, normalFront, normalBack, pointMaterial]) m.dispose();
+          for (const m of [bodyMaterial, cutMaterial, sheetMaterial, insideMaterial, rodMaterial, metalMaterial, holeMaterial, holedMaterial, cloudMaterial, plugMaterial, pieceMaterial, partMaterial, rimMaterial, skinMaterial, edgeMaterial, litMaterial, zeroMaterial, fieldFront, fieldBack, normalFront, normalBack, pointMaterial]) m.dispose();
           renderer.dispose();
           if (canvas.parentNode === mount) mount.removeChild(canvas);
         },

@@ -4,7 +4,7 @@
 import {useCallback, useEffect, useInsertionEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore, type CSSProperties} from 'react';
 import {flushSync} from 'react-dom';
 import {useReducedMotion} from 'motion/react';
-import {ArrowRight, ChevronLeft, CircleHelp, ClipboardCheck, GraduationCap, Link as LinkIcon, Moon, MoreHorizontal, PanelLeft, Play, Printer, Sun} from 'lucide-react';
+import {ArrowRight, ChevronLeft, CircleHelp, ClipboardCheck, GraduationCap, House, Link as LinkIcon, Moon, MoreHorizontal, PanelLeft, Play, Printer, Sun} from 'lucide-react';
 import {DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger} from '@/components/ui/dropdown-menu';
 import {Sidebar, SidebarContent, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarProvider} from '@/components/ui/sidebar';
 import {Dialog, DialogContent, DialogDescription, DialogTitle} from '@/components/ui/dialog';
@@ -17,7 +17,7 @@ import {LessonIntro} from '../explorer/LessonIntro';
 import {Brand} from '../explorer/Brand';
 import {STORAGE} from '../explorer/Explorer';
 import {GAUSS, PlannedGlyph, ShapeGlyph, families, plannedName} from '../explorer/lessons';
-import {GUIDE_HREF, QUIZ_HREF, inPlace, navigate, subscribeAddress} from '../state/route';
+import {GUIDE_HREF, HOME_HREF, QUIZ_HREF, inPlace, navigate, subscribeAddress} from '../state/route';
 import {gaussHref, gaussIdOf, gaussLesson, isGaussReady, type GaussId} from './index';
 import {gaussStages, moment, runSeconds, stageStart} from './run';
 import {GaussFigure, type FigureView} from './GaussFigure';
@@ -206,7 +206,9 @@ export default function GaussLesson() {
     <SidebarMenuButton className="exp-shape-button" render={<a href={lessonHref(pr.id)} />} onClick={(e: React.MouseEvent) => goField(pr.id, e)}><span className="shape-icon"><ShapeGlyph id={pr.id} /></span><span>{pr.short}</span></SidebarMenuButton>
   </SidebarMenuItem>)}</SidebarMenu></div>)}<GaussListFamily current={id} /></>, [id, goField]);
   const next = lesson.next && isGaussReady(lesson.next) ? {href: gaussHref(lesson.next), glyph: <PlannedGlyph id={lesson.next} size={22} />, name: gaussLesson(lesson.next)!.title, why: gaussLesson(lesson.next)!.about}
-    : lesson.related && isReady(lesson.related.field) ? {href: lessonHref(lesson.related.field), glyph: <ShapeGlyph id={lesson.related.field} size={22} />, name: PROBLEMS.find(p => p.id === lesson.related!.field)?.short ?? '', why: lesson.related.text} : null;
+    : lesson.related && isReady(lesson.related.field) ? {href: lessonHref(lesson.related.field), glyph: <ShapeGlyph id={lesson.related.field} size={22} />, name: PROBLEMS.find(p => p.id === lesson.related!.field)?.short ?? '', why: lesson.related.text}
+    // The last lesson leads home, to every lesson and the quiz.
+    : lesson.onward === 'home' ? {href: HOME_HREF, glyph: <House size={22} aria-hidden="true" />, name: 'Every lesson', why: 'The Gauss section is done: back to the home page, every lesson and the quiz.'} : null;
   // An integral lesson to read beside this one: the same field, built the long way.
   const alongside = lesson.alongside && isReady(lesson.alongside.field) ? {href: lessonHref(lesson.alongside.field), glyph: <ShapeGlyph id={lesson.alongside.field} size={22} />, name: PROBLEMS.find(p => p.id === lesson.alongside!.field)?.short ?? '', why: lesson.alongside.text} : null;
   const sym: Sym = kase.key === 'line' ? 'line' : kase.key === 'plane' ? 'plane' : 'sphere';

@@ -74,7 +74,7 @@ export type Built = {
  * as its face height. */
 export function surfaceOf(c: GaussCase, size: number): Surface {
   const s = c.figure.surface;
-  return s.kind === 'pillbox' ? {kind: 'pillbox', r: s.other, h: size} : s.kind === 'cube' ? {kind: 'cube', r: size, h: size} : {kind: s.kind, r: size, h: s.other};
+  return s.kind === 'pillbox' ? {kind: 'pillbox', r: s.other, h: size, ...(s.low !== undefined ? {low: s.low} : {})} : s.kind === 'cube' ? {kind: 'cube', r: size, h: size} : {kind: s.kind, r: size, h: s.other};
 }
 export const chargeOf = (c: GaussCase, sign: 1 | -1): Charge => ({kind: c.figure.charge.kind, sign, size: c.figure.charge.size, ...(c.figure.charge.outer ? {outer: c.figure.charge.outer} : {}),
   ...(c.figure.charge.hole ? {hole: c.figure.charge.hole} : {}), ...(c.figure.charge.amount ? {amount: c.figure.charge.amount} : {}), ...(c.figure.charge.at ? {at: c.figure.charge.at} : {})});
@@ -100,7 +100,7 @@ export function halfOf(c: GaussCase): number {
   if (s.kind === 'cylinder') return Math.hypot(big + .5, s.other + .2);
   // A cube: its corners stand out to √3 times its half-width, which the turned view can show.
   if (s.kind === 'cube') return big * 1.5 + .35;
-  return Math.hypot(s.other + .4, big + .55);
+  return Math.hypot(s.other + .4, Math.max(big, Math.abs(s.low ?? 0)) + .55);
 }
 /** Pixels per world unit: the half-extent fills the frame's height, less a margin for the labels. */
 export const unitOf = (c: GaussCase) => Math.round(.92 * 430 / (2 * halfOf(c)));
@@ -186,12 +186,12 @@ export function slice(charge: Charge, g: Surface, fine: {around?: number; across
     }
     return out;
   }
-  const {r, h} = g, bands = g.kind === 'cylinder' ? 3 : 2, across = fine.across ?? (g.kind === 'cylinder' ? 2 : 3);
+  const {r, h} = g, lo = g.low ?? -h, bands = g.kind === 'cylinder' ? 3 : 2, across = fine.across ?? (g.kind === 'cylinder' ? 2 : 3);
   for (const side of [1, -1]) for (let i = 0; i < bands; i++) {
-    const z0 = -h + 2 * h * i / bands, z1 = -h + 2 * h * (i + 1) / bands;
+    const z0 = lo + (h - lo) * i / bands, z1 = lo + (h - lo) * (i + 1) / bands;
     seg(`w${side}-${i}`, 'wall', [side * r, z0], [side * r, z1], v3(side * r, 0, (z0 + z1) / 2), v3(side, 0, 0));
   }
-  for (const [part, z] of [['top', h], ['bottom', -h]] as const) for (let i = 0; i < across; i++) {
+  for (const [part, z] of [['top', h], ['bottom', lo]] as const) for (let i = 0; i < across; i++) {
     const x0 = -r + 2 * r * i / across, x1 = -r + 2 * r * (i + 1) / across;
     seg(`${part}-${i}`, part, [x0, z], [x1, z], v3((x0 + x1) / 2, 0, z), v3(0, 0, part === 'top' ? 1 : -1));
   }
@@ -245,6 +245,8 @@ function roundness(c: Charge): [number, number][] | null {
   if (c.kind === 'point' && c.at) return [[.55, 22]];
   if (c.kind === 'point' || isBall(c.kind) || c.kind === 'shell' || c.kind === 'metal') return [[Math.max(c.size * 1.18, .55) + .35, 22]];
   if (c.kind === 'ballhole') return [[c.size + .35, 22]];
+  if (c.kind === 'cusp') return [[c.size + .35, 22]];
+  if (c.kind === 'halo') return [[.75, 14], [1.6, 22]];
   return null;
 }
 /** The radius a cylinder's spokes stand at: where its field is, clear of it (between a coaxial pair's shells). */
@@ -253,7 +255,7 @@ const axialSpoke = (c: Charge) => c.kind === 'coax' ? (c.size + (c.outer ?? c.si
  * only between a capacitor's plates. */
 /** How far up the axis a round charge's spokes are centred: a charge off the centre's own height. */
 const lift = (c: Charge) => c.kind === 'offset' ? c.size : 0;
-const planeSpokes = (c: Charge) => c.kind === 'face' ? [.42] : c.kind === 'plates' ? [-c.size / 2] : c.kind === 'slab' || c.kind === 'tent' ? [c.size + .3, -c.size - .3] : [.42, -.42];
+const planeSpokes = (c: Charge) => c.kind === 'face' ? [.42] : c.kind === 'plates' ? [-c.size / 2] : c.kind === 'slab' || c.kind === 'tent' ? [c.size + .3, -c.size - .3] : c.kind === 'oddslab' ? [c.size * .5, 0, -c.size * .5] : [.42, -.42];
 
 /** The same arrows in the cross-section's plane, y = 0, for the flat figure. */
 export function flatSpokes(charge: Charge): Spoke[] {

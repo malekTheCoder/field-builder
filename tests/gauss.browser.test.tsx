@@ -38,7 +38,7 @@ describe('a Gauss lesson’s address', () => {
     expect(view.getByRole('heading', {level: 1}).textContent).toBe('Symmetry first');
     expect(document.title).toContain('Symmetry first');
     cleanup(); newVisit();
-    window.history.replaceState(null, '', '/?g=hard');
+    window.history.replaceState(null, '', '/?g=nonsense');
     const home = render(<Site />);
     expect(await home.findByRole('heading', {level: 1, name: 'One law, every geometry.'})).toBeTruthy();
   }, 20000);
@@ -54,7 +54,7 @@ describe('a Gauss lesson’s address', () => {
     expect(links[1].getAttribute('aria-current')).toBe('page');
     expect(family.querySelectorAll('.exp-planned-row[aria-disabled=true]').length).toBe(GAUSS.lessons.length - ready.length);
     for (const row of family.querySelectorAll('.exp-planned-row')) expect(row.querySelector('a,button,[tabindex]')).toBeNull();
-    expect(family.textContent).toContain('Coming soon');
+    if (GAUSS.lessons.length > ready.length) expect(family.textContent).toContain('Coming soon');
     // Following one opens it, title focused.
     fireEvent.click(links[0]);
     await waitFor(() => expect(document.querySelector('h1')?.textContent).toBe('Symmetry first'));
@@ -156,15 +156,13 @@ describe('why only the charge inside', () => {
       const view = await open('inside');
       fireEvent.click(view.getByRole('button', {name: 'Outside'}));
       expect(document.querySelector('.gs-board .ew-problem-text')?.textContent).toContain('outside a sphere');
-      expect(document.querySelector('.gs-p')).toBeTruthy();
-    expect(document.querySelector('.gs-field-name.is-answer')).toBeNull();
+      expect(document.querySelector('.gs-p')).toBeNull();
       fireEvent.click(view.getByRole('button', {name: 'Watch it build'}));
       f.run(30);
       expect(stage()?.dataset.stage).toBe('solve');
       expect(document.querySelector('.gs-board .ew-result .katex')?.textContent).toMatch(/Φ\s*=\s*0/);
       expect(document.querySelector('.gs-board .ew-result p')?.textContent).toContain('Zero for either sign');
-      expect(document.querySelector('.gs-p')).toBeTruthy();
-    expect(document.querySelector('.gs-field-name.is-answer')).toBeNull();
+      expect(document.querySelector('.gs-p')).toBeNull();
     } finally { f.restore(); }
   }, 30000);
 });
@@ -256,7 +254,7 @@ describe('on a phone', () => {
     }
   }, 30000);
   it('fits 390 pixels with no sideways scroll, on Lines, Sheets and Conductors', async () => {
-    for (const id of ['lines', 'sheets', 'conductors', 'holes', 'runs-out']) {
+    for (const id of ['lines', 'sheets', 'conductors', 'holes', 'runs-out', 'hard']) {
       const view = await open(id, 390, 844);
       await new Promise(r => setTimeout(r, 200));
       expect(document.documentElement.scrollWidth, id).toBeLessThanOrEqual(390);
@@ -381,5 +379,30 @@ describe('a charge in a cube', () => {
   it('follows Holes by superposition', async () => {
     const view = await open('holes');
     expect(view.getByRole('link', {name: /^Next: When symmetry runs out/}).getAttribute('href')).toBe('?g=runs-out');
+  }, 20000);
+});
+
+describe('the hard cases', () => {
+  it('the sign-changing slab: the slider runs from below the slab to above it, region by region, said aloud', async () => {
+    const view = await open('hard');
+    fireEvent.click(view.getByRole('button', {name: 'Sign-changing slab'}));
+    const slider = view.getByRole('slider', {name: 'Height z'});
+    expect(slider.getAttribute('aria-valuetext')).toBe('inside the slab');
+    slider.focus();
+    await userEvent.keyboard('{Home}');
+    await waitFor(() => expect(slider.getAttribute('aria-valuetext')).toBe('below the slab'));
+    expect(document.querySelector('.gs-profile .gs-readout')?.textContent).toContain('adding them');
+    await userEvent.keyboard('{End}');
+    await waitFor(() => expect(slider.getAttribute('aria-valuetext')).toBe('above the slab'));
+    // Backwards: the answer is a density.
+    fireEvent.click(view.getByRole('button', {name: 'Backwards'}));
+    expect(document.querySelector('.gs-board .ew-result-label')?.textContent).toBe('The answer, the density at r');
+  }, 20000);
+  it('ends the section on a card home, and follows When symmetry runs out', async () => {
+    const view = await open('hard');
+    expect(view.getByRole('link', {name: /^Next: Every lesson/}).getAttribute('href')).toBe('./');
+    cleanup(); newVisit();
+    const prev = await open('runs-out');
+    expect(prev.getByRole('link', {name: /^Next: The hard cases/}).getAttribute('href')).toBe('?g=hard');
   }, 20000);
 });

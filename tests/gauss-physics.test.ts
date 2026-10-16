@@ -195,7 +195,8 @@ describe('the figure’s plan', () => {
       // With the charge inside's sign: zero where the surface encloses nothing (in metal, in a hollow shell, outside a cable).
       const inside = enclosedCharge(b.charge, b.surface);
       expect(Math.sign(dot(b.fieldAtP, b.normalAtP)) || 0).toBe(Math.abs(inside) > 1e-12 ? Math.sign(inside) : 0);
-      if (Math.abs(inside) > 1e-12) expect(Math.sign(inside)).toBe(sign);
+      // Of the charge's sign, unless its density changes sign (a slab whose lower half's charge is the larger part).
+      if (Math.abs(inside) > 1e-12 && b.charge.kind !== 'oddslab') expect(Math.sign(inside)).toBe(sign);
       } else {
         // A charge off the centre: no field at P is solved for, and the run ends on the flux.
         expect(['offset', 'segment', 'point']).toContain(b.charge.kind); expect(b.surface.kind === 'cube' || b.charge.kind !== 'point').toBe(true);
@@ -353,7 +354,7 @@ describe('the field-against-distance instrument', () => {
     const pieces = profile(c, sign);
     expect(pieces.length).toBe(bounds.filter(b => b < profileReach(c)).length + 1);
     expect(profileReach(c)).toBeGreaterThan(s.size.max);
-    for (const p of pieces) for (const pt of p.points) expect(pt.e * sign).toBeGreaterThanOrEqual(0);
+    if (c.figure.charge.kind !== 'oddslab') for (const p of pieces) for (const pt of p.points) expect(pt.e * sign).toBeGreaterThanOrEqual(0);
   });
   it('is flat for the sheet, whatever the height: the answer has no z in it', () => {
     const sheet = gaussLesson('symmetry')!.cases.find(c => c.figure.charge.kind === 'sheet')!;
@@ -792,6 +793,88 @@ describe('when symmetry runs out: the arrows are the message', () => {
       const ratios = [...b.patches.map(p => ({span: p.span, e: norm(p.field)})), ...b.slice.map(q => ({span: q.span ?? 0, e: norm(q.field)}))].filter(a => a.e > 1e-12).map(a => a.span / a.e);
       for (const r of ratios) close(r, ratios[0], 1e-9);
       expect(Math.max(...b.patches.map(p => p.span))).toBeLessThanOrEqual(1.6 + 1e-12);
+    }
+  });
+});
+
+/* THE HARD CASES: each closed form against a brute-force sum or a numerical derivative, both signs. k = 1, so
+ * 1/ε₀ = 4π; each charge is of unit ρ₀ or β. */
+describe('the hard cases', () => {
+  /** The charge inside r of a round density, by a fine midpoint sum over shells. */
+  const shells = (rho: (r: number) => number, r: number, n = 200000) => { let t = 0; for (let i = 0; i < n; i++) { const x = r * (i + .5) / n; t += rho(x) * 4 * Math.PI * x * x * r / n; } return t; };
+  it('the halo: Q_enc = 4πρ₀a²(r − a arctan(r/a)) by shells, a uniform ball’s field near the centre, and 1/r far out', () => {
+    const a = .6;
+    for (const s of SIGNS) for (const r of [.2, 1, 2.4]) {
+      const q = shells(x => s * a * a / (x * x + a * a), r);
+      close(enclosedCharge({kind: 'halo', sign: s, size: a}, {kind: 'sphere', r, h: 0}), q, 1e-8);
+      close(fieldAt({kind: 'halo', sign: s, size: a}, v3(0, r, 0)).y, q / (r * r), 1e-8);
+    }
+    // Near the centre ρ₀r/(3ε₀) = 4πr/3; far out ρ₀a²/(ε₀r) = 4πa²/r, so r·E levels off.
+    close(fieldAt({kind: 'halo', sign: 1, size: a}, v3(1e-3, 0, 0)).x, 4 * Math.PI * 1e-3 / 3, 1e-5);
+    const far = (r: number) => r * fieldAt({kind: 'halo', sign: 1, size: a}, v3(r, 0, 0)).x;
+    close(far(1e4), 4 * Math.PI * a * a, 1e-3);
+    expect(far(100) / far(50)).toBeGreaterThan(1);
+  });
+  it('the cusp: ρ = β/r holds 2πβr², the field’s size is β/(2ε₀) everywhere inside and meets the outside at R', () => {
+    for (const s of SIGNS) {
+      for (const r of [.2, .7, 1.1]) close(enclosedCharge({kind: 'cusp', sign: s, size: 1.1}, {kind: 'sphere', r, h: 0}), shells(x => s / x, r), 1e-6);
+      for (const p of [v3(.1, 0, 0), v3(0, .5, .3), v3(-.7, .2, -.6)]) close(norm(fieldAt({kind: 'cusp', sign: s, size: 1.1}, p)), 2 * Math.PI, 1e-12);
+      close(fieldAt({kind: 'cusp', sign: s, size: 1.1}, v3(1.1 - 1e-9, 0, 0)).x, fieldAt({kind: 'cusp', sign: s, size: 1.1}, v3(1.1 + 1e-9, 0, 0)).x, 1e-6);
+      close(fieldAt({kind: 'cusp', sign: s, size: 1.1}, v3(2, 0, 0)).x, s * 2 * Math.PI * 1.21 / 4, 1e-12);
+    }
+  });
+  it('backwards: the density from the field, ε₀(1/r²)d(r²E)/dr, is the ball’s own ρ ∝ r, and Q_enc = 4πε₀r²E', () => {
+    const c: Charge = {kind: 'rising', sign: 1, size: 1.1, amount: 3};
+    for (const s of SIGNS) for (const r of [.3, .6, 1]) {
+      const E = (x: number) => fieldAt({...c, sign: s}, v3(x, 0, 0)).x, h = 1e-5;
+      const rho = EPS0 / (r * r) * ((r + h) ** 2 * E(r + h) - (r - h) ** 2 * E(r - h)) / (2 * h);
+      // ρ = ρ₀r/R with total 3: ρ₀ = 3/(πR³).
+      close(rho, s * 3 / (Math.PI * 1.1 ** 3) * r / 1.1, 1e-6);
+      // And the board's ρ = 4ε₀E_R r/R², with E_R the field at the surface.
+      close(rho, 4 * EPS0 * E(1.1 - 1e-12) * r / 1.1 ** 2, 1e-6);
+      close(enclosedCharge({...c, sign: s}, {kind: 'sphere', r, h: 0}), r * r * E(r), 1e-12);
+    }
+  });
+  it('the sign-changing slab against a sum of thin sheets: the same field above and below, none outside, (ρ₀/2ε₀a)(z² − a²) inside', () => {
+    const a = .6;
+    for (const s of SIGNS) {
+      const sum = (z: number) => { let t = 0; const n = 200000; for (let i = 0; i < n; i++) { const zp = -a + 2 * a * (i + .5) / n, sigma = s * zp / a * 2 * a / n; t += Math.sign(z - zp) * 2 * Math.PI * sigma; } return t; };
+      for (const z of [-1, -.5, -.1, 0, .25, .59, .9]) close(fieldAt({kind: 'oddslab', sign: s, size: a}, v3(.3, -.2, z)).z, sum(z), 1e-4);
+      for (const z of [.1, .4]) close(fieldAt({kind: 'oddslab', sign: s, size: a}, v3(0, 0, z)).z, fieldAt({kind: 'oddslab', sign: s, size: a}, v3(0, 0, -z)).z, 1e-12);
+      // The symmetric pillbox: zero flux and zero charge, for any height: true, and no help.
+      for (const h of [.3, .9]) { close(numericFlux({kind: 'oddslab', sign: s, size: a}, {kind: 'pillbox', r: .8, h}, 60), 0, 1e-9); close(enclosedCharge({kind: 'oddslab', sign: s, size: a}, {kind: 'pillbox', r: .8, h}), 0, 1e-12); }
+      // The one-sided pillbox from below: its flux, by brute force, is its charge over ε₀.
+      for (const h of [-.8, -.3, .2, .55, 1.1]) close(numericFlux({kind: 'oddslab', sign: s, size: a}, {kind: 'pillbox', r: .8, h, low: -1}, 60) * EPS0, enclosedCharge({kind: 'oddslab', sign: s, size: a}, {kind: 'pillbox', r: .8, h, low: -1}), 1e-6);
+    }
+  });
+  it('the flux through a square from a charge on its axis: (q/πε₀)arctan(b²/(d√(d² + 2b²))), by quadrature; a sixth of q/ε₀ when d = b', () => {
+    for (const [b, d] of [[1, 1], [1, .4], [.5, 2]]) {
+      let t = 0; const n = 800;
+      for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) { const x = -b + 2 * b * (i + .5) / n, y = -b + 2 * b * (j + .5) / n; t += d / (d * d + x * x + y * y) ** 1.5 * (2 * b / n) ** 2; }
+      close(t, 4 * Math.atan(b * b / (d * Math.sqrt(d * d + 2 * b * b))), 1e-5);
+      close(rectangleAngle(d, -b, b, -b, b), t, 1e-5);
+    }
+    close(4 * Math.atan(1 / Math.sqrt(3)), 4 * Math.PI / 6, 1e-12);
+  });
+  it('the profile starts below the slab, at the pillbox’s bottom face, and meets zero at both faces', () => {
+    const odd = gaussLesson('hard')!.cases.find(k => k.key === 'odd')!;
+    for (const s of SIGNS) {
+      const pieces = profile(odd, s);
+      expect(pieces.length).toBe(3);
+      expect(pieces[0].from).toBeLessThan(-.6);
+      for (const p of pieces) for (const pt of p.points) close(pt.e, fieldAt({kind: 'oddslab', sign: s, size: .6, amount: .375}, v3(0, 0, pt.x)).z, 1e-12);
+    }
+  });
+});
+
+describe('the hard cases: equal fields drawn equal', () => {
+  for (const c of gaussLesson('hard')?.cases ?? []) for (const sign of SIGNS) it(`${c.key} (${sign > 0 ? '+' : '−'}): no patch's arrow, and not P's, is cut short of its length or held to the longest`, () => {
+    const s = c.figure.surface.size;
+    for (let k = 0; k <= 20; k++) {
+      const b = build(c, s.min + (s.max - s.min) * k / 20, sign);
+      // Arrows at the shortest length (a field near zero, at a slab’s face) are left out: there the length is a floor.
+      for (const p of b.patches.filter(q => !q.zero && arrowLength(c, norm(q.field)) > .0601)) { close(p.span, arrowLength(c, norm(p.field)), 1e-9); expect(p.span).toBeLessThan(1.6); }
+      if (arrowLength(c, norm(b.fieldAtP)) > .0601) close(b.spanAtP, arrowLength(c, norm(b.fieldAtP)), 1e-9);
     }
   });
 });

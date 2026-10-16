@@ -68,7 +68,7 @@ describe('Gauss\'s law in the lesson', () => {
   const list = view.getByRole('navigation', {name: 'Lessons'});
   const heading = within(list).getByRole('heading', {level: 2, name: /^Gauss’s law/});
   const group = heading.closest('.exp-family')!;
-  expect(group.textContent).toContain('Coming soon');
+  if (SOON.length) expect(group.textContent).toContain('Coming soon');
   const rows = group.querySelectorAll('[aria-disabled=true]');
   expect(rows.length).toBe(SOON.length);
   for (const row of rows) expectInert(row);

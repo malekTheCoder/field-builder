@@ -35,6 +35,9 @@ export type FigureSetup = {
      * foot (a rod's) or its centre on the sheet. The figure then solves the whole charge and the plug apart, each
      * round its own surface through P, and adds them at P. */
     hole?: {radius: number; at: V3};
+    /** What the charge inside is called on the figure in each region, where the kind's own name would give the answer
+     * away or name a charge the case never defines: running the law backwards from a given field. */
+    insideNames?: string[];
     /** Where a point charge sits when it is not at the centre: off the centre of a cube. */
     at?: V3;
     /** A multiple of the kind's own amount of charge, so a lesson's cases share one density: a ball with a hole
@@ -55,6 +58,9 @@ export type FigureSetup = {
     regions?: Region[];
     /** How the surface is cut into patches, where the default is too coarse to show a field that changes over it. */
     cut?: {bands: number; sectors: number; rings?: number};
+    /** A pillbox's bottom face, fixed, when it is not at minus the slider's height: below a slab, the slider moving
+     * only the top face. */
+    low?: number;
   };
   /** The field drawn at the standard arrow length, in the figure's units (k = 1, unit charge): the same for every
    * case of a lesson, so equal fields are drawn equal and a doubled one twice as long. Without it, the field on
@@ -120,6 +126,8 @@ export type GaussLesson = {
   /** Where it leads: the next Gauss lesson when that one is ready, else the related integral lesson. */
   next?: GaussId;
   related?: {field: ProblemId; text: string};
+  /** Where the last lesson leads, with no next lesson: back to the home page and every lesson. */
+  onward?: 'home';
   /** An integral lesson that builds the same field the long way, offered beside the Next card to compare. */
   alongside?: {field: ProblemId; text: string};
 };

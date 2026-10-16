@@ -22,7 +22,7 @@ type GaussLesson = {
   read: Reading[];               // OpenStax UP2 ch. 6 §6.x with URLs, Griffiths §2.2, Purcell ch. 1 or 2
   cases: GaussCase[];            // one, or several the reader picks between
   traps: Trap[];                 // {wrong, right}: the misconceptions, shown as "Easy to confuse with"
-  instrument?: 'symmetry' | 'flux' | 'profile' | 'cavity' | 'inside' | 'qenc' | 'plot';
+  instrument?: 'symmetry' | 'flux' | 'profile' | 'cavity' | 'inside' | 'qenc' | 'plot' | 'hole' | 'cube';
   next?: GaussId;                // the Next card, when that lesson is ready
   related?: {field: ProblemId; text: string};  // else the related integral lesson
 };
@@ -59,6 +59,14 @@ with ρ ∝ 1 − |z|/a) (`size` is R for a shell or a ball, the half-thickness 
 `sphere | cylinder | pillbox`. The slider moves a sphere's or a cylinder's radius, or a pillbox's face height;
 `other` is the fixed dimension (a cylinder's half-length, a pillbox's face radius). The surface is placed centred on
 the charge, or straddling the sheet.
+
+The last three lessons added: a charge with a `hole` (`ballhole`, `rodhole`, `sheethole`), drawn as its two pieces,
+each round its own surface through P, the two fields added at P (`Built.pieces`, `chainOf`); `segment` (a finite rod)
+and a `point` given an `at`, in a `cube` surface, where `throughPatch` integrates each patch exactly and the run ends on
+the flux; `halo`, `cusp` and `oddslab`, the last with a pillbox whose bottom face is fixed below the slab
+(`figure.surface.low`). An `amount` scales a charge so a lesson's cases share one arrow scale; `figure.surface.cut`
+cuts a surface finer; `solve.label` renames the answer box; `onward: 'home'` ends the section on a card home. The
+instruments `hole` (HoleInstrument) and `cube` (CubeInstrument) are new.
 
 Everything it draws comes from `src/gauss/physics.ts` (exact fields, `enclosedCharge`, `patches`, `solvedField`) through
 `src/gauss/scene.ts` (the plan: patches in the run's order, the zero patches last, P, the named patch). The 3D scene is

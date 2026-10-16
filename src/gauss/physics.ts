@@ -50,9 +50,13 @@ export const unit = (a: V3): V3 => { const n = norm(a); return n > 0 ? scale(a, 
  *
  * When symmetry runs out: `segment`, a finite rod of λ per unit length along the z axis, from −ℓ to ℓ (ℓ = size),
  * whose field has the closed form the integral lesson builds; and a `point` given an `at`, off the centre of the cube
- * round it. */
+ * round it.
+ *
+ * The hard cases: `halo`, charge with no edge, ρ = ρ₀a²/(r² + a²) (a = size), whose charge inside grows without end;
+ * `cusp`, a ball of radius R = size with ρ = β/r, infinite at its centre but finite in total; `oddslab`, a slab from
+ * −a to a (a = size) with ρ = ρ₀z/a, one sign above its middle and the other below. Each of unit ρ₀ or β, times its amount. */
 export type ChargeKind = 'point' | 'shell' | 'ball' | 'line' | 'sheet' | 'slab' | 'rod' | 'tube' | 'coax' | 'metal' | 'cavity' | 'face' | 'plates'
-  | 'offset' | 'rising' | 'falling' | 'tent' | 'ballhole' | 'rodhole' | 'sheethole' | 'disk' | 'segment';
+  | 'offset' | 'rising' | 'falling' | 'tent' | 'ballhole' | 'rodhole' | 'sheethole' | 'disk' | 'segment' | 'halo' | 'cusp' | 'oddslab';
 export type Charge = {kind: ChargeKind; sign: 1 | -1; size: number; outer?: number;
   /** The charge's centre (or its axis's foot) when it is not the origin: a superposition's plug. */
   at?: V3;
@@ -78,6 +82,8 @@ export function boundaries(c: Pick<Charge, 'kind' | 'size' | 'outer'>): number[]
   switch (c.kind) {
     case 'ball': case 'shell': case 'rod': case 'tube': case 'metal': case 'slab': case 'plates': case 'rising': case 'falling': case 'tent': return [c.size];
     case 'coax': case 'cavity': return [c.size, c.outer ?? c.size * 2];
+    case 'cusp': return [c.size];
+    case 'oddslab': return [-c.size, c.size];
     default: return [];
   }
 }
@@ -98,7 +104,9 @@ export const tentHalf = (h: number, a: number) => { const m = Math.min(Math.abs(
 export type SurfaceKind = 'sphere' | 'cylinder' | 'pillbox' | 'cube';
 export type Surface = {kind: SurfaceKind; r: number; h: number;
   /** The centre (or the axis's foot) when it is not the origin: a superposition's second surface, round its plug. */
-  center?: V3};
+  center?: V3;
+  /** A pillbox's bottom face, when it is not at −h: below a slab, with the top face at h. */
+  low?: number};
 
 /** The exact field of each distribution at a point, by the closed forms Gauss's law gives (and the integral
  * lessons confirm for the line and the sheet): k = 1. */
@@ -152,6 +160,12 @@ function ownField(c: Charge, p: V3): V3 {
       const Es = s / sq * ((p.z + l) / up - (p.z - l) / dn);
       return v3(Es * p.x / sq, Es * p.y / sq, Ez);
     }
+    // The halo: Q_enc = 4πρ₀a²(r − a·arctan(r/a)), its field Q_enc/r² (k = 1) along r̂.
+    case 'halo': { const r = norm(p), a = c.size; return r > 0 ? scale(p, s * 4 * Math.PI * a * a * (r - a * Math.atan(r / a)) / (r * r * r)) : v3(0, 0, 0); }
+    // ρ = β/r: inside, Q_enc = 2πβr² and E = β/(2ε₀) = 2πβ, the same size everywhere; outside, 2πβR²/r².
+    case 'cusp': { const r = norm(p), R = c.size; return r === 0 ? v3(0, 0, 0) : r <= R ? scale(p, s * 2 * Math.PI / r) : scale(p, s * 2 * Math.PI * R * R / (r * r * r)); }
+    // ρ = ρ₀z/a: inside, (ρ₀/(2ε₀a))(z² − a²) = 2πρ₀(z² − a²)/a along z, the same way on both sides; outside, none.
+    case 'oddslab': { const a = c.size; return v3(0, 0, Math.abs(p.z) <= a ? s * 2 * Math.PI * (p.z * p.z - a * a) / a : 0); }
     // A disc of unit σ: added up ring by ring.
     case 'disk': return scale(diskField(c.size, p), s);
     // A charge with a hole is its pieces (fieldAt), and never reaches here.
@@ -254,6 +268,8 @@ export function enclosedCharge(c: Charge, g: Surface): number {
   if (g.kind === 'sphere') {
     if (c.kind === 'point') return s;
     if (c.kind === 'segment') return s * 2 * Math.min(c.size, g.r);
+    if (c.kind === 'halo') return s * 4 * Math.PI * c.size ** 2 * (g.r - c.size * Math.atan(g.r / c.size));
+    if (c.kind === 'cusp') return s * 2 * Math.PI * Math.min(g.r, c.size) ** 2;
     if (c.kind === 'shell') return g.r > c.size ? s : 0;
     if (isBall(c.kind)) return s * ballFraction(c.kind, g.r, c.size);
     if (c.kind === 'offset') return g.r > c.size ? s : 0;
@@ -279,13 +295,15 @@ export function enclosedCharge(c: Charge, g: Surface): number {
     if (c.kind === 'tent') return s * A * 2 * tentHalf(g.h, c.size);
     // A disc of σ, in a pillbox on its axis: the part of it between the faces.
     if (c.kind === 'disk') return s * Math.PI * Math.min(g.r, c.size) ** 2;
+    // From the bottom face up to the top, the part inside the slab: ρ₀A(z₁² − z₀²)/(2a).
+    if (c.kind === 'oddslab') { const a = c.size, z1 = Math.max(-a, Math.min(a, g.h)), z0 = Math.max(-a, Math.min(a, g.low ?? -g.h)); return s * A * (z1 * z1 - z0 * z0) / (2 * a); }
   }
   throw Error(`No enclosed charge for a ${g.kind} round a ${c.kind}.`);
 }
 
 /** A pillbox whose field crosses only one face: one face in a conductor's metal, or out beyond both of a
  * capacitor's plates, where there is no field. */
-export const oneSided = (c?: Pick<Charge, 'kind'>) => c?.kind === 'face' || c?.kind === 'plates';
+export const oneSided = (c?: Pick<Charge, 'kind'>) => c?.kind === 'face' || c?.kind === 'plates' || c?.kind === 'oddslab';
 /** The left side's area: the part of the surface the field crosses, where E is the same and square to it.
  * A sphere's whole area; a cylinder's wall; a pillbox's two faces, or its one face where the other sees no field. */
 export function crossedArea(g: Surface, c?: Pick<Charge, 'kind'>): number {
@@ -351,13 +369,13 @@ export function patches(g: Surface, cut: {bands: number; sectors: number; rings?
     }
     return out;
   }
-  const {r, h} = g, rings = cut.rings ?? 1;
+  const {r, h} = g, rings = cut.rings ?? 1, lo = g.low ?? -h;
   for (let i = 0; i < bands; i++) for (let j = 0; j < sectors; j++) {
-    const z0 = -h + 2 * h * i / bands, z1 = -h + 2 * h * (i + 1) / bands, p0 = 2 * Math.PI * j / sectors, p1 = 2 * Math.PI * (j + 1) / sectors, pm = (p0 + p1) / 2;
+    const z0 = lo + (h - lo) * i / bands, z1 = lo + (h - lo) * (i + 1) / bands, p0 = 2 * Math.PI * j / sectors, p1 = 2 * Math.PI * (j + 1) / sectors, pm = (p0 + p1) / 2;
     const at = (z: number, ph: number) => v3(r * Math.cos(ph), r * Math.sin(ph), z);
     out.push({center: at((z0 + z1) / 2, pm), normal: v3(Math.cos(pm), Math.sin(pm), 0), area: r * (p1 - p0) * (z1 - z0), corners: [at(z0, p0), at(z0, p1), at(z1, p1), at(z1, p0)], part: 'wall', key: `w${i}-${j}`, uv: [z0, z1, p0, p1]});
   }
-  for (const [part, z] of [['top', h], ['bottom', -h]] as const) for (let i = 0; i < rings; i++) for (let j = 0; j < sectors; j++) {
+  for (const [part, z] of [['top', h], ['bottom', lo]] as const) for (let i = 0; i < rings; i++) for (let j = 0; j < sectors; j++) {
     const a0 = r * i / rings, a1 = r * (i + 1) / rings, p0 = 2 * Math.PI * j / sectors, p1 = 2 * Math.PI * (j + 1) / sectors, pm = (p0 + p1) / 2;
     const at = (a: number, ph: number) => v3(a * Math.cos(ph), a * Math.sin(ph), z);
     // The centroid of an annular sector lies a little out from its middle radius; the middle is close enough to draw.
@@ -376,7 +394,7 @@ export function surfacePoint(g: Surface, part: PatchPart, u: number, v: number):
   }
   if (part === 'sphere') return sph(g.r, u, v);
   if (part === 'wall') return v3(g.r * Math.cos(v), g.r * Math.sin(v), u);
-  return v3(u * Math.cos(v), u * Math.sin(v), part === 'top' ? g.h : -g.h);
+  return v3(u * Math.cos(v), u * Math.sin(v), part === 'top' ? g.h : g.low ?? -g.h);
 }
 /** The flux of a point charge q (k = 1) on the z axis at height d through the band of a sphere of radius R, centred
  * on the origin, between polar angles θ₀ < θ₁, outward. Exact: with u = cos θ and s the distance from the charge,
