@@ -84,6 +84,16 @@ for (const l of GAUSS_LESSONS) describe(`the Gauss lesson ${l.id}`, () => {
 describe('the run’s words aloud', () => {
   it('turns the lines’ TeX back into symbols', () => {
     expect(spoken(String.raw`Each patch carries $E_r\,dA$; adding them adds the areas, to $4\pi r^2$.`)).toBe('Each patch carries E r dA; adding them adds the areas, to 4π r².');
-    expect(spoken(String.raw`The charge inside is $Q_{\text{enc}}=\lambda L$.`)).toBe('The charge inside is Q enc=λ L.');
+    expect(spoken(String.raw`The charge inside is $Q_{\text{enc}}=\lambda L$.`)).toBe('The charge inside is Q enc = λ L.');
+    expect(spoken(String.raw`$2\pi\beta r^2$, $2\lambda\ell$, $-q\Omega/4\pi\varepsilon_0$, $\alpha$`)).toBe('2πβ r², 2λℓ, -qΩ/4πε₀, α');
+    expect(spoken(String.raw`$4\pi E_Rr^4/R^2$ and $\rho_0A(z^2-a^2)/(2a)$ and $Qr^3/R^3$`)).toBe('4π E R r⁴/R² and ρ₀ A(z²-a²)/(2a) and Qr³/R³');
+    expect(spoken(String.raw`$\vec r_1-\vec r_2=\vec d$`)).toBe('r₁ - r₂ = d');
+  });
+  it('leaves no TeX in any line the run says aloud, in any lesson', () => {
+    // Each line's math, spoken: no command name left as a word, no ^ or _ or brace, no backslash.
+    for (const l of GAUSS_LESSONS) for (const c of l.cases) for (const k of BEATS) for (const span of spans(c[k].line)) {
+      const said = spoken(`$${span}$`);
+      expect(said, `${l.id} ${c.key} ${k}: ${span}`).not.toMatch(/[a-z]{4,}|[\^_{}\\]/);
+    }
   });
 });

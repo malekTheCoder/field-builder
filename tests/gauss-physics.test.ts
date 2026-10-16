@@ -878,3 +878,74 @@ describe('the hard cases: equal fields drawn equal', () => {
     }
   });
 });
+
+/* THE NUMBERS BEHIND THE WORDS: statements the lesson text makes that no figure draws, each against quadrature
+ * (k = 1, so q/ε₀ = 4πq, unit charge). */
+describe('what the lesson text claims, numerically', () => {
+  /** A midpoint sum of f over the rectangle [x0, x1] × [y0, y1]. */
+  const area = (f: (x: number, y: number) => number, x0: number, x1: number, y0: number, y1: number, n = 600) => {
+    let t = 0; const dx = (x1 - x0) / n, dy = (y1 - y0) / n;
+    for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) t += f(x0 + (i + .5) * dx, y0 + (j + .5) * dy) * dx * dy;
+    return t;
+  };
+  it('the square’s flux: the y integral done first leaves 2kqbd/((d² + x²)√(d² + x² + b²)), whose antiderivative is the arctangent', () => {
+    for (const [b, d] of [[1, 1], [1, .4], [.5, 2]]) {
+      let t = 0; const n = 200000;
+      for (let i = 0; i < n; i++) { const x = -b + 2 * b * (i + .5) / n; t += 2 * b * d / ((d * d + x * x) * Math.sqrt(d * d + x * x + b * b)) * 2 * b / n; }
+      close(t, 4 * Math.atan(b * b / (d * Math.sqrt(d * d + 2 * b * b))), 1e-8);
+      // The y integral the text names, ∫dy/(c² + y²)^{3/2} = y/(c²√(c² + y²)), from −b to b.
+      for (const x of [0, .4 * b]) {
+        const c2 = d * d + x * x; let u = 0; const m = 200000;
+        for (let j = 0; j < m; j++) { const y = -b + 2 * b * (j + .5) / m; u += 2 * b / m / (c2 + y * y) ** 1.5; }
+        close(u, 2 * b / (c2 * Math.sqrt(c2 + b * b)), 1e-8);
+      }
+      // The x antiderivative the text gives, (1/bd)arctan(bx/(d√(x² + d² + b²))), differentiated numerically.
+      const F = (x: number) => Math.atan(b * x / (d * Math.sqrt(x * x + d * d + b * b))) / (b * d), h = 1e-5;
+      for (const x of [-.7 * b, 0, .3 * b]) close((F(x + h) - F(x - h)) / (2 * h), 1 / ((d * d + x * x) * Math.sqrt(d * d + x * x + b * b)), 1e-7);
+    }
+  });
+  it('a charge at a cube’s corner: each far face takes q/(24ε₀), the three an eighth of q/ε₀; at an edge’s middle q/(4ε₀), at a face’s centre q/(2ε₀)', () => {
+    const s = 1;
+    // The charge at the origin, the cube [0, s]³: the face x = s. The three faces through the origin have E along them.
+    const far = area((y, z) => s / (s * s + y * y + z * z) ** 1.5, 0, s, 0, s);
+    close(far, 4 * Math.PI / 24, 1e-5);
+    close(3 * far, 4 * Math.PI / 8, 1e-5);
+    // At the middle of an edge along z: the cube [0, s] × [0, s] × [−s/2, s/2]. Faces x = s and y = s, and the two ends z = ±s/2.
+    const edge = 2 * area((y, z) => s / (s * s + y * y + z * z) ** 1.5, 0, s, -s / 2, s / 2) + 2 * area((x, y) => (s / 2) / (x * x + y * y + s * s / 4) ** 1.5, 0, s, 0, s);
+    close(edge, 4 * Math.PI / 4, 1e-5);
+    // At the centre of a face: the cube [−s/2, s/2]² × [0, s]. The far face z = s and the four sides.
+    const face = area((x, y) => s / (x * x + y * y + s * s) ** 1.5, -s / 2, s / 2, -s / 2, s / 2) + 4 * area((y, z) => (s / 2) / (s * s / 4 + y * y + z * z) ** 1.5, -s / 2, s / 2, 0, s);
+    close(face, 4 * Math.PI / 2, 1e-5);
+  });
+  it('a uniform field through a hemisphere’s curved surface is πR²E in size: closed by its flat disc, the bowl holds no net flux', () => {
+    for (const [R, E] of [[1, 1], [.7, -2.5]]) {
+      // On the bowl the outward normal is r̂: E·n̂ dA = E cosθ R² sinθ dθ dφ, θ from the axis.
+      let t = 0; const n = 100000;
+      for (let i = 0; i < n; i++) { const th = Math.PI / 2 * (i + .5) / n; t += E * Math.cos(th) * R * R * Math.sin(th) * 2 * Math.PI * (Math.PI / 2) / n; }
+      close(t, Math.PI * R * R * E, 1e-8);
+      // The disc closing it has its outward normal against the axis, and carries the opposite.
+      close(t - E * Math.PI * R * R, 0, 1e-8);
+    }
+  });
+  it('the falling ball’s antiderivative, 4πρ₀(r³/3 − r⁴/4R), is the shells’ sum, and with ρ₀ = 3Q/πR³ it is Q(4r³/R³ − 3r⁴/R⁴)', () => {
+    const R = 1.1;
+    for (const s of SIGNS) for (const r of [.3, .8, 1.1]) {
+      const rho0 = s * 3 / (Math.PI * R ** 3);
+      let t = 0; const n = 200000;
+      for (let i = 0; i < n; i++) { const x = r * (i + .5) / n; t += rho0 * (1 - x / R) * 4 * Math.PI * x * x * r / n; }
+      close(t, 4 * Math.PI * rho0 * (r ** 3 / 3 - r ** 4 / (4 * R)), 1e-8);
+      close(t, s * (4 * r ** 3 / R ** 3 - 3 * r ** 4 / R ** 4), 1e-8);
+    }
+  });
+  it('round a line, the piece inside a short cylinder makes less than half the field on its wall: the rest of the line makes most of it', () => {
+    // The piece of length L, at its middle, a distance r out, makes 2kλ(L/2)/(r√(r² + L²/4)): this share of the line’s 2kλ/r.
+    const share = (L: number, r: number) => (L / 2) / Math.sqrt(r * r + L * L / 4);
+    for (const r of [.5, 1, 2]) { expect(share(r, r)).toBeLessThan(.5); expect(share(.1 * r, r)).toBeLessThan(.1); expect(share(100 * r, r)).toBeGreaterThan(.99); }
+    // And round a sheet: the disc a narrow pillbox holds, of the face’s radius, makes less than half the sheet’s σ/2ε₀
+    // at the face; a wide, low pillbox’s disc makes nearly all of it.
+    const sheet = 2 * Math.PI;
+    expect(diskField(.5, v3(0, 0, 1)).z / sheet).toBeLessThan(.5);
+    close(diskField(.5, v3(0, 0, 1)).z / sheet, 1 - 1 / Math.hypot(1, .5), 1e-9);
+    expect(diskField(5, v3(0, 0, .1)).z / sheet).toBeGreaterThan(.95);
+  });
+});

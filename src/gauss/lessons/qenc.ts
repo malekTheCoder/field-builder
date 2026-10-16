@@ -18,14 +18,14 @@ export const lesson: GaussLesson = {
   lead: raw`The left side of Gauss’s law is nearly free once the surface is right. The right side, $Q_{\text{enc}}$, is where the work is: add up the charge in the part of the object inside the surface, by a ratio when the density is uniform and by thin shells when it varies.`,
   sections: [
     {heading: 'Only the part inside', body: [
-      raw`Charge comes spread along a line, over a surface or through a volume, with a density $\lambda$, $\sigma$ or $\rho$, and a small piece of it holds $dq=\lambda\,d\ell$, $\sigma\,dA$ or $\rho\,dV$. The charge enclosed is the sum of those pieces over the part of the object inside the Gaussian surface, and nothing beyond it:`,
+      raw`Charge comes spread along a line, over a surface or through a volume, with a density $\lambda$, $\sigma$ or $\rho$, and a small piece of it holds $dq=\lambda\,d\ell$, $\sigma\,dA$ or $\rho\,dV$. Knight and many course slides write $\eta$ for the surface density this site calls $\sigma$; they are the same thing. The charge enclosed is the sum of those pieces over the part of the object inside the Gaussian surface, and nothing beyond it:`,
       {tex: raw`Q_{\text{enc}}=\int_{\text{inside}}\rho\,dV`},
       raw`Once the surface is outside the object, that is the whole charge, and it stops changing as the surface grows. Inside the object, it is a part of the charge that depends on where the surface is.`,
     ]},
     {heading: 'Uniform: the ratio method', body: [
       raw`With a uniform density, the charge enclosed is the object’s charge times the fraction of it inside the surface. For a ball of radius $R$ and charge $Q$, a concentric sphere of radius $r$ inside it encloses the fraction $\frac43\pi r^3/\frac43\pi R^3$:`,
       {tex: raw`Q_{\text{enc}}=Q\,\frac{r^3}{R^3}\quad(r\le R),\qquad Q_{\text{enc}}=\lambda L\,\frac{r^2}{R^2},\qquad Q_{\text{enc}}=\rho A\,(2z)`},
-      raw`The second is a long cylinder of radius $R$ with $\lambda$ per unit length, inside a coaxial cylinder of radius $r$ and length $L$; the third a slab inside a pillbox whose faces, of area $A$, are at $z$ and $-z$. Outside, each is the whole: $Q$, $\lambda L$, or $\rho A$ times the slab’s thickness.`,
+      raw`The second is a long rod of radius $R$ carrying $\lambda$ per unit length, with a coaxial cylinder of radius $r<R$ and length $L$ inside it; the third a pillbox inside a slab, its faces, of area $A$, at $z$ and $-z$. Outside, each is the whole: $Q$, $\lambda L$, or $\rho A$ times the slab’s thickness.`,
     ]},
     {heading: 'When the density varies: thin shells', body: [
       raw`If $\rho$ changes with $r$ you cannot multiply it by a volume. But across a thin shell it hardly changes, so take one shell, multiply its volume by the density there, and add the shells from the centre out to the surface. The shell’s volume is its area times its thickness:`,
@@ -36,8 +36,10 @@ export const lesson: GaussLesson = {
     ]},
     {heading: 'Normalising when you are given Q', body: [
       raw`A problem may say only that $\rho$ is proportional to some shape, and give the total charge. Then write $\rho$ with an unknown constant $\rho_0$, integrate over the whole object, and set the result equal to $Q$. For a ball whose density falls to zero at its surface,`,
-      {tex: raw`Q=\int_0^{R}\rho_0\Big(1-\frac{r'}{R}\Big)4\pi r'^2\,dr'=\frac{\pi\rho_0R^3}{3}\;\Rightarrow\;\rho_0=\frac{3Q}{\pi R^3}`},
-      raw`The charge inside a sphere of radius $r$ is then the same integral with the upper limit $r$. If the problem hands you $\rho_0$, leave it in the answer.`,
+      {tex: raw`\begin{aligned}Q&=\int_0^{R}\rho_0\Big(1-\frac{r'}{R}\Big)4\pi r'^2\,dr'=4\pi\rho_0\Big[\frac{r'^3}{3}-\frac{r'^4}{4R}\Big]_0^R\\&=4\pi\rho_0\Big(\frac{R^3}{3}-\frac{R^3}{4}\Big)=\frac{\pi\rho_0R^3}{3}\;\Rightarrow\;\rho_0=\frac{3Q}{\pi R^3}\end{aligned}`},
+      raw`The charge inside a sphere of radius $r$ is then the same antiderivative taken from $0$ to $r$, with that $\rho_0$ put in:`,
+      {tex: raw`Q_{\text{enc}}=4\pi\rho_0\Big(\frac{r^3}{3}-\frac{r^4}{4R}\Big)=\frac{12Q}{R^3}\Big(\frac{r^3}{3}-\frac{r^4}{4R}\Big)=Q\Big(\frac{4r^3}{R^3}-\frac{3r^4}{R^4}\Big)`},
+      raw`If the problem hands you $\rho_0$, leave it in the answer.`,
     ]},
     {heading: 'The mistakes graders see most', body: [
       raw`Integrating $\rho\,dr'$ instead of $\rho\,4\pi r'^2\,dr'$: check the units, since $Q_{\text{enc}}$ must come out as a charge, and $\int\rho\,dr'$ is a charge per area. Using $\frac43\pi r^3$ as $dV$: a $dV$ must contain $dr'$. The upper limit $R$ for a point inside: inside, $Q_{\text{enc}}$ must change with $r$ and reach $Q$ only at $R$. The upper limit $r$ for a point outside: there is no charge beyond $R$, so outside $Q_{\text{enc}}$ is constant. Leaving $\rho_0$ unknown when $Q$ was given: normalise first. Dropping the slab’s factor of two: the pillbox runs from $-z$ to $z$, so integrate from zero to $z$ and double. Leaving $L$ or $A$ in $E$: the surface is imaginary, and they must cancel. And inside and outside answers that do not meet at $R$: with a finite density the field is continuous, so a mismatch is an algebra slip.`,
@@ -47,6 +49,7 @@ export const lesson: GaussLesson = {
     {book: 'OpenStax, University Physics Volume 2', where: '§6.3, Applying Gauss’s Law: charge distributions with spherical, cylindrical and planar symmetry', url: 'https://openstax.org/books/university-physics-volume-2/pages/6-3-applying-gausss-law'},
     {book: 'Griffiths, Introduction to Electrodynamics', where: '§2.2.3, Applications of Gauss’s law: a density that depends on distance'},
     {book: 'Purcell and Morin, Electricity and Magnetism', where: 'Chapter 1, Electrostatics: charge distributions and Gauss’s law'},
+    {book: 'Knight, Physics for Scientists and Engineers', where: '§27.5, Using Gauss’s law: charge densities and the charge enclosed (Knight writes η for σ)'},
   ],
   cases: [
     {
@@ -63,7 +66,7 @@ export const lesson: GaussLesson = {
         tex: raw`A=4\pi r^2`,
         say: raw`A sphere of radius $r$ through $P$, centred on the ball: inside it while $r<R$, round it once $r>R$.`,
         line: raw`A sphere through $P$, centred on the ball: inside it or round it.`,
-        caption: 'Draw a sphere of radius r through P, centred on the ball. It may cut through the ball or lie round it; the field is square to it and the same all over it either way.',
+        caption: 'Draw a sphere of radius r through P, centred on the ball. It may cut through the ball or lie round it; the field is perpendicular to it and the same all over it either way.',
       },
       left: {
         tex: raw`\Phi=E_r\,(4\pi r^2)`,
@@ -113,7 +116,7 @@ export const lesson: GaussLesson = {
         caption: 'The left side is E_r times four π r squared, as for any sphere. All the work is on the right.',
       },
       right: {
-        tex: raw`Q_{\text{enc}}=\int_0^{r}\rho_0\Big(1-\frac{r'}{R}\Big)4\pi r'^2\,dr'=Q\Big(\frac{4r^3}{R^3}-\frac{3r^4}{R^4}\Big)`,
+        tex: raw`\begin{aligned}Q_{\text{enc}}&=\int_0^{r}\rho_0\Big(1-\frac{r'}{R}\Big)4\pi r'^2\,dr'\\&=4\pi\rho_0\Big(\frac{r^3}{3}-\frac{r^4}{4R}\Big)\\&=Q\Big(\frac{4r^3}{R^3}-\frac{3r^4}{R^4}\Big)\end{aligned}`,
         say: raw`A thin shell at $r'$ holds $\rho(r')\,4\pi r'^2\,dr'$. The same integral out to $R$ gives $Q=\pi\rho_0R^3/3$, which fixes $\rho_0=3Q/\pi R^3$. For $r\ge R$ the shells stop at $R$, and $Q_{\text{enc}}=Q$.`,
         line: raw`Add thin shells, $\rho\,4\pi r'^2\,dr'$ each, from the centre out to $r$.`,
         caption: 'The right side, by thin shells. A shell of radius r prime and thickness d r prime holds the density there times four π r prime squared d r prime. Adding them from the centre to r, with ρ₀ fixed by the whole ball holding Q, gives the charge inside; outside the ball the shells stop at R, and it is all of Q.',
@@ -128,7 +131,7 @@ export const lesson: GaussLesson = {
       checks: [
         {title: 'Normalise first', text: raw`$\rho_0$ was not given, $Q$ was. Integrating over the whole ball fixed $\rho_0=3Q/\pi R^3$; the answer is then in what the problem gave.`},
         {title: 'They meet at R', text: raw`Inside, at $r=R$: $\frac{kQ}{R^3}(4R-3R)=\frac{kQ}{R^2}$, as outside.`},
-        {title: 'Strongest inside', text: raw`The field peaks before the surface, at $r=2R/3$, where it is $\frac43\,kQ/R^2$: past there the density at the sphere has fallen below two thirds of the average density inside it, so the charge enclosed grows more slowly than the sphere’s area, and $Q_{\text{enc}}/r^2$ falls.`},
+        {title: 'Strongest inside', text: raw`The field’s size peaks before the surface, at $r=2R/3$, where $E_r=\frac43\,kQ/R^2$: past there the density’s size at the sphere has fallen below two thirds of the average size inside it, so the size of the charge enclosed grows more slowly than the sphere’s area, and $|Q_{\text{enc}}|/r^2$ falls.`},
         {title: 'Either sign', text: raw`For a negative $Q$ the density is negative throughout, and $E_r$ is negative in both regions.`},
       ],
     },
@@ -139,8 +142,8 @@ export const lesson: GaussLesson = {
       symmetry: {
         tex: raw`\vec E=E_\perp(z)\,\hat{\mathbf n}`,
         say: raw`$\hat{\mathbf n}$ points away from the middle plane on either side. The slab is the same at $z$ and $-z$, so the field below is the mirror of the field above. $E_\perp$ is negative where the field points toward the middle.`,
-        line: raw`Turns and the flip in the middle plane: $\vec E$ is square to the slab, mirrored.`,
-        caption: 'Turns about a line square to the slab leave it unchanged, so the field has no part along it. The flip in the middle plane leaves it unchanged too, so the field below is the mirror of the field above.',
+        line: raw`Turns and the flip in the middle plane: $\vec E$ is perpendicular to the slab, mirrored.`,
+        caption: 'Turns about a line perpendicular to the slab leave it unchanged, so the field has no part along it. The flip in the middle plane leaves it unchanged too, so the field below is the mirror of the field above.',
       },
       surface: {
         tex: raw`A_{\text{faces}}=2A`,
@@ -155,7 +158,7 @@ export const lesson: GaussLesson = {
         caption: 'The left side. Both faces carry E_⊥ times A, since the outward normal points away from the middle on each, and the side carries nothing.',
       },
       right: {
-        tex: raw`Q_{\text{enc}}=2\int_0^{z}\rho_0\Big(1-\frac{z'}{a}\Big)A\,dz'=2\rho_0A\Big(z-\frac{z^2}{2a}\Big)`,
+        tex: raw`\begin{aligned}Q_{\text{enc}}&=2\int_0^{z}\rho_0\Big(1-\frac{z'}{a}\Big)A\,dz'\\&=2\rho_0A\Big[z'-\frac{z'^2}{2a}\Big]_0^z\\&=2\rho_0A\Big(z-\frac{z^2}{2a}\Big)\end{aligned}`,
         say: raw`Thin slices of area $A$ and thickness $dz'$. The pillbox runs from $-z$ to $z$: integrate the top half and double it, which also deals with $|z'|$. For $z\ge a$ the slices stop at the face, and $Q_{\text{enc}}=\rho_0Aa$.`,
         line: raw`Slices $\rho A\,dz'$ from the middle up to $z$, doubled for the half below.`,
         caption: 'The right side, by thin slices. Each slice of area A and thickness d z prime holds the density there times A d z prime. Add the slices from the middle plane up to z, then double for the half below; outside the slab the slices stop at its face, a.',

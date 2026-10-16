@@ -19,7 +19,7 @@ type GaussLesson = {
   about: string;                 // one sentence, home page and library
   lead: string;                  // always on the page; one or two sentences
   sections: LessonSection[];     // "Read the lesson": headings, paragraphs ($…$ symbols), {tex} displays
-  read: Reading[];               // OpenStax UP2 ch. 6 §6.x with URLs, Griffiths §2.2, Purcell ch. 1 or 2
+  read: Reading[];               // OpenStax UP2 ch. 6 §6.x with URLs, Griffiths §2.2, Purcell ch. 1 or 2, Knight ch. 27
   cases: GaussCase[];            // one, or several the reader picks between
   traps: Trap[];                 // {wrong, right}: the misconceptions, shown as "Easy to confuse with"
   instrument?: 'symmetry' | 'flux' | 'profile' | 'cavity' | 'inside' | 'qenc' | 'plot' | 'hole' | 'cube';
@@ -127,5 +127,12 @@ before publishing, and screenshot both themes at 1440 and 390 with the styled co
 - No numerals as values on the page; structural constants inside TeX are fine.
 - No em dashes anywhere under `src` (`tests/no-em-dash.test.ts`).
 - Every sentence true for either sign: E_r and E_⊥ are signed components, "negative where the field points in".
-- σ for surface density, never η.
+- σ for surface density. η appears only to say that Knight (the course's book) writes it for σ.
+- "Perpendicular to", never "square to". Name the closed surface a Gaussian surface where it is first drawn.
+- Peak, grows, falls, below are sign words: with a signed quantity, say "its size peaks".
+- One symbol per quantity across the section: r is the distance from a centre or an axis, with E_r along r̂.
+- A piece defined with its sign (a plug of −ρ) is always added: "plus the plug's", never "less the plug's".
+- Board TeX is symbols. Put words in `say`; where a line needs words, break it with `aligned` so it fits the board.
+- `line` is said aloud through `spoken()` (`src/gauss/run.ts`); `tests/gauss-lessons.test.ts` fails on any TeX left
+  in it, so a new command in a line needs a symbol in `SYMBOLS` there.
 - Keyboard for every drag, screen-reader names, Reduce Motion steps the run and never skips it.

@@ -16,10 +16,10 @@ export const lesson: GaussLesson = {
   title: 'Sheets and slabs',
   short: 'Sheets and slabs',
   about: 'A pillbox through a sheet or a thick slab, and why, for a sheet, the distance drops out.',
-  lead: raw`Across a flat charge, stand a pillbox: its side carries no flux, its two faces carry $E_\perp A$ each, and the face area $A$ cancels. For an infinite sheet the height never enters, so its field is the same at every distance.`,
+  lead: raw`Across a flat charge, stand a pillbox as the Gaussian surface: its side carries no flux, its two faces carry $E_\perp A$ each, and the face area $A$ cancels. For an infinite sheet the height never enters, so its field is the same at every distance.`,
   sections: [
     {heading: 'The pillbox', body: [
-      raw`A charge that depends only on the height $z$ above a plane, and is the same at equal heights above and below it, makes a field square to the plane, pointing away from the middle on both sides (or toward it on both), with the same size at $z$ and at $-z$. The surface that matches is a pillbox standing across the middle: two flat faces of area $A$ at heights $z$ and $-z$, joined by a side.`,
+      raw`A charge that depends only on the height $z$ above a plane, and is the same at equal heights above and below it, makes a field perpendicular to the plane, pointing away from the middle on both sides (or toward it on both), with the same size at $z$ and at $-z$. The surface that matches is a pillbox standing across the middle: two flat faces of area $A$ at heights $z$ and $-z$, joined by a side.`,
       raw`On each face $d\vec A$ points away from the middle, and the field points the same way as $d\vec A$ on both faces, or the opposite way on both: each face carries $E_\perp A$ with the same sign. The side has $\vec E$ along it and carries nothing. So:`,
       {tex: raw`\oint\vec E\cdot d\vec A=E_\perp A+E_\perp A+0=2E_\perp A`},
       raw`The faces can be any shape; only their area enters, and it cancels against the $A$ in the charge inside. That needs the charge to be the same all across the plane: let $\sigma$ vary from place to place on the sheet and the field leans, and the pillbox no longer works.`,
@@ -35,18 +35,19 @@ export const lesson: GaussLesson = {
       raw`and $2E_\perp A=2\rho Az/\varepsilon_0$ gives $E_\perp=\rho z/\varepsilon_0$, growing from zero at the middle. Outside, the integral stops at $a$, the box holds $2\rho Aa$ whatever its height, and $E_\perp=\rho a/\varepsilon_0$ for good. From outside the slab looks like a sheet with $\sigma=2\rho a$, and $\sigma/(2\varepsilon_0)$ agrees. The two halves of the answer meet at $z=a$: a volume charge has no surface charge to make a jump.`,
     ]},
     {heading: 'Two sheets: superposition first', body: [
-      raw`A capacitor’s plates are two parallel sheets carrying $\sigma$ and $-\sigma$. The pair is not the same above and below its middle in the way the pillbox needs, and a pillbox standing across both encloses nothing, and the law says only that the field outside is the same above and below, not how big it is. So add the two sheets’ fields instead. Each has size $|\sigma|/(2\varepsilon_0)$, away from the positive sheet and toward the negative one. Between the plates the two point the same way and add; outside, they point opposite ways and cancel. Measured from the $\sigma$ plate toward the $-\sigma$ one:`,
+      raw`A capacitor’s plates are two parallel sheets carrying $\sigma$ and $-\sigma$, here with the $\sigma$ plate above. A pillbox standing across both plates encloses zero net charge, so the flux through it is zero. That says only that the field above the pair is the same as the field below it, in size and direction, which a uniform field could also do; it does not give the size. For that, add the two sheets’ fields. Each has size $|\sigma|/(2\varepsilon_0)$, away from the positive sheet and toward the negative one. Between the plates the two point the same way and add; outside, they point opposite ways and cancel. Measured from the $\sigma$ plate toward the $-\sigma$ one:`,
       {tex: raw`E_{\text{between}}=\frac{\sigma}{2\varepsilon_0}+\frac{\sigma}{2\varepsilon_0}=\frac{\sigma}{\varepsilon_0},\qquad E_{\text{outside}}=0`},
       raw`Gauss’s law then checks it with a pillbox round one plate, one face outside where there is no field and one between. Only the inner face carries flux, $E_\perp A=\sigma A/\varepsilon_0$, and $\sigma/\varepsilon_0$ comes back. A pillbox with flux through one face is how the field next to a conductor is found, in the next lesson.`,
     ]},
     {heading: 'The jump across a surface charge', body: [
-      raw`Every case here shows the same rule. Crossing a sheet of charge $\sigma$, the field’s part square to it jumps by $\sigma/\varepsilon_0$: from $-\sigma/(2\varepsilon_0)$ to $\sigma/(2\varepsilon_0)$ across a lone sheet, from $-\sigma/\varepsilon_0$ between the plates to $0$ above the $\sigma$ plate. Across a volume charge, like the slab’s faces, there is no jump at all. Checking for it is a quick way to catch a lost factor of two.`,
+      raw`Every case here shows the same rule. Write $E_z$ for the field’s part along the fixed upward direction. Crossing a sheet of charge $\sigma$ upward, $E_z$ jumps by $\sigma/\varepsilon_0$: from $-\sigma/(2\varepsilon_0)$ to $\sigma/(2\varepsilon_0)$ across a lone sheet, and, with the $\sigma$ plate above the $-\sigma$ one, from $-\sigma/\varepsilon_0$ between the plates to $0$ above them. Across a volume charge, like the slab’s faces, there is no jump at all. Checking for it is a quick way to catch a lost factor of two.`,
     ]},
   ],
   read: [
     {book: 'OpenStax, University Physics Volume 2', where: '§6.3, Applying Gauss’s Law: systems with planar symmetry', url: 'https://openstax.org/books/university-physics-volume-2/pages/6-3-applying-gausss-law'},
     {book: 'Griffiths, Introduction to Electrodynamics', where: '§2.2.3, Applications of Gauss’s law: the infinite plane, and two parallel planes'},
     {book: 'Purcell and Morin, Electricity and Magnetism', where: 'Chapter 1, Electrostatics: the field of an infinite flat sheet'},
+    {book: 'Knight, Physics for Scientists and Engineers', where: '§27.5, Using Gauss’s law: a plane of charge (Knight writes η for σ)'},
   ],
   cases: [
     {
@@ -56,14 +57,14 @@ export const lesson: GaussLesson = {
       symmetry: {
         tex: raw`\vec E=E_\perp(z)\,\hat{\mathbf n}`,
         say: raw`$\hat{\mathbf n}$ points away from the sheet on either side; $E_\perp$ is negative where the field points toward it.`,
-        line: raw`A turn square to the sheet forbids any part along it; a flip swaps its sides.`,
-        caption: 'A turn about a line square to the sheet leaves it unchanged but would swing any part of the field along the sheet round, so the field is square to the sheet. Flipping the sheet over swaps its two sides, so the field is the mirror of itself: away from the sheet on both sides, or toward it on both.',
+        line: raw`Turns about its normal forbid any part along the sheet; a flip swaps its sides.`,
+        caption: 'A turn about a line perpendicular to the sheet leaves it unchanged but would swing any part of the field along the sheet round, so the field is perpendicular to the sheet. Flipping the sheet over swaps its two sides, so the field is the mirror of itself: away from the sheet on both sides, or toward it on both.',
       },
       surface: {
         tex: raw`A_{\text{faces}}=2A`,
         say: raw`A pillbox across the sheet, faces of area $A$ at heights $z$ and $-z$.`,
         line: raw`A pillbox across the sheet, its two faces at heights $z$ and $-z$.`,
-        caption: 'Stand a pillbox across the sheet, with two faces of area A at heights z and minus z. On each face the field is square to it and the same all over; on the side it lies along the surface.',
+        caption: 'Stand a pillbox across the sheet, with two faces of area A at heights z and minus z. On each face the field is perpendicular to it and the same all over; on the side it lies along the surface.',
       },
       left: {
         tex: raw`\Phi=E_\perp A+E_\perp A+0=2E_\perp A`,
@@ -87,7 +88,7 @@ export const lesson: GaussLesson = {
       checks: [
         {title: 'The integral agrees', text: raw`The Infinite sheet lesson added the sheet up ring by ring and found $\sigma/(2\varepsilon_0)$, which is $2\pi k\sigma$, with no $z$ in it. Gauss’s law finds the same field, without a single ring:`, tex: raw`2\pi k\sigma=\frac{2\pi\sigma}{4\pi\varepsilon_0}=\frac{\sigma}{2\varepsilon_0}`},
         {title: 'No height in it', text: raw`Drag the height: the profile under the figure stays flat. A taller box has faces farther out, but they see the same field and the box holds the same charge.`},
-        {title: 'The jump across the sheet', text: raw`Just above, $E_z=\sigma/(2\varepsilon_0)$; just below, $-\sigma/(2\varepsilon_0)$. The jump is $\sigma/\varepsilon_0$:`, tex: raw`E_z^{\text{above}}-E_z^{\text{below}}=\frac{\sigma}{\varepsilon_0}`},
+        {title: 'The jump across the sheet', text: raw`With $E_z$ the field’s part along the fixed upward direction, just above, $E_z=\sigma/(2\varepsilon_0)$; just below, $-\sigma/(2\varepsilon_0)$. The jump is $\sigma/\varepsilon_0$:`, tex: raw`E_z^{\text{above}}-E_z^{\text{below}}=\frac{\sigma}{\varepsilon_0}`},
       ],
     },
     {
@@ -101,8 +102,8 @@ export const lesson: GaussLesson = {
       symmetry: {
         tex: raw`\vec E=E_\perp(z)\,\hat{\mathbf n}`,
         say: raw`$\hat{\mathbf n}$ points away from the slab’s middle; $E_\perp$ depends only on the height $z$.`,
-        line: raw`The slab is the same above and below its middle: the field is square to it.`,
-        caption: 'Turns about a line square to the slab leave it unchanged, so the field is square to it. Flipping it over its middle leaves it unchanged too, so the field at z is the mirror of the field at minus z: away from the middle on both sides, or toward it on both.',
+        line: raw`The slab is the same above and below its middle: the field is perpendicular to it.`,
+        caption: 'Turns about a line perpendicular to the slab leave it unchanged, so the field is perpendicular to it. Flipping it over its middle leaves it unchanged too, so the field at z is the mirror of the field at minus z: away from the middle on both sides, or toward it on both.',
       },
       surface: {
         tex: raw`A_{\text{faces}}=2A`,
@@ -142,12 +143,12 @@ export const lesson: GaussLesson = {
           {name: 'between the plates', tex: raw`E_\perp=\frac{\sigma}{\varepsilon_0}`, say: raw`Between the plates the two sheets’ fields add, whatever the distance from either.`},
           {name: 'beyond both plates', tex: raw`E_\perp=0`, say: raw`Beyond both plates the two sheets’ fields cancel: no field. That comes from adding them; a pillbox reaching here encloses nothing and decides nothing.`, superposition: true},
         ]}, reference: REFERENCE},
-      setup: raw`Two infinite parallel sheets a distance $d$ apart carry $\sigma$ and $-\sigma$ per unit area: a capacitor’s plates. Find the field between them and outside them.`,
+      setup: raw`Two infinite parallel sheets a distance $d$ apart carry $\sigma$ and $-\sigma$ per unit area, the $\sigma$ plate above the $-\sigma$ one: a capacitor’s plates. Find the field between them and outside them.`,
       symmetry: {
         tex: raw`\vec E=\vec E_{\sigma}+\vec E_{-\sigma},\qquad |\vec E_{\pm\sigma}|=\frac{|\sigma|}{2\varepsilon_0}`,
-        say: raw`Each sheet alone has the Sheet case’s field: square to it, the same at every height.`,
-        line: raw`Each sheet gives $|\sigma|/(2\varepsilon_0)$: between, they add; outside, they cancel.`,
-        caption: 'Each sheet on its own makes the field of the Sheet case, square to it and the same at every height, away from the positive sheet and toward the negative one. Outside both, the two fields point opposite ways and cancel. Between them they point the same way and add.',
+        say: raw`This step is superposition, not a symmetry: each sheet alone has the Sheet case’s field, perpendicular to it and the same at every height, and the two add.`,
+        line: raw`Superposition first: between, the sheets’ fields add; outside, they cancel.`,
+        caption: 'Each sheet on its own makes the field of the Sheet case, perpendicular to it and the same at every height, away from the positive sheet and toward the negative one. Outside both, the two fields point opposite ways and cancel. Between them they point the same way and add.',
       },
       surface: {
         tex: raw`A_{\text{face}}=A`,
@@ -169,15 +170,16 @@ export const lesson: GaussLesson = {
       },
       solve: {
         tex: raw`E_\perp A=\frac{\sigma A}{\varepsilon_0}\;\Rightarrow\;E_\perp=\frac{\sigma}{\varepsilon_0}`,
-        answer: raw`E_\perp=\frac{\sigma}{\varepsilon_0}\ \text{between, toward the }{-\sigma}\text{ plate},\qquad E=0\ \text{outside}`,
+        answer: raw`\begin{aligned}E_\perp&=\frac{\sigma}{\varepsilon_0}\ \ \text{between}\\E&=0\ \ \text{outside}\end{aligned}`,
         say: raw`Twice a lone sheet’s field, and the same as the two halves added.`,
         line: raw`$\sigma/\varepsilon_0$ between, the two halves added; nothing outside.`,
         caption: 'Divide by A. Between the plates the field is σ over ε₀, the two sheets’ halves added, the same everywhere between them, pointing from the positive plate to the negative one. Outside the pair there is none.',
+        note: raw`Between the plates the field points from the $\sigma$ plate toward the $-\sigma$ one. The zero outside comes from adding the two sheets’ fields; the one-sided pillbox, which stands on it, checks the field between them. Reversing the charges reverses the field.`,
       },
       checks: [
         {title: 'Superposition agrees', text: raw`Adding the two sheets’ fields gave $\sigma/(2\varepsilon_0)+\sigma/(2\varepsilon_0)=\sigma/\varepsilon_0$ between them; the one-sided pillbox gives the same.`},
         {title: 'Why the outside needs superposition', text: raw`A pillbox standing across both plates encloses $\sigma A-\sigma A=0$, so the field outside is the same above the pair and below it. Gauss’s law cannot say how big it is: a uniform field could be added to the answer and still pass. The zero outside comes from adding the sheets’ fields.`},
-        {title: 'No distance in it', text: raw`Neither $d$ nor $z$ is in the answer: the field is the same everywhere between the plates. Across each plate $E_z$, above minus below, jumps by that plate’s own charge over $\varepsilon_0$: $\sigma/\varepsilon_0$ across the top plate, $-\sigma/\varepsilon_0$ across the bottom one.`},
+        {title: 'No distance in it', text: raw`Neither $d$ nor $z$ is in the answer: the field is the same everywhere between the plates. Across each plate $E_z$, above minus below, jumps by that plate’s own charge over $\varepsilon_0$: $\sigma/\varepsilon_0$ across the top plate, which carries $\sigma$, and $-\sigma/\varepsilon_0$ across the bottom one, which carries $-\sigma$.`},
       ],
     },
   ],

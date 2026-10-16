@@ -14,9 +14,9 @@ export const lesson: GaussLesson = {
   lead: raw`Flux measures how much field passes through a surface. Through any closed surface round a point charge $q$ it comes to $q/\varepsilon_0$, whatever the surface’s size or shape, and a charge outside adds nothing.`,
   sections: [
     {heading: 'Through a flat patch', body: [
-      raw`Hold a flat patch of area $A$ in a uniform field $\vec E$. Give it an area vector $\vec A=A\,\hat{\mathbf n}$: square to the patch, its length the patch’s area. An open patch has two sides, and you choose which way $\hat{\mathbf n}$ points. The flux through it is the dot product:`,
+      raw`Hold a flat patch of area $A$ in a uniform field $\vec E$. Give it an area vector $\vec A=A\,\hat{\mathbf n}$: perpendicular to the patch, its length the patch’s area. An open patch has two sides, and you choose which way $\hat{\mathbf n}$ points. The flux through it is the dot product:`,
       {tex: raw`\Phi=\vec E\cdot\vec A=EA\cos\theta`},
-      raw`Here $\theta$ is the angle between $\vec E$ and the normal $\hat{\mathbf n}$, not between $\vec E$ and the patch. Only the part of the field square to the patch, $E\cos\theta$, carries field through it; the part along the patch slides past.`,
+      raw`Here $\theta$ is the angle between $\vec E$ and the normal $\hat{\mathbf n}$, not between $\vec E$ and the patch. Only the part of the field perpendicular to the patch, $E\cos\theta$, carries field through it; the part along the patch slides past.`,
     ]},
     {heading: 'The angle is from the normal', body: [
       raw`Face the patch square on to the field, $\theta=0$, and the flux is the most it can be, $EA$. Turn it until the field slides along it, $\theta=\pi/2$, and the flux is zero. Turn it further and the field goes through the other way, and the flux is negative. If a problem gives the angle between the field and the surface itself, the angle you want is its complement.`,
@@ -47,6 +47,7 @@ export const lesson: GaussLesson = {
     {book: 'OpenStax, University Physics Volume 2', where: '§6.2, Explaining Gauss’s Law', url: 'https://openstax.org/books/university-physics-volume-2/pages/6-2-explaining-gausss-law'},
     {book: 'Griffiths, Introduction to Electrodynamics', where: '§2.2, Divergence and curl of electrostatic fields: field lines, flux and Gauss’s law'},
     {book: 'Purcell and Morin, Electricity and Magnetism', where: 'Chapter 1, Electrostatics: flux and Gauss’s law'},
+    {book: 'Knight, Physics for Scientists and Engineers', where: '§27.2 and §27.3, The concept of flux, and calculating electric flux'},
   ],
   cases: [
     {
@@ -86,7 +87,7 @@ export const lesson: GaussLesson = {
       },
       checks: [
         {title: 'No radius in it', text: raw`Drag the radius and nothing in the answer moves: there is no $r$ in $q/\varepsilon_0$. A bigger sphere is crossed by a weaker field over a larger area, and the two exactly trade off.`},
-        {title: 'Any shape', text: raw`The instrument under the figure draws a lumpy surface instead of a sphere. Its flux is $q/\varepsilon_0$ too, for every charge it encloses, and it changes only when a charge crosses it.`},
+        {title: 'Any shape', text: raw`The instrument under the figure draws a lumpy surface instead of a sphere. Its flux is the sum of $q_i/\varepsilon_0$ over the charges it encloses, and it changes only when a charge crosses it.`},
         {title: 'A charge outside', text: raw`A charge outside a closed surface puts flux in on one side and takes the same flux out on the other: it adds zero to the net flux, though its field is not zero anywhere on the surface.`},
         {title: 'Units', text: raw`$q/\varepsilon_0$ is in $\mathrm{N\,m^2/C}$: a field, in $\mathrm{N/C}$, times an area.`},
       ],
@@ -100,5 +101,5 @@ export const lesson: GaussLesson = {
   ],
   instrument: 'flux',
   next: 'inside',
-  related: {field: 'sheet', text: 'Built the long way, ring by ring: a field the coming Gauss lessons get in two lines'},
+  related: {field: 'sheet', text: 'Built the long way, ring by ring: a field the Sheets and slabs lesson gets in two lines'},
 };

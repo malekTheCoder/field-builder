@@ -23,7 +23,7 @@ export const lesson: GaussLesson = {
     {heading: 'Charge with no edge', body: [
       raw`When the charge runs on for ever, however large the sphere, there is charge beyond it, and $Q_{\text{enc}}(r)$ is one integral for all $r$. Whether its limit is finite depends on how fast $\rho$ falls. A density like $\rho_0e^{-r/a}$ falls fast enough, and far away its field is a point charge’s. The halo here, $\rho=\rho_0a^2/(r^2+a^2)$, does not: far out it falls only as $1/r^2$, each shell of thickness $dr$ holds about $4\pi\rho_0a^2\,dr$, and the charge inside grows in step with $r$:`,
       {tex: raw`\begin{aligned}Q_{\text{enc}}&=\int_0^r\frac{\rho_0a^2}{r'^2+a^2}\,4\pi r'^2\,dr'\\&=4\pi\rho_0a^2\Big(r-a\arctan\frac{r}{a}\Big)\end{aligned}`},
-      raw`So its field heads for $1/r$, not $1/r^2$, for good. Yet its field is settled: the halo thins out far away, so the fields of its distant pieces add to a finite sum, however they are grouped. Fill all of space evenly and they do not: grouped in spheres about one point, the pieces give $\rho r/(3\varepsilon_0)$ measured from that point, but any point could be that centre, and symmetry would then say the field is zero everywhere. Both cannot hold: an even fill of all space has no one field its pieces agree on.`,
+      raw`So its field heads for $1/r$, not $1/r^2$, for good.`,
     ]},
     {heading: 'A density that blows up', body: [
       raw`A density can be infinite at a point and the charge still finite, because the shells near the centre are small. For $\rho=\beta/r$ inside a ball of radius $R$, the shell’s volume $4\pi r'^2dr'$ swallows the $1/r'$:`,
@@ -33,21 +33,27 @@ export const lesson: GaussLesson = {
     {heading: 'Running it backwards', body: [
       raw`Gauss’s law runs in both directions. Given the field of a round charge, the left side is known, and the law gives the charge inside every sphere: $Q_{\text{enc}}(r)=4\pi\varepsilon_0r^2E_r(r)$. The charge in a thin shell between $r$ and $r+dr$ is $\rho\,4\pi r^2\,dr$, so the density is how fast $Q_{\text{enc}}$ grows with $r$, over the shell’s area $4\pi r^2$:`,
       {tex: raw`\rho(r)=\frac{1}{4\pi r^2}\frac{dQ_{\text{enc}}}{dr}=\frac{\varepsilon_0}{r^2}\frac{d}{dr}\big(r^2E_r\big)`},
-      raw`Differentiate, do not divide: $Q_{\text{enc}}$ over the ball’s volume is the average density inside $r$, not the density at $r$. The right-hand form is $\varepsilon_0$ times the divergence of a radial field $E_r(r)\,\hat{\mathbf r}$: Gauss’s law said at a point.`,
+      raw`Differentiate, do not divide: $Q_{\text{enc}}$ over the ball’s volume is the average density inside $r$, not the density at $r$.`,
     ]},
     {heading: 'A flux integral you have to do', body: [
-      raw`Sometimes the question is the flux itself, through a surface that is not closed. Take a charge $q$ on the axis of a square of side $2b$, the line through its centre at right angles to it, a distance $d$ from the square, and count the flux out through the square with its normal pointing away from $q$. The field’s component along that normal at $(x,y)$ is $kqd/(d^2+x^2+y^2)^{3/2}$, different at every point, so integrate, over $y$ and then over $x$:`,
-      {tex: raw`\begin{aligned}\Phi&=\int_{-b}^{b}\!\!\int_{-b}^{b}\frac{kqd\,dx\,dy}{(d^2+x^2+y^2)^{3/2}}\\&=\frac{q}{\pi\varepsilon_0}\arctan\frac{b^2}{d\sqrt{d^2+2b^2}}\end{aligned}`},
+      raw`Sometimes the question is the flux itself, through a surface that is not closed. Take a charge $q$ on the axis of a square of side $2b$, the line through its centre at right angles to it, a distance $d$ from the square, and count the flux out through the square with its normal pointing away from $q$. The field’s component along that normal at $(x,y)$ is $kqd/(d^2+x^2+y^2)^{3/2}$, different at every point, so integrate, over $y$ and then over $x$. With $x$ held fixed, the $y$ integral is the standard $\int dy/(c^2+y^2)^{3/2}=y/\big(c^2\sqrt{c^2+y^2}\big)$, with $c^2=d^2+x^2$; the $x$ integral that is left has the antiderivative $\frac{1}{bd}\arctan\big(bx/(d\sqrt{x^2+d^2+b^2})\big)$, which you can check by differentiating:`,
+      {tex: raw`\begin{aligned}\Phi&=\int_{-b}^{b}\!\!\int_{-b}^{b}\frac{kqd\,dy\,dx}{(d^2+x^2+y^2)^{3/2}}\\&=\int_{-b}^{b}\frac{2kqbd\,dx}{(d^2+x^2)\sqrt{d^2+x^2+b^2}}\\&=\frac{q}{\pi\varepsilon_0}\arctan\frac{b^2}{d\sqrt{d^2+2b^2}}\end{aligned}`},
       raw`Two checks. As $b\to\infty$ the square becomes a plane and the flux $q/(2\varepsilon_0)$: half the charge’s flux, the half heading that way. With $d=b$ the square is one face of a cube with $q$ at its centre, and the arctangent is $\pi/6$: the flux is $q/(6\varepsilon_0)$, the sixth that symmetry gave in When symmetry runs out.`,
+      raw`Sometimes the law spares you the integral. For the flux of a uniform field $E$ along the axis of a hemisphere of radius $R$, through its curved surface, close the bowl with its flat disc. The closed surface holds no charge, so its net flux is zero, and the curved part carries the disc’s flux with the sign turned round: $\pi R^2E$ in size.`,
     ]},
     {heading: 'A slab whose charge changes sign', body: [
       raw`The pillbox in Sheets and slabs stood across the middle and trusted the field below the middle to mirror the field above it: away from the middle on both sides, or toward it on both. Let the density be $\rho_0z/a$ between $z=-a$ and $z=a$: one sign above the middle, the other below. Flipping the slab over its middle now turns $\rho$ into $-\rho$, so the field below is the field above, pointing the same way, and the symmetric pillbox reports $E_zA-E_zA=0$: correct, and empty. Two other facts settle it. Cut the slab into thin layers; their charges add to zero, so outside all of them their fields cancel: no field outside. Then a pillbox with its bottom face below the slab and its top face at $z$ has flux only through the top.`,
+    ]},
+    {heading: 'Going further: two side roads', body: [
+      raw`The halo’s charge is infinite, yet its field is settled: it thins out far away, so the fields of its distant pieces add to a finite sum, however they are grouped. Fill all of space evenly and they do not: grouped in spheres about one point, the pieces give $\rho r/(3\varepsilon_0)$ measured from that point, but any point could be that centre, and the fields measured from two centres differ. An even fill of all space has no one field its pieces agree on.`,
+      raw`If you have met the divergence, a measure of how much a field spreads out from each point, the backwards formula is $\varepsilon_0$ times the divergence of a radial field $E_r(r)\,\hat{\mathbf r}$: Gauss’s law said at a point. Nothing else in this section needs it.`,
     ]},
   ],
   read: [
     {book: 'OpenStax, University Physics Volume 2', where: '§6.3, Applying Gauss’s Law: charge distributions that vary with r', url: 'https://openstax.org/books/university-physics-volume-2/pages/6-3-applying-gausss-law'},
     {book: 'Griffiths, Introduction to Electrodynamics', where: '§2.2.1 to §2.2.3: the divergence of E, ρ = ε₀∇·E, and Gauss’s law applied'},
     {book: 'Purcell and Morin, Electricity and Magnetism', where: 'Chapter 2, The electric potential: the divergence of a field, and finding the charge from it'},
+    {book: 'Knight, Physics for Scientists and Engineers', where: 'Chapter 27, Gauss’s law: the end-of-chapter problems'},
   ],
   cases: [
     {
@@ -88,7 +94,7 @@ export const lesson: GaussLesson = {
       },
       checks: [
         {title: 'Near the centre', text: raw`For $r\ll a$ the arctangent is nearly $r/a-r^3/(3a^3)$, so $Q_{\text{enc}}\approx\frac43\pi\rho_0r^3$ and $E_r\approx\rho_0r/(3\varepsilon_0)$, a uniform ball’s field: so close to the centre the density has hardly begun to fall.`},
-        {title: 'No finite total', text: raw`$Q_{\text{enc}}$ has no limit as $r$ grows, so the halo’s total charge is infinite, and there is no point-charge field far away. Drag the radius out: the profile below peaks and then falls ever more slowly, heading for $1/r$.`},
+        {title: 'No finite total', text: raw`$Q_{\text{enc}}$ has no limit as $r$ grows, so the halo’s total charge is infinite, and there is no point-charge field far away. Drag the radius out: the profile’s size peaks and then falls ever more slowly, heading for $1/r$.`},
         {title: 'A faster fall', text: raw`Make the density fall faster than $1/r^3$ and the total is finite: far out the field is then a point charge’s, $kQ/r^2$.`},
       ],
     },
@@ -120,7 +126,7 @@ export const lesson: GaussLesson = {
         caption: 'The left side, E_r times four π r squared.',
       },
       right: {
-        tex: raw`Q_{\text{enc}}=\int_0^r\frac{\beta}{r'}\,4\pi r'^2\,dr'=2\pi\beta r^2\quad(r\le R)`,
+        tex: raw`\begin{aligned}Q_{\text{enc}}&=\int_0^r\frac{\beta}{r'}\,4\pi r'^2\,dr'\\&=2\pi\beta r^2\quad(r\le R)\end{aligned}`,
         say: raw`The shell’s $r'^2$ swallows the $1/r'$: the charge near the centre is small, though the density there is not.`,
         line: raw`The shell’s $r'^2$ beats the $1/r'$: finite charge, $2\pi\beta r^2$.`,
         caption: 'The right side, by thin shells. Each shell’s volume, four π r prime squared d r prime, swallows the one over r prime: the charge inside r is two π β r squared, finite, though the density at the centre is not. Outside the ball, two π β R squared.',
@@ -201,10 +207,10 @@ export const lesson: GaussLesson = {
         tex: raw`E_z(-z)=E_z(z)`,
         say: raw`Flipping the slab over its middle turns $\rho$ into $-\rho$, so the field below is the field above, pointing the same way.`,
         line: raw`Flip it over and $\rho$ changes sign: the field points the same way on both sides.`,
-        caption: 'Turns about a line square to the slab leave it as it was, so the field is square to it. But flipping it over its middle turns ρ into −ρ, which reverses the field: so the field below the middle is the field above it, pointing the same way, not away from the middle on both sides.',
+        caption: 'Turns about a line perpendicular to the slab leave it as it was, so the field is perpendicular to it. But flipping it over its middle turns ρ into −ρ, which reverses the field: so the field below the middle is the field above it, pointing the same way, not away from the middle on both sides.',
       },
       surface: {
-        tex: raw`\text{bottom face below the slab, top face at }z`,
+        tex: raw`\begin{aligned}&\text{bottom face: below the slab}\\&\text{top face: at height }z\end{aligned}`,
         say: raw`Across the middle, a pillbox gives $E_zA-E_zA=0$: true, and no help. Put its bottom face below the slab, where the sheets’ fields cancel.`,
         line: raw`A pillbox from below the slab, where $E=0$, up to $z$.`,
         caption: 'A pillbox standing across the middle gives E_z A minus E_z A equals zero: true, and no help. So stand the pillbox’s bottom face below the slab, where there is no field, since the slab’s thin sheets add to zero charge, and its top face at height z.',
@@ -222,7 +228,7 @@ export const lesson: GaussLesson = {
         caption: 'The right side. The pillbox holds the slab from its lower face up to z: ρ₀ A over two a times z squared minus a squared, of the sign opposite to ρ₀ inside the slab, and zero once the box holds the whole slab.',
       },
       solve: {
-        tex: raw`E_zA=\frac{\rho_0A}{2a\varepsilon_0}(z^2-a^2)\;\Rightarrow\;E_z=\frac{\rho_0}{2\varepsilon_0a}(z^2-a^2)`,
+        tex: raw`\begin{aligned}E_zA&=\frac{\rho_0A}{2a\varepsilon_0}(z^2-a^2)\\\Rightarrow\;E_z&=\frac{\rho_0}{2\varepsilon_0a}(z^2-a^2)\end{aligned}`,
         answer: raw`E_z=\begin{cases}\dfrac{\rho_0}{2\varepsilon_0a}(z^2-a^2), & |z|\le a\\[6pt]0, & |z|\ge a\end{cases}`,
         say: raw`Strongest at the middle, pointing from the positive half toward the negative half; nothing outside.`,
         line: raw`Strongest at the middle, from the positive half to the negative; nothing outside.`,
@@ -241,7 +247,7 @@ export const lesson: GaussLesson = {
     {wrong: 'A density that is infinite somewhere means an infinite charge.', right: raw`Not if it blows up slowly enough: $\rho=\beta/r$ is infinite at the centre, yet a ball of it holds $2\pi\beta R^2$, because the shells there are small.`},
     {wrong: raw`The density is $Q_{\text{enc}}$ divided by the volume inside $r$.`, right: raw`That is the average inside $r$. The density at $r$ is $\frac{1}{4\pi r^2}\,dQ_{\text{enc}}/dr$: differentiate, do not divide.`},
     {wrong: 'A pillbox standing across a slab’s middle always finds its field.', right: raw`Only when the field below the middle mirrors the field above it. For $\rho=\rho_0z/a$ it points the same way on both sides, the symmetric pillbox gives zero equals zero, and a pillbox from below the slab is needed.`},
-    {wrong: raw`The flux through a flat surface is $EA$.`, right: raw`Only for a field the same all over it and square to it. Otherwise integrate $E_\perp$ over the surface, piece by piece.`},
+    {wrong: raw`The flux through a flat surface is $EA$.`, right: raw`Only for a field the same all over it and perpendicular to it. Otherwise integrate $E_\perp$ over the surface, piece by piece.`},
   ],
   instrument: 'profile',
   onward: 'home',

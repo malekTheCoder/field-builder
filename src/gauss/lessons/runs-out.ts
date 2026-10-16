@@ -22,14 +22,14 @@ export const lesson: GaussLesson = {
   lead: raw`Gauss’s law holds for every closed surface round every charge. What runs out is a surface on which $E$ is the same all over: without one, the law gives the flux, and the field stays inside its integral.`,
   sections: [
     {heading: 'The law holds; the solve needs symmetry', body: [
-      raw`Every time an earlier lesson found $E$, it took the same last step: $E$ came out of the integral, because on each part of the surface it was the same all over and square to it, or lay along it, or was zero. That step is not part of Gauss’s law. It is a gift of the charge’s symmetry, and the law itself asks nothing of the surface but that it be closed:`,
+      raw`Every time an earlier lesson found $E$, it took the same last step: $E$ came out of the integral, because on each part of the surface it was the same all over and perpendicular to it, or lay along it, or was zero. That step is not part of Gauss’s law. It is a gift of the charge’s symmetry, and the law itself asks nothing of the surface but that it be closed:`,
       {tex: raw`\oint\vec E\cdot d\vec A=\frac{Q_{\text{enc}}}{\varepsilon_0}\quad\text{for every closed surface}`},
       raw`So a charge with too little symmetry does not break the law. It leaves one equation, true, with the unknown field still under an integral sign: a single number about the field, where the field is a whole function. Gauss’s law has not failed; it has stopped being solvable for $E$.`,
     ]},
     {heading: 'A finite rod', body: [
-      raw`A rod of length $2\ell$ carrying $\lambda$ is still round about its axis, but it is not the same all along it. Close to it, near its middle, the field is nearly an infinite line’s; toward its ends it weakens and tilts, gaining a part along the axis, and on the axis beyond its ends it points straight along the axis. A cylinder round the whole rod still holds $2\lambda\ell$, and the flux through it is still $2\lambda\ell/\varepsilon_0$, whatever its radius; so is the flux through any closed surface round the whole rod. But on its wall $E_s$ changes from patch to patch, and its ends carry flux too:`,
-      {tex: raw`\int_{\text{wall}}E_s\,dA+\int_{\text{ends}}E_\perp\,dA=\frac{2\lambda\ell}{\varepsilon_0}`},
-      raw`Neither integral collapses to $E$ times an area, and no closed surface round the rod does better: on none is its field both square to the surface and the same size all over, not even on the spheroids round it that the field crosses squarely everywhere. To find the field you add up the rod’s pieces, as the lesson on the field beside a rod’s middle does, and get $E=2k\lambda\ell/(r\sqrt{r^2+\ell^2})$ straight out from the middle (that lesson’s $kQ/(r\sqrt{r^2+L^2/4})$, with $L=2\ell$ and $Q=2\lambda\ell$). Close in, where $r\ll\ell$, that is the infinite line’s $2k\lambda/r$; far off it is a point charge’s $k(2\lambda\ell)/r^2$. Gauss’s law gives each limit, treating the rod as an infinite line close in and as a point far off; only the integral joins them.`,
+      raw`A rod of length $2\ell$ carrying $\lambda$ is still round about its axis, but it is not the same all along it. Close to it, near its middle, the field is nearly an infinite line’s; toward its ends it weakens and tilts, gaining a part along the axis, and on the axis beyond its ends it points straight along the axis. A cylinder round the whole rod still holds $2\lambda\ell$, and the flux through it is still $2\lambda\ell/\varepsilon_0$, whatever its radius; so is the flux through any closed surface round the whole rod. But on its wall $E_r$, the field’s part straight out from the axis, changes from patch to patch, and its ends carry flux too:`,
+      {tex: raw`\int_{\text{wall}}E_r\,dA+\int_{\text{ends}}E_\perp\,dA=\frac{2\lambda\ell}{\varepsilon_0}`},
+      raw`Neither integral collapses to $E$ times an area, and no closed surface round the rod does better: on none is its field both perpendicular to the surface and the same size all over, not even on the oval surfaces round it that the field crosses at right angles everywhere. To find the field you add up the rod’s pieces, as the lesson on the field beside a rod’s middle does, and get $E=2k\lambda\ell/(r\sqrt{r^2+\ell^2})$ straight out from the middle (that lesson’s $kQ/(r\sqrt{r^2+L^2/4})$, with $L=2\ell$ and $Q=2\lambda\ell$). Close in, where $r\ll\ell$, that is the infinite line’s $2k\lambda/r$; far off it is a point charge’s $k(2\lambda\ell)/r^2$. Gauss’s law gives each limit, treating the rod as an infinite line close in and as a point far off; only the integral joins them.`,
     ]},
     {heading: 'A charge in a cube', body: [
       raw`Put a charge $q$ inside a cube. Its flux out of the cube is $q/\varepsilon_0$, wherever in the cube it sits. How that flux divides among the six faces is another matter. With the charge at the centre, the six faces look the same from it, so each takes a sixth, $q/(6\varepsilon_0)$, by symmetry alone. Move the charge and the near face takes more, the far face less; each share is now an integral over its face of a field that changes across it, and Gauss’s law fixes only their sum.`,
@@ -43,6 +43,7 @@ export const lesson: GaussLesson = {
     {book: 'OpenStax, University Physics Volume 2', where: '§6.3, Applying Gauss’s Law: why the symmetric cases are the ones it solves', url: 'https://openstax.org/books/university-physics-volume-2/pages/6-3-applying-gausss-law'},
     {book: 'Griffiths, Introduction to Electrodynamics', where: '§2.2.3, Applications of Gauss’s law: always true, not always useful'},
     {book: 'Purcell and Morin, Electricity and Magnetism', where: 'Chapter 1, Electrostatics: Gauss’s law, and why the infinite line is special'},
+    {book: 'Knight, Physics for Scientists and Engineers', where: '§27.1 and §27.5: symmetry, and when Gauss’s law can be solved'},
   ],
   cases: [
     {
@@ -51,8 +52,8 @@ export const lesson: GaussLesson = {
         surface: {kind: 'cylinder', size: {min: .3, max: 1.6, initial: .7}, other: 1.4, label: 'Radius r', cut: {bands: 4, sectors: 8, rings: 2}}, reference: REFERENCE},
       setup: raw`A rod of length $2\ell$ carries $\lambda$ per unit length. Draw a closed cylinder round the whole of it. What does Gauss’s law say, and can it give the field at $P$ beside the rod’s middle?`,
       symmetry: {
-        tex: raw`\vec E=E_s(s,z)\,\hat{\mathbf s}+E_z(s,z)\,\hat{\mathbf z}`,
-        say: raw`Round about its axis and the same above and below its middle, but not the same along it: $\vec E$ depends on the height $z$ too, and tilts off the radial toward the ends.`,
+        tex: raw`\vec E=E_r(r,z)\,\hat{\mathbf r}+E_z(r,z)\,\hat{\mathbf z}`,
+        say: raw`$r$ is the distance from the axis and $\hat{\mathbf r}$ points straight out from it, as in Lines and cylinders. Round about its axis and the same above and below its middle, but not the same along it: $\vec E$ depends on the height $z$ too, and tilts off the radial toward the ends.`,
         line: raw`Round its axis, but not the same along it: $\vec E$ changes with $z$ and leans.`,
         caption: 'A turn about its axis leaves the finite rod as it was, so the field’s size depends only on the distance out and the height. A mirror in any plane through the axis leaves it as it was too, so the field has no part swirling round it, and flipping it end for end mirrors the field above and below its middle. But sliding it along its axis does change it: toward the ends its field weakens and tilts off the radial. Level with the middle, at P, the field points straight out; only its size is unknown.',
       },
@@ -63,9 +64,9 @@ export const lesson: GaussLesson = {
         caption: 'Draw a closed cylinder of radius r through P, on the rod’s axis and longer than the rod, so it holds all of it: a wall and two ends.',
       },
       left: {
-        tex: raw`\Phi=\int_{\text{wall}}E_s\,dA+\int_{\text{ends}}E_\perp\,dA`,
-        say: raw`$E_s$ is weaker on the wall’s patches toward the ends, and the ends carry flux: neither integral collapses to $E$ times an area.`,
-        line: raw`$E_s$ changes along the wall, and the ends carry flux: $E$ stays inside.`,
+        tex: raw`\Phi=\int_{\text{wall}}E_r\,dA+\int_{\text{ends}}E_\perp\,dA`,
+        say: raw`$E_r$ is weaker on the wall’s patches toward the ends, and the ends carry flux: neither integral collapses to $E$ times an area.`,
+        line: raw`$E_r$ changes along the wall, and the ends carry flux: $E$ stays inside.`,
         caption: 'The left side. On the wall the field’s part along the normal is largest beside the middle and weaker toward the ends, where the field leans; the ends carry flux too, where for an infinite line they carried none. No part has the field the same all over it, so nothing comes out of the integral.',
       },
       right: {
@@ -75,7 +76,7 @@ export const lesson: GaussLesson = {
         caption: 'The right side is easy: the cylinder holds the whole rod, two λ ℓ, whatever its radius.',
       },
       solve: {
-        tex: raw`\int_{\text{wall}}\!E_s\,dA+\int_{\text{ends}}\!E_\perp\,dA=\frac{2\lambda\ell}{\varepsilon_0}`,
+        tex: raw`\int_{\text{wall}}\!E_r\,dA+\int_{\text{ends}}\!E_\perp\,dA=\frac{2\lambda\ell}{\varepsilon_0}`,
         answer: raw`\oint\vec E\cdot d\vec A=\frac{2\lambda\ell}{\varepsilon_0}`,
         label: 'The answer, the flux out through the closed cylinder',
         say: raw`True for every radius, so long as the cylinder holds the whole rod, and one equation for a whole field: $E$ at $P$ is not in it alone. Build the integral to find it.`,
@@ -93,12 +94,12 @@ export const lesson: GaussLesson = {
       key: 'cube', label: 'Charge in a cube',
       figure: {charge: {kind: 'point', size: 0, symbol: 'q', name: 'a point charge off the centre of a cube', at: v3(.35, 0, .2), amount: 2},
         surface: {kind: 'cube', size: {min: .62, max: 1.3, initial: .85}, other: 0, label: 'Half-width a'}, reference: REFERENCE},
-      setup: raw`A point charge $q$ sits inside a cube of half-width $a$, off its centre. Find the flux out of the cube, and say what Gauss’s law can and cannot tell you about each face.`,
+      setup: raw`A point charge $q$ sits inside a cube of half-width $a$, off its centre but midway between its front and back faces. Find the flux out of the cube, and say what Gauss’s law can and cannot tell you about each face.`,
       symmetry: {
-        tex: raw`\text{one mirror only: front and back alike}`,
-        say: raw`Only the mirror through the charge’s own plane leaves things as they were: front and back see the same field, and the other four faces all differ.`,
+        tex: raw`\begin{aligned}&\text{one mirror only:}\\&\Phi_{\text{front}}=\Phi_{\text{back}}\end{aligned}`,
+        say: raw`The charge sits midway between front and back, so the mirror through it, parallel to those faces, leaves everything as it was: front and back carry the same flux, as mirror images, and the other four faces all differ. Off that middle plane, this mirror would not leave it in place.`,
         line: raw`Off centre, the six faces see the charge differently.`,
-        caption: 'Seen from the charge, only one mirror leaves the cube as it was, so the front and back faces match. The other four lie at different distances and angles, and the field across every face changes from point to point.',
+        caption: 'The charge sits midway between the front and back faces, so one mirror, through it and parallel to them, leaves the cube and the charge as they were: the front and back faces carry the same flux, their fields mirror images. Moved off that middle plane, the charge would lose this mirror. The other four faces lie at different distances and angles, and the field across every face changes from point to point.',
       },
       surface: {
         tex: raw`\text{six faces}`,
@@ -131,6 +132,7 @@ export const lesson: GaussLesson = {
         {title: 'Grow the cube', text: raw`Drag the half-width up: the charge sits nearer the middle in proportion, the faces’ shares even out, and the total never moves.`},
         {title: 'At the centre', text: raw`In the instrument below, put the charge at the centre: the six bars are equal, each a sixth of the whole, $q/(6\varepsilon_0)$.`},
         {title: 'A charge outside', text: raw`A charge outside a closed surface adds nothing to the total: its field crosses the surface, in through some faces and out through others.`},
+        {title: 'A charge at a corner', text: raw`Put $q$ at a corner of a cube. Eight such cubes meet there and together surround it, so each takes an eighth, $q/(8\varepsilon_0)$. The three faces that touch the corner have the field along them and carry nothing; the other three share the eighth equally, $q/(24\varepsilon_0)$ each. At the middle of an edge four cubes surround it, $q/(4\varepsilon_0)$; at the centre of a face two do, $q/(2\varepsilon_0)$.`},
       ],
     },
   ],

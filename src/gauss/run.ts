@@ -46,12 +46,26 @@ export const stageNames = () => STAGE_KEYS.map(k => NAMES[k]);
 export function spoken(text: string): string {
   return text.split('$').map((part, i) => i % 2 ? texWords(part) : part).join('');
 }
+/** The symbols a Gauss line may set, as the characters they print. */
+const SYMBOLS: Record<string, string> = {varepsilon: 'ε', epsilon: 'ε', lambda: 'λ', sigma: 'σ', rho: 'ρ', pi: 'π', perp: '⊥', theta: 'θ', Phi: 'Φ', alpha: 'α',
+  beta: 'β', eta: 'η', ell: 'ℓ', Omega: 'Ω', Delta: 'Δ', oint: '∮', int: '∫', sum: 'Σ', cdot: '·', times: '×', pm: '±', to: '→', Rightarrow: '⇒', le: '≤',
+  ge: '≥', ll: '≪', gg: '≫', approx: '≈', propto: '∝', infty: '∞', nabla: '∇', partial: '∂', ldots: '…', cos: 'cos', sin: 'sin', arctan: 'arctan'};
+const SUPER: Record<string, string> = {'0': '⁰', '1': '¹', '2': '²', '3': '³', '4': '⁴', '5': '⁵', '6': '⁶', '7': '⁷', '8': '⁸', '9': '⁹', n: 'ⁿ', '+': '⁺', '-': '⁻'};
+const SUB: Record<string, string> = {'0': '₀', '1': '₁', '2': '₂', '3': '₃', '4': '₄'};
+const raise = (p: string) => p.split('').every(ch => SUPER[ch]) ? p.split('').map(ch => SUPER[ch]).join('') : `^(${p})`;
 function texWords(tex: string): string {
   let s = tex;
-  s = s.replace(/\\frac\{([^{}]*)\}\{([^{}]*)\}/g, '$1/$2');
+  s = s.replace(/\\[dt]?frac\{([^{}]*)\}\{([^{}]*)\}/g, '$1/$2').replace(/\\sqrt\{([^{}]*)\}/g, '√($1)');
+  s = s.replace(/\\(?:Big|big|left|right)\b/g, '').replace(/\\q?quad\b/g, ' ');
   s = s.replace(/\\vec\s*([A-Za-z])/g, '$1').replace(/\\hat\{\\mathbf\s*([a-z])\}/g, '$1̂').replace(/\\mathbf\{?([A-Za-z])\}?/g, '$1');
-  s = s.replace(/\\varepsilon_0/g, 'ε₀').replace(/\\lambda/g, 'λ').replace(/\\sigma/g, 'σ').replace(/\\rho/g, 'ρ').replace(/\\pi/g, 'π').replace(/\\perp/g, '⊥')
-    .replace(/\\theta/g, 'θ').replace(/\\Phi/g, 'Φ').replace(/\\oint/g, '∮').replace(/\\cdot/g, '·').replace(/\\cos/g, 'cos').replace(/\\text\{([^{}]*)\}/g, '$1');
-  s = s.replace(/_\{\\text\{enc\}\}|_\{enc\}/g, ' enc').replace(/\^2/g, '²').replace(/_/g, ' ').replace(/\\[,;!]|\\ /g, ' ').replace(/[{}]/g, '').replace(/\\/g, '');
+  s = s.replace(/\\(?:text|mathrm)\{([^{}]*)\}/g, '$1');
+  s = s.replace(/\\([A-Za-z]+)/g, (m, w: string) => SYMBOLS[w] ?? w);
+  // A subscript: a digit prints below the line (ρ₀, r₁), a word or letter is said after its symbol (Q enc, E r).
+  s = s.replace(/_\{?([0-4])\}?/g, (_, d: string) => SUB[d] + ' ').replace(/_\{([^{}]*)\}/g, ' $1 ').replace(/_([^\s{}])/g, ' $1 ');
+  s = s.replace(/\^\{([^{}]*)\}/g, (_, p: string) => raise(p)).replace(/\^([0-9n])/g, (_, p: string) => SUPER[p]);
+  s = s.replace(/\\[,;!]|\\ /g, ' ').replace(/[{}]/g, '').replace(/\\/g, '').replace(/=/g, ' = ');
+  // A subscript digit ends its symbol: a space before the next one, none before a bracket or an operator.
+  s = s.replace(/([₀-₄]) (?=[)\]/²³⁴^'·,])/g, '$1');
+  s = s.replace(/ -(?=\S)/g, ' - ');
   return s.replace(/\s+/g, ' ').trim();
 }

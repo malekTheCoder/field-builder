@@ -23,7 +23,7 @@ export const lesson: GaussLesson = {
       raw`Every sphere centred on $q$, large or small, carries the same flux. That much the Flux lesson showed. The rest of the argument removes the two things it leaned on: that the surface is a sphere, and that the charge sits at its centre.`,
     ]},
     {heading: 'Step two: any surface round it', body: [
-      raw`Move the charge off the centre, or squash the sphere into any closed shape. Now the field differs from patch to patch, and crosses each at its own angle. Look at the surface from $q$ instead. A small patch $dA$ at a distance $s$ from $q$, its normal at an angle $\alpha$ to the line from $q$, fills a narrow cone of directions: its solid angle is $d\Omega=dA\cos\alpha/s^2$. The flux through it is the field’s part along its normal times its area:`,
+      raw`Move the charge off the centre, or squash the sphere into any closed shape. Now the field differs from patch to patch, and crosses each at its own angle. Look at the surface from $q$ instead, and measure each patch by the solid angle it fills. A solid angle is the three-dimensional version of an angle: the area a cone cuts from a sphere of radius one round its tip, $4\pi$ for every direction at once. The same cone cuts four times the area at twice the distance, which is why $dA/s^2$ appears; and a patch tilted to the cone needs more area to fill it, so it counts only $dA\cos\alpha$. A small patch $dA$ at a distance $s$ from $q$, its normal at an angle $\alpha$ to the line from $q$, fills a narrow cone of directions: its solid angle is $d\Omega=dA\cos\alpha/s^2$. The flux through it is the field’s part along its normal times its area:`,
       {tex: raw`d\Phi=\frac{q}{4\pi\varepsilon_0s^2}\,dA\cos\alpha=\frac{q}{4\pi\varepsilon_0}\,d\Omega`},
       raw`The distance and the tilt have dropped out together. A farther patch sees a weaker field but needs more area to fill the same cone; a tilted patch catches less of the field but has more area for the same cone. So a patch carries flux in proportion to the cone it fills, seen from $q$, and nothing else about it matters. A closed surface round $q$ fills every direction once, the whole solid angle $4\pi$, so its flux is $q/\varepsilon_0$ whatever its shape and wherever inside it the charge sits. Where a cone crosses a fold of the surface three times, out, in and out again, two of the crossings cancel and one is left.`,
     ]},
@@ -41,13 +41,15 @@ export const lesson: GaussLesson = {
       raw`Take a parallel-plate capacitor, one plate carrying $\sigma$ and the other $-\sigma$, and stand a pillbox across the first plate. The second plate is outside the pillbox and adds nothing to its net flux. It does add to the field: on the face between the plates the two fields add to $\sigma/\varepsilon_0$, and on the face outside they cancel to zero. The flux is still $\sigma A/\varepsilon_0$, all of it through the inner face. For a lone sheet the two faces see equal fields, which is what gave $2E_\perp A$; here the other plate breaks that symmetry, and taking the field at each face to be the plate’s own $\sigma/2\varepsilon_0$ would be wrong on both faces.`,
     ]},
     {heading: 'Why the symmetric problems work', body: [
-      raw`In the lessons that follow, the field comes out of Gauss’s law as if only the charge inside made it. That is not because the charge outside makes no field. It is because there the charge outside has the same symmetry, and its field on the surface cancels too: the layers of a ball outside a Gaussian sphere are shells, and a uniform shell makes no field anywhere inside it. Where charge outside breaks the symmetry, the law still holds, and the field on the surface is the total one.`,
+      raw`In the lessons that follow, the right side counts only the charge inside, and yet the answer is the whole field. Why that works depends on the shape. Round a ball, the charge outside a Gaussian sphere is a set of shells, and a uniform shell makes no field anywhere inside it: there the charge outside really does add nothing to the field on the surface.`,
+      raw`Round an infinite line or sheet it is different. The rest of the line outside the cylinder, or of the sheet outside the pillbox, does make field on the surface, most of it when the cylinder is short or the pillbox narrow. It puts no net flux through the surface, and it is what makes the field the same all over the wall or face, which is why $E$ can come out of the integral. The answer is the whole line’s or sheet’s field, not the field of the piece inside. Where charge outside breaks the symmetry, the law still holds, but the field no longer comes out of the integral.`,
     ]},
   ],
   read: [
     {book: 'OpenStax, University Physics Volume 2', where: '§6.2, Explaining Gauss’s Law: any surface, and a charge outside', url: 'https://openstax.org/books/university-physics-volume-2/pages/6-2-explaining-gausss-law'},
     {book: 'Griffiths, Introduction to Electrodynamics', where: '§2.2.1, Field lines, flux and Gauss’s law: the argument by solid angle'},
     {book: 'Purcell and Morin, Electricity and Magnetism', where: 'Chapter 1, Electrostatics: Gauss’s law, any surface and any charges'},
+    {book: 'Knight, Physics for Scientists and Engineers', where: '§27.4, Gauss’s law: any surface, and charge outside'},
   ],
   cases: [
     {
@@ -169,7 +171,7 @@ export const lesson: GaussLesson = {
       },
       checks: [
         {title: 'Zero flux, not zero field', text: raw`Every patch has field crossing it. The arrows on the side facing $q$ and on the far side point opposite ways through the surface; only their total is zero.`},
-        {title: 'Let it in', text: raw`In the instrument below, slide the charge back inside: the stacked flux jumps from zero to $q/\varepsilon_0$ the moment it crosses the surface, and not before.`},
+        {title: 'Let it out', text: raw`In the instrument below, slide the charge out through the sphere: the stacked flux stays $q/\varepsilon_0$ until the moment it crosses the surface, then drops to zero, and returns to $q/\varepsilon_0$ only when the charge comes back in.`},
         {title: 'Either sign', text: raw`For a negative $q$ the near side carries flux out and the far side in. The total is still zero.`},
       ],
     },
@@ -181,5 +183,5 @@ export const lesson: GaussLesson = {
   ],
   instrument: 'inside',
   next: 'qenc',
-  related: {field: 'sheet', text: 'Built the long way, ring by ring: a field the coming Gauss lessons get in two lines'},
+  related: {field: 'sheet', text: 'Built the long way, ring by ring: a field the Sheets and slabs lesson gets in two lines'},
 };

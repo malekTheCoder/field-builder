@@ -11,12 +11,12 @@ export const lesson: GaussLesson = {
   title: 'Spheres',
   short: 'Spheres',
   about: 'No field inside a shell, a field that grows inside a ball, a point charge’s outside both.',
-  lead: raw`For any charge that depends only on the distance from a centre, the left side of Gauss’s law is always $E_r\,(4\pi r^2)$. Everything else is the charge inside, worked out afresh for each region: inside a shell, inside a ball, outside them all.`,
+  lead: raw`For any charge that depends only on the distance from a centre, take a concentric sphere as the Gaussian surface, and the left side of Gauss’s law is always $E_r\,(4\pi r^2)$. Everything else is the charge inside, worked out afresh for each region: inside a shell, inside a ball, outside them all.`,
   sections: [
     {heading: 'One surface for every region', body: [
       raw`Spherical symmetry makes $\vec E$ radial and the same size at the same distance, so a concentric sphere of radius $r$ through $P$ turns the flux integral into the field times the area, wherever $P$ is:`,
       {tex: raw`E_r\,(4\pi r^2)=\frac{Q_{\text{enc}}(r)}{\varepsilon_0}\quad\Rightarrow\quad E_r=\frac{k\,Q_{\text{enc}}(r)}{r^2}`},
-      raw`So the field at $r$ is $k$ times the charge inside $r$, over $r^2$, as if that charge sat at the centre, and the charge outside $r$ makes no field there at all: it is a set of shells, and a shell makes none inside it. The whole problem is $Q_{\text{enc}}(r)$, region by region.`,
+      raw`So the field at $r$ is $k$ times the charge inside $r$, over $r^2$, as if that charge sat at the centre. It will turn out that, for a round charge, the charge outside $r$ adds nothing to the field there: it is a set of shells, and the next section shows that a shell makes no field inside it. That is special to spheres; round a line or a sheet the charge outside the surface does make field on it, as Why only the charge inside showed. The whole problem is $Q_{\text{enc}}(r)$, region by region.`,
     ]},
     {heading: 'A point charge, and a thin shell', body: [
       raw`Round a point charge every sphere encloses all of it, and $E_r=kQ/r^2$: Coulomb’s law, out of Gauss’s. The answer is not news. The point is the method: use the flux you know to get the field you want.`,
@@ -27,7 +27,7 @@ export const lesson: GaussLesson = {
     {heading: 'A uniform ball', body: [
       raw`Spread $Q$ evenly through a ball of radius $R$. Outside, the sphere encloses all of it and the field is a point charge’s. Inside, it encloses the fraction $r^3/R^3$, so`,
       {tex: raw`E_r=\frac{kQ}{r^2}\cdot\frac{r^3}{R^3}=\frac{kQr}{R^3}\quad(r\le R)`},
-      raw`The field grows in proportion to $r$ from zero at the centre, peaks at the surface, and falls as $1/r^2$ outside. At $r=R$ the two answers agree, $kQ/R^2$: checking that is a free mark on any exam.`,
+      raw`The field’s size grows in proportion to $r$ from zero at the centre, is largest at the surface, and falls as $1/r^2$ outside. At $r=R$ the two answers agree, $kQ/R^2$: checking that is a free mark on any exam.`,
     ]},
     {heading: 'A density that grows with r', body: [
       raw`Now let the density rise from zero at the centre, $\rho=\rho_0r/R$, the ball holding $Q$ in all. By thin shells, $Q_{\text{enc}}=\int_0^r\rho_0\frac{r'}{R}\,4\pi r'^2\,dr'=\pi\rho_0r^4/R$, and setting $r=R$ fixes $\rho_0=Q/\pi R^3$:`,
@@ -44,6 +44,7 @@ export const lesson: GaussLesson = {
     {book: 'OpenStax, University Physics Volume 2', where: '§6.3, Applying Gauss’s Law: a charge distribution with spherical symmetry', url: 'https://openstax.org/books/university-physics-volume-2/pages/6-3-applying-gausss-law'},
     {book: 'Griffiths, Introduction to Electrodynamics', where: '§2.2.3, Applications of Gauss’s law: a uniformly charged sphere'},
     {book: 'Purcell and Morin, Electricity and Magnetism', where: 'Chapter 1, Electrostatics: the field of a spherical shell and of a solid sphere'},
+    {book: 'Knight, Physics for Scientists and Engineers', where: '§27.5, Using Gauss’s law: spherical symmetry'},
   ],
   cases: [
     {
@@ -60,7 +61,7 @@ export const lesson: GaussLesson = {
         tex: raw`A=4\pi r^2`,
         say: raw`A sphere of radius $r$ through $P$, centred on the charge.`,
         line: raw`A sphere of radius $r$ through $P$, centred on the charge.`,
-        caption: 'Draw a sphere of radius r through P, centred on the charge: the field is square to every patch of it and the same size on all of them.',
+        caption: 'Draw a sphere of radius r through P, centred on the charge: the field is perpendicular to every patch of it and the same size on all of them.',
       },
       left: {
         tex: raw`\Phi=E_r\,(4\pi r^2)`,
@@ -151,7 +152,7 @@ export const lesson: GaussLesson = {
         caption: 'The left side is E_r times four π r squared, in both regions.',
       },
       right: {
-        tex: raw`Q_{\text{enc}}=\begin{cases}\displaystyle\int_0^{r}\rho\,4\pi r'^2\,dr'=Q\,\frac{r^3}{R^3}, & r\le R\\[8pt]Q, & r\ge R\end{cases}`,
+        tex: raw`\begin{aligned}Q_{\text{enc}}&=\int_0^{r}\rho\,4\pi r'^2\,dr'\\&=Q\,\frac{r^3}{R^3}\quad(r\le R)\\Q_{\text{enc}}&=Q\quad(r\ge R)\end{aligned}`,
         say: raw`$\rho=Q/\frac43\pi R^3$ is the same in every thin shell, so the shells out to $r$ hold $\rho\,\frac43\pi r^3$. Outside, all of $Q$.`,
         line: raw`Inside, the shells out to $r$ hold $Qr^3/R^3$; outside, all of $Q$.`,
         caption: 'The right side. Inside the ball the sphere encloses the thin shells out to r, which hold Q times r cubed over R cubed. Outside it encloses the whole ball, Q.',
@@ -192,7 +193,7 @@ export const lesson: GaussLesson = {
         caption: 'The left side is E_r times four π r squared, as for every sphere in this lesson.',
       },
       right: {
-        tex: raw`Q_{\text{enc}}=\int_0^{r}\rho_0\frac{r'}{R}\,4\pi r'^2\,dr'=\frac{\pi\rho_0r^4}{R}=Q\,\frac{r^4}{R^4}`,
+        tex: raw`\begin{aligned}Q_{\text{enc}}&=\int_0^{r}\rho_0\frac{r'}{R}\,4\pi r'^2\,dr'\\&=\frac{\pi\rho_0r^4}{R}=Q\,\frac{r^4}{R^4}\end{aligned}`,
         say: raw`At $r=R$ the same integral is $\pi\rho_0R^3$, which must be $Q$: so $\rho_0=Q/\pi R^3$. For $r\ge R$ the shells stop at $R$, and $Q_{\text{enc}}=Q$.`,
         line: raw`Thin shells out to $r$: $Q_{\text{enc}}=Qr^4/R^4$ inside, all of $Q$ outside.`,
         caption: 'The right side, by thin shells. Each holds ρ₀ r prime over R times four π r prime squared d r prime; out to r they hold Q times r to the fourth over R to the fourth, with ρ₀ fixed by the whole ball holding Q. Outside, all of Q.',
@@ -207,7 +208,7 @@ export const lesson: GaussLesson = {
       checks: [
         {title: 'Continuous at R', text: raw`Inside at $r=R$: $kQR^2/R^4=kQ/R^2$, the outside value.`},
         {title: 'Slower at first', text: raw`Near the centre $E_r\propto r^2$, smaller in size than the uniform ball’s $kQr/R^3$ all the way in, because the rising density puts less of the charge near the centre.`},
-        {title: 'The integral agrees', text: raw`Far away every sphere here looks like a point charge, $kQ/r^2$, and so does every finite charge whose total is not zero: the Ring lesson’s field on its axis, added up piece by piece, falls to $kQ/z^2$ far out, and so does the Disk lesson’s.`},
+        {title: 'Far away, a point charge', text: raw`Far away every sphere here looks like a point charge, $kQ/r^2$, and so does every finite charge whose total is not zero: the Ring lesson’s field on its axis, added up piece by piece, falls to $kQ/z^2$ far out, and so does the Disk lesson’s.`},
         {title: 'Either sign', text: raw`For a negative $Q$, $E_r$ is negative in both regions: the field points in.`},
       ],
     },

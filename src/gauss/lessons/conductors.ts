@@ -3,7 +3,7 @@ const raw = String.raw;
 /* CONDUCTORS. One physical fact and Gauss's law: in a conductor at rest the field inside the metal is zero, since
  * otherwise its free charges would still be moving. A Gaussian surface drawn inside the metal then has no flux, so
  * it encloses no charge, and everything else follows: excess charge on the surface, the field just outside σ/ε₀
- * and square to it (a one-sided pillbox, twice a lone sheet's), an empty hollow with no field, and a charge q in a
+ * and perpendicular to it (a one-sided pillbox, twice a lone sheet's), an empty hollow with no field, and a charge q in a
  * hollow pulling −q onto the hollow's wall and pushing +q (with any net charge) onto the outside. Three cases, in
  * the study guide's order: a charged metal ball, its surface close up, and a charge in a hollow. The instrument
  * moves the charge about the hollow: the wall's charge follows it, and the outside's stays even. Every sentence
@@ -29,9 +29,10 @@ export const lesson: GaussLesson = {
       raw`Shrink and move the surface anywhere in the metal and the same holds, so there is no charge anywhere inside it. Any excess charge a conductor carries sits on its surface. An isolated charged metal ball has all of its $Q$ on its skin, spread evenly, and outside it makes the field of a point charge at its centre, the same as a thin shell carrying $Q$.`,
     ]},
     {heading: 'Just outside: sigma over epsilon nought', body: [
-      raw`Just outside, the field is square to the surface. Its part along the surface is the same on both sides of a surface charge, and in the metal it is zero; were it not, it would push the surface charge along, and the charge is at rest. Stand a small pillbox across the surface, one face in the metal and one just outside. The face in the metal sees no field, the side sees a field along it, and only the outer face carries flux:`,
+      raw`Just outside, the field is perpendicular to the surface. Its part along the surface is the same on both sides of a surface charge, and in the metal it is zero; were it not, it would push the surface charge along, and the charge is at rest. Stand a small pillbox across the surface, one face in the metal and one just outside. The face in the metal sees no field, the side sees a field along it, and only the outer face carries flux:`,
       {tex: raw`E_\perp A=\frac{\sigma A}{\varepsilon_0}\;\Rightarrow\;E_\perp=\frac{\sigma}{\varepsilon_0}`},
       raw`That is twice a lone sheet’s $\sigma/(2\varepsilon_0)$, and both are right. A lone sheet sends its flux out of both faces of the pillbox; the conductor sends all of it out of one, because all the other charge, the rest of the conductor’s and any near it, cancels the patch’s own field in the metal and doubles it outside. Where $\sigma$ is negative, $E_\perp$ is too, and the field points into the metal.`,
+      raw`The same pillbox works on any conductor, however shaped and whatever field it sits in, because it needs only a small patch of surface. Put a neutral conductor in an outside field and charge moves until the field in the metal is zero again: one side gathers one sign, the far side the other, and $\sigma$ changes from place to place. On a charged conductor it also gathers where the surface curves most sharply, at points and edges. At every point the field just outside is still perpendicular to the surface, with $E_\perp=\sigma/\varepsilon_0$ for the $\sigma$ there.`,
     ]},
     {heading: 'A hollow in the metal', body: [
       raw`Cut a hollow into the metal. If it holds no charge, a surface in the metal round it encloses nothing, so its wall carries no net charge. That it carries none anywhere, and the hollow has no field, takes one more fact: a field line in the hollow would run from plus to minus on the wall, and carried on round through the field-free metal it would close a loop on which a charge gains energy, which a static field cannot do. Metal closed round a space shields it from every static field outside: a sealed metal box keeps what is inside it free of them.`,
@@ -47,6 +48,7 @@ export const lesson: GaussLesson = {
     {book: 'OpenStax, University Physics Volume 2', where: '§6.4, Conductors in Electrostatic Equilibrium', url: 'https://openstax.org/books/university-physics-volume-2/pages/6-4-conductors-in-electrostatic-equilibrium'},
     {book: 'Griffiths, Introduction to Electrodynamics', where: '§2.5, Conductors: basic properties, induced charges, surface charge and the force on it'},
     {book: 'Purcell and Morin, Electricity and Magnetism', where: 'Chapter 3, Electric fields around conductors'},
+    {book: 'Knight, Physics for Scientists and Engineers', where: '§27.6, Conductors in electrostatic equilibrium'},
   ],
   cases: [
     {
@@ -58,7 +60,7 @@ export const lesson: GaussLesson = {
         ]}, reference: REFERENCE},
       setup: raw`A solid metal ball of radius $R$ carries a net charge $Q$, and nothing in it moves any more. Where is the charge, and what is the field inside the metal and outside it?`,
       symmetry: {
-        tex: raw`\vec E=E_r(r)\,\hat{\mathbf r},\qquad \vec E=0\ \text{in the metal}`,
+        tex: raw`\begin{aligned}\vec E&=E_r(r)\,\hat{\mathbf r}\\\vec E&=0\ \ \text{in the metal}\end{aligned}`,
         say: raw`The ball is round, so the field is radial. In metal at rest the field is zero: a physical fact, not a symmetry.`,
         line: raw`The ball is round, so $\vec E$ is radial; in metal at rest, $\vec E=0$.`,
         caption: 'Any turn about the centre leaves the ball as it was, so the field points along the radius with a size that depends only on r. Inside the metal, at rest, the field is zero: if it were not, the metal’s free charges would still be moving.',
@@ -67,7 +69,7 @@ export const lesson: GaussLesson = {
         tex: raw`A=4\pi r^2`,
         say: raw`A sphere through $P$, centred on the ball: inside the metal, or outside it.`,
         line: raw`A sphere through $P$, centred on the ball: inside the metal, or out.`,
-        caption: 'Draw a sphere of radius r through P, centred on the ball. Drag it inside the metal, where every patch sees no field, or outside, where the field is square to every patch and the same all over.',
+        caption: 'Draw a sphere of radius r through P, centred on the ball. Drag it inside the metal, where every patch sees no field, or outside, where the field is perpendicular to every patch and the same all over.',
       },
       left: {
         tex: raw`\Phi=E_r\,(4\pi r^2)=0\ \ (r<R)`,
@@ -101,8 +103,8 @@ export const lesson: GaussLesson = {
       symmetry: {
         tex: raw`\begin{aligned}\vec E&=0\ \ \text{in the metal}\\\vec E&=E_\perp\,\hat{\mathbf n}\ \ \text{outside}\end{aligned}`,
         say: raw`$\hat{\mathbf n}$ points out of the metal. The part of $\vec E$ along the surface is the same on both sides of it, so zero, as in the metal.`,
-        line: raw`No field in the metal; outside, $\vec E$ is square to the surface.`,
-        caption: 'In the metal there is no field. Just outside, the field is square to the surface: its part along the surface is the same on both sides of the surface charge, and on the metal’s side it is zero. Were it not, it would push the surface charge along, and the charge is at rest.',
+        line: raw`No field in the metal; outside, $\vec E$ is perpendicular to the surface.`,
+        caption: 'In the metal there is no field. Just outside, the field is perpendicular to the surface: its part along the surface is the same on both sides of the surface charge, and on the metal’s side it is zero. Were it not, it would push the surface charge along, and the charge is at rest.',
       },
       surface: {
         tex: raw`A_{\text{face}}=A`,
@@ -127,7 +129,7 @@ export const lesson: GaussLesson = {
         answer: raw`E_\perp=\frac{\sigma}{\varepsilon_0}`,
         say: raw`Twice a lone sheet’s field: all the flux leaves through one face.`,
         line: raw`$E_\perp=\sigma/\varepsilon_0$: twice a lone sheet’s, all of it through one face.`,
-        caption: 'Divide by A. Just outside a conductor the field is σ over ε₀, square to the surface: out of the metal where σ is positive, into it where σ is negative. Twice a lone sheet’s field, since here all of the flux leaves through one face.',
+        caption: 'Divide by A. Just outside a conductor the field is σ over ε₀, perpendicular to the surface: out of the metal where σ is positive, into it where σ is negative. Twice a lone sheet’s field, since here all of the flux leaves through one face.',
       },
       checks: [
         {title: 'Twice a lone sheet', text: raw`A lone sheet gives $\sigma/(2\varepsilon_0)$ because its pillbox has flux through both faces. Here the metal’s side has none, so one face carries it all. The difference is made by all the other charge, the rest of the conductor’s and any near it, which cancels the patch’s own field in the metal and doubles it outside.`},
@@ -145,7 +147,7 @@ export const lesson: GaussLesson = {
         ]}, reference: REFERENCE},
       setup: raw`A neutral metal ball of radius $b$ has a round hollow of radius $a$ at its centre, with a point charge $q$ at the hollow’s centre. Find the charge on the hollow’s wall and on the outside, and the field everywhere.`,
       symmetry: {
-        tex: raw`\vec E=E_r(r)\,\hat{\mathbf r},\qquad\vec E=0\ \text{in the metal}`,
+        tex: raw`\begin{aligned}\vec E&=E_r(r)\,\hat{\mathbf r}\\\vec E&=0\ \ \text{in the metal}\end{aligned}`,
         say: raw`Everything is round about the centre, so the field is radial; in the metal it is zero.`,
         line: raw`All of it is round about the centre: $\vec E$ is radial, and zero in the metal.`,
         caption: 'The charge, the hollow and the ball are all round about the same centre, so the field points along the radius with a size that depends only on r. In the metal, at rest, it is zero.',

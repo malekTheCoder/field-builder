@@ -18,11 +18,11 @@ export const lesson: GaussLesson = {
   title: 'Lines and cylinders',
   short: 'Lines and cylinders',
   about: 'A cylinder round a line or a thick rod, checked against the integral you built.',
-  lead: raw`Round anything long, straight and the same all along, draw a cylinder on the same axis. Its ends carry no flux, its wall carries $E_r$ times $2\pi rL$, and the length $L$ you chose cancels: the field of a line in two steps, and of a rod, a shell or a cable in a few more.`,
+  lead: raw`Round anything long, straight and the same all along, draw a cylinder on the same axis as the Gaussian surface. Its ends carry no flux, its wall carries $E_r$ times $2\pi rL$, and the length $L$ you chose cancels: the field of a line in two steps, and of a rod, a shell or a cable in a few more.`,
   sections: [
     {heading: 'The surface is forced, its length is not', body: [
       raw`For a sphere the surface had to be a sphere. Here the shape is forced as well: the charge depends only on the distance $r$ from an axis and runs on for ever along it, so the field points straight out from the axis (or straight in) and its size can depend only on $r$. The surface that matches is a cylinder on the same axis, through $P$. Its length $L$ is yours to choose, and because you chose it, it has to cancel.`,
-      raw`On the curved wall $\vec E$ is square to every patch and has the same $E_r$ on all of them. On the two flat ends $\vec E$ lies along the surface. So the left side is the same for every case in this lesson:`,
+      raw`On the curved wall $\vec E$ is perpendicular to every patch and has the same $E_r$ on all of them. On the two flat ends $\vec E$ lies along the surface. So the left side is the same for every case in this lesson:`,
       {tex: raw`\oint\vec E\cdot d\vec A=E_r\,(2\pi rL)+0+0`},
     ]},
     {heading: 'A line, again', body: [
@@ -47,6 +47,7 @@ export const lesson: GaussLesson = {
     {book: 'OpenStax, University Physics Volume 2', where: '§6.3, Applying Gauss’s Law: systems with cylindrical symmetry', url: 'https://openstax.org/books/university-physics-volume-2/pages/6-3-applying-gausss-law'},
     {book: 'Griffiths, Introduction to Electrodynamics', where: '§2.2.3, Applications of Gauss’s law: the long cylinder'},
     {book: 'Purcell and Morin, Electricity and Magnetism', where: 'Chapter 1, Electrostatics: the field of a line charge by Gauss’s law'},
+    {book: 'Knight, Physics for Scientists and Engineers', where: '§27.5, Using Gauss’s law: a long charged wire and cylinders'},
   ],
   cases: [
     {
@@ -57,19 +58,19 @@ export const lesson: GaussLesson = {
         tex: raw`\vec E=E_r(r)\,\hat{\mathbf r}`,
         say: raw`$\hat{\mathbf r}$ points straight out from the line; $E_r$ is negative where the field points in.`,
         line: raw`Flips that leave the line as it was forbid any part along it or round it.`,
-        caption: 'A mirror square to the line leaves it unchanged but would reverse any part of the field along it, and a mirror containing it would reverse any swirl round it. So the field points straight out from the line, or straight in. Turning about the line and sliding along it change nothing, so its size depends only on the distance r.',
+        caption: 'A mirror perpendicular to the line leaves it unchanged but would reverse any part of the field along it, and a mirror containing it would reverse any swirl round it. So the field points straight out from the line, or straight in. Turning about the line and sliding along it change nothing, so its size depends only on the distance r.',
       },
       surface: {
         tex: raw`A_{\text{wall}}=2\pi rL`,
         say: raw`A cylinder of radius $r$ and any length $L$, on the line, through $P$.`,
         line: raw`A cylinder on the line, through $P$, of any length $L$ you like.`,
-        caption: 'Draw a cylinder of radius r through P with the line as its axis. Its length L is your choice. On its curved wall the field is square to every patch and the same size; on its two flat ends the field lies along the surface.',
+        caption: 'Draw a cylinder of radius r through P with the line as its axis. Its length L is your choice. On its curved wall the field is perpendicular to every patch and the same size; on its two flat ends the field lies along the surface.',
       },
       left: {
         tex: raw`\Phi=E_r\,(2\pi rL)+0+0`,
         say: raw`The wall carries $E_r$ times its area; on the ends $\vec E\cdot d\vec A=0$, patch by patch.`,
         line: raw`The wall carries $E_r$ times its area; the two ends carry nothing.`,
-        caption: 'The left side. Every patch of the wall carries E_r times its area, so the wall carries E_r times two π r L. On the ends the field runs along the surface, square to dA, so each of their patches carries nothing.',
+        caption: 'The left side. Every patch of the wall carries E_r times its area, so the wall carries E_r times two π r L. On the ends the field runs along the surface, perpendicular to dA, so each of their patches carries nothing.',
       },
       right: {
         tex: raw`Q_{\text{enc}}=\lambda L`,
@@ -108,7 +109,7 @@ export const lesson: GaussLesson = {
         tex: raw`A_{\text{wall}}=2\pi rL`,
         say: raw`A coaxial cylinder through $P$: inside the rod or outside it, the same shape of surface.`,
         line: raw`A coaxial cylinder through $P$, inside the rod or outside it.`,
-        caption: 'Draw a cylinder on the rod’s axis through P, of length L. Inside the rod or outside it, the field is square to its wall and the same all over it, and lies along its ends.',
+        caption: 'Draw a cylinder on the rod’s axis through P, of length L. Inside the rod or outside it, the field is perpendicular to its wall and the same all over it, and lies along its ends.',
       },
       left: {
         tex: raw`\Phi=E_r\,(2\pi rL)`,
@@ -153,7 +154,7 @@ export const lesson: GaussLesson = {
         tex: raw`A_{\text{wall}}=2\pi rL`,
         say: raw`A coaxial cylinder through $P$, inside the shell or outside it.`,
         line: raw`A coaxial cylinder through $P$, inside the shell or outside it.`,
-        caption: 'Draw a cylinder on the shell’s axis through P, inside the shell or outside it. Its wall has the field square to it and the same all over; its ends have the field along them.',
+        caption: 'Draw a cylinder on the shell’s axis through P, inside the shell or outside it. Its wall has the field perpendicular to it and the same all over; its ends have the field along them.',
       },
       left: {
         tex: raw`\Phi=E_r\,(2\pi rL)`,
