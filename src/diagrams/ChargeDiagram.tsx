@@ -395,7 +395,16 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
   // browser only took this context back, so 3D stays on offer and choosing it starts the scene again.
   const [noScene, setNoScene] = useState<false | 'failed' | 'lost'>(false);
   const ZOOM_MIN = .45, ZOOM_MAX = 3.2;
-  const [zoomWanted, setZoom] = useState(1);
+  // THE ZOOM ASKED FOR, AND THE ZOOM DRAWN. A press of + used to cut straight to the next level, every wheel event
+  // re-rendered the whole figure and re-placed every name, and the rod's body, the pieces and the arrows each eased to
+  // the new scale on a tween of their own while the axes and the names jumped -- the layers came apart and wobbled
+  // back together on every step. Now the drawn zoom glides to the one asked for, one render a frame with everything
+  // held still under it (`zooming` joins `moving`: no tweens, no label placer, no retrace of the field), and the names
+  // are placed once, when it lands. With Reduce Motion on it steps straight there.
+  const [zoomWanted, setZoomWanted] = useState(1);
+  const [zoomDrawn, setZoomDrawn] = useState(1);
+  const [zooming, setZooming] = useState(false);
+  const zoomGoal = useRef(1), zoomNow = useRef(1), zoomFrame = useRef(0);
   const [fieldView, setFieldView] = useState<'lines' | 'vectors' | 'off'>('lines');
   const reduced = !!useReducedMotion(), id = problem.geometry, scalar = problem.quantity === 'V', surface = id === 'disk' || id === 'sheet', perspective = surface || id === 'ring';
   // The ramp is the endpoint rod with a non-uniform density: same layout, different charge.
@@ -431,7 +440,7 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
   const fieldReach = Math.round(Math.min(9, Math.max(3.5, p.size * 1.5)) * 2) / 2;
   // An orbit drag writes a SVG matrix from motion values; setState would rebuild the tree every frame.
   const [activeDrag,setActiveDrag] = useState(false);
-  const still = reduced || activeDrag || gliding, moving = activeDrag || gliding;
+  const still = reduced || activeDrag || gliding || zooming, moving = activeDrag || gliding || zooming;
   // Reported on the root beside `data-renders`, because `moving` gates two things a reader
   // would notice if they stuck: the label placer and the figure's own animation. A glide that
   // was interrupted used to leave it set for the rest of the session, and nothing said so.
@@ -694,7 +703,9 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
   ) : Infinity;
   const fits = Math.min(roomX, roomY, roundFit);
   const zoomCeiling = fits > ZOOM_MAX ? ZOOM_MAX : fits < 1 ? 1 : fits;
-  const zoom = zoomWanted < zoomCeiling ? zoomWanted : zoomCeiling;
+  // What the buttons and the wheel go by is the zoom asked for; what is drawn is where the glide has got to.
+  const zoomAsked = zoomWanted < zoomCeiling ? zoomWanted : zoomCeiling;
+  const zoom = zoomDrawn < zoomCeiling ? zoomDrawn : zoomCeiling;
   const O: Point = zoom === 1 ? originAt1
     : { x: anchor.x + zoom * (originAt1.x - anchor.x), y: anchor.y + zoom * (originAt1.y - anchor.y) };
   // Pixels per metre, times whatever the reader has zoomed to. The projection, the canvas and
@@ -1488,7 +1499,51 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
     onPointerMove: move, onPointerUp: () => { dragging.current = null; setActiveDrag(false); }, onPointerCancel: () => { dragging.current = null; setActiveDrag(false); }, onLostPointerCapture: () => { dragging.current = null; setActiveDrag(false); },
     /* oxlint-enable react/react-compiler */
   });
-  const zoomBy = (factor: number) => setZoom(z => clamp(Math.min(z, zoomCeiling) * factor, ZOOM_MIN, zoomCeiling));
+  /** One step of the glide: `dt` milliseconds of an exponential approach, in log zoom so a step in and a step out
+   * feel the same. True once it has landed. */
+  /* oxlint-disable react/react-compiler -- called from events and frames, never during render */
+  const ZOOM_EASE = 70;
+  const stepZoom = (dt: number) => {
+    const from = Math.log(zoomNow.current), to = Math.log(zoomGoal.current);
+    let next = from + (to - from) * (1 - Math.exp(-dt / ZOOM_EASE));
+    const landed = Math.abs(to - next) < .004;
+    if (landed) next = to;
+    zoomNow.current = Math.exp(next);
+    setZoomDrawn(zoomNow.current);
+    return landed;
+  };
+  const land = () => { zoomFrame.current = 0; setZooming(false); setZoomWanted(zoomGoal.current); };
+  /** Zoom to `next`. `discrete` is a press -- a button, a key, Reset -- which is answered on the frame it is made;
+   * a wheel event joins the glide already running, so a burst of them costs one render a frame, not one an event. */
+  const zoomTo = (next: number, { discrete = true, instant = false } = {}) => {
+    zoomGoal.current = next;
+    // Never glide out from a zoom the ceiling has already cut: the drawing is at the ceiling, so start there.
+    zoomNow.current = Math.min(zoomNow.current, zoomCeiling);
+    if (reduced || instant) {
+      if (zoomFrame.current) cancelAnimationFrame(zoomFrame.current);
+      zoomFrame.current = 0; zoomNow.current = next;
+      setZoomDrawn(next); setZoomWanted(next); setZooming(false);
+      return;
+    }
+    if (discrete || !zoomFrame.current) setZoomWanted(next);
+    if (zoomFrame.current) { if (discrete) stepZoom(16); return; }
+    setZooming(true);
+    if (stepZoom(16)) { land(); return; }
+    // Timed by the frames' own clock, from the first of them: a frame is a sixtieth of a second until there are two.
+    // Not capped: the approach is exact for any step, and capped, a figure drawing slowly (in space, on a slow
+    // machine) took twice as long to arrive as it meant to.
+    let last = -1;
+    const frame = (now: number) => {
+      const dt = last < 0 ? 16 : Math.max(0, now - last); last = now;
+      if (stepZoom(dt)) { land(); return; }
+      zoomFrame.current = requestAnimationFrame(frame);
+    };
+    zoomFrame.current = requestAnimationFrame(frame);
+  };
+  /* oxlint-enable react/react-compiler */
+  useEffect(() => () => { if (zoomFrame.current) cancelAnimationFrame(zoomFrame.current); }, []);
+  const zoomBy = (factor: number, discrete = true) => zoomTo(clamp(Math.min(zoomGoal.current, zoomCeiling) * factor, ZOOM_MIN, zoomCeiling), { discrete });
+  const setZoom = (z: number, instant = false) => zoomTo(z, { instant });
   // Scroll zooms. It used to rotate, which is why turning the figure felt wrong: the one
   // gesture every 3D tool spends on getting closer was spinning the scene instead.
   // React delegates wheel to the root, where the listener is passive, so preventDefault is
@@ -1500,8 +1555,12 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
   // had the scroll swallowed for good once the figure was as small as it goes.
   useEffect(() => { wheelZoom.current = ev => {
     if (ev.deltaY === 0) return;
-    if (ev.deltaY < 0 ? zoom >= zoomCeiling - 1e-6 : zoom <= ZOOM_MIN + 1e-6) return;
-    ev.preventDefault(); zoomBy(Math.exp(-ev.deltaY * .0016));
+    const asked = Math.min(zoomGoal.current, zoomCeiling);
+    if (ev.deltaY < 0 ? asked >= zoomCeiling - 1e-6 : asked <= ZOOM_MIN + 1e-6) return;
+    // In pixels, whatever the device counts in: a mouse that reports lines stepped a fiftieth of a notch. A pinch on a
+    // trackpad arrives as a wheel with ctrlKey and deltas a tenth the size, and zoomed at a crawl.
+    const pixels = ev.deltaY * (ev.deltaMode === 1 ? 16 : ev.deltaMode === 2 ? 400 : 1);
+    ev.preventDefault(); zoomBy(Math.exp(-pixels * (ev.ctrlKey ? .01 : .0016)), false);
   }; });
   useEffect(() => {
     const el = svg.current;
@@ -1526,7 +1585,8 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
     // Zoom works flat as well as in space -- the pad offers it in both -- but there is nothing
     // to turn in a view that is already looking straight down the axis.
     if (['+', '=', '-', '_'].includes(ev.key)) { ev.preventDefault(); zoomBy(ev.key === '-' || ev.key === '_' ? 1 / 1.18 : 1.18); return; }
-    if (ev.key === 'Home') { ev.preventDefault(); setZoom(1); if (inSpace) nudge(ev.key); return; }
+    // Home jumps, angle and zoom at once, as the angle always has; Reset view glides both.
+    if (ev.key === 'Home') { ev.preventDefault(); setZoom(1, true); if (inSpace) nudge(ev.key); return; }
     if (!inSpace || !['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(ev.key)) return;
     ev.preventDefault(); nudge(ev.key);
   };
@@ -1592,7 +1652,7 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
     seenGeometry.current = problem.geometry;
     stopGlide();
     commitView(openingCamera(problem.geometry));
-    setZoom(1);
+    setZoom(1, true);
     setSpatial(null);
   }, [problem.geometry]);
   // A LINK THAT NAMES THE VIEW (view=2d or view=3d) opens the lesson drawn that way, after the reset above, whose
@@ -3026,6 +3086,8 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
     const knock = root.querySelector<SVGGElement>('.cd-label-knock');
     knock?.replaceChildren();
     if (moving) return;
+    // How many times the names have been placed, for the zoom's cost check: once when a zoom lands, never mid-glide.
+    root.dataset.placements = String(Number(root.dataset.placements ?? 0) + 1);
     const texts = [...root.querySelectorAll<SVGTextElement>('text')].filter(t => !t.closest('.cd-help'));
     // Measure with any previous nudge removed, so the desired position is what is measured and a
     // label does not creep further on every pass.
@@ -3221,13 +3283,13 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
     }
   });
   return <div ref={root} className={"charge-diagram cd-focus-"+highlight+(inSpace?" cd-in-space":"")+(perspective?" cd-surface-kind":" cd-wire-kind")+(building?" cd-building cd-stage-"+building:"")+(build?.paused?" cd-paused":"")+(build?.clock?" cd-clocked":"")+(hideAnswer?" cd-hide-total":"")+(narrow?" cd-narrow":"")+(id === 'arc' && pairing ? " cd-arc-pair" : "")}
-    data-element-annulus={sceneElement.annulus ? `${sceneElement.annulus.inner},${sceneElement.annulus.outer}` : undefined} style={{ "--cd-k": labelScale } as CSSProperties}>
+    data-zoom={zoom.toFixed(3)} data-zooming={zooming ? 'true' : undefined} data-element-annulus={sceneElement.annulus ? `${sceneElement.annulus.inner},${sceneElement.annulus.outer}` : undefined} style={{ "--cd-k": labelScale } as CSSProperties}>
     {/* Field under construction, sharing one box so the two coordinate spaces cannot
         drift. Planar lessons only for now: the perspective geometries need their lines
         traced in three dimensions and sorted against the surface, a different job. */}
     <div ref={stageBox} className="cd-stage">
     {!inSpace && !scalar && fieldView !== 'off' && <FieldCanvas samples={canvasSamples} detail={UNBOUNDED.has(id) ? 192 : 64} project={project} frame={{ width: 720, height: 430 }} mode={fieldView} reach={Math.max(2.5, p.distance * 1.7, p.size)}
-      plane={perspective ? 'xz' : 'xy'} layout={surface ? 'surface' : 'wire'} />}
+      plane={perspective ? 'xz' : 'xy'} layout={surface ? 'surface' : 'wire'} hold={zooming} />}
     {inSpace && <FieldStage quiet={!!building} kind={id === 'disk' ? 'disk' : id === 'sheet' ? 'sheet' : 'wire'} closed={id === 'ring'} samples={UNBOUNDED.has(id) ? fieldSamples : samples} fieldSamples={fieldSamples} detail={UNBOUNDED.has(id) ? 144 : 48} selected={selectedIndex}
       radius={R} distance={p.distance} yaw={view.yaw} pitch={view.pitch} fieldView={scalar ? 'off' : fieldView} reach={fieldReach}
       bodyPath={bodyPath} point={pWorld} element={sceneElement} net={netShown ? scaleVec(displayed, netCut * gain / unit) : null} contribution={handOver ? scaleVec(handOver.field, handOver.multiplier * gain / unit) : pairNow ? (pairNow.step.fb && pairNow.cancel < .6 ? scaleVec(pairNow.step.fa, pairNow.grow * pairM * gain / unit) : null) : scalar || !showContribution || mode === 'sum' || building === 'limit' ? null : scaleVec(sample.field, selectedGain * gain / unit)}
@@ -3756,9 +3818,9 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
       {/* The four turn keys used to live here too. The view cube inside the figure now carries
           them, with the same names, and two controls doing one job is one too many -- the pad
           keeps zoom and the way home. */}
-      <button type="button" className="cd-pad-key" title="Zoom out (minus key, or scroll)" aria-label="Zoom out" onKeyDown={viewKeys} onClick={() => zoomBy(1 / 1.18)} disabled={zoom <= ZOOM_MIN + 1e-6}>&minus;</button>
-      <button type="button" className="cd-pad-key" title="Zoom in (plus key, or scroll)" aria-label="Zoom in" onKeyDown={viewKeys} onClick={() => zoomBy(1.18)} disabled={zoom >= zoomCeiling - 1e-6}>+</button>
-      <button type="button" className="text-button cd-orbit-reset" onKeyDown={viewKeys} onClick={resetView} disabled={zoom === 1 && (!inSpace || (Math.abs(camera.yaw - opening.yaw) < 1e-6 && Math.abs(camera.pitch - opening.pitch) < 1e-6))}>Reset view</button>
+      <button type="button" className="cd-pad-key" title="Zoom out (minus key, or scroll)" aria-label="Zoom out" onKeyDown={viewKeys} onClick={() => zoomBy(1 / 1.18)} disabled={zoomAsked <= ZOOM_MIN + 1e-6}>&minus;</button>
+      <button type="button" className="cd-pad-key" title="Zoom in (plus key, or scroll)" aria-label="Zoom in" onKeyDown={viewKeys} onClick={() => zoomBy(1.18)} disabled={zoomAsked >= zoomCeiling - 1e-6}>+</button>
+      <button type="button" className="text-button cd-orbit-reset" onKeyDown={viewKeys} onClick={resetView} disabled={zoomAsked === 1 && (!inSpace || (Math.abs(camera.yaw - opening.yaw) < 1e-6 && Math.abs(camera.pitch - opening.pitch) < 1e-6))}>Reset view</button>
     </div>
     {/* An <output>: a status, announced as it appears. */}
     {noScene && <output className="cd-stage-unavailable">{noScene === 'lost' ? 'The 3D view was interrupted, so the figure is drawn in 2D. Choose 3D to try again.' : 'The 3D view is not available on this device.'}</output>}
@@ -3766,7 +3828,7 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
     <div className="cd-caption"><span>{sourceText}</span>
     <details className="cd-controls" open={!compact}><summary>Keyboard help</summary>{/* A footnote on the caption line, not a fourth section. It used to be called "Diagram controls", which promised a second control panel and delivered the sliders the page already carries -- so a reader who opened it found the distance slider twice and concluded one of them was a different thing. It is the keyboard and screen-reader path: name it that, and the duplicates read as what they are, the same controls reachable another way. The drawn legend says how to turn and zoom; this says what a drawing cannot -- what Tab reaches, what Home and End do -- and says it to a reader who cannot see the legend at all. */}<p id={`${uid}help`}>The same controls the figure and the page carry, reachable from the keyboard, not a second set. Tab moves between them; arrow keys adjust one, Home and End (Search with ← and → on a Chromebook) take it to its limits. P and the integration bounds also drag in the figure.{inSpace?' The figure takes focus too: arrow keys turn it, plus and minus zoom, Home puts it back.':''}</p>
     <div className="cd-control-grid">
-      {inSpace&&<button ref={cameraControl} type="button" className="cd-camera-control" aria-describedby={`${uid}camera-help`} onKeyDown={ev=>{if(['+','=','-','_'].includes(ev.key)){ev.preventDefault();zoomBy(ev.key==='-'||ev.key==='_'?1/1.18:1.18);}else if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Home'].includes(ev.key)){ev.preventDefault();if(ev.key==='Home')setZoom(1);nudge(ev.key);}}} onClick={resetView}>Rotate view with arrow keys<span id={`${uid}camera-help`}>Left/right rotate; up/down tilt; Home or Enter resets.</span></button>}
+      {inSpace&&<button ref={cameraControl} type="button" className="cd-camera-control" aria-describedby={`${uid}camera-help`} onKeyDown={ev=>{if(['+','=','-','_'].includes(ev.key)){ev.preventDefault();zoomBy(ev.key==='-'||ev.key==='_'?1/1.18:1.18);}else if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Home'].includes(ev.key)){ev.preventDefault();if(ev.key==='Home')setZoom(1,true);nudge(ev.key);}}} onClick={resetView}>Rotate view with arrow keys<span id={`${uid}camera-help`}>Left/right rotate; up/down tilt; Home or Enter resets.</span></button>}
       <label>Which piece is drawn<input type="range" aria-label="Selected charge element" min={0} max={n-1} step={1} value={selectedIndex} onChange={ev=>onSelect(Number(ev.target.value))}/></label>
       {id!=='arc'&&<label>Observation distance<input type="range" aria-label="Observation distance in meters" aria-valuetext={`${pretty(p.distance)} meters`} min={.5} max={6} step={.1} value={p.distance} onChange={ev=>setParams({distance:Number(ev.target.value)})}/></label>}
       {/* No percentage printed: this page reasons about the integral in symbols, and a reader who

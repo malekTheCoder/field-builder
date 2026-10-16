@@ -180,3 +180,81 @@ describe('a frame of the run is cheap enough to be smooth', () => {
   }, 240000);
  }
 });
+/* WHAT A ZOOM COSTS, frame by frame.
+ *
+ * "Zooming in and out has just been very not smooth." A press of + cut straight to the next level; every wheel
+ * event re-rendered the whole figure, re-placed every name and redrew the field, and a zoom out past the window
+ * the field was traced for retraced it on the spot (the endless line's p95 there was 16 to 18 ms, six units, where
+ * a zoom in cost one); the rod's body, its pieces and the arrows each eased to the new scale on tweens of their own
+ * while the axes and names jumped. Now the drawn zoom glides to the one asked for: one render a frame, the names
+ * placed once when it lands, and the field only redrawn, never retraced, until then.
+ *
+ * Timed as the run is (see above): frames driven by hand, each frame's whole synchronous cost against this
+ * machine's `calibrate` unit -- and, as there, the counts are the guards that do not depend on the machine. */
+describe('a zoom is cheap enough to be smooth', () => {
+ let queue: FrameRequestCallback[] = [];
+ let realRaf: typeof window.requestAnimationFrame, realCancel: typeof window.cancelAnimationFrame;
+ beforeEach(() => {
+  queue = [];
+  realRaf = window.requestAnimationFrame; realCancel = window.cancelAnimationFrame;
+  window.requestAnimationFrame = cb => { queue.push(cb); return queue.length; };
+  window.cancelAnimationFrame = () => {};
+ });
+ afterEach(() => { window.requestAnimationFrame = realRaf; window.cancelAnimationFrame = realCancel; });
+ let clock = 0;
+ const frameNow = () => { quietOwnerStacks(); clock += 16; const due = queue.splice(0); act(() => { for (const cb of due) cb(clock); }); };
+ for (const id of ['bisector', 'infinite'] as const) {
+  it(`${id}: a press and a burst of wheel glide, one render a frame, names placed once`, async () => {
+   const view = await openLesson(id);
+   // Settle what opening the lesson queued.
+   for (let k = 0; k < 40; k++) frameNow();
+   await new Promise(r => setTimeout(r, 100));
+   for (let k = 0; k < 10; k++) frameNow();
+   const unit = calibrate();
+   const figure = view.container.querySelector<HTMLElement>('.charge-diagram')!, svg = view.container.querySelector<SVGSVGElement>('.cd-svg')!;
+   const canvas = () => view.container.querySelector<HTMLElement>('.cd-field-canvas')!;
+   const renders = () => Number(figure.dataset.renders), placed = () => Number(svg.dataset.placements ?? 0), traced = () => Number(canvas().dataset.traces ?? 0);
+   const gliding = () => figure.dataset.zooming === 'true';
+   /** Drive one gesture: `input` before each of the first `inputs` frames, then frames until the zoom lands. */
+   const gesture = (input: () => void, inputs: number) => {
+    const r0 = renders(), p0 = placed(), g0 = traced(), costs: number[] = [];
+    let placedMid = 0, tracedMid = 0, frames = 0, landing = 0;
+    for (let k = 0; k < 120 && (k < inputs || gliding()); k++) {
+     const t0 = performance.now();
+     if (k < inputs) act(() => input());
+     frameNow();
+     const dt = performance.now() - t0;
+     frames++;
+     // The frame it lands on does what the glide put off -- places the names, traces the field again if the
+     // window has outgrown it -- once, with nothing moving. Counted, not timed with the glide's own frames.
+     if (gliding()) { costs.push(dt); placedMid = placed() - p0; tracedMid = traced() - g0; } else landing = dt;
+    }
+    for (let k = 0; k < 3; k++) frameNow();
+    return {p95: percentile(costs, .95), mean: mean(costs), frames, landing, renders: renders() - r0, placedMid, placedAfter: placed() - p0, tracedMid, tracedAfter: traced() - g0, landed: !gliding()};
+   };
+   const zoomIn = view.getByRole('button', {name: 'Zoom in'}), zoomOut = view.getByRole('button', {name: 'Zoom out'});
+   const press = gesture(() => fireEvent.click(zoomIn), 1);
+   // Two wheel events a frame, as a trackpad sends them: out, past the window the field was traced for.
+   const wheel = gesture(() => { fireEvent.wheel(svg, {deltaY: 12}); fireEvent.wheel(svg, {deltaY: 12}); }, 14);
+   const back = gesture(() => fireEvent.click(zoomOut), 1);
+   const line = (name: string, g: typeof press) => `${name.padEnd(6)} p95 ${g.p95.toFixed(2)} ms (${(g.p95 / unit).toFixed(1)} units) mean ${g.mean.toFixed(2)}, landing ${g.landing.toFixed(2)} ms, ${g.frames} frames, ${g.renders} renders, names placed ${g.placedMid} mid-glide and ${g.placedAfter} in all, field traced ${g.tracedMid} mid-glide and ${g.tracedAfter} in all`;
+   console.log(`[zoom-perf] ${id}: a unit is ${unit.toFixed(2)} ms\n  ${line('press', press)}\n  ${line('wheel', wheel)}\n  ${line('out', back)}`);
+   for (const [name, g] of [['press', press], ['wheel', wheel], ['out', back]] as const) {
+    expect(g.landed, `${id} / ${name}: the zoom never landed`).toBe(true);
+    // It glides: more than one frame to get there, and at most one render of the figure a frame however many
+    // events arrive (two a frame for the wheel), plus the landing's own.
+    expect(g.frames, `${id} / ${name}: cut to the new zoom instead of gliding`).toBeGreaterThan(3);
+    expect(g.renders, `${id} / ${name}: renders of the figure`).toBeLessThanOrEqual(g.frames + 3);
+    // The names are placed when it lands, and not on the way.
+    expect(g.placedMid, `${id} / ${name}: names placed mid-glide`).toBe(0);
+    expect(g.placedAfter, `${id} / ${name}: names placed on landing`).toBeGreaterThanOrEqual(1);
+    // The field is redrawn as it goes, never retraced.
+    expect(g.tracedMid, `${id} / ${name}: field traced mid-glide`).toBe(0);
+    expect(g.tracedAfter, `${id} / ${name}: field traced more than once for one zoom`).toBeLessThanOrEqual(1);
+    // Half the run's allowance: a frame of the glide is a render and a redraw, nothing else. Before, a wheel event
+    // that took the window past the traced field cost six units, every time.
+    expect(g.p95 / unit, `${id} / ${name}: p95 frame cost of the glide (${g.p95.toFixed(1)} ms), in units of this machine's ${unit.toFixed(2)} ms`).toBeLessThan(UNITS / 2);
+   }
+  }, 60000);
+ }
+});

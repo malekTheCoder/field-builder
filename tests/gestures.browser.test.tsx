@@ -1,4 +1,4 @@
-import {cleanup, fireEvent, render} from '@testing-library/react';
+import {cleanup, fireEvent, render, waitFor} from '@testing-library/react';
 import {afterEach, describe, expect, it, vi} from 'vitest';
 import {ChargeDiagram} from '../src/diagrams/ChargeDiagram';
 import {getProblem, PROBLEMS} from '../src/problems/definitions';
@@ -138,7 +138,7 @@ describe('the gestures the figure advertises', () => {
     drag(point, [300, 200], [300, 260]);
     expect(setParams, 'dragging P reported no new distance').toHaveBeenCalled();
   });
-  it('keeps P in the picture all the way to full zoom, on every lesson', () => {
+  it('keeps P in the picture all the way to full zoom, on every lesson', async () => {
     // Zooming used to scale the drawing about each geometry's own origin, which is wherever
     // that geometry's labels wanted it and not the middle of anything. The further a feature
     // sat from that origin the faster zoom threw it out of the frame, and P sits further from
@@ -151,6 +151,8 @@ describe('the gestures the figure advertises', () => {
       const zoomIn = view.getByRole('button', {name: 'Zoom in'}) as HTMLButtonElement;
       for (let i = 0; i < 40 && !zoomIn.disabled; i++) fireEvent.click(zoomIn);
       expect(zoomIn.disabled, `${id} never reached full zoom`).toBe(true);
+      // The zoom glides there: measured where it lands, not on its way.
+      await waitFor(() => expect(view.container.querySelector<HTMLElement>('.charge-diagram')!.dataset.zooming).toBeUndefined(), {timeout: 4000});
       const frame = svg.getBoundingClientRect();
       const halo = view.container.querySelector('.cd-point-halo')!.getBoundingClientRect();
       // The whole halo, not merely the dot: half a mark hanging off the edge is what this
@@ -160,7 +162,7 @@ describe('the gestures the figure advertises', () => {
       cleanup();
     }
     expect(lost, `${lost.length} lessons lose P when zoomed in`).toEqual([]);
-  });
+  }, 20000);
   it('recovers when a glide is interrupted, instead of wedging the figure', () => {
     // `gliding` feeds `moving`, and `moving` holds off the label placer and the net-arrow
     // report. Cancelling a glide's frame without clearing the flag left it set for the rest of

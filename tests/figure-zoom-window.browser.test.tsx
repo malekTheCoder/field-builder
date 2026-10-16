@@ -118,3 +118,17 @@ describe('the figure stays in its window, zoomed', () => {
   expect(found, 'drawn outside the window').toEqual([]);
  }, 60000);
 });
+describe('a zoom glides', () => {
+ const drawn = (view: {container: HTMLElement}) => Number(view.container.querySelector<HTMLElement>('.charge-diagram')!.dataset.zoom);
+ const zooming = (view: {container: HTMLElement}) => view.container.querySelector<HTMLElement>('.charge-diagram')!.dataset.zooming === 'true';
+ it('glides to the level asked for, and lands on it', async () => {
+  const view = await open('bisector');
+  fireEvent.click(view.getByRole('button', {name: 'Zoom in'}));
+  // On its way: moved at once, the frame it was pressed on, but not yet there.
+  expect(zooming(view), 'cut straight to the new zoom').toBe(true);
+  expect(drawn(view)).toBeGreaterThan(1);
+  expect(drawn(view)).toBeLessThan(1.17);
+  await settle(view);
+  expect(drawn(view)).toBeCloseTo(1.18, 3);
+ }, 15000);
+});

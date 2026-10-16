@@ -1,4 +1,4 @@
-import {cleanup, fireEvent, render} from '@testing-library/react';
+import {cleanup, fireEvent, render, waitFor} from '@testing-library/react';
 import {afterEach, describe, expect, it, vi} from 'vitest';
 import {page} from 'vitest/browser';
 import {ChargeDiagram} from '../src/diagrams/ChargeDiagram';
@@ -45,6 +45,8 @@ describe('orbiting a bounded round charge keeps its whole rim in the plot', () =
    const zoom = view.getByRole('button', {name: 'Zoom in'});
    for (let k = 0; k < 14 && !zoom.hasAttribute('disabled'); k++) fireEvent.click(zoom);
    expect(zoom.hasAttribute('disabled'), 'zoom reaches a finite ceiling').toBe(true);
+   // Where the glide lands, not on its way there.
+   await waitFor(() => expect(view.container.querySelector<HTMLElement>('.charge-diagram')!.dataset.zooming).toBeUndefined(), {timeout: 4000});
    expectRimInside(view.container, size / 2, `${id}, size=${size}`);
    cleanup();
   }

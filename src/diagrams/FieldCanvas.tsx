@@ -34,6 +34,10 @@ export type FieldCanvasProps={
  /** Which plane the flat drawing is a cut through. The planar lessons live in z = 0; the
   * side view of a ring, a disk or a sheet is the cut y = 0 through the axis. */
  plane?:'xy'|'xz'; layout?:Layout;
+ /** While the view glides (a zoom on its way to the level asked for), keep the lines already traced and only
+  * redraw them: a zoom out of the traced window retraced the field mid-glide, up to twenty milliseconds on the
+  * endless line, on every step. They are traced again, if they must be, once it lands. */
+ hold?:boolean;
  className?:string;
 };
 /** The last few traces, by everything a trace depends on.
@@ -48,8 +52,10 @@ const TRACES=new Map<string,Plane[][]>();
 const TRACES_KEPT=6;
 /** Tracing is far heavier than drawing, so it runs on the charge alone and is reused while
  * the camera, the highlight or the selected element change. */
-export function FieldCanvas({samples,project,frame,lines=15,mode='lines',reach=6,detail=64,plane='xy',layout='wire',className=''}:FieldCanvasProps){
+export function FieldCanvas({samples,project,frame,lines=15,mode='lines',reach=6,detail=64,plane='xy',layout='wire',hold=false,className=''}:FieldCanvasProps){
  const canvas=useRef<HTMLCanvasElement>(null),box=useRef<HTMLDivElement>(null);
+ // How many times this layer has traced its field, for the tests that hold a gesture to no retrace.
+ const traces=useRef(0);
  // Tracing depends on the charge alone -- positions and dq -- never on where P is. For
  // twelve of the fifteen geometries those are identical from frame to frame while P is
  // dragged, so keying the trace on the array's identity retraced every streamline for
@@ -72,7 +78,7 @@ export function FieldCanvas({samples,project,frame,lines=15,mode='lines',reach=6
  // window that really grows or moves past them is traced again.
  const base=`${chargeKey}|${lines}|${plane}|${layout}|${reach}|${detail}`;
  const held=useRef<{base:string;traced:PlaneRect|null}>({base:'',traced:null});
- if(held.current.base!==base||!covers(held.current.traced,area))held.current={base,traced:area?traceWindow(area):null};
+ if(held.current.base!==base||(!hold&&!covers(held.current.traced,area)))held.current={base,traced:area?traceWindow(area):null};
  const tracedFor=held.current.traced,limit=traceLimit(tracedFor,reach*1.6);
  const traceKey=`${base}|${tracedFor?[tracedFor.x0,tracedFor.y0,tracedFor.x1,tracedFor.y1].map(v=>v.toFixed(2)).join(','):'-'}`;
  const traced=useMemo(()=>{
@@ -117,7 +123,7 @@ export function FieldCanvas({samples,project,frame,lines=15,mode='lines',reach=6
    :ray&&window?rayLines(ray,pool.count,shown,opts.seedLimit*.05,0,{step:step/2,maxSteps:Math.min(3200,2*opts.maxSteps),outerLimit:limit,crowd:opts.seedLimit*.012,
      far:v=>v.x<window.x0||v.x>window.x1||v.y<window.y0||v.y>window.y1},true).map(line=>line.map(v=>({x:v.x,y:v.y})))
    :plane==='xz'?meridianLines(coarse,layout,lines,{...opts,root:{},seedSpan}).map(line=>line.map(v=>({x:v.x,y:v.z}))):fieldLines(coarse,pool.count,{...opts,seedPool:pool.pool,root:bodyFoot(coarse,'wire'),finish:{samples,step:step/4}});
-  TRACES.set(traceKey,fresh);
+  TRACES.set(traceKey,fresh);traces.current++;
   for(const old of TRACES.keys()){if(TRACES.size<=TRACES_KEPT)break;TRACES.delete(old);}
   return fresh;
  },[traceKey]);
@@ -202,6 +208,7 @@ export function FieldCanvas({samples,project,frame,lines=15,mode='lines',reach=6
     ctx.globalAlpha=1;
     ctx.restore();
     host.setAttribute('data-field-marks',marks.join(' '));
+    host.setAttribute('data-traces',String(traces.current));
     return;
    }
    // The heads in the line's own ink, filled: a small arrowhead the way the line runs, which is the
@@ -229,6 +236,7 @@ export function FieldCanvas({samples,project,frame,lines=15,mode='lines',reach=6
    ctx.fillStyle=stroke;ctx.fill(heads);
    ctx.restore();
    host.setAttribute('data-field-marks',marks.join(' '));
+   host.setAttribute('data-traces',String(traces.current));
   };
   frameId=requestAnimationFrame(draw);
   const observer=new ResizeObserver(()=>{cancelAnimationFrame(frameId);frameId=requestAnimationFrame(draw);});
