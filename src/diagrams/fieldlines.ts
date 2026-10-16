@@ -173,6 +173,14 @@ export function refineEnds(samples:readonly ChargeSample[],into=12,pieces=3):Cha
  });
  return out;
 }
+/** The most a field line may turn across one traced step: ten degrees, so no chord leans more than about five off
+ * the field where it starts. See `trace`. */
+export const TURN_MOST=10*Math.PI/180;
+const TURN_COS=Math.cos(TURN_MOST);
+/** The most the chords either side of a head may turn from its own: six degrees, so a head points within about three
+ * of the field. See `lineHeads`. */
+export const HEAD_TURN=6*Math.PI/180;
+const HEAD_COS=Math.cos(HEAD_TURN);
 /** One streamline, stepped by RK4 on the unit field direction so the arc length per step is
  * honest and the curve does not drift wide on tight bends the way Euler does. */
 export function traceLine(samples:readonly ChargeSample[],start:Plane,options:TraceOptions={}):Plane[]{
@@ -197,11 +205,23 @@ function trace(samples:readonly ChargeSample[],start:Plane,options:TraceOptions)
  let here={x:start.x,y:start.y};
  for(let i=0;i<maxSteps;i++){
   const k1=heading(samples,here,sign);if(!k1)break;
-  const k2=heading(samples,{x:here.x+k1.x*step/2,y:here.y+k1.y*step/2},sign);if(!k2)break;
-  const k3=heading(samples,{x:here.x+k2.x*step/2,y:here.y+k2.y*step/2},sign);if(!k3)break;
-  const k4=heading(samples,{x:here.x+k3.x*step,y:here.y+k3.y*step},sign);if(!k4)break;
-  const next={x:here.x+step*(k1.x+2*k2.x+2*k3.x+k4.x)/6,y:here.y+step*(k1.y+2*k2.y+2*k3.y+k4.y)/6};
-  if(!Number.isFinite(next.x)||!Number.isFinite(next.y))break;
+  // A STEP THAT TURNS TOO FAR IS TAKEN AGAIN, SHORTER. The step is fixed by the picture, and almost everywhere
+  // the field turns a degree or two across one. Not in the gap of an arc cut nearly into a ring: on the axis
+  // there the field is a twentieth of its strength at P, and just off it the sideways part grows so fast that
+  // the field turns eighty degrees within a few centimetres. A tenth-of-a-metre chord cut that elbow at up to
+  // thirty degrees off the field, and the lines from the arc's two ends met the axis square, head on, at one
+  // point of empty space. So where the direction at the end of a step is more than TURN_MOST off the one it
+  // began with, the step is halved, down to a sixteenth, and the next step starts at full length again.
+  let h=step,next:Plane|null=null;
+  for(;;){
+   const k2=heading(samples,{x:here.x+k1.x*h/2,y:here.y+k1.y*h/2},sign);if(!k2)break;
+   const k3=heading(samples,{x:here.x+k2.x*h/2,y:here.y+k2.y*h/2},sign);if(!k3)break;
+   const k4=heading(samples,{x:here.x+k3.x*h,y:here.y+k3.y*h},sign);if(!k4)break;
+   if(k1.x*k4.x+k1.y*k4.y<TURN_COS&&h>step/16+1e-12){h/=2;continue;}
+   next={x:here.x+h*(k1.x+2*k2.x+2*k3.x+k4.x)/6,y:here.y+h*(k1.y+2*k2.y+2*k3.y+k4.y)/6};
+   break;
+  }
+  if(!next||!Number.isFinite(next.x)||!Number.isFinite(next.y))break;
   path.push(next);here=next;
   if(LEN(here)>outer)break;
   if(bounds&&(here.x<bounds.x0||here.x>bounds.x1||here.y<bounds.y0||here.y>bounds.y1))break;
@@ -507,7 +527,18 @@ export function lineHeads(screen:readonly {x:number;y:number}[],rect:{x:number;y
  // letter -- a head on the y beside the disk, through the x on the sheet. It slides along its own line,
  // up to about a third of the spacing either way, to the nearest place clear of every name; with none, it
  // is not drawn: the line's other heads say which way it runs.
- const clear=(h:LineHead)=>!keepOut.length||!meetsBoxes({x:h.x-h.dx*LINE_HEAD.length/2,y:h.y-h.dy*LINE_HEAD.length/2},{x:h.x+h.dx*LINE_HEAD.length/2,y:h.y+h.dy*LINE_HEAD.length/2},keepOut,LINE_HEAD.half);
+ //
+ // NOR ON A CORNER. A head is laid along its one chord, and where the chords either side of it turn by more than
+ // HEAD_TURN the chord is not the field's direction: a head set on the elbow a line makes in an arc's gap pointed
+ // twenty-four degrees off the field. It slides along the line, as off a name, to where the line runs straight.
+ const turn=(i:number,j:number)=>{
+  const a=screen[i],b=screen[i+1],c=screen[j],d=screen[j+1];
+  if(!a||!b||!c||!d)return false;
+  const ux=b.x-a.x,uy=b.y-a.y,vx=d.x-c.x,vy=d.y-c.y,l=Math.hypot(ux,uy)*Math.hypot(vx,vy);
+  return l>0&&(ux*vx+uy*vy)/l<HEAD_COS;
+ };
+ const corner=(i:number)=>turn(i-1,i)||turn(i,i+1);
+ const clear=(h:LineHead)=>!corner(h.segment)&&(!keepOut.length||!meetsBoxes({x:h.x-h.dx*LINE_HEAD.length/2,y:h.y-h.dy*LINE_HEAD.length/2},{x:h.x+h.dx*LINE_HEAD.length/2,y:h.y+h.dy*LINE_HEAD.length/2},keepOut,LINE_HEAD.half));
  const count=Math.max(1,Math.round(total/every)),heads:LineHead[]=[],reach=Math.min(every/3,total/2),edge=LINE_HEAD.length/2;
  for(let j=0;j<count;j++){
   const want=total*(j+.5)/count;
