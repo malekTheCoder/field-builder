@@ -32,6 +32,8 @@ afterEach(async () => {
 });
 async function openLesson(id: string, params: Record<string, number> = {}) {
  await new Promise(r => setTimeout(r, 280));
+ // A debounced address write from a lesson just closed can land in that wait, and a stale ?p= opens bisector.
+ window.history.replaceState(null, '', '/');
  localStorage.setItem('field-builder:explorer:v1', JSON.stringify({id, hideTour: true, cued: true, dark: false, sidebarOpen: true,
   params: Object.keys(params).length ? {[id]: {...DEFAULT_PARAMS, ...params}} : {}}));
  const view = render(<Explorer />);
