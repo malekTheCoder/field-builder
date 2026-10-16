@@ -40,7 +40,7 @@ export const lesson: GaussLesson = {
       raw`Each part of the surface has to be one of three kinds. On one kind, $\vec E$ is square to the surface and the same size all over, and the part contributes the field’s signed component along its outward normal, $E_r$ or $E_\perp$, times its area. On another, $\vec E$ lies along the surface, and the part contributes nothing. On the last, $\vec E$ is zero, and it contributes nothing either. The surface must also pass through the point where you want the field. It does not have to enclose all the charge: round an infinite line or sheet it only ever encloses a sample.`,
     ]},
     {heading: 'When it only looks symmetric', body: [
-      raw`A finite rod, a uniformly charged cube or a finite plate looks tidy, but none of them is unchanged by enough of the moves above, and on no closed surface you can draw is their field both square to it and the same size all over. Gauss’s law is still true for them. It just will not hand you $\vec E$, and the integral you build piece by piece is the way to find it.`,
+      raw`Shapes that look just as neat, a rod with ends, a charged cube, a plate with edges, survive too few of those moves. Whatever closed surface you draw around one, its field is somewhere slanted to it or stronger in one place than another. The flux through that surface is still the enclosed charge over $\varepsilon_0$; what you cannot do is pull $\vec E$ out of the integral. For them the field comes from adding up the pieces, as the integral lessons do.`,
     ]},
   ],
   read: [
