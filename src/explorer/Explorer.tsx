@@ -34,6 +34,7 @@ import {Hint} from '../components/Hint';
 import {LawsDialog,LawsReference} from '../components/Laws';
 import {ShapeGlyph,families} from './lessons';
 import {GaussLibraryFamily,GaussListFamily} from '../gauss/GaussFamily';
+import {gaussHref,isGaussReady} from '../gauss';
 import {Brand} from './Brand';
 import {LessonIntro} from './LessonIntro';
 import {lessonFor} from '../lessons';
@@ -1183,6 +1184,8 @@ export default function Explorer({welcome}:{welcome?:boolean}={}){
   {/* The quiz is its own page, but the end of a lesson is when a reader is ready for it: this opens it with
       this lesson's shape already ticked. */}
   <p className="exp-quiz-this no-print"><a className="exp-came-back" href={`${QUIZ_HREF}=${id}`} onClick={e=>{if(!inPlace(e))return;e.preventDefault();navigate(`${QUIZ_HREF}=${id}`)}}><ClipboardCheck size={15} aria-hidden="true"/>Quiz yourself on this shape</a></p>
+  {/* The line and the sheet are the two fields Gauss's law gets in two lines: say so, once its lesson is ready. */}
+  {(()=>{const g=id==='infinite'?'lines':id==='sheet'?'sheets':null;return g&&isGaussReady(g)&&<p className="exp-quiz-this no-print"><a className="exp-came-back" href={gaussHref(g)} onClick={e=>{if(!inPlace(e))return;e.preventDefault();navigate(gaussHref(g))}}><ArrowRight size={15} aria-hidden="true"/>The same answer by Gauss’s law</a></p>})()}
   {/* A card, not a line: the lesson's last word is where to go next, its shape, its name and why. */}
   {related&&<a className="exp-next" href={lessonHref(related.id)} aria-label={`Next: ${related.short}. ${related.text}`} onClick={e=>{if(!inPlace(e))return;e.preventDefault();follow(related.id,related.from)}}>
    <span className="exp-next-glyph"><ShapeGlyph id={related.id} size={22}/></span>

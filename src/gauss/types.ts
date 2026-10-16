@@ -25,7 +25,13 @@ export type Check = {title: string; text: string; tex?: string};
 
 /** What the figure draws for a case: the charge and the closed surface round it, and what the slider moves. */
 export type FigureSetup = {
-  charge: {kind: ChargeKind; size: number; symbol: string; name: string};
+  charge: {kind: ChargeKind; size: number; symbol: string; name: string;
+    /** A second size, for a charge with two surfaces: a coaxial pair's outer shell, a metal shell's outer radius. */
+    outer?: number;
+    /** What the charge's surfaces are called (physics.ts `boundaries`, in order out from the centre): "R", or "a"
+     * and "b". The profile under the figure marks them with these letters. */
+    bounds?: string[];
+  };
   surface: {
     kind: SurfaceKind;
     /** The radius for a sphere or a cylinder, the face height for a pillbox: the size the slider moves. */
@@ -34,8 +40,20 @@ export type FigureSetup = {
     other: number;
     /** The slider's name, its symbol last ("Radius r", "Height z"), as every slider on the site is named. */
     label: string;
+    /** The regions the slider takes the surface through, one more than the charge has boundaries, in order: what
+     * each is called (the slider says it aloud), the field there (TeX), and one sentence on why. Without them the
+     * field has one formula everywhere the slider reaches. */
+    regions?: Region[];
   };
+  /** The field drawn at the standard arrow length, in the figure's units (k = 1, unit charge): the same for every
+   * case of a lesson, so equal fields are drawn equal and a doubled one twice as long. Without it, the field on
+   * the opening surface. */
+  reference?: number;
 };
+/** A stretch of the slider where the field has one formula. */
+export type Region = {name: string; tex: string; say: string;
+  /** The field here comes from adding fields, not from a Gaussian surface: a pillbox reaching it decides nothing. */
+  superposition?: boolean};
 
 /** One worked case: a charge, a surface, and the five beats that take one to the field. A lesson has one case,
  * or several the reader picks between (Symmetry first: a sphere, a line, a plane). */
@@ -64,7 +82,7 @@ export type GaussCase = {
 export type Trap = {wrong: string; right: string};
 
 /** Which interactive instrument sits under the figure, if any. */
-export type Instrument = 'symmetry' | 'flux';
+export type Instrument = 'symmetry' | 'flux' | 'profile' | 'cavity';
 
 export type GaussLesson = {
   id: GaussId;
@@ -84,4 +102,6 @@ export type GaussLesson = {
   /** Where it leads: the next Gauss lesson when that one is ready, else the related integral lesson. */
   next?: GaussId;
   related?: {field: ProblemId; text: string};
+  /** An integral lesson that builds the same field the long way, offered beside the Next card to compare. */
+  alongside?: {field: ProblemId; text: string};
 };

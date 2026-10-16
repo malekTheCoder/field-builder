@@ -1,4 +1,6 @@
-import {add, cross, dot, norm, scale, sub, unit, v3, type V3} from './physics';
+import {add, boundaries, cross, dot, fieldAt, norm, pointOn, scale, sub, unit, v3, type V3} from './physics';
+import {chargeOf, surfaceOf} from './scene';
+import type {GaussCase} from './types';
 /* THE TWO INSTRUMENTS' PHYSICS, apart from their drawing, so a unit test can hold them to it.
  *
  * Symmetry first: a field is proposed, the charge is turned or flipped by a move that leaves it as it was, and
@@ -126,4 +128,88 @@ export function flowRound(charges: readonly Charged[], s: number, n = 40): {at: 
     out.push({at, normal, through: ex * normal.x + ey * normal.y});
   }
   return out;
+}
+
+// ---- The field against distance: Lines and cylinders, Sheets and slabs ----
+/* The profile under the figure plots the field's component at P along the outward normal against the slider's own
+ * coordinate (the surface's radius, or its face's height), from the same exact field the figure draws, so the dot
+ * the slider moves along it is the answer the run solves for. The curve is drawn a region at a time, split at the
+ * charge's surfaces, so a jump (onto a shell of charge) is a gap and never a slanted line. */
+/** The signed field the case solves for when its surface has size `x`: E_r on a sphere or a cylinder, E_⊥ on a
+ * pillbox's face. */
+export function fieldAlong(c: GaussCase, sign: 1 | -1, x: number): number {
+  const ch = chargeOf(c, sign), P = pointOn(surfaceOf(c, x), ch);
+  return dot(fieldAt(ch, P.at), P.normal);
+}
+/** How far the profile reaches: past the slider's end and the charge's outermost surface, and for a capacitor out
+ * past its far plate, where the field is gone. */
+export function profileReach(c: GaussCase): number {
+  const b = boundaries(c.figure.charge), s = c.figure.surface.size.max;
+  return c.figure.charge.kind === 'plates' ? Math.max(s, ...b) * 1.45 : Math.max(s, ...b) * 1.15;
+}
+/** Which region a size is in: how many of the charge's surfaces lie inside it. */
+export const regionOf = (c: GaussCase, x: number) => boundaries(c.figure.charge).filter(b => x > b).length;
+export type ProfilePiece = {from: number; to: number; points: {x: number; e: number}[]};
+/** The curve, region by region. A field that grows without end at the axis (a line's) starts a little out. */
+export function profile(c: GaussCase, sign: 1 | -1, n = 160): ProfilePiece[] {
+  const X = profileReach(c), cuts = [0, ...boundaries(c.figure.charge).filter(b => b < X), X], out: ProfilePiece[] = [];
+  const singular = c.figure.charge.kind === 'line';
+  for (let i = 0; i + 1 < cuts.length; i++) {
+    const a = i === 0 && singular ? X * .06 : cuts[i], b = cuts[i + 1], m = Math.max(8, Math.round(n * (b - a) / X)), eps = (b - a) * 1e-6;
+    const points = Array.from({length: m + 1}, (_, k) => { const x = a + eps + (b - a - 2 * eps) * k / m; return {x, e: fieldAlong(c, sign, x)}; });
+    out.push({from: a, to: b, points});
+  }
+  return out;
+}
+
+// ---- A charge in a cavity: Conductors ----
+/* A metal ball with a round hollow at its centre, and a point charge q that can be moved about inside the hollow.
+ * The hollow's wall takes −q, crowded toward q by the image solution's density (physics.ts `wallDensity`); the
+ * outer surface takes the metal's net charge plus q, spread evenly however q sits, since the metal between screens
+ * the outside from the hollow. Lengths in units of the hollow's radius. */
+/** The hollow and the ball in the same proportion as the figure's Hollow case (radii .655 and 1.355). */
+export const CAVITY = {a: 1, b: 2.07, reach: .7} as const;
+/** The angles round the wall's cross-section at which to draw `n` marks of its charge: where the `n` field lines
+ * from q end, one mark for each line, so every line is seen to end on a charge and the marks crowd as the lines
+ * do, toward q (the wall's density, `wallDensity`, crowds the same way). */
+export function wallMarks(q: Pt, n: number, a: number = CAVITY.a): number[] {
+  return cavityLines(q, n, a).map(l => { const e = l[l.length - 1]; return Math.atan2(e.y, e.x); });
+}
+/** The field in the hollow at p, for a unit positive charge at q: q's own field and the wall's, which inside the
+ * hollow is exactly the field of an image charge −qa/d at a²/d along the same line, outside it (k = 1). */
+export function cavityField(q: Pt, p: Pt, a: number = CAVITY.a): Pt {
+  const d = Math.hypot(q.x, q.y), dx = p.x - q.x, dy = p.y - q.y, r3 = Math.hypot(dx, dy) ** 3;
+  let ex = dx / r3, ey = dy / r3;
+  if (d > 1e-9) {
+    const s = a * a / (d * d), ix = p.x - q.x * s, iy = p.y - q.y * s, i3 = Math.hypot(ix, iy) ** 3, qi = -a / d;
+    ex += qi * ix / i3; ey += qi * iy / i3;
+  }
+  return {x: ex, y: ey};
+}
+/** Field lines from q to the wall, `n` of them, leaving q evenly spaced: each ends where the wall's charge is. */
+export function cavityLines(q: Pt, n = 14, a: number = CAVITY.a): Pt[][] {
+  const out: Pt[][] = [], h = a / 90;
+  for (let i = 0; i < n; i++) {
+    const t = 2 * Math.PI * (i + .5) / n;
+    let p = {x: q.x + .06 * a * Math.cos(t), y: q.y + .06 * a * Math.sin(t)};
+    const line = [{...q}, p];
+    for (let k = 0; k < 600 && Math.hypot(p.x, p.y) < a; k++) {
+      // A midpoint step along the field's direction.
+      const e1 = cavityField(q, p, a), l1 = Math.hypot(e1.x, e1.y), mid = {x: p.x + e1.x / l1 * h / 2, y: p.y + e1.y / l1 * h / 2};
+      const e2 = cavityField(q, mid, a), l2 = Math.hypot(e2.x, e2.y);
+      p = {x: p.x + e2.x / l2 * h, y: p.y + e2.y / l2 * h};
+      line.push(p);
+    }
+    // The last step lands on the wall.
+    const r = Math.hypot(p.x, p.y);
+    if (r > a) line[line.length - 1] = {x: p.x * a / r, y: p.y * a / r};
+    out.push(line);
+  }
+  return out;
+}
+/** The charges the readout names: on the hollow's wall and on the outside, with a charge q in the hollow or none,
+ * on metal that is neutral or carries Q. */
+export function cavityTex(hasCharge: boolean, net: boolean): string {
+  const wall = hasCharge ? '-q' : '0', outer = hasCharge ? (net ? 'Q+q' : 'q') : (net ? 'Q' : '0');
+  return String.raw`q_{\text{wall}}=${wall},\qquad q_{\text{outer}}=${outer}`;
 }

@@ -25,6 +25,9 @@ import {GaussBoard} from './GaussBoard';
 import {GaussRange} from './GaussRange';
 import {SymmetryTest} from './SymmetryTest';
 import {FluxInstrument} from './FluxInstrument';
+import {FieldProfile} from './FieldProfile';
+import {CavityInstrument} from './CavityInstrument';
+import {regionOf} from './instruments';
 import {GaussListFamily, GaussLibraryFamily} from './GaussFamily';
 import type {Sym} from './instruments';
 import '../explorer/explorer.css';
@@ -199,6 +202,8 @@ export default function GaussLesson() {
   </SidebarMenuItem>)}</SidebarMenu></div>)}<GaussListFamily current={id} /></>, [id, goField]);
   const next = lesson.next && isGaussReady(lesson.next) ? {href: gaussHref(lesson.next), glyph: <PlannedGlyph id={lesson.next} size={22} />, name: gaussLesson(lesson.next)!.title, why: gaussLesson(lesson.next)!.about}
     : lesson.related && isReady(lesson.related.field) ? {href: lessonHref(lesson.related.field), glyph: <ShapeGlyph id={lesson.related.field} size={22} />, name: PROBLEMS.find(p => p.id === lesson.related!.field)?.short ?? '', why: lesson.related.text} : null;
+  // An integral lesson to read beside this one: the same field, built the long way.
+  const alongside = lesson.alongside && isReady(lesson.alongside.field) ? {href: lessonHref(lesson.alongside.field), glyph: <ShapeGlyph id={lesson.alongside.field} size={22} />, name: PROBLEMS.find(p => p.id === lesson.alongside!.field)?.short ?? '', why: lesson.alongside.text} : null;
   const sym: Sym = kase.key === 'line' ? 'line' : kase.key === 'plane' ? 'plane' : 'sphere';
   const signRow = <div className="exp-range gs-choice"><div><span><span className="exp-name">Sign of the charge</span></span></div>
     <div className="cd-view-modes" role="group" aria-label="Sign of the charge">{([['Positive', 1], ['Negative', -1]] as const).map(([label, value]) => <button key={label} type="button" className={'cd-view-mode' + (sign === value ? ' is-on' : '')} aria-pressed={sign === value} onClick={() => setSign(value)}>{label}</button>)}</div></div>;
@@ -242,11 +247,13 @@ export default function GaussLesson() {
               {runOpen && <div ref={walk} className="exp-walk is-open"><BuildPlayer stages={stages} clock={clock} index={index} playing={playing} math={mathSteps} onPlay={toggle} onSeek={seek} onStep={step} onClose={close} /></div>}
             </section>
             <section className="exp-parameters"><div className="parameter-grid gs-parameters">
-              <GaussRange label={kase.figure.surface.label} value={size} min={kase.figure.surface.size.min} max={kase.figure.surface.size.max} step={.01} onChange={setSize} valueText={n => { const s = kase.figure.surface.size; const f = (n - s.min) / (s.max - s.min); return f < .34 ? 'small' : f < .67 ? 'medium' : 'large'; }} />
+              <GaussRange label={kase.figure.surface.label} value={size} min={kase.figure.surface.size.min} max={kase.figure.surface.size.max} step={.01} onChange={setSize} valueText={n => { const s = kase.figure.surface; if (s.regions) return s.regions[regionOf(kase, n)]?.name ?? ''; const f = (n - s.size.min) / (s.size.max - s.size.min); return f < .34 ? 'small' : f < .67 ? 'medium' : 'large'; }} />
               {caseRow}{signRow}
             </div></section>
             {lesson.instrument === 'symmetry' && <SymmetryTest sym={sym} sign={sign} />}
             {lesson.instrument === 'flux' && <FluxInstrument />}
+            {lesson.instrument === 'profile' && <FieldProfile kase={kase} size={size} sign={sign} />}
+            {lesson.instrument === 'cavity' && <CavityInstrument sign={sign} />}
           </div>
           <GaussBoard kase={kase} flux={lesson.id === 'flux'} build={boardBuild} onStep={boardStep} />
         </div>
@@ -263,6 +270,11 @@ export default function GaussLesson() {
           {next && <a className="exp-next" href={next.href} aria-label={`Next: ${next.name}. ${next.why}`} onClick={e => { if (!inPlace(e)) return; e.preventDefault(); navigate(next.href); }}>
             <span className="exp-next-glyph">{next.glyph}</span>
             <span className="exp-next-words"><span className="exp-next-kicker">Next</span><strong className="exp-next-to">{next.name}</strong><span className="exp-next-why">{next.why}</span></span>
+            <ArrowRight className="exp-next-arrow" size={18} aria-hidden="true" />
+          </a>}
+          {alongside && <a className="exp-next gs-alongside" href={alongside.href} aria-label={`Compare: ${alongside.name}. ${alongside.why}`} onClick={e => { if (!inPlace(e)) return; e.preventDefault(); navigate(alongside.href); }}>
+            <span className="exp-next-glyph">{alongside.glyph}</span>
+            <span className="exp-next-words"><span className="exp-next-kicker">Compare</span><strong className="exp-next-to">{alongside.name}</strong><span className="exp-next-why"><Prose text={alongside.why} /></span></span>
             <ArrowRight className="exp-next-arrow" size={18} aria-hidden="true" />
           </a>}
         </section>

@@ -27,8 +27,8 @@ describe('the Gauss section', () => {
     expect(GAUSS.lessons.map(l => l.name)).toEqual(['Symmetry first', 'Flux, the idea', 'Why only the charge inside', 'Q_enc from a density', 'Spheres',
       'Lines and cylinders', 'Sheets and slabs', 'Conductors', 'Holes by superposition', 'When symmetry runs out', 'The hard cases']);
   });
-  it('publishes the two built lessons, at ?g=, and nothing it has not built', () => {
-    expect([...GAUSS_READY].sort()).toEqual(['flux', 'symmetry']);
+  it('publishes the built lessons, at ?g=, and nothing it has not built', () => {
+    expect([...GAUSS_READY].sort()).toEqual(['flux', 'lines', 'symmetry']);
     for (const id of GAUSS_READY) { expect(gaussLesson(id), id).toBeTruthy(); expect(isGaussReady(id)).toBe(true); }
     expect(isGaussReady('spheres')).toBe(false);
     expect(viewOf('?g=symmetry')).toBe('gauss');
