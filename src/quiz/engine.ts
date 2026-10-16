@@ -26,6 +26,12 @@ import {bank as gFlux} from './bank/gauss-flux';
 import {bank as gInside} from './bank/gauss-inside';
 import {bank as gQenc} from './bank/gauss-qenc';
 import {bank as gSpheres} from './bank/gauss-spheres';
+import {bank as gLines} from './bank/gauss-lines';
+import {bank as gSheets} from './bank/gauss-sheets';
+import {bank as gConductors} from './bank/gauss-conductors';
+import {bank as gHoles} from './bank/gauss-holes';
+import {bank as gRunsOut} from './bank/gauss-runs-out';
+import {bank as gHard} from './bank/gauss-hard';
 
 /* THE QUIZ'S ENGINE: pure functions, no React and no page, so every rule here is tested in node. It draws a
  * quiz from the shapes, kinds and length the student chose; scores it; finds the misconceptions behind the
@@ -39,6 +45,7 @@ export const BANKS: Partial<Record<ShapeId, Question[]>> = {
   axial, endpoint, ramp, semi, 'v-rod-bisector': vRodBisector, 'v-rod-axial': vRodAxial,
   disk, sheet, arc, 'v-ring': vRing, 'v-disk': vDisk, 'v-arc': vArc,
   symmetry: gSymmetry, flux: gFlux, inside: gInside, qenc: gQenc, spheres: gSpheres,
+  lines: gLines, sheets: gSheets, conductors: gConductors, holes: gHoles, 'runs-out': gRunsOut, hard: gHard,
 };
 export const BANK: Question[] = Object.values(BANKS).flat();
 export const QUESTION = new Map(BANK.map(q => [q.id, q]));

@@ -157,7 +157,7 @@ function SetUp({settings,setSettings,onStart,nudge,hist,onForget,cleared}:{setti
   <form className="quiz-setup" onSubmit={onStart} noValidate>
    <fieldset className="quiz-group">
     <legend>Shapes</legend>
-    <p className="quiz-help">Every integral lesson has its questions. Gauss’s law is being added a few lessons at a time; the rest are marked coming soon.</p>
+    <p className="quiz-help">Every lesson has its questions, the integral lessons and the Gauss’s law ones alike.</p>
     {groups().map(f=>{const ready=f.ids.filter(id=>BANKS[id]),all=ready.length>0&&ready.every(id=>settings.shapes.includes(id));return <div className="quiz-family" key={f.key}>
      <div className="quiz-family-head">
       <p className="quiz-family-name" id={`quiz-fam-${f.key}`}>{f.label}</p>

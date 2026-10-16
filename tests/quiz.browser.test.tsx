@@ -80,7 +80,7 @@ describe('quiz yourself', () => {
   // The Gauss's law family sits beside the integral ones: its lessons with a bank are ticked, the rest coming soon.
   expect(r.getByText('Gauss’s law', {selector: '.quiz-family-name'})).toBeTruthy();
   const soon = [...PROBLEMS.filter(x => !BANKS[x.id]).map(p => p.id as ShapeId), ...GAUSS.lessons.map(l => l.key).filter(isGaussReady).filter(id => !BANKS[id])];
-  expect(soon.some(isGauss)).toBe(true);
+  // Every live Gauss lesson has its bank now, so none is coming soon; one made live before its bank would be.
   for (const id of soon) expect((r.getByRole('checkbox', {name: shapeName(id)}) as HTMLInputElement).disabled, id).toBe(true);
   expect(r.getAllByRole('checkbox').filter(b => (b as HTMLInputElement).disabled).length).toBe(soon.length);
   for (const k of ['Predict', 'Set up', 'Check', 'Transfer']) expect((r.getByRole('checkbox', {name: new RegExp(`^${k}`)}) as HTMLInputElement).checked).toBe(true);

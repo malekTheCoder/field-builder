@@ -3,8 +3,8 @@
 ## Adding a Gauss bank
 
 The quiz takes Gauss's law lessons as well as integral ones: a quiz "shape" is a `ShapeId`, a `ProblemId` or a
-`GaussId` (`src/quiz/types.ts`). Banks for `symmetry`, `flux`, `inside`, `qenc` and `spheres` exist; to add one of
-the other six (`lines`, `sheets`, `conductors`, `holes`, `runs-out`, `hard`):
+`GaussId` (`src/quiz/types.ts`). All eleven Gauss lessons have a bank (`symmetry`, `flux`, `inside`, `qenc`,
+`spheres`, `lines`, `sheets`, `conductors`, `holes`, `runs-out`, `hard`); to add one for a new Gauss lesson:
 
 1. Write `src/quiz/bank/gauss-<id>.ts` exporting `bank: Question[]`, with `src/quiz/bank/gauss-spheres.ts` as the
    template. Eight to ten questions, all four kinds, ids `<id>-<word>`, `lesson: '<id>'`, exactly one correct choice,

@@ -1018,3 +1018,341 @@ describe('Gauss: shells and Q_enc', () => {
   });
  }
 });
+
+/* THE LAST SIX GAUSS BANKS, checked the same way. Long straight charges are filaments, each adding its own line field
+ * 2kλᵢ/d in the plane square to them; slabs are stacks of sheets, each adding ±σᵢ/2ε₀; a ball with a hole is a grid of
+ * point charges with the hole left empty; a metal's surface charges are point charges placed where the lesson puts
+ * them, and the field in the metal is summed to show it is zero. Every check runs for both signs. */
+type F2 = [number, number, number];
+/** Filaments [x, y, λ] square to the plane; their field at (px, py). */
+function filE(fs: F2[], px: number, py: number): [number, number] {
+ let ex = 0, ey = 0;
+ for (const [x, y, l] of fs) { const dx = px - x, dy = py - y, d2 = dx * dx + dy * dy; ex += 2 * k * l * dx / d2; ey += 2 * k * l * dy / d2; }
+ return [ex, ey];
+}
+/** A thin cylindrical shell of radius R carrying lam per unit length, as n filaments round it, centred at (cx, cy). */
+const tubeFil = (R: number, lam: number, n = 4000, cx = 0, cy = 0): F2[] => Array.from({length: n}, (_, j) => { const t = (j + .5) * 2 * Math.PI / n; return [cx + R * Math.cos(t), cy + R * Math.sin(t), lam / n]; });
+/** A solid rod of radius R carrying lam per unit length evenly, as nr rings of nt filaments. */
+function rodFil(R: number, lam: number, nr = 100, nt = 4000): F2[] {
+ const out: F2[] = [], dr = R / nr;
+ for (let i = 0; i < nr; i++) { const r = (i + .5) * dr; out.push(...tubeFil(r, lam * 2 * r * dr / (R * R), nt)); }
+ return out;
+}
+/** Sheets [z, σ] parallel to the xy-plane; E_z at height z. */
+const sheetsEz = (ss: [number, number][], z: number) => ss.reduce((e, [zi, s]) => e + (z > zi ? 1 : -1) * s / (2 * eps0), 0);
+/** A slab from z0 to z1 with density rho(z) as n thin sheets. */
+const slabSheets = (rho: (z: number) => number, z0: number, z1: number, n = 20000): [number, number][] => Array.from({length: n}, (_, i) => { const z = z0 + (i + .5) * (z1 - z0) / n; return [z, rho(z) * (z1 - z0) / n]; });
+/** The finite rod from z = −ℓ to ℓ on the z-axis, λ per unit length: its field at (s, z), exactly, summed in closed form. */
+const rodEs = (lam: number, l: number, s: number, z: number) => k * lam / s * ((z + l) / Math.hypot(s, z + l) - (z - l) / Math.hypot(s, z - l));
+const rodEz = (lam: number, l: number, s: number, z: number) => k * lam * (1 / Math.hypot(s, z - l) - 1 / Math.hypot(s, z + l));
+/** The flux out of a closed cylinder of radius r and half-length h round the finite rod: its wall and its two ends. */
+function rodCylinderFlux(lam: number, l: number, r: number, h: number, n = 20000) {
+ let wall = 0, ends = 0; const dz = 2 * h / n, ds = r / n;
+ for (let i = 0; i < n; i++) wall += rodEs(lam, l, r, -h + (i + .5) * dz) * 2 * Math.PI * r * dz;
+ for (let i = 0; i < n; i++) { const s = (i + .5) * ds; ends += 2 * rodEz(lam, l, s, h) * 2 * Math.PI * s * ds; }
+ return {wall, ends, total: wall + ends};
+}
+
+describe('Gauss: lines and cylinders', () => {
+ for (const s of [1, -1]) {
+  it(`the line: λ/2πε₀r, half as big at twice the radius, with no L in it (sign ${s})`, () => {
+   const lam = 1.1 * s, e1 = line(.8, 0, -1e5, 1e5, () => lam).ex, e2 = line(1.6, 0, -1e5, 1e5, () => lam).ex;
+   close(e1, lam / (2 * Math.PI * eps0 * .8), 2e-3); close(e2, e1 / 2, 2e-3);
+   expect(Math.abs(e2 - e1 / 4)).toBeGreaterThan(.2 * Math.abs(e1));
+   // The wall carries E_r 2πrL, which is λL/ε₀ for every length L: the L cancels.
+   for (const L of [.5, 3]) close(e1 * 2 * Math.PI * .8 * L, lam * L / eps0, 2e-3);
+  });
+  it(`the solid rod: Q_enc = λL r²/R², E_r = λr/2πε₀R² inside, a line’s outside, meeting at R, zero on the axis (sign ${s})`, () => {
+   const R = 1, lam = 1.3 * s, fs = rodFil(R, lam);
+   for (const r of [.3, .6, .9]) {
+    const inside = fs.filter(f => Math.hypot(f[0], f[1]) < r).reduce((t, f) => t + f[2], 0);
+    close(inside, lam * r * r / (R * R), 1e-6); expect(Math.abs(inside - lam * r ** 3)).toBeGreaterThan(.05 * Math.abs(inside));
+    const [ex, ey] = filE(fs, r * Math.cos(.3), r * Math.sin(.3)), er = ex * Math.cos(.3) + ey * Math.sin(.3);
+    close(er, lam * r / (2 * Math.PI * eps0 * R * R), 2e-3); expect(Math.abs(-ex * Math.sin(.3) + ey * Math.cos(.3))).toBeLessThan(1e-3 * Math.abs(er));
+    expect(Math.sign(er)).toBe(s);
+   }
+   close(filE(fs, 1.5, 0)[0], lam / (2 * Math.PI * eps0 * 1.5), 1e-3);
+   close(lam * R / (2 * Math.PI * eps0 * R * R), lam / (2 * Math.PI * eps0 * R), 1e-12);
+   expect(Math.abs(filE(fs, 1e-3, 0)[0])).toBeLessThan(1e-2 * Math.abs(lam / (2 * Math.PI * eps0 * R)));
+   // Its size grows to the surface: largest there.
+   expect(Math.abs(filE(fs, .5, 0)[0])).toBeLessThan(Math.abs(filE(fs, .9, 0)[0]));
+   expect(Math.abs(filE(fs, 1.2, 0)[0])).toBeLessThan(Math.abs(filE(fs, .99, 0)[0]));
+  });
+  it(`the cylindrical shell: no field anywhere in the hollow, a line’s outside, σR/ε₀r for σ = λ/2πR, a jump of σ/ε₀ (sign ${s})`, () => {
+   const R = 1, lam = .9 * s, fs = tubeFil(R, lam), out = lam / (2 * Math.PI * eps0 * 1.7);
+   for (const [x, y] of [[0, 0], [.4, .1], [-.2, .6], [.75, 0]]) expect(Math.hypot(...filE(fs, x, y))).toBeLessThan(1e-6 * Math.abs(out));
+   close(filE(fs, 1.7, 0)[0], out, 1e-6);
+   const sigma = lam / (2 * Math.PI * R); close(sigma * R / (eps0 * 1.7), out, 1e-12);
+   close(filE(fs, 1.005, 0)[0] - filE(fs, .995, 0)[0], sigma / eps0, 2e-2);
+   // σ in place of λ would be another field, and so would an L left in.
+   expect(Math.abs(sigma / (2 * Math.PI * eps0 * 1.7) - out)).toBeGreaterThan(.5 * Math.abs(out));
+  });
+  it(`the coaxial cable: nothing inside both or outside both, the inner shell’s line field between (sign ${s})`, () => {
+   const lam = 1.2 * s, inner = tubeFil(.8, lam), outer = tubeFil(1.7, -lam), both = [...inner, ...outer];
+   for (const r of [.3, 2.2, 3]) expect(Math.abs(filE(both, r, .1)[0])).toBeLessThan(1e-6);
+   for (const r of [1, 1.4]) close(filE(both, r, 0)[0], lam / (2 * Math.PI * eps0 * r), 1e-6);
+   // Outside, the outer shell’s field is the line field of −λ, not nothing.
+   close(filE(outer, 2.2, 0)[0], -lam / (2 * Math.PI * eps0 * 2.2), 1e-6);
+  });
+  it(`a rod a few times longer than the distance: its field is not a line’s, and leans off the middle (sign ${s})`, () => {
+   const lam = s, r = .5, l = 1;
+   const mid = line(r, 0, -l, l, () => lam), off = line(r, .7, -l, l, () => lam);
+   expect(Math.abs(mid.ex - lam / (2 * Math.PI * eps0 * r))).toBeGreaterThan(.05 * Math.abs(mid.ex));
+   expect(Math.abs(off.ey)).toBeGreaterThan(.2 * Math.abs(off.ex));
+  });
+ }
+});
+
+describe('Gauss: sheets and slabs', () => {
+ for (const s of [1, -1]) {
+  it(`the sheet: σ/2ε₀ at every height, both faces of the pillbox carrying σA/2ε₀ with one sign, a jump of σ/ε₀ (sign ${s})`, () => {
+   const sigma = .7 * s, A = .6;
+   for (const z of [.3, .9, 1.7]) {
+    const top = sheetEz(sigma, 0, z) * A, bottom = -sheetEz(sigma, 0, -z) * A;
+    close(top, sigma * A / (2 * eps0), 1e-3); close(bottom, top, 1e-3); close(top + bottom, sigma * A / eps0, 1e-3);
+   }
+   close(sheetEz(sigma, 0, .01) - sheetEz(sigma, 0, -.01), sigma / eps0, 1e-3);
+   expect(Math.abs(sheetEz(sigma, 0, .5) - sigma / eps0)).toBeGreaterThan(.4 * Math.abs(sigma / eps0));
+  });
+  it(`the slab: Q_enc = 2ρAz, ρz/ε₀ inside, ρa/ε₀ at every height outside, toward it on both sides when negative; a sheet of 2ρa from outside (sign ${s})`, () => {
+   const rho = 1.1 * s, a = .6, A = .5, ss = slabSheets(() => rho, -a, a);
+   for (const z of [.15, .4]) {
+    const q = ss.filter(([zi]) => Math.abs(zi) < z).reduce((t, [, sg]) => t + sg * A, 0);
+    close(q, 2 * rho * A * z, 1e-3); close(sheetsEz(ss, z), rho * z / eps0, 1e-3);
+   }
+   for (const z of [.8, 1.5, 4]) { close(sheetsEz(ss, z), rho * a / eps0, 1e-6); close(sheetsEz(ss, -z), -rho * a / eps0, 1e-6); }
+   expect(Math.sign(sheetsEz(ss, 1))).toBe(s); expect(Math.sign(sheetsEz(ss, -1))).toBe(-s);
+   close(2 * rho * a / (2 * eps0), rho * a / eps0, 1e-12);
+   close(sheetsEz(ss, a), rho * a / eps0, 1e-3);
+  });
+  it(`the capacitor: σ/ε₀ from the σ plate toward the −σ one, nothing outside; a pillbox round both has zero flux, as a uniform field would too (sign ${s})`, () => {
+   const sigma = .8 * s, d = 1, A = .4, E = (z: number) => sheetEz(sigma, d, z) + sheetEz(-sigma, 0, z);
+   close(E(.5), -sigma / eps0, 1e-3);
+   for (const z of [1.4, 3, -.5, -2]) expect(Math.abs(E(z))).toBeLessThan(1e-3 * Math.abs(sigma / eps0));
+   close(E(1.4) * A - E(-.5) * A + 1, 1, 1e-6);
+   const c = 2.5; close((E(1.4) + c) * A - (E(-.5) + c) * A + 1, 1, 1e-6);
+   expect(Math.abs(sheetEz(sigma, d, .5) - E(.5))).toBeGreaterThan(.4 * Math.abs(E(.5)));
+  });
+  it(`two sheets of the same charge: nothing between, σ/ε₀ away from them outside (sign ${s})`, () => {
+   const sigma = .8 * s, E = (z: number) => sheetEz(sigma, 1, z) + sheetEz(sigma, 0, z);
+   expect(Math.abs(E(.5))).toBeLessThan(1e-3 * Math.abs(sigma / eps0));
+   close(E(2), sigma / eps0, 1e-3); close(E(-1), -sigma / eps0, 1e-3);
+  });
+ }
+});
+
+describe('Gauss: conductors', () => {
+ for (const s of [1, -1]) {
+  it(`the metal ball: its charge on the surface makes no field in the metal and kQ/r² outside, σ/ε₀ just outside; 4kQ/D² by diameter (sign ${s})`, () => {
+   const R = 1, Q = 1.4 * s, cs = shellCharges(R, Q);
+   for (const p of [[0, 0, 0], [.3, .2, 0], [0, -.6, .3]] as P3[]) expect(Math.hypot(...pointsE(cs, p))).toBeLessThan(1e-3 * Math.abs(Q));
+   close(pointsE(cs, [1.5, 0, 0])[0], k * Q / 1.5 ** 2, 1e-3);
+   const sigma = Q / (4 * Math.PI * R * R); close(k * Q / R ** 2, sigma / eps0, 1e-12);
+   const D = 2 * R, sD = Q / (Math.PI * D * D);
+   close(k * Q / R ** 2, 4 * k * Q / D ** 2, 1e-12); close(sD / eps0, 4 * k * Q / D ** 2, 1e-12); close(sD / (2 * eps0), 2 * k * Q / D ** 2, 1e-12);
+   // A uniformly charged insulating ball would have a field inside.
+   expect(Math.abs(k * Q * .5 / R ** 3)).toBeGreaterThan(.4 * Math.abs(k * Q / R ** 2));
+  });
+  it(`a conductor’s face: σ/ε₀ just outside, out of the metal for a positive σ, none in the metal, twice a lone sheet’s (sign ${s})`, () => {
+   const sigma = .9 * s, t = .3, A = .5;
+   // An isolated plate, σ on each face; and one plate of a capacitor, σ on its inner face and −σ facing it.
+   const plate = (z: number) => sheetEz(sigma, 0, z) + sheetEz(sigma, -t, z);
+   const capacitor = (z: number) => sheetEz(sigma, 0, z) + sheetEz(-sigma, .8, z);
+   expect(Math.abs(plate(-t / 2))).toBeLessThan(1e-3 * Math.abs(sigma / eps0)); close(plate(.05), sigma / eps0, 1e-3); expect(Math.sign(plate(.05))).toBe(s);
+   expect(Math.abs(capacitor(-.2))).toBeLessThan(1e-3 * Math.abs(sigma / eps0)); close(capacitor(.05), sigma / eps0, 1e-3);
+   // The one-sided pillbox: the face in the metal carries nothing, the outer one all of σA/ε₀.
+   close(plate(.05) * A - plate(-t / 2) * A, sigma * A / eps0, 1e-3);
+   close(sheetEz(sigma, 0, .05), sigma / (2 * eps0), 1e-3);
+  });
+  it(`a charge in a hollow: −q on the wall, +q outside; q’s field in the hollow and outside, none in the metal; with a net Q, Q + q outside (sign ${s})`, () => {
+   const q = 1.2 * s, a = .65, b = 1.35, Q = -.7 * s;
+   const metal = (wall: number, outer: number) => [[0, 0, 0, q] as PointCharge, ...shellCharges(a, wall, 200, 400), ...shellCharges(b, outer, 200, 400)];
+   const right = metal(-q, q), withQ = metal(-q, Q + q);
+   for (const r of [.9, 1.1]) { expect(Math.hypot(...pointsE(right, [r, 0, .1]))).toBeLessThan(2e-3 * Math.abs(q)); expect(Math.hypot(...pointsE(withQ, [0, r, .1]))).toBeLessThan(2e-3 * Math.abs(q)); }
+   close(pointsE(right, [.4, 0, 0])[0], k * q / .4 ** 2, 1e-3); close(pointsE(right, [2, 0, 0])[0], k * q / 4, 1e-3);
+   close(pointsE(withQ, [2, 0, 0])[0], k * (Q + q) / 4, 1e-3);
+   // A wall of no charge, or of +q, leaves a field in the metal; the outside’s charge is the metal’s Q less the wall’s.
+   for (const wall of [0, q]) expect(Math.hypot(...pointsE(metal(wall, q), [1, 0, .1]))).toBeGreaterThan(.1 * Math.abs(k * q));
+   close(Q - -q, Q + q, 1e-12);
+  });
+  it(`q off the hollow’s centre: the wall’s −q crowds toward it, the field in the metal stays zero, and outside it is still q’s from the centre (sign ${s})`, () => {
+   const q = s, a = .65, b = 1.35, off = .35, nt = 400, np = 400, dt = Math.PI / nt, dp = 2 * Math.PI / np, wall: PointCharge[] = [];
+   // The wall's charge as the image method gives it: σ(θ) = −q(a² − c²)/(4πa(a² + c² − 2ac cos θ)^{3/2}), θ from the charge's side.
+   for (let i = 0; i < nt; i++) { const th = (i + .5) * dt; for (let j = 0; j < np; j++) { const ph = (j + .5) * dp, sg = -q * (a * a - off * off) / (4 * Math.PI * a * (a * a + off * off - 2 * a * off * Math.cos(th)) ** 1.5); wall.push([a * Math.sin(th) * Math.cos(ph), a * Math.sin(th) * Math.sin(ph), a * Math.cos(th), sg * a * a * Math.sin(th) * dt * dp]); } }
+   close(wall.reduce((t, c) => t + c[3], 0), -q, 1e-3);
+   const near = wall.filter(c => c[2] > 0).reduce((t, c) => t + c[3], 0), far = wall.filter(c => c[2] < 0).reduce((t, c) => t + c[3], 0);
+   expect(Math.abs(near)).toBeGreaterThan(2 * Math.abs(far));
+   const all = [[0, 0, off, q] as PointCharge, ...wall, ...shellCharges(b, q, 200, 400)];
+   for (const p of [[1, 0, 0], [0, 0, 1], [0, 0, -1], [0, .7, -.7]] as P3[]) expect(Math.hypot(...pointsE(all, p))).toBeLessThan(5e-3 * Math.abs(q));
+   for (const p of [[2, 0, 0], [0, 0, 2], [0, 0, -2]] as P3[]) { const e = pointsE(all, p); close(gdot(e, [p[0] / 2, p[1] / 2, p[2] / 2]), k * q / 4, 5e-3); }
+  });
+ }
+});
+
+describe('Gauss: holes by superposition', () => {
+ /** A ball of radius R and density rho about the origin, with a round hole of radius b about `at` left empty, as a grid of point charges. */
+ function holeBall(R: number, rho: number, b: number, at: P3, n = 90): PointCharge[] {
+  const out: PointCharge[] = [], h = 2 * R / n, q = rho * h ** 3;
+  for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) for (let l = 0; l < n; l++) {
+   const x = -R + (i + .5) * h, y = -R + (j + .5) * h, z = -R + (l + .5) * h;
+   if (x * x + y * y + z * z < R * R && Math.hypot(x - at[0], y - at[1], z - at[2]) > b) out.push([x, y, z, q]);
+  }
+  return out;
+ }
+ for (const s of [1, -1]) {
+  it(`a ball’s hole: the field is ρd/3ε₀ at every point of it, whatever the hole’s size, against d when ρ is negative (sign ${s})`, () => {
+   const R = 1.4, rho = s, at: P3 = [.6, 0, .33], want = at.map(x => rho * x / (3 * eps0)) as P3, size = Math.hypot(...want);
+   const ps: P3[] = [[.6, 0, .33], [.85, .15, .2], [.4, -.2, .5], [.7, .1, .25]];
+   const big = holeBall(R, rho, .55, at);
+   for (const b of [.55, .35]) {
+    const cs = b === .55 ? big : holeBall(R, rho, b, at);
+    for (const p of ps.filter(p => Math.hypot(p[0] - at[0], p[1] - at[1], p[2] - at[2]) < b - .05)) {
+     const e = pointsE(cs, p);
+     expect(Math.hypot(e[0] - want[0], e[1] - want[1], e[2] - want[2])).toBeLessThan(.02 * size);
+     // Not the sizes subtracted along r̂₁, and not the rod's two.
+     const r1 = Math.hypot(...p), r2 = Math.hypot(p[0] - at[0], p[1] - at[1], p[2] - at[2]), wrong = rho * (r1 - r2) / (3 * eps0);
+     if (r2 > .1) expect(Math.hypot(e[0] - wrong * p[0] / r1, e[1] - wrong * p[1] / r1, e[2] - wrong * p[2] / r1)).toBeGreaterThan(.2 * size);
+     expect(Math.abs(Math.hypot(...e) - 1.5 * size)).toBeGreaterThan(.3 * size);
+    }
+   }
+   expect(gdot(pointsE(big, at), at) * s).toBeGreaterThan(0);
+  });
+  it(`a centred hole has no field in it (sign ${s})`, () => {
+   const cs = holeBall(1.4, s, .55, [0, 0, 0]);
+   for (const p of [[0, 0, 0], [.3, 0, .1], [0, -.25, .2]] as P3[]) expect(Math.hypot(...pointsE(cs, p))).toBeLessThan(.02 * 4 * Math.PI * k * .6 / 3);
+  });
+  it(`a rod’s hole: ρd/2ε₀, half as big again as a ball’s (sign ${s})`, () => {
+   const R = 1.4, rho = s, at = [.5, .3], b = .5, n = 700, h = 2 * R / n, fs: F2[] = [];
+   for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) { const x = -R + (i + .5) * h, y = -R + (j + .5) * h; if (x * x + y * y < R * R && Math.hypot(x - at[0], y - at[1]) > b) fs.push([x, y, rho * h * h]); }
+   for (const p of [[.5, .3], [.7, .1], [.3, .5]]) {
+    const e = filE(fs, p[0], p[1]);
+    close(e[0], rho * at[0] / (2 * eps0), 2e-2); close(e[1], rho * at[1] / (2 * eps0), 2e-2);
+   }
+  });
+  it(`a sheet’s hole: σz/2ε₀√(z² + b²) on its axis, the sheet less the disc; zero at its centre, the sheet’s far above (sign ${s})`, () => {
+   const sigma = .6 * s, b = 1, n = 40000;
+   const ring = (z: number) => { let e = 0; const a0 = Math.atan(b / z), a1 = Math.PI / 2 - 1e-9, da = (a1 - a0) / n; for (let i = 0; i < n; i++) { const al = a0 + (i + .5) * da, r = z * Math.tan(al), dr = z / Math.cos(al) ** 2 * da; e += k * sigma * 2 * Math.PI * r * dr * z / (r * r + z * z) ** 1.5; } return e; };
+   for (const z of [.3, 1, 2]) {
+    close(ring(z), sigma * z / (2 * eps0 * Math.hypot(z, b)), 1e-3);
+    close(sigma / (2 * eps0) - sigma / (2 * eps0) * (1 - z / Math.hypot(z, b)), ring(z), 1e-3);
+   }
+   expect(Math.abs(ring(1e-3))).toBeLessThan(2e-3 * Math.abs(sigma / (2 * eps0)));
+   close(ring(200), sigma / (2 * eps0), 1e-4);
+  });
+ }
+});
+
+describe('Gauss: when symmetry runs out', () => {
+ /** The flux out of each face of a cube of half-width a about the origin, from a point charge q at c: n × n patches a face. */
+ function cubeFaces(q: number, c: P3, a: number, n = 300) {
+  const out: number[] = [], h = 2 * a / n;
+  for (let f = 0; f < 6; f++) {
+   const ax = f >> 1, sg = f & 1 ? -1 : 1, u = (ax + 1) % 3, v = (ax + 2) % 3; let t = 0;
+   for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) {
+    const p: P3 = [0, 0, 0]; p[ax] = sg * a; p[u] = -a + (i + .5) * h; p[v] = -a + (j + .5) * h;
+    const dx = p[0] - c[0], dy = p[1] - c[1], dz = p[2] - c[2], r3 = Math.hypot(dx, dy, dz) ** 3;
+    t += sg * k * q * [dx, dy, dz][ax] / r3 * h * h;
+   }
+   out.push(t);
+  }
+  return out;
+ }
+ for (const s of [1, -1]) {
+  it(`the finite rod: the closed cylinder carries 2λℓ/ε₀ at every radius, the ends’ share growing as it widens (sign ${s})`, () => {
+   const lam = s, l = 1, h = 1.4;
+   // The closed form agrees with the rod cut into pieces.
+   const cut = line(.7, .4, -l, l, () => lam); close(rodEs(lam, l, .7, .4), cut.ex, 1e-6); close(rodEz(lam, l, .7, .4), cut.ey, 1e-6);
+   let share = 0;
+   for (const r of [.3, .7, 1.6]) {
+    const f = rodCylinderFlux(lam, l, r, h); close(f.total, 2 * lam * l / eps0, 1e-4);
+    expect(f.ends / f.total).toBeGreaterThan(share); share = f.ends / f.total;
+    // The field is strongest on the wall beside the middle, above its average there, and the whole flux over the wall’s
+    // area is not it either: dividing gives no field at P.
+    expect(Math.abs(rodEs(lam, l, r, 0))).toBeGreaterThan(Math.abs(f.wall / (2 * Math.PI * r * 2 * h)));
+    expect(Math.abs(rodEs(lam, l, r, 0) - f.total / (2 * Math.PI * r * 2 * h))).toBeGreaterThan(.05 * Math.abs(rodEs(lam, l, r, 0)));
+   }
+   expect(share).toBeGreaterThan(.1);
+  });
+  it(`the field beside its middle is 2kλℓ/r√(r² + ℓ²): a line’s close in, a point charge’s far off; a short cylinder near the middle nearly a line’s (sign ${s})`, () => {
+   const lam = 1.3 * s, l = 1;
+   for (const r of [.2, .7, 2]) close(line(r, 0, -l, l, () => lam).ex, 2 * k * lam * l / (r * Math.hypot(r, l)), 1e-6);
+   close(line(.01, 0, -l, l, () => lam).ex, 2 * k * lam / .01, 1e-3); close(line(100, 0, -l, l, () => lam).ex, k * 2 * lam * l / 1e4, 1e-3);
+   const r = .05, f = rodCylinderFlux(lam, l, r, .05, 4000);
+   expect(Math.abs(f.ends / f.total)).toBeLessThan(.01);
+   close(f.wall / (2 * Math.PI * r * .1), lam / (2 * Math.PI * eps0 * r), 1e-2);
+   expect(Math.abs(rodEs(lam, l, r, .05) - rodEs(lam, l, r, 0))).toBeLessThan(.01 * Math.abs(rodEs(lam, l, r, 0)));
+   expect(Math.abs(line(.7, 0, -l, l, () => lam).ex - lam / (2 * Math.PI * eps0 * .7))).toBeGreaterThan(.1 * Math.abs(lam / (2 * Math.PI * eps0 * .7)));
+  });
+  it(`the cube: q/ε₀ in all wherever q is inside, more than a sixth through the near face, a sixth each at the centre, none in all from outside (sign ${s})`, () => {
+   const q = s, a = .85, off = cubeFaces(q, [.35, 0, .2], a), mid = cubeFaces(q, [0, 0, 0], a), out = cubeFaces(q, [1.4, 0, .2], a);
+   close(off.reduce((t, x) => t + x, 0), q / eps0, 2e-3);
+   expect(off[0] * s).toBeGreaterThan(q / (6 * eps0) * s * 1.3); expect(off[1] * s).toBeLessThan(q / (6 * eps0) * s);
+   close(off[2], off[3], 1e-6);
+   for (const x of mid) close(x, q / (6 * eps0), 2e-3);
+   expect(Math.abs(out.reduce((t, x) => t + x, 0))).toBeLessThan(5e-3 * Math.abs(q / eps0));
+   expect(Math.max(...out.map(Math.abs))).toBeGreaterThan(.1 * Math.abs(q / eps0));
+  });
+ }
+});
+
+describe('Gauss: the hard cases', () => {
+ for (const s of [1, -1]) {
+  it(`the halo: Q_enc = 4πρ₀a²(r − a arctan r/a), a uniform ball’s field near the centre, ρ₀a²/ε₀r far out (sign ${s})`, () => {
+   const rho0 = .8 * s, a = .6, rho = (r: number) => rho0 * a * a / (r * r + a * a), E = (r: number) => k * shells(rho, r, 200000) / (r * r);
+   for (const r of [.3, 1, 5]) close(shells(rho, r), 4 * Math.PI * rho0 * a * a * (r - a * Math.atan(r / a)), 1e-6);
+   close(E(.006), rho0 * .006 / (3 * eps0), 1e-3);
+   expect(Math.abs(E(.006) - rho0 * .006 / (2 * eps0))).toBeGreaterThan(.2 * Math.abs(E(.006)));
+   close(E(600), rho0 * a * a / (eps0 * 600), 5e-3); close(E(1200) / E(600), .5, 5e-3);
+   expect(Math.sign(E(2))).toBe(s);
+  });
+  it(`ρ = β/r: Q_enc = 2πβr², the field β/2ε₀ at every radius inside, βR²/2ε₀r² outside; ∫ρ dr′ has no limit (sign ${s})`, () => {
+   const beta = .5 * s, R = 1.1, rho = (r: number) => r < R ? beta / r : 0;
+   for (const r of [.2, .6, 1]) { close(shells(rho, r), 2 * Math.PI * beta * r * r, 1e-6); close(k * shells(rho, r) / (r * r), beta / (2 * eps0), 1e-6); expect(Math.abs(shells(rho, r) - 4 / 3 * Math.PI * beta * r * r)).toBeGreaterThan(.2 * Math.abs(shells(rho, r))); }
+   close(k * shells(rho, R) / 2.25, beta * R * R / (2 * eps0 * 2.25), 1e-4);
+   expect(Math.abs(thin(rho, 1, 200000)) - Math.abs(thin(rho, 1, 2000))).toBeGreaterThan(.9 * Math.log(100) * Math.abs(beta));
+  });
+  it(`run backwards: from E_r = E_R r²/R² the density is 4ε₀E_R r/R², not the average 3ε₀E_R r/R² nor ε₀ dE_r/dr (sign ${s})`, () => {
+   const ER = 1.3 * s, R = 1.1, Qenc = (r: number) => 4 * Math.PI * eps0 * r * r * ER * r * r / (R * R), h = 1e-5;
+   for (const r of [.3, .7, 1]) {
+    const rho = (Qenc(r + h) - Qenc(r - h)) / (2 * h) / (4 * Math.PI * r * r);
+    close(rho, 4 * eps0 * ER * r / (R * R), 1e-6);
+    close(Qenc(r) / (4 / 3 * Math.PI * r ** 3), .75 * rho, 1e-6);
+    expect(Math.abs(eps0 * 2 * ER * r / (R * R) - rho)).toBeGreaterThan(.4 * Math.abs(rho));
+   }
+   close(shells(r => 4 * eps0 * ER * r / (R * R), .8), Qenc(.8), 1e-6);
+  });
+  it(`the slab ρ₀z/a: ρ₀(z² − a²)/2ε₀a inside, the same way on both sides, none outside; the pillbox across the middle has zero flux (sign ${s})`, () => {
+   const rho0 = .9 * s, a = .6, A = .5, ss = slabSheets(z => rho0 * z / a, -a, a);
+   for (const z of [-.4, 0, .2, .5]) {
+    close(sheetsEz(ss, z + 1e-9), rho0 * (z * z - a * a) / (2 * eps0 * a), 1e-3);
+    expect(Math.sign(sheetsEz(ss, z + 1e-9))).toBe(-s);
+   }
+   for (const z of [.2, .45]) {
+    close(sheetsEz(ss, -z), sheetsEz(ss, z), 1e-6);
+    expect(Math.abs(sheetsEz(ss, z) * A - sheetsEz(ss, -z) * A)).toBeLessThan(1e-6);
+    const enc = ss.filter(([zi]) => Math.abs(zi) < z).reduce((t, [, sg]) => t + sg * A, 0);
+    expect(Math.abs(enc)).toBeLessThan(1e-6);
+    // Doubling the charge from 0 to z, or starting from the middle, would be other fields.
+    expect(Math.abs(rho0 * z * z / (2 * eps0 * a) - sheetsEz(ss, z))).toBeGreaterThan(.3 * Math.abs(sheetsEz(ss, z)));
+    expect(Math.abs(rho0 * (z * z - a * a) / (4 * eps0 * a) - sheetsEz(ss, z))).toBeGreaterThan(.3 * Math.abs(sheetsEz(ss, z)));
+   }
+   for (const z of [.7, 2, -.7, -3]) expect(Math.abs(sheetsEz(ss, z))).toBeLessThan(1e-9);
+   // The two halves alone each make a field outside; they cancel.
+   const upper = slabSheets(z => rho0 * z / a, 0, a); expect(Math.abs(sheetsEz(upper, 2))).toBeGreaterThan(.1 * Math.abs(rho0 * a / eps0));
+  });
+  it(`the square: q/π ε₀ arctan(b²/d√(d² + 2b²)); q/6ε₀ when d = b, toward q/2ε₀ as it grows without end (sign ${s})`, () => {
+   const q = 1.1 * s, d = .7;
+   // x = d tan u, so the patches are small near the foot of the axis and large far out, as an endless plane needs.
+   const flux = (b: number) => {
+    const n = 800, u = Math.atan(b / d), du = 2 * u / n, xs: number[] = [], ws: number[] = [];
+    for (let i = 0; i < n; i++) { const t = -u + (i + .5) * du; xs.push(d * Math.tan(t)); ws.push(d / Math.cos(t) ** 2 * du); }
+    let t = 0;
+    for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) t += k * q * d * ws[i] * ws[j] / (d * d + xs[i] * xs[i] + xs[j] * xs[j]) ** 1.5;
+    return t;
+   };
+   for (const b of [.4, .7, 2]) close(flux(b), q / (Math.PI * eps0) * Math.atan(b * b / (d * Math.sqrt(d * d + 2 * b * b))), 1e-4);
+   close(flux(d), q / (6 * eps0), 1e-4);
+   close(flux(1e5), q / (2 * eps0), 1e-3);
+  });
+ }
+});
