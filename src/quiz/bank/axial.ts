@@ -58,7 +58,7 @@ export const bank: Question[] = [
       {tex: raw`\frac{kQ}{a+L/2}`, misconception: 'potential-power',
         why: raw`That falls as one power of the distance, as a point charge’s potential does. A finite charge’s field, seen from far away, falls as the inverse square.`},
       {tex: raw`0`, misconception: 'cancel-survivor',
-        why: raw`Far away the field gets weak, but nothing cancels it: every piece still pushes the same way along the axis. It shrinks as the inverse square, like any finite charge’s.`},
+        why: raw`Far away the field gets weak, but nothing cancels it: every piece’s field still points the same way along the axis. It shrinks as the inverse square, like any finite charge’s.`},
     ],
     explanation: raw`$a(L+a)$ is $(a+L/2)^2-(L/2)^2$, and when $a\gg L$ the last term hardly matters, so $E_x$ tends to $kQ/(a+L/2)^2$: from far off the rod is a point charge at its centre.`,
     review: {lesson: 'axial', section: 'Limiting cases'}},

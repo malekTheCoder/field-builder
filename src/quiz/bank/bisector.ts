@@ -85,7 +85,7 @@ export const bank: Question[] = [
       {tex: raw`\frac{kQ}{r}`, misconception: 'potential-power',
         why: raw`That falls as $1/r$, as a point charge’s potential does. A field from a finite charge, seen from far away, falls as the inverse square.`},
       {tex: raw`0`, misconception: 'cancel-survivor',
-        why: raw`Far away the field gets weak, but it never cancels: every piece still pushes along $x$ the same way. It shrinks as $1/r^2$, like any finite charge’s.`},
+        why: raw`Far away the field gets weak, but it never cancels: every piece’s field still points the same way along $x$. It shrinks as $1/r^2$, like any finite charge’s.`},
     ],
     explanation: raw`When $r\gg L$, the root $\sqrt{(L/2)^2+r^2}$ is nearly $r$, so $E_x$ tends to $kQ/r^2$. From far away the rod is a point charge, as any finite charge is.`,
     review: {lesson: 'bisector', section: 'What the answer says'}},
@@ -125,7 +125,7 @@ export const bank: Question[] = [
       {text: raw`It cancels, and now the part along $x$ cancels too.`, misconception: 'cancel-survivor',
         why: raw`Every piece is on the rod, on one side of $P$, so all their parts along $x$ point the same way. They add wherever $P$ is.`},
     ],
-    explanation: raw`Pieces mirrored across the horizontal line through $P$ still cancel along the rod. But the rod reaches further below $P$ than above it, and that extra stretch has no partners: its parts along the rod are left over. For a positive rod they push $P$’s field up, away from the longer side.`,
+    explanation: raw`Pieces mirrored across the horizontal line through $P$ still cancel along the rod. But the rod reaches further below $P$ than above it, and that extra stretch has no partners: its parts along the rod are left over. For a positive rod they point up, away from the longer side, and tip $P$’s field that way.`,
     review: {lesson: 'endpoint', stage: 'cancel'}},
 
   {id: 'bisector-uneven', lesson: 'bisector', kind: 'transfer',

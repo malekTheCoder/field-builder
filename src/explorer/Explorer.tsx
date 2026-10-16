@@ -1,14 +1,15 @@
 'use client';
-import {memo,useCallback,useId,useInsertionEffect,useMemo,useState,useEffect,useRef,type CSSProperties,type ReactNode} from 'react';
+import {memo,useCallback,useId,useInsertionEffect,useMemo,useState,useEffect,useRef,useSyncExternalStore,type CSSProperties,type ReactNode} from 'react';
 import {flushSync} from 'react-dom';
 import {createRoot} from 'react-dom/client';
 import {useReducedMotion} from 'motion/react';
-import {ArrowLeft,ArrowRight,BookOpen,ChevronLeft,CircleHelp,Download,ClipboardCheck,GitBranch,GraduationCap,Link as LinkIcon,Play,Printer,RotateCcw,Sun,Moon,PanelLeft,MoreHorizontal} from 'lucide-react';
-import {DropdownMenu,DropdownMenuTrigger,DropdownMenuContent,DropdownMenuItem} from '@/components/ui/dropdown-menu';
+import {ArrowLeft,ArrowRight,BookOpen,ChevronLeft,CircleHelp,Download,ClipboardCheck,GitBranch,GraduationCap,Link as LinkIcon,Play,Printer,RotateCcw,Sun,Moon,PanelLeft,MoreHorizontal,Presentation,X} from 'lucide-react';
+import {DropdownMenu,DropdownMenuTrigger,DropdownMenuContent,DropdownMenuItem,DropdownMenuSeparator} from '@/components/ui/dropdown-menu';
 import {Sidebar,SidebarContent,SidebarProvider,SidebarMenu,SidebarMenuItem,SidebarMenuButton} from '@/components/ui/sidebar';
 import {Tabs,TabsContent,TabsList,TabsTrigger} from '@/components/ui/tabs';
 import {Slider} from '@/components/ui/slider';
-import {Dialog,DialogContent,DialogTitle,DialogDescription} from '@/components/ui/dialog';
+import {Dialog,DialogClose,DialogContent,DialogTitle,DialogDescription} from '@/components/ui/dialog';
+import {Button} from '@/components/ui/button';
 import {PROBLEMS,getProblem} from '../problems/definitions';
 import {DEFAULT_PARAMS,type Params,type Problem,type ProblemId} from '../problems/types';
 import {confusionTex} from '../symbolic/equivalence';
@@ -58,6 +59,18 @@ const GLIDE_HOLD=600;
 /** Where the reader's settings are kept: the last lesson, the theme, each lesson's values. The home page reads
  * it too, for the way back to the last lesson and for the theme. */
 export const STORAGE='field-builder:explorer:v1';
+const DARK_QUERY='(prefers-color-scheme: dark)';
+/** The system's own theme; light where the page cannot ask. */
+const systemDark=()=>{try{return matchMedia(DARK_QUERY).matches}catch{return false}};
+/** Where the header has no room for Walkthrough, How to use and Quiz by name (explorer.css, THE HEADER'S WAYS
+ * ELSEWHERE): there they are named rows at the top of Lesson tools instead. */
+const NARROW_HEADER='(max-width: 700px)';
+const subscribeNarrow=(on:()=>void)=>{let q:MediaQueryList;try{q=matchMedia(NARROW_HEADER)}catch{return()=>{}}q.addEventListener?.('change',on);return()=>q.removeEventListener?.('change',on)};
+const isNarrow=()=>{try{return matchMedia(NARROW_HEADER).matches}catch{return false}};
+/** The study guide's part for teachers: links, the printed handout, the projector. */
+const TEACHERS_HREF=`${GUIDE_HREF}#guide-teachers`;
+/** A link the page follows itself, as the header's do: a plain click stays in the page, a modified one is the browser's. */
+const goTo=(href:string)=>(e:{button:number;metaKey:boolean;ctrlKey:boolean;shiftKey:boolean;altKey:boolean;preventDefault:()=>void})=>{if(!inPlace(e))return;e.preventDefault();navigate(href)};
 /** How far the cut must have gone for the pieces to count as shrunk away: the figure's own threshold
  * (ChargeDiagram writes dQ and "In the limit" from here), so the board's answer arrives with them. */
 const IN_THE_LIMIT=.999;
@@ -230,6 +243,12 @@ export default function Explorer({welcome}:{welcome?:boolean}={}){
  // and back -- is not (`welcome` false). Mounted on its own, the lesson decides from its address as above.
  // What the site says of this arrival, as it was when the lesson mounted: read once, by the effect below.
  const welcomed=useRef(welcome);
+ /** Whether the theme is the reader's choice (saved) or the system's (followed, never saved). */
+ const themeChosen=useRef(false);
+ const narrowHeader=useSyncExternalStore(subscribeNarrow,isNarrow,()=>false);
+ /** Where the focus goes back to when the tour shuts: the header's Walkthrough, or Lesson tools, which holds it where
+  * the header has no room for it. */
+ const tourReturn=useMemo(()=>({get current():HTMLElement|null{const b=tourButton.current;return b&&b.getClientRects().length>0?b:toolsButton.current}}),[]);
  // AND A LINK IS READ WHETHER OR NOT STORAGE CAN BE. The link and the storage were read inside one try, so a
  // browser that refuses storage -- Safari blocking all cookies, a school's cookie policy, a class page that
  // embeds the site in a sandboxed frame -- threw on the first line and skipped the link with it: the
@@ -254,7 +273,12 @@ export default function Explorer({welcome}:{welcome?:boolean}={}){
   const pm:Partial<Record<ProblemId,Params>>={};for(const pr of PROBLEMS)if(saved.params?.[pr.id]&&typeof saved.params[pr.id]==='object')pm[pr.id]=atRest(saved.params[pr.id]);
   const url=parseAssignment(typeof location==='undefined'?'':location.search);const linked=url.id??(url.params||url.stage?'bisector':undefined);
   if(linked&&isReady(linked)){setId(linked);pm[linked]=atRest({...DEFAULT_PARAMS,...url.params});if(url.stage)linkedStage.current=url.stage;if(url.view)setLinkedView({id:linked,view:url.view})}else if(PROBLEMS.some(p=>p.id===saved.id)&&isReady(saved.id))setId(saved.id);
-  setDark(saved.dark===true);setShowNumbers(saved.showNumbers===true);setSidebarOpen(saved.sidebarOpen!==false);setParamsMap(pm);
+  // THE SYSTEM'S THEME UNTIL THE READER CHOOSES ONE. The page was light for everyone who had not pressed the moon,
+  // so a student opening a link at night on a phone set to dark met a white page. With no choice saved it follows
+  // the system (as the head's early line does, app/layout.tsx and index.html); a press of the toggle -- here, on the
+  // home page, the guide or the quiz -- saves a choice, and that wins from then on.
+  themeChosen.current=typeof saved.dark==='boolean';
+  setDark(themeChosen.current?saved.dark===true:systemDark());setShowNumbers(saved.showNumbers===true);setSidebarOpen(saved.sidebarOpen!==false);setParamsMap(pm);
   if(url.mode)setMode(url.mode);if(url.pair)setPair(true);if(url.components)setComponents(true);
   // Only "Don't show this again" keeps the tour shut. An old `seen: true` is from before that box,
   // and from before this tour: a returning reader meets the new tour and the box to stop it. They have
@@ -269,6 +293,11 @@ export default function Explorer({welcome}:{welcome?:boolean}={}){
  // off the dark class the document's head had already set from storage (index.html), flashing the light
  // ground for a frame on every load in the dark theme.
  useEffect(()=>{if(ready)document.documentElement.classList.toggle('dark',dark)},[dark,ready]);
+ // Followed while it changes, too, until a choice is made: a phone that turns dark at sunset turns the page with it.
+ useEffect(()=>{
+  let q:MediaQueryList;try{q=matchMedia(DARK_QUERY)}catch{return}
+  const on=()=>{if(!themeChosen.current)setDark(q.matches)};
+  q.addEventListener?.('change',on);return()=>q.removeEventListener?.('change',on)},[]);
  // Paper is white whatever the screen is. The print sheet keeps backgrounds (print-color-adjust:
  // exact), so the dark theme printed as pale text on slabs of ink -- the lesson goes to the
  // printer in the light theme and comes back as it was.
@@ -324,7 +353,7 @@ export default function Explorer({welcome}:{welcome?:boolean}={}){
  // saved continuum=1, and every later visit opened on a smooth rod "In the limit" with the board still
  // saying ΔQ. While the run is open, both write the lesson as closing the run puts it back -- and what
  // was saved or linked before that fix is read back with its cut (atRest).
- useEffect(()=>{if(!ready)return;const t=setTimeout(()=>{try{const saved=buildShown?{...paramsMap,[id]:{...params,continuum:0}}:paramsMap;localStorage.setItem(STORAGE,JSON.stringify({id,dark,params:saved,hideTour,cued,showNumbers,sidebarOpen}))}catch{setStorageOK(false)}},SETTLE);return()=>clearTimeout(t)},[id,dark,paramsMap,params,ready,hideTour,cued,showNumbers,sidebarOpen,buildShown]);
+ useEffect(()=>{if(!ready)return;const t=setTimeout(()=>{try{const saved=buildShown?{...paramsMap,[id]:{...params,continuum:0}}:paramsMap;localStorage.setItem(STORAGE,JSON.stringify({id,dark:themeChosen.current?dark:undefined,params:saved,hideTour,cued,showNumbers,sidebarOpen}))}catch{setStorageOK(false)}},SETTLE);return()=>clearTimeout(t)},[id,dark,paramsMap,params,ready,hideTour,cued,showNumbers,sidebarOpen,buildShown]);
  // THE ADDRESS ALWAYS NAMES ITS LESSON. The first lesson at its defaults wrote no query at all, so a
  // teacher who shared the address bar for Finite line shared the bare home page, and every student who had
  // used the site before opened their own last lesson instead.
@@ -899,7 +928,9 @@ export default function Explorer({welcome}:{welcome?:boolean}={}){
  // piece they chose, and the choice outlives Close. It used to pause the run and change nothing on
  // screen, against the run's own promise that it drives the state the controls drive. (While the sum
  // builds, the walking piece follows the sum, so there a click still only pauses.)
- const choose=useSteady(changeDistribution),select=useSteady((i:number)=>{stop();if(buildOpen)setRunPiece((i+.5)/count);setSelected(i)}),pickMode=useSteady(chooseMode),step=useSteady(moveTo);
+ // A LESSON CHOSEN FROM THE LIST OR THE LIBRARY IS SAID TO BE OPEN. It was replaced beside the focus, which stays in
+ // the list so the next choice is one key away, and only the title changed: a screen reader heard nothing at all.
+ const choose=useSteady((to:string)=>{changeDistribution(to);setStatus(`${getProblem(to as ProblemId,path).title} is open.`)}),select=useSteady((i:number)=>{stop();if(buildOpen)setRunPiece((i+.5)/count);setSelected(i)}),pickMode=useSteady(chooseMode),step=useSteady(moveTo);
  // ONE LESSON HANDS THE READER TO THE NEXT, AND IT SHOWS. The lesson's last line swapped the page for the lesson
  // it named and jumped to the top: nothing said a new lesson had opened, the list's mark could be scrolled out of
  // sight, and there was no way back but the browser's. Now the page glides to the top (jumps, under reduced
@@ -982,14 +1013,26 @@ export default function Explorer({welcome}:{welcome?:boolean}={}){
     if(!drawingOnScreen())return;
     e.preventDefault();if(!e.repeat)clicker(e.key==='PageDown'?1:-1);return;
    }
+   // ESCAPE PUTS THE FIGURE BACK, as it closes the tour and the library: a teacher presenting from a keyboard
+   // or a clicker had no way out of the run but Tab to Close. From the lesson itself or the figure; never
+   // while a dialog or a menu is open, whose Escape is its own. The transport's own keys do the same.
+   if(e.key==='Escape'){
+    if(!idle&&!t?.closest('.exp-diagram-card'))return;
+    if(document.querySelector('[role=dialog],[role=alertdialog],[role=menu],[role=listbox]'))return;
+    e.preventDefault();close();return;
+   }
    if(e.key==='ArrowRight'||e.key==='ArrowLeft'){if(!idle)return;e.preventDefault();if(!e.repeat)clicker(e.key==='ArrowRight'?1:-1);return}
    if(e.key!==' '||e.repeat)return;
    if(!idle&&!(t instanceof SVGSVGElement&&t.closest('.exp-diagram-card .cd-stage')))return;
+   // And Space too: with the drawing scrolled away it pages, as everywhere. A reader who had scrolled down
+   // to the board, clicked into its text and pressed Space to read on started the run a screen above the
+   // window, and the page never moved.
+   if(!drawingOnScreen())return;
    e.preventDefault();play();
   };
   window.addEventListener('keydown',key);
   return()=>window.removeEventListener('keydown',key);
- },[buildOpen,play,clicker]);
+ },[buildOpen,play,clicker,close]);
  // A line of the board plays its stage on the figure. Below 1000 pixels the board is a screen or two
  // under the figure, so the stage played on a figure and a transport that were both out of sight and
  // the reader saw only the board's line change. The focus stays on the board, where the reader is
@@ -1103,7 +1146,9 @@ export default function Explorer({welcome}:{welcome?:boolean}={}){
      a reader does at most once and never in the middle of a derivation, so they stop taking
      three of the five slots above the lesson. Every one keeps the name it had, so it is the
      same control in a quieter place. */}
- <div className="exp-header-right"><button ref={tourButton} type="button" className="text-button tour-button" aria-label="Walkthrough" onClick={()=>setOnboarding(true)}><CircleHelp size={16}/><span>Walkthrough</span></button><a className="text-button tour-button guide-link" href={GUIDE_HREF} aria-label="How to use this site" onClick={e=>{if(!inPlace(e))return;e.preventDefault();navigate(GUIDE_HREF)}}><GraduationCap size={16}/><span>How to use</span></a><a className="text-button quiz-link" href={QUIZ_HREF} aria-label="Quiz yourself" onClick={e=>{if(!inPlace(e))return;e.preventDefault();navigate(QUIZ_HREF)}}><ClipboardCheck size={16}/><span>Quiz</span></a><Hint label={dark?'Switch to light theme':'Switch to dark theme'}><button className="icon-button" onClick={()=>setDark(!dark)} aria-label={dark?'Switch to light theme':'Switch to dark theme'}>{dark?<Sun size={17}/>:<Moon size={17}/>}</button></Hint><DropdownMenu><Hint label="Lesson tools"><DropdownMenuTrigger ref={toolsButton} className="icon-button no-print" aria-label="Lesson tools"><MoreHorizontal size={17}/></DropdownMenuTrigger></Hint><DropdownMenuContent className="exp-tools-menu" align="end" sideOffset={8}><DropdownMenuItem onClick={()=>setLaws(true)}><BookOpen size={15}/>The laws behind every lesson</DropdownMenuItem><DropdownMenuItem onClick={()=>{void copyLink()}}><LinkIcon size={15}/>Copy a link to this lesson</DropdownMenuItem><DropdownMenuItem onClick={printLesson}><Printer size={15}/>Print this lesson</DropdownMenuItem><DropdownMenuItem onClick={saveCopy}><Download size={15}/>Save an offline copy of this lesson</DropdownMenuItem><DropdownMenuItem render={<a href="https://github.com/malekTheCoder/field-builder" target="_blank" rel="noreferrer" aria-label="View Field Builder on GitHub"/>}><GitBranch size={15}/>View Field Builder on GitHub</DropdownMenuItem></DropdownMenuContent></DropdownMenu></div></header>
+ <div className="exp-header-right"><button ref={tourButton} type="button" className="text-button tour-button" aria-label="Walkthrough" onClick={()=>setOnboarding(true)}><CircleHelp size={16}/><span>Walkthrough</span></button><a className="text-button tour-button guide-link" href={GUIDE_HREF} aria-label="How to use this site" onClick={goTo(GUIDE_HREF)}><GraduationCap size={16}/><span>How to use</span></a><a className="text-button quiz-link" href={QUIZ_HREF} aria-label="Quiz yourself" onClick={goTo(QUIZ_HREF)}><ClipboardCheck size={16}/><span>Quiz</span></a><Hint label={dark?'Switch to light theme':'Switch to dark theme'}><button className="icon-button" onClick={()=>{themeChosen.current=true;setDark(!dark)}} aria-label={dark?'Switch to light theme':'Switch to dark theme'}>{dark?<Sun size={17}/>:<Moon size={17}/>}</button></Hint><DropdownMenu><Hint label="Lesson tools"><DropdownMenuTrigger ref={toolsButton} className="icon-button no-print" aria-label="Lesson tools"><MoreHorizontal size={17}/></DropdownMenuTrigger></Hint><DropdownMenuContent className="exp-tools-menu" align="end" sideOffset={8}>{narrowHeader&&<><DropdownMenuItem onClick={()=>setOnboarding(true)}><CircleHelp size={15}/>Walkthrough</DropdownMenuItem><DropdownMenuItem render={<a href={GUIDE_HREF} aria-label="How to use this site"/>} onClick={goTo(GUIDE_HREF)}><GraduationCap size={15}/>How to use this site</DropdownMenuItem><DropdownMenuItem render={<a href={QUIZ_HREF} aria-label="Quiz yourself"/>} onClick={goTo(QUIZ_HREF)}><ClipboardCheck size={15}/>Quiz yourself</DropdownMenuItem><DropdownMenuSeparator/></>}<DropdownMenuItem onClick={()=>setLaws(true)}><BookOpen size={15}/>The laws behind every lesson</DropdownMenuItem><DropdownMenuItem onClick={()=>{void copyLink()}}><LinkIcon size={15}/>Copy a link to this lesson</DropdownMenuItem><DropdownMenuItem onClick={printLesson}><Printer size={15}/>Print this lesson</DropdownMenuItem><DropdownMenuItem onClick={saveCopy}><Download size={15}/>Save an offline copy of this lesson</DropdownMenuItem>{/* THE TEACHER'S TOOLS SAY THEY ARE FOR TEACHERS. Stage links, the handout and the projector advice are a short
+     part of the study guide, and the ways to it read as student help: a teacher at a lesson had no sign they had
+     been built for them. */}<DropdownMenuItem render={<a href={TEACHERS_HREF} aria-label="Teaching with this? Links, print and projector tips"/>} onClick={goTo(TEACHERS_HREF)}><Presentation size={15}/>Teaching with this? Links, print and projector tips</DropdownMenuItem><DropdownMenuItem render={<a href="https://github.com/malekTheCoder/field-builder" target="_blank" rel="noreferrer" aria-label="View Field Builder on GitHub"/>}><GitBranch size={15}/>View Field Builder on GitHub</DropdownMenuItem></DropdownMenuContent></DropdownMenu></div></header>
  <SidebarProvider className={`exp-shell ${sidebarOpen?'library-expanded':'library-collapsed'}`} style={{'--sidebar-width':'196px'} as CSSProperties}>{sidebarOpen&&<Sidebar collapsible="none" className="exp-sidebar"><SidebarContent><nav className="exp-lessons" aria-label="Lessons">{lessonList}</nav><div className="exp-nav-bottom"><p>One law.<br/>Every geometry.</p><MathText tex={scalar?String.raw`dV=\frac{k\,dQ}{r_i}`:String.raw`d\mathbf E=\frac{k\,dQ}{r_i^2}\hat{\mathbf r}_i`}/><LawsReference quantity={p.quantity} label="The laws behind it" className="text-button exp-laws-link"/><span>{storageOK?'Your settings stay on this device.':'Settings are kept for this visit.'}</span></div></SidebarContent></Sidebar>}
  <main id="lesson" className="exp-main"><div className="exp-breadcrumb"><Hint label={sidebarOpen?'Hide the lesson list':'Show the lesson list'}><button type="button" className="exp-library-toggle" aria-expanded={sidebarOpen} aria-label={sidebarOpen?'Hide the lesson list':'Show the lesson list'} onClick={()=>setSidebarOpen(v=>!v)}><PanelLeft size={16}/></button></Hint>{/* THE SAME LESSON WAS NAMED THREE TIMES IN THREE INCHES: lit in the list, as the tail of a
      breadcrumb, and then in full as the title. The crumb said it least well of the three, so
@@ -1194,9 +1239,11 @@ export default function Explorer({welcome}:{welcome?:boolean}={}){
  {/* Said in the live region above; this is the same words for the eye, for a moment. */}
  {copied&&<p className="exp-copied no-print" aria-hidden="true">{copied}</p>}
  {/* The first-visit cue points at what the lesson is built around, not at the tour of it -- and waits
-     for the tour to close, whose last page names the same button. */}{cueing&&faces&&<StartHere target={watchButton} onSettled={()=>setCued(true)}/>}<Onboarding returnFocus={tourButton} open={onboarding} onClose={()=>setOnboarding(false)} dontShow={hideTour} onDontShowChange={storageOK?setHideTour:undefined}/>{/* THE LAWS EVERY LESSON
+     for the tour to close, whose last page names the same button. */}{cueing&&faces&&<StartHere target={watchButton} onSettled={()=>setCued(true)}/>}<Onboarding returnFocus={tourReturn} open={onboarding} onClose={()=>setOnboarding(false)} dontShow={hideTour} onDontShowChange={storageOK?setHideTour:undefined}/>{/* THE LAWS EVERY LESSON
      RESTS ON WERE WRITTEN ONCE AND SHOWN NOWHERE BUT THE TOUR'S SECOND PAGE. They are a reader's question in
      the middle of a lesson -- "which law is this again?" -- so they are under the formula the lesson list
      closes on, and, where the list is not drawn, in the lesson's tools. A potential lesson leads with V. */}<LawsDialog open={laws} onOpenChange={setLaws} quantity={p.quantity} returnFocus={toolsButton}/><Dialog open={library} onOpenChange={setLibrary}>{/* Opened on the lesson the reader is in, not on the first card: from the ring, the focus landed on
-     Finite line, and a keyboard or a screen reader had to go looking for where they were. */}<DialogContent className="exp-library-dialog" initialFocus={libraryFocus}><DialogTitle>Choose your geometry</DialogTitle><DialogDescription>Every lesson, including electric potential.</DialogDescription><div className="exp-library-list">{libraryCards}</div></DialogContent></Dialog></div>;
+     Finite line, and a keyboard or a screen reader had to go looking for where they were. */}<DialogContent className="exp-library-dialog" initialFocus={libraryFocus} showCloseButton={false}>{/* CLOSE FIRST IN THE ORDER, AS IT IS
+     FIRST TO THE EYE. Drawn at the top right, it was the last thing in the dialog, after every card: a keyboard reader who
+     wanted out without Escape tabbed through every lesson. Now Shift+Tab from the card it opens on reaches it. */}<DialogClose data-slot="dialog-close" render={<Button variant="ghost" className="absolute top-2 right-2" size="icon-sm"/>}><X/><span className="sr-only">Close</span></DialogClose><DialogTitle>Choose your geometry</DialogTitle><DialogDescription>Every lesson, including electric potential.</DialogDescription><div className="exp-library-list">{libraryCards}</div></DialogContent></Dialog></div>;
 }

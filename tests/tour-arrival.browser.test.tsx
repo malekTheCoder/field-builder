@@ -1,5 +1,5 @@
 import {cleanup, render, waitFor} from '@testing-library/react';
-import {userEvent} from 'vitest/browser';
+import {page, userEvent} from 'vitest/browser';
 import {afterEach, beforeEach, describe, expect, it} from 'vitest';
 import Explorer from '../src/explorer/Explorer';
 /* THE TOUR OPENS EVERY TIME THE SITE DOES, until the reader says not to.
@@ -13,6 +13,8 @@ const saved = () => JSON.parse(localStorage.getItem(STORAGE) ?? '{}');
 /** The Explorer saves on a settle; a visit is over once what it wrote has landed. */
 const settle = () => new Promise(r => setTimeout(r, 400));
 async function visit(url = '/') {
+ // Wide enough for Walkthrough to be in the header: narrower, it is a row in Lesson tools (page-w6-reach).
+ await page.viewport(1280, 800);
  window.history.replaceState(null, '', url);
  const view = render(<Explorer />);
  // The lesson has mounted (the Walkthrough button is in the DOM whether or not a dialog hides it).

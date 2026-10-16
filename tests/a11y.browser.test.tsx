@@ -1,5 +1,5 @@
 import {cleanup, fireEvent, render, waitFor, within} from '@testing-library/react';
-import {userEvent} from 'vitest/browser';
+import {page, userEvent} from 'vitest/browser';
 import {useState} from 'react';
 import {afterEach, describe, expect, it} from 'vitest';
 import Explorer from '../src/explorer/Explorer';
@@ -20,6 +20,8 @@ function inside(dialog: Element, node: Element | null) {
 
 describe('keyboard and screen-reader path', () => {
   it('traps tab inside the tour and returns focus to Walkthrough on Skip', async () => {
+    // Wide enough for Walkthrough to be in the header: narrower, it is a row in Lesson tools (page-w6-reach).
+    await page.viewport(1280, 800);
     localStorage.setItem('field-builder:explorer:v1', JSON.stringify({id: 'bisector', hideTour: true, cued: true, dark: false, sidebarOpen: true, params: {}}));
     const {findByRole, getByRole} = render(<Explorer />);
     expect(await findByRole('heading', {name: getProblem('bisector').title})).toBeTruthy();

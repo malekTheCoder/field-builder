@@ -29,7 +29,7 @@ export const bank: Question[] = [
       {text: raw`Away from the line and forward, out over the line.`, misconception: 'sign',
         why: raw`For a positive charge each piece’s field points away from that piece. Every piece is up along $+y$ from the end, level with $P$, so away from it is back toward $-y$, past the end.`},
     ],
-    explanation: raw`Each positive piece pushes $P$ along the line from the piece to $P$: out, away from the line, toward $+x$, and back toward $-y$. The two parts come to the same size, $k\lambda/r$, so the field points halfway between $+x$ and $-y$, at $\pi/4$; for a negative line it points exactly the opposite way.`,
+    explanation: raw`Each positive piece’s field at $P$ points along the line from the piece to $P$: out, away from the line, toward $+x$, and back toward $-y$. The two parts come to the same size, $k\lambda/r$, so the field points halfway between $+x$ and $-y$, at $\pi/4$; for a negative line it points exactly the opposite way.`,
     review: {lesson: 'semi', section: 'What the answer says'}},
 
   {id: 'semi-lean', lesson: 'semi', kind: 'predict',

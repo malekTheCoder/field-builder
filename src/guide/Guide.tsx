@@ -115,7 +115,7 @@ const STUCK:{slip:string;text:string;where:string}[]=[
   text:'The bounds are where the charge starts and ends, written in the variable you integrate over. A half rod, an arc, a disk from the centre out: draw them before you write them.',
   where:'Integration interval, under Build the integral.'},
  {slip:'Your potential falls off as an inverse square',
-  text:String.raw`A piece’s potential is $k\,dQ/r_i$, one power, and a number with no direction, so there is no $\cos\alpha$ and nothing cancels.`,
+  text:String.raw`A piece’s potential is $k\,dQ/r_i$, one power, and a number with no direction, so there is no $\cos\alpha$, and with charge of one sign nothing cancels.`,
   where:'One piece, in any potential lesson.'}];
 
 /** THE CHECKLIST FOR A SHAPE NO LESSON HAS: the five stages, written as the steps an exam answer takes. */

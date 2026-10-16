@@ -437,7 +437,8 @@ describe('on a touch screen', () => {
   const coarse = asIfCoarse();
   onTestFinished(coarse.done);
   expect(coarse.rules, 'no rules for a coarse pointer').toBeGreaterThan(0);
-  const buttons = [view.getByRole('button', {name: 'Walkthrough'}), view.getByRole('button', {name: 'Switch to dark theme'}), view.getByRole('button', {name: 'Lesson tools'})];
+  // On a phone Walkthrough is a row in Lesson tools (page-w6-reach): the header keeps the theme and the menu.
+  const buttons = [view.getByRole('button', {name: 'Switch to dark theme'}), view.getByRole('button', {name: 'Lesson tools'})];
   const pads = buttons.map(b => { const box = b.getBoundingClientRect(), s = getComputedStyle(b, '::before'); expect(s.content).not.toBe('none'); return {left: box.left + parseFloat(s.left), right: box.right - parseFloat(s.right), height: box.height - parseFloat(s.top) - parseFloat(s.bottom)}; });
   for (const p of pads) expect(p.height).toBeGreaterThanOrEqual(40);
   for (let i = 1; i < pads.length; i++) expect(pads[i].left, 'one button\'s margin covers the next').toBeGreaterThanOrEqual(pads[i - 1].right);

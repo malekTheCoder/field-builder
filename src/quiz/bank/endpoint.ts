@@ -24,11 +24,11 @@ export const bank: Question[] = [
     choices: [
       {correct: true, text: raw`Away from the rod and down, below the $x$-axis.`},
       {text: raw`Straight along $+x$, away from the rod.`, misconception: 'cancel-survivor',
-        why: raw`That would need the parts along the rod to cancel, and they have no partners to cancel against. Every piece is above $P$, so every piece pushes $P$ down a little.`},
+        why: raw`That would need the parts along the rod to cancel, and they have no partners to cancel against. Every piece is above $P$, so every piece’s field at $P$ points a little down.`},
       {text: raw`Away from the rod and up, above the $x$-axis.`, misconception: 'sign',
         why: raw`Each piece’s field at $P$ points away from that piece, for a positive charge. Every piece is above $P$, so away from it is down, not up.`},
     ],
-    explanation: raw`A positive piece at height $y$ pushes $P$ along the line from the piece to $P$: out along $x$ and down. No piece is below $P$’s level to push it up, so $E_x>0$ and $E_y<0$ for a positive rod, and both reverse for a negative one.`,
+    explanation: raw`A positive piece at height $y$ has a field at $P$ along the line from the piece to $P$: out along $x$ and down. No piece is below $P$’s level to give a part pointing up, so $E_x>0$ and $E_y<0$ for a positive rod, and both reverse for a negative one.`,
     review: {lesson: 'endpoint', section: 'What the answer says'}},
 
   {id: 'endpoint-ey-integrand', lesson: 'endpoint', kind: 'setup',
