@@ -1,4 +1,4 @@
-import {add, ballFraction, bandFlux, boundaries, cross, dot, EPS0, fieldAt, norm, pointOn, scale, sub, unit, v3, type ChargeKind, type V3} from './physics';
+import {add, ballFraction, bandFlux, boundaries, cross, dot, EPS0, fieldAt, norm, pointOn, rectangleAngle, scale, sub, unit, v3, type ChargeKind, type V3} from './physics';
 import {chargeOf, surfaceOf} from './scene';
 import type {GaussCase} from './types';
 /* THE TWO INSTRUMENTS' PHYSICS, apart from their drawing, so a unit test can hold them to it.
@@ -312,3 +312,23 @@ export function holeTex(shape: HoleShape, centred: boolean): string {
   const n = shape === 'ball' ? 3 : 2;
   return centred ? String.raw`\vec d=0:\quad\vec E_{\text{hole}}=0` : String.raw`\vec E_{\text{hole}}=\frac{\rho\,\vec d}{${n}\varepsilon_0}`;
 }
+
+// ---- When symmetry runs out: a charge in a cube ----
+/* A point charge anywhere inside a cube of half-width 1. The flux through each face is q/ε₀ times the solid angle
+ * the face fills as seen from the charge, over 4π (physics.ts `rectangleAngle`): exact, the same
+ * integral the figure's patches carry. The six shares add to the whole, q/ε₀, wherever the charge sits; only at the
+ * centre does symmetry alone say each is a sixth. */
+export const FACES = ['top', 'bottom', 'left', 'right', 'front', 'back'] as const;
+export type Face = typeof FACES[number];
+/** Each face's share of the flux, a fraction of q/ε₀, for a charge at q in the cube |x|, |y|, |z| ≤ 1 (the cross-section
+ * is the plane y = 0: left and right are x = ∓1, top and bottom z = ±1, front and back y = ∓1). */
+export function cubeShares(q: V3): Record<Face, number> {
+  const share = (D: number, u0: number, u1: number, v0: number, v1: number) => rectangleAngle(D, u0, u1, v0, v1) / (4 * Math.PI);
+  return {
+    right: share(1 - q.x, -1 - q.y, 1 - q.y, -1 - q.z, 1 - q.z), left: share(1 + q.x, -1 - q.y, 1 - q.y, -1 - q.z, 1 - q.z),
+    back: share(1 - q.y, -1 - q.x, 1 - q.x, -1 - q.z, 1 - q.z), front: share(1 + q.y, -1 - q.x, 1 - q.x, -1 - q.z, 1 - q.z),
+    top: share(1 - q.z, -1 - q.x, 1 - q.x, -1 - q.y, 1 - q.y), bottom: share(1 + q.z, -1 - q.x, 1 - q.x, -1 - q.y, 1 - q.y),
+  };
+}
+/** Where the charge may go: inside the cube, clear of its faces. */
+export const cubeAt = (p: {x: number; y: number}) => Math.hypot(p.x, p.y) < .02 ? {x: 0, y: 0} : {x: Math.max(-.85, Math.min(.85, p.x)), y: Math.max(-.85, Math.min(.85, p.y))};

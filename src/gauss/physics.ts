@@ -46,9 +46,13 @@ export const unit = (a: V3): V3 => { const n = norm(a); return n > 0 ? scale(a, 
  *   it, its axis through `hole.at`.
  * - `sheethole`: an infinite sheet with a round hole of radius `hole.radius` about the z axis.
  * - `disk`: a flat disc of radius R = size in the plane z = 0, σ per unit area: the sheet's plug, whose field the
- *   integral lesson builds ring by ring. Here it is added up ring by ring too (`diskField`). */
+ *   integral lesson builds ring by ring. Here it is added up ring by ring too (`diskField`).
+ *
+ * When symmetry runs out: `segment`, a finite rod of λ per unit length along the z axis, from −ℓ to ℓ (ℓ = size),
+ * whose field has the closed form the integral lesson builds; and a `point` given an `at`, off the centre of the cube
+ * round it. */
 export type ChargeKind = 'point' | 'shell' | 'ball' | 'line' | 'sheet' | 'slab' | 'rod' | 'tube' | 'coax' | 'metal' | 'cavity' | 'face' | 'plates'
-  | 'offset' | 'rising' | 'falling' | 'tent' | 'ballhole' | 'rodhole' | 'sheethole' | 'disk';
+  | 'offset' | 'rising' | 'falling' | 'tent' | 'ballhole' | 'rodhole' | 'sheethole' | 'disk' | 'segment';
 export type Charge = {kind: ChargeKind; sign: 1 | -1; size: number; outer?: number;
   /** The charge's centre (or its axis's foot) when it is not the origin: a superposition's plug. */
   at?: V3;
@@ -91,7 +95,7 @@ export const tentHalf = (h: number, a: number) => { const m = Math.min(Math.abs(
 /** The closed surfaces: a sphere about the centre, a cylinder about the z axis, a pillbox (a short cylinder
  * about the z axis, standing across the plane z = 0). `r` is the radius; `h` is the half-length of the
  * cylinder or the half-height of the pillbox. */
-export type SurfaceKind = 'sphere' | 'cylinder' | 'pillbox';
+export type SurfaceKind = 'sphere' | 'cylinder' | 'pillbox' | 'cube';
 export type Surface = {kind: SurfaceKind; r: number; h: number;
   /** The centre (or the axis's foot) when it is not the origin: a superposition's second surface, round its plug. */
   center?: V3};
@@ -140,6 +144,14 @@ function ownField(c: Charge, p: V3): V3 {
     case 'plates': return v3(0, 0, p.z < 0 && p.z > -c.size ? -4 * Math.PI * s : 0);
     // Inside the tent slab (ρ₀/ε₀)(z − z|z|/2a), outside ρ₀a/2ε₀, away from it: ε₀ = 1/4π.
     case 'tent': return v3(0, 0, Math.sign(p.z) * 4 * Math.PI * s * tentHalf(p.z, c.size));
+    // A finite rod from −ℓ to ℓ on the z axis: k = 1, its pieces added (the integral lesson's sum, in closed form).
+    case 'segment': {
+      const l = c.size, sq = Math.hypot(p.x, p.y), up = Math.hypot(sq, p.z + l), dn = Math.hypot(sq, p.z - l);
+      const Ez = s * (1 / dn - 1 / up);
+      if (sq < 1e-12) return v3(0, 0, Math.abs(p.z) > l ? Ez : 0);
+      const Es = s / sq * ((p.z + l) / up - (p.z - l) / dn);
+      return v3(Es * p.x / sq, Es * p.y / sq, Ez);
+    }
     // A disc of unit σ: added up ring by ring.
     case 'disk': return scale(diskField(c.size, p), s);
     // A charge with a hole is its pieces (fieldAt), and never reaches here.
@@ -231,6 +243,8 @@ export function enclosedCharge(c: Charge, g: Surface): number {
     if (c.kind === 'rodhole' && g.kind === 'cylinder') return s * 2 * g.h * (Math.min(1, (g.r / c.size) ** 2) - lensArea(g.r, h.radius, Math.hypot(h.at.x, h.at.y)) / (Math.PI * c.size ** 2));
     if (c.kind === 'sheethole' && g.kind === 'pillbox') return s * (Math.PI * g.r * g.r - lensArea(g.r, h.radius, Math.hypot(h.at.x, h.at.y)));
   }
+  // A point charge off the centre: all of it, or none, as it is inside the surface or not.
+  if (c.kind === 'point' && c.at && !g.center) return (c.amount ?? 1) * s * (isInside(g, c.at) ? 1 : 0);
   // A piece about its own centre, which its surface shares: as the piece alone, in proportion to its amount.
   if (c.at || g.center) {
     if (norm(sub(c.at ?? ORIGIN, g.center ?? ORIGIN)) > 1e-9) throw Error(`A ${g.kind} not centred on the ${c.kind} it is drawn round.`);
@@ -239,6 +253,7 @@ export function enclosedCharge(c: Charge, g: Surface): number {
   if (c.amount !== undefined) return c.amount * enclosedCharge({...c, amount: undefined}, g);
   if (g.kind === 'sphere') {
     if (c.kind === 'point') return s;
+    if (c.kind === 'segment') return s * 2 * Math.min(c.size, g.r);
     if (c.kind === 'shell') return g.r > c.size ? s : 0;
     if (isBall(c.kind)) return s * ballFraction(c.kind, g.r, c.size);
     if (c.kind === 'offset') return g.r > c.size ? s : 0;
@@ -250,6 +265,7 @@ export function enclosedCharge(c: Charge, g: Surface): number {
     // λ per unit length, over the cylinder's length 2h.
     const L = 2 * g.h;
     if (c.kind === 'line') return s * L;
+    if (c.kind === 'segment') return s * 2 * Math.min(c.size, g.h);
     if (c.kind === 'rod') return s * L * Math.min(1, (g.r / c.size) ** 2);
     if (c.kind === 'tube') return g.r > c.size ? s * L : 0;
     if (c.kind === 'coax') return g.r > c.size && g.r < (c.outer ?? c.size * 2) ? s * L : 0;
@@ -273,7 +289,7 @@ export const oneSided = (c?: Pick<Charge, 'kind'>) => c?.kind === 'face' || c?.k
 /** The left side's area: the part of the surface the field crosses, where E is the same and square to it.
  * A sphere's whole area; a cylinder's wall; a pillbox's two faces, or its one face where the other sees no field. */
 export function crossedArea(g: Surface, c?: Pick<Charge, 'kind'>): number {
-  return g.kind === 'sphere' ? 4 * Math.PI * g.r * g.r : g.kind === 'cylinder' ? 2 * Math.PI * g.r * 2 * g.h : (oneSided(c) ? 1 : 2) * Math.PI * g.r * g.r;
+  return g.kind === 'cube' ? 24 * g.h * g.h : g.kind === 'sphere' ? 4 * Math.PI * g.r * g.r : g.kind === 'cylinder' ? 2 * Math.PI * g.r * 2 * g.h : (oneSided(c) ? 1 : 2) * Math.PI * g.r * g.r;
 }
 /** The solve: the field's component along the outward normal on the crossed part, from Q_enc/ε₀ = E·(area). */
 export const solvedField = (c: Charge, g: Surface) => enclosedCharge(c, g) / EPS0 / crossedArea(g, c);
@@ -298,13 +314,15 @@ export function wallDensity(q: number, d: number, a: number, theta: number): num
 
 /** A patch of a closed surface, as the figure draws it: its centre, its outward normal, its area, its four
  * corners (or three, at a pole), and which part of the surface it is. */
-export type PatchPart = 'sphere' | 'wall' | 'top' | 'bottom';
+export type PatchPart = 'sphere' | 'wall' | 'top' | 'bottom' | 'east' | 'west' | 'north' | 'south';
 export type Patch = {center: V3; normal: V3; area: number; corners: V3[]; part: PatchPart; key: string;
   /** The patch's parameter ranges, [u0, u1, v0, v1]: polar angle and azimuth on a sphere, height and azimuth on
    * a wall, radius and azimuth on a cap (see `surfacePoint`). */
-  uv: [number, number, number, number]};
+  uv: [number, number, number, number];
+  /** A flat rectangle: a cube's patch, whose flux from a point charge is its solid angle. */
+  square?: boolean};
 /** How the figure cuts each surface: bands and sectors. Few enough to read one by one. */
-export const CUT = {sphere: {bands: 4, sectors: 8}, cylinder: {bands: 2, sectors: 8, rings: 1}, pillbox: {bands: 2, sectors: 8, rings: 1}} as const;
+export const CUT = {sphere: {bands: 4, sectors: 8}, cylinder: {bands: 2, sectors: 8, rings: 1}, pillbox: {bands: 2, sectors: 8, rings: 1}, cube: {bands: 2, sectors: 2}} as const;
 
 const sph = (r: number, th: number, ph: number) => v3(r * Math.sin(th) * Math.cos(ph), r * Math.sin(th) * Math.sin(ph), r * Math.cos(th));
 /** The surface cut into patches. Each patch's normal is the outward one at its centre; its area is exact. */
@@ -315,6 +333,15 @@ export function patches(g: Surface, cut: {bands: number; sectors: number; rings?
   }
   const out: Patch[] = [];
   const {bands, sectors} = cut;
+  if (g.kind === 'cube') {
+    // Six faces, each cut into bands by bands squares; on each face (u, v) are the two coordinates surfacePoint takes.
+    const h = g.h, n = bands, step = 2 * h / n;
+    for (const part of CUBE_FACES) for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) {
+      const u0 = -h + i * step, u1 = u0 + step, v0 = -h + j * step, v1 = v0 + step, at = (u: number, v: number) => surfacePoint(g, part, u, v);
+      out.push({center: at((u0 + u1) / 2, (v0 + v1) / 2), normal: CUBE_NORMAL[part], area: step * step, corners: [at(u0, v0), at(u1, v0), at(u1, v1), at(u0, v1)], part, key: `${part}${i}-${j}`, uv: [u0, u1, v0, v1], square: true});
+    }
+    return out;
+  }
   if (g.kind === 'sphere') {
     for (let i = 0; i < bands; i++) for (let j = 0; j < sectors; j++) {
       const t0 = Math.PI * i / bands, t1 = Math.PI * (i + 1) / bands, p0 = 2 * Math.PI * j / sectors, p1 = 2 * Math.PI * (j + 1) / sectors;
@@ -342,6 +369,11 @@ export function patches(g: Surface, cut: {bands: number; sectors: number; rings?
 /** A point of a surface's part from its two parameters, as `uv` gives them. */
 export function surfacePoint(g: Surface, part: PatchPart, u: number, v: number): V3 {
   if (g.center) return add(surfacePoint({...g, center: undefined}, part, u, v), g.center);
+  if (g.kind === 'cube') {
+    const h = g.h;
+    // Top and bottom: (x, y). East and west, x = ±h: (z, y). North and south, y = ±h: (z, x).
+    return part === 'top' ? v3(u, v, h) : part === 'bottom' ? v3(u, v, -h) : part === 'east' ? v3(h, v, u) : part === 'west' ? v3(-h, v, u) : part === 'north' ? v3(v, h, u) : v3(v, -h, u);
+  }
   if (part === 'sphere') return sph(g.r, u, v);
   if (part === 'wall') return v3(g.r * Math.cos(v), g.r * Math.sin(v), u);
   return v3(u * Math.cos(v), u * Math.sin(v), part === 'top' ? g.h : -g.h);
@@ -360,6 +392,24 @@ export function bandFlux(q: number, d: number, R: number, th0: number, th1: numb
  * shared by the band's sectors, since the field is the same turned about the axis through the charge). So the
  * drawn patches add to the flux exactly, either way. */
 export function throughPatch(c: Charge, p: Patch): number {
+  // A finite rod, through a closed cylinder on its axis: the wall's and the caps' integrals in closed form, since
+  // E_s·r and E_z·s each have an antiderivative (k = 1). So the patches add to 2λℓ/ε₀ exactly, though E varies on each.
+  if (c.kind === 'segment' && !c.at && (p.part === 'wall' || p.part === 'top' || p.part === 'bottom')) {
+    const l = c.size, [u0, u1, v0, v1] = p.uv, dphi = v1 - v0;
+    if (p.part === 'wall') {
+      const r = Math.hypot(p.center.x, p.center.y), F = (z: number) => Math.hypot(r, z + l) - Math.hypot(r, z - l);
+      return c.sign * dphi * (F(u1) - F(u0)) / p.area;
+    }
+    const zc = p.center.z, nz = p.normal.z, G = (a: number) => Math.hypot(a, zc - l) - Math.hypot(a, zc + l);
+    return c.sign * nz * dphi * (G(u1) - G(u0)) / p.area;
+  }
+  // A point charge, through a cube's flat face: its charge times the solid angle the patch fills, exactly.
+  if (c.kind === 'point' && p.square) {
+    const q = c.at ?? ORIGIN, n = p.normal, e1 = unit(sub(p.corners[1], p.corners[0])), e2 = unit(sub(p.corners[3], p.corners[0]));
+    const D = dot(sub(p.center, q), n), foot = sub(p.corners[0], q), a0 = dot(foot, e1), b0 = dot(foot, e2);
+    const side1 = norm(sub(p.corners[1], p.corners[0])), side2 = norm(sub(p.corners[3], p.corners[0]));
+    return c.sign * (c.amount ?? 1) * rectangleAngle(D, a0, a0 + side1, b0, b0 + side2) / p.area;
+  }
   if (c.kind === 'offset' && p.part === 'sphere') {
     const r = norm(p.center), [t0, t1, p0, p1] = p.uv;
     return bandFlux(c.sign, c.size, r, t0, t1) * (p1 - p0) / (2 * Math.PI) / p.area;
@@ -377,6 +427,10 @@ export function carriesNothing(c: Charge, p: Patch) {
 export function numericFlux(c: Charge, g: Surface, fine = 240): number {
   const cut = g.kind === 'sphere' ? {bands: fine, sectors: 2 * fine} : {bands: fine, sectors: 2 * fine, rings: fine};
   let total = 0;
+  if (g.kind === 'cube') {
+    for (const p of patches(g, {bands: fine, sectors: fine})) total += dot(fieldAt(c, p.center), p.normal) * p.area;
+    return total;
+  }
   if (g.kind === 'sphere') {
     // Midpoint in θ and φ, with the exact band area: converges for any field whose E·n̂ is smooth on the sphere.
     // E itself, never throughPatch, so the check stays independent of the closed forms.
@@ -410,4 +464,22 @@ export function starFlux(charges: {at: V3; q: number}[], center: V3, radius: (az
     total += dot(e, dA);
   }
   return total;
+}
+
+/** A cube's six faces, and each one's outward normal. */
+export type CubeFace = 'top' | 'bottom' | 'east' | 'west' | 'north' | 'south';
+export const CUBE_FACES: readonly CubeFace[] = ['top', 'bottom', 'east', 'west', 'north', 'south'];
+const CUBE_NORMAL: Record<CubeFace, V3> = {top: v3(0, 0, 1), bottom: v3(0, 0, -1), east: v3(1, 0, 0), west: v3(-1, 0, 0), north: v3(0, 1, 0), south: v3(0, -1, 0)};
+/** The solid angle a rectangle fills, seen from a point a distance D from its plane (D > 0 on the side its normal
+ * points away from), the rectangle spanning [u0, u1] by [v0, v1] measured from the foot of the perpendicular. Each
+ * corner contributes arctan(uv/(D√(D² + u² + v²))); a whole plane fills 2π. */
+export function rectangleAngle(D: number, u0: number, u1: number, v0: number, v1: number): number {
+  const F = (u: number, v: number) => Math.atan(u * v / (D * Math.sqrt(D * D + u * u + v * v)));
+  return F(u1, v1) - F(u0, v1) - F(u1, v0) + F(u0, v0);
+}
+/** Whether a point is inside a closed surface centred on the origin. */
+function isInside(g: Surface, p: V3): boolean {
+  if (g.kind === 'sphere') return norm(p) < g.r;
+  if (g.kind === 'cube') return Math.max(Math.abs(p.x), Math.abs(p.y), Math.abs(p.z)) < g.h;
+  return Math.hypot(p.x, p.y) < g.r && Math.abs(p.z) < g.h;
 }

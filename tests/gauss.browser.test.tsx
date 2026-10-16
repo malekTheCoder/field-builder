@@ -156,13 +156,15 @@ describe('why only the charge inside', () => {
       const view = await open('inside');
       fireEvent.click(view.getByRole('button', {name: 'Outside'}));
       expect(document.querySelector('.gs-board .ew-problem-text')?.textContent).toContain('outside a sphere');
-      expect(document.querySelector('.gs-p')).toBeNull();
+      expect(document.querySelector('.gs-p')).toBeTruthy();
+    expect(document.querySelector('.gs-field-name.is-answer')).toBeNull();
       fireEvent.click(view.getByRole('button', {name: 'Watch it build'}));
       f.run(30);
       expect(stage()?.dataset.stage).toBe('solve');
       expect(document.querySelector('.gs-board .ew-result .katex')?.textContent).toMatch(/Φ\s*=\s*0/);
       expect(document.querySelector('.gs-board .ew-result p')?.textContent).toContain('Zero for either sign');
-      expect(document.querySelector('.gs-p')).toBeNull();
+      expect(document.querySelector('.gs-p')).toBeTruthy();
+    expect(document.querySelector('.gs-field-name.is-answer')).toBeNull();
     } finally { f.restore(); }
   }, 30000);
 });
@@ -254,7 +256,7 @@ describe('on a phone', () => {
     }
   }, 30000);
   it('fits 390 pixels with no sideways scroll, on Lines, Sheets and Conductors', async () => {
-    for (const id of ['lines', 'sheets', 'conductors', 'holes']) {
+    for (const id of ['lines', 'sheets', 'conductors', 'holes', 'runs-out']) {
       const view = await open(id, 390, 844);
       await new Promise(r => setTimeout(r, 200));
       expect(document.documentElement.scrollWidth, id).toBeLessThanOrEqual(390);
@@ -352,5 +354,32 @@ describe('a hole to move', () => {
   it('follows Conductors', async () => {
     const view = await open('conductors');
     expect(view.getByRole('link', {name: /^Next: Holes by superposition/}).getAttribute('href')).toBe('?g=holes');
+  }, 20000);
+});
+
+describe('a charge in a cube', () => {
+  it('shares the flux unequally off centre and equally at the centre, by keyboard; the run ends on the flux, with P marked and no field drawn at it', async () => {
+    const view = await open('runs-out');
+    const readout = () => document.querySelector<HTMLElement>('.gs-cube .gs-readout')!;
+    expect(readout().dataset.centred).toBe('no');
+    expect(readout().dataset.largest).toBe('right');
+    const q = view.getByRole('button', {name: /^Charge q, positive, off centre in the cube/});
+    q.focus();
+    await userEvent.keyboard('{Home}');
+    expect(readout().dataset.centred).toBe('yes');
+    expect(readout().querySelector('annotation')?.textContent).toContain(String.raw`\frac{q}{6\varepsilon_0}`);
+    await userEvent.keyboard('{ArrowLeft}');
+    expect(readout().dataset.largest).toBe('left');
+    // The board's answer is a flux, and the figure draws no solved field at P.
+    expect(document.querySelector('.gs-board .ew-result-label')?.textContent).toContain('flux out through the closed cylinder');
+    expect(document.querySelector('.gs-p')).toBeTruthy();
+    expect(document.querySelector('.gs-field-name.is-answer')).toBeNull();
+    expect(view.getByRole('link', {name: /^Compare: /}).getAttribute('href')).toBe('?p=bisector');
+    fireEvent.click(view.getByRole('button', {name: 'Charge in a cube'}));
+    expect(document.querySelector('.gs-board .ew-result-label')?.textContent).toContain('flux out through the cube');
+  }, 20000);
+  it('follows Holes by superposition', async () => {
+    const view = await open('holes');
+    expect(view.getByRole('link', {name: /^Next: When symmetry runs out/}).getAttribute('href')).toBe('?g=runs-out');
   }, 20000);
 });

@@ -35,6 +35,8 @@ export type FigureSetup = {
      * foot (a rod's) or its centre on the sheet. The figure then solves the whole charge and the plug apart, each
      * round its own surface through P, and adds them at P. */
     hole?: {radius: number; at: V3};
+    /** Where a point charge sits when it is not at the centre: off the centre of a cube. */
+    at?: V3;
     /** A multiple of the kind's own amount of charge, so a lesson's cases share one density: a ball with a hole
      * of ρ = 1 carries 4πR³/3 of the ball's units. */
     amount?: number;
@@ -51,6 +53,8 @@ export type FigureSetup = {
      * each is called (the slider says it aloud), the field there (TeX), and one sentence on why. Without them the
      * field has one formula everywhere the slider reaches. */
     regions?: Region[];
+    /** How the surface is cut into patches, where the default is too coarse to show a field that changes over it. */
+    cut?: {bands: number; sectors: number; rings?: number};
   };
   /** The field drawn at the standard arrow length, in the figure's units (k = 1, unit charge): the same for every
    * case of a lesson, so equal fields are drawn equal and a doubled one twice as long. Without it, the field on
@@ -81,7 +85,9 @@ export type GaussCase = {
   right: BoardBeat;
   /** The two sides set equal and solved. `answer` is the result alone, for the board's answer box; `note`, prose
    * under it where the box's own words about the sign would not be true (a flux of zero is not of q's sign). */
-  solve: BoardBeat & {answer: string; note?: string};
+  solve: BoardBeat & {answer: string; note?: string;
+    /** The answer box's name, where the answer is not the field at P: "The answer, the flux out through the cube". */
+    label?: string};
   /** Limits, continuity, the jump of σ/ε₀ across a surface charge, what cancels. */
   checks: Check[];
 };
@@ -92,8 +98,9 @@ export type Trap = {wrong: string; right: string};
 /** Which interactive instrument sits under the figure, if any: the symmetry test, the flux through a closed
  * surface, the field's profile across the regions (`profile`), a charge in a conductor's cavity (`cavity`), a
  * charge carried out of a sphere with each band's flux summed (`inside`), a ball's enclosed charge built shell by
- * shell (`qenc`), the field against r for the spheres (`plot`), a hole moved about a charged ball or rod (`hole`). */
-export type Instrument = 'symmetry' | 'flux' | 'profile' | 'cavity' | 'inside' | 'qenc' | 'plot' | 'hole';
+ * shell (`qenc`), the field against r for the spheres (`plot`), a hole moved about a charged ball or rod (`hole`), a
+ * charge moved about a cube with each face's share of the flux (`cube`). */
+export type Instrument = 'symmetry' | 'flux' | 'profile' | 'cavity' | 'inside' | 'qenc' | 'plot' | 'hole' | 'cube';
 
 export type GaussLesson = {
   id: GaussId;

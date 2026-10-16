@@ -33,7 +33,7 @@ export const GaussBoard = memo(function GaussBoard({kase, flux, build = REST, on
       <DerivationBoard lines={lines} names={names} state={state} onStep={play} />
     </div>
     <div className={'ew-result' + (settled ? ' is-shown' : '')} aria-hidden={settled ? undefined : true}>
-      <span className="ew-result-label">{flux ? 'The answer, the flux out through the sphere' : 'The answer, the field at P'}</span>
+      <span className="ew-result-label">{kase.solve.label ?? (flux ? 'The answer, the flux out through the sphere' : 'The answer, the field at P')}</span>
       <MathText tex={kase.solve.answer} block />
       <p><Prose text={kase.solve.note ?? (flux ? raw`It is positive for a positive $q$, field leaving the sphere, and negative for a negative $q$, field entering it.` : raw`The component can come out negative: its sign says which way the field points, and reversing the charge reverses it.`)} /></p>
     </div>

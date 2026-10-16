@@ -32,6 +32,7 @@ import {InsideInstrument} from './InsideInstrument';
 import {QencInstrument} from './QencInstrument';
 import {FieldPlot} from './FieldPlot';
 import {HoleInstrument} from './HoleInstrument';
+import {CubeInstrument} from './CubeInstrument';
 import {GaussListFamily, GaussLibraryFamily} from './GaussFamily';
 import type {Sym} from './instruments';
 import '../explorer/explorer.css';
@@ -262,8 +263,9 @@ export default function GaussLesson() {
             {lesson.instrument === 'qenc' && <QencInstrument />}
             {lesson.instrument === 'plot' && <FieldPlot kase={kase} size={size} sign={sign} />}
             {lesson.instrument === 'hole' && <HoleInstrument sign={sign} />}
+            {lesson.instrument === 'cube' && <CubeInstrument sign={sign} />}
           </div>
-          <GaussBoard kase={kase} flux={lesson.id === 'flux' || lesson.id === 'inside'} build={boardBuild} onStep={boardStep} />
+          <GaussBoard kase={kase} flux={lesson.id === 'flux' || lesson.id === 'inside' || lesson.id === 'runs-out'} build={boardBuild} onStep={boardStep} />
         </div>
         <section className="exp-endnotes" aria-labelledby="gs-endnotes">
           <h2 id="gs-endnotes" className="sr-only">Checks and easy confusions</h2>

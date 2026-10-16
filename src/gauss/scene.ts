@@ -1,4 +1,4 @@
-import {add, boundaries, carriesNothing, cross, dot, enclosedCharge, fieldAt, isBall, norm, patches, piecesOf, pointOn, scale, sub, throughPatch, unit, v3, type Charge, type Patch, type PatchPart, type Surface, type V3} from './physics';
+import {CUT, add, boundaries, carriesNothing, cross, dot, enclosedCharge, fieldAt, isBall, norm, patches, piecesOf, pointOn, scale, sub, throughPatch, unit, v3, type Charge, type Patch, type PatchPart, type Surface, type V3} from './physics';
 import type {GaussCase} from './types';
 import type {GaussStageKey} from './run';
 /* WHAT THE GAUSS FIGURE DRAWS, WORKED OUT APART FROM DRAWING IT. The 3D scene (GaussScene) and the flat cross-section
@@ -58,6 +58,8 @@ export type Built = {
   /** Whether the run ends on the field at P. Not for a charge off the sphere's centre: there the answer is a flux,
    * and the field on the sphere is not the same from patch to patch, so no one arrow could stand for it. */
   answerAtP: boolean;
+  /** P marked, with no answer at it: where the text asks what the field there is and the law cannot say. */
+  markP?: boolean;
   /** A neighbouring patch whose normal is named dA, and a patch that carries nothing, for the labels. */
   namedPatch: DrawnPatch; zeroPatch: DrawnPatch | null;
   /** Half the world's extent the figure fits, and the pixels per world unit that fit it in 720 by 430. */
@@ -72,10 +74,13 @@ export type Built = {
  * as its face height. */
 export function surfaceOf(c: GaussCase, size: number): Surface {
   const s = c.figure.surface;
-  return s.kind === 'pillbox' ? {kind: 'pillbox', r: s.other, h: size} : {kind: s.kind, r: size, h: s.other};
+  return s.kind === 'pillbox' ? {kind: 'pillbox', r: s.other, h: size} : s.kind === 'cube' ? {kind: 'cube', r: size, h: size} : {kind: s.kind, r: size, h: s.other};
 }
 export const chargeOf = (c: GaussCase, sign: 1 | -1): Charge => ({kind: c.figure.charge.kind, sign, size: c.figure.charge.size, ...(c.figure.charge.outer ? {outer: c.figure.charge.outer} : {}),
-  ...(c.figure.charge.hole ? {hole: c.figure.charge.hole} : {}), ...(c.figure.charge.amount ? {amount: c.figure.charge.amount} : {})});
+  ...(c.figure.charge.hole ? {hole: c.figure.charge.hole} : {}), ...(c.figure.charge.amount ? {amount: c.figure.charge.amount} : {}), ...(c.figure.charge.at ? {at: c.figure.charge.at} : {})});
+/** Whether the run solves for the field at P: not for a charge off a sphere's centre, a finite rod, or a cube round a
+ * charge, where no surface has the field the same all over it and the run ends on the flux. */
+export const answersAtP = (c: Charge, g: Surface) => c.kind !== 'offset' && c.kind !== 'segment' && g.kind !== 'cube';
 /** The plug's own surface through P: a sphere about the ball's hole, a cylinder about the rod's; none for a sheet's
  * disc, whose field on its axis comes from adding its rings. */
 export function plugSurface(charge: Charge, first: Surface, P: V3): Surface | null {
@@ -93,6 +98,8 @@ export function halfOf(c: GaussCase): number {
   const s = c.figure.surface, big = Math.max(s.size.max, ...boundaries(c.figure.charge), c.figure.charge.hole && c.figure.charge.kind !== 'sheethole' ? c.figure.charge.size : 0);
   if (s.kind === 'sphere') return Math.max(big, c.figure.charge.kind === 'offset' ? c.figure.charge.size + .5 : 0) + .55;
   if (s.kind === 'cylinder') return Math.hypot(big + .5, s.other + .2);
+  // A cube: its corners stand out to √3 times its half-width, which the turned view can show.
+  if (s.kind === 'cube') return big * 1.5 + .35;
   return Math.hypot(s.other + .4, big + .55);
 }
 /** Pixels per world unit: the half-extent fills the frame's height, less a margin for the labels. */
@@ -116,13 +123,22 @@ export function arrowLength(c: GaussCase, e: number): number {
   // A lesson may fix the scale for all its cases, so equal fields are drawn equal; otherwise the opening
   // surface's field, or where it sees none (inside a shell, in metal), the field the slider first reaches from
   // its outer end.
+  const ref = scaleOf(c);
+  if (!(ref > 0)) return 0;
+  return Math.max(.06, Math.min(1.6, .62 * Math.abs(e) / ref));
+}
+/** The field a case draws at the standard arrow length (`arrowLength`). */
+function scaleOf(c: GaussCase): number {
   const at = (size: number) => { const ch = chargeOf(c, 1), P = pointOn(surfaceOf(c, size), ch); return Math.abs(dot(fieldAt(ch, P.at), P.normal)); };
   const s = c.figure.surface.size;
   let ref = c.figure.reference ?? at(s.initial);
   for (let k = 0; !(ref > 0) && k <= 40; k++) ref = at(s.max - (s.max - s.min) * k / 40);
-  if (!(ref > 0)) return 0;
-  return Math.max(.06, Math.min(1.6, .62 * Math.abs(e) / ref));
+  return ref;
 }
+/** Where the field changes a lot over the surface and nothing is solved at P (a finite rod's, a charge in a cube's),
+ * its arrows are its whole message: so every patch's arrow is drawn on one linear scale for the frame, shrunk
+ * together until none is held to the longest length and none reaches past where the field turns round. */
+const fitsFrame = (c: Charge) => c.kind === 'segment' || (c.kind === 'point' && !!c.at);
 
 /** How long the arrow of the field `field` at `at` is drawn: its length by the scale, `k` times, cut short before
  * it would run into a place with no field (a conductor's metal, outside a cable, beyond a capacitor's far plate) or
@@ -149,6 +165,19 @@ export function slice(charge: Charge, g: Surface, fine: {around?: number; across
     const field = fieldAt(charge, mid), through = dot(field, normal), m = norm(field);
     out.push({key, part, a, b, mid, normal, field, through, zero: m < 1e-12 || Math.abs(through) < 1e-9 * m, ...(arc ? {arc} : {}), ...(g.center ? {about: v3(o.x, 0, o.z)} : {})});
   };
+  if (g.kind === 'cube') {
+    // The square the cube cuts in the plane y = 0: its east and west faces, its top and bottom.
+    const h = g.h, n = 3;
+    for (const [part, x] of [['east', h], ['west', -h]] as const) for (let i = 0; i < n; i++) {
+      const z0 = -h + 2 * h * i / n, z1 = -h + 2 * h * (i + 1) / n;
+      seg(`${part}-${i}`, part, [x, z0], [x, z1], v3(x, 0, (z0 + z1) / 2), v3(Math.sign(x), 0, 0));
+    }
+    for (const [part, z] of [['top', h], ['bottom', -h]] as const) for (let i = 0; i < n; i++) {
+      const x0 = -h + 2 * h * i / n, x1 = -h + 2 * h * (i + 1) / n;
+      seg(`${part}-${i}`, part, [x0, z], [x1, z], v3((x0 + x1) / 2, 0, z), v3(0, 0, Math.sign(z)));
+    }
+    return out.sort((a, b) => Number(a.zero) - Number(b.zero));
+  }
   if (g.kind === 'sphere') {
     const n = fine.around ?? 16, r = g.r;
     for (let i = 0; i < n; i++) {
@@ -172,7 +201,8 @@ export function slice(charge: Charge, g: Surface, fine: {around?: number; across
 /** Arrows of the field in space round the charge, before any surface is drawn: the shape symmetry forces. */
 export function spokes(charge: Charge): Spoke[] {
   const out: Spoke[] = [];
-  const add = (at: V3) => out.push({at, field: fieldAt(charge, at)});
+  // A point charge off the centre has its spokes round its own place.
+  const o = offOf(charge), add = (p: V3) => { const at = v3(p.x + o.x, p.y + o.y, p.z + o.z); out.push({at, field: fieldAt(charge, at)}); };
   const round = roundness(charge);
   if (round) {
     // Directions spread evenly over the sphere (a Fibonacci lattice), at a radius just clear of the charge, and
@@ -182,6 +212,8 @@ export function spokes(charge: Charge): Spoke[] {
   } else if (axialKind(charge)) {
     const rho = axialSpoke(charge);
     for (const z of [-.9, 0, .9]) for (let j = 0; j < 8; j++) { const a = 2 * Math.PI * (j + .5) / 8; add(v3(rho * Math.cos(a), rho * Math.sin(a), z)); }
+    // A finite rod's field on its axis beyond its ends, straight along it.
+    if (charge.kind === 'segment') for (const z of [charge.size + .35, -charge.size - .35]) add(v3(0, 0, z));
   } else {
     for (const x of [-1.2, 0, 1.2]) for (const y of [-1.2, 0, 1.2]) for (const z of planeSpokes(charge)) add(v3(x, y, z));
   }
@@ -189,7 +221,9 @@ export function spokes(charge: Charge): Spoke[] {
   for (const at of holeSpokes(charge, false)) add(at);
   return out;
 }
-const axialKind = (c: Charge) => c.kind === 'line' || c.kind === 'rod' || c.kind === 'tube' || c.kind === 'coax' || c.kind === 'rodhole';
+const axialKind = (c: Charge) => c.kind === 'line' || c.kind === 'rod' || c.kind === 'tube' || c.kind === 'coax' || c.kind === 'rodhole' || c.kind === 'segment';
+/** Where a point charge off the centre sits (a cube's), for its spokes. */
+const offOf = (c: Charge) => c.kind === 'point' && c.at ? c.at : v3(0, 0, 0);
 /** A few points in a ball's or a rod's hole, round its centre, for the Symmetry stage's arrows: in the cut's plane
  * for the cross-section, or about the hole in space. */
 function holeSpokes(c: Charge, flat: boolean): V3[] {
@@ -208,12 +242,13 @@ function roundness(c: Charge): [number, number][] | null {
   // Round a charge off the centre, at its own place (`lift`).
   if (c.kind === 'offset') return [[.9, 22]];
   if (c.kind === 'cavity') return [[c.size * .55, 10], [(c.outer ?? c.size * 2) + .35, 22]];
+  if (c.kind === 'point' && c.at) return [[.55, 22]];
   if (c.kind === 'point' || isBall(c.kind) || c.kind === 'shell' || c.kind === 'metal') return [[Math.max(c.size * 1.18, .55) + .35, 22]];
   if (c.kind === 'ballhole') return [[c.size + .35, 22]];
   return null;
 }
 /** The radius a cylinder's spokes stand at: where its field is, clear of it (between a coaxial pair's shells). */
-const axialSpoke = (c: Charge) => c.kind === 'coax' ? (c.size + (c.outer ?? c.size * 2)) / 2 : c.kind === 'line' ? .62 : c.size + (c.kind === 'rodhole' ? .3 : .45);
+const axialSpoke = (c: Charge) => c.kind === 'coax' ? (c.size + (c.outer ?? c.size * 2)) / 2 : c.kind === 'line' || c.kind === 'segment' ? .62 : c.size + (c.kind === 'rodhole' ? .3 : .45);
 /** The heights a flat charge's spokes stand at: either side of a sheet or a slab, only above a conductor's face,
  * only between a capacitor's plates. */
 /** How far up the axis a round charge's spokes are centred: a charge off the centre's own height. */
@@ -223,13 +258,14 @@ const planeSpokes = (c: Charge) => c.kind === 'face' ? [.42] : c.kind === 'plate
 /** The same arrows in the cross-section's plane, y = 0, for the flat figure. */
 export function flatSpokes(charge: Charge): Spoke[] {
   const out: Spoke[] = [];
-  const add = (x: number, z: number) => { const at = v3(x, 0, z); out.push({at, field: fieldAt(charge, at)}); };
+  const o = offOf(charge), add = (x: number, z: number) => { const at = v3(x + o.x, 0, z + o.z); out.push({at, field: fieldAt(charge, at)}); };
   const round = roundness(charge);
   if (round) {
     for (const [rho, n] of round) { const m = Math.max(8, Math.round(n * 12 / 22)); for (let i = 0; i < m; i++) { const a = 2 * Math.PI * (i + .5) / m; add(rho * Math.sin(a), lift(charge) + rho * Math.cos(a)); } }
   } else if (axialKind(charge)) {
     const rho = axialSpoke(charge);
     for (const z of [-.9, 0, .9]) for (const x of [-rho, rho]) add(x, z);
+    if (charge.kind === 'segment') for (const z of [charge.size + .35, -charge.size - .35]) add(0, z);
   } else {
     for (const x of [-1.6, -.8, 0, .8, 1.6]) for (const z of planeSpokes(charge)) add(x, z);
   }
@@ -244,7 +280,7 @@ export function build(c: GaussCase, size: number, sign: 1 | -1): Built {
   // carrying that piece's field alone: the whole charge's, then the plug's.
   const parts = piecesOf(charge);
   const solved: {charge: Charge; surface: Surface | null}[] = parts ? [{charge: parts[0], surface}, {charge: parts[1], surface: plugSurface(charge, surface, P)}] : [{charge, surface}];
-  const drawn: DrawnPatch[] = solved.flatMap(({charge: q, surface: g}, i) => g ? patches(g).map(p => {
+  const drawn: DrawnPatch[] = solved.flatMap(({charge: q, surface: g}, i) => g ? patches(g, i === 0 && c.figure.surface.cut ? c.figure.surface.cut : CUT[g.kind]).map(p => {
     const field = fieldAt(q, p.center);
     return {...p, zero: carriesNothing(q, p), through: throughPatch(q, p), field, span: arrowSpan(c, q, p.center, field), ...(parts ? {piece: i, key: `${i}${p.key}`} : {})};
   }) : []);
@@ -266,10 +302,16 @@ export function build(c: GaussCase, size: number, sign: 1 | -1): Built {
   // The patch that carries nothing named on the figure: the one that faces the opening camera most squarely.
   const facing = v3(-.42, -.78, .45);
   const zeroPatch = zeros.length ? zeros.reduce((best, p) => dot(p.normal, facing) > dot(best.normal, facing) ? p : best, zeros[0]) : null;
+  if (fitsFrame(charge)) {
+    const ref = scaleOf(c), raw = (e: V3) => .62 * norm(e) / ref, all = [...drawn.map(p => ({span: p.span, field: p.field})), ...cut.map(s => ({span: s.span, field: s.field}))];
+    const fit = Math.min(1, ...all.filter(a => raw(a.field) > 1e-12).map(a => a.span / raw(a.field)));
+    for (const p of drawn) p.span = raw(p.field) * fit;
+    for (const s of cut) s.span = raw(s.field) * fit;
+  }
   // The spokes are drawn from their anchors, a little shorter than the patches' arrows, and never into metal.
   const spoked = (list: Spoke[]) => list.map(s => ({...s, span: arrowSpan(c, charge, s.at, s.field, .85)}));
   return {charge, surface, patches: drawn, slice: cut, spokes: spoked(spokes(charge)), flatSpokes: spoked(flatSpokes(charge)),
-    P, normalAtP, fieldAtP, spanAtP: parts ? arrowLength(c, norm(fieldAtP)) : arrowSpan(c, charge, P, fieldAtP), answerAtP: charge.kind !== 'offset', namedPatch, zeroPatch, half: halfOf(c), unit: unitOf(c), ...(pieces ? {pieces} : {})};
+    P, normalAtP, fieldAtP, spanAtP: parts ? arrowLength(c, norm(fieldAtP)) : arrowSpan(c, charge, P, fieldAtP), answerAtP: answersAtP(charge, surface), markP: charge.kind === 'segment', namedPatch, zeroPatch, half: halfOf(c), unit: unitOf(c), ...(pieces ? {pieces} : {})};
 }
 /** The surface a patch or a segment lies on: the slider's, or the plug's. */
 export const surfaceOfPiece = (b: Built, piece?: number): Surface => (piece ? b.pieces?.[piece]?.surface : null) ?? b.surface;

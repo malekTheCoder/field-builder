@@ -192,5 +192,14 @@
 .gs-dvec-name{fill:var(--foreground)}
 .gs-centre{fill:var(--foreground)}
 .gs-hole-handle{cursor:grab}
-.gs-hole-svg,.gs-cube-svg{touch-action:none}
+.gs-holes .gs-q,.gs-cube .gs-q{touch-action:none}
+@media (max-width:600px){.gs-cube .gs-bar-name{font-size:22px}}
 .gs-hole-grip{fill:var(--foreground);fill-opacity:.55}
+/* When symmetry runs out: the cube cut through its middle, its edges as thick as their faces' shares, and the bars. */
+.gs-cube-face{fill:var(--field);fill-opacity:.05;stroke:none}
+.gs-cube-edge{stroke:var(--field);stroke-opacity:.75;stroke-linecap:round}
+.gs-bar-name{font-family:var(--font-ui),system-ui,sans-serif;font-size:14px;fill:var(--muted-foreground)}
+.gs-bar-track{fill:var(--muted-foreground);fill-opacity:.1}
+.gs-bar{fill:var(--field);fill-opacity:.8}
+.gs-bar.is-sum.is-alt{fill-opacity:.5}
+.gs-bar-sixth{stroke:var(--foreground);stroke-width:1.2;stroke-dasharray:3 3;stroke-opacity:.6}

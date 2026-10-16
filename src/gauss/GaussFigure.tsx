@@ -47,7 +47,7 @@ function insideName(c: GaussCase, b: Built): ReactNode {
   const k = c.figure.charge.kind, R = c.figure.charge.size, B = c.figure.charge.outer ?? R * 2, g = b.surface;
   // What is inside, as the right side writes it: all of a ball or a shell only once the surface is outside it.
   const q = c.figure.charge.symbol;
-  const tail = k === 'line' ? '= λL' : k === 'sheet' || k === 'face' || k === 'plates' ? '= σA' : k === 'point' ? `= ${q}` : k === 'offset' ? (g.r > R ? `= ${q}` : '= 0')
+  const tail = k === 'line' ? '= λL' : k === 'segment' ? '= 2λℓ' : k === 'sheet' || k === 'face' || k === 'plates' ? '= σA' : k === 'point' ? `= ${q}` : k === 'offset' ? (g.r > R ? `= ${q}` : '= 0')
     : isBall(k) ? (g.r >= R ? '= Q' : k === 'rising' ? '= Qr⁴/R⁴' : k === 'falling' ? '= Qr³(4R − 3r)/R⁴' : '= Qr³/R³')
     : k === 'shell' || k === 'metal' ? (g.r > R ? '= Q' : '= 0')
     : k === 'rod' ? (g.r >= R ? '= λL' : '= λLr²/R²') : k === 'tube' ? (g.r > R ? '= λL' : '= 0')
@@ -86,7 +86,8 @@ function signMarks(c: GaussCase['figure']['charge']): {at: V3; own: boolean}[] {
     case 'ballhole': return round(R * .72, [3.4, 4.3, 5.2, 2.5]).map(own);
     case 'rodhole': return [v3(-R * .55, 0, 1.7), v3(-R * .55, 0, -1.7)].map(own);
     case 'sheethole': return [v3(1.9, -1.4, 0), v3(-1.9, 1.5, 0), v3(2.1, 1.3, 0), v3(-1.6, -1.8, 0)].map(own);
-    default: return [own(v3(0, 0, 0))];
+    case 'segment': return [v3(0, 0, .2), v3(0, 0, -.35)].map(own);
+    default: return [own(c.at ?? v3(0, 0, 0))];
   }
 }
 export const GaussFigure = memo(function GaussFigure({kase, size, sign, run, view, onView}: Props) {
@@ -141,23 +142,23 @@ export const GaussFigure = memo(function GaussFigure({kase, size, sign, run, vie
   const clash = Math.hypot(nameE.x - nameDA.x, nameE.y - nameDA.y) < 34;
   const pAt = proj(built.P);
   const eTip = fieldLabelAt(built.P, built.fieldAtP, built.spanAtP);
-  const axial = c.kind === 'line' || c.kind === 'rod' || c.kind === 'tube' || c.kind === 'coax' || c.kind === 'rodhole', flat = c.kind === 'sheet' || c.kind === 'face' || c.kind === 'plates' || c.kind === 'sheethole';
+  const axial = c.kind === 'line' || c.kind === 'rod' || c.kind === 'tube' || c.kind === 'coax' || c.kind === 'rodhole' || c.kind === 'segment', flat = c.kind === 'sheet' || c.kind === 'face' || c.kind === 'plates' || c.kind === 'sheethole';
   // The charge inside is named under it; under the part of a ball the sphere encloses; above a charge off the centre
   // when it is inside, and at the centre, beneath the r, when it is outside and nothing is.
   const offsetIn = c.kind === 'offset' && g.r > c.size;
   const round = !axial, insideAt = proj(axial ? v3(0, 0, -g.h * .55) : flat ? v3(0, 0, c.kind === 'plates' ? g.h * .5 : -g.h * .5)
-    : c.kind === 'offset' ? v3(0, 0, offsetIn ? c.size + .48 : -.42) : c.kind === 'tent' ? v3(0, 0, -(Math.min(g.h, c.size) + .32))
+    : c.kind === 'offset' ? v3(0, 0, offsetIn ? c.size + .48 : -.42) : c.kind === 'point' && c.at ? add(c.at, v3(0, 0, -.42)) : c.kind === 'tent' ? v3(0, 0, -(Math.min(g.h, c.size) + .32))
     : v3(0, 0, -(c.kind === 'point' ? .42 : c.kind === 'cavity' || c.kind === 'metal' ? Math.max(g.r, c.size) + .32 : isBall(c.kind) ? Math.min(c.size, g.r) + .4 : c.size + .4)));
   // A superposition names its two surfaces' radii r₁ and r₂, the whole charge's and the plug's.
-  const plug = built.pieces?.[1]?.surface, sizeName = g.kind === 'pillbox' ? 'z' : plug ? 'r₁' : 'r';
-  const dimFrom = g.kind === 'pillbox' ? v3(-g.r - .28, 0, 0) : v3(0, 0, 0), dimTo = g.kind === 'pillbox' ? v3(-g.r - .28, 0, c.kind === 'plates' ? -g.h : g.h) : built.P;
+  const plug = built.pieces?.[1]?.surface, sizeName = g.kind === 'pillbox' ? 'z' : g.kind === 'cube' ? 'a' : plug ? 'r₁' : 'r';
+  const dimFrom = g.kind === 'pillbox' ? v3(-g.r - .28, 0, 0) : v3(0, 0, 0), dimTo = g.kind === 'pillbox' ? v3(-g.r - .28, 0, c.kind === 'plates' ? -g.h : g.h) : g.kind === 'cube' ? v3(-g.h, 0, 0) : built.P;
   const dimA = proj(dimFrom), dimB = proj(dimTo), dimMid = {x: (dimA.x + dimB.x) / 2, y: (dimA.y + dimB.y) / 2};
   // The plug's radius, from its centre (in the cut's plane) to P.
   const plugA = plug?.center ? proj(plug.center) : null, plugMid = plugA ? {x: (plugA.x + dimB.x) / 2, y: (plugA.y + dimB.y) / 2} : null;
   const glyph = sign > 0 ? '+' : '−';
   const marks = signMarks(c), other = sign > 0 ? '−' : '+';
   const chargeName = c.symbol === '\\lambda' ? 'λ' : c.symbol === '\\sigma' ? 'σ' : c.symbol === '\\rho' ? 'ρ' : c.symbol;
-  const chargeAt = proj(c.kind === 'line' || c.kind === 'rod' ? v3(0, 0, 2.2) : c.kind === 'rodhole' ? v3(-c.size * .55, 0, 2.2) : c.kind === 'tube' || c.kind === 'coax' ? v3(c.size, 0, 2.2) : flat ? v3(2.2, -1.9, 0) : c.kind === 'tent' ? v3(2.2, -1.9, c.size * .5)
+  const chargeAt = proj(c.kind === 'line' || c.kind === 'rod' ? v3(0, 0, 2.2) : c.kind === 'segment' ? v3(0, 0, c.size + .3) : c.kind === 'point' && c.at ? add(c.at, v3(0, 0, .32)) : c.kind === 'rodhole' ? v3(-c.size * .55, 0, 2.2) : c.kind === 'tube' || c.kind === 'coax' ? v3(c.size, 0, 2.2) : flat ? v3(2.2, -1.9, 0) : c.kind === 'tent' ? v3(2.2, -1.9, c.size * .5)
     : v3(0, 0, c.kind === 'ball' || c.kind === 'metal' || c.kind === 'shell' || c.kind === 'ballhole' || isBall(c.kind) ? c.size + .22 : c.kind === 'offset' ? c.size + .32 : .32));
   // A superposition's charge inside, piece by piece, where each is lit: the whole charge's, and the plug's.
   const pieceNames = built.pieces && showInside ? built.pieces.map((p, i) => {
@@ -191,7 +192,7 @@ export const GaussFigure = memo(function GaussFigure({kase, size, sign, run, vie
         {showFieldNames && zeroAt && look.sweep >= 1 - 1e-6 && (() => { const z = proj(zeroAt); return <Name x={z.x - 10} y={z.y + (g.kind === 'cylinder' ? -12 : 0)} anchor="end" className="gs-zero-name">E · dA = <tspan className="gs-zero">0</tspan></Name>; })()}
         {showInside && !pieceNames && <Name x={insideAt.x + (round ? 0 : 16)} y={insideAt.y} anchor={round ? 'middle' : 'start'} className="gs-inside-name">{insideName(kase, built)}</Name>}
         {pieceNames?.map((n, i) => <Name key={i} x={n.at.x} y={n.at.y} anchor={n.anchor} className="gs-inside-name">{n.text}</Name>)}
-        {built.answerAtP && (stage === null || stage === 'solve') && <>
+        {(built.answerAtP || built.markP) && (stage === null || stage === 'solve') && <>
           <circle className="gs-p" cx={pAt.x} cy={pAt.y} r={4.5} />
           <Name x={pAt.x + (g.kind === 'pillbox' ? 12 : 10)} y={pAt.y + (g.kind === 'pillbox' ? 18 : 16)} anchor="start" className="gs-p-name">P</Name>
         </>}
@@ -240,7 +241,7 @@ function Flat({built, look, lit, proj}: {built: Built; look: Look; lit: number; 
   const walls = (x: number, cls: string, half = 0) => <>{[-1, 1].map(k => <line key={k} className={cls} x1={o.x + k * x} y1={half ? o.y - half : -20} x2={o.x + k * x} y2={half ? o.y + half : 450} />)}</>;
   const ring = (r0: number, r1: number) => `M${o.x - r1} ${o.y}a${r1} ${r1} 0 1 0 ${2 * r1} 0a${r1} ${r1} 0 1 0 ${-2 * r1} 0Z` + (r0 > 0 ? `M${o.x - r0} ${o.y}a${r0} ${r0} 0 1 0 ${2 * r0} 0a${r0} ${r0} 0 1 0 ${-2 * r0} 0Z` : '');
   const gradient = useId().replace(/:/g, '');
-  const at = c.kind === 'offset' ? proj(v3(0, 0, c.size)) : o;
+  const at = c.kind === 'offset' ? proj(v3(0, 0, c.size)) : c.at ? proj(c.at) : o;
   const charge = c.kind === 'point' || c.kind === 'offset' ? <circle className="gs-charge" cx={at.x} cy={at.y} r={6} />
     : c.kind === 'ball' ? <circle className="gs-charge is-body" cx={o.x} cy={o.y} r={R} />
     // A ball whose density varies with r is shaded as it does: darker where there is more charge.
@@ -248,6 +249,7 @@ function Flat({built, look, lit, proj}: {built: Built; look: Look; lit: number; 
     : c.kind === 'tent' ? <rect className="gs-charge is-body is-graded" x={-20} y={o.y - R} width={760} height={2 * R} style={{fill: `url(#${gradient})`}} />
     : c.kind === 'shell' ? <circle className="gs-charge is-shell" cx={o.x} cy={o.y} r={R} />
     : c.kind === 'line' ? <line className="gs-charge is-line" x1={o.x} y1={-20} x2={o.x} y2={450} />
+    : c.kind === 'segment' ? <line className="gs-charge is-line" x1={o.x} y1={o.y - R} x2={o.x} y2={o.y + R} />
     : c.kind === 'sheet' ? <line className="gs-charge is-line" x1={-20} y1={o.y} x2={740} y2={o.y} />
     : c.kind === 'rod' ? <rect className="gs-charge is-body" x={o.x - R} y={-20} width={2 * R} height={470} />
     : c.kind === 'tube' ? walls(R, 'gs-charge is-line')
@@ -271,7 +273,8 @@ function Flat({built, look, lit, proj}: {built: Built; look: Look; lit: number; 
     if (q.kind === 'sheet') return <line key={i} className="gs-inside is-line" x1={o.x - g.r * u} y1={o.y} x2={o.x + g.r * u} y2={o.y} />;
     return null;
   });
-  const inside = look.enclosed > .02 && (built.pieces ? <>{pieceInside}</> : c.kind === 'point' ? <circle className="gs-inside" cx={o.x} cy={o.y} r={13} />
+  const inside = look.enclosed > .02 && (built.pieces ? <>{pieceInside}</> : c.kind === 'point' ? <circle className="gs-inside" cx={at.x} cy={at.y} r={13} />
+    : c.kind === 'segment' ? <line className="gs-inside is-line" x1={o.x} y1={o.y - Math.min(c.size, g.h) * u} x2={o.x} y2={o.y + Math.min(c.size, g.h) * u} />
     : c.kind === 'offset' ? g.r > c.size && <circle className="gs-inside" cx={at.x} cy={at.y} r={13} />
     : isBall(c.kind) ? <circle className={'gs-inside ' + (c.kind === 'ball' ? 'is-body' : 'is-shell')} cx={o.x} cy={o.y} r={Math.min(c.size, g.r) * u} /> : c.kind === 'shell' || c.kind === 'metal' ? g.r > c.size && <circle className="gs-inside is-shell" cx={o.x} cy={o.y} r={R} />
     : c.kind === 'line' ? <line className="gs-inside is-line" x1={o.x} y1={o.y - H} x2={o.x} y2={o.y + H} />

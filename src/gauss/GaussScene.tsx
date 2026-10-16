@@ -151,7 +151,9 @@ export function GaussScene(props: SceneProps) {
         patchArrows.length = 0; spokeArrows.length = 0;
         const c = b.charge, g = b.surface, reach = b.half * 2.2;
         // THE CHARGE, as a body: a point, a ball, a shell, a line, a sheet or a slab.
-        if (c.kind === 'point') charge.add(new THREE.Mesh(new THREE.SphereGeometry(.13, 24, 16), bodyMaterial));
+        if (c.kind === 'point') { const m = new THREE.Mesh(new THREE.SphereGeometry(.13, 24, 16), bodyMaterial); if (c.at) m.position.set(c.at.x, c.at.y, c.at.z); charge.add(m); }
+        // A finite rod: a line with ends.
+        if (c.kind === 'segment') { const m = new THREE.Mesh(new THREE.CylinderGeometry(.045, .045, 2 * c.size, 16), bodyMaterial); m.rotation.x = Math.PI / 2; charge.add(m); }
         if (c.kind === 'offset') { const m = new THREE.Mesh(new THREE.SphereGeometry(.13, 24, 16), bodyMaterial); m.position.set(0, 0, c.size); charge.add(m); }
         // A ball the Gaussian sphere cuts through is drawn translucent, so the sphere and its patches show inside it.
         if (isBall(c.kind)) charge.add(new THREE.Mesh(new THREE.SphereGeometry(c.size, 48, 32), g.r < c.size ? cutMaterial : bodyMaterial));
@@ -185,7 +187,8 @@ export function GaussScene(props: SceneProps) {
         }
         // THE CHARGE INSIDE, lit at the right side: the part of the charge the surface encloses.
         insideMesh = null;
-        if (c.kind === 'point') insideMesh = new THREE.Mesh(new THREE.SphereGeometry(.2, 24, 16), insideMaterial);
+        if (c.kind === 'point') { const m = new THREE.Mesh(new THREE.SphereGeometry(.2, 24, 16), insideMaterial); if (c.at) m.position.set(c.at.x, c.at.y, c.at.z); insideMesh = m; }
+        if (c.kind === 'segment') { const m = new THREE.Mesh(new THREE.CylinderGeometry(.075, .075, 2 * Math.min(c.size, g.h), 16), insideMaterial); m.rotation.x = Math.PI / 2; insideMesh = m; }
         if (c.kind === 'offset' && g.r > c.size) { const m = new THREE.Mesh(new THREE.SphereGeometry(.2, 24, 16), insideMaterial); m.position.set(0, 0, c.size); insideMesh = m; }
         // Inside a ball, the part enclosed sits just within the sphere, never over its patches.
         if (isBall(c.kind)) insideMesh = new THREE.Mesh(new THREE.SphereGeometry(Math.min(c.size * 1.01, g.r * .985), 48, 32), insideMaterial);
@@ -308,7 +311,7 @@ export function GaussScene(props: SceneProps) {
           lay(a, sp.at, d, len);
         });
         // P, and the field there once the run has solved for it.
-        if (P) { P.visible = b.answerAtP && (look.solve > .01 || look.stage === null); P.scale.setScalar(4.2 * px); P.position.set(b.P.x, b.P.y, b.P.z); }
+        if (P) { P.visible = (b.answerAtP || !!b.markP) && (look.solve > .01 || look.stage === null); P.scale.setScalar(4.2 * px); P.position.set(b.P.x, b.P.y, b.P.z); }
         // The answer: the field at P, drawn bold once the run has solved for it, and at rest.
         if (pArrow) { const len = b.spanAtP * look.solve; lay(pArrow, b.P, unitV(b.fieldAtP), b.answerAtP && (look.stage === 'solve' || look.stage === null) ? len : 0, 1.8); }
         // A superposition's answer is two fields added: the whole charge's from P, the plug's from its tip.

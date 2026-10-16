@@ -5,7 +5,8 @@ import {arrowLength, build, chainOf, drawnFlux, lookAt, REST, slice} from '../sr
 import {BANDS, CANDIDATES, CAVITY, MOVES, SPHERE_KINDS, START, bandShares, blob, cavityField, cavityLines, cavityTex, density, enclosedOf, fieldAlong, fieldOf, fluxTex, flowRound, insideBands, insideTex, isInside, moveBy, profile, profileReach, proposed, qencFraction, qencTex, regionOf, samples, shellCharge, survives, wallMarks, type Charged} from '../src/gauss/instruments';
 import {GAUSS_LESSONS, gaussLesson} from '../src/gauss';
 import {diskField, elliptic, lensArea, lensVolume, piecesOf, ringField} from '../src/gauss/physics';
-import {HOLE, holeAt, holeField, holePieces, holeTex} from '../src/gauss/instruments';
+import {HOLE, holeAt, holeField, holePieces, holeTex, cubeShares, FACES} from '../src/gauss/instruments';
+import {rectangleAngle, type V3} from '../src/gauss/physics';
 import {REGISTRY} from '../src/distributions';
 import {EPS0 as SI_EPS0} from '../src/distributions/constants';
 import type {Params} from '../src/problems/types';
@@ -197,7 +198,7 @@ describe('the figure’s plan', () => {
       if (Math.abs(inside) > 1e-12) expect(Math.sign(inside)).toBe(sign);
       } else {
         // A charge off the centre: no field at P is solved for, and the run ends on the flux.
-        expect(b.charge.kind).toBe('offset');
+        expect(['offset', 'segment', 'point']).toContain(b.charge.kind); expect(b.surface.kind === 'cube' || b.charge.kind !== 'point').toBe(true);
       }
       // The cross-section's segments carry the same zero parts as the patches, and are in the run's order.
       const zero = new Set(b.patches.filter(p => p.zero).map(p => p.part));
@@ -702,6 +703,95 @@ describe('holes by superposition: the figure adds the pieces honestly', () => {
       for (const l of [...b.pieces!.map(p => p.spanAtP), b.spanAtP]) { expect(l).toBeLessThan(1.6); expect(l).toBeGreaterThan(.06); }
       // Every patch that carries flux keeps its full length: none runs past where its own piece's field turns round.
       for (const p of b.patches.filter(q => !q.zero)) close(p.span, arrowLength(c, norm(p.field)), 1e-9);
+    }
+  });
+});
+
+/* WHEN SYMMETRY RUNS OUT: the law still holds through every surface, and the field still varies over it. The finite
+ * rod's field against a sum over its pieces, its flux through the drawn cylinder (exact per patch) and by brute force,
+ * the cube's faces by quadrature against their solid angles, both signs. */
+describe('when symmetry runs out', () => {
+  const rod = (s: 1 | -1): Charge => ({kind: 'segment', sign: s, size: 1});
+  it('the finite rod’s field is the sum of its pieces, and the integral lesson’s at its middle', () => {
+    for (const s of SIGNS) for (const p of [v3(.5, .2, .3), v3(1, 0, 1.4), v3(0, 0, 1.5), v3(.3, -.4, -.9)]) {
+      let e = v3(0, 0, 0); const n = 20000;
+      for (let i = 0; i < n; i++) { const z = -1 + 2 * (i + .5) / n, d = v3(p.x, p.y, p.z - z), r = norm(d), q = s * 2 / n; e = v3(e.x + q * d.x / r ** 3, e.y + q * d.y / r ** 3, e.z + q * d.z / r ** 3); }
+      const f = fieldAt(rod(s), p);
+      close(f.x, e.x, 1e-6); close(f.y, e.y, 1e-6); close(f.z, e.z, 1e-6);
+    }
+    // Beside the middle: 2kλℓ/(r√(r² + ℓ²)), the bisector lesson's kQ/(r√((L/2)² + r²)) with Q = 2λℓ.
+    for (const r of [.3, 1, 2.5]) close(fieldAt(rod(1), v3(r, 0, 0)).x, 2 / (r * Math.hypot(r, 1)), 1e-12);
+    // Close in, the infinite line's 2kλ/r; far off, a point charge's 2λℓ k/r².
+    close(fieldAt(rod(1), v3(1e-3, 0, 0)).x * 1e-3, 2, 1e-5);
+    close(fieldAt(rod(1), v3(1e3, 0, 0)).x * 1e6, 2, 1e-5);
+  });
+  it('the flux through the closed cylinder is 2λℓ/ε₀ at every radius, while E·n̂ changes from patch to patch and the ends carry flux', () => {
+    const c = gaussLesson('runs-out')!.cases.find(k => k.key === 'rod')!;
+    for (const s of SIGNS) for (const r of [.3, .7, 1.1, 1.6]) {
+      const b = build(c, r, s), g = b.surface;
+      close(drawnFlux(b) * EPS0, 2 * s, 1e-12);
+      close(numericFlux(rod(s), g, 120) * EPS0, 2 * s, 1e-4);
+      // On the wall E_s at the patches' centres is not one value: weaker toward the ends.
+      const wall = b.patches.filter(p => p.part === 'wall').map(p => p.through * s), ends = b.patches.filter(p => p.part !== 'wall');
+      expect(Math.max(...wall) / Math.min(...wall)).toBeGreaterThan(1.1);
+      // Each wall patch's drawn flux is its exact integral: a fine midpoint sum over the same patch agrees.
+      for (const p of b.patches.filter(q => q.part === 'wall').slice(0, 4)) {
+        const [z0, z1, f0, f1] = p.uv, m = 120; let t = 0;
+        for (let i = 0; i < m; i++) for (let j = 0; j < m; j++) {
+          const z = z0 + (z1 - z0) * (i + .5) / m, f = f0 + (f1 - f0) * (j + .5) / m, n = v3(Math.cos(f), Math.sin(f), 0);
+          t += dot(fieldAt(rod(s), v3(r * n.x, r * n.y, z)), n) * r * (z1 - z0) / m * (f1 - f0) / m;
+        }
+        close(p.through * p.area, t, 1e-5);
+      }
+      // The ends carry flux, out for a positive rod: none of them is zero.
+      for (const p of ends) { expect(p.zero).toBe(false); expect(Math.sign(p.through)).toBe(s); }
+      // Gauss's law, solved as if for an infinite line, would be wrong here: E at P is not λ/(2πε₀r).
+      expect(Math.abs(dot(b.fieldAtP, b.normalAtP) - s * 2 / r)).toBeGreaterThan(1e-3);
+      expect(b.answerAtP).toBe(false);
+    }
+  });
+  it('a point charge in a cube: each face’s flux is its solid angle, the six add to q/ε₀, and only at the centre is each a sixth', () => {
+    const face = (q: V3, n: V3, along1: V3, along2: V3, k = 400) => {
+      // Quadrature over the face of half-width 1 whose outward normal is n: midpoint in both directions.
+      let t = 0;
+      for (let i = 0; i < k; i++) for (let j = 0; j < k; j++) {
+        const u = -1 + 2 * (i + .5) / k, w = -1 + 2 * (j + .5) / k, x = v3(n.x + u * along1.x + w * along2.x, n.y + u * along1.y + w * along2.y, n.z + u * along1.z + w * along2.z), d = sub(x, q), r = norm(d);
+        t += dot(d, n) / r ** 3 * (2 / k) ** 2;
+      }
+      return t / (4 * Math.PI);
+    };
+    for (const q of [v3(.35, 0, .2), v3(-.6, .3, .7), v3(0, 0, 0)]) {
+      const shares = cubeShares(q);
+      close(shares.right, face(q, v3(1, 0, 0), v3(0, 1, 0), v3(0, 0, 1)), 1e-4);
+      close(shares.top, face(q, v3(0, 0, 1), v3(1, 0, 0), v3(0, 1, 0)), 1e-4);
+      close(shares.front, face(q, v3(0, -1, 0), v3(1, 0, 0), v3(0, 0, 1)), 1e-4);
+      close(Object.values(shares).reduce((a, b) => a + b, 0), 1, 1e-12);
+    }
+    for (const f of FACES) close(cubeShares(v3(0, 0, 0))[f], 1 / 6, 1e-12);
+    // Off centre the near face takes more.
+    expect(cubeShares(v3(.5, 0, 0)).right).toBeGreaterThan(cubeShares(v3(.5, 0, 0)).left);
+    // The figure's cube: its patches carry exactly q/ε₀, both signs, at every size; a charge outside gives none.
+    const c = gaussLesson('runs-out')!.cases.find(k => k.key === 'cube')!;
+    for (const s of SIGNS) for (const a of [.62, .85, 1.3]) {
+      const b = build(c, a, s);
+      close(drawnFlux(b) * EPS0, 2 * s, 1e-12);
+      close(numericFlux(b.charge, b.surface, 200) * EPS0, 2 * s, 1e-4);
+    }
+    const outside: Charge = {kind: 'point', sign: 1, size: 0, at: v3(1.5, .2, 0)};
+    close(patches({kind: 'cube', r: 1, h: 1}).reduce((t, p) => t + throughPatch(outside, p) * p.area, 0), 0, 1e-12);
+    // A whole plane fills half the sky; the face of a cube round its centre, a sixth.
+    close(rectangleAngle(1, -1e9, 1e9, -1e9, 1e9), 2 * Math.PI, 1e-6);
+    close(rectangleAngle(1, -1, 1, -1, 1), 4 * Math.PI / 6, 1e-12);
+  });
+});
+describe('when symmetry runs out: the arrows are the message', () => {
+  for (const key of ['rod', 'cube']) for (const sign of SIGNS) it(`${key} (${sign > 0 ? '+' : '−'}): every patch's arrow on one linear scale for the frame, none held to the longest, none past where the field turns`, () => {
+    const c = gaussLesson('runs-out')!.cases.find(k => k.key === key)!, s = c.figure.surface.size;
+    for (let k = 0; k <= 10; k++) {
+      const b = build(c, s.min + (s.max - s.min) * k / 10, sign);
+      const ratios = [...b.patches.map(p => ({span: p.span, e: norm(p.field)})), ...b.slice.map(q => ({span: q.span ?? 0, e: norm(q.field)}))].filter(a => a.e > 1e-12).map(a => a.span / a.e);
+      for (const r of ratios) close(r, ratios[0], 1e-9);
+      expect(Math.max(...b.patches.map(p => p.span))).toBeLessThanOrEqual(1.6 + 1e-12);
     }
   });
 });
