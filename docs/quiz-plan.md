@@ -1,5 +1,30 @@
 # Quiz yourself: plan
 
+## Adding a Gauss bank
+
+The quiz takes Gauss's law lessons as well as integral ones: a quiz "shape" is a `ShapeId`, a `ProblemId` or a
+`GaussId` (`src/quiz/types.ts`). Banks for `symmetry`, `flux`, `inside`, `qenc` and `spheres` exist; to add one of
+the other six (`lines`, `sheets`, `conductors`, `holes`, `runs-out`, `hard`):
+
+1. Write `src/quiz/bank/gauss-<id>.ts` exporting `bank: Question[]`, with `src/quiz/bank/gauss-spheres.ts` as the
+   template. Eight to ten questions, all four kinds, ids `<id>-<word>`, `lesson: '<id>'`, exactly one correct choice,
+   and a `misconception` and a `why` on every wrong one. Symbols as the lesson writes them; σ, never η.
+2. Register it in `BANKS` in `src/quiz/engine.ts` (`import {bank as gLines} from './bank/gauss-lines'`, then
+   `lines: gLines`). The set-up screen then ticks it in the Gauss's law group instead of "Coming soon"; nothing else
+   in the page changes.
+3. A review pointer is `{lesson: '<id>', stage: 'symmetry' | 'surface' | 'left' | 'right' | 'solve', case: '<case
+   key>'}` (the case is required when the lesson has more than one) or `{lesson: '<id>', section: '<heading>'}`, the
+   heading one of the lesson's `sections` or `Check the answer` / `Easy to confuse with`, with an optional `case`.
+   Links open `?g=<id>` and the words say which case to pick and where to look (`place()` in engine.ts).
+4. Misconceptions: reuse the Gauss ones at the end of `src/quiz/misconceptions.ts` (zero flux, the whole field,
+   Q_enc, the shell integrals, L or A left in, the boundary at R, the angle from the normal, diameter, symmetry),
+   adding the new lesson's pointers to their `review` lists; add a new one only for a genuinely new slip, and use
+   it, since a test fails on an unused misconception.
+5. Check every claim by number in `tests/quiz-physics.test.ts` (the `Gauss:` blocks have `sphereFlux`, `pointsE`,
+   `sheetEz`, `shellCharges` and `shells`), for both signs, each test well under a second and a half.
+6. Run `npx tsc --noEmit && npx oxlint`, `npx vitest run --project unit`, and
+   `npx vitest run --project browser tests/quiz.browser.test.tsx` (it fits every question at 390 px by itself).
+
 Status: plan only, waiting for the owner's OK (asked 2026-10-13).
 
 The owner wants the quiz to be its own place, separate from the lessons: the student picks which shapes

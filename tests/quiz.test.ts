@@ -48,6 +48,7 @@ describe('the bank', () => {
   for (const shape of integral) expect(PROBLEMS.some(p => p.id === shape) && isReady(shape as ProblemId), shape).toBe(true);
   expect([...integral].sort()).toEqual(PROBLEMS.map(p => p.id).sort());
   for (const shape of gauss) expect(isGaussReady(shape), shape).toBe(true);
+  expect(gauss.length).toBeGreaterThanOrEqual(5);
   for (const [shape, qs] of Object.entries(BANKS)) {
    expect(qs!.length, shape).toBeGreaterThanOrEqual(8); expect(qs!.length, shape).toBeLessThanOrEqual(10);
    expect(qs!.every(q => q.lesson === shape && q.id.startsWith(shape + '-')), shape).toBe(true);
@@ -231,8 +232,10 @@ describe('the address', () => {
   expect(viewOf(shapeHref('flux'))).toBe('gauss');
   const stage = place({lesson: 'spheres', stage: 'right', case: 'shell'});
   expect(stage.href).toBe('?g=spheres');
-  expect(stage.title).toBe('Spheres, Shell, Right side');
-  expect(stage.where).toBe('Opens the lesson. Choose Shell, then press Watch it build and step to Right side.');
+  // The case by the label the lesson's picker gives it.
+  const shell = gaussLesson('spheres')!.cases.find(c => c.key === 'shell')!.label;
+  expect(stage.title).toBe(`Spheres, Right side (${shell})`);
+  expect(stage.where).toBe(`Opens the lesson. Choose “${shell}”, then press Watch it build and step to Right side.`);
   // A lesson with one case names none.
   expect(place({lesson: 'flux', stage: 'left'}).title).toBe('Flux, the idea, Left side');
   expect(place({lesson: 'flux', section: 'Easy to confuse with'}).where).toBe('Opens the lesson. Look under Easy to confuse with, below the figure.');

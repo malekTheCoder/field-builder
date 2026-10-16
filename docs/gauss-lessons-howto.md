@@ -101,7 +101,7 @@ crosses; `starFlux` checks it by quadrature through the same surface.
 2. Add `<id>` to `GAUSS_READY` in `src/problems/readiness.ts`. The lesson list, the library and the home page then
    show it as a link to `?g=<id>`; the rest stay "Coming soon".
 3. Point the previous lesson's `next` at it if it was not already.
-4. Add its quiz bank later under `src/quiz/` (the quiz has no Gauss banks yet).
+4. Add its quiz bank, `src/quiz/bank/gauss-<id>.ts`: [quiz-plan.md](quiz-plan.md), "Adding a Gauss bank", says how.
 
 ## Tests to run
 

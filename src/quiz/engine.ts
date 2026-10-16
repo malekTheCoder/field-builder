@@ -21,6 +21,11 @@ import {bank as arc} from './bank/arc';
 import {bank as vRing} from './bank/v-ring';
 import {bank as vDisk} from './bank/v-disk';
 import {bank as vArc} from './bank/v-arc';
+import {bank as gSymmetry} from './bank/gauss-symmetry';
+import {bank as gFlux} from './bank/gauss-flux';
+import {bank as gInside} from './bank/gauss-inside';
+import {bank as gQenc} from './bank/gauss-qenc';
+import {bank as gSpheres} from './bank/gauss-spheres';
 
 /* THE QUIZ'S ENGINE: pure functions, no React and no page, so every rule here is tested in node. It draws a
  * quiz from the shapes, kinds and length the student chose; scores it; finds the misconceptions behind the
@@ -33,6 +38,7 @@ export const BANKS: Partial<Record<ShapeId, Question[]>> = {
   bisector, ring, infinite,
   axial, endpoint, ramp, semi, 'v-rod-bisector': vRodBisector, 'v-rod-axial': vRodAxial,
   disk, sheet, arc, 'v-ring': vRing, 'v-disk': vDisk, 'v-arc': vArc,
+  symmetry: gSymmetry, flux: gFlux, inside: gInside, qenc: gQenc, spheres: gSpheres,
 };
 export const BANK: Question[] = Object.values(BANKS).flat();
 export const QUESTION = new Map(BANK.map(q => [q.id, q]));
@@ -245,8 +251,10 @@ export function pointerWord(p: Pointer): string {
  * the words say which case to pick, when there is a choice, and which stage of Watch it build or which section. */
 function gaussPlace(p: GaussPointer): {href: string; title: string; where: string} {
   const lesson = gaussLesson(p.lesson)!, kase = p.case ? lesson.cases.find(c => c.key === p.case) : undefined;
-  const pick = kase && lesson.cases.length > 1 ? `Choose ${kase.label}, then ` : '';
-  const title = [lesson.short, kase && lesson.cases.length > 1 ? kase.label : '', pointerWord(p)].filter(Boolean).join(', ');
+  // A case's label may hold a comma of its own (Slab, densest at its middle), so it is quoted or bracketed.
+  const named = kase && lesson.cases.length > 1 ? kase.label : '';
+  const pick = named ? `Choose “${named}”, then ` : '';
+  const title = `${lesson.short}, ${pointerWord(p)}${named ? ` (${named})` : ''}`;
   const say = (s: string) => pick ? pick + s.charAt(0).toLowerCase() + s.slice(1) : s;
   if ('stage' in p) return {href: gaussHref(p.lesson), title, where: `Opens the lesson. ${say(`Press Watch it build and step to ${GAUSS_STAGE_NAME[p.stage]}.`)}`};
   return {href: gaussHref(p.lesson), title,

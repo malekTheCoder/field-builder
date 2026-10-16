@@ -160,6 +160,43 @@ describe('quiz yourself', () => {
   expect(r.getByText('Your history is cleared.')).toBeTruthy();
  }, 30000);
 
+ it('quizzes on a Gauss lesson: the group ticks as one, and every link opens the lesson at ?g=', async () => {
+  const r = await openQuiz();
+  const gauss = QUIZ_SHAPES.filter(isGauss);
+  // "All in this group" is pressed while the whole group is ticked; pressing it unticks the group, and again ticks it.
+  const all = r.getByRole('button', {name: 'All in this group: Gauss’s law'});
+  expect(all.getAttribute('aria-pressed')).toBe('true');
+  await userEvent.click(all);
+  for (const id of gauss) expect((r.getByRole('checkbox', {name: shapeName(id)}) as HTMLInputElement).checked, id).toBe(false);
+  expect(all.getAttribute('aria-pressed')).toBe('false');
+  await userEvent.click(all);
+  for (const id of gauss) expect((r.getByRole('checkbox', {name: shapeName(id)}) as HTMLInputElement).checked, id).toBe(true);
+  await keepOnly(r, ['spheres']);
+  await userEvent.click(r.getByRole('button', {name: /Start the quiz/}));
+  await waitFor(() => expect(document.activeElement?.id).toBe('quiz-question'));
+  for (let i = 0; i < 6; i++) {
+   const {q} = onScreen();
+   expect(q.lesson).toBe('spheres');
+   expect(r.container.querySelector('.quiz-meta-shape')!.textContent).toBe('Spheres');
+   await answer(r, i < 2 ? q.choices.find(c => !c.correct)!.misconception! : null, true);
+   expect(r.container.querySelector('.quiz-taught')!.textContent).toMatch(/^Taught in Spheres, /);
+   expect(words(r.container)).not.toMatch(/[0-9]/);
+   await userEvent.click(r.getByRole('button', {name: i < 5 ? /Next question/ : /See how it went/}));
+  }
+  await r.findByRole('heading', {level: 1, name: 'How it went'});
+  expect(words(r.container)).not.toMatch(/[0-9]/);
+  const weak = r.getByRole('heading', {level: 2, name: 'Your weak spots'}).closest('section')!;
+  const links = within(weak as HTMLElement).getAllByRole('link');
+  expect(links.length).toBeGreaterThan(0);
+  for (const a of links) expect(a.getAttribute('href')).toBe('?g=spheres');
+  expect(r.getByRole('link', {name: 'Spheres'}).getAttribute('href')).toBe('?g=spheres');
+  // Following one opens the Gauss lesson; Back returns to the end screen.
+  await userEvent.click(links[0]);
+  expect(await r.findByRole('heading', {level: 1, name: 'Spheres'})).toBeTruthy();
+  window.history.back();
+  expect(await r.findByRole('heading', {level: 1, name: 'How it went'})).toBeTruthy();
+ }, 30000);
+
  it('brings missed questions back first, and quizzes again on the weak spots', async () => {
   localStorage.setItem(HISTORY_KEY, JSON.stringify({missed: ['infinite-dq'], asked: ['infinite-dq'], misconceptions: {jacobian: 1}}));
   const r = await openQuiz();
