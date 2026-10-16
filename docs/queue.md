@@ -6,8 +6,6 @@ then to **Done**, with the commit. Newest requests are added at the bottom of **
 owner says they are urgent.
 
 ## In progress
-- **Figure zoom**: clipping fixed in the agent's worktree; smoothness being finished (agent resumed after a
-  network drop).
 - **Gauss's law, building** (owner, 2026-10-15: "do the gauss law stuff too"): the 11-lesson list from
   [gauss-law-plan.md](gauss-law-plan.md). One agent builds the foundation (lesson model, ?g= routing, page,
   the five-stage run, the 3D Gaussian-surface figure) and the first two lessons (Symmetry first; Flux, the
@@ -20,6 +18,12 @@ owner says they are urgent.
    spherical shell, an annulus, a rod with P off its bisector.
 
 ## Done
+- 2026-10-15, owner: the figure's zoom bled and stuttered. Zoomed in, the rod's length bar ran from the card's top
+  through the caption into the controls and its + marks stood by the heading and the zoom buttons: only the field,
+  the body and the arrows were cut to the plot's window. Every stroke is now cut to it, marks are drawn only inside
+  it, names whose thing has left it are hidden, never cut, and the zoom ceiling fits P to the window (056dd10). The
+  zoom now glides to the level asked for, one render a frame, names placed and the field retraced (if at all) once
+  it lands; Reduce Motion steps; a trackpad pinch zooms at a usable rate (a5210c1). There is no panning to check.
 - 2026-10-15, owner, urgent: Cut it up did nothing on every lesson (the charge was drawn cut and named from its
   first frame; in space the cuts were on the wall clock; Reduced Motion skipped it). It now starts whole, cuts in
   order, then names ΔQ, flat and in space, stepped under Reduced Motion (de611de). The sum at P says what it is:
