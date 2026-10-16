@@ -22,7 +22,7 @@ type GaussLesson = {
   read: Reading[];               // OpenStax UP2 ch. 6 §6.x with URLs, Griffiths §2.2, Purcell ch. 1 or 2
   cases: GaussCase[];            // one, or several the reader picks between
   traps: Trap[];                 // {wrong, right}: the misconceptions, shown as "Easy to confuse with"
-  instrument?: 'symmetry' | 'flux';
+  instrument?: 'symmetry' | 'flux' | 'profile' | 'cavity' | 'inside' | 'qenc' | 'plot';
   next?: GaussId;                // the Next card, when that lesson is ready
   related?: {field: ProblemId; text: string};  // else the related integral lesson
 };
@@ -52,8 +52,10 @@ its density integral when there is one (write the integral, `\int_0^r\rho(r')\,4
 
 ## The figure
 
-The figure draws itself from the case: `figure.charge.kind` is one of `point | shell | ball | line | sheet | slab`
-(`size` is R for a shell or a ball, the half-thickness a for a slab), and `figure.surface.kind` is
+The figure draws itself from the case: `figure.charge.kind` is one of `point | shell | ball | line | sheet | slab`,
+or `offset` (a point charge a distance `size` up the axis from the sphere's centre, inside or outside it: the run then
+ends on a flux and draws no field at P), `rising` and `falling` (balls with ρ ∝ r and ρ ∝ 1 − r/R) and `tent` (a slab
+with ρ ∝ 1 − |z|/a) (`size` is R for a shell or a ball, the half-thickness a for a slab), and `figure.surface.kind` is
 `sphere | cylinder | pillbox`. The slider moves a sphere's or a cylinder's radius, or a pillbox's face height;
 `other` is the fixed dimension (a cylinder's half-length, a pillbox's face radius). The surface is placed centred on
 the charge, or straddling the sheet.

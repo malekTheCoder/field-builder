@@ -30,6 +30,7 @@ import {CavityInstrument} from './CavityInstrument';
 import {regionOf} from './instruments';
 import {InsideInstrument} from './InsideInstrument';
 import {QencInstrument} from './QencInstrument';
+import {FieldPlot} from './FieldPlot';
 import {GaussListFamily, GaussLibraryFamily} from './GaussFamily';
 import type {Sym} from './instruments';
 import '../explorer/explorer.css';
@@ -258,6 +259,7 @@ export default function GaussLesson() {
             {lesson.instrument === 'cavity' && <CavityInstrument sign={sign} />}
             {lesson.instrument === 'inside' && <InsideInstrument sign={sign} />}
             {lesson.instrument === 'qenc' && <QencInstrument />}
+            {lesson.instrument === 'plot' && <FieldPlot kase={kase} size={size} sign={sign} />}
           </div>
           <GaussBoard kase={kase} flux={lesson.id === 'flux' || lesson.id === 'inside'} build={boardBuild} onStep={boardStep} />
         </div>

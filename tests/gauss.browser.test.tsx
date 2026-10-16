@@ -189,6 +189,26 @@ describe('Q_enc from a density', () => {
   }, 20000);
 });
 
+describe('Spheres', () => {
+  it('the plot follows the case and the slider: the shell’s jump, no field inside it, one curve outside', async () => {
+    const view = await open('spheres');
+    fireEvent.click(view.getByRole('button', {name: 'Shell'}));
+    const plot = document.querySelector<HTMLElement>('.gs-plot')!;
+    expect(plot.querySelector('.gs-jump')).toBeTruthy();
+    expect(plot.querySelector('.gs-readout p')?.textContent).toContain('Outside R');
+    const slider = view.getByRole('slider', {name: 'Radius r'});
+    slider.focus();
+    await userEvent.keyboard('{Home}');
+    await waitFor(() => expect(plot.querySelector('.gs-readout p')?.textContent).toContain('Inside the shell'));
+    // At rest the figure names the field at P, which inside the shell is zero.
+    expect([...document.querySelectorAll('.gs-figure .gs-field-name.is-answer')].map(n => n.textContent)).toContain('E = 0');
+    fireEvent.click(view.getByRole('button', {name: 'Uniform ball'}));
+    expect(plot.querySelector('.gs-jump')).toBeNull();
+    expect(plot.querySelector('.gs-meet')).toBeTruthy();
+    expect(document.querySelector('.gs-board .ew-problem-text')?.textContent).toContain('spread evenly through its volume');
+  }, 20000);
+});
+
 describe('the symmetry instrument', () => {
   let real: typeof window.matchMedia;
   beforeEach(() => {
