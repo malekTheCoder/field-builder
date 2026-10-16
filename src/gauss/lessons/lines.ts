@@ -136,7 +136,7 @@ export const lesson: GaussLesson = {
       ],
     },
     {
-      key: 'tube', label: 'Shell',
+      key: 'tube', label: 'Cylindrical shell',
       figure: {charge: {kind: 'tube', size: 1.005, symbol: raw`\lambda`, name: 'a long thin cylindrical shell of charge', bounds: ['R']}, surface: {kind: 'cylinder', size: {min: .4, max: 2.4, initial: .6}, other: 1.1, label: 'Radius r',
         regions: [
           {name: 'inside the shell', tex: raw`E_r=0`, say: raw`Inside, the cylinder encloses no charge, so the field is zero everywhere in the hollow.`},
@@ -181,7 +181,7 @@ export const lesson: GaussLesson = {
       ],
     },
     {
-      key: 'coax', label: 'Coaxial',
+      key: 'coax', label: 'Coaxial cable',
       figure: {charge: {kind: 'coax', size: .805, outer: 1.705, symbol: raw`\lambda`, name: 'two coaxial cylindrical shells, carrying opposite charges', bounds: ['a', 'b']}, surface: {kind: 'cylinder', size: {min: .4, max: 2.4, initial: 1.25}, other: 1.1, label: 'Radius r',
         regions: [
           {name: 'inside both shells', tex: raw`E_r=0`, say: raw`Inside both shells the cylinder encloses nothing: no field.`},

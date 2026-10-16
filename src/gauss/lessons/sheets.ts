@@ -91,7 +91,7 @@ export const lesson: GaussLesson = {
       ],
     },
     {
-      key: 'slab', label: 'Slab',
+      key: 'slab', label: 'Thick slab',
       figure: {charge: {kind: 'slab', size: .6, symbol: raw`\rho`, name: 'a thick slab of charge', bounds: ['a']}, surface: {kind: 'pillbox', size: {min: .2, max: 1.6, initial: .4}, other: .85, label: 'Height z',
         regions: [
           {name: 'inside the slab', tex: raw`E_\perp=\frac{\rho z}{\varepsilon_0}`, say: raw`Inside, the pillbox holds a block of thickness $2z$, and the field grows in step with $z$.`},
@@ -136,7 +136,7 @@ export const lesson: GaussLesson = {
       ],
     },
     {
-      key: 'plates', label: 'Two sheets',
+      key: 'plates', label: 'Two sheets (a capacitor)',
       figure: {charge: {kind: 'plates', size: 1.2, symbol: raw`\sigma`, name: 'two parallel sheets carrying opposite charges', bounds: ['d']}, surface: {kind: 'pillbox', size: {min: .3, max: 1.02, initial: .6}, other: .85, label: 'Height z',
         regions: [
           {name: 'between the plates', tex: raw`E_\perp=\frac{\sigma}{\varepsilon_0}`, say: raw`Between the plates the two sheets’ fields add, whatever the distance from either.`},

@@ -88,7 +88,7 @@ export const lesson: GaussLesson = {
       ],
     },
     {
-      key: 'shell', label: 'Shell',
+      key: 'shell', label: 'Thin shell',
       figure: {charge: {kind: 'shell', size: 1.105, symbol: 'Q', name: 'a thin charged shell'}, surface: {kind: 'sphere', size: {min: .45, max: 2.4, initial: 1.75}, other: 0, label: 'Radius r'}},
       setup: raw`A thin spherical shell of radius $R$ carries a charge $Q$ spread evenly over its surface, $\sigma=Q/4\pi R^2$. Find the field a distance $r$ from its centre, inside the shell and outside it.`,
       symmetry: {

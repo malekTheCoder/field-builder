@@ -66,6 +66,11 @@
 .gs-instrument-lede{margin:0;font-size:var(--type-meta);line-height:1.55;color:var(--muted-foreground);max-width:62ch;text-wrap:pretty}
 .gs-choices{display:flex;flex-wrap:wrap;gap:8px 18px;margin:4px 0 6px}
 .gs-choices .cd-view-modes,.gs-choice .cd-view-modes,.gs-moves{flex-wrap:wrap}
+/* A case picker with more than two cases is a list, one case to a row, rather than a segmented bar that
+   breaks into a ragged second and third line. */
+.gs-choice .cd-view-modes:has(> :nth-child(3)){display:grid;grid-template-columns:1fr;justify-items:stretch}
+.gs-choice .cd-view-modes:has(> :nth-child(3))>.cd-view-mode{text-align:left}
+.gs-choice-about{margin:6px 0 0;max-width:36ch;font-size:var(--t-fine,14px);color:var(--muted-foreground);text-wrap:pretty}
 .gs-symmetry-svg,.gs-instrument-svg{display:block;width:100%;height:auto;max-height:420px;overflow:visible;-webkit-user-select:none;user-select:none}
 .gs-moves{display:flex;align-items:center;gap:8px;margin-top:8px}
 .gs-move{padding:6px 12px;border:1px solid var(--border-strong);border-radius:var(--radius-control,14px);background:var(--card);color:var(--foreground);font:inherit;font-size:var(--type-meta);cursor:pointer;transition:border-color var(--dur-state,.16s) var(--ease,ease)}

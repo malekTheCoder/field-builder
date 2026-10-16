@@ -95,7 +95,7 @@ export const lesson: GaussLesson = {
       ],
     },
     {
-      key: 'face', label: 'Its surface',
+      key: 'face', label: 'Just outside its surface',
       figure: {charge: {kind: 'face', size: 0, symbol: raw`\sigma`, name: 'the flat face of a large charged metal plate'}, surface: {kind: 'pillbox', size: {min: .25, max: 1.2, initial: .55}, other: .85, label: 'Height z'}, reference: FACE},
       setup: raw`Close to a charged conductor at rest, its surface looks flat and the charge on it looks even. Here, the face of a large flat metal plate, carrying $\sigma$ per unit area on this face. Find the field just outside.`,
       symmetry: {
@@ -136,7 +136,7 @@ export const lesson: GaussLesson = {
       ],
     },
     {
-      key: 'cavity', label: 'Hollow',
+      key: 'cavity', label: 'A charge in a hollow',
       figure: {charge: {kind: 'cavity', size: .655, outer: 1.355, symbol: 'q', name: 'a neutral metal ball with a charge in a hollow at its centre', bounds: ['a', 'b']}, surface: {kind: 'sphere', size: {min: .35, max: 2.4, initial: 1}, other: 0, label: 'Radius r',
         regions: [
           {name: 'in the hollow', tex: raw`E_r=${POINT}`, say: raw`In the hollow the sphere holds only $q$: its field.`},

@@ -154,7 +154,7 @@ describe('why only the charge inside', () => {
     const f = frames();
     try {
       const view = await open('inside');
-      fireEvent.click(view.getByRole('button', {name: 'Outside'}));
+      fireEvent.click(view.getByRole('button', {name: 'Charge outside'}));
       expect(document.querySelector('.gs-board .ew-problem-text')?.textContent).toContain('outside a sphere');
       expect(document.querySelector('.gs-p')).toBeNull();
       fireEvent.click(view.getByRole('button', {name: 'Watch it build'}));
@@ -192,7 +192,7 @@ describe('Q_enc from a density', () => {
 describe('Spheres', () => {
   it('the plot follows the case and the slider: the shell’s jump, no field inside it, one curve outside', async () => {
     const view = await open('spheres');
-    fireEvent.click(view.getByRole('button', {name: 'Shell'}));
+    fireEvent.click(view.getByRole('button', {name: 'Thin shell'}));
     const plot = document.querySelector<HTMLElement>('.gs-plot')!;
     expect(plot.querySelector('.gs-jump')).toBeTruthy();
     expect(plot.querySelector('.gs-readout p')?.textContent).toContain('Outside R');
@@ -385,7 +385,7 @@ describe('a charge in a cube', () => {
 describe('the hard cases', () => {
   it('the sign-changing slab: the slider runs from below the slab to above it, region by region, said aloud', async () => {
     const view = await open('hard');
-    fireEvent.click(view.getByRole('button', {name: 'Sign-changing slab'}));
+    fireEvent.click(view.getByRole('button', {name: 'A slab whose charge changes sign'}));
     const slider = view.getByRole('slider', {name: 'Height z'});
     expect(slider.getAttribute('aria-valuetext')).toBe('inside the slab');
     slider.focus();
@@ -395,7 +395,7 @@ describe('the hard cases', () => {
     await userEvent.keyboard('{End}');
     await waitFor(() => expect(slider.getAttribute('aria-valuetext')).toBe('above the slab'));
     // Backwards: the answer is a density.
-    fireEvent.click(view.getByRole('button', {name: 'Backwards'}));
+    fireEvent.click(view.getByRole('button', {name: 'Given the field, find the charge'}));
     expect(document.querySelector('.gs-board .ew-result-label')?.textContent).toBe('The answer, the density at r');
   }, 20000);
   it('ends the section on a card home, and follows When symmetry runs out', async () => {

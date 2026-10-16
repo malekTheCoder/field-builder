@@ -215,7 +215,10 @@ export default function GaussLesson() {
   const signRow = <div className="exp-range gs-choice"><div><span><span className="exp-name">Sign of the charge</span></span></div>
     <div className="cd-view-modes" role="group" aria-label="Sign of the charge">{([['Positive', 1], ['Negative', -1]] as const).map(([label, value]) => <button key={label} type="button" className={'cd-view-mode' + (sign === value ? ' is-on' : '')} aria-pressed={sign === value} onClick={() => setSign(value)}>{label}</button>)}</div></div>;
   const caseRow = lesson.cases.length > 1 && <div className="exp-range gs-choice"><div><span><span className="exp-name">The charge</span></span></div>
-    <div className="cd-view-modes" role="group" aria-label="The charge">{lesson.cases.map(c => <button key={c.key} type="button" className={'cd-view-mode' + (kase.key === c.key ? ' is-on' : '')} aria-pressed={kase.key === c.key} onClick={() => setCaseKey(c.key)}>{c.label}</button>)}</div></div>;
+    <div className="cd-view-modes" role="group" aria-label="The charge">{lesson.cases.map(c => <button key={c.key} type="button" className={'cd-view-mode' + (kase.key === c.key ? ' is-on' : '')} aria-pressed={kase.key === c.key} onClick={() => setCaseKey(c.key)}>{c.label}</button>)}</div>
+    {/* The buttons name the cases; this says what the chosen one IS, in a sentence. "No edge" or "Backwards"
+        alone left a reader guessing, so the chosen charge is described under them, and read aloud with them. */}
+    <p className="gs-choice-about" aria-live="polite">{kase.figure.charge.name ? kase.figure.charge.name.charAt(0).toUpperCase() + kase.figure.charge.name.slice(1) + '.' : ''}</p></div>;
   const toBuild = useSteady(() => { const t = watchButton.current; if (!t) return; t.scrollIntoView({block: 'center', behavior: reduced ? 'auto' : 'smooth'}); t.focus({preventScroll: true}); });
   const toggleLesson = useSteady(() => setLessonOpen(v => !v));
   const running = runOpen ? ' is-running' + (settled ? ' is-settled' : '') : '';

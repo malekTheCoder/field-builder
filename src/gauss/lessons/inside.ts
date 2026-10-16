@@ -51,7 +51,7 @@ export const lesson: GaussLesson = {
   ],
   cases: [
     {
-      key: 'centred', label: 'Centred',
+      key: 'centred', label: 'Charge at the centre',
       figure: {charge: {kind: 'point', size: 0, symbol: 'q', name: 'a point charge at the centre'}, surface: {kind: 'sphere', size: {min: .75, max: 2.6, initial: 1.7}, other: 0, label: 'Radius r'}},
       setup: raw`Step one. A point charge $q$ sits at the centre of a sphere of radius $r$. Find the flux $\Phi$ out through the sphere.`,
       symmetry: {
@@ -91,7 +91,7 @@ export const lesson: GaussLesson = {
       ],
     },
     {
-      key: 'off', label: 'Off centre',
+      key: 'off', label: 'Charge off centre',
       figure: {charge: {kind: 'offset', size: .8, symbol: 'q', name: 'a point charge off the centre'}, surface: {kind: 'sphere', size: {min: 1.25, max: 2.6, initial: 1.7}, other: 0, label: 'Radius r'}},
       setup: raw`Step two. A point charge $q$ sits inside a sphere of radius $r$, but not at its centre. Find the flux $\Phi$ out through the sphere.`,
       symmetry: {
@@ -132,7 +132,7 @@ export const lesson: GaussLesson = {
       ],
     },
     {
-      key: 'outside', label: 'Outside',
+      key: 'outside', label: 'Charge outside',
       figure: {charge: {kind: 'offset', size: 2.15, symbol: 'q', name: 'a point charge'}, surface: {kind: 'sphere', size: {min: .8, max: 1.7, initial: 1.3}, other: 0, label: 'Radius r'}},
       setup: raw`Step three. A point charge $q$ sits outside a sphere of radius $r$. Find the flux $\Phi$ out through the sphere.`,
       symmetry: {

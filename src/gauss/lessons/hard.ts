@@ -51,7 +51,7 @@ export const lesson: GaussLesson = {
   ],
   cases: [
     {
-      key: 'halo', label: 'No edge',
+      key: 'halo', label: 'A halo with no edge',
       figure: {charge: {kind: 'halo', size: .6, symbol: raw`\rho`, name: 'a halo of charge with no edge, its density falling as one over r squared far out'},
         surface: {kind: 'sphere', size: {min: .3, max: 2.4, initial: 1.2}, other: 0, label: 'Radius r'}, reference: REFERENCE},
       setup: raw`Charge fills all of space with density $\rho=\rho_0a^2/(r^2+a^2)$, where $r$ is the distance from a centre. Find the field everywhere, and say how it falls far away.`,
@@ -93,7 +93,7 @@ export const lesson: GaussLesson = {
       ],
     },
     {
-      key: 'cusp', label: 'Blows up',
+      key: 'cusp', label: 'Density that blows up at the centre',
       figure: {charge: {kind: 'cusp', size: 1.1, symbol: raw`\rho`, name: 'a ball whose density blows up at its centre, as one over r', bounds: ['R'], amount: .5},
         surface: {kind: 'sphere', size: {min: .75, max: 2.2, initial: .9}, other: 0, label: 'Radius r',
           regions: [
@@ -139,7 +139,7 @@ export const lesson: GaussLesson = {
       ],
     },
     {
-      key: 'backwards', label: 'Backwards',
+      key: 'backwards', label: 'Given the field, find the charge',
       figure: {charge: {kind: 'rising', size: 1.1, symbol: raw`\rho`, name: 'a ball whose field is given, its charge to be found', bounds: ['R'], amount: 3, insideNames: ['= 4πε₀E_R r⁴/R²', '= 4πε₀E_R R²']},
         surface: {kind: 'sphere', size: {min: .3, max: 2.2, initial: .75}, other: 0, label: 'Radius r',
           regions: [
@@ -188,7 +188,7 @@ export const lesson: GaussLesson = {
       ],
     },
     {
-      key: 'odd', label: 'Sign-changing slab',
+      key: 'odd', label: 'A slab whose charge changes sign',
       figure: {charge: {kind: 'oddslab', size: .6, symbol: raw`\rho`, name: 'a slab whose density changes sign at its middle', bounds: ['−a', 'a'], amount: .375},
         surface: {kind: 'pillbox', size: {min: -.85, max: 1.2, initial: .2}, other: .8, label: 'Height z', low: -1,
           regions: [

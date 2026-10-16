@@ -133,7 +133,7 @@ export const lesson: GaussLesson = {
       ],
     },
     {
-      key: 'slab', label: 'Slab',
+      key: 'slab', label: 'Slab, densest at its middle',
       figure: {charge: {kind: 'tent', size: .7, symbol: raw`\rho`, name: 'a slab whose density falls from its middle plane'}, surface: {kind: 'pillbox', size: {min: .2, max: 1.5, initial: .45}, other: .85, label: 'Height z'}},
       setup: raw`A slab of thickness $2a$, infinite in its other two directions, has a density $\rho=\rho_0(1-|z|/a)$: greatest on its middle plane and zero at its faces, with $\rho_0$ given. Find the field a height $z$ above the middle plane.`,
       symmetry: {
