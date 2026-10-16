@@ -1,18 +1,18 @@
 'use client';
 import {useEffect,useMemo,useRef,useState,useSyncExternalStore,type ReactNode} from 'react';
 import {ArrowRight,Check,ClipboardCheck,Moon,RotateCcw,Sun,X} from 'lucide-react';
-import {getProblem,PROBLEMS} from '../problems/definitions';
+import {PROBLEMS} from '../problems/definitions';
 import {isReady} from '../problems/readiness';
-import type {ProblemId} from '../problems/types';
 import {HOME_HREF,QUIZ_HREF,goHome,inPlace,navigate} from '../state/route';
-import {FAMILIES,ShapeGlyph} from '../explorer/lessons';
+import {FAMILIES,GAUSS,PlannedGlyph,ShapeGlyph,plannedName} from '../explorer/lessons';
+import {isGaussReady} from '../gauss';
 import {Brand} from '../explorer/Brand';
 import {STORAGE} from '../explorer/Explorer';
 import {MathText,Prose} from '../components/Math';
 import {Hint} from '../components/Hint';
-import {BANKS,DEFAULT_SETTINGS,KINDS,LENGTHS,QUESTION,stageName,clearHistory,confidence,correctIndex,draw,drawAgain,drawWeak,grade,hasHistory,inWords,place,pointerFor,readHistory,record,score,toRevisit,weakSpots,writeHistory,type Drawn,type History,type Result,type Settings} from './engine';
+import {BANKS,DEFAULT_SETTINGS,KINDS,LENGTHS,QUESTION,isGauss,pointerWord,shapeHref,shapeShort,shapeTitle,clearHistory,confidence,correctIndex,draw,drawAgain,drawWeak,grade,hasHistory,inWords,place,pointerFor,readHistory,record,score,toRevisit,weakSpots,writeHistory,type Drawn,type History,type Result,type Settings} from './engine';
 import {MISCONCEPTION} from './misconceptions';
-import type {Answer,Choice,Kind,Pointer} from './types';
+import type {Answer,Choice,Kind,Pointer,ShapeId} from './types';
 import '../explorer/explorer.css';
 import './quiz.css';
 
@@ -38,10 +38,14 @@ export function QuizLink(){
  return <a className="quiz-entry" href={QUIZ_HREF} onClick={open}><ClipboardCheck size={16} aria-hidden="true"/><span><span className="quiz-entry-kicker">Ready to test it?</span> Quiz yourself</span><ArrowRight size={14} aria-hidden="true"/></a>;
 }
 
+/** A shape's glyph: an integral lesson's drawn geometry, or a Gauss lesson's mark. */
+const Glyph=({id,size}:{id:ShapeId;size:number})=>isGauss(id)?<PlannedGlyph id={id} size={size}/>:<ShapeGlyph id={id} size={size}/>;
+/** A shape's name, or a place's, with `Q_enc` set as Q with enc below it. */
+const Named=({text}:{text:string})=><>{plannedName(text)}</>;
 /** A choice as it is set: a formula, or words with symbols in them. */
 const ChoiceBody=({c}:{c:Choice})=>c.tex?<MathText tex={c.tex}/>:<Prose text={c.text??''}/>;
 /** A place on the site to look, as a link with a line on what it opens. */
-function Place({p}:{p:Pointer}){const x=place(p);return <span className="quiz-place"><a href={x.href} onClick={open}><ShapeGlyph id={p.lesson} size={15}/>{x.title}</a><small>{x.where}</small></span>}
+function Place({p}:{p:Pointer}){const x=place(p);return <span className="quiz-place"><a href={x.href} onClick={open}><Glyph id={p.lesson} size={15}/><Named text={x.title}/></a><small>{x.where}</small></span>}
 /** How a shape went, in words, for a page that shows no numerals. */
 function howItWent(right:number,total:number){
  if(right===total)return 'All right';
@@ -71,7 +75,7 @@ export default function Quiz(){
  const [settings,setSettings]=useState<Settings>(()=>{
   if(kept)return kept.settings;
   // `?quiz=ring` opens with that shape ticked: a lesson can link straight to a quiz on itself.
-  const asked=(new URLSearchParams(location.search).get('quiz')??'').split(',').filter(id=>id in BANKS) as ProblemId[];
+  const asked=(new URLSearchParams(location.search).get('quiz')??'').split(',').filter(id=>id in BANKS) as ShapeId[];
   return asked.length?{...DEFAULT_SETTINGS,shapes:asked}:DEFAULT_SETTINGS;
  });
  const [drawn,setDrawn]=useState<Drawn[]>(()=>kept?kept.items.map(i=>({question:QUESTION.get(i.id)!,order:i.order})):[]);
@@ -134,9 +138,15 @@ export default function Quiz(){
 }
 
 /* ---------- Set up ---------- */
+/** The set-up screen's groups: the integral lessons' families as the home page has them, then Gauss's law, each
+ * with only its lessons a reader can open. */
+function groups():{key:string;label:string;ids:ShapeId[]}[]{
+ const live=new Set(PROBLEMS.filter(p=>isReady(p.id)).map(p=>p.id));
+ return [...FAMILIES.map(f=>({key:f.ids[0],label:f.label,ids:f.ids.filter(id=>live.has(id)) as ShapeId[]})),
+  {key:GAUSS.key,label:GAUSS.label,ids:GAUSS.lessons.map(l=>l.key).filter(isGaussReady)}].filter(g=>g.ids.length>0);
+}
 function SetUp({settings,setSettings,onStart,nudge,hist,onForget,cleared}:{settings:Settings;setSettings:(s:Settings)=>void;onStart:(e:{preventDefault():void})=>void;nudge:string;hist:History;onForget:()=>void;cleared:boolean}){
  const toggle=<T,>(list:T[],x:T)=>list.includes(x)?list.filter(y=>y!==x):[...list,x];
- const live=new Set(PROBLEMS.filter(p=>isReady(p.id)).map(p=>p.id));
  const missed=hist.missed.filter(id=>settings.shapes.includes(QUESTION.get(id)!.lesson)).length;
  return <>
   <header className="quiz-hero">
@@ -147,13 +157,17 @@ function SetUp({settings,setSettings,onStart,nudge,hist,onForget,cleared}:{setti
   <form className="quiz-setup" onSubmit={onStart} noValidate>
    <fieldset className="quiz-group">
     <legend>Shapes</legend>
-    <p className="quiz-help">Questions for three shapes are written so far. The rest are on their way.</p>
-    {FAMILIES.map(f=>{const ids=f.ids.filter(id=>live.has(id));if(!ids.length)return null;return <div className="quiz-family" key={f.label}>
-     <p className="quiz-family-name" id={`quiz-fam-${f.ids[0]}`}>{f.label}</p>
-     <ul className="quiz-shapes" aria-labelledby={`quiz-fam-${f.ids[0]}`}>{ids.map(id=>{const ready=!!BANKS[id],p=getProblem(id);return <li key={id}>
-      <label className={'quiz-shape'+(ready?'':' is-soon')}>
-       <input type="checkbox" checked={ready&&settings.shapes.includes(id)} disabled={!ready} onChange={()=>setSettings({...settings,shapes:toggle(settings.shapes,id)})} aria-describedby={ready?undefined:'quiz-soon'}/>
-       <span className="quiz-shape-glyph"><ShapeGlyph id={id} size={18}/></span><span className="quiz-shape-name">{p.short}</span>{!ready&&<span className="quiz-soon" aria-hidden="true">Coming soon</span>}
+    <p className="quiz-help">Every integral lesson has its questions. Gauss’s law is being added a few lessons at a time; the rest are marked coming soon.</p>
+    {groups().map(f=>{const ready=f.ids.filter(id=>BANKS[id]),all=ready.length>0&&ready.every(id=>settings.shapes.includes(id));return <div className="quiz-family" key={f.key}>
+     <div className="quiz-family-head">
+      <p className="quiz-family-name" id={`quiz-fam-${f.key}`}>{f.label}</p>
+      {/* Ticks every shape of the group that has questions, or, when they all are, unticks them. */}
+      {ready.length>1&&<button type="button" className="quiz-quiet quiz-all" aria-pressed={all} aria-label={`All in this group: ${f.label}`} onClick={()=>setSettings({...settings,shapes:all?settings.shapes.filter(id=>!ready.includes(id)):[...settings.shapes,...ready.filter(id=>!settings.shapes.includes(id))]})}>All in this group</button>}
+     </div>
+     <ul className="quiz-shapes" aria-labelledby={`quiz-fam-${f.key}`}>{f.ids.map(id=>{const has=!!BANKS[id];return <li key={id}>
+      <label className={'quiz-shape'+(has?'':' is-soon')}>
+       <input type="checkbox" checked={has&&settings.shapes.includes(id)} disabled={!has} onChange={()=>setSettings({...settings,shapes:toggle(settings.shapes,id)})} aria-describedby={has?undefined:'quiz-soon'}/>
+       <span className="quiz-shape-glyph"><Glyph id={id} size={18}/></span><span className="quiz-shape-name"><Named text={shapeShort(id)}/></span>{!has&&<span className="quiz-soon" aria-hidden="true">Coming soon</span>}
       </label></li>})}</ul></div>})}
     <span id="quiz-soon" className="sr-only">Coming soon</span>
    </fieldset>
@@ -190,7 +204,7 @@ function HistoryNote({hist,onForget,cleared,note}:{hist:History;onForget:()=>voi
 
 /* ---------- Taking it ---------- */
 function Take({drawn,index,total,pick,setPick,onCheck,onNext,nudge,last}:{drawn:Drawn;index:number;total:number;pick:Pick;setPick:(p:Pick)=>void;onCheck:()=>void;onNext:()=>void;nudge:string;last:boolean}){
- const q=drawn.question,right=correctIndex(q),p=getProblem(q.lesson);
+ const q=drawn.question,right=correctIndex(q);
  const chosen=pick.choice===null?null:q.choices[pick.choice];
  const wasRight=pick.checked&&pick.choice===right;
  const done=index+(pick.checked?1:0);
@@ -198,7 +212,7 @@ function Take({drawn,index,total,pick,setPick,onCheck,onNext,nudge,last}:{drawn:
  const kind=KINDS.find(k=>k.id===q.kind)!.name;
  return <section className="quiz-take" aria-labelledby="quiz-question">
   <progress className="quiz-progress" aria-label="Progress through the quiz" max={total} value={done} aria-valuetext={`${capital(inWords(done))} of ${inWords(total)} answered`}/>
-  <p className="quiz-meta"><span className="quiz-meta-shape"><ShapeGlyph id={q.lesson} size={16}/>{p.short}</span><span className="quiz-meta-kind">{kind}</span></p>
+  <p className="quiz-meta"><span className="quiz-meta-shape"><Glyph id={q.lesson} size={16}/><Named text={shapeShort(q.lesson)}/></span><span className="quiz-meta-kind">{kind}</span></p>
   <h2 id="quiz-question" tabIndex={-1} className="quiz-prompt"><Prose text={q.prompt}/></h2>
   <fieldset className="quiz-choices" disabled={pick.checked}>
    <legend className="sr-only">Choose an answer</legend>
@@ -232,7 +246,7 @@ function Take({drawn,index,total,pick,setPick,onCheck,onNext,nudge,last}:{drawn:
     <p className="quiz-label">Why the right answer is right</p>
     <p><Prose text={q.explanation}/></p>
    </div>
-   <p className="quiz-taught">Taught in {place(q.review).title}.</p>
+   <p className="quiz-taught">Taught in <Named text={place(q.review).title}/>.</p>
    <button type="button" className="quiz-primary" onClick={onNext}>{last?'See how it went':'Next question'}<ArrowRight size={16} aria-hidden="true"/></button>
   </div>}
  </section>;
@@ -255,7 +269,7 @@ function End({results,before,onRetry,onWeak,onNew,onForget,cleared,hist}:{result
   <section className="quiz-card" aria-labelledby="quiz-by-shape">
    <h2 id="quiz-by-shape">By shape</h2>
    <ul className="quiz-bars">{s.byShape.map(b=><li key={b.lesson}>
-    <span className="quiz-bar-name"><ShapeGlyph id={b.lesson} size={16}/>{getProblem(b.lesson).short}</span>
+    <span className="quiz-bar-name"><Glyph id={b.lesson} size={16}/><Named text={shapeShort(b.lesson)}/></span>
     <span className="quiz-bar" aria-hidden="true"><span style={{width:`${b.right/b.total*100}%`}}/></span><span className="sr-only">{capital(inWords(b.right))} of {inWords(b.total)} right.</span>
     <span className="quiz-bar-words">{howItWent(b.right,b.total)}</span>
    </li>)}</ul>
@@ -285,8 +299,8 @@ function End({results,before,onRetry,onWeak,onNew,onForget,cleared,hist}:{result
     <button type="button" className="quiz-secondary" onClick={onNew}>Start a new quiz</button>
    </div>
    {revisit.length>0&&<><h3 className="quiz-sub">Lessons to revisit</h3><ul className="quiz-revisit">{revisit.map(x=><li key={x.lesson}>
-    <a className="quiz-lesson" href={`?p=${x.lesson}`} onClick={open}><span className="quiz-shape-glyph"><ShapeGlyph id={x.lesson} size={18}/></span><strong>{getProblem(x.lesson).title}</strong><ArrowRight size={15} aria-hidden="true"/></a>
-    <p className="quiz-revisit-where">Look at {x.pointers.map(p=>'stage' in p?stageName(p.lesson,p.stage):p.section).filter((v,i,a)=>a.indexOf(v)===i).join(', ')}.</p>
+    <a className="quiz-lesson" href={shapeHref(x.lesson)} onClick={open}><span className="quiz-shape-glyph"><Glyph id={x.lesson} size={18}/></span><strong><Named text={shapeTitle(x.lesson)}/></strong><ArrowRight size={15} aria-hidden="true"/></a>
+    <p className="quiz-revisit-where">Look at {x.pointers.map(pointerWord).filter((v,i,a)=>a.indexOf(v)===i).join(', ')}.</p>
    </li>)}</ul></>}
   </section>
   <HistoryNote hist={hist} onForget={onForget} cleared={cleared}/>

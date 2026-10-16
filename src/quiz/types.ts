@@ -1,5 +1,7 @@
 import type {ProblemId} from '../problems/types';
 import type {STAGE_WORDS} from '../state/assignment';
+import type {GaussId} from '../gauss/types';
+import type {GaussStageKey} from '../gauss/run';
 
 /* QUIZ YOURSELF. The owner wanted the quizzes to be their own place, not part of a lesson: the student picks
  * the shapes, questions are drawn from a bank for those shapes, and the end says what to look at again. Every
@@ -11,10 +13,21 @@ export type Kind = 'predict' | 'setup' | 'check' | 'transfer';
 /** A stage of Watch it build, by the word an address writes it in (`?p=ring&stage=cancel`). */
 export type StageWord = typeof STAGE_WORDS[number];
 
+/** WHAT A QUIZ CAN BE ON: an integral lesson, by its ProblemId (`?p=ring`), or a Gauss's law lesson, by its
+ * GaussId (`?g=spheres`). The two sets of ids never share a name, so one key says which. The set-up screen
+ * still calls them shapes, as the home page does. */
+export type ShapeId = ProblemId | GaussId;
+
 /** Where to look to fix something: a lesson opened at a stage of Watch it build, or a lesson and a section of
  * its page. A section is a heading of the lesson's own text (Read the lesson), or one of the page's parts below
  * the build, `Limiting cases` and `Easy to confuse with`. */
-export type Pointer = {lesson: ProblemId; stage: StageWord} | {lesson: ProblemId; section: string};
+export type IntegralPointer = {lesson: ProblemId; stage: StageWord} | {lesson: ProblemId; section: string};
+/** The same for a Gauss lesson: a stage of its run (Symmetry, The surface, Left side, Right side, Solve), or a
+ * section, a heading of its text or one of its parts below the figure, `Check the answer` and `Easy to confuse
+ * with`. `case` names the case to pick first (`shell` on Spheres), where the lesson has more than one and the
+ * idea lives in one of them; a stage always belongs to a case, so it is required there when there is a choice. */
+export type GaussPointer = {lesson: GaussId; stage: GaussStageKey; case?: string} | {lesson: GaussId; section: string; case?: string};
+export type Pointer = IntegralPointer | GaussPointer;
 
 /** One choice. Its words are `text` (Prose: symbols in $…$) or a formula, `tex`. Exactly one choice of a
  * question is `correct`; every other names the misconception it comes from, and says in `why` what it gets
@@ -24,7 +37,7 @@ export type Choice = {text?: string; tex?: string; correct?: true; misconception
 export type Question = {
   /** Stable for ever: history keeps it. `<lesson>-<word>`. */
   id: string;
-  lesson: ProblemId;
+  lesson: ShapeId;
   kind: Kind;
   /** The question, in Prose: symbols in $…$, no numerals outside them. */
   prompt: string;

@@ -4,7 +4,10 @@ import {afterEach, beforeEach, describe, expect, it} from 'vitest';
 import {page, userEvent} from 'vitest/browser';
 import Site, {newVisit} from '../src/home/Site';
 import {getProblem, PROBLEMS} from '../src/problems/definitions';
-import {BANK, BANKS, DEFAULT_SETTINGS, HISTORY_KEY, QUESTION, QUIZ_SHAPES} from '../src/quiz/engine';
+import {BANK, BANKS, DEFAULT_SETTINGS, HISTORY_KEY, QUESTION, QUIZ_SHAPES, isGauss, shapeShort} from '../src/quiz/engine';
+import type {ShapeId} from '../src/quiz/types';
+import {GAUSS} from '../src/explorer/lessons';
+import {isGaussReady} from '../src/gauss';
 import {MISCONCEPTION} from '../src/quiz/misconceptions';
 
 /* QUIZ YOURSELF, in the page: set up, take, the end screen's weak spots and their links, retry, history and
@@ -15,6 +18,8 @@ const seen = () => localStorage.setItem(STORE, JSON.stringify({id: 'bisector', h
 const words = (el: Element) => { const c = el.cloneNode(true) as Element; c.querySelectorAll('.katex').forEach(k => k.remove()); return c.textContent ?? ''; };
 type Snap = {items: {id: string; order: number[]}[]; index: number};
 const snap = () => (history.state as {quiz: Snap}).quiz;
+/** A shape's tick box is named as the page sets its name: Q_enc reads as Qenc, Q with enc below it. */
+const shapeName = (id: ShapeId) => shapeShort(id).replace('Q_enc', 'Qenc');
 /** The question on screen, and the radio for each of its choices, in the order shown. */
 function onScreen() {
  const s = snap(), item = s.items[s.index], q = QUESTION.get(item.id)!;
@@ -39,7 +44,7 @@ async function openQuiz() {
 }
 /** Untick every shape but these, from the set-up screen's default of every shape with a bank. */
 async function keepOnly(r: ReturnType<typeof render>, keep: string[]) {
- for (const id of QUIZ_SHAPES) if (!keep.includes(id)) await userEvent.click(r.getByRole('checkbox', {name: getProblem(id).short}));
+ for (const id of QUIZ_SHAPES) if (!keep.includes(id)) await userEvent.click(r.getByRole('checkbox', {name: shapeName(id)}));
 }
 /** Answer the question on screen: with the given misconception's choice, or right; sure or guessing. */
 async function answer(r: ReturnType<typeof render>, wrong: string | null, sure: boolean) {
@@ -69,11 +74,15 @@ describe('quiz yourself', () => {
  it('sets up with every shape that has a bank ready and the rest coming soon, every kind on, and no numerals', async () => {
   const r = await openQuiz();
   for (const id of QUIZ_SHAPES) {
-   const box = r.getByRole('checkbox', {name: getProblem(id).short}) as HTMLInputElement;
+   const box = r.getByRole('checkbox', {name: shapeName(id)}) as HTMLInputElement;
    expect(box.disabled).toBe(false); expect(box.checked).toBe(true);
   }
-  for (const p of PROBLEMS.filter(x => !BANKS[x.id])) expect((r.getByRole('checkbox', {name: p.short}) as HTMLInputElement).disabled).toBe(true);
-  expect(r.getAllByRole('checkbox').filter(b => (b as HTMLInputElement).disabled).length).toBe(PROBLEMS.length - QUIZ_SHAPES.length);
+  // The Gauss's law family sits beside the integral ones: its lessons with a bank are ticked, the rest coming soon.
+  expect(r.getByText('Gauss’s law', {selector: '.quiz-family-name'})).toBeTruthy();
+  const soon = [...PROBLEMS.filter(x => !BANKS[x.id]).map(p => p.id as ShapeId), ...GAUSS.lessons.map(l => l.key).filter(isGaussReady).filter(id => !BANKS[id])];
+  expect(soon.some(isGauss)).toBe(true);
+  for (const id of soon) expect((r.getByRole('checkbox', {name: shapeName(id)}) as HTMLInputElement).disabled, id).toBe(true);
+  expect(r.getAllByRole('checkbox').filter(b => (b as HTMLInputElement).disabled).length).toBe(soon.length);
   for (const k of ['Predict', 'Set up', 'Check', 'Transfer']) expect((r.getByRole('checkbox', {name: new RegExp(`^${k}`)}) as HTMLInputElement).checked).toBe(true);
   expect((r.getByRole('radio', {name: /^Short/}) as HTMLInputElement).checked).toBe(true);
   expect(words(r.container)).not.toMatch(/[0-9]/);

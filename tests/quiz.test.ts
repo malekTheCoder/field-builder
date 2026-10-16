@@ -5,9 +5,12 @@ import {isReady} from '../src/problems/readiness';
 import {lessonFor} from '../src/lessons';
 import {STAGE_WORDS} from '../src/state/assignment';
 import {viewOf} from '../src/state/route';
+import {gaussLesson, isGaussReady} from '../src/gauss';
+import {STAGE_KEYS} from '../src/gauss/run';
 import {MISCONCEPTION, MISCONCEPTIONS} from '../src/quiz/misconceptions';
-import {BANK, BANKS, HISTORY_KEY, PAGE_SECTIONS, QUIZ_SHAPES, clearHistory, confidence, draw, drawAgain, drawWeak, emptyHistory, grade, inWords, place, pointerFor, readHistory, record, score, tally, toRevisit, weakSpots, writeHistory, type Drawn} from '../src/quiz/engine';
+import {BANK, BANKS, GAUSS_PAGE_SECTIONS, HISTORY_KEY, PAGE_SECTIONS, QUIZ_SHAPES, isGauss, isGaussPointer, pointerWord, shapeHref, clearHistory, confidence, draw, drawAgain, drawWeak, emptyHistory, grade, inWords, place, pointerFor, readHistory, record, score, tally, toRevisit, weakSpots, writeHistory, type Drawn} from '../src/quiz/engine';
 import type {Answer, Pointer, Question} from '../src/quiz/types';
+import type {ProblemId} from '../src/problems/types';
 
 /* QUIZ YOURSELF, the bank and the engine. The bank's rules (docs/quiz-plan.md): exactly one right choice, a
  * named misconception and a reason on every wrong one, a real place to look for every question and every
@@ -21,6 +24,15 @@ const prose = (q: Question) => [q.prompt, q.explanation, ...q.choices.flatMap(c 
 const texOf = (q: Question) => [...prose(q).flatMap(t => t.split('$').filter((_, i) => i % 2)), ...q.choices.flatMap(c => c.tex ?? [])];
 const outsideMath = (t: string) => t.split('$').filter((_, i) => i % 2 === 0).join(' ');
 const pointerIsReal = (p: Pointer) => {
+ if (isGaussPointer(p)) {
+  // A Gauss lesson, ready; its case, if it names one, one of the lesson's; a stage of the run, which belongs to a
+  // case, so it names one where there is a choice; or a heading of its text or a part below its figure.
+  const l = gaussLesson(p.lesson);
+  if (!l || !isGaussReady(p.lesson)) return `${p.lesson} is not a live Gauss lesson`;
+  if (p.case !== undefined && !l.cases.some(c => c.key === p.case)) return `${p.lesson} has no case ${p.case}`;
+  if ('stage' in p) return !(STAGE_KEYS as readonly string[]).includes(p.stage) ? `${p.stage} is not a stage` : l.cases.length > 1 && !p.case ? `${p.lesson}: a stage needs its case` : '';
+  return l.sections.some(s => s.heading === p.section) || GAUSS_PAGE_SECTIONS.includes(p.section) ? '' : `${p.lesson} has no section ${p.section}`;
+ }
  if (!PROBLEMS.some(x => x.id === p.lesson) || !isReady(p.lesson)) return `${p.lesson} is not a live lesson`;
  if ('stage' in p) return (STAGE_WORDS as readonly string[]).includes(p.stage) ? '' : `${p.stage} is not a stage`;
  const headings = lessonFor(p.lesson)?.sections.map(s => s.heading) ?? [];
@@ -30,9 +42,12 @@ const pointerIsReal = (p: Pointer) => {
 
 describe('the bank', () => {
  it('has eight to ten questions for each of its shapes, with unique ids, and all four kinds', () => {
-  // Every shape with a bank is a live lesson, and every lesson now has its bank.
-  for (const shape of QUIZ_SHAPES) expect(PROBLEMS.some(p => p.id === shape) && isReady(shape), shape).toBe(true);
-  expect([...QUIZ_SHAPES].sort()).toEqual(PROBLEMS.map(p => p.id).sort());
+  // Every shape with a bank is a live lesson: every integral lesson has its bank, and the Gauss lessons with one
+  // are ready ones.
+  const integral = QUIZ_SHAPES.filter(id => !isGauss(id)), gauss = QUIZ_SHAPES.filter(isGauss);
+  for (const shape of integral) expect(PROBLEMS.some(p => p.id === shape) && isReady(shape as ProblemId), shape).toBe(true);
+  expect([...integral].sort()).toEqual(PROBLEMS.map(p => p.id).sort());
+  for (const shape of gauss) expect(isGaussReady(shape), shape).toBe(true);
   for (const [shape, qs] of Object.entries(BANKS)) {
    expect(qs!.length, shape).toBeGreaterThanOrEqual(8); expect(qs!.length, shape).toBeLessThanOrEqual(10);
    expect(qs!.every(q => q.lesson === shape && q.id.startsWith(shape + '-')), shape).toBe(true);
@@ -209,6 +224,21 @@ describe('the address', () => {
   expect(viewOf('?quiz&p=ring')).toBe('lesson');
   expect(viewOf('?guide')).toBe('guide');
   expect(viewOf('')).toBe('home');
+ });
+ it('opens a Gauss lesson at ?g=, and says which case and which stage or section to look at', () => {
+  expect(shapeHref('spheres')).toBe('?g=spheres');
+  expect(shapeHref('ring')).toBe('?p=ring');
+  expect(viewOf(shapeHref('flux'))).toBe('gauss');
+  const stage = place({lesson: 'spheres', stage: 'right', case: 'shell'});
+  expect(stage.href).toBe('?g=spheres');
+  expect(stage.title).toBe('Spheres, Shell, Right side');
+  expect(stage.where).toBe('Opens the lesson. Choose Shell, then press Watch it build and step to Right side.');
+  // A lesson with one case names none.
+  expect(place({lesson: 'flux', stage: 'left'}).title).toBe('Flux, the idea, Left side');
+  expect(place({lesson: 'flux', section: 'Easy to confuse with'}).where).toBe('Opens the lesson. Look under Easy to confuse with, below the figure.');
+  expect(place({lesson: 'qenc', section: 'Normalising when you are given Q'}).where).toBe('Opens the lesson. Press Read the lesson and look under Normalising when you are given Q.');
+  expect(pointerWord({lesson: 'symmetry', stage: 'surface', case: 'line'})).toBe('The surface');
+  expect(pointerWord({lesson: 'ring', stage: 'cancel'})).toBe('What cancels');
  });
  it('opens a stage by its word, as the lesson reads it', () => {
   expect(place({lesson: 'ring', stage: 'cancel'}).href).toBe('?p=ring&stage=cancel');

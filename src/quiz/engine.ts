@@ -1,7 +1,11 @@
 import {getProblem} from '../problems/definitions';
 import type {ProblemId} from '../problems/types';
+import {PROBLEM_IDS} from '../distributions';
+import {gaussHref, gaussLesson} from '../gauss';
+import type {GaussId} from '../gauss/types';
+import {STAGE_KEYS, stageNames, type GaussStageKey} from '../gauss/run';
 import {MISCONCEPTION} from './misconceptions';
-import type {Answer, Kind, Misconception, Pointer, Question, StageWord} from './types';
+import type {Answer, GaussPointer, Kind, Misconception, Pointer, Question, ShapeId, StageWord} from './types';
 import {bank as bisector} from './bank/bisector';
 import {bank as ring} from './bank/ring';
 import {bank as infinite} from './bank/infinite';
@@ -23,15 +27,27 @@ import {bank as vArc} from './bank/v-arc';
  * wrong answers; builds a quiz weighted toward those; and keeps a small history in this browser so missed
  * questions come back first. Nothing here touches the network. */
 
-/** The bank, by shape. A shape with no bank yet is listed on the set-up screen as coming soon. */
-export const BANKS: Partial<Record<ProblemId, Question[]>> = {
+/** The bank, by shape: the integral lessons by ProblemId, the Gauss's law lessons by GaussId (their files are
+ * `bank/gauss-<id>.ts`). A shape with no bank yet is listed on the set-up screen as coming soon. */
+export const BANKS: Partial<Record<ShapeId, Question[]>> = {
   bisector, ring, infinite,
   axial, endpoint, ramp, semi, 'v-rod-bisector': vRodBisector, 'v-rod-axial': vRodAxial,
   disk, sheet, arc, 'v-ring': vRing, 'v-disk': vDisk, 'v-arc': vArc,
 };
 export const BANK: Question[] = Object.values(BANKS).flat();
 export const QUESTION = new Map(BANK.map(q => [q.id, q]));
-export const QUIZ_SHAPES = Object.keys(BANKS) as ProblemId[];
+export const QUIZ_SHAPES = Object.keys(BANKS) as ShapeId[];
+
+/* A SHAPE IS AN INTEGRAL LESSON OR A GAUSS LESSON. These say which, and give its names and its address, so
+ * nothing else in the quiz needs to know there are two kinds. */
+const INTEGRAL = new Set<string>(PROBLEM_IDS);
+export const isGauss = (id: ShapeId): id is GaussId => !INTEGRAL.has(id);
+export const isGaussPointer = (p: Pointer): p is GaussPointer => isGauss(p.lesson);
+/** The name a list shows it by ("Ring of charge", "Spheres"). A Gauss name may hold `Q_enc`, which the page sets
+ * as Q with enc below it (plannedName in explorer/lessons). */
+export const shapeShort = (id: ShapeId) => isGauss(id) ? gaussLesson(id)!.short : getProblem(id).short;
+export const shapeTitle = (id: ShapeId) => isGauss(id) ? gaussLesson(id)!.title : getProblem(id).title;
+export const shapeHref = (id: ShapeId) => isGauss(id) ? gaussHref(id) : `?p=${id}`;
 
 export const KINDS: {id: Kind; name: string; about: string}[] = [
   {id: 'predict', name: 'Predict', about: 'What cancels, which way the field points, how it changes.'},
@@ -45,7 +61,7 @@ export const LENGTHS: {id: Length; name: string; count: number; about: string}[]
   {id: 'medium', name: 'Medium', count: 12, about: 'Twelve questions'},
   {id: 'long', name: 'Long', count: 20, about: 'Twenty questions'},
 ];
-export type Settings = {shapes: ProblemId[]; kinds: Kind[]; length: Length};
+export type Settings = {shapes: ShapeId[]; kinds: Kind[]; length: Length};
 export const DEFAULT_SETTINGS: Settings = {shapes: [...QUIZ_SHAPES], kinds: KINDS.map(k => k.id), length: 'short'};
 
 /** A question as it is asked: its choices in the order they are shown, as indices into its own list. */
@@ -111,7 +127,7 @@ export function grade(drawn: Drawn[], answers: Answer[]): Result[] {
   });
 }
 
-export type ShapeScore = {lesson: ProblemId; right: number; total: number};
+export type ShapeScore = {lesson: ShapeId; right: number; total: number};
 export function score(results: Result[]) {
   const byShape: ShapeScore[] = [];
   for (const r of results) {
@@ -123,7 +139,7 @@ export function score(results: Result[]) {
 }
 
 /** The misconception behind each wrong answer, counted, with the shapes it came up on. */
-export type Tally = {misconception: Misconception; count: number; lessons: Map<ProblemId, number>; questions: Question[]};
+export type Tally = {misconception: Misconception; count: number; lessons: Map<ShapeId, number>; questions: Question[]};
 export function tally(results: Result[]): Tally[] {
   const out = new Map<string, Tally>();
   for (const r of results) {
@@ -155,8 +171,8 @@ export function confidence(results: Result[]) {
 }
 
 /** The lessons to revisit: each shape with a wrong answer, most wrong first, with where to look. */
-export function toRevisit(results: Result[]): {lesson: ProblemId; wrong: number; pointers: Pointer[]}[] {
-  const out: {lesson: ProblemId; wrong: number; pointers: Pointer[]}[] = [];
+export function toRevisit(results: Result[]): {lesson: ShapeId; wrong: number; pointers: Pointer[]}[] {
+  const out: {lesson: ShapeId; wrong: number; pointers: Pointer[]}[] = [];
   for (const r of results) {
     if (r.right) continue;
     let x = out.find(o => o.lesson === r.question.lesson);
@@ -166,7 +182,8 @@ export function toRevisit(results: Result[]): {lesson: ProblemId; wrong: number;
   }
   return out.sort((a, b) => b.wrong - a.wrong);
 }
-export const samePointer = (a: Pointer, b: Pointer) => a.lesson === b.lesson && ('stage' in a ? 'stage' in b && a.stage === b.stage : 'section' in b && a.section === b.section);
+export const samePointer = (a: Pointer, b: Pointer) => a.lesson === b.lesson && caseOf(a) === caseOf(b) && ('stage' in a ? 'stage' in b && a.stage === b.stage : 'section' in b && a.section === b.section);
+const caseOf = (p: Pointer) => 'case' in p ? p.case : undefined;
 
 /* HISTORY, in this browser only. Which questions are still missed (answered wrong and not since answered right),
  * which have been asked, and how often each misconception has come up. Read and written inside try/catch: with
@@ -216,7 +233,27 @@ export function stageName(lesson: ProblemId, stage: StageWord): string {
   const geometry = getProblem(lesson).geometry;
   return stage === 'piece' && (geometry === 'disk' || geometry === 'sheet') ? 'One ring' : STAGE_NAME[stage];
 }
+/** A Gauss lesson's parts below its figure that a pointer may name, besides the lesson's own headings. */
+export const GAUSS_PAGE_SECTIONS = ['Check the answer', 'Easy to confuse with'];
+const GAUSS_STAGE_NAME = Object.fromEntries(STAGE_KEYS.map((k, i) => [k, stageNames()[i]])) as Record<GaussStageKey, string>;
+/** What a pointer names on its lesson's page, in the page's own words: a stage of the run, or a section. */
+export function pointerWord(p: Pointer): string {
+  if (isGaussPointer(p)) return 'stage' in p ? GAUSS_STAGE_NAME[p.stage] : p.section;
+  return 'stage' in p ? stageName(p.lesson, p.stage) : p.section;
+}
+/** WHERE TO LOOK IN A GAUSS LESSON. Its address opens it at its first case with the run closed (`?g=spheres`), so
+ * the words say which case to pick, when there is a choice, and which stage of Watch it build or which section. */
+function gaussPlace(p: GaussPointer): {href: string; title: string; where: string} {
+  const lesson = gaussLesson(p.lesson)!, kase = p.case ? lesson.cases.find(c => c.key === p.case) : undefined;
+  const pick = kase && lesson.cases.length > 1 ? `Choose ${kase.label}, then ` : '';
+  const title = [lesson.short, kase && lesson.cases.length > 1 ? kase.label : '', pointerWord(p)].filter(Boolean).join(', ');
+  const say = (s: string) => pick ? pick + s.charAt(0).toLowerCase() + s.slice(1) : s;
+  if ('stage' in p) return {href: gaussHref(p.lesson), title, where: `Opens the lesson. ${say(`Press Watch it build and step to ${GAUSS_STAGE_NAME[p.stage]}.`)}`};
+  return {href: gaussHref(p.lesson), title,
+    where: `Opens the lesson. ${say(GAUSS_PAGE_SECTIONS.includes(p.section) ? `Look under ${p.section}, below the figure.` : `Press Read the lesson and look under ${p.section}.`)}`};
+}
 export function place(p: Pointer): {href: string; title: string; where: string} {
+  if (isGaussPointer(p)) return gaussPlace(p);
   const short = getProblem(p.lesson).short;
   if ('stage' in p) return {href: `?p=${p.lesson}&stage=${p.stage}`, title: `${short}, ${stageName(p.lesson, p.stage)}`, where: 'Opens the lesson at this stage of Watch it build.'};
   return {href: `?p=${p.lesson}`, title: `${short}, ${p.section}`,
