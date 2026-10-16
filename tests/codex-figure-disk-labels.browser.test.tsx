@@ -20,7 +20,10 @@ it('the flat phone disk keeps its own radius clear of the integration limits', a
    components={false} pair={false} mode={key === 'limit' ? 'integrate' : 'sum'} onBoundRangeChange={vi.fn()} compact build={{key, name: key === 'add' ? 'Add them up' : 'Shrink them', index: key === 'add' ? 3 : 4, count: 5, paused: true}} />);
   fireEvent.click(view.getByRole('button', {name:'2D'}));
   await waitFor(() => expect(view.container.querySelector('.cd-in-space')).toBeNull(), {timeout: 5000});
-  const radius = view.container.querySelector<SVGTextElement>('[data-dim="size"] text')!;
+  // In Shrink them the rim's handle, "s = R", names the radius on a phone, and the bar's R is not drawn: six names round a
+  // forty-pixel disk read as a pile (wave six).
+  const radius = view.container.querySelector<SVGTextElement>('[data-dim="size"] text');
+  if (key === 'limit') expect(radius, 'no second R beside "s = R"').toBeNull();
   const radii = [...view.container.querySelectorAll<SVGTextElement>('.cd-dimension > text')].filter(t => t.textContent === 'R' || t.textContent === 's');
   const limits = [...view.container.querySelectorAll<SVGTextElement>('.cd-bound-name text, .cd-bound[data-bound] text')];
   expect(limits).toHaveLength(2);
@@ -28,8 +31,7 @@ it('the flat phone disk keeps its own radius clear of the integration limits', a
   await waitFor(() => {
    expect(view.container.querySelector('[data-rim="true"]'), `${context}: enough room for the true-radius dimension`).toBeNull();
    const placed=(t:SVGTextElement)=>{const b=t.getBBox(), m=t.transform.baseVal.consolidate()?.matrix;return {x:b.x+(m?.e??0),y:b.y+(m?.f??0),width:b.width,height:b.height};};
-   const r=placed(radius);
-   expect(r.y+r.height, `${context}: radius above footer`).toBeLessThanOrEqual(378.5);
+   if (radius) { const r=placed(radius); expect(r.y+r.height, `${context}: radius above footer`).toBeLessThanOrEqual(378.5); }
    for (const name of radii) for (const limit of limits) {
     const a = placed(name), b = placed(limit);
     const gap = Math.max(b.x-a.x-a.width,a.x-b.x-b.width,b.y-a.y-a.height,a.y-b.y-b.height);

@@ -129,7 +129,8 @@
 /* On a phone the figure is drawn at half size: at the desktop's 12px the footer came out under nine. */
 .cd-narrow .cd-svg .cd-footer{font-size:calc(15px * var(--cd-k,1))}
 .cd-narrow .cd-svg .cd-footer-math{font-size:calc(15.5px * var(--cd-k,1))}
-.cd-triangle .cd-triangle-note{font-size:12px}
+/* Set with the labels, as the footer is: at a flat 12 units the note came out at 10 pixels in a 1280 window, under the 11 the rest of the figure keeps to. */
+.cd-triangle .cd-triangle-note{font-size:calc(12px * var(--cd-k,1))}
 /* The schematic's letters and its note are set over the scene's grid and field lines: a thin ring of the
    ground keeps a line from running through a letter, with no slab behind them. */
 .cd-svg .cd-triangle text{paint-order:stroke;stroke:var(--diagram,#fff);stroke-width:4px;stroke-linejoin:round}
@@ -659,6 +660,10 @@
 /* ...at full strength, in a darkened contribution ink: at .55 over the teal the stage's own kept terms, on its
    held frame, were 2:1 against the ground in light and 2.6:1 in dark. The faint dashed stroke says "gone". */
 .cd-svg .cd-vector-label.is-muted{opacity:1;fill:color-mix(in oklab,var(--contribution,#2f9089) 60%,var(--cd-ink))}
+/* And an arrow's name in its own arrow's ink, a shade toward the text's: the contribution teal is a stroke colour, and
+   as letters on the light ground it is 3.8:1, under the 4.5 text needs. 85% of it keeps the hue and reads 4.9:1. The
+   dark ground already passes, and a mix toward its light ink would only wash the teal out. */
+html:not(.dark) .cd-svg .cd-vector-label:not(.is-muted){fill:color-mix(in oklab,currentColor 85%,var(--cd-ink))}
 /* A word among the symbols -- the "ring" of "ring ΔQ" -- is set as a word: upright, in the page's sans. In the
    italic beside s and z it read as a product, r·i·n·g·ΔQ. */
 .cd-svg .cd-word{font-style:normal;font-family:var(--font-ui),system-ui,sans-serif;font-weight:550}
