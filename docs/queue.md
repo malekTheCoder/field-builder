@@ -6,17 +6,18 @@ then to **Done**, with the commit. Newest requests are added at the bottom of **
 owner says they are urgent.
 
 ## In progress
-- **Figure zoom** (owner, 2026-10-15, with a screenshot): zoomed in, parts of the figure bleed out of the
-  plot area onto the card: the y axis runs past the card's top and bottom into the controls, and the
-  rod's + marks sit above the header line and by the controls. And zooming in and out is not smooth.
-  One agent in a worktree.
+- **Figure zoom**: clipping fixed in the agent's worktree; smoothness being finished (agent resumed after a
+  network drop).
+- **Gauss's law, building** (owner, 2026-10-15: "do the gauss law stuff too"): the 11-lesson list from
+  [gauss-law-plan.md](gauss-law-plan.md). One agent builds the foundation (lesson model, ?g= routing, page,
+  the five-stage run, the 3D Gaussian-surface figure) and the first two lessons (Symmetry first; Flux, the
+  idea) with a how-to; then parallel agents write the other nine; then physics reviewers; then Gauss quiz
+  banks.
+- **A critique round on the redesigned site**: starts when the zoom work lands.
 
 ## Next
 1. **New lessons**, deferred by the cloud round, for the owner to choose from: a non-uniform semicircle, a
    spherical shell, an annulus, a rod with P off its bisector.
-2. **Gauss's law lessons**: plan in [gauss-law-plan.md](gauss-law-plan.md); shown as coming soon on the
-   site. Not started until the owner says so.
-3. A critique round on the redesigned site, when the owner wants one.
 
 ## Done
 - 2026-10-15, owner, urgent: Cut it up did nothing on every lesson (the charge was drawn cut and named from its
