@@ -67,10 +67,10 @@ describe('the sheet', () => {
 });
 
 describe('the gap round P on a disk seen from above', () => {
- it('is whole from the side, about P\'s halo from straight above, and a wire and the sheet keep their own', () => {
+ it('is whole from the side, about P\'s halo from straight above, and a wire keeps its own', () => {
   expect(gapShrink(.35, 'disk')).toBe(1);
   expect(gapShrink(.85, 'disk')).toBe(1);
-  expect(gapShrink(Math.PI / 2, 'sheet'), 'the sheet keeps its notch').toBe(1);
+  expect(gapShrink(.85, 'sheet'), 'the sheet keeps its notch from the side').toBe(1);
   expect(gapShrink(1.08, 'disk')).toBeLessThan(.8);
   expect(gapShrink(Math.PI / 2, 'disk')).toBeCloseTo(.4, 9);
   expect(gapShrink(Math.PI / 2, 'wire')).toBe(1);

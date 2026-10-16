@@ -1,4 +1,9 @@
 .cd-orbitable{touch-action:none;cursor:grab}
+/* ON A TOUCH SCREEN A VERTICAL SWIPE OVER THE FIGURE SCROLLS THE PAGE. On a phone the figure in space is nearly the
+   screen's width, and it took every swipe that began on it to turn the view: the reader had a sixteen-pixel gutter
+   to scroll past six lessons with. A sideways drag still turns it, the cube's buttons tilt it, and the handles (P,
+   the bounds, the cube) keep touch-action:none of their own, so they still drag in every direction. */
+@media(any-pointer:coarse){.cd-orbitable{touch-action:pan-y}}
 .cd-orbitable:active{cursor:grabbing}
 .cd-orbitable:focus{outline:none}
 .cd-orbitable:focus-visible{outline:2px solid var(--primary,#0b6b63);outline-offset:2px;border-radius:12px}
