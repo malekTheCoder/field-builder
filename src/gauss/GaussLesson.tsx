@@ -28,6 +28,7 @@ import {FluxInstrument} from './FluxInstrument';
 import {FieldProfile} from './FieldProfile';
 import {CavityInstrument} from './CavityInstrument';
 import {regionOf} from './instruments';
+import {InsideInstrument} from './InsideInstrument';
 import {GaussListFamily, GaussLibraryFamily} from './GaussFamily';
 import type {Sym} from './instruments';
 import '../explorer/explorer.css';
@@ -254,8 +255,9 @@ export default function GaussLesson() {
             {lesson.instrument === 'flux' && <FluxInstrument />}
             {lesson.instrument === 'profile' && <FieldProfile kase={kase} size={size} sign={sign} />}
             {lesson.instrument === 'cavity' && <CavityInstrument sign={sign} />}
+            {lesson.instrument === 'inside' && <InsideInstrument sign={sign} />}
           </div>
-          <GaussBoard kase={kase} flux={lesson.id === 'flux'} build={boardBuild} onStep={boardStep} />
+          <GaussBoard kase={kase} flux={lesson.id === 'flux' || lesson.id === 'inside'} build={boardBuild} onStep={boardStep} />
         </div>
         <section className="exp-endnotes" aria-labelledby="gs-endnotes">
           <h2 id="gs-endnotes" className="sr-only">Checks and easy confusions</h2>

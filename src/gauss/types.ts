@@ -72,8 +72,9 @@ export type GaussCase = {
   left: BoardBeat;
   /** The charge inside: the right side, with its density integral when there is one. */
   right: BoardBeat;
-  /** The two sides set equal and solved. `answer` is the result alone, for the board's answer box. */
-  solve: BoardBeat & {answer: string};
+  /** The two sides set equal and solved. `answer` is the result alone, for the board's answer box; `note`, prose
+   * under it where the box's own words about the sign would not be true (a flux of zero is not of q's sign). */
+  solve: BoardBeat & {answer: string; note?: string};
   /** Limits, continuity, the jump of σ/ε₀ across a surface charge, what cancels. */
   checks: Check[];
 };
@@ -81,8 +82,11 @@ export type GaussCase = {
 /** A misconception the lesson takes on: the wrong idea, and what is true instead. Both prose with $…$. */
 export type Trap = {wrong: string; right: string};
 
-/** Which interactive instrument sits under the figure, if any. */
-export type Instrument = 'symmetry' | 'flux' | 'profile' | 'cavity';
+/** Which interactive instrument sits under the figure, if any: the symmetry test, the flux through a closed
+ * surface, the field's profile across the regions (`profile`), a charge in a conductor's cavity (`cavity`), a
+ * charge carried out of a sphere with each band's flux summed (`inside`), a ball's enclosed charge built shell by
+ * shell (`qenc`), the field against r for the spheres (`plot`). */
+export type Instrument = 'symmetry' | 'flux' | 'profile' | 'cavity' | 'inside' | 'qenc' | 'plot';
 
 export type GaussLesson = {
   id: GaussId;

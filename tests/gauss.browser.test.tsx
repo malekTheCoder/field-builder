@@ -4,6 +4,7 @@ import {page, userEvent} from 'vitest/browser';
 import '../app/globals.css';
 import Site, {newVisit} from '../src/home/Site';
 import {GAUSS} from '../src/explorer/lessons';
+import {GAUSS_READY} from '../src/problems/readiness';
 /* THE GAUSS LESSONS ON THE PAGE: their addresses, the lesson list's links to them and its "Coming soon" for the
  * rest, the run's five stages, the flux instrument's readout (which moves only when a charge crosses), the
  * keyboard, Reduce Motion, and a phone's width. Each test mounts the whole site at the lesson's address, as a
@@ -43,13 +44,15 @@ describe('a Gauss lesson’s address', () => {
   }, 20000);
   it('the list offers the ready lessons as links and the rest as words Tab passes over', async () => {
     const view = await open('flux');
+    const ready = GAUSS.lessons.filter(l => GAUSS_READY.has(l.key));
     const list = view.getByRole('navigation', {name: 'Lessons'});
     const heading = within(list).getByRole('heading', {level: 2, name: /^Gauss’s law/});
     const family = heading.closest('.exp-family')!;
     const links = within(family as HTMLElement).getAllByRole('link');
-    expect(links.map(a => a.getAttribute('href'))).toEqual(['?g=symmetry', '?g=flux', '?g=lines', '?g=sheets', '?g=conductors']);
+    expect(links.map(a => a.getAttribute('href'))).toEqual(ready.map(l => `?g=${l.key}`));
+    expect(links.map(a => a.getAttribute('href'))).toEqual(expect.arrayContaining(['?g=symmetry', '?g=flux', '?g=inside']));
     expect(links[1].getAttribute('aria-current')).toBe('page');
-    expect(family.querySelectorAll('.exp-planned-row[aria-disabled=true]').length).toBe(GAUSS.lessons.length - 5);
+    expect(family.querySelectorAll('.exp-planned-row[aria-disabled=true]').length).toBe(GAUSS.lessons.length - ready.length);
     for (const row of family.querySelectorAll('.exp-planned-row')) expect(row.querySelector('a,button,[tabindex]')).toBeNull();
     expect(family.textContent).toContain('Coming soon');
     // Following one opens it, title focused.
@@ -129,6 +132,41 @@ describe('the flux instrument', () => {
   }, 20000);
 });
 
+describe('why only the charge inside', () => {
+  it('carries the charge out: the stacked flux is q/ε₀ inside and zero outside, and says the crossing', async () => {
+    const view = await open('inside');
+    const readout = () => document.querySelector('.gs-inside-tool .gs-readout .katex')?.textContent ?? '';
+    expect(readout()).toContain('q');
+    const slider = view.getByRole('slider', {name: /Distance of the charge from the centre/});
+    slider.focus();
+    await userEvent.keyboard('{End}');
+    await waitFor(() => expect(readout()).toMatch(/Φ\s*=\s*0/));
+    expect(document.querySelector('.gs-inside-tool output')?.textContent).toContain('out of the sphere');
+    // Outside, some bands carry flux back: the second column is drawn, and the net line sits on the baseline.
+    expect(document.querySelectorAll('.gs-inside-tool .gs-stack.is-back').length).toBeGreaterThan(0);
+    const net = document.querySelector<SVGLineElement>('.gs-inside-tool .gs-net')!, base = document.querySelector<SVGLineElement>('.gs-inside-tool .gs-baseline')!;
+    expect(Math.abs(Number(net.getAttribute('y1')) - Number(base.getAttribute('y1')))).toBeLessThan(.5);
+    await userEvent.keyboard('{Home}');
+    await waitFor(() => expect(readout()).toContain('q'));
+    expect(document.querySelectorAll('.gs-inside-tool .gs-stack.is-back').length).toBe(0);
+  }, 20000);
+  it('runs the outside case to a flux of zero, with no field at P to draw', async () => {
+    const f = frames();
+    try {
+      const view = await open('inside');
+      fireEvent.click(view.getByRole('button', {name: 'Outside'}));
+      expect(document.querySelector('.gs-board .ew-problem-text')?.textContent).toContain('outside a sphere');
+      expect(document.querySelector('.gs-p')).toBeNull();
+      fireEvent.click(view.getByRole('button', {name: 'Watch it build'}));
+      f.run(30);
+      expect(stage()?.dataset.stage).toBe('solve');
+      expect(document.querySelector('.gs-board .ew-result .katex')?.textContent).toMatch(/Φ\s*=\s*0/);
+      expect(document.querySelector('.gs-board .ew-result p')?.textContent).toContain('Zero for either sign');
+      expect(document.querySelector('.gs-p')).toBeNull();
+    } finally { f.restore(); }
+  }, 30000);
+});
+
 describe('the symmetry instrument', () => {
   let real: typeof window.matchMedia;
   beforeEach(() => {
@@ -165,8 +203,8 @@ describe('the symmetry instrument', () => {
 });
 
 describe('on a phone', () => {
-  it('fits 390 pixels with no sideways scroll, on the first two lessons', async () => {
-    for (const id of ['symmetry', 'flux']) {
+  it('fits 390 pixels with no sideways scroll, on every ready lesson', async () => {
+    for (const id of GAUSS.lessons.filter(l => GAUSS_READY.has(l.key)).map(l => l.key)) {
       const view = await open(id, 390, 844);
       await new Promise(r => setTimeout(r, 200));
       expect(document.documentElement.scrollWidth, id).toBeLessThanOrEqual(390);

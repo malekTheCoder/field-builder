@@ -1,7 +1,7 @@
 import {describe, expect, it} from 'vitest';
-import {EPS0, boundaries, carriesNothing, crossedArea, dot, enclosedCharge, fieldAt, inducedCharges, norm, numericFlux, patches, pointOn, solvedField, starFlux, surfacePoint, sub, v3, wallDensity, type Charge, type Surface} from '../src/gauss/physics';
+import {EPS0, bandFlux, boundaries, carriesNothing, crossedArea, dot, enclosedCharge, fieldAt, inducedCharges, norm, numericFlux, patches, pointOn, solvedField, starFlux, surfacePoint, sub, throughPatch, v3, wallDensity, type Charge, type Surface} from '../src/gauss/physics';
 import {build, drawnFlux, lookAt, REST, slice} from '../src/gauss/scene';
-import {CANDIDATES, CAVITY, MOVES, START, blob, cavityField, cavityLines, cavityTex, enclosedOf, fieldAlong, fluxTex, flowRound, isInside, moveBy, profile, profileReach, proposed, regionOf, samples, survives, wallMarks, type Charged} from '../src/gauss/instruments';
+import {BANDS, CANDIDATES, CAVITY, MOVES, START, bandShares, blob, cavityField, cavityLines, cavityTex, enclosedOf, fieldAlong, fluxTex, flowRound, insideBands, insideTex, isInside, moveBy, profile, profileReach, proposed, regionOf, samples, survives, wallMarks, type Charged} from '../src/gauss/instruments';
 import {GAUSS_LESSONS, gaussLesson} from '../src/gauss';
 import {REGISTRY} from '../src/distributions';
 import {EPS0 as SI_EPS0} from '../src/distributions/constants';
@@ -160,12 +160,17 @@ describe('the figure’s plan', () => {
     for (const size of [c.figure.surface.size.min, c.figure.surface.size.initial, c.figure.surface.size.max]) {
       const b = build(c, size, sign);
       close(drawnFlux(b), enclosedCharge(b.charge, b.surface) / EPS0, 1e-9);
+      if (b.answerAtP) {
       // The field at P is the solved one, along the normal, with the charge's sign.
       close(dot(b.fieldAtP, b.normalAtP), solvedField(b.charge, b.surface), 1e-12);
       // With the charge inside's sign: zero where the surface encloses nothing (in metal, in a hollow shell, outside a cable).
       const inside = enclosedCharge(b.charge, b.surface);
       expect(Math.sign(dot(b.fieldAtP, b.normalAtP)) || 0).toBe(Math.abs(inside) > 1e-12 ? Math.sign(inside) : 0);
       if (Math.abs(inside) > 1e-12) expect(Math.sign(inside)).toBe(sign);
+      } else {
+        // A charge off the centre: no field at P is solved for, and the run ends on the flux.
+        expect(b.charge.kind).toBe('offset');
+      }
       // The cross-section's segments carry the same zero parts as the patches, and are in the run's order.
       const zero = new Set(b.patches.filter(p => p.zero).map(p => p.part));
       expect(new Set(slice(b.charge, b.surface).filter(s => s.zero).map(s => s.part))).toEqual(zero);
@@ -386,5 +391,55 @@ describe('the charge-in-a-hollow instrument', () => {
     expect(cavityTex(true, false)).toBe(String.raw`q_{\text{wall}}=-q,\qquad q_{\text{outer}}=q`);
     expect(cavityTex(true, true)).toBe(String.raw`q_{\text{wall}}=-q,\qquad q_{\text{outer}}=Q+q`);
     expect(cavityTex(false, false)).toBe(String.raw`q_{\text{wall}}=0,\qquad q_{\text{outer}}=0`);
+  });
+});
+
+describe('a point charge off the sphere’s centre (Why only the charge inside)', () => {
+  /** E·n̂ over a band of the sphere by Simpson’s rule in θ, the field taken from fieldAt alone: independent of bandFlux. */
+  const simpson = (c: Charge, R: number, t0: number, t1: number, n = 4000) => {
+    const f = (t: number) => { const p = v3(R * Math.sin(t), 0, R * Math.cos(t)); return dot(fieldAt(c, p), v3(Math.sin(t), 0, Math.cos(t))) * 2 * Math.PI * R * R * Math.sin(t); };
+    const h = (t1 - t0) / n; let sum = f(t0) + f(t1);
+    for (let i = 1; i < n; i++) sum += f(t0 + i * h) * (i % 2 ? 4 : 2);
+    return sum * h / 3;
+  };
+  for (const sign of SIGNS) for (const [d, R] of [[.8, 1.25], [.8, 2.6], [2.15, .8], [2.15, 1.7], [0, 1.3]] as const) it(`d ${d}, r ${R} (${sign > 0 ? '+' : '−'}): q/ε₀ inside, zero outside, band by band`, () => {
+    const c: Charge = {kind: 'offset', sign, size: d}, g: Surface = {kind: 'sphere', r: R, h: 0};
+    const want = d < R ? sign / EPS0 : 0;
+    close(enclosedCharge(c, g) / EPS0, want, 1e-12);
+    // By brute force over the whole sphere, from E alone.
+    close(simpson(c, R, 0, Math.PI), want, 1e-7);
+    close(numericFlux(c, g, 200), want, 3e-3);
+    // Each band's closed form against the brute force over that band.
+    for (let i = 0; i < 8; i++) { const t0 = Math.PI * i / 8, t1 = Math.PI * (i + 1) / 8; close(bandFlux(sign, d, R, t0, t1), simpson(c, R, t0, t1, 800), 1e-7); }
+    // The drawn patches carry their exact share, and add to the flux exactly.
+    const ps = patches(g);
+    close(ps.reduce((t, p) => t + throughPatch(c, p) * p.area, 0), want, 1e-9);
+    // Outside: the patches facing q carry flux against q's sign, those beyond it with it. Inside: all with it.
+    for (const p of ps) {
+      const t = throughPatch(c, p) * sign;
+      if (d < R) expect(t, p.key).toBeGreaterThan(0);
+      else if (p.uv[1] <= Math.acos(R / d)) expect(t, p.key).toBeLessThan(0);
+      else if (p.uv[0] >= Math.acos(R / d)) expect(t, p.key).toBeGreaterThan(0);
+    }
+    // The field is nowhere zero on the sphere, inside or out.
+    for (const p of ps) expect(norm(fieldAt(c, p.center))).toBeGreaterThan(1e-3);
+  });
+  it('the instrument’s bands add to q/ε₀ inside and to zero outside, and say so', () => {
+    for (let k = 0; k <= 35; k++) {
+      const d = k * .06, shares = bandShares(d), total = shares.reduce((t, x) => t + x, 0);
+      expect(shares.length).toBe(BANDS);
+      close(total, d < 1 ? 1 : 0, 1e-9);
+      if (d < 1) for (const x of shares) expect(x).toBeGreaterThan(0);
+      else { expect(shares[0]).toBeLessThan(0); expect(shares[BANDS - 1]).toBeGreaterThan(0); }
+      expect(insideTex(d)).toBe(d < 1 ? String.raw`\Phi=\frac{q}{\varepsilon_0}` : String.raw`\Phi=0`);
+      // Its fluxes are q's: the same shares of q/ε₀ for either sign, and each band's field is the charge's own.
+      for (const sign of SIGNS) insideBands(d, sign).forEach((b, i) => {
+        close(b.flux * EPS0 * sign, shares[i], 1e-12);
+        const e = fieldAt({kind: 'offset', sign, size: d}, b.normal);
+        close(b.field.x, e.x, 1e-12); close(b.field.z, e.z, 1e-12);
+      });
+    }
+    // Its slider's steps never land on the sphere, where the charge would be neither inside nor out.
+    for (let k = 0; k <= 35; k++) expect(Math.abs(k * .06 - 1)).toBeGreaterThan(.01);
   });
 });

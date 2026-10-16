@@ -22,6 +22,8 @@
 .gs-field-name{fill:var(--field)}
 .gs-field-name.is-answer{font-size:calc(21px * var(--cd-k,1))}
 .gs-normal-name{fill:var(--ink-2)}
+/* A zero in a name, upright: the serif's italic zero reads as a letter o. */
+.gs-zero{font-family:var(--font-ui),system-ui,sans-serif;font-style:normal;font-weight:600}
 .gs-zero-name{font-size:calc(15px * var(--cd-k,1));fill:var(--ghost)}
 .gs-inside-name,.gs-charge-name{fill:var(--charge)}
 .gs-sign{font-family:var(--font-ui),system-ui,sans-serif;font-weight:700;font-size:calc(18px * var(--cd-k,1));fill:var(--charge);paint-order:stroke;stroke:var(--diagram);stroke-width:4px;pointer-events:none}
@@ -102,12 +104,26 @@
 .gs-recipe-steps li{display:grid;gap:2px;padding:12px 0 0;border-top:1px solid var(--border)}
 .gs-recipe-steps strong{font-weight:600}
 .gs-recipe-steps span{color:var(--muted-foreground);line-height:1.55}
+/* Carry it out (Why only the charge inside): the bands of a sphere and the stack of their fluxes. */
+.gs-axis{stroke:var(--muted-foreground);stroke-width:1.1;stroke-dasharray:3 4}
+.gs-band{fill:none;stroke:var(--field);stroke-width:7;stroke-linecap:butt}
+.gs-band.is-back{stroke:var(--ghost);stroke-dasharray:7 4}
+.gs-centre{fill:var(--foreground)}
+.gs-level{stroke:var(--foreground);stroke-width:1.2;stroke-dasharray:5 4}
+.gs-baseline{stroke:var(--foreground);stroke-width:1.4}
+.gs-level-name,.gs-net-name{font-size:calc(19px * var(--cd-k,1))}
+.gs-stack{fill:var(--field);stroke:var(--diagram);stroke-width:1.5}
+.gs-stack.is-alt{fill:var(--contribution)}
+.gs-stack.is-back{fill:var(--ghost)}
+.gs-stack.is-back.is-alt{fill:color-mix(in srgb,var(--ghost) 70%,var(--diagram))}
+.gs-net{stroke:var(--foreground);stroke-width:3;stroke-linecap:round}
+.gs-stack-name{font:600 calc(17px * var(--cd-k,1))/1 var(--font-ui),system-ui,sans-serif;fill:var(--muted-foreground)}
 @media(max-width:520px){
  .gs-instrument{padding:14px 13px 16px}
  .gs-name{stroke-width:4px}
 }
 @media(prefers-reduced-motion:reduce){.gs-move{transition:none}}
-@media(forced-colors:active){.gs-seg,.gs-blob{stroke:CanvasText}.gs-q:focus-visible .gs-q-hit{stroke:Highlight}}
+@media(forced-colors:active){.gs-seg,.gs-blob,.gs-band,.gs-net{stroke:CanvasText}.gs-q:focus-visible .gs-q-hit{stroke:Highlight}}
 @media print{.gs-moves,.gs-choices,.gs-tabs,.gs-back,.gs-instrument .exp-range{display:none!important}.gs-instrument{break-inside:avoid}}
 
 /* ---- conductors, and the field against distance (Lines and cylinders, Sheets and slabs, Conductors) ---- */

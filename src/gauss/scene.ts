@@ -1,4 +1,4 @@
-import {add, boundaries, carriesNothing, dot, fieldAt, norm, patches, pointOn, scale, sub, throughPatch, unit, v3, type Charge, type Patch, type PatchPart, type Surface, type V3} from './physics';
+import {add, boundaries, carriesNothing, dot, fieldAt, isBall, norm, patches, pointOn, scale, sub, throughPatch, unit, v3, type Charge, type Patch, type PatchPart, type Surface, type V3} from './physics';
 import type {GaussCase} from './types';
 import type {GaussStageKey} from './run';
 /* WHAT THE GAUSS FIGURE DRAWS, WORKED OUT APART FROM DRAWING IT. The 3D scene (GaussScene) and the flat cross-section
@@ -44,6 +44,9 @@ export type Built = {
   spokes: Spoke[]; flatSpokes: Spoke[];
   /** The point where the field is wanted, on the surface, its outward normal, and the field there. */
   P: V3; normalAtP: V3; fieldAtP: V3; spanAtP: number;
+  /** Whether the run ends on the field at P. Not for a charge off the sphere's centre: there the answer is a flux,
+   * and the field on the sphere is not the same from patch to patch, so no one arrow could stand for it. */
+  answerAtP: boolean;
   /** A neighbouring patch whose normal is named dA, and a patch that carries nothing, for the labels. */
   namedPatch: DrawnPatch; zeroPatch: DrawnPatch | null;
   /** Half the world's extent the figure fits, and the pixels per world unit that fit it in 720 by 430. */
@@ -60,9 +63,10 @@ export const chargeOf = (c: GaussCase, sign: 1 | -1): Charge => ({kind: c.figure
 
 /** The world's half-extent for a case: its largest surface, with room for the arrows standing off it. */
 export function halfOf(c: GaussCase): number {
-  // The largest surface, or the charge's outermost face if that reaches farther (a capacitor's far plate).
+  // The largest surface, or the charge's outermost face if that reaches farther (a capacitor's far plate), or a
+  // charge off the centre, outside the largest sphere, kept in the frame with its arrows round it.
   const s = c.figure.surface, big = Math.max(s.size.max, ...boundaries(c.figure.charge));
-  if (s.kind === 'sphere') return big + .55;
+  if (s.kind === 'sphere') return Math.max(big, c.figure.charge.kind === 'offset' ? c.figure.charge.size + .5 : 0) + .55;
   if (s.kind === 'cylinder') return Math.hypot(big + .5, s.other + .2);
   return Math.hypot(s.other + .4, big + .55);
 }
@@ -75,6 +79,15 @@ export const unitOf = (c: GaussCase) => Math.round(.92 * 430 / (2 * halfOf(c)));
  * steep field (the point charge's 1/r²) a cap holds the longest arrows to the figure: proportional all the way there,
  * they shrank to stubs at the opening size, the one a reader meets first. */
 export function arrowLength(c: GaussCase, e: number): number {
+  // A charge off a sphere's centre makes a field on it that differs too much from patch to patch for one scale (the
+  // patches facing a charge just outside see it some sixteen times stronger than the far ones): there an arrow is
+  // drawn to the square root of the field, still longer where the field is stronger, the nearest patch of the opening
+  // sphere at the longest length.
+  const k = c.figure.charge;
+  if (k.kind === 'offset') {
+    const near = 1 / (k.size - c.figure.surface.size.initial) ** 2;
+    return Math.max(.06, Math.min(1.6, 1.05 * Math.sqrt(Math.abs(e) / near)));
+  }
   // A lesson may fix the scale for all its cases, so equal fields are drawn equal; otherwise the opening
   // surface's field, or where it sees none (inside a shell, in metal), the field the slider first reaches from
   // its outer end.
@@ -137,7 +150,7 @@ export function spokes(charge: Charge): Spoke[] {
     // Directions spread evenly over the sphere (a Fibonacci lattice), at a radius just clear of the charge, and
     // inside a cavity as well as outside the metal round it.
     const golden = Math.PI * (3 - Math.sqrt(5));
-    for (const [rho, n] of round) for (let i = 0; i < n; i++) { const z = 1 - 2 * (i + .5) / n, s = Math.sqrt(1 - z * z), a = i * golden; add(v3(rho * s * Math.cos(a), rho * s * Math.sin(a), rho * z)); }
+    for (const [rho, n] of round) for (let i = 0; i < n; i++) { const z = 1 - 2 * (i + .5) / n, s = Math.sqrt(1 - z * z), a = i * golden; add(v3(rho * s * Math.cos(a), rho * s * Math.sin(a), lift(charge) + rho * z)); }
   } else if (charge.kind === 'line' || charge.kind === 'rod' || charge.kind === 'tube' || charge.kind === 'coax') {
     const rho = axialSpoke(charge);
     for (const z of [-.9, 0, .9]) for (let j = 0; j < 8; j++) { const a = 2 * Math.PI * (j + .5) / 8; add(v3(rho * Math.cos(a), rho * Math.sin(a), z)); }
@@ -149,15 +162,19 @@ export function spokes(charge: Charge): Spoke[] {
 /** The radii a round charge's spokes stand at, and how many at each: just clear of the charge, and for a charge in
  * a hollow, in the hollow too. Nothing for a charge that is not round. */
 function roundness(c: Charge): [number, number][] | null {
+  // Round a charge off the centre, at its own place (`lift`).
+  if (c.kind === 'offset') return [[.9, 22]];
   if (c.kind === 'cavity') return [[c.size * .55, 10], [(c.outer ?? c.size * 2) + .35, 22]];
-  if (c.kind === 'point' || c.kind === 'ball' || c.kind === 'shell' || c.kind === 'metal') return [[Math.max(c.size * 1.18, .55) + .35, 22]];
+  if (c.kind === 'point' || isBall(c.kind) || c.kind === 'shell' || c.kind === 'metal') return [[Math.max(c.size * 1.18, .55) + .35, 22]];
   return null;
 }
 /** The radius a cylinder's spokes stand at: where its field is, clear of it (between a coaxial pair's shells). */
 const axialSpoke = (c: Charge) => c.kind === 'coax' ? (c.size + (c.outer ?? c.size * 2)) / 2 : c.kind === 'line' ? .62 : c.size + .45;
 /** The heights a flat charge's spokes stand at: either side of a sheet or a slab, only above a conductor's face,
  * only between a capacitor's plates. */
-const planeSpokes = (c: Charge) => c.kind === 'face' ? [.42] : c.kind === 'plates' ? [-c.size / 2] : c.kind === 'slab' ? [c.size + .3, -c.size - .3] : [.42, -.42];
+/** How far up the axis a round charge's spokes are centred: a charge off the centre's own height. */
+const lift = (c: Charge) => c.kind === 'offset' ? c.size : 0;
+const planeSpokes = (c: Charge) => c.kind === 'face' ? [.42] : c.kind === 'plates' ? [-c.size / 2] : c.kind === 'slab' || c.kind === 'tent' ? [c.size + .3, -c.size - .3] : [.42, -.42];
 
 /** The same arrows in the cross-section's plane, y = 0, for the flat figure. */
 export function flatSpokes(charge: Charge): Spoke[] {
@@ -165,7 +182,7 @@ export function flatSpokes(charge: Charge): Spoke[] {
   const add = (x: number, z: number) => { const at = v3(x, 0, z); out.push({at, field: fieldAt(charge, at)}); };
   const round = roundness(charge);
   if (round) {
-    for (const [rho, n] of round) { const m = Math.max(8, Math.round(n * 12 / 22)); for (let i = 0; i < m; i++) { const a = 2 * Math.PI * (i + .5) / m; add(rho * Math.sin(a), rho * Math.cos(a)); } }
+    for (const [rho, n] of round) { const m = Math.max(8, Math.round(n * 12 / 22)); for (let i = 0; i < m; i++) { const a = 2 * Math.PI * (i + .5) / m; add(rho * Math.sin(a), lift(charge) + rho * Math.cos(a)); } }
   } else if (charge.kind === 'line' || charge.kind === 'rod' || charge.kind === 'tube' || charge.kind === 'coax') {
     const rho = axialSpoke(charge);
     for (const z of [-.9, 0, .9]) for (const x of [-rho, rho]) add(x, z);
@@ -193,7 +210,7 @@ export function build(c: GaussCase, size: number, sign: 1 | -1): Built {
   // The spokes are drawn from their anchors, a little shorter than the patches' arrows, and never into metal.
   const spoked = (list: Spoke[]) => list.map(s => ({...s, span: arrowSpan(c, charge, s.at, s.field, .85)}));
   return {charge, surface, patches: drawn, slice: slice(charge, surface).map(s => ({...s, span: arrowSpan(c, charge, s.mid, s.field)})), spokes: spoked(spokes(charge)), flatSpokes: spoked(flatSpokes(charge)),
-    P, normalAtP, fieldAtP, spanAtP: arrowSpan(c, charge, P, fieldAtP), namedPatch, zeroPatch, half: halfOf(c), unit: unitOf(c)};
+    P, normalAtP, fieldAtP, spanAtP: arrowSpan(c, charge, P, fieldAtP), answerAtP: charge.kind !== 'offset', namedPatch, zeroPatch, half: halfOf(c), unit: unitOf(c)};
 }
 /** The direction an arrow of field `e` is drawn in, and its length, for a case: unit and world units. */
 export const arrowOf = (c: GaussCase, e: V3) => ({dir: unit(e), length: arrowLength(c, norm(e))});

@@ -2,13 +2,13 @@
 /* Inline SVG needs role=img to expose one named figure, and in space the figure IS the control the arrow keys
    turn, so it takes the focus: as the integral lessons' figure does (ChargeDiagram), for the same reasons. */
 /* oxlint-disable jsx-a11y/prefer-tag-over-role, jsx-a11y/no-noninteractive-tabindex */
-import {memo, useCallback, useMemo, useRef, useState, useSyncExternalStore, type CSSProperties, type KeyboardEvent, type PointerEvent, type ReactNode} from 'react';
+import {memo, useCallback, useId, useMemo, useRef, useState, useSyncExternalStore, type CSSProperties, type KeyboardEvent, type PointerEvent, type ReactNode} from 'react';
 import {projectPoint} from '../diagrams/three/orthoCamera';
 import {ViewCube} from '../diagrams/ViewCube';
 import type {CameraView} from '../diagrams/camera';
 import type {RunClock} from '../explorer/BuildPlayer';
 import {useRenderedWidth} from '../components/useRenderedWidth';
-import {add, norm, scale, sub, unit as unitV, v3, type V3} from './physics';
+import {add, isBall, norm, scale, sub, unit as unitV, v3, type V3} from './physics';
 import {moment, type GaussStage} from './run';
 import {build, lookAt, REST, type Built, type Look, type Seg} from './scene';
 import {GaussScene} from './GaussScene';
@@ -46,13 +46,20 @@ const Name = ({x, y, children, className = '', anchor = 'middle'}: {x: number; y
 function insideName(c: GaussCase, b: Built): ReactNode {
   const k = c.figure.charge.kind, R = c.figure.charge.size, B = c.figure.charge.outer ?? R * 2, g = b.surface;
   // What is inside, as the right side writes it: all of a ball or a shell only once the surface is outside it.
-  const tail = k === 'line' ? '= λL' : k === 'sheet' || k === 'face' || k === 'plates' ? '= σA' : k === 'point' ? '= q' : k === 'ball' ? (g.r >= R ? '= Q' : '= Qr³/R³')
+  const q = c.figure.charge.symbol;
+  const tail = k === 'line' ? '= λL' : k === 'sheet' || k === 'face' || k === 'plates' ? '= σA' : k === 'point' ? `= ${q}` : k === 'offset' ? (g.r > R ? `= ${q}` : '= 0')
+    : isBall(k) ? (g.r >= R ? '= Q' : k === 'rising' ? '= Qr⁴/R⁴' : k === 'falling' ? '= Qr³(4R − 3r)/R⁴' : '= Qr³/R³')
     : k === 'shell' || k === 'metal' ? (g.r > R ? '= Q' : '= 0')
     : k === 'rod' ? (g.r >= R ? '= λL' : '= λLr²/R²') : k === 'tube' ? (g.r > R ? '= λL' : '= 0')
     : k === 'coax' ? (g.r <= R ? '= 0' : g.r < B ? '= λL' : '= λL − λL = 0')
     : k === 'cavity' ? (g.r < R ? '= q' : g.r <= B ? '= q − q = 0' : '= q − q + q = q')
-    : g.h >= R ? '= 2ρAa' : '= 2ρAz';
-  return <>Q<tspan className="gs-sub" dy="5">enc</tspan><tspan dy="-5"> </tspan><tspan>{tail}</tspan></>;
+    : k === 'tent' ? (g.h >= R ? '= ρ₀Aa' : '= 2ρ₀A(z − z²/2a)') : g.h >= R ? '= 2ρAa' : '= 2ρAz';
+  return <>Q<tspan className="gs-sub" dy="5">enc</tspan><tspan dy="-5"> </tspan><tspan>{zeroUpright(tail)}</tspan></>;
+}
+/** A name with its zeros, and its subscript zeros (ρ₀), set upright: the serif's italic zero reads as an o. */
+function zeroUpright(text: string): ReactNode {
+  const parts = text.split(/([0₀])/);
+  return parts.map((p, i) => p === '0' || p === '₀' ? <tspan key={i} className={'gs-zero' + (p === '₀' ? ' gs-sub' : '')}>0</tspan> : p);
 }
 /** The sign marks on a charge: where each sits, and whether it has the charge's own sign or the opposite one (the
  * −λ of a coaxial pair's outer shell, the −σ plate, the −q a hollow's wall takes). */
@@ -66,6 +73,8 @@ function signMarks(c: GaussCase['figure']['charge']): {at: V3; own: boolean}[] {
     case 'sheet': case 'face': return [v3(1.5, -1.2, 0), v3(-1.6, 1.3, 0), v3(1.9, 1.1, 0), v3(-1.3, -1.6, 0)].map(own);
     case 'plates': return [...[v3(1.6, -1.2, 0), v3(-1.7, 1.3, 0)].map(own), ...[v3(1.6, -1.2, -R), v3(-1.7, 1.3, -R)].map(other)];
     case 'metal': return round(R, [.6, 2.2, 3.7, 5.2]).map(own);
+    case 'offset': return [own(v3(0, 0, R))];
+    case 'tent': return [v3(1.6, 0, 0), v3(-1.6, 0, 0)].map(own);
     case 'cavity': return [own(v3(0, 0, 0)), ...round(R, [.9, 2.5, 4.1, 5.5]).map(other), ...round(B, [.5, 1.9, 3.3, 5.6]).map(own)];
     default: return [own(v3(0, 0, 0))];
   }
@@ -123,16 +132,26 @@ export const GaussFigure = memo(function GaussFigure({kase, size, sign, run, vie
   const pAt = proj(built.P);
   const eTip = fieldLabelAt(built.P, built.fieldAtP, built.spanAtP);
   const axial = c.kind === 'line' || c.kind === 'rod' || c.kind === 'tube' || c.kind === 'coax', flat = c.kind === 'sheet' || c.kind === 'face' || c.kind === 'plates';
-  const round = !axial, insideAt = proj(axial ? v3(0, 0, -g.h * .55) : flat ? v3(0, 0, c.kind === 'plates' ? g.h * .5 : -g.h * .5) : v3(0, 0, -(c.kind === 'point' ? .42 : c.kind === 'cavity' || c.kind === 'metal' ? Math.max(g.r, c.size) + .32 : c.size + .4)));
+  // The charge inside is named under it; under the part of a ball the sphere encloses; above a charge off the centre
+  // when it is inside, and at the centre, beneath the r, when it is outside and nothing is.
+  const offsetIn = c.kind === 'offset' && g.r > c.size;
+  const round = !axial, insideAt = proj(axial ? v3(0, 0, -g.h * .55) : flat ? v3(0, 0, c.kind === 'plates' ? g.h * .5 : -g.h * .5)
+    : c.kind === 'offset' ? v3(0, 0, offsetIn ? c.size + .48 : -.42) : c.kind === 'tent' ? v3(0, 0, -(Math.min(g.h, c.size) + .32))
+    : v3(0, 0, -(c.kind === 'point' ? .42 : c.kind === 'cavity' || c.kind === 'metal' ? Math.max(g.r, c.size) + .32 : isBall(c.kind) ? Math.min(c.size, g.r) + .4 : c.size + .4)));
   const sizeName = g.kind === 'pillbox' ? 'z' : 'r';
   const dimFrom = g.kind === 'pillbox' ? v3(-g.r - .28, 0, 0) : v3(0, 0, 0), dimTo = g.kind === 'pillbox' ? v3(-g.r - .28, 0, c.kind === 'plates' ? -g.h : g.h) : built.P;
   const dimA = proj(dimFrom), dimB = proj(dimTo), dimMid = {x: (dimA.x + dimB.x) / 2, y: (dimA.y + dimB.y) / 2};
   const glyph = sign > 0 ? '+' : '−';
   const marks = signMarks(c), other = sign > 0 ? '−' : '+';
-  const chargeName = c.symbol === '\\lambda' ? 'λ' : c.symbol === '\\sigma' ? 'σ' : c.symbol;
-  const chargeAt = proj(c.kind === 'line' || c.kind === 'rod' ? v3(0, 0, 2.2) : c.kind === 'tube' || c.kind === 'coax' ? v3(c.size, 0, 2.2) : flat ? v3(2.2, -1.9, 0)
-    : v3(0, 0, c.kind === 'ball' || c.kind === 'metal' ? c.size + .22 : .32));
-  const described = `${c.name.replace(/^./, s => s.toUpperCase())}, ${sign > 0 ? 'positive' : 'negative'}, inside a closed ${g.kind === 'pillbox' ? 'pillbox' : g.kind}. ${space ? 'In space: drag, or use the arrow keys, to turn it; Home puts it back.' : 'The cross-section through the axis.'}`;
+  const chargeName = c.symbol === '\\lambda' ? 'λ' : c.symbol === '\\sigma' ? 'σ' : c.symbol === '\\rho' ? 'ρ' : c.symbol;
+  const chargeAt = proj(c.kind === 'line' || c.kind === 'rod' ? v3(0, 0, 2.2) : c.kind === 'tube' || c.kind === 'coax' ? v3(c.size, 0, 2.2) : flat ? v3(2.2, -1.9, 0) : c.kind === 'tent' ? v3(2.2, -1.9, c.size * .5)
+    : v3(0, 0, c.kind === 'ball' || c.kind === 'metal' || c.kind === 'shell' || isBall(c.kind) ? c.size + .22 : c.kind === 'offset' ? c.size + .32 : .32));
+  // Where the closed surface stands to the charge, said as it is: round all of it, cutting through it, inside a
+  // shell, or beside a charge it leaves out.
+  const enclosesAll = c.kind === 'offset' ? g.r > c.size : isBall(c.kind) ? g.r >= c.size : c.kind === 'shell' ? g.r > c.size : true;
+  const relation = enclosesAll ? `inside a closed ${g.kind === 'pillbox' ? 'pillbox' : g.kind}` : c.kind === 'offset' ? 'outside a closed sphere' : c.kind === 'shell' ? 'round a closed sphere inside it' : 'with a closed sphere cutting through it';
+  const described = `${c.name.replace(/^./, s => s.toUpperCase())}, ${sign > 0 ? 'positive' : 'negative'}, ${relation}. ${space ? 'In space: drag, or use the arrow keys, to turn it; Home puts it back.' : 'The cross-section through the axis.'}`;
+  const noField = norm(built.fieldAtP) < 1e-12;
   return <div className="gs-figure">
     <div className={'cd-stage gs-stage' + (space ? ' is-space' : ' is-flat')} data-stage={stage ?? 'rest'} data-sweep={look.sweep.toFixed(3)} data-solve={look.solve.toFixed(3)} style={{'--cd-k': k} as CSSProperties}>
       {space && <GaussScene kase={kase} built={built} look={look} yaw={camera.yaw} pitch={camera.pitch} unit={unit} origin={ORIGIN} onUnavailable={why => setFailed(why === 'lost' ? 'lost' : 'failed')} />}
@@ -150,12 +169,13 @@ export const GaussFigure = memo(function GaussFigure({kase, size, sign, run, vie
         </>}
         {showFieldNames && zeroAt && look.sweep >= 1 - 1e-6 && (() => { const z = proj(zeroAt); return <Name x={z.x - 10} y={z.y + (g.kind === 'cylinder' ? -12 : 0)} anchor="end" className="gs-zero-name">E · dA = 0</Name>; })()}
         {showInside && <Name x={insideAt.x + (round ? 0 : 16)} y={insideAt.y} anchor={round ? 'middle' : 'start'} className="gs-inside-name">{insideName(kase, built)}</Name>}
-        {(stage === null || stage === 'solve') && <>
+        {built.answerAtP && (stage === null || stage === 'solve') && <>
           <circle className="gs-p" cx={pAt.x} cy={pAt.y} r={4.5} />
           <Name x={pAt.x + (g.kind === 'pillbox' ? 12 : 10)} y={pAt.y + (g.kind === 'pillbox' ? 18 : 16)} anchor="start" className="gs-p-name">P</Name>
         </>}
-        {showSolve && !space && <Arrow a={pAt} b={{x: pAt.x + (eTip.x - pAt.x) * look.solve, y: pAt.y + (eTip.y - pAt.y) * look.solve}} className="gs-arrow gs-e is-answer" head={12} />}
-        {showSolve && look.solve > .6 && norm(built.fieldAtP) > 1e-9 && <Name x={eTip.x + 12} y={eTip.y - 10} anchor="start" className="gs-field-name is-answer">E</Name>}
+        {built.answerAtP && showSolve && !space && <Arrow a={pAt} b={{x: pAt.x + (eTip.x - pAt.x) * look.solve, y: pAt.y + (eTip.y - pAt.y) * look.solve}} className="gs-arrow gs-e is-answer" head={12} />}
+        {/* Where the field at P is zero (inside a shell) there is no arrow to name, so the name says so. */}
+        {built.answerAtP && showSolve && look.solve > .6 && <Name x={eTip.x + 12} y={eTip.y - 10} anchor="start" className="gs-field-name is-answer">{noField ? <>E = <tspan className="gs-zero">0</tspan></> : 'E'}</Name>}
         {space && <ViewCube view={camera} at={{x: 664, y: 58}} size={20} minFont={11 / k} onPick={next => setCamera(next)} onSpin={(dx, dy) => turn(-dx * .009, dy * .009)} onStep={key => turn(key === 'ArrowLeft' ? .2 : key === 'ArrowRight' ? -.2 : 0, key === 'ArrowUp' ? .12 : key === 'ArrowDown' ? -.12 : 0)} />}
       </svg>
     </div>
@@ -168,7 +188,7 @@ export const GaussFigure = memo(function GaussFigure({kase, size, sign, run, vie
       {space && <div className="cd-pad"><button type="button" className="text-button cd-orbit-reset" onClick={() => setCamera(opening(kase))} disabled={Math.abs(camera.yaw - opening(kase).yaw) < 1e-6 && Math.abs(camera.pitch - opening(kase).pitch) < 1e-6}>Reset view</button></div>}
       {failed && <output className="cd-stage-unavailable">{failed === 'lost' ? 'The 3D view was interrupted, so the figure is drawn as its cross-section. Choose 3D to try again.' : 'The 3D view is not available on this device, so the figure is drawn as its cross-section.'}</output>}
     </div>
-    <div className="cd-caption"><span>Teal arrows are the field E at each patch, grey ones the patch’s outward dA. Shaded patches carry no flux.</span></div>
+    <div className="cd-caption"><span>Teal arrows are the field E at each patch, grey ones the patch’s outward dA. Shaded patches carry no flux.{c.kind === 'offset' && ' Here an arrow’s length grows as the square root of the field, which changes too much over the sphere for one scale.'}</span></div>
   </div>;
 });
 /** The segment nearest a point, for the names. */
@@ -190,8 +210,13 @@ function Flat({built, look, lit, proj}: {built: Built; look: Look; lit: number; 
   // Two vertical lines at ±x from the axis: a cylindrical shell's cut, the whole height or the length the surface holds.
   const walls = (x: number, cls: string, half = 0) => <>{[-1, 1].map(k => <line key={k} className={cls} x1={o.x + k * x} y1={half ? o.y - half : -20} x2={o.x + k * x} y2={half ? o.y + half : 450} />)}</>;
   const ring = (r0: number, r1: number) => `M${o.x - r1} ${o.y}a${r1} ${r1} 0 1 0 ${2 * r1} 0a${r1} ${r1} 0 1 0 ${-2 * r1} 0Z` + (r0 > 0 ? `M${o.x - r0} ${o.y}a${r0} ${r0} 0 1 0 ${2 * r0} 0a${r0} ${r0} 0 1 0 ${-2 * r0} 0Z` : '');
-  const charge = c.kind === 'point' ? <circle className="gs-charge" cx={o.x} cy={o.y} r={6} />
+  const gradient = useId().replace(/:/g, '');
+  const at = c.kind === 'offset' ? proj(v3(0, 0, c.size)) : o;
+  const charge = c.kind === 'point' || c.kind === 'offset' ? <circle className="gs-charge" cx={at.x} cy={at.y} r={6} />
     : c.kind === 'ball' ? <circle className="gs-charge is-body" cx={o.x} cy={o.y} r={R} />
+    // A ball whose density varies with r is shaded as it does: darker where there is more charge.
+    : c.kind === 'rising' || c.kind === 'falling' ? <circle className="gs-charge is-body is-graded" cx={o.x} cy={o.y} r={R} style={{fill: `url(#${gradient})`}} />
+    : c.kind === 'tent' ? <rect className="gs-charge is-body is-graded" x={-20} y={o.y - R} width={760} height={2 * R} style={{fill: `url(#${gradient})`}} />
     : c.kind === 'shell' ? <circle className="gs-charge is-shell" cx={o.x} cy={o.y} r={R} />
     : c.kind === 'line' ? <line className="gs-charge is-line" x1={o.x} y1={-20} x2={o.x} y2={450} />
     : c.kind === 'sheet' ? <line className="gs-charge is-line" x1={-20} y1={o.y} x2={740} y2={o.y} />
@@ -206,7 +231,8 @@ function Flat({built, look, lit, proj}: {built: Built; look: Look; lit: number; 
     : <rect className="gs-charge is-body" x={-20} y={o.y - R} width={760} height={2 * R} />;
   const H = g.h * u;
   const inside = look.enclosed > .02 && (c.kind === 'point' ? <circle className="gs-inside" cx={o.x} cy={o.y} r={13} />
-    : c.kind === 'ball' ? <circle className="gs-inside is-body" cx={o.x} cy={o.y} r={Math.min(c.size, g.r) * u} /> : c.kind === 'shell' || c.kind === 'metal' ? g.r > c.size && <circle className="gs-inside is-shell" cx={o.x} cy={o.y} r={R} />
+    : c.kind === 'offset' ? g.r > c.size && <circle className="gs-inside" cx={at.x} cy={at.y} r={13} />
+    : isBall(c.kind) ? <circle className={'gs-inside ' + (c.kind === 'ball' ? 'is-body' : 'is-shell')} cx={o.x} cy={o.y} r={Math.min(c.size, g.r) * u} /> : c.kind === 'shell' || c.kind === 'metal' ? g.r > c.size && <circle className="gs-inside is-shell" cx={o.x} cy={o.y} r={R} />
     : c.kind === 'line' ? <line className="gs-inside is-line" x1={o.x} y1={o.y - H} x2={o.x} y2={o.y + H} />
     : c.kind === 'sheet' || c.kind === 'face' || c.kind === 'plates' ? <line className="gs-inside is-line" x1={o.x - g.r * u} y1={o.y} x2={o.x + g.r * u} y2={o.y} />
     : c.kind === 'rod' ? <rect className="gs-inside is-body" x={o.x - Math.min(c.size, g.r) * u} y={o.y - H} width={2 * Math.min(c.size, g.r) * u} height={2 * H} />
@@ -214,7 +240,11 @@ function Flat({built, look, lit, proj}: {built: Built; look: Look; lit: number; 
     : c.kind === 'cavity' ? <><circle className="gs-inside" cx={o.x} cy={o.y} r={13} />{g.r > c.size && <circle className="gs-inside is-shell" cx={o.x} cy={o.y} r={R} />}{g.r * u > B && <circle className="gs-inside is-shell" cx={o.x} cy={o.y} r={B} />}</>
     : <rect className="gs-inside is-body" x={o.x - g.r * u} y={o.y - Math.min(g.h, c.size) * u} width={2 * g.r * u} height={2 * Math.min(g.h, c.size) * u} />);
   const dA = .34 * Math.min(1, built.half / 3.2);
+  // The density's shading: from the centre out for a ball, from the middle plane out for the tent slab.
+  const stops = c.kind === 'rising' ? [[0, .08], [1, .95]] : [[0, .95], [1, .08]];
   return <g className="gs-flat">
+    {(c.kind === 'rising' || c.kind === 'falling') && <defs><radialGradient id={gradient} cx="50%" cy="50%" r="50%">{stops.map(([at, op]) => <stop key={at} offset={at} style={{stopColor: 'var(--charge)', stopOpacity: op * .62}} />)}</radialGradient></defs>}
+    {c.kind === 'tent' && <defs><linearGradient id={gradient} x1="0" y1="0" x2="0" y2="1">{[[0, .05], [.5, .6], [1, .05]].map(([at, op]) => <stop key={at} offset={at} style={{stopColor: 'var(--charge)', stopOpacity: op}} />)}</linearGradient></defs>}
     <g className="gs-charge-layer">{charge}</g>
     {inside && <g style={{opacity: look.enclosed}}>{inside}</g>}
     {look.spokes > .01 && <g className="gs-spokes" style={{opacity: Math.min(1, look.spokes * 1.4)}}>{built.flatSpokes.map((s, i) => {

@@ -1,4 +1,4 @@
-import {add, boundaries, cross, dot, fieldAt, norm, pointOn, scale, sub, unit, v3, type V3} from './physics';
+import {add, ballFraction, bandFlux, boundaries, cross, dot, EPS0, fieldAt, norm, pointOn, scale, sub, unit, v3, type ChargeKind, type V3} from './physics';
 import {chargeOf, surfaceOf} from './scene';
 import type {GaussCase} from './types';
 /* THE TWO INSTRUMENTS' PHYSICS, apart from their drawing, so a unit test can hold them to it.
@@ -213,3 +213,69 @@ export function cavityTex(hasCharge: boolean, net: boolean): string {
   const wall = hasCharge ? '-q' : '0', outer = hasCharge ? (net ? 'Q+q' : 'q') : (net ? 'Q' : '0');
   return String.raw`q_{\text{wall}}=${wall},\qquad q_{\text{outer}}=${outer}`;
 }
+// ---- Why only the charge inside ----
+/* A point charge on the axis of a sphere of radius one, a distance d from its centre, and the sphere cut into bands
+ * about that axis. Each band's flux is exact (physics.ts, bandFlux): the field is the same turned about the axis, so a
+ * band is the right piece. The instrument stacks them: inside, every band carries flux of q's sign and they add to
+ * q/ε₀; outside, the bands facing the charge carry it the other way, exactly as much as the bands beyond it, and the
+ * stack comes back to zero. */
+export const BANDS = 8;
+export type Band = {i: number; th0: number; th1: number; mid: number; flux: number; field: V3; normal: V3};
+/** The bands, nearest the charge first, each with its flux (k = 1) and the field at its middle, in the plane that
+ * holds the axis (x across it, z along it toward the charge). */
+export function insideBands(d: number, sign: 1 | -1, n = BANDS): Band[] {
+  const out: Band[] = [];
+  for (let i = 0; i < n; i++) {
+    const th0 = Math.PI * i / n, th1 = Math.PI * (i + 1) / n, mid = (th0 + th1) / 2, at = v3(Math.sin(mid), 0, Math.cos(mid));
+    out.push({i, th0, th1, mid, flux: bandFlux(sign, d, 1, th0, th1), field: fieldAt({kind: 'offset', sign, size: d}, at), normal: at});
+  }
+  return out;
+}
+/** Each band's flux as a share of q/ε₀: positive where it carries flux of q's own sign (out for a positive q). */
+export const bandShares = (d: number, n = BANDS) => insideBands(d, 1, n).map(b => b.flux * EPS0);
+/** The readout: q/ε₀ with the charge inside, zero outside. The instrument never stops on the sphere itself. */
+export const insideTex = (d: number) => d < 1 ? String.raw`\Phi=\frac{q}{\varepsilon_0}` : String.raw`\Phi=0`;
+
+// ---- Q_enc from a density ----
+/* A ball of radius R and total charge Q, its density one of three: uniform, rising as r, or falling to zero at the
+ * surface. The thin shell at r′ holds dq = ρ(r′)·4πr′²dr′; the shells inside the Gaussian sphere add to Q_enc. In units
+ * of R and Q (R = 1, Q = 1), so the fractions are ballFraction's and the shells' charge per unit radius its slope. */
+export type Profile = 'uniform' | 'rising' | 'falling';
+export const PROFILE_KIND: Record<Profile, ChargeKind> = {uniform: 'ball', rising: 'rising', falling: 'falling'};
+/** The density at x = r′/R, for Q = 1 and R = 1: 3/4π, x/π, or 3(1 − x)/π, each normalised so the ball holds Q. */
+export function density(p: Profile, x: number): number {
+  if (x > 1) return 0;
+  return p === 'uniform' ? 3 / (4 * Math.PI) : p === 'rising' ? x / Math.PI : 3 * (1 - x) / Math.PI;
+}
+/** The charge per unit radius in the shell at x: ρ·4πx², whose integral from zero to x is the enclosed charge. */
+export const shellCharge = (p: Profile, x: number) => density(p, x) * 4 * Math.PI * x * x;
+/** The charge inside a sphere of radius x (units of R), as a fraction of Q. */
+export const qencFraction = (p: Profile, x: number) => ballFraction(PROFILE_KIND[p], x, 1);
+/** The same, done the way the mistake does it: ∫ρ dr′, which is not a charge. For the drawing only. */
+export function wrongIntegral(p: Profile, x: number): number {
+  const m = Math.min(x, 1);
+  return p === 'uniform' ? 3 * m / (4 * Math.PI) : p === 'rising' ? m * m / (2 * Math.PI) : 3 * (m - m * m / 2) / Math.PI;
+}
+const raw = String.raw;
+/** The density as the board writes it, its constant fixed by the total Q, the shells' integrand, and the closed
+ * form inside. */
+const QENC: Record<Profile, {rho: string; norm: string; integrand: string; inside: string}> = {
+  uniform: {rho: raw`\rho=\text{const}`, norm: raw`\rho=\frac{Q}{\frac43\pi R^3}`, integrand: raw`\rho\,4\pi r'^2`, inside: raw`Q\,\frac{r^3}{R^3}`},
+  rising: {rho: raw`\rho=\rho_0\,\frac{r}{R}`, norm: raw`\rho_0=\frac{Q}{\pi R^3}`, integrand: raw`\rho_0\frac{r'}{R}\,4\pi r'^2`, inside: raw`Q\,\frac{r^4}{R^4}`},
+  falling: {rho: raw`\rho=\rho_0\Big(1-\frac{r}{R}\Big)`, norm: raw`\rho_0=\frac{3Q}{\pi R^3}`, integrand: raw`\rho_0\Big(1-\frac{r'}{R}\Big)4\pi r'^2`, inside: raw`Q\Big(\frac{4r^3}{R^3}-\frac{3r^4}{R^4}\Big)`},
+};
+/** The readout, built for where the sphere is: the shells from the centre to r inside the ball, to R outside it
+ * (there is no charge beyond R), and the mistaken ∫ρ dr′ when the reader asks for it. */
+export function qencTex(p: Profile, x: number, mistaken = false): {density: string; integral: string} {
+  const q = QENC[p], top = x < 1 ? 'r' : 'R';
+  if (mistaken) return {density: raw`${q.rho},\quad ${q.norm}`, integral: raw`\int_0^{${top}}\rho\,dr'\neq Q_{\text{enc}}`};
+  return {density: raw`${q.rho},\quad ${q.norm}`, integral: raw`Q_{\text{enc}}=\int_0^{${top}}${q.integrand}\,dr'=${x < 1 ? q.inside : 'Q'}`};
+}
+
+// ---- Spheres: the field against r ----
+/* The four spheres of the lesson, each of total charge Q (k = 1, Q = 1, R = 1): a point charge, a thin shell, a
+ * uniform ball and a ball with ρ ∝ r. Outside R all four make the same field; inside they part. */
+export const SPHERE_KINDS = ['point', 'shell', 'ball', 'rising'] as const;
+export type SphereKind = typeof SPHERE_KINDS[number];
+/** E_r at r (units of R) for a charge of the given sign: the figure's own fields, along a radius. */
+export const fieldOf = (k: SphereKind, r: number, sign: 1 | -1 = 1) => fieldAt({kind: k, sign, size: 1}, v3(r, 0, 0)).x;
