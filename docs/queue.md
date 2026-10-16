@@ -6,21 +6,24 @@ then to **Done**, with the commit. Newest requests are added at the bottom of **
 owner says they are urgent.
 
 ## In progress
-- **Gauss's law, building** (owner, 2026-10-15: "do the gauss law stuff too"): the 11-lesson list from
-  [gauss-law-plan.md](gauss-law-plan.md). One agent builds the foundation (lesson model, ?g= routing, page,
-  the five-stage run, the 3D Gaussian-surface figure) and the first two lessons (Symmetry first; Flux, the
-  idea) with a how-to; then parallel agents write the other nine; then physics reviewers; then Gauss quiz
-  banks. **Two of eleven done**: the foundation (src/gauss, the readiness switch GAUSS_READY) and both lessons
-  are live at `?g=symmetry` and `?g=flux`, physics-reviewed (algebra and narration; figure and instruments),
-  the other nine listed as coming soon. Next agents add one file each, following
-  [gauss-lessons-howto.md](gauss-lessons-howto.md).
-- **A critique round on the redesigned site**: starts when the zoom work lands.
+- **Critique round, wave 6** on the redesigned site: fixers finishing, then one publish. Usage was at 57%
+  weekly (stop at 60%) when it was let finish; stop it if usage reaches 60.
 
 ## Next
-1. **New lessons**, deferred by the cloud round, for the owner to choose from: a non-uniform semicircle, a
+1. **Gauss quiz banks** for the eleven Gauss lessons (the study lab's "mistakes graders see most" and its
+   five misconceptions), then their physics review. Waiting for the weekly usage to reset (2026-10-20).
+2. **New lessons**, deferred by the cloud round, for the owner to choose from: a non-uniform semicircle, a
    spherical shell, an annulus, a rod with P off its bisector.
 
 ## Done
+- Gauss's law, all eleven lessons, on main (2026-10-16): foundation 0ff7e76; Symmetry first and Flux
+  (777a864, 37dafe4); Why only the charge inside, Q_enc from a density, Spheres (255376e, 0e2c827, d5d0e9e);
+  Lines and cylinders, Sheets and slabs, Conductors (9a896c7, 86147df, 05547f3); Holes by superposition,
+  When symmetry runs out, The hard cases (95a47cb, 79f9d29, ded1e4f). Each lesson had two adversarial
+  physics reviews before commit. How-to: docs/gauss-lessons-howto.md.
+- Figure zoom (056dd10, a5210c1), Cut it up visible on every lesson and the sum label V ≈ ΣΔV
+  (de611de, 98c65e7), the transport bar's glide (62bb874), the limits plot's hover (b3e135e), quiz links
+  in every lesson (bf9212a), the README (a97996b).
 - 2026-10-15, owner: the figure's zoom bled and stuttered. Zoomed in, the rod's length bar ran from the card's top
   through the caption into the controls and its + marks stood by the heading and the zoom buttons: only the field,
   the body and the arrows were cut to the plot's window. Every stroke is now cut to it, marks are drawn only inside
