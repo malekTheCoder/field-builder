@@ -3,15 +3,16 @@
    turn, so it takes the focus: as the integral lessons' figure does (ChargeDiagram), for the same reasons. */
 /* oxlint-disable jsx-a11y/prefer-tag-over-role, jsx-a11y/no-noninteractive-tabindex */
 import {memo, useCallback, useEffect, useId, useMemo, useRef, useState, useSyncExternalStore, type CSSProperties, type KeyboardEvent, type PointerEvent, type ReactNode} from 'react';
-import {projectPoint} from '../diagrams/three/orthoCamera';
+import {cameraBasis, projectPoint} from '../diagrams/three/orthoCamera';
+import {nearestOnBox, placeLabels, type Box, type Segment} from '../diagrams/labels';
 import {ViewCube} from '../diagrams/ViewCube';
 import type {CameraView} from '../diagrams/camera';
 import type {RunClock} from '../explorer/BuildPlayer';
 import {useRenderedWidth} from '../components/useRenderedWidth';
 import {useReducedMotion} from 'motion/react';
-import {add, enclosedCharge, isBall, norm, scale, sub, v3, type V3} from './physics';
+import {add, dot, enclosedCharge, isBall, norm, scale, sub, v3, type V3} from './physics';
 import {moment, type GaussStage} from './run';
-import {arrowEnds, build, chainOf, lookAt, POINT_PX, REST, type Built, type Look, type Seg} from './scene';
+import {arrowEnds, build, chainOf, FIGURE_ORIGIN, lookAt, openingView, POINT_PX, REST, type Built, type Look, type Seg} from './scene';
 import {GaussScene} from './GaussScene';
 import {regionOf} from './instruments';
 import type {GaussCase} from './types';
@@ -24,8 +25,8 @@ import '../diagrams/charge-diagram.css';
  * The SVG carries what the scene cannot: the names (P, E, dA, r, the charge inside), the view cube, and the
  * keyboard. The page prints no numerals, and neither does the figure. */
 export type FigureView = '3d' | '2d';
-const ORIGIN = {x: 360, y: 222};
-const opening = (c: GaussCase): CameraView => c.figure.surface.kind === 'pillbox' ? {yaw: -.5, pitch: .3} : {yaw: -.5, pitch: .34};
+const ORIGIN = FIGURE_ORIGIN;
+const opening = (c: GaussCase): CameraView => openingView(c);
 const FLAT: CameraView = {yaw: 0, pitch: 0};
 type Props = {
   kase: GaussCase; size: number; sign: 1 | -1;
@@ -63,6 +64,40 @@ function insideName(c: GaussCase, b: Built): ReactNode {
     : k === 'tent' ? (g.h >= R ? '= ρ₀Aa' : '= 2ρ₀A(z − z²/2a)') : g.h >= R ? '= 2ρAa' : '= 2ρAz';
   const named = c.figure.charge.insideNames?.[regionOf(c, g.kind === 'pillbox' ? g.h : g.r)];
   return <>Q<tspan className="gs-sub" dy="5">enc</tspan><tspan dy="-5"> </tspan><tspan>{zeroUpright(named ?? tail)}</tspan></>;
+}
+/** The charge inside's name as plain text, for the room its label takes. */
+function insideText(c: GaussCase, b: Built): string {
+  const flat = (n: ReactNode): string => typeof n === 'string' || typeof n === 'number' ? String(n) : Array.isArray(n) ? n.map(flat).join('') : n && typeof n === 'object' && 'props' in n ? flat((n.props as {children?: ReactNode}).children) : '';
+  return flat(insideName(c, b));
+}
+type NameSpec = {key: string; x: number; y: number; anchor: 'start' | 'middle' | 'end'; className: string; content: ReactNode; text: string;
+  /** Its font size in the figure's units, once scaled for a small figure. */
+  size: number; keep: boolean; from?: {x: number; y: number};
+  /** It names an arrow, so it may be tried on the arrow's other side. */
+  mirror?: boolean};
+type PlacedName = NameSpec & {leader?: Segment};
+/** The box a name's text takes, from its length: the serif's italic runs about six tenths of its size a letter. */
+function nameBox(n: NameSpec): Box {
+  const w = Math.max(1, n.text.length) * n.size * .56 + 4, h = n.size * 1.1;
+  return {x: n.anchor === 'start' ? n.x - 2 : n.anchor === 'end' ? n.x - w + 2 : n.x - w / 2, y: n.y - h / 2, width: w, height: h};
+}
+/** Where each name goes: its own spot if that is clear, else the nearest clear one, the kept ones on a leader if they
+ * must go further, the rest left out. In order: the first named hold their ground. */
+function placeNames(specs: NameSpec[], strokes: Segment[], marks: Box[], answer?: Segment): PlacedName[] {
+  if (!specs.length) return [];
+  const boxes = specs.map(nameBox);
+  // Only an arrow's name may go to the far side of what it names: the other side of an arrow still names it, but a
+  // point's or a charge's name reflected through it landed on the charge.
+  const nudges = placeLabels(specs.map((n, i) => ({box: boxes[i], keep: n.keep, ...(n.from ? {from: n.from} : {}), ...(n.from && n.mirror ? {mirror: n.from} : {}), ...(n.key === 'e-at-p' && answer ? {shaft: answer} : {})})),
+    {frame: {width: 720, height: 430}, obstacles: marks, lines: strokes, pad: 2, labelPad: 5, maxShift: 46, leaderReach: 2.2});
+  return specs.flatMap((n, i) => {
+    const d = nudges[i];
+    if (d.hidden) return [];
+    const at = {x: n.x + d.dx, y: n.y + d.dy};
+    if (!d.leader || !n.from) return [{...n, ...at}];
+    const b = {x: boxes[i].x + d.dx, y: boxes[i].y + d.dy, width: boxes[i].width, height: boxes[i].height};
+    return [{...n, ...at, leader: {a: n.from, b: nearestOnBox(b, n.from)}}];
+  });
 }
 /** A name with its zeros, and its subscript zeros (ρ₀), set upright: the serif's italic zero reads as an o. */
 function zeroUpright(text: string): ReactNode {
@@ -241,7 +276,9 @@ export const GaussFigure = memo(function GaussFigure({kase, size, sign, siblings
   // The plug's radius, from its centre (in the cut's plane) to P.
   const plugA = plug?.center ? proj(plug.center) : null, plugMid = plugA ? {x: (plugA.x + dimB.x) / 2, y: (plugA.y + dimB.y) / 2} : null;
   const glyph = sign > 0 ? '+' : '−';
-  const marks = signMarks(c), other = sign > 0 ? '−' : '+';
+  // Only the marks that fall inside the frame: an infinite line's, out along it, stood in the card's heading once the
+  // figure was fitted to what it draws.
+  const marks = signMarks(c).filter(m => { const q = proj(m.at); return q.x > 10 && q.x < 710 && q.y > 14 && q.y < 416; }), other = sign > 0 ? '−' : '+';
   const chargeName = c.symbol === '\\lambda' ? 'λ' : c.symbol === '\\sigma' ? 'σ' : c.symbol === '\\rho' ? 'ρ' : c.symbol;
   const chargeAt = proj(c.kind === 'line' || c.kind === 'rod' ? v3(0, 0, 2.2) : c.kind === 'segment' ? v3(0, 0, c.size + .3) : c.kind === 'point' && c.at ? add(c.at, v3(0, 0, .32)) : c.kind === 'rodhole' ? v3(-c.size * .55, 0, 2.2) : c.kind === 'tube' || c.kind === 'coax' ? v3(c.size, 0, 2.2) : flat ? v3(2.2, -1.9, 0) : c.kind === 'tent' || c.kind === 'oddslab' ? v3(2.2, -1.9, c.size * .5)
     : v3(0, 0, c.kind === 'ball' || c.kind === 'metal' || c.kind === 'shell' || c.kind === 'ballhole' || c.kind === 'cusp' || isBall(c.kind) ? c.size + .22 : c.kind === 'halo' ? c.size * 2 + .2 : c.kind === 'offset' ? c.size + .32 : .32));
@@ -252,10 +289,69 @@ export const GaussFigure = memo(function GaussFigure({kase, size, sign, siblings
     const where = c.kind === 'sheethole' ? v3(g.r + .25, 0, -.32) : c.kind === 'rodhole' ? v3(at.x + (i ? 0 : -Math.min(s!.r, p.charge.size)) , 0, -g.h - .3 - (i ? .42 : 0)) : i ? add(at, v3(0, 0, (c.hole?.radius ?? s!.r) + .3)) : v3(0, 0, -(Math.min(s!.r, p.charge.size) + .3));
     return {at: proj(where), text: pieceText(c.kind, i), anchor: 'middle' as const};
   }).filter(n => n !== null) : null;
+  // ---- THE NAMES, PLACED OFF THE ARROWS AND OFF EACH OTHER ----
+  // Each name asks for a spot beside what it names; the placer (diagrams/labels.ts, the integral lessons' own) keeps
+  // it off every arrow's head and shaft, the sign marks, P and the view cube, and off the names placed before it. They
+  // were set at fixed offsets, and E, dA and Q_enc landed on arrow heads in every figure; on a phone, all on the ball.
+  // The names the figure is about (P, the E at P, the charge inside) are always drawn, on a leader if they must go
+  // further; the rest give way where there is no room, and on a small figure the secondary ones are not drawn at all.
+  const noField = norm(built.fieldAtP) < 1e-12;
+  const small = k > 1.25, forward = cameraBasis(cam.yaw, cam.pitch).forward;
+  const specs: NameSpec[] = [];
+  const ask = (key: string, x: number, y: number, anchor: 'start' | 'middle' | 'end', className: string, content: ReactNode, text: string, size: number, keep: boolean, from?: {x: number; y: number}, mirror = false) =>
+    specs.push({key, x, y, anchor, className, content, text, size: size * k, keep, from, mirror});
+  if ((built.answerAtP || built.markP) && (stage === null || stage === 'solve')) ask('p', pAt.x + (g.kind === 'pillbox' ? 12 : 10), pAt.y + (g.kind === 'pillbox' ? 18 : 16), 'start', 'gs-p-name', 'P', 'P', 20.5, true, pAt);
+  if (built.answerAtP && showSolve && look.solve > .6) {
+    if (noField) ask('e-at-p', pAt.x + 24, pAt.y - 14, 'start', 'gs-field-name is-answer', <>E = <tspan className="gs-zero">0</tspan></>, 'E = 0', 21, true, pAt);
+    else ask('e-at-p', eTip.x + 12, eTip.y - 10, 'start', 'gs-field-name is-answer', 'E', 'E', 21, true, eTip, true);
+  }
+  if (showInside && !pieceNames) ask('inside', insideAt.x + (round ? 0 : 16), insideAt.y, round ? 'middle' : 'start', 'gs-inside-name', insideName(kase, built), insideText(kase, built), 17.5, true, insideAt);
+  pieceNames?.forEach((n, i) => ask(`piece${i}`, n.at.x, n.at.y, n.anchor, 'gs-inside-name', n.text, n.text, 17.5, true, n.at));
+  if (stage === 'symmetry' || stage === 'surface') ask('charge', chargeAt.x + 14, chargeAt.y, 'start', 'gs-charge-name', chargeName, chargeName, 17.5, true, chargeAt);
+  // At Solve the patches have done their work: their arrows are faint, and a dA named over them named nothing.
+  const naming = showFieldNames && stage !== 'solve';
+  if (naming && stage === 'left' && norm(namedField) > 1e-9) ask('e-patch', nameE.x + 12, nameE.y - 8, 'start', 'gs-field-name', 'E', 'E', 17.5, false, nameE, true);
+  if (naming && !small) ask('da', clash && stage === 'left' ? nameDA.x - 8 : nameDA.x + 10, clash && stage === 'left' ? nameDA.y + 16 : nameDA.y - 8, clash && stage === 'left' ? 'end' : 'start', 'gs-normal-name', 'dA', 'dA', 17.5, false, nameDA, true);
+  if (naming && zeroAt && look.sweep >= 1 - 1e-6) { const z = proj(zeroAt); ask('zero', z.x - 10, z.y + (g.kind === 'cylinder' ? -12 : 0), 'end', 'gs-zero-name', <>E · dA = <tspan className="gs-zero">0</tspan></>, 'E · dA = 0', 15, false, z); }
+  if (look.surface > .5 && !small) ask('size', dimMid.x + (g.kind === 'pillbox' ? -14 : 0), dimMid.y + (g.kind === 'pillbox' ? 0 : -13), g.kind === 'pillbox' ? 'end' : 'middle', '', sizeName, sizeName, 17.5, false, dimMid);
+  if (look.surface > .5 && plugMid && !small) ask('size2', plugMid.x + 12, plugMid.y - 12, 'middle', '', 'r₂', 'r₂', 17.5, false, plugMid);
+  // What the names keep off: every arrow drawn at this moment, its head as a mark and its shaft as a line, the sign
+  // marks, P, and the view cube.
+  const strokes: Segment[] = [], marksAt: Box[] = [];
+  const head = (space ? 12 * Math.max(1, 720 / Math.max(1, width)) : 10) + 2;
+  const stroke = (a: V3, b: V3) => { const pa = proj(a), pb = proj(b); if (Math.hypot(pb.x - pa.x, pb.y - pa.y) < 1.5) return; strokes.push({a: pa, b: pb}); marksAt.push({x: pb.x - head / 2, y: pb.y - head / 2, width: head, height: head}); };
+  const dAl = .34 * Math.min(1, built.half / 3.2) * look.surface;
+  if (space) built.patches.forEach((q, i) => {
+    if (dot(q.normal, forward) <= -.05) return;
+    if (look.surface > .01) { const base = add(q.center, scale(sub(q.corners[0], q.center), .32)); stroke(base, add(base, scale(q.normal, dAl))); }
+    const f = Math.max(0, Math.min(1, lit - i));
+    if (f > 0 && q.span > 0) { const e = arrowEnds(q.center, q.field, q.span * f, q.back); stroke(e.from, e.to); }
+  });
+  else built.slice.forEach((q, i) => {
+    if (look.surface > .01) { const base = segBase(q); stroke(base, add(base, scale(q.normal, dAl))); }
+    const f = Math.max(0, Math.min(1, lit - i));
+    if (f > 0 && (q.span ?? 0) > 0) { const e = arrowEnds(q.mid, q.field, (q.span ?? 0) * f, q.back); stroke(e.from, e.to); }
+  });
+  if (look.spokes > .01) for (const sp of space ? built.spokes : built.flatSpokes) if ((sp.span ?? 0) > 0) { const e = arrowEnds(sp.at, sp.field, (sp.span ?? 0) * look.spokes, sp.back); stroke(e.from, e.to); }
+  if (showSolve && built.pieces) for (const link of chainOf(built)) stroke(link.from, add(link.from, scale(link.dir, link.length * look.solve)));
+  const answerShaft = built.answerAtP && showSolve && norm(built.fieldAtP) > 1e-12 ? {a: answerFrom, b: answerTo} : undefined;
+  if (answerShaft) stroke(answer.from, answer.to);
+  if (stage !== 'solve') for (const m of marks) { const q = proj(m.at); marksAt.push({x: q.x - 9, y: q.y + (axial || flat ? -10 : 0) - 10, width: 18, height: 20}); }
+  if ((built.answerAtP || built.markP) && (stage === null || stage === 'solve')) marksAt.push({x: pAt.x - 6, y: pAt.y - 6, width: 12, height: 12});
+  if (space) marksAt.push({x: 612, y: 16, width: 100, height: 86});
+  // The radius lines, and a line or rod of charge along its axis (its axis and, for a rod, its two edges as seen):
+  // names keep off them as they keep off arrows, or Q_enc and dA were struck through by the charge they name.
+  if (look.surface > .5) { strokes.push({a: dimA, b: dimB}); if (plugA) strokes.push({a: plugA, b: dimB}); }
+  if (axial) {
+    const right = cameraBasis(cam.yaw, cam.pitch).right, ends = c.kind === 'segment' ? c.size : 4;
+    const along = (off: number, at: V3 = v3(0, 0, 0)) => strokes.push({a: proj(add(at, add(scale(right, off), v3(0, 0, -ends)))), b: proj(add(at, add(scale(right, off), v3(0, 0, ends))))});
+    if (c.kind === 'line' || c.kind === 'segment') along(0);
+    else for (const r of c.kind === 'coax' ? [c.size, c.outer ?? c.size * 2] : [c.size]) { along(r, c.kind === 'rodhole' ? v3(0, 0, 0) : undefined); along(-r); }
+  }
+  const placed = placeNames(specs, strokes, marksAt, answerShaft);
   const described = describe(kase, built, space);
   const reserve = useMemo(() => (siblings ?? []).filter(o => o.key !== kase.key).map(o => captionOf(o, build(o, o.figure.surface.size.initial, sign))), [siblings, kase.key, sign]);
   const atRest = Math.abs(camera.yaw - opening(kase).yaw) < 1e-6 && Math.abs(camera.pitch - opening(kase).pitch) < 1e-6;
-  const noField = norm(built.fieldAtP) < 1e-12;
   return <div className="gs-figure">
     <div className={'cd-stage gs-stage' + (space ? ' is-space' : ' is-flat')} data-stage={stage ?? 'rest'} data-sweep={look.sweep.toFixed(3)} data-solve={look.solve.toFixed(3)} style={{'--cd-k': k} as CSSProperties}>
       {space && <GaussScene kase={kase} built={built} look={look} yaw={camera.yaw} pitch={camera.pitch} unit={unit} origin={ORIGIN} onUnavailable={why => setFailed(why === 'lost' ? 'lost' : 'failed')} />}
@@ -265,29 +361,19 @@ export const GaussFigure = memo(function GaussFigure({kase, size, sign, siblings
         {/* Kept through the right side, where the charge inside is counted: a coaxial pair's or a capacitor's two
             charges, lit, are told apart by their signs alone. */}
         {stage !== 'solve' && marks.map((m, i) => { const q = proj(m.at); return <text key={i} className={'gs-sign' + (m.disc ? ' is-on-disc' : '')} x={q.x.toFixed(1)} y={(q.y + (axial || flat ? -10 : 0) + (m.disc ? 1 : 0)).toFixed(1)} textAnchor="middle" dominantBaseline="middle">{m.own ? glyph : other}</text>; })}
-        {(stage === 'symmetry' || stage === 'surface') && <Name x={chargeAt.x + 14} y={chargeAt.y} anchor="start" className="gs-charge-name">{chargeName}</Name>}
-        {/* The size the slider moves, from the centre (or the sheet) to the surface. */}
-        {look.surface > .5 && <g className="gs-dimension"><line x1={dimA.x} y1={dimA.y} x2={dimB.x} y2={dimB.y} /><Name x={dimMid.x + (g.kind === 'pillbox' ? -14 : 0)} y={dimMid.y + (g.kind === 'pillbox' ? 0 : Math.hypot(dimMid.x - nameDA.x - 10, dimMid.y - 13 - nameDA.y + 8) < 32 ? 16 : -13)}>{sizeName}</Name></g>}
-        {look.surface > .5 && plugA && plugMid && <g className="gs-dimension"><line x1={plugA.x} y1={plugA.y} x2={dimB.x} y2={dimB.y} /><Name x={plugMid.x + 12} y={plugMid.y - 12}>r₂</Name></g>}
-        {showFieldNames && <>
-          {stage === 'left' && norm(namedField) > 1e-9 && <Name x={nameE.x + 12} y={nameE.y - 8} anchor="start" className="gs-field-name">E</Name>}
-          {stage === 'left' && clash && norm(namedField) > 1e-9 ? <Name x={nameDA.x - 8} y={nameDA.y + 16} anchor="end" className="gs-normal-name">dA</Name>
-            : <Name x={nameDA.x + 10} y={nameDA.y - 8} anchor="start" className="gs-normal-name">dA</Name>}
-        </>}
-        {showFieldNames && zeroAt && look.sweep >= 1 - 1e-6 && (() => { const z = proj(zeroAt); return <Name x={z.x - 10} y={z.y + (g.kind === 'cylinder' ? -12 : 0)} anchor="end" className="gs-zero-name">E · dA = <tspan className="gs-zero">0</tspan></Name>; })()}
-        {showInside && !pieceNames && <Name x={insideAt.x + (round ? 0 : 16)} y={insideAt.y} anchor={round ? 'middle' : 'start'} className="gs-inside-name">{insideName(kase, built)}</Name>}
-        {pieceNames?.map((n, i) => <Name key={i} x={n.at.x} y={n.at.y} anchor={n.anchor} className="gs-inside-name">{n.text}</Name>)}
-        {(built.answerAtP || built.markP) && (stage === null || stage === 'solve') && <>
-          <circle className="gs-p" cx={pAt.x} cy={pAt.y} r={4.5} />
-          <Name x={pAt.x + (g.kind === 'pillbox' ? 12 : 10)} y={pAt.y + (g.kind === 'pillbox' ? 18 : 16)} anchor="start" className="gs-p-name">P</Name>
-        </>}
+        {/* The size the slider moves, from the centre (or the sheet) to the surface: its line here, its name placed below. */}
+        {look.surface > .5 && <g className="gs-dimension"><line x1={dimA.x} y1={dimA.y} x2={dimB.x} y2={dimB.y} /></g>}
+        {look.surface > .5 && plugA && plugMid && <g className="gs-dimension"><line x1={plugA.x} y1={plugA.y} x2={dimB.x} y2={dimB.y} /></g>}
+        {(built.answerAtP || built.markP) && (stage === null || stage === 'solve') && <circle className="gs-p" cx={pAt.x} cy={pAt.y} r={4.5} />}
         {/* A superposition's two fields at P, the plug's from the tip of the whole charge's: they add to the answer. */}
         {showSolve && !space && built.pieces && (() => {
           return chainOf(built).map((link, i) => <Arrow key={i} a={proj(link.from)} b={proj(add(link.from, scale(link.dir, link.length * look.solve)))} className="gs-arrow gs-e is-piece" head={9} />);
         })()}
         {built.answerAtP && showSolve && !space && <Arrow a={answerFrom} b={answerTo} className="gs-arrow gs-e is-answer" head={12} />}
-        {/* Where the field at P is zero (inside a shell) there is no arrow to name, so the name says so. */}
-        {built.answerAtP && showSolve && look.solve > .6 && <Name x={eTip.x + 12} y={eTip.y - 10} anchor="start" className="gs-field-name is-answer">{noField ? <>E = <tspan className="gs-zero">0</tspan></> : 'E'}</Name>}
+        {placed.map(n => <g key={n.key}>
+          {n.leader && <line className="gs-leader" x1={n.leader.a.x.toFixed(1)} y1={n.leader.a.y.toFixed(1)} x2={n.leader.b.x.toFixed(1)} y2={n.leader.b.y.toFixed(1)} />}
+          <Name x={n.x} y={n.y} anchor={n.anchor} className={n.className}>{n.content}</Name>
+        </g>)}
         {space && <ViewCube view={camera} at={{x: 664, y: 58}} size={20} minFont={11 / k} onPick={(next, label) => { glideTo(next, .5); setAnnouncement(label); }} onSpin={(dx, dy) => turn(-dx * .009, dy * .009)} onStep={key => turn(key === 'ArrowLeft' ? .2 : key === 'ArrowRight' ? -.2 : 0, key === 'ArrowUp' ? .12 : key === 'ArrowDown' ? -.12 : 0)} />}
       </svg>
     </div>

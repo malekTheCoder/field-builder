@@ -25,7 +25,7 @@ type Live = {update: (p: SceneProps) => void; dispose: () => void};
 /** Every colour the scene paints, read from the page's own tokens so the two themes agree with the SVG. */
 function palette() {
   const css = getComputedStyle(document.documentElement), get = (name: string, fallback: string) => css.getPropertyValue(name).trim() || fallback;
-  return {field: get('--field', '#0b6b63'), ink: get('--foreground', '#171717'), ghost: get('--ghost', '#6d8492'), paper: get('--diagram', '#ffffff'), muted: get('--muted-foreground', '#5e5e5e')};
+  return {contribution: get('--contribution', '#2f9089'), field: get('--field', '#0b6b63'), ink: get('--foreground', '#171717'), ghost: get('--ghost', '#6d8492'), paper: get('--diagram', '#ffffff'), muted: get('--muted-foreground', '#5e5e5e')};
 }
 export function GaussScene(props: SceneProps) {
   const host = useRef<HTMLDivElement>(null), live = useRef<Live | null>(null), latest = useRef(props);
@@ -65,6 +65,8 @@ export function GaussScene(props: SceneProps) {
       const holeMaterial = new THREE.MeshBasicMaterial({transparent: true, opacity: .62, side: THREE.BackSide, depthWrite: false});
       // A charge with a hole is drawn thinner than a solid one, so both its surfaces and the arrows on them show through it.
       const cloudMaterial = new THREE.MeshStandardMaterial({color: CHARGE.body, roughness: .9, metalness: 0, transparent: true, opacity: .14, side: THREE.DoubleSide, depthWrite: false});
+      // The outermost shell of a charge with no edge, fainter still, so the halo thins out to the frame rather than stops.
+      const haloEdgeMaterial = new THREE.MeshStandardMaterial({color: CHARGE.body, roughness: .9, metalness: 0, transparent: true, opacity: .06, side: THREE.DoubleSide, depthWrite: false});
       const holedMaterial = new THREE.MeshStandardMaterial({color: CHARGE.body, roughness: .9, metalness: 0, transparent: true, opacity: .22, side: THREE.DoubleSide, depthWrite: false});
       // The plug a hole is filled with, lit at the right side: the charge's colour, thinner than the whole charge's.
       const plugMaterial = new THREE.MeshStandardMaterial({color: CHARGE.body, emissive: CHARGE.glow, roughness: .7, metalness: 0, transparent: true, opacity: .5, side: THREE.DoubleSide, depthWrite: false});
@@ -72,7 +74,10 @@ export function GaussScene(props: SceneProps) {
       // The whole charge's part a superposition's surface holds, lit: see-through, so its own surface, the plug's and
       // the hole all show through it. And the two pieces' fields at P, thinner than the answer's but never faint.
       const pieceMaterial = new THREE.MeshStandardMaterial({color: CHARGE.body, emissive: CHARGE.glow, roughness: .7, metalness: 0, transparent: true, opacity: .45, side: THREE.DoubleSide, depthWrite: false});
-      const partMaterial = new THREE.MeshBasicMaterial({transparent: true, opacity: .85});
+      // The pieces lighter, in the contribution's teal, as the integral run draws its pieces; the answer drawn last and
+      // over everything, so the translucent plug and ball round P never tint it into the arrows round it.
+      const partMaterial = new THREE.MeshBasicMaterial({transparent: true, opacity: .78, depthTest: false, depthWrite: false});
+      const answerMaterial = new THREE.MeshBasicMaterial({transparent: true, opacity: 1, depthTest: false, depthWrite: false});
       // A Gaussian surface is imaginary: a faint skin that tints what is behind it and never hides it.
       const skinMaterial = new THREE.MeshBasicMaterial({transparent: true, opacity: .1, side: THREE.DoubleSide, depthWrite: false});
       const edgeMaterial = new THREE.LineBasicMaterial({transparent: true, opacity: .5});
@@ -82,7 +87,16 @@ export function GaussScene(props: SceneProps) {
       // points toward the reader or away is foreshortened, and is drawn quieter, so it is not read as a weaker field.
       const fieldFront = new THREE.MeshBasicMaterial(), fieldQuiet = new THREE.MeshBasicMaterial({transparent: true, opacity: .4}), fieldBack = new THREE.MeshBasicMaterial({transparent: true, opacity: .24});
       const normalFront = new THREE.MeshBasicMaterial(), normalQuiet = new THREE.MeshBasicMaterial({transparent: true, opacity: .32}), normalBack = new THREE.MeshBasicMaterial({transparent: true, opacity: .2});
-      const pointMaterial = new THREE.MeshBasicMaterial();
+      const pointMaterial = new THREE.MeshBasicMaterial({depthTest: false});
+      // AN INFINITE SHEET FADES OUT, NEVER ENDS: cut square, a sheet, a slab or a metal face ended in a hard edge at the
+      // card's sides, a rim the charge does not have. Its flat faces are faded by a radial ramp that begins well inside
+      // the frame and is nearly gone at its edge, as the integral lessons' sheet fades (bodies.ts, fadeOut).
+      const ramp = document.createElement('canvas'); ramp.width = ramp.height = 256;
+      const pen = ramp.getContext('2d');
+      if (pen) { const r = pen.createRadialGradient(128, 128, 0, 128, 128, 128); r.addColorStop(0, '#fff'); r.addColorStop(.55, '#fff'); r.addColorStop(.8, '#555'); r.addColorStop(1, '#000'); pen.fillStyle = r; pen.fillRect(0, 0, 256, 256); }
+      const fadeMap = new THREE.CanvasTexture(ramp);
+      const faded = <M extends InstanceType<typeof THREE.MeshStandardMaterial>>(m: M) => { const f = m.clone() as M; f.alphaMap = fadeMap; f.transparent = true; return f; };
+      const sheetFade = faded(sheetMaterial), cloudFade = faded(cloudMaterial), metalFade = faded(metalMaterial);
       const shaft = new THREE.CylinderGeometry(1, 1, 1, 10); shaft.translate(0, .5, 0);
       const head = new THREE.ConeGeometry(1, 1, 16); head.translate(0, .5, 0);
       const Y = new THREE.Vector3(0, 1, 0);
@@ -180,6 +194,9 @@ export function GaussScene(props: SceneProps) {
         for (const g of [charge, inside, skin, tints, arrows, spokes, marks]) clear(g);
         patchArrows.length = 0; spokeArrows.length = 0;
         const c = b.charge, g = b.surface, reach = b.half * 2.2;
+        // A flat charge's width: its fade (above) begins about two thirds of the way to the frame's side and is all but
+        // gone at it, whichever way the figure is turned. Its opposite-sign cage, which cannot fade, stops inside it.
+        const wide = 2.4 * 360 / b.unit, cageWide = 1.7 * 360 / b.unit;
         // THE CHARGE, as a body: a point, a ball, a shell, a line, a sheet or a slab.
         // A point charge as large as the cross-section's disc, so its sign sits on it.
         const dot0 = POINT_PX / b.unit;
@@ -191,15 +208,17 @@ export function GaussScene(props: SceneProps) {
         if (isBall(c.kind)) charge.add(new THREE.Mesh(new THREE.SphereGeometry(c.size, 48, 32), g.r < c.size ? cutMaterial : bodyMaterial));
         if (c.kind === 'shell') charge.add(new THREE.Mesh(new THREE.SphereGeometry(c.size, 48, 32), sheetMaterial));
         if (c.kind === 'line') { const m = new THREE.Mesh(new THREE.CylinderGeometry(.045, .045, reach * 2, 16), bodyMaterial); m.rotation.x = Math.PI / 2; charge.add(m); }
-        if (c.kind === 'sheet') charge.add(new THREE.Mesh(new THREE.PlaneGeometry(reach * 1.4, reach * 1.4), sheetMaterial));
-        if (c.kind === 'slab' || c.kind === 'tent') { const m = new THREE.Mesh(new THREE.BoxGeometry(reach * 1.4, reach * 1.4, 2 * c.size), sheetMaterial); charge.add(m); }
+        if (c.kind === 'sheet') charge.add(new THREE.Mesh(new THREE.PlaneGeometry(wide, wide), sheetFade));
+        if (c.kind === 'slab' || c.kind === 'tent') { const m = new THREE.Mesh(new THREE.BoxGeometry(wide, wide, 2 * c.size), sheetFade); charge.add(m); }
         // The slab whose charge changes sign: its upper half the charge's own, its lower half the opposite one.
         if (c.kind === 'oddslab') {
-          const top = new THREE.Mesh(new THREE.BoxGeometry(reach * 1.4, reach * 1.4, c.size), sheetMaterial), low = new THREE.Mesh(new THREE.BoxGeometry(reach * 1.4, reach * 1.4, c.size), cloudMaterial);
-          top.position.z = c.size / 2; low.position.z = -c.size / 2; charge.add(top, low, cagePlane(-c.size / 2, reach * 1.4, oppositeMaterial), cagePlane(-c.size, reach * 1.4, oppositeMaterial));
+          const top = new THREE.Mesh(new THREE.BoxGeometry(wide, wide, c.size), sheetFade), low = new THREE.Mesh(new THREE.BoxGeometry(wide, wide, c.size), cloudFade);
+          top.position.z = c.size / 2; low.position.z = -c.size / 2; charge.add(top, low, cagePlane(-c.size / 2, cageWide, oppositeMaterial), cagePlane(-c.size, cageWide, oppositeMaterial));
         }
         // Charge with no edge: shells of it, past the frame's edges, overlapping so the inside is the densest.
-        if (c.kind === 'halo') for (const k of [1.5, 3, 5, 9]) charge.add(new THREE.Mesh(new THREE.SphereGeometry(c.size * k, 40, 28), cloudMaterial));
+        // Only the shells that fit the frame: one past it was cut flat by the frame's top and bottom, a rim the charge
+        // does not have. The densest part is still the most overlapped.
+        if (c.kind === 'halo') [.36, .66, .97].forEach((f, i) => charge.add(new THREE.Mesh(new THREE.SphereGeometry(f * 205 / b.unit, 40, 28), i === 2 ? haloEdgeMaterial : cloudMaterial)));
         if (c.kind === 'cusp') charge.add(new THREE.Mesh(new THREE.SphereGeometry(c.size, 48, 32), g.r < c.size ? cutMaterial : bodyMaterial));
         const outer = c.outer ?? c.size * 2;
         if (c.kind === 'rod') charge.add(tube(c.size, reach * 2, rodMaterial));
@@ -208,8 +227,8 @@ export function GaussScene(props: SceneProps) {
         // A conductor: grey metal, cut open, its charge a skin on its surface (and on a hollow's wall).
         if (c.kind === 'metal') charge.add(cutSphere(0, c.size, metalMaterial), cutSphere(0, c.size * 1.006, sheetMaterial, false));
         if (c.kind === 'cavity') charge.add(cutSphere(c.size, outer, metalMaterial), cageSphere(c.size * .994, oppositeMaterial), cutSphere(0, outer * 1.006, sheetMaterial, false), new THREE.Mesh(new THREE.SphereGeometry(dot0, 24, 16), bodyMaterial));
-        if (c.kind === 'face') { const m = new THREE.Mesh(new THREE.BoxGeometry(reach * 1.4, reach * 1.4, reach * .5), metalMaterial); m.position.z = -reach * .25; charge.add(m, plane(.004, reach * 1.4, sheetMaterial)); }
-        if (c.kind === 'plates') charge.add(plane(0, reach * 1.4, sheetMaterial), cagePlane(-c.size, reach * 1.4, oppositeMaterial));
+        if (c.kind === 'face') { const m = new THREE.Mesh(new THREE.BoxGeometry(wide, wide, reach * .5), metalFade); m.position.z = -reach * .25; charge.add(m, plane(.004, wide, sheetFade)); }
+        if (c.kind === 'plates') charge.add(plane(0, wide, sheetFade), cagePlane(-c.size, cageWide, oppositeMaterial));
         // A charge with a hole: the charge, clear enough to see the surfaces inside it, and the hole as a gap in it.
         const hole = c.hole;
         if (c.kind === 'ballhole' && hole) {
@@ -221,9 +240,12 @@ export function GaussScene(props: SceneProps) {
           const gap = tube(hole.radius, reach * 2, holeMaterial); gap.position.set(hole.at.x, hole.at.y, 0); gap.renderOrder = 1; charge.add(gap);
         }
         if (c.kind === 'sheethole' && hole) {
-          const w = reach * .7, shape = new THREE.Shape([new THREE.Vector2(-w, -w), new THREE.Vector2(w, -w), new THREE.Vector2(w, w), new THREE.Vector2(-w, w)]);
+          const w = wide / 2, shape = new THREE.Shape([new THREE.Vector2(-w, -w), new THREE.Vector2(w, -w), new THREE.Vector2(w, w), new THREE.Vector2(-w, w)]);
           const gap = new THREE.Path(); gap.absarc(hole.at.x, hole.at.y, hole.radius, 0, 2 * Math.PI, true); shape.holes.push(gap);
-          charge.add(new THREE.Mesh(new THREE.ShapeGeometry(shape, 64), sheetMaterial), rim(hole.radius, 0, hole.at));
+          // A shape's own coordinates are its uvs; the fade wants them across the square, nought to one.
+          const flatGeo = new THREE.ShapeGeometry(shape, 64), at = flatGeo.getAttribute('position'), uv = flatGeo.getAttribute('uv');
+          for (let i = 0; i < at.count; i++) uv.setXY(i, at.getX(i) / wide + .5, at.getY(i) / wide + .5);
+          charge.add(new THREE.Mesh(flatGeo, sheetFade), rim(hole.radius, 0, hole.at));
         }
         // THE CHARGE INSIDE, lit at the right side: the part of the charge the surface encloses.
         insideMesh = null;
@@ -294,10 +316,11 @@ export function GaussScene(props: SceneProps) {
           patchArrows.push({e, n: nA, tint});
         });
         for (let i = 0; i < b.spokes.length; i++) { const s = arrow(fieldFront); spokes.add(s.group); spokeArrows.push(s); }
-        P = new THREE.Mesh(new THREE.SphereGeometry(1, 20, 14), pointMaterial); marks.add(P);
-        pArrow = arrow(fieldFront); marks.add(pArrow.group);
+        P = new THREE.Mesh(new THREE.SphereGeometry(1, 20, 14), pointMaterial); P.renderOrder = 10; marks.add(P);
+        pArrow = arrow(answerMaterial); marks.add(pArrow.group);
         partArrows.length = 0;
-        for (let i = 0; i < (b.pieces?.length ?? 0); i++) { const a = arrow(partMaterial); marks.add(a.group); partArrows.push(a); }
+        for (let i = 0; i < (b.pieces?.length ?? 0); i++) { const a = arrow(partMaterial); marks.add(a.group); partArrows.push(a); a.shaft.renderOrder = a.head.renderOrder = 8; }
+        pArrow.shaft.renderOrder = pArrow.head.renderOrder = 9;
       };
       const structureOf = (b: Built) => `${b.charge.kind}:${b.charge.sign}:${b.charge.size}:${b.charge.outer ?? ''}:${b.surface.kind}:${b.surface.r.toFixed(4)}:${b.surface.h.toFixed(4)}`;
       let colours: string | null = null;
@@ -313,8 +336,8 @@ export function GaussScene(props: SceneProps) {
           colours = theme;
           const c = palette();
           skinMaterial.color.set(c.ink); edgeMaterial.color.set(c.ink); litMaterial.color.set(c.field); zeroMaterial.color.set(c.ghost);
-          metalMaterial.color.set(c.muted); holeMaterial.color.set(c.paper); rimMaterial.color.set(c.muted);
-          fieldFront.color.set(c.field); fieldQuiet.color.set(c.field); fieldBack.color.set(c.field); partMaterial.color.set(c.field); normalFront.color.set(c.muted); normalQuiet.color.set(c.muted); normalBack.color.set(c.muted); pointMaterial.color.set(c.ink);
+          metalMaterial.color.set(c.muted); metalFade.color.set(c.muted); holeMaterial.color.set(c.paper); rimMaterial.color.set(c.muted);
+          fieldFront.color.set(c.field); fieldQuiet.color.set(c.field); fieldBack.color.set(c.field); partMaterial.color.set(c.contribution); answerMaterial.color.set(c.field); normalFront.color.set(c.muted); normalQuiet.color.set(c.muted); normalBack.color.set(c.muted); pointMaterial.color.set(c.ink);
           edgeMaterial.opacity = document.documentElement.classList.contains('dark') ? .6 : .45;
         }
         const f = frustum(FRAME.width, FRAME.height, p.unit);
@@ -366,11 +389,11 @@ export function GaussScene(props: SceneProps) {
         // P, and the field there once the run has solved for it.
         if (P) { P.visible = (b.answerAtP || !!b.markP) && (look.solve > .01 || look.stage === null); P.scale.setScalar(4.2 * px); P.position.set(b.P.x, b.P.y, b.P.z); }
         // The answer: the field at P, drawn bold once the run has solved for it, and at rest.
-        if (pArrow) { const len = b.spanAtP * look.solve; lay(pArrow, arrowEnds(b.P, b.fieldAtP, len, b.backAtP).from, unitV(b.fieldAtP), b.answerAtP && (look.stage === 'solve' || look.stage === null) ? len : 0, 1.8); }
+        if (pArrow) { const len = b.spanAtP * look.solve; lay(pArrow, arrowEnds(b.P, b.fieldAtP, len, b.backAtP).from, unitV(b.fieldAtP), b.answerAtP && (look.stage === 'solve' || look.stage === null) ? len : 0, b.pieces ? 2.2 : 1.8); }
         // A superposition's answer is two fields added: the whole charge's from P, the plug's from its tip.
         chainOf(b).forEach((link, i) => {
           const a = partArrows[i]; if (!a) return;
-          lay(a, link.from, link.dir, look.stage === 'solve' || look.stage === null ? link.length * look.solve : 0, .9);
+          lay(a, link.from, link.dir, look.stage === 'solve' || look.stage === null ? link.length * look.solve : 0, .75);
         });
         renderer.render(scene, camera);
       };
@@ -388,8 +411,8 @@ export function GaussScene(props: SceneProps) {
         dispose: () => {
           disposed = true; canvas.removeEventListener('webglcontextlost', onLost); observer.disconnect(); themeWatch.disconnect();
           for (const g of [charge, inside, skin, tints, arrows, spokes, marks]) clear(g);
-          shaft.dispose(); head.dispose();
-          for (const m of [bodyMaterial, cutMaterial, sheetMaterial, insideMaterial, skinLitMaterial, oppositeMaterial, oppositeLitMaterial, rodMaterial, metalMaterial, holeMaterial, holedMaterial, cloudMaterial, plugMaterial, pieceMaterial, partMaterial, rimMaterial, skinMaterial, edgeMaterial, litMaterial, zeroMaterial, fieldFront, fieldQuiet, fieldBack, normalFront, normalQuiet, normalBack, pointMaterial]) m.dispose();
+          shaft.dispose(); head.dispose(); fadeMap.dispose();
+          for (const m of [bodyMaterial, cutMaterial, sheetMaterial, insideMaterial, skinLitMaterial, oppositeMaterial, oppositeLitMaterial, rodMaterial, metalMaterial, holeMaterial, holedMaterial, cloudMaterial, plugMaterial, pieceMaterial, partMaterial, answerMaterial, haloEdgeMaterial, sheetFade, cloudFade, metalFade, rimMaterial, skinMaterial, edgeMaterial, litMaterial, zeroMaterial, fieldFront, fieldQuiet, fieldBack, normalFront, normalQuiet, normalBack, pointMaterial]) m.dispose();
           renderer.dispose();
           if (canvas.parentNode === mount) mount.removeChild(canvas);
         },

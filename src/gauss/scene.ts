@@ -1,5 +1,6 @@
 import {CUT, add, boundaries, carriesNothing, cross, dot, enclosedCharge, fieldAt, isBall, norm, patches, piecesOf, pointOn, scale, sub, throughPatch, unit, v3, type Charge, type Patch, type PatchPart, type Surface, type V3} from './physics';
 import type {GaussCase} from './types';
+import {projectPoint} from '../diagrams/three/orthoCamera';
 import type {GaussStageKey} from './run';
 /* WHAT THE GAUSS FIGURE DRAWS, WORKED OUT APART FROM DRAWING IT. The 3D scene (GaussScene) and the flat cross-section
  * (GaussFigure) draw the same things from here: the charge, the closed surface cut into patches in the order the run
@@ -110,8 +111,40 @@ export function halfOf(c: GaussCase): number {
   if (s.kind === 'cube') return big * 1.5 + .35;
   return Math.hypot(s.other + .4, Math.max(big, Math.abs(s.low ?? 0)) + .55);
 }
-/** Pixels per world unit: the half-extent fills the frame's height, less a margin for the labels. */
-export const unitOf = (c: GaussCase) => Math.round(.92 * 430 / (2 * halfOf(c)));
+/** The view each case opens at, and the flat cross-section's: the two views the figure is fitted to. */
+export const openingView = (c: GaussCase) => c.figure.surface.kind === 'pillbox' ? {yaw: -.5, pitch: .3} : {yaw: -.5, pitch: .34};
+/** Where the figure's origin sits in its 720 by 430 frame. */
+export const FIGURE_ORIGIN = {x: 360, y: 222};
+const UNITS = new WeakMap<GaussCase, number>();
+/** PIXELS PER WORLD UNIT: THE FIGURE FITTED TO WHAT IT DRAWS. It was fitted to a sphere round the largest surface
+ * with a margin for arrows any length, which left a ball at its opening size a third of its card. Now the case is
+ * drawn, both signs, at sizes across the slider's whole reach, and every point of it (the surface's corners, every
+ * arrow's two ends, the spokes, P and the answer's arrow, the charge's own edges) is projected at the opening view and
+ * in the cross-section: the scale is the largest at which all of it stays inside the frame, less a margin for the
+ * names. Fixed per case, so dragging the surface never rescales the picture, and an arrow's length keeps meaning the
+ * field's size on one scale; never smaller than the old fit. */
+export function unitOf(c: GaussCase): number {
+  const known = UNITS.get(c);
+  if (known) return known;
+  const old = Math.round(.92 * 430 / (2 * halfOf(c))), s = c.figure.surface.size, views = [openingView(c), {yaw: 0, pitch: 0}];
+  let up = 1e-6, down = 1e-6, side = 1e-6;
+  const see = (p: V3) => { for (const v of views) { const q = projectPoint(p, {x: 0, y: 0}, 1, v.yaw, v.pitch); up = Math.max(up, -q.y); down = Math.max(down, q.y); side = Math.max(side, Math.abs(q.x)); } };
+  const ends = (at: V3, field: V3, span: number | undefined, back?: boolean) => { if (!(span! > 0) || !(norm(field) > 1e-12)) return; const e = arrowEnds(at, field, span!, back); see(e.from); see(e.to); };
+  for (let k = 0; k <= 6; k++) for (const sign of [1, -1] as const) {
+    const b = build(c, s.min + (s.max - s.min) * k / 6, sign, 1);
+    for (const p of b.patches) { for (const q of p.corners) see(q); ends(p.center, p.field, p.span, p.back); }
+    for (const sp of b.spokes) ends(sp.at, sp.field, sp.span, sp.back);
+    see(b.P); if (b.answerAtP) ends(b.P, b.fieldAtP, b.spanAtP, b.backAtP);
+    for (const link of chainOf(b)) { see(link.from); see(add(link.from, scale(link.dir, link.length))); }
+  }
+  // A finite charge's own edge: a ball's, a hollow's metal, a finite rod's ends.
+  const ch = c.figure.charge, edge = Math.max(0, ...boundaries(ch).map(Math.abs), ch.kind === 'ballhole' || ch.kind === 'segment' ? ch.size : 0);
+  if (ch.kind !== 'line' && ch.kind !== 'sheet' && ch.kind !== 'slab' && ch.kind !== 'tent' && ch.kind !== 'oddslab' && ch.kind !== 'rod' && ch.kind !== 'tube' && ch.kind !== 'coax' && ch.kind !== 'rodhole' && ch.kind !== 'face' && ch.kind !== 'plates' && ch.kind !== 'sheethole' && ch.kind !== 'halo') { up = Math.max(up, edge); down = Math.max(down, edge); side = Math.max(side, edge); }
+  const fit = Math.min((FIGURE_ORIGIN.y - 14) / up, (430 - FIGURE_ORIGIN.y - 14) / down, (360 - 40) / side);
+  const unit = Math.max(old, Math.round(Math.min(fit, old * 1.9)));
+  UNITS.set(c, unit);
+  return unit;
+}
 
 /** The size an arrow is drawn at, in world units, for a field of magnitude `e`: in proportion to the field,
  * on a scale fixed by the field on the crossed part of the case's opening surface, so dragging the surface out
@@ -311,7 +344,7 @@ export function flatSpokes(charge: Charge): Spoke[] {
   return out;
 }
 
-export function build(c: GaussCase, size: number, sign: 1 | -1): Built {
+export function build(c: GaussCase, size: number, sign: 1 | -1, fixedUnit?: number): Built {
   const charge = chargeOf(c, sign), surface = surfaceOf(c, size);
   const on = pointOn(surface, charge), P = on.at, normalAtP = on.normal, fieldAtP = fieldAt(charge, P);
   // A charge with a hole is solved as its two pieces, each round its own surface through P, each surface's patches
@@ -351,7 +384,7 @@ export function build(c: GaussCase, size: number, sign: 1 | -1): Built {
   const spoked = (list: Spoke[]) => list.map(s => ({...s, ...arrowPlace(c, charge, s.at, s.field, .85)}));
   const atP = parts ? {span: arrowLength(c, norm(fieldAtP)), back: false} : arrowPlace(c, charge, P, fieldAtP, 1, normalAtP);
   return {charge, surface, patches: drawn, slice: cut, spokes: spoked(spokes(charge)), flatSpokes: spoked(flatSpokes(charge)),
-    P, normalAtP, fieldAtP, spanAtP: atP.span, backAtP: atP.back, shortened, answerAtP: answersAtP(charge, surface), markP: charge.kind === 'segment', namedPatch, zeroPatch, half: halfOf(c), unit: unitOf(c), ...(pieces ? {pieces} : {})};
+    P, normalAtP, fieldAtP, spanAtP: atP.span, backAtP: atP.back, shortened, answerAtP: answersAtP(charge, surface), markP: charge.kind === 'segment', namedPatch, zeroPatch, half: halfOf(c), unit: fixedUnit ?? unitOf(c), ...(pieces ? {pieces} : {})};
 }
 /** The surface a patch or a segment lies on: the slider's, or the plug's. */
 export const surfaceOfPiece = (b: Built, piece?: number): Surface => (piece ? b.pieces?.[piece]?.surface : null) ?? b.surface;
