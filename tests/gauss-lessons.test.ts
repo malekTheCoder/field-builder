@@ -28,7 +28,7 @@ describe('the Gauss section', () => {
       'Lines and cylinders', 'Sheets and slabs', 'Conductors', 'Holes by superposition', 'When symmetry runs out', 'The hard cases']);
   });
   it('publishes the built lessons, at ?g=, and nothing it has not built', () => {
-    expect([...GAUSS_READY].sort()).toEqual(['conductors', 'flux', 'inside', 'lines', 'qenc', 'sheets', 'spheres', 'symmetry']);
+    expect([...GAUSS_READY].sort()).toEqual(['conductors', 'flux', 'holes', 'inside', 'lines', 'qenc', 'sheets', 'spheres', 'symmetry']);
     for (const id of GAUSS_READY) { expect(gaussLesson(id), id).toBeTruthy(); expect(isGaussReady(id)).toBe(true); }
     expect(isGaussReady('hard')).toBe(false);
     expect(viewOf('?g=symmetry')).toBe('gauss');

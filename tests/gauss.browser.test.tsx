@@ -254,7 +254,7 @@ describe('on a phone', () => {
     }
   }, 30000);
   it('fits 390 pixels with no sideways scroll, on Lines, Sheets and Conductors', async () => {
-    for (const id of ['lines', 'sheets', 'conductors']) {
+    for (const id of ['lines', 'sheets', 'conductors', 'holes']) {
       const view = await open(id, 390, 844);
       await new Promise(r => setTimeout(r, 200));
       expect(document.documentElement.scrollWidth, id).toBeLessThanOrEqual(390);
@@ -324,5 +324,33 @@ describe('a charge in a hollow', () => {
     fireEvent.click(view.getByRole('button', {name: 'Nothing'}));
     expect(readout().dataset.wall).toBe('none');
     expect(view.queryByRole('button', {name: /^Charge q/})).toBeNull();
+  }, 20000);
+});
+
+describe('a hole to move', () => {
+  it('centres by keyboard and the field in the hole goes; the rod and the two pieces are a click away; Conductors leads here', async () => {
+    const view = await open('holes');
+    const readout = () => document.querySelector<HTMLElement>('.gs-holes .gs-readout')!;
+    expect(readout().dataset.centred).toBe('no');
+    expect(readout().querySelector('annotation')?.textContent).toBe(String.raw`\vec E_{\text{hole}}=\frac{\rho\,\vec d}{3\varepsilon_0}`);
+    const hole = view.getByRole('button', {name: /^The hole, off centre, up and to the right/});
+    hole.focus();
+    await userEvent.keyboard('{Home}');
+    expect(readout().dataset.centred).toBe('yes');
+    await userEvent.keyboard('{ArrowLeft}');
+    expect(view.getByRole('button', {name: /^The hole, off centre, to the left/})).toBeTruthy();
+    fireEvent.click(view.getByRole('button', {name: 'A rod, end on'}));
+    expect(readout().dataset.shape).toBe('rod');
+    expect(readout().querySelector('annotation')?.textContent).toContain(String.raw`2\varepsilon_0`);
+    fireEvent.click(view.getByRole('button', {name: 'Show the two pieces'}));
+    expect(document.querySelectorAll('.gs-holes .gs-arrow.is-part').length).toBe(2);
+    // The figure's two cases, and the board's answer for each.
+    fireEvent.click(view.getByRole('button', {name: 'Sheet with a hole'}));
+    expect(document.querySelector('.gs-board .ew-problem-text')?.textContent).toContain('round hole');
+    expect(view.getByRole('link', {name: /^Compare: /}).getAttribute('href')).toBe('?p=disk');
+  }, 20000);
+  it('follows Conductors', async () => {
+    const view = await open('conductors');
+    expect(view.getByRole('link', {name: /^Next: Holes by superposition/}).getAttribute('href')).toBe('?g=holes');
   }, 20000);
 });

@@ -1,9 +1,11 @@
 import {describe, expect, it} from 'vitest';
 import katex from 'katex';
 import {EPS0, ballFraction, bandFlux, boundaries, carriesNothing, crossedArea, dot, enclosedCharge, fieldAt, inducedCharges, norm, numericFlux, patches, pointOn, solvedField, starFlux, surfacePoint, sub, throughPatch, v3, wallDensity, type Charge, type Surface} from '../src/gauss/physics';
-import {build, drawnFlux, lookAt, REST, slice} from '../src/gauss/scene';
+import {arrowLength, build, chainOf, drawnFlux, lookAt, REST, slice} from '../src/gauss/scene';
 import {BANDS, CANDIDATES, CAVITY, MOVES, SPHERE_KINDS, START, bandShares, blob, cavityField, cavityLines, cavityTex, density, enclosedOf, fieldAlong, fieldOf, fluxTex, flowRound, insideBands, insideTex, isInside, moveBy, profile, profileReach, proposed, qencFraction, qencTex, regionOf, samples, shellCharge, survives, wallMarks, type Charged} from '../src/gauss/instruments';
 import {GAUSS_LESSONS, gaussLesson} from '../src/gauss';
+import {diskField, elliptic, lensArea, lensVolume, piecesOf, ringField} from '../src/gauss/physics';
+import {HOLE, holeAt, holeField, holePieces, holeTex} from '../src/gauss/instruments';
 import {REGISTRY} from '../src/distributions';
 import {EPS0 as SI_EPS0} from '../src/distributions/constants';
 import type {Params} from '../src/problems/types';
@@ -160,6 +162,31 @@ describe('the figure’s plan', () => {
   for (const lesson of GAUSS_LESSONS) for (const c of lesson.cases) for (const sign of SIGNS) it(`${lesson.id} ${c.key} (${sign > 0 ? '+' : '−'}) draws the physics`, () => {
     for (const size of [c.figure.surface.size.min, c.figure.surface.size.initial, c.figure.surface.size.max]) {
       const b = build(c, size, sign);
+      if (b.pieces) {
+        // A charge with a hole: each piece's own surface carries that piece's flux, Q_enc/ε₀, and its field at P is
+        // the one its own surface solves for; the field drawn at P is the two added.
+        b.pieces.forEach((piece, i) => {
+          const mine = b.patches.filter(p => (p.piece ?? 0) === i);
+          if (!piece.surface) { expect(mine.length).toBe(0); return; }
+          close(mine.reduce((t, p) => t + p.through * p.area, 0), piece.enclosed / EPS0, 1e-9);
+          close(piece.enclosed, enclosedCharge(piece.charge, piece.surface), 1e-12);
+          const n = pointOn(piece.surface, piece.charge).normal, o = piece.surface.center ?? v3(0, 0, 0), local = sub(b.P, o);
+          const normal = piece.surface.kind === 'pillbox' ? n : piece.surface.kind === 'sphere' ? v3(local.x / norm(local), local.y / norm(local), local.z / norm(local)) : v3(local.x / Math.hypot(local.x, local.y), local.y / Math.hypot(local.x, local.y), 0);
+          close(dot(piece.fieldAtP, normal), piece.enclosed / EPS0 / crossedArea(piece.surface, piece.charge), 1e-9);
+          expect(Math.sign(piece.enclosed)).toBe(i ? -sign : sign);
+          // P is on the piece's surface.
+          if (piece.surface.kind === 'sphere') close(norm(local), piece.surface.r, 1e-12);
+        });
+        const sum = b.pieces.reduce((e, p) => v3(e.x + p.fieldAtP.x, e.y + p.fieldAtP.y, e.z + p.fieldAtP.z), v3(0, 0, 0));
+        close(norm(sub(sum, b.fieldAtP)), 0, 1e-9);
+        for (const [i, piece] of b.pieces.entries()) if (piece.surface) {
+          const zero = new Set(b.patches.filter(p => (p.piece ?? 0) === i && p.zero).map(p => p.part));
+          expect(new Set(slice(piece.charge, piece.surface).filter(s => s.zero).map(s => s.part))).toEqual(zero);
+        }
+        const order = b.slice.map(s => s.zero);
+        expect(order.indexOf(true) === -1 || order.slice(order.indexOf(true)).every(Boolean)).toBe(true);
+        continue;
+      }
       close(drawnFlux(b), enclosedCharge(b.charge, b.surface) / EPS0, 1e-9);
       if (b.answerAtP) {
       // The field at P is the solved one, along the normal, with the charge's sign.
@@ -291,13 +318,16 @@ describe('no arrow is drawn where there is no field', () => {
   for (const lesson of GAUSS_LESSONS) for (const c of lesson.cases) it(`${lesson.id} ${c.key}: arrows stop short of metal, a cable’s outside, a far plate`, () => {
     for (const sign of SIGNS) for (const size of [c.figure.surface.size.min, c.figure.surface.size.initial, c.figure.surface.size.max]) {
       const b = build(c, size, sign);
-      const arrows = [...b.patches.map(p => ({at: p.center, field: p.field, span: p.span})), ...b.slice.map(s => ({at: s.mid, field: s.field, span: s.span ?? 0})),
-        ...b.spokes.map(s => ({at: s.at, field: s.field, span: s.span ?? 0})), ...b.flatSpokes.map(s => ({at: s.at, field: s.field, span: s.span ?? 0})), {at: b.P, field: b.fieldAtP, span: b.spanAtP}];
+      // A superposition's patches carry their own piece's field, and are held to it.
+      const own = (piece?: number) => (piece !== undefined && b.pieces ? b.pieces[piece].charge : b.charge);
+      const arrows = [...b.patches.map(p => ({at: p.center, field: p.field, span: p.span, charge: own(p.piece)})), ...b.slice.map(s => ({at: s.mid, field: s.field, span: s.span ?? 0, charge: own(s.piece)})),
+        ...b.spokes.map(s => ({at: s.at, field: s.field, span: s.span ?? 0, charge: b.charge})), ...b.flatSpokes.map(s => ({at: s.at, field: s.field, span: s.span ?? 0, charge: b.charge})), {at: b.P, field: b.fieldAtP, span: b.spanAtP, charge: b.charge},
+        ...(b.pieces ?? []).map(p => ({at: b.P, field: p.fieldAtP, span: p.spanAtP, charge: p.charge}))];
       for (const a of arrows) {
         if (norm(a.field) < 1e-12) { expect(a.span).toBe(0); continue; }
         const d = v3(a.field.x / norm(a.field), a.field.y / norm(a.field), a.field.z / norm(a.field));
         for (let k = 0; k <= 20; k++) {
-          const e = fieldAt(b.charge, v3(a.at.x + d.x * a.span * k / 20, a.at.y + d.y * a.span * k / 20, a.at.z + d.z * a.span * k / 20));
+          const e = fieldAt(a.charge, v3(a.at.x + d.x * a.span * k / 20, a.at.y + d.y * a.span * k / 20, a.at.z + d.z * a.span * k / 20));
           expect(norm(e), `${size} ${sign}`).toBeGreaterThan(0);
           expect(dot(e, d)).toBeGreaterThan(0);
         }
@@ -543,6 +573,135 @@ describe('The field against r, the spheres instrument', () => {
         close(fieldOf('rising', r, sign), sign * r * r, 1e-12);
         close(fieldOf('point', r, sign), sign / (r * r), 1e-12);
       }
+    }
+  });
+});
+
+/* HOLES BY SUPERPOSITION: a charge with a hole is the whole charge plus a plug of the opposite charge, and every
+ * field the lesson draws is checked against a brute-force sum over the real, holed charge; the disc the sheet's hole
+ * takes away against a sum over its area; the field in the hole against ρd⃗/(nε₀); both signs. ρ = σ = 1 here. */
+describe('holes by superposition', () => {
+  const ball = (s: 1 | -1): Charge => ({kind: 'ballhole', sign: s, size: 1.7, hole: {radius: .6, at: v3(.702, 0, .384)}, amount: 4 / 3 * Math.PI * 1.7 ** 3});
+  const rod = (s: 1 | -1): Charge => ({kind: 'rodhole', sign: s, size: 1.75, hole: {radius: .65, at: v3(.85, 0, 0)}, amount: Math.PI * 1.75 ** 2});
+  const sheet = (s: 1 | -1): Charge => ({kind: 'sheethole', sign: s, size: 0, hole: {radius: 1, at: v3(0, 0, 0)}});
+  it('the elliptic integrals and a ring’s field are exact', () => {
+    // K and E against the midpoint rule.
+    for (const m of [.1, .5, .9]) {
+      let K = 0, E = 0; const n = 200000;
+      for (let i = 0; i < n; i++) { const t = Math.PI / 2 * (i + .5) / n, s = Math.sqrt(1 - m * Math.sin(t) ** 2); K += Math.PI / 2 / n / s; E += Math.PI / 2 / n * s; }
+      close(elliptic(m).K, K, 1e-8); close(elliptic(m).E, E, 1e-8);
+    }
+    // A ring against its charge summed round it.
+    for (const [a, s, z] of [[1, .5, .3], [1, 1.5, -.2], [.7, .2, .9]]) {
+      let es = 0, ez = 0; const n = 20000;
+      for (let i = 0; i < n; i++) { const t = 2 * Math.PI * (i + .5) / n, dx = s - a * Math.cos(t), dy = -a * Math.sin(t), r = Math.hypot(dx, dy, z); es += dx / r ** 3 / n; ez += z / r ** 3 / n; }
+      const f = ringField(1, a, s, z); close(f.s, es, 1e-9); close(f.z, ez, 1e-9);
+    }
+  });
+  it('the disc’s field, off its axis and on it, against a sum over its area, and the Disk lesson’s closed form', () => {
+    for (const p of [v3(.3, .1, .4), v3(1.4, 0, .3), v3(.9, .2, -.25)]) {
+      const e = {x: 0, y: 0, z: 0}, nr = 500, nt = 500;
+      for (let i = 0; i < nr; i++) { const a = (i + .5) / nr; for (let j = 0; j < nt; j++) { const t = 2 * Math.PI * (j + .5) / nt, dA = a / nr * 2 * Math.PI / nt, dx = p.x - a * Math.cos(t), dy = p.y - a * Math.sin(t), r = Math.hypot(dx, dy, p.z); e.x += dA * dx / r ** 3; e.y += dA * dy / r ** 3; e.z += dA * p.z / r ** 3; } }
+      const f = diskField(1, p);
+      close(f.x, e.x, 2e-4); close(f.y, e.y, 2e-4); close(f.z, e.z, 2e-4);
+    }
+    // On the axis: 2πkσ(1 − z/√(z² + b²)), which is σ/(2ε₀)(1 − z/√(z² + b²)).
+    for (const z of [.2, .7, 2]) close(diskField(1.3, v3(0, 0, z)).z, (1 / (2 * EPS0)) * (1 - z / Math.hypot(z, 1.3)), 1e-12);
+    // Just off the axis it agrees with on it.
+    close(diskField(1, v3(1e-6, 0, .5)).z, diskField(1, v3(0, 0, .5)).z, 1e-6);
+  });
+  it('the field in a ball’s hole is ρd⃗/(3ε₀), the same everywhere in it, both signs; and in a rod’s, ρd⃗/(2ε₀)', () => {
+    for (const s of SIGNS) {
+      const d = v3(.702, 0, .384);
+      for (const p of [v3(.5, 0, .3), v3(.9, .1, .5), v3(.702, -.3, .384), v3(.4, .2, .2)]) {
+        const e = fieldAt(ball(s), p);
+        close(e.x, s * d.x / (3 * EPS0), 1e-12); close(e.y, 0, 1e-12); close(e.z, s * d.z / (3 * EPS0), 1e-12);
+      }
+      for (const p of [v3(1.1, 0, .4), v3(.7, .3, -1), v3(1.3, -.2, 2)]) {
+        const e = fieldAt(rod(s), p);
+        close(e.x, s * .85 / (2 * EPS0), 1e-12); close(e.y, 0, 1e-12); close(e.z, 0, 1e-12);
+      }
+    }
+  });
+  it('the ball with a hole, against a brute-force sum over its holed volume, in the hole, in the charge and outside', () => {
+    const c = ball(1), h = .05, pts = [v3(.6, .1, .25), v3(-.9, .3, -.4), v3(2.4, .5, 1.1)];
+    const sums = pts.map(() => v3(0, 0, 0));
+    for (let x = -1.7 + h / 2; x < 1.7; x += h) for (let y = -1.7 + h / 2; y < 1.7; y += h) for (let z = -1.7 + h / 2; z < 1.7; z += h) {
+      if (x * x + y * y + z * z > 1.7 ** 2 || (x - .702) ** 2 + y * y + (z - .384) ** 2 < .36) continue;
+      pts.forEach((p, i) => { const dx = p.x - x, dy = p.y - y, dz = p.z - z, r = Math.hypot(dx, dy, dz), q = h ** 3 / r ** 3; sums[i] = v3(sums[i].x + q * dx, sums[i].y + q * dy, sums[i].z + q * dz); });
+    }
+    pts.forEach((p, i) => { const e = fieldAt(c, p); expect(norm(sub(e, sums[i])) / norm(e)).toBeLessThan(2e-2); });
+  }, 20000);
+  it('the rod with a hole, against a brute-force sum of lines over its holed cross-section', () => {
+    const c = rod(-1), h = .01, pts = [v3(1, .1, 0), v3(-1, .4, 0), v3(2.5, -1, 0)];
+    const sums = pts.map(() => v3(0, 0, 0));
+    for (let x = -1.75 + h / 2; x < 1.75; x += h) for (let y = -1.75 + h / 2; y < 1.75; y += h) {
+      if (x * x + y * y > 1.75 ** 2 || (x - .85) ** 2 + y * y < .65 ** 2) continue;
+      // A line of λ = −h² per unit length: −2h²/s along ŝ.
+      pts.forEach((p, i) => { const dx = p.x - x, dy = p.y - y, s2 = dx * dx + dy * dy; sums[i] = v3(sums[i].x - 2 * h * h * dx / s2, sums[i].y - 2 * h * h * dy / s2, 0); });
+    }
+    pts.forEach((p, i) => { const e = fieldAt(c, p); expect(norm(sub(e, sums[i])) / norm(e)).toBeLessThan(1e-2); });
+  });
+  it('the sheet with a hole on its axis is σz/(2ε₀√(z² + b²)), both signs; zero in the hole’s plane', () => {
+    for (const s of SIGNS) for (const z of [.25, .6, 1.6, -.8]) close(fieldAt(sheet(s), v3(0, 0, z)).z, s * z / (2 * EPS0 * Math.hypot(z, 1)), 1e-12);
+    expect(Math.abs(fieldAt(sheet(1), v3(0, 0, 1e-9)).z)).toBeLessThan(1e-6);
+  });
+  it('the real flux through a surface about the whole charge’s centre is the real charge it holds: the shared volumes are right', () => {
+    for (const s of SIGNS) {
+      for (const r of [.5, 1.1, 1.4, 2.2]) close(numericFlux(ball(s), {kind: 'sphere', r, h: 0}, 120) * EPS0, enclosedCharge(ball(s), {kind: 'sphere', r, h: 0}), 1e-4);
+      for (const r of [.5, 1.2, 2]) close(numericFlux(rod(s), {kind: 'cylinder', r, h: .8}, 120) * EPS0, enclosedCharge(rod(s), {kind: 'cylinder', r, h: .8}), 1e-4);
+      // A pillbox in the sheet's hole holds nothing, though the field crosses it; one wider than the hole holds the ring round it.
+      for (const r of [.5, 1.4]) close(numericFlux(sheet(s), {kind: 'pillbox', r, h: .5}, 40) * EPS0, enclosedCharge(sheet(s), {kind: 'pillbox', r, h: .5}), 2e-4);
+    }
+    close(enclosedCharge(sheet(1), {kind: 'pillbox', r: .5, h: .5}), 0, 1e-12);
+    // The shared volume and area against their limits.
+    close(lensVolume(1, .5, 0), 4 / 3 * Math.PI * .125, 1e-12); expect(lensVolume(1, .5, 1.6)).toBe(0);
+    close(lensArea(1, 1, 0), Math.PI, 1e-12); expect(lensArea(1, .5, 1.6)).toBe(0);
+    // Half-overlapping equal discs: 2r²acos(d/2r) − (d/2)√(4r² − d²).
+    close(lensArea(1, 1, 1), 2 * Math.acos(.5) - .5 * Math.sqrt(3), 1e-12);
+  }, 20000);
+  it('splits into the whole charge and a plug of the opposite sign and the same density', () => {
+    for (const s of SIGNS) {
+      const [whole, plug] = piecesOf(ball(s))!;
+      expect(whole.sign).toBe(s); expect(plug.sign).toBe(-s);
+      // Same density: amount over volume is the same for both.
+      close(whole.amount! / whole.size ** 3, plug.amount! / plug.size ** 3, 1e-12);
+    }
+    expect(piecesOf({kind: 'ball', sign: 1, size: 1})).toBeNull();
+  });
+  it('the instrument’s field is the ball’s or the rod’s with its hole, cut through both centres: uniform in the hole', () => {
+    const hole = {x: .3, y: .2};
+    for (const s of SIGNS) for (const shape of ['ball', 'rod'] as const) {
+      for (const p of [{x: .3, y: .2}, {x: .5, y: .1}, {x: .2, y: .45}]) { const e = holeField(shape, hole, p, s); close(e.x, s * .3, 1e-12); close(e.y, s * .2, 1e-12); }
+      // Its pieces add to it, anywhere.
+      for (const p of [{x: -.6, y: .3}, {x: 1.2, y: -.4}, {x: .4, y: .3}]) { const [a, b] = holePieces(shape, hole, p, s), e = holeField(shape, hole, p, s); close(a.x + b.x, e.x, 1e-12); close(a.y + b.y, e.y, 1e-12); }
+    }
+    // Against the figure's own field, in units of ρR/(nε₀): a ball of R = 1 with ρ = 1 has ρ/(3ε₀) = 4π/3.
+    const c: Charge = {kind: 'ballhole', sign: 1, size: 1, hole: {radius: HOLE.b, at: v3(.3, 0, .2)}, amount: 4 / 3 * Math.PI};
+    for (const p of [{x: -.6, y: .3}, {x: 1.2, y: -.4}, {x: .4, y: .3}]) { const e = fieldAt(c, v3(p.x, 0, p.y)), f = holeField('ball', {x: .3, y: .2}, p); close(e.x, f.x * 4 * Math.PI / 3, 1e-9); close(e.z, f.y * 4 * Math.PI / 3, 1e-9); }
+    // The hole stays inside the charge, and the readout names the factor.
+    const far = holeAt({x: 3, y: 0}); expect(far.x + HOLE.b).toBeLessThan(1);
+    expect(holeTex('ball', false)).toContain('3\\varepsilon_0'); expect(holeTex('rod', false)).toContain('2\\varepsilon_0'); expect(holeTex('ball', true)).toContain('=0');
+  });
+});
+describe('holes by superposition: the figure adds the pieces honestly', () => {
+  const holes = gaussLesson('holes');
+  for (const c of holes?.cases ?? []) for (const sign of SIGNS) it(`${c.key} (${sign > 0 ? '+' : '−'}): the pieces' arrows at P add, tip to tail, to the answer's, on one scale, and no arrow is cut short`, () => {
+    const s = c.figure.surface.size;
+    for (let k = 0; k <= 20; k++) {
+      const size = s.min + (s.max - s.min) * k / 20, b = build(c, size, sign);
+      const chain = chainOf(b), last = chain[chain.length - 1];
+      const end = v3(last.from.x + last.dir.x * last.length, last.from.y + last.dir.y * last.length, last.from.z + last.dir.z * last.length);
+      // The chain's sideways step, where the two lie along one line, is the only gap between its end and the answer's tip.
+      const sideways = chain.reduce((t, l, i) => { const prev = i ? chain[i - 1] : null, start = prev ? v3(prev.from.x + prev.dir.x * prev.length, prev.from.y + prev.dir.y * prev.length, prev.from.z + prev.dir.z * prev.length) : b.P; return v3(t.x + l.from.x - start.x, t.y + l.from.y - start.y, t.z + l.from.z - start.z); }, v3(0, 0, 0));
+      const tip = v3(b.P.x + b.fieldAtP.x / norm(b.fieldAtP) * b.spanAtP + sideways.x, b.P.y + b.fieldAtP.y / norm(b.fieldAtP) * b.spanAtP + sideways.y, b.P.z + b.fieldAtP.z / norm(b.fieldAtP) * b.spanAtP + sideways.z);
+      expect(norm(sub(end, tip))).toBeLessThan(1e-9);
+      for (const p of b.pieces!) close(p.spanAtP, arrowLength(c, norm(p.fieldAtP)), 1e-12);
+      close(b.spanAtP, arrowLength(c, norm(b.fieldAtP)), 1e-12);
+      // Never held to the figure's longest or shortest arrow, so the scale is linear.
+      for (const l of [...b.pieces!.map(p => p.spanAtP), b.spanAtP]) { expect(l).toBeLessThan(1.6); expect(l).toBeGreaterThan(.06); }
+      // Every patch that carries flux keeps its full length: none runs past where its own piece's field turns round.
+      for (const p of b.patches.filter(q => !q.zero)) close(p.span, arrowLength(c, norm(p.field)), 1e-9);
     }
   });
 });

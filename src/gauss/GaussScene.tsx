@@ -3,7 +3,7 @@ import {useEffect, useRef} from 'react';
 import {cameraBasis, cameraPosition, frameTarget, frustum} from '../diagrams/three/orthoCamera';
 import {CHARGE} from '../diagrams/three/FieldStage';
 import {add, dot, isBall, norm, scale, sub, surfacePoint, unit as unitV, v3, type V3} from './physics';
-import type {Built, Look} from './scene';
+import {chainOf, surfaceOfPiece, type Built, type Look} from './scene';
 import type {GaussCase} from './types';
 /* THE GAUSS FIGURE IN SPACE: the charge, the closed surface round it and every patch's arrows as real objects in
  * a WebGL scene, under the SVG that carries the names, the view cube and the controls (GaussFigure). Built on the
@@ -55,6 +55,17 @@ export function GaussScene(props: SceneProps) {
       const rodMaterial = new THREE.MeshStandardMaterial({color: CHARGE.body, roughness: .9, metalness: 0, transparent: true, opacity: .42, side: THREE.DoubleSide, depthWrite: false});
       // Metal is neutral inside, so it is grey, not the charge's colour; its charge is a skin on its surfaces.
       const metalMaterial = new THREE.MeshStandardMaterial({roughness: .45, metalness: .25, transparent: true, opacity: .3, side: THREE.DoubleSide, depthWrite: false});
+      // A hole is empty: the paper's colour over the charge round it, so it reads as a gap, never as more charge.
+      const holeMaterial = new THREE.MeshBasicMaterial({transparent: true, opacity: .62, side: THREE.BackSide, depthWrite: false});
+      // A charge with a hole is drawn thinner than a solid one, so both its surfaces and the arrows on them show through it.
+      const holedMaterial = new THREE.MeshStandardMaterial({color: CHARGE.body, roughness: .9, metalness: 0, transparent: true, opacity: .22, side: THREE.DoubleSide, depthWrite: false});
+      // The plug a hole is filled with, lit at the right side: the charge's colour, thinner than the whole charge's.
+      const plugMaterial = new THREE.MeshStandardMaterial({color: CHARGE.body, emissive: CHARGE.glow, roughness: .7, metalness: 0, transparent: true, opacity: .5, side: THREE.DoubleSide, depthWrite: false});
+      const rimMaterial = new THREE.LineDashedMaterial({dashSize: .08, gapSize: .06, transparent: true, opacity: .9});
+      // The whole charge's part a superposition's surface holds, lit: see-through, so its own surface, the plug's and
+      // the hole all show through it. And the two pieces' fields at P, thinner than the answer's but never faint.
+      const pieceMaterial = new THREE.MeshStandardMaterial({color: CHARGE.body, emissive: CHARGE.glow, roughness: .7, metalness: 0, transparent: true, opacity: .45, side: THREE.DoubleSide, depthWrite: false});
+      const partMaterial = new THREE.MeshBasicMaterial({transparent: true, opacity: .85});
       // A Gaussian surface is imaginary: a faint skin that tints what is behind it and never hides it.
       const skinMaterial = new THREE.MeshBasicMaterial({transparent: true, opacity: .1, side: THREE.DoubleSide, depthWrite: false});
       const edgeMaterial = new THREE.LineBasicMaterial({transparent: true, opacity: .5});
@@ -87,12 +98,12 @@ export function GaussScene(props: SceneProps) {
         a.group.position.set(from.x, from.y, from.z);
         a.group.quaternion.setFromUnitVectors(Y, new THREE.Vector3(dir.x, dir.y, dir.z).normalize());
       };
-      const clear = (g: InstanceType<typeof THREE.Group>) => { for (const child of g.children.slice()) { g.remove(child); child.traverse(o => { const m = o as InstanceType<typeof THREE.Mesh>; if (m.isMesh && m.geometry !== shaft && m.geometry !== head) m.geometry.dispose(); }); } };
+      const clear = (g: InstanceType<typeof THREE.Group>) => { for (const child of g.children.slice()) { g.remove(child); child.traverse(o => { const geo = (o as unknown as {geometry?: {dispose: () => void}}).geometry; if (geo && geo !== shaft && geo !== head) geo.dispose(); }); } };
       /** A patch as a mesh, sampled from its own parameters so a curved patch is curved. */
       const patchGeometry = (b: Built, i: number, lift = 1.004) => {
-        const p = b.patches[i], [u0, u1, v0, v1] = p.uv, n = 6, pos: number[] = [], idx: number[] = [];
+        const p = b.patches[i], on = surfaceOfPiece(b, p.piece), [u0, u1, v0, v1] = p.uv, n = 6, pos: number[] = [], idx: number[] = [];
         for (let a = 0; a <= n; a++) for (let c = 0; c <= n; c++) {
-          let q = surfacePoint(b.surface, p.part, u0 + (u1 - u0) * a / n, v0 + (v1 - v0) * c / n);
+          let q = surfacePoint(on, p.part, u0 + (u1 - u0) * a / n, v0 + (v1 - v0) * c / n);
           // A hair off the skin, outward, so a tint is never fought over by the depth buffer.
           q = add(q, scale(p.normal, (lift - 1) * Math.max(b.surface.r, b.surface.h)));
           pos.push(q.x, q.y, q.z);
@@ -124,6 +135,15 @@ export function GaussScene(props: SceneProps) {
       let built: Built | null = null, structure = '';
       const patchArrows: {e: Arrow; n: Arrow; tint: InstanceType<typeof THREE.Mesh>}[] = [], spokeArrows: Arrow[] = [];
       let P: InstanceType<typeof THREE.Mesh> | null = null, pArrow: Arrow | null = null, insideMesh: InstanceType<typeof THREE.Object3D> | null = null;
+      // A superposition's two fields at P, the plug's laid from the tip of the whole charge's: they add to the answer.
+      const partArrows: Arrow[] = [];
+      /** A circle about the z axis at height z, dashed: the rim of a sheet's hole. */
+      const rim = (r: number, z: number, at: V3 = v3(0, 0, 0)) => {
+        const pts: number[] = [];
+        for (let i = 0; i <= 96; i++) { const t = 2 * Math.PI * i / 96; pts.push(at.x + r * Math.cos(t), at.y + r * Math.sin(t), z); }
+        const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.Float32BufferAttribute(pts, 3));
+        const line = new THREE.Line(geo, rimMaterial); line.computeLineDistances(); return line;
+      };
       const rebuild = (p: SceneProps) => {
         const b = p.built;
         built = b;
@@ -148,6 +168,21 @@ export function GaussScene(props: SceneProps) {
         if (c.kind === 'cavity') charge.add(cutSphere(c.size, outer, metalMaterial), cutSphere(c.size * .994, outer * 1.006, sheetMaterial, false), new THREE.Mesh(new THREE.SphereGeometry(.11, 24, 16), bodyMaterial));
         if (c.kind === 'face') { const m = new THREE.Mesh(new THREE.BoxGeometry(reach * 1.4, reach * 1.4, reach * .5), metalMaterial); m.position.z = -reach * .25; charge.add(m, plane(.004, reach * 1.4, sheetMaterial)); }
         if (c.kind === 'plates') charge.add(plane(0, reach * 1.4, sheetMaterial), plane(-c.size, reach * 1.4, sheetMaterial));
+        // A charge with a hole: the charge, clear enough to see the surfaces inside it, and the hole as a gap in it.
+        const hole = c.hole;
+        if (c.kind === 'ballhole' && hole) {
+          charge.add(new THREE.Mesh(new THREE.SphereGeometry(c.size, 48, 32), holedMaterial));
+          const gap = new THREE.Mesh(new THREE.SphereGeometry(hole.radius, 40, 28), holeMaterial); gap.position.set(hole.at.x, hole.at.y, hole.at.z); gap.renderOrder = 1; charge.add(gap);
+        }
+        if (c.kind === 'rodhole' && hole) {
+          charge.add(tube(c.size, reach * 2, holedMaterial));
+          const gap = tube(hole.radius, reach * 2, holeMaterial); gap.position.set(hole.at.x, hole.at.y, 0); gap.renderOrder = 1; charge.add(gap);
+        }
+        if (c.kind === 'sheethole' && hole) {
+          const w = reach * .7, shape = new THREE.Shape([new THREE.Vector2(-w, -w), new THREE.Vector2(w, -w), new THREE.Vector2(w, w), new THREE.Vector2(-w, w)]);
+          const gap = new THREE.Path(); gap.absarc(hole.at.x, hole.at.y, hole.radius, 0, 2 * Math.PI, true); shape.holes.push(gap);
+          charge.add(new THREE.Mesh(new THREE.ShapeGeometry(shape, 64), sheetMaterial), rim(hole.radius, 0, hole.at));
+        }
         // THE CHARGE INSIDE, lit at the right side: the part of the charge the surface encloses.
         insideMesh = null;
         if (c.kind === 'point') insideMesh = new THREE.Mesh(new THREE.SphereGeometry(.2, 24, 16), insideMaterial);
@@ -172,22 +207,30 @@ export function GaussScene(props: SceneProps) {
           insideMesh = grp;
         }
         if (insideMesh) { if (c.kind === 'slab' || c.kind === 'tent') insideMesh.rotation.x = Math.PI / 2; inside.add(insideMesh); }
-        // THE SURFACE: a faint skin, and the cuts between its patches.
-        const parts = [...new Set(b.patches.map(q => q.part))];
-        const full = (part: typeof parts[number]) => {
-          const ranges = b.patches.filter(q => q.part === part).map(q => q.uv);
+        // A superposition's two pieces, each the part of it its own surface holds: the whole charge's, and the plug's.
+        b.pieces?.forEach((piece, i) => {
+          const q = piece.charge, s = piece.surface, material = i ? plugMaterial : pieceMaterial, at = q.at ?? v3(0, 0, 0);
+          if (q.kind === 'ball' && s) { const m = new THREE.Mesh(new THREE.SphereGeometry(Math.min(q.size, s.r) * .985, 40, 28), material); m.position.set(at.x, at.y, at.z); inside.add(m); }
+          if (q.kind === 'rod' && s) { const m = tube(Math.min(q.size, s.r) * .985, 2 * s.h, material); m.position.set(at.x, at.y, 0); inside.add(m); }
+          if (q.kind === 'sheet' && !i) inside.add(new THREE.Mesh(new THREE.CircleGeometry(g.r * .985, 48), material));
+        });
+        // THE SURFACE: a faint skin, and the cuts between its patches, on each surface a superposition draws.
+        const parts = [...new Set(b.patches.map(q => `${q.piece ?? 0}|${q.part}`))];
+        const full = (key: string) => {
+          const ranges = b.patches.filter(q => `${q.piece ?? 0}|${q.part}` === key).map(q => q.uv);
           return [Math.min(...ranges.map(r => r[0])), Math.max(...ranges.map(r => r[1])), Math.min(...ranges.map(r => r[2])), Math.max(...ranges.map(r => r[3]))] as const;
         };
-        for (const part of parts) {
-          const [u0, u1, v0, v1] = full(part), n = 40, pos: number[] = [], idx: number[] = [];
-          for (let a = 0; a <= n; a++) for (let k = 0; k <= n; k++) { const q = surfacePoint(g, part, u0 + (u1 - u0) * a / n, v0 + (v1 - v0) * k / n); pos.push(q.x, q.y, q.z); }
+        for (const key of parts) {
+          const [which, part] = key.split('|') as [string, typeof b.patches[number]['part']], on = surfaceOfPiece(b, Number(which));
+          const [u0, u1, v0, v1] = full(key), n = 40, pos: number[] = [], idx: number[] = [];
+          for (let a = 0; a <= n; a++) for (let k = 0; k <= n; k++) { const q = surfacePoint(on, part, u0 + (u1 - u0) * a / n, v0 + (v1 - v0) * k / n); pos.push(q.x, q.y, q.z); }
           for (let a = 0; a < n; a++) for (let k = 0; k < n; k++) { const i = a * (n + 1) + k; idx.push(i, i + 1, i + n + 2, i, i + n + 2, i + n + 1); }
           const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); geo.setIndex(idx);
           skin.add(new THREE.Mesh(geo, skinMaterial));
         }
         const cuts: number[] = [];
         for (const q of b.patches) {
-          const [u0, u1, v0, v1] = q.uv, m = 16;
+          const [u0, u1, v0, v1] = q.uv, m = 16, g = surfaceOfPiece(b, q.piece);
           const edge = (f: (t: number) => V3) => { for (let k = 0; k < m; k++) { const a = f(k / m), c2 = f((k + 1) / m); cuts.push(a.x, a.y, a.z, c2.x, c2.y, c2.z); } };
           edge(t => surfacePoint(g, q.part, u0, v0 + (v1 - v0) * t)); edge(t => surfacePoint(g, q.part, u1, v0 + (v1 - v0) * t));
           edge(t => surfacePoint(g, q.part, u0 + (u1 - u0) * t, v0)); edge(t => surfacePoint(g, q.part, u0 + (u1 - u0) * t, v1));
@@ -205,6 +248,8 @@ export function GaussScene(props: SceneProps) {
         for (let i = 0; i < b.spokes.length; i++) { const s = arrow(fieldFront); spokes.add(s.group); spokeArrows.push(s); }
         P = new THREE.Mesh(new THREE.SphereGeometry(1, 20, 14), pointMaterial); marks.add(P);
         pArrow = arrow(fieldFront); marks.add(pArrow.group);
+        partArrows.length = 0;
+        for (let i = 0; i < (b.pieces?.length ?? 0); i++) { const a = arrow(partMaterial); marks.add(a.group); partArrows.push(a); }
       };
       const structureOf = (b: Built) => `${b.charge.kind}:${b.charge.sign}:${b.charge.size}:${b.charge.outer ?? ''}:${b.surface.kind}:${b.surface.r.toFixed(4)}:${b.surface.h.toFixed(4)}`;
       let colours: string | null = null;
@@ -220,8 +265,8 @@ export function GaussScene(props: SceneProps) {
           colours = theme;
           const c = palette();
           skinMaterial.color.set(c.ink); edgeMaterial.color.set(c.ink); litMaterial.color.set(c.field); zeroMaterial.color.set(c.ghost);
-          metalMaterial.color.set(c.muted);
-          fieldFront.color.set(c.field); fieldBack.color.set(c.field); normalFront.color.set(c.muted); normalBack.color.set(c.muted); pointMaterial.color.set(c.ink);
+          metalMaterial.color.set(c.muted); holeMaterial.color.set(c.paper); rimMaterial.color.set(c.muted);
+          fieldFront.color.set(c.field); fieldBack.color.set(c.field); partMaterial.color.set(c.field); normalFront.color.set(c.muted); normalBack.color.set(c.muted); pointMaterial.color.set(c.ink);
           edgeMaterial.opacity = document.documentElement.classList.contains('dark') ? .6 : .45;
         }
         const f = frustum(FRAME.width, FRAME.height, p.unit);
@@ -237,7 +282,7 @@ export function GaussScene(props: SceneProps) {
         skin.visible = look.surface > .01;
         skinMaterial.opacity = .05 * look.surface; edgeMaterial.opacity = (document.documentElement.classList.contains('dark') ? .6 : .45) * look.surface;
         inside.visible = look.enclosed > .01;
-        insideMaterial.opacity = look.enclosed;
+        insideMaterial.opacity = look.enclosed; plugMaterial.opacity = .5 * look.enclosed; pieceMaterial.opacity = .45 * look.enclosed;
         const lit = look.sweep * b.patches.length;
         b.patches.forEach((q, i) => {
           const a = patchArrows[i];
@@ -266,6 +311,11 @@ export function GaussScene(props: SceneProps) {
         if (P) { P.visible = b.answerAtP && (look.solve > .01 || look.stage === null); P.scale.setScalar(4.2 * px); P.position.set(b.P.x, b.P.y, b.P.z); }
         // The answer: the field at P, drawn bold once the run has solved for it, and at rest.
         if (pArrow) { const len = b.spanAtP * look.solve; lay(pArrow, b.P, unitV(b.fieldAtP), b.answerAtP && (look.stage === 'solve' || look.stage === null) ? len : 0, 1.8); }
+        // A superposition's answer is two fields added: the whole charge's from P, the plug's from its tip.
+        chainOf(b).forEach((link, i) => {
+          const a = partArrows[i]; if (!a) return;
+          lay(a, link.from, link.dir, look.stage === 'solve' || look.stage === null ? link.length * look.solve : 0, .9);
+        });
         renderer.render(scene, camera);
       };
       const canvas = renderer.domElement;
@@ -283,7 +333,7 @@ export function GaussScene(props: SceneProps) {
           disposed = true; canvas.removeEventListener('webglcontextlost', onLost); observer.disconnect(); themeWatch.disconnect();
           for (const g of [charge, inside, skin, tints, arrows, spokes, marks]) clear(g);
           shaft.dispose(); head.dispose();
-          for (const m of [bodyMaterial, cutMaterial, sheetMaterial, insideMaterial, rodMaterial, metalMaterial, skinMaterial, edgeMaterial, litMaterial, zeroMaterial, fieldFront, fieldBack, normalFront, normalBack, pointMaterial]) m.dispose();
+          for (const m of [bodyMaterial, cutMaterial, sheetMaterial, insideMaterial, rodMaterial, metalMaterial, holeMaterial, holedMaterial, plugMaterial, pieceMaterial, partMaterial, rimMaterial, skinMaterial, edgeMaterial, litMaterial, zeroMaterial, fieldFront, fieldBack, normalFront, normalBack, pointMaterial]) m.dispose();
           renderer.dispose();
           if (canvas.parentNode === mount) mount.removeChild(canvas);
         },

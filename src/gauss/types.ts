@@ -1,6 +1,6 @@
 import type {ProblemId} from '../problems/types';
 import type {LessonSection, Reading} from '../lessons/types';
-import type {ChargeKind, SurfaceKind} from './physics';
+import type {ChargeKind, SurfaceKind, V3} from './physics';
 /* A GAUSS LESSON, AS DATA. The integral lessons are built from a Problem (src/problems) and a Lesson
  * (src/lessons); a Gauss lesson is one object of this type, one file each under src/gauss/lessons/, so a
  * lesson can be read, reviewed and tested without running the page. docs/gauss-lessons-howto.md walks
@@ -31,6 +31,13 @@ export type FigureSetup = {
     /** What the charge's surfaces are called (physics.ts `boundaries`, in order out from the centre): "R", or "a"
      * and "b". The profile under the figure marks them with these letters. */
     bounds?: string[];
+    /** The hole cut out of the charge, for Holes by superposition: its radius, and its centre (a ball's), its axis's
+     * foot (a rod's) or its centre on the sheet. The figure then solves the whole charge and the plug apart, each
+     * round its own surface through P, and adds them at P. */
+    hole?: {radius: number; at: V3};
+    /** A multiple of the kind's own amount of charge, so a lesson's cases share one density: a ball with a hole
+     * of ρ = 1 carries 4πR³/3 of the ball's units. */
+    amount?: number;
   };
   surface: {
     kind: SurfaceKind;
@@ -85,8 +92,8 @@ export type Trap = {wrong: string; right: string};
 /** Which interactive instrument sits under the figure, if any: the symmetry test, the flux through a closed
  * surface, the field's profile across the regions (`profile`), a charge in a conductor's cavity (`cavity`), a
  * charge carried out of a sphere with each band's flux summed (`inside`), a ball's enclosed charge built shell by
- * shell (`qenc`), the field against r for the spheres (`plot`). */
-export type Instrument = 'symmetry' | 'flux' | 'profile' | 'cavity' | 'inside' | 'qenc' | 'plot';
+ * shell (`qenc`), the field against r for the spheres (`plot`), a hole moved about a charged ball or rod (`hole`). */
+export type Instrument = 'symmetry' | 'flux' | 'profile' | 'cavity' | 'inside' | 'qenc' | 'plot' | 'hole';
 
 export type GaussLesson = {
   id: GaussId;

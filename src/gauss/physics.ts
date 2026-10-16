@@ -37,10 +37,37 @@ export const unit = (a: V3): V3 => { const n = norm(a); return n > 0 ? scale(a, 
  * - `offset`: a point charge off the centre, a distance `size` straight up from it, on the z axis: inside the
  *   sphere or outside it. No symmetry about the sphere's centre.
  * - `rising`, `falling`: balls whose density depends on r, ρ = ρ₀r/R and ρ = ρ₀(1 − r/R), total charge Q.
- * - `tent`: a slab whose density falls from its middle plane to zero at its faces, ρ = ρ₀(1 − |z|/a). */
+ * - `tent`: a slab whose density falls from its middle plane to zero at its faces, ρ = ρ₀(1 − |z|/a).
+ *
+ * Holes by superposition: a charge with a hole cut out of it is the whole charge plus a plug of the opposite sign
+ * where the hole is (`piecesOf`), and its field is the two pieces' fields added.
+ * - `ballhole`: a uniform ball of radius R = size with a round hole of radius `hole.radius` centred at `hole.at`.
+ * - `rodhole`: an infinite uniform rod of radius R = size along z, with a hole of radius `hole.radius` drilled along
+ *   it, its axis through `hole.at`.
+ * - `sheethole`: an infinite sheet with a round hole of radius `hole.radius` about the z axis.
+ * - `disk`: a flat disc of radius R = size in the plane z = 0, σ per unit area: the sheet's plug, whose field the
+ *   integral lesson builds ring by ring. Here it is added up ring by ring too (`diskField`). */
 export type ChargeKind = 'point' | 'shell' | 'ball' | 'line' | 'sheet' | 'slab' | 'rod' | 'tube' | 'coax' | 'metal' | 'cavity' | 'face' | 'plates'
-  | 'offset' | 'rising' | 'falling' | 'tent';
-export type Charge = {kind: ChargeKind; sign: 1 | -1; size: number; outer?: number};
+  | 'offset' | 'rising' | 'falling' | 'tent' | 'ballhole' | 'rodhole' | 'sheethole' | 'disk';
+export type Charge = {kind: ChargeKind; sign: 1 | -1; size: number; outer?: number;
+  /** The charge's centre (or its axis's foot) when it is not the origin: a superposition's plug. */
+  at?: V3;
+  /** A multiple of the kind's own amount: a plug cut from a bigger charge of the same density. */
+  amount?: number;
+  /** The hole cut out of a `ballhole`, a `rodhole` or a `sheethole`. */
+  hole?: {radius: number; at: V3}};
+const ORIGIN = v3(0, 0, 0);
+/** A charge with a hole, as the two charges it is the sum of: the whole charge, and a plug of the opposite sign and
+ * the same density filling the hole. Each piece is symmetric about its own centre, so each is solved alone. Nothing
+ * for a charge with no hole. */
+export function piecesOf(c: Pick<Charge, 'kind' | 'sign' | 'size' | 'hole' | 'amount'>): Charge[] | null {
+  const h = c.hole, s = c.sign, minus = -c.sign as 1 | -1, k = c.amount ?? 1;
+  if (!h) return null;
+  if (c.kind === 'ballhole') return [{kind: 'ball', sign: s, size: c.size, amount: k}, {kind: 'ball', sign: minus, size: h.radius, amount: k * (h.radius / c.size) ** 3, at: h.at}];
+  if (c.kind === 'rodhole') return [{kind: 'rod', sign: s, size: c.size, amount: k}, {kind: 'rod', sign: minus, size: h.radius, amount: k * (h.radius / c.size) ** 2, at: v3(h.at.x, h.at.y, 0)}];
+  if (c.kind === 'sheethole') return [{kind: 'sheet', sign: s, size: 0, amount: k}, {kind: 'disk', sign: minus, size: h.radius, amount: k, at: v3(h.at.x, h.at.y, 0)}];
+  return null;
+}
 /** Where the field's formula changes, in the slider's coordinate (a radius, or a height): the surfaces of the
  * charge. The profile under the figure marks them, and a case names the regions between them. */
 export function boundaries(c: Pick<Charge, 'kind' | 'size' | 'outer'>): number[] {
@@ -65,11 +92,20 @@ export const tentHalf = (h: number, a: number) => { const m = Math.min(Math.abs(
  * about the z axis, standing across the plane z = 0). `r` is the radius; `h` is the half-length of the
  * cylinder or the half-height of the pillbox. */
 export type SurfaceKind = 'sphere' | 'cylinder' | 'pillbox';
-export type Surface = {kind: SurfaceKind; r: number; h: number};
+export type Surface = {kind: SurfaceKind; r: number; h: number;
+  /** The centre (or the axis's foot) when it is not the origin: a superposition's second surface, round its plug. */
+  center?: V3};
 
 /** The exact field of each distribution at a point, by the closed forms Gauss's law gives (and the integral
  * lessons confirm for the line and the sheet): k = 1. */
 export function fieldAt(c: Charge, p: V3): V3 {
+  const parts = piecesOf(c);
+  if (parts) return parts.reduce((e, q) => add(e, fieldAt(q, p)), v3(0, 0, 0));
+  const e = ownField(c, c.at ? sub(p, c.at) : p);
+  return c.amount === undefined ? e : scale(e, c.amount);
+}
+/** The field of a charge with no hole, about its own centre. */
+function ownField(c: Charge, p: V3): V3 {
   const s = c.sign;
   switch (c.kind) {
     case 'point': { const r = norm(p); return r > 0 ? scale(p, s / (r * r * r)) : v3(0, 0, 0); }
@@ -104,13 +140,103 @@ export function fieldAt(c: Charge, p: V3): V3 {
     case 'plates': return v3(0, 0, p.z < 0 && p.z > -c.size ? -4 * Math.PI * s : 0);
     // Inside the tent slab (ρ₀/ε₀)(z − z|z|/2a), outside ρ₀a/2ε₀, away from it: ε₀ = 1/4π.
     case 'tent': return v3(0, 0, Math.sign(p.z) * 4 * Math.PI * s * tentHalf(p.z, c.size));
+    // A disc of unit σ: added up ring by ring.
+    case 'disk': return scale(diskField(c.size, p), s);
+    // A charge with a hole is its pieces (fieldAt), and never reaches here.
+    case 'ballhole': case 'rodhole': case 'sheethole': return v3(0, 0, 0);
   }
+}
+
+/** Complete elliptic integrals of the first and second kinds, K(m) and E(m) with m = k², by the arithmetic-geometric
+ * mean: exact to rounding in a handful of steps. */
+export function elliptic(m: number): {K: number; E: number} {
+  let a = 1, b = Math.sqrt(1 - m), c = Math.sqrt(m), sum = .5 * c * c, pow = .5;
+  for (let i = 0; i < 40 && Math.abs(c) > 1e-16; i++) {
+    const a1 = (a + b) / 2, b1 = Math.sqrt(a * b);
+    c = (a - b) / 2; pow *= 2; sum += pow * c * c;
+    a = a1; b = b1;
+  }
+  const K = Math.PI / (2 * a);
+  return {K, E: K * (1 - sum)};
+}
+/** The field of a ring of charge Q (k = 1) and radius a, about the z axis in the plane z = 0, at a point a distance s
+ * from the axis and a height z: its parts along ŝ and ẑ, from the ring's potential 2Q K(m)/(π√((a + s)² + z²)),
+ * m = 4as/((a + s)² + z²). */
+export function ringField(Q: number, a: number, s: number, z: number): {s: number; z: number} {
+  const far = (a + s) ** 2 + z * z, near = (a - s) ** 2 + z * z, m = 4 * a * s / far, root = Math.sqrt(far);
+  if (near < 1e-24) return {s: 0, z: 0};
+  const {K, E} = elliptic(Math.min(m, 1 - 1e-15));
+  const Ez = 2 * Q * z * E / (Math.PI * near * root);
+  const Es = s < 1e-12 ? 0 : Q / (Math.PI * s * root) * (K - (a * a - s * s + z * z) / near * E);
+  return {s: Es, z: Ez};
+}
+/** Gauss–Legendre nodes and weights on [−1, 1], by Newton's method on the Legendre polynomial. */
+function legendre(n: number): {x: number[]; w: number[]} {
+  const x: number[] = [], w: number[] = [];
+  for (let i = 1; i <= n; i++) {
+    let t = Math.cos(Math.PI * (i - .25) / (n + .5)), dp = 1;
+    for (let it = 0; it < 100; it++) {
+      let p0 = 1, p1 = t;
+      for (let k = 2; k <= n; k++) { const p2 = ((2 * k - 1) * t * p1 - (k - 1) * p0) / k; p0 = p1; p1 = p2; }
+      dp = n * (t * p1 - p0) / (t * t - 1);
+      const dt = p1 / dp;
+      t -= dt;
+      if (Math.abs(dt) < 1e-15) break;
+    }
+    x.push(t); w.push(2 / ((1 - t * t) * dp * dp));
+  }
+  return {x, w};
+}
+const GL = legendre(40);
+/** The field of a uniform disc of unit σ (k = 1), radius b, about the z axis in the plane z = 0, at p: its rings of
+ * radius a and width da, each carrying σ·2πa da, added by Gauss–Legendre quadrature, split where a ring passes under
+ * p. On the axis, the integral lesson's closed form, 2πσ(1 − z/√(z² + b²)) away from the disc. */
+export function diskField(b: number, p: V3): V3 {
+  const s = Math.hypot(p.x, p.y), z = p.z;
+  if (s < 1e-9) return v3(0, 0, z === 0 ? 0 : 2 * Math.PI * (Math.sign(z) - z / Math.hypot(z, b)));
+  let Es = 0, Ez = 0;
+  const spans: [number, number][] = s < b ? [[0, s], [s, b]] : [[0, b]];
+  for (const [lo, hi] of spans) {
+    const half = (hi - lo) / 2, mid = (hi + lo) / 2;
+    for (let i = 0; i < GL.x.length; i++) {
+      const a = mid + half * GL.x[i], f = ringField(2 * Math.PI * a, a, s, z);
+      Es += GL.w[i] * half * f.s; Ez += GL.w[i] * half * f.z;
+    }
+  }
+  return v3(Es * p.x / s, Es * p.y / s, Ez);
+}
+/** The volume two balls share, of radii r1 and r2 with centres d apart. */
+export function lensVolume(r1: number, r2: number, d: number): number {
+  if (d >= r1 + r2) return 0;
+  if (d <= Math.abs(r1 - r2)) return 4 / 3 * Math.PI * Math.min(r1, r2) ** 3;
+  return Math.PI * (r1 + r2 - d) ** 2 * (d * d + 2 * d * (r1 + r2) - 3 * (r1 - r2) ** 2) / (12 * d);
+}
+/** The area two discs share, of radii r1 and r2 with centres d apart. */
+export function lensArea(r1: number, r2: number, d: number): number {
+  if (d >= r1 + r2) return 0;
+  if (d <= Math.abs(r1 - r2)) return Math.PI * Math.min(r1, r2) ** 2;
+  const clip = (x: number) => Math.max(-1, Math.min(1, x));
+  const a = Math.acos(clip((d * d + r1 * r1 - r2 * r2) / (2 * d * r1))), b = Math.acos(clip((d * d + r2 * r2 - r1 * r1) / (2 * d * r2)));
+  return r1 * r1 * a + r2 * r2 * b - .5 * Math.sqrt(Math.max(0, (-d + r1 + r2) * (d + r1 - r2) * (d - r1 + r2) * (d + r1 + r2)));
 }
 
 /** The charge inside a surface, signed, in the same units: the right side of Gauss's law. Each surface is
  * placed as its lesson places it, centred on the charge's centre (or straddling the sheet). */
 export function enclosedCharge(c: Charge, g: Surface): number {
-  const s = c.sign;
+  const s = c.sign * (c.hole ? c.amount ?? 1 : 1), h = c.hole;
+  // A charge with a hole, in a surface about the whole charge's centre: the whole charge's share, less the part of
+  // the hole's plug the surface holds.
+  if (h && !g.center) {
+    if (c.kind === 'ballhole' && g.kind === 'sphere') return s * (Math.min(1, (g.r / c.size) ** 3) - lensVolume(g.r, h.radius, norm(h.at)) / (4 / 3 * Math.PI * c.size ** 3));
+    if (c.kind === 'rodhole' && g.kind === 'cylinder') return s * 2 * g.h * (Math.min(1, (g.r / c.size) ** 2) - lensArea(g.r, h.radius, Math.hypot(h.at.x, h.at.y)) / (Math.PI * c.size ** 2));
+    if (c.kind === 'sheethole' && g.kind === 'pillbox') return s * (Math.PI * g.r * g.r - lensArea(g.r, h.radius, Math.hypot(h.at.x, h.at.y)));
+  }
+  // A piece about its own centre, which its surface shares: as the piece alone, in proportion to its amount.
+  if (c.at || g.center) {
+    if (norm(sub(c.at ?? ORIGIN, g.center ?? ORIGIN)) > 1e-9) throw Error(`A ${g.kind} not centred on the ${c.kind} it is drawn round.`);
+    return enclosedCharge({...c, at: undefined}, {...g, center: undefined});
+  }
+  if (c.amount !== undefined) return c.amount * enclosedCharge({...c, amount: undefined}, g);
   if (g.kind === 'sphere') {
     if (c.kind === 'point') return s;
     if (c.kind === 'shell') return g.r > c.size ? s : 0;
@@ -135,6 +261,8 @@ export function enclosedCharge(c: Charge, g: Surface): number {
     // The pillbox straddles the σ plate; once it reaches past the −σ one as well it holds both, and nothing.
     if (c.kind === 'plates') return g.h < c.size ? s * A : 0;
     if (c.kind === 'tent') return s * A * 2 * tentHalf(g.h, c.size);
+    // A disc of σ, in a pillbox on its axis: the part of it between the faces.
+    if (c.kind === 'disk') return s * Math.PI * Math.min(g.r, c.size) ** 2;
   }
   throw Error(`No enclosed charge for a ${g.kind} round a ${c.kind}.`);
 }
@@ -181,6 +309,10 @@ export const CUT = {sphere: {bands: 4, sectors: 8}, cylinder: {bands: 2, sectors
 const sph = (r: number, th: number, ph: number) => v3(r * Math.sin(th) * Math.cos(ph), r * Math.sin(th) * Math.sin(ph), r * Math.cos(th));
 /** The surface cut into patches. Each patch's normal is the outward one at its centre; its area is exact. */
 export function patches(g: Surface, cut: {bands: number; sectors: number; rings?: number} = CUT[g.kind]): Patch[] {
+  if (g.center) {
+    const o = g.center, to = (p: V3) => add(p, o);
+    return patches({...g, center: undefined}, cut).map(p => ({...p, center: to(p.center), corners: p.corners.map(to)}));
+  }
   const out: Patch[] = [];
   const {bands, sectors} = cut;
   if (g.kind === 'sphere') {
@@ -209,6 +341,7 @@ export function patches(g: Surface, cut: {bands: number; sectors: number; rings?
 }
 /** A point of a surface's part from its two parameters, as `uv` gives them. */
 export function surfacePoint(g: Surface, part: PatchPart, u: number, v: number): V3 {
+  if (g.center) return add(surfacePoint({...g, center: undefined}, part, u, v), g.center);
   if (part === 'sphere') return sph(g.r, u, v);
   if (part === 'wall') return v3(g.r * Math.cos(v), g.r * Math.sin(v), u);
   return v3(u * Math.cos(v), u * Math.sin(v), part === 'top' ? g.h : -g.h);
@@ -251,11 +384,12 @@ export function numericFlux(c: Charge, g: Surface, fine = 240): number {
     return total;
   }
   // The caps' annular sectors, with the field taken at each one's mid radius.
+  const o = g.center ?? ORIGIN;
   for (const p of patches(g, cut)) {
     if (p.part === 'wall') { total += dot(fieldAt(c, p.center), p.normal) * p.area; continue; }
-    const a = Math.hypot(p.center.x, p.center.y), mid = p.corners.length === 3 ? a * 3 / 4 : a;
-    const at = a > 0 ? scale(v3(p.center.x, p.center.y, 0), mid / a) : v3(0, 0, 0);
-    total += dot(fieldAt(c, v3(at.x, at.y, p.center.z)), p.normal) * p.area;
+    const local = sub(p.center, o), a = Math.hypot(local.x, local.y), mid = p.corners.length === 3 ? a * 3 / 4 : a;
+    const at = a > 0 ? scale(v3(local.x, local.y, 0), mid / a) : v3(0, 0, 0);
+    total += dot(fieldAt(c, add(o, v3(at.x, at.y, local.z))), p.normal) * p.area;
   }
   return total;
 }

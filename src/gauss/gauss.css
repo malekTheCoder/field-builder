@@ -177,3 +177,20 @@
 .gs-dot{fill:var(--foreground);stroke:var(--diagram);stroke-width:2}
 .gs-related{margin:12px 0 0;font-size:var(--type-meta)}
 @media(forced-colors:active){.gs-curve,.gs-cavity-line{stroke:CanvasText}}
+/* Holes by superposition: a hole is a gap the paper shows through, its rim dashed; the plug lit at the right side is
+   the charge's colour, thinner; the instrument's arrows round the hole faint, the ones in it bold, and d in ink. */
+.gs-hole{fill:var(--diagram);fill-opacity:.92;stroke:var(--charge);stroke-width:1.6;stroke-dasharray:5 4}
+.gs-plug-line{stroke:var(--ghost);stroke-width:2;stroke-dasharray:5 5}
+.gs-arrow.gs-e.is-piece line{stroke-width:1.8;stroke-opacity:.8}
+.gs-arrow.gs-e.is-piece path{fill-opacity:.85}
+.gs-inside.is-plug{fill-opacity:.22;stroke-dasharray:6 4}
+.gs-arrow.gs-e.is-faint line{stroke-opacity:.5;stroke-width:1.5}
+.gs-arrow.gs-e.is-faint path{fill-opacity:.6}
+.gs-arrow.gs-e.is-hole line{stroke-width:3}
+.gs-arrow.gs-dvec line{stroke:var(--foreground);stroke-width:2;stroke-dasharray:6 4}
+.gs-arrow.gs-dvec path{fill:var(--foreground)}
+.gs-dvec-name{fill:var(--foreground)}
+.gs-centre{fill:var(--foreground)}
+.gs-hole-handle{cursor:grab}
+.gs-hole-svg,.gs-cube-svg{touch-action:none}
+.gs-hole-grip{fill:var(--foreground);fill-opacity:.55}

@@ -274,3 +274,41 @@ export const SPHERE_KINDS = ['point', 'shell', 'ball', 'rising'] as const;
 export type SphereKind = typeof SPHERE_KINDS[number];
 /** E_r at r (units of R) for a charge of the given sign: the figure's own fields, along a radius. */
 export const fieldOf = (k: SphereKind, r: number, sign: 1 | -1 = 1) => fieldAt({kind: k, sign, size: 1}, v3(r, 0, 0)).x;
+
+// ---- Holes by superposition: the field in a hole, as the hole is moved ----
+/* A ball (or a rod, seen end on) of uniform ρ with a round hole in it, cut through both centres: the instrument under
+ * Holes by superposition. The field is the whole charge's plus the plug's, the plug of −ρ filling the hole. Inside a
+ * uniform ball the field is ρr⃗/(3ε₀) and inside a uniform rod ρr⃗⊥/(2ε₀); outside, a point charge's and a line's.
+ * Lengths are in units of the big radius R, and fields in units of ρR/(nε₀), n = 3 for a ball and 2 for a rod, so
+ * inside the whole charge the field is r⃗ itself. */
+export type HoleShape = 'ball' | 'rod';
+export const HOLE = {b: .38, reach: .5} as const;
+/** The field of a uniform ball (n = 3) or rod (n = 2) of radius a about c, at p, in units of ρ/(nε₀): p − c inside,
+ * a³(p − c)/|p − c|³ or a²(p − c)/|p − c|² outside. */
+function solid(shape: HoleShape, a: number, c: Pt, p: Pt): Pt {
+  const dx = p.x - c.x, dy = p.y - c.y, r = Math.hypot(dx, dy);
+  if (r <= a) return {x: dx, y: dy};
+  const k = shape === 'ball' ? a ** 3 / r ** 3 : a * a / (r * r);
+  return {x: k * dx, y: k * dy};
+}
+/** The field at p of the whole charge (radius 1, about the origin) with a hole of radius b about c, for a charge of the
+ * given sign: the whole charge's field, less the plug's. In the hole it is c itself, the same at every point. */
+export function holeField(shape: HoleShape, c: Pt, p: Pt, sign: 1 | -1 = 1, b: number = HOLE.b): Pt {
+  const whole = solid(shape, 1, {x: 0, y: 0}, p), plug = solid(shape, b, c, p);
+  return {x: sign * (whole.x - plug.x), y: sign * (whole.y - plug.y)};
+}
+/** The two pieces' fields at p, the whole charge's and the plug's, for drawing them tip to tail. */
+export function holePieces(shape: HoleShape, c: Pt, p: Pt, sign: 1 | -1 = 1, b: number = HOLE.b): [Pt, Pt] {
+  const whole = solid(shape, 1, {x: 0, y: 0}, p), plug = solid(shape, b, c, p);
+  return [{x: sign * whole.x, y: sign * whole.y}, {x: -sign * plug.x, y: -sign * plug.y}];
+}
+/** Where the hole may go: wholly inside the charge, with a rim of charge left round it. */
+export function holeAt(to: Pt, b: number = HOLE.b): Pt {
+  const d = Math.hypot(to.x, to.y), max = 1 - b - .08;
+  return d > max ? {x: to.x * max / d, y: to.y * max / d} : to;
+}
+/** The readout: the field in the hole, ρd⃗/(3ε₀) for a ball and ρd⃗/(2ε₀) for a rod, or none when the hole is centred. */
+export function holeTex(shape: HoleShape, centred: boolean): string {
+  const n = shape === 'ball' ? 3 : 2;
+  return centred ? String.raw`\vec d=0:\quad\vec E_{\text{hole}}=0` : String.raw`\vec E_{\text{hole}}=\frac{\rho\,\vec d}{${n}\varepsilon_0}`;
+}
