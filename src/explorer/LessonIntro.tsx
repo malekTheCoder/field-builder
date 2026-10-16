@@ -10,7 +10,7 @@ import type {Lesson} from '../lessons';
  * says (print.css), as a handout leads with the lesson.
  *
  * Its own component, memoised, so the sixty frames a second of "Watch it build" never reach its equations. */
-export const LessonIntro=memo(function LessonIntro({lesson,open,onToggle,onBuild}:{lesson:Lesson;open:boolean;onToggle:()=>void;onBuild:()=>void}){
+export const LessonIntro=memo(function LessonIntro({lesson,open,onToggle,onBuild}:{lesson:Pick<Lesson,'lead'|'sections'|'read'>;open:boolean;onToggle:()=>void;onBuild:()=>void}){
  const uid=useId(),bodyId=`${uid}-body`,headingId=`${uid}-heading`;
  const toggle=useRef<HTMLButtonElement>(null),root=useRef<HTMLElement>(null);
  // THE FIGURE MAKES ROOM FOR THE LEAD. On a short laptop window the drawing is held to the window less the page

@@ -4,6 +4,7 @@ import Explorer from '../explorer/Explorer';
 import Home from './Home';
 import Guide from '../guide/Guide';
 import Quiz from '../quiz/Quiz';
+import GaussLesson from '../gauss/GaussLesson';
 import {subscribeAddress,viewOf,type View} from '../state/route';
 
 /** How the lesson on screen was reached in this visit: from the address the page was opened at, as the first
@@ -44,7 +45,7 @@ export default function Site(){
   const before=shown.current;shown.current=view;
   if(before===null||view===null||before===view)return;
   window.scrollTo({top:0,behavior:'auto'});
-  document.getElementById(view==='lesson'?'lesson-title':view)?.focus({preventScroll:true});
+  document.getElementById(view==='lesson'||view==='gauss'?'lesson-title':view)?.focus({preventScroll:true});
  },[view]);
- return view===null?null:view==='home'?<Home/>:view==='guide'?<Guide/>:view==='quiz'?<Quiz/>:<Explorer welcome={arrival==='address'?undefined:arrival==='first'}/>;
+ return view===null?null:view==='home'?<Home/>:view==='guide'?<Guide/>:view==='quiz'?<Quiz/>:view==='gauss'?<GaussLesson/>:<Explorer welcome={arrival==='address'?undefined:arrival==='first'}/>;
 }

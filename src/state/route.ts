@@ -1,14 +1,17 @@
 import {isReady} from '../problems/readiness';
 import {parseAssignment} from './assignment';
+import {gaussIdOf} from '../gauss';
 
 /** Which page an address is: a lesson when it names one (or carries the values of the first, as an
  * old link with no lesson in it does -- see Explorer's reading of the address), the study guide when it
  * says `?guide`, the quiz when it says `?quiz`, the home page otherwise. Every lesson's address names it (`?p=ring`), so a teacher's link
  * still opens its lesson directly; and a lesson wins over the guide, so no lesson link can be taken from it. */
-export type View = 'home' | 'lesson' | 'guide' | 'quiz';
+export type View = 'home' | 'lesson' | 'gauss' | 'guide' | 'quiz';
 export function viewOf(search: string): View {
   const a = parseAssignment(search);
   if ((a.id && isReady(a.id)) || a.params) return 'lesson';
+  // A Gauss lesson (`?g=symmetry`), when it is ready (src/gauss): a page of its own, beside the integral lessons.
+  if (gaussIdOf(search)) return 'gauss';
   const q = new URLSearchParams(search);
   return q.has('guide') ? 'guide' : q.has('quiz') ? 'quiz' : 'home';
 }

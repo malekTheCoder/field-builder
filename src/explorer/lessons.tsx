@@ -42,29 +42,39 @@ export function families(list:Problem[]){const rest=new Set(list.map(p=>p.id));
  const groups=FAMILIES.map(f=>({label:f.label,items:f.ids.flatMap(id=>{const p=list.find(x=>x.id===id);if(!p)return[];rest.delete(id);return[p]})})).filter(g=>g.items.length>0);
  const extra=list.filter(p=>rest.has(p.id));
  return extra.length>0?[...groups,{label:'More geometries',items:extra}]:groups}
-/** GAUSS'S LAW, COMING SOON (docs/gauss-law-plan.md). The other half of the unit, planned and not built: shown
- *  as a family of its own wherever the lessons are offered, its lessons named and marked, none of them a link.
- *  A reader sees where the subject goes next, and that the gap is deliberate. These are not Problems, so they
- *  have no ProblemId and no lesson behind them; `PLANNED_SECTIONS` in problems/readiness.ts is the switch.
- *  When a Gauss lesson is built it becomes a Problem and leaves this list. */
+/** GAUSS'S LAW (docs/gauss-law-plan.md): the other half of the unit, shown as a family of its own wherever the
+ *  lessons are offered. Its planned lessons are named here, in teaching order; the ones built and switched on
+ *  (GAUSS_READY in problems/readiness.ts, the lessons in src/gauss) are links to `?g=<key>`, and the rest stay
+ *  words marked "Coming soon", never links and never a stop for Tab. They are not Problems, so they have no
+ *  ProblemId; the family is drawn by src/gauss/GaussFamily.tsx for the list, the library and the home page. */
 export type PlannedLesson={key:string;name:string;about:string};
 export const GAUSS:{key:'gauss';label:string;note:string;lessons:PlannedLesson[]}={key:'gauss',label:'Gauss’s law',
  note:'The shortcut, where symmetry already gives the field’s direction: one closed surface instead of the whole integral.',
  lessons:[
+  {key:'symmetry',name:'Symmetry first',about:'Why a sphere’s, a line’s and a plane’s fields must point straight out or straight in, before any calculation.'},
   {key:'flux',name:'Flux, the idea',about:'A field through a tilted patch, then through any closed surface round a point charge.'},
-  {key:'shell',name:'Shell and point charge',about:'A sphere: no field inside the shell, and outside it a point charge’s.'},
-  {key:'ball',name:'Solid sphere',about:'The field grows inside the ball, then falls away outside it.'},
-  {key:'line',name:'Line, by Gauss',about:'A cylinder round the infinite line, checked against the integral you built.'},
-  {key:'sheet',name:'Sheet, by Gauss',about:'A pillbox through the sheet, and why the distance drops out.'},
-  {key:'coax',name:'Cylinders and slabs',about:'Coaxial cylinders and a thick slab, a surface placed in each region.'},
-  {key:'symmetry',name:'When symmetry runs out',about:'The finite rod: Gauss’s law still holds, but no surface makes it solvable, so you build the integral.'}]};
+  {key:'inside',name:'Why only the charge inside',about:'A sphere, then any shape, then a charge outside, then many charges at once.'},
+  {key:'qenc',name:'Q_enc from a density',about:'The ratio method for uniform charge, thin shells for charge that varies.'},
+  {key:'spheres',name:'Spheres',about:'No field inside a shell, a field that grows inside a ball, a point charge’s outside both.'},
+  {key:'lines',name:'Lines and cylinders',about:'A cylinder round a line or a thick rod, checked against the integral you built.'},
+  {key:'sheets',name:'Sheets and slabs',about:'A pillbox through a sheet or a thick slab, and why the distance drops out.'},
+  {key:'conductors',name:'Conductors',about:'No field inside the metal, charge on its surface, and cavities that hold charge.'},
+  {key:'holes',name:'Holes by superposition',about:'A hole as a positive object plus a negative one, each solved by Gauss’s law.'},
+  {key:'runs-out',name:'When symmetry runs out',about:'The finite rod: Gauss’s law still holds, but no surface makes it solvable, so you build the integral.'},
+  {key:'hard',name:'The hard cases',about:'Charge out to infinity, densities that blow up, and running Gauss’s law backwards.'}]};
 /** The planned lessons' shapes, drawn as the lessons' are: the charge in ink, the closed surface dashed. */
 const PLANNED_GLYPHS:Record<string,React.ReactNode>={
+ symmetry:<><circle cx="9" cy="9" r="3.2" fill="currentColor" fillOpacity=".28"/><path d="M9 1.4v15.2" strokeDasharray="2 2"/><path d="M13.6 9h3M1.4 9h3M12.3 5.7l2.1-2.1M3.6 14.4l2.1-2.1"/></>,
  flux:<><path d="M6 4.2 12 2v11.8L6 16Z"/><path d="M1.6 9h14.6M14.2 7l2 2-2 2"/></>,
- shell:<><circle cx="9" cy="9" r="4.4"/><circle cx="9" cy="9" r="7.2" strokeDasharray="2 2.2"/></>,
- ball:<><circle cx="9" cy="9" r="4.4" fill="currentColor" fillOpacity=".28"/><circle cx="9" cy="9" r="7.2" strokeDasharray="2 2.2"/></>,
- line:<><path d="M9 1.6v14.8"/><ellipse cx="9" cy="4.6" rx="4.6" ry="1.6" strokeDasharray="2 2"/><ellipse cx="9" cy="13.4" rx="4.6" ry="1.6" strokeDasharray="2 2"/><path d="M4.4 4.6v8.8M13.6 4.6v8.8" strokeDasharray="2 2"/></>,
- sheet:<><path d="M1.8 12.4 6.6 6.6h9.6l-4.8 5.8Z"/><rect x="7" y="4.4" width="4" height="8.6" rx="1" strokeDasharray="2 1.8"/></>,
- coax:<><circle cx="9" cy="9" r="2.6"/><circle cx="9" cy="9" r="6.6"/><circle cx="9" cy="9" r="4.6" strokeDasharray="1.6 1.8"/></>,
- symmetry:<><path d="M9 4v10M6.6 4h4.8M6.6 14h4.8"/><circle cx="9" cy="9" r="7.2" strokeDasharray="2 2.2"/></>};
+ inside:<><path d="M2.6 9.4c0-3.6 2.4-6 5.6-6 3.4 0 5.4 2.2 5.4 5.4 0 3.4-2.4 5.8-5.6 5.8-3 0-5.4-1.8-5.4-5.2Z" strokeDasharray="2 2"/><circle cx="8" cy="9" r="1.3" fill="currentColor" stroke="none"/><circle cx="15.6" cy="3.4" r="1.3" fill="currentColor" stroke="none"/></>,
+ qenc:<><circle cx="9" cy="9" r="7" fill="currentColor" fillOpacity=".28"/><circle cx="9" cy="9" r="4" strokeDasharray="1.8 1.8"/></>,
+ spheres:<><circle cx="9" cy="9" r="4.4"/><circle cx="9" cy="9" r="7.2" strokeDasharray="2 2.2"/></>,
+ lines:<><path d="M9 1.6v14.8"/><ellipse cx="9" cy="4.6" rx="4.6" ry="1.6" strokeDasharray="2 2"/><ellipse cx="9" cy="13.4" rx="4.6" ry="1.6" strokeDasharray="2 2"/><path d="M4.4 4.6v8.8M13.6 4.6v8.8" strokeDasharray="2 2"/></>,
+ sheets:<><path d="M1.8 12.4 6.6 6.6h9.6l-4.8 5.8Z"/><rect x="7" y="4.4" width="4" height="8.6" rx="1" strokeDasharray="2 1.8"/></>,
+ conductors:<path d="M9 2.4a6.6 6.6 0 1 0 0 13.2a6.6 6.6 0 1 0 0-13.2Zm0 3.8a2.8 2.8 0 1 1 0 5.6a2.8 2.8 0 1 1 0-5.6Z" fill="currentColor" fillOpacity=".28" fillRule="evenodd"/>,
+ holes:<><circle cx="9" cy="9" r="6.8" fill="currentColor" fillOpacity=".28"/><circle cx="11.2" cy="7.6" r="2.4"/></>,
+ 'runs-out':<><path d="M9 4v10M6.6 4h4.8M6.6 14h4.8"/><circle cx="9" cy="9" r="7.2" strokeDasharray="2 2.2"/></>,
+ hard:<><circle cx="9" cy="9" r="7.2" strokeDasharray="2 2.2"/><circle cx="9" cy="9" r="4.2"/><circle cx="9" cy="9" r="1.6" fill="currentColor" stroke="none"/></>};
 export function PlannedGlyph({id,size=18}:{id:string;size?:number}){return <svg width={size} height={size} viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" data-glyph={`gauss-${id}`}>{PLANNED_GLYPHS[id]}</svg>}
+/** A planned lesson's name as it is set: "Q_enc" with its subscript, read aloud as "Q enc". */
+export function plannedName(name:string):React.ReactNode{const at=name.indexOf('Q_enc');return at<0?name:<>{name.slice(0,at)}Q<sub>enc</sub>{name.slice(at+5)}</>}

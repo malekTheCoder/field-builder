@@ -50,5 +50,9 @@ export const SOON_NOTE = 'Being redrawn, and not ready to be read yet.';
  * behind any of its names yet (Gauss's law, docs/gauss-law-plan.md, listed in explorer/lessons.tsx), so its
  * entries are never links, only names marked "Coming soon". Removing a section here takes it off every page. */
 export const PLANNED_SECTIONS: ReadonlySet<'gauss'> = new Set(['gauss'] as const);
+/** THE GAUSS LESSONS THAT ARE READY. The section is planned as eleven lessons (src/explorer/lessons.tsx, GAUSS),
+ * built one file at a time under src/gauss/lessons/. A lesson named here, and written, is a link wherever the
+ * section is shown and opens at `?g=<id>`; every other name stays "Coming soon". Adding an id publishes it. */
+export const GAUSS_READY: ReadonlySet<string> = new Set(['symmetry', 'flux']);
 /** The mark a planned lesson carries, in the words a reader sees and a screen reader hears. */
 export const PLANNED_LABEL = 'Coming soon';

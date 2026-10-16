@@ -42,8 +42,10 @@ export function runClock(): RunClock {
  * playerSteps) -- or what the line's new symbol stands for, set smaller beside it as the board sets it under
  * it -- or the cancellation that opens What cancels, on a row of its own. */
 export type PlayerLine = string | {also: string} | {finish: readonly string[]; strut?: string} | {where: string} | {cancels: string};
+/** What the transport reads of a stage: the integral run's stages, and the Gauss run's (src/gauss/run.ts). */
+export type PlayerStage = Pick<BuildStage, 'key' | 'name' | 'seconds' | 'prose'>;
 type Props = {
-  stages: readonly BuildStage[];
+  stages: readonly PlayerStage[];
   /** Seconds into the run, as the store above: read here and nowhere else on the page. */
   clock: RunClock;
   index: number;

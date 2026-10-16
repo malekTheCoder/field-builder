@@ -2,11 +2,12 @@
 import {useEffect,useMemo,useRef,useState,useSyncExternalStore} from 'react';
 import {ArrowRight,GitBranch,Moon,Sun} from 'lucide-react';
 import {PROBLEMS} from '../problems/definitions';
-import {isReady,PLANNED_LABEL,PLANNED_SECTIONS} from '../problems/readiness';
+import {isReady} from '../problems/readiness';
 import {DEFAULT_PARAMS,type Params,type ProblemId} from '../problems/types';
 import {serializeAssignment} from '../state/assignment';
 import {inPlace,navigate} from '../state/route';
-import {families,GAUSS,PlannedGlyph,ShapeGlyph} from '../explorer/lessons';
+import {families,ShapeGlyph} from '../explorer/lessons';
+import {GaussHomeFamily} from '../gauss/GaussFamily';
 import {Brand} from '../explorer/Brand';
 import {STORAGE} from '../explorer/Explorer';
 import {Hint} from '../components/Hint';
@@ -140,14 +141,8 @@ export default function Home(){
       <span className="home-glyph"><ShapeGlyph id={pr.id} size={24}/></span><strong id={`home-${pr.id}`}>{pr.short}</strong><span id={`home-${pr.id}-about`} className="home-card-about">{pr.subtitle}</span>
      </a></li>)}</ul>
     </div>)}
-    {/* GAUSS'S LAW, COMING SOON: the next part of the subject, named with its planned lessons. Not links: each card
-        is its words and its mark, so Tab passes over them and a screen reader reads them as text. */}
-    {PLANNED_SECTIONS.has(GAUSS.key)&&<div className="home-family is-soon">
-     <div className="home-family-head"><h3 id="home-gauss">{GAUSS.label} <span className="home-soon-tag">{PLANNED_LABEL}</span></h3><p>{GAUSS.note}</p></div>
-     <ul className="home-grid">{GAUSS.lessons.map(l=><li key={l.key}><div className="home-card is-soon" aria-disabled="true">
-      <span className="home-glyph"><PlannedGlyph id={l.key} size={24}/></span><strong>{l.name}</strong><span className="home-card-about">{l.about}</span><span className="home-card-soon">{PLANNED_LABEL}</span>
-     </div></li>)}</ul>
-    </div>}
+    {/* GAUSS'S LAW (src/gauss/GaussFamily): the next part of the subject, its ready lessons as cards to open and the rest named and marked, words that Tab passes over. */}
+    <GaussHomeFamily/>
    </section>
    <footer className="home-foot"><p>One law. Every geometry.</p><span>Your settings stay on this device.</span><a href="https://github.com/malekTheCoder/field-builder" target="_blank" rel="noreferrer"><GitBranch size={14} aria-hidden="true"/>Field Builder on GitHub</a></footer>
   </main>
