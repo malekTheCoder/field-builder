@@ -28,13 +28,14 @@ import {FluxInstrument} from './FluxInstrument';
 import {FieldProfile} from './FieldProfile';
 import {CavityInstrument} from './CavityInstrument';
 import {regionOf} from './instruments';
-import {InsideInstrument} from './InsideInstrument';
+import {InsideInstrument, insideStart} from './InsideInstrument';
 import {QencInstrument} from './QencInstrument';
 import {FieldPlot} from './FieldPlot';
 import {HoleInstrument} from './HoleInstrument';
 import {CubeInstrument} from './CubeInstrument';
 import {GaussListFamily, GaussLibraryFamily} from './GaussFamily';
 import type {Sym} from './instruments';
+import type {GaussCase} from './types';
 import '../explorer/explorer.css';
 import '../print.css';
 import './gauss.css';
@@ -72,6 +73,17 @@ const RECIPE: {name: string; text: string}[] = [
   {name: 'Solve', text: 'Set the two sides equal and divide. Then check the limits, the boundaries and the sign.'},
 ];
 
+/** The surface's size, said aloud: the region it is in, where the lesson names them; else against the charge's own
+ * size where it has one; else against the slider's own reach. "Small", "medium" and "large" alone said nothing. */
+function sizeText(kase: GaussCase, n: number): string {
+  const s = kase.figure.surface, c = kase.figure.charge;
+  if (s.regions) return s.regions[regionOf(kase, n)]?.name ?? '';
+  const what = s.kind === 'pillbox' ? 'its face' : 'the surface', R = c.size;
+  if (R > 0 && c.kind !== 'offset' && c.kind !== 'segment' && c.kind !== 'point') { const t = n / R; return t < .9 ? `${what} inside the charge` : t <= 1.1 ? `${what} about at the charge’s edge` : `${what} outside the charge`; }
+  if (c.kind === 'offset') return n > R ? 'the sphere round the charge' : 'the sphere short of the charge';
+  const f = (n - s.size.min) / (s.size.max - s.size.min), far = s.kind === 'pillbox' ? 'from the sheet' : 'from the charge';
+  return f < .34 ? `close ${far}` : f < .67 ? `partway out ${far}` : `far ${far}`;
+}
 export default function GaussLesson() {
   const search = useSyncExternalStore(subscribeAddress, readSearch, () => '');
   const id: GaussId = gaussIdOf(search) ?? 'symmetry';
@@ -147,7 +159,15 @@ export default function GaussLesson() {
   const seek = useSteady((t: number, dragging: boolean) => { stop(); setRunOpen(true); quiet.current = dragging; apply(Math.max(0, Math.min(total, t))); quiet.current = false; if (!dragging) holdStatus(); });
   const stepTo = (i: number) => { const s = stageStart(stages, i), e = s + stages[i].seconds; play(s, i === stages.length - 1 ? e : e - .001); };
   const step = useSteady((i: number) => { if (playing) play(stageStart(stages, i), total); else stepTo(i); });
-  const boardStep = useSteady((i: number) => stepTo(i));
+  // A step played from the board is played on the figure, and the figure is brought into view to show it: on a
+  // phone the board is under the figure and the instrument, and the run played off the screen.
+  const boardStep = useSteady((i: number) => {
+    stepTo(i);
+    const drawing = document.querySelector<HTMLElement>('.gs-page .exp-diagram-card .cd-stage');
+    if (!drawing) return;
+    const r = drawing.getBoundingClientRect(), h = window.innerHeight;
+    if (r.top < 0 || r.bottom > h) window.scrollBy({top: r.top < 0 || r.height > h - 24 ? r.top - 12 : r.bottom - h + 12, behavior: reduced ? 'auto' : 'smooth'});
+  });
   const close = useSteady(() => { stop(); setRunOpen(false); clock.set(0); setIndex(0); setSettled(false); said.current = -1; requestAnimationFrame(() => watchButton.current?.focus({preventScroll: true})); });
   const watch = () => { reveal.current = true; play(0, total); };
   // Opened from the button, the focus goes to the play button, the control just pressed in its new place, and the
@@ -202,9 +222,11 @@ export default function GaussLesson() {
   // ---- the parts ----
   const setSize = (n: number) => setSizes(old => ({...old, [`${id}/${kase.key}`]: n}));
   const goField = useSteady((pid: string, e: React.MouseEvent) => { if (!inPlace(e)) return; e.preventDefault(); setLibrary(false); navigate(lessonHref(pid)); });
-  const lessonList = useMemo(() => <>{families(FIELD_LESSONS).map(g => <div className="exp-family" key={g.label}><h2 className="exp-family-name">{g.label}</h2><SidebarMenu>{g.items.map(pr => <SidebarMenuItem key={pr.id}>
+  // On a Gauss page its own family leads the list: below every integral lesson it sat a screen and more down, and a
+  // reader could not see where the section went next.
+  const lessonList = useMemo(() => <><GaussListFamily current={id} />{families(FIELD_LESSONS).map(g => <div className="exp-family" key={g.label}><h2 className="exp-family-name">{g.label}</h2><SidebarMenu>{g.items.map(pr => <SidebarMenuItem key={pr.id}>
     <SidebarMenuButton className="exp-shape-button" render={<a href={lessonHref(pr.id)} />} onClick={(e: React.MouseEvent) => goField(pr.id, e)}><span className="shape-icon"><ShapeGlyph id={pr.id} /></span><span>{pr.short}</span></SidebarMenuButton>
-  </SidebarMenuItem>)}</SidebarMenu></div>)}<GaussListFamily current={id} /></>, [id, goField]);
+  </SidebarMenuItem>)}</SidebarMenu></div>)}</>, [id, goField]);
   const next = lesson.next && isGaussReady(lesson.next) ? {href: gaussHref(lesson.next), glyph: <PlannedGlyph id={lesson.next} size={22} />, name: gaussLesson(lesson.next)!.title, why: gaussLesson(lesson.next)!.about}
     : lesson.related && isReady(lesson.related.field) ? {href: lessonHref(lesson.related.field), glyph: <ShapeGlyph id={lesson.related.field} size={22} />, name: PROBLEMS.find(p => p.id === lesson.related!.field)?.short ?? '', why: lesson.related.text}
     // The last lesson leads home, to every lesson and the quiz.
@@ -214,7 +236,7 @@ export default function GaussLesson() {
   const sym: Sym = kase.key === 'line' ? 'line' : kase.key === 'plane' ? 'plane' : 'sphere';
   const signRow = <div className="exp-range gs-choice"><div><span><span className="exp-name">Sign of the charge</span></span></div>
     <div className="cd-view-modes" role="group" aria-label="Sign of the charge">{([['Positive', 1], ['Negative', -1]] as const).map(([label, value]) => <button key={label} type="button" className={'cd-view-mode' + (sign === value ? ' is-on' : '')} aria-pressed={sign === value} onClick={() => setSign(value)}>{label}</button>)}</div></div>;
-  const caseRow = lesson.cases.length > 1 && <div className="exp-range gs-choice"><div><span><span className="exp-name">The charge</span></span></div>
+  const caseRow = lesson.cases.length > 1 && <div className="exp-range gs-choice is-cases"><div><span><span className="exp-name">The charge</span></span></div>
     <div className="cd-view-modes" role="group" aria-label="The charge">{lesson.cases.map(c => <button key={c.key} type="button" className={'cd-view-mode' + (kase.key === c.key ? ' is-on' : '')} aria-pressed={kase.key === c.key} onClick={() => setCaseKey(c.key)}>{c.label}</button>)}</div>
     {/* The buttons name the cases; this says what the chosen one IS, in a sentence. "No edge" or "Backwards"
         alone left a reader guessing, so the chosen charge is described under them, and read aloud with them. */}
@@ -253,18 +275,19 @@ export default function GaussLesson() {
                 {!runOpen && <div className="exp-watch"><span className="exp-watch-note">Five steps, about half a minute</span>
                   <button ref={watchButton} type="button" className="exp-watch-button" onClick={watch} title="Five steps, about half a minute. Pause or step through at any point."><Play size={13} fill="currentColor" strokeWidth={0} />Watch it build</button></div>}
               </div>
-              <GaussFigure kase={kase} size={size} sign={sign} run={figureRun} view={printing ? '2d' : view} onView={setView} />
+              <GaussFigure key={id} kase={kase} size={size} sign={sign} siblings={lesson.cases} run={figureRun} view={printing ? '2d' : view} onView={setView} />
               {runOpen && <div ref={walk} className="exp-walk is-open"><BuildPlayer stages={stages} clock={clock} index={index} playing={playing} math={mathSteps} onPlay={toggle} onSeek={seek} onStep={step} onClose={close} /></div>}
             </section>
             <section className="exp-parameters"><div className="parameter-grid gs-parameters">
-              <GaussRange label={kase.figure.surface.label} value={size} min={kase.figure.surface.size.min} max={kase.figure.surface.size.max} step={.01} onChange={setSize} valueText={n => { const s = kase.figure.surface; if (s.regions) return s.regions[regionOf(kase, n)]?.name ?? ''; const f = (n - s.size.min) / (s.size.max - s.size.min); return f < .34 ? 'small' : f < .67 ? 'medium' : 'large'; }} />
-              {caseRow}{signRow}
+              {caseRow}
+              <GaussRange label={kase.figure.surface.label} value={size} min={kase.figure.surface.size.min} max={kase.figure.surface.size.max} step={.01} onChange={setSize} valueText={n => sizeText(kase, n)} />
+              {signRow}
             </div></section>
             {lesson.instrument === 'symmetry' && <SymmetryTest sym={sym} sign={sign} />}
             {lesson.instrument === 'flux' && <FluxInstrument />}
             {lesson.instrument === 'profile' && <FieldProfile kase={kase} size={size} sign={sign} />}
             {lesson.instrument === 'cavity' && <CavityInstrument sign={sign} />}
-            {lesson.instrument === 'inside' && <InsideInstrument sign={sign} />}
+            {lesson.instrument === 'inside' && <InsideInstrument key={kase.key} sign={sign} start={insideStart(kase.key)} />}
             {lesson.instrument === 'qenc' && <QencInstrument />}
             {lesson.instrument === 'plot' && <FieldPlot kase={kase} size={size} sign={sign} />}
             {lesson.instrument === 'hole' && <HoleInstrument sign={sign} />}

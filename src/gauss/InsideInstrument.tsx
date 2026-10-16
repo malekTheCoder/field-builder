@@ -27,8 +27,11 @@ function Arrow({a, b, className, head = 8}: {a: {x: number; y: number}; b: {x: n
 /** Where the charge is, in words: for the slider and the crossing. */
 const whereWords = (d: number) => d < STEP / 2 ? 'at the centre' : d < 1 ? 'inside the sphere' : 'outside the sphere';
 
-export function InsideInstrument({sign}: {sign: 1 | -1}) {
-  const [d, setD] = useState(.48);
+/** Where the charge starts, for the case chosen above: at the centre, off it, or outside the sphere, so the
+ * instrument opens on the picture the figure and the board are about. */
+export const insideStart = (key: string) => key === 'centred' ? 0 : key === 'outside' ? 1.62 : .48;
+export function InsideInstrument({sign, start = .48}: {sign: 1 | -1; start?: number}) {
+  const [d, setD] = useState(start);
   const [said, setSaid] = useState('');
   const svg = useRef<SVGSVGElement | null>(null), grabbing = useRef(false);
   // Its names held at a readable size as it shrinks on a phone, as the figure's are.
@@ -65,7 +68,7 @@ export function InsideInstrument({sign}: {sign: 1 | -1}) {
       <h2 id={`${uid}-title`} className="gs-instrument-title">Carry it out</h2>
       <p className="gs-instrument-lede">Slide the charge along the axis and out through the sphere. Each band of the sphere carries its own flux, stacked on the right: they add to q/ε₀ while the charge is inside, and to zero once it is out.</p>
     </div>
-    <svg ref={setSvg} className="gs-instrument-svg gs-inside-svg" viewBox="0 0 640 300" role="img" style={{'--cd-k': k} as CSSProperties}
+    <svg ref={setSvg} className="gs-instrument-svg gs-inside-svg" viewBox="0 0 640 300" role="group" style={{'--cd-k': k} as CSSProperties}
       aria-label={`A sphere cut into ${BANDS === 8 ? 'eight' : 'several'} bands round an axis, and a ${sign > 0 ? 'positive' : 'negative'} point charge on the axis, ${whereWords(d)}. ${words}`}
       onPointerMove={e => { if (!grabbing.current) return; const n = toD(e); if (n !== null) place(n); }}
       onPointerUp={() => { grabbing.current = false; }} onPointerCancel={() => { grabbing.current = false; }}>
@@ -85,7 +88,9 @@ export function InsideInstrument({sign}: {sign: 1 | -1}) {
       }))}
       <circle className="gs-centre" cx={C.x} cy={C.y} r={2.6} />
       <g className={'gs-q' + (inside ? ' is-inside' : '')} transform={`translate(${q.x.toFixed(1)} ${q.y.toFixed(1)})`}
-        onPointerDown={e => { if (e.button !== 0) return; e.preventDefault(); grabbing.current = true; try { svg.current?.setPointerCapture(e.pointerId); } catch { /* still drags */ } }}>
+        role="button" tabIndex={0} aria-roledescription="draggable charge" aria-label={`The charge q, ${whereWords(d)}. Left and right arrow keys move it along the axis; Home puts it at the centre.`}
+        onKeyDown={e => { const by = e.key === 'ArrowRight' || e.key === 'ArrowUp' ? 1 : e.key === 'ArrowLeft' || e.key === 'ArrowDown' ? -1 : 0; if (e.key === 'Home') { e.preventDefault(); place(0); } else if (by) { e.preventDefault(); place(d + by * STEP * (e.shiftKey ? 5 : 1)); } }}
+        onPointerDown={e => { if (e.button !== 0) return; e.preventDefault(); grabbing.current = true; (e.currentTarget as SVGGElement).focus({preventScroll: true}); try { svg.current?.setPointerCapture(e.pointerId); } catch { /* still drags */ } }}>
         <circle className="gs-q-hit" r={22} />
         <circle className="gs-q-body" r={13} />
         <text className="gs-q-sign" textAnchor="middle" dominantBaseline="central">{glyph}</text>

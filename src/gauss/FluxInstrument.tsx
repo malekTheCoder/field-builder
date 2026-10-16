@@ -42,8 +42,9 @@ function Patch() {
       <Arrow a={{x: cx, y: cy}} b={{x: cx + n.x * 78, y: cy + n.y * 78}} className="gs-arrow gs-n" head={9} />
       {/* E's part along the normal, E cos θ, laid along it: the only part that crosses. */}
       {Math.abs(perp) > .02 && <Arrow a={{x: cx, y: cy}} b={{x: cx + n.x * 112 * perp, y: cy + n.y * 112 * perp}} className="gs-arrow gs-e is-part" head={9} />}
-      {Math.abs(perp) > .25 && <text className="gs-name gs-field-name" x={cx + n.x * 112 * perp - n.y * 18} y={cy + n.y * 112 * perp + n.x * 18} textAnchor="middle" dominantBaseline="middle">E cos θ</text>}
-      <text className="gs-name gs-normal-name" x={cx + n.x * 96} y={cy + n.y * 96 - 4} textAnchor="middle" dominantBaseline="middle">n̂</text>
+      {/* E cos θ and n̂ are named on either side of the normal, so neither name sits on the other's arrowhead. */}
+      {Math.abs(perp) > .25 && <text className="gs-name gs-field-name" x={cx + n.x * 112 * perp - n.y * 30 * Math.sign(perp)} y={cy + n.y * 112 * perp + n.x * 30 * Math.sign(perp)} textAnchor="middle" dominantBaseline="middle">E cos θ</text>}
+      <text className="gs-name gs-normal-name" x={cx + n.x * 90 + n.y * 18 * Math.sign(perp || 1)} y={cy + n.y * 90 - n.x * 18 * Math.sign(perp || 1)} textAnchor="middle" dominantBaseline="middle">n̂</text>
       <text className="gs-name gs-field-name" x={610} y={cy - 2 * 46 - 14} textAnchor="end">E</text>
       {/* The angle, from the field's direction to the normal. */}
       {deg > 3 && <path className="gs-angle" d={`M${cx + 40} ${cy}A40 40 0 ${deg > 180 ? 1 : 0} 0 ${(cx + 40 * Math.cos(th)).toFixed(1)} ${(cy - 40 * Math.sin(th)).toFixed(1)}`} />}
@@ -91,6 +92,8 @@ function Closed() {
   };
   const keys = (c: Charged) => (e: KeyboardEvent) => {
     const step = e.shiftKey ? .5 : .15, d: Record<string, Pt> = {ArrowLeft: {x: -step, y: 0}, ArrowRight: {x: step, y: 0}, ArrowUp: {x: 0, y: step}, ArrowDown: {x: 0, y: -step}};
+    // Home puts the charge back where it started, as the other instruments' charges do.
+    if (e.key === 'Home') { e.preventDefault(); const home = START.find(q => q.key === c.key); if (home) place(c.key, home.at); return; }
     const by = d[e.key];
     if (!by) return;
     e.preventDefault();
@@ -115,7 +118,7 @@ function Closed() {
       {charges.map(c => {
         const p = toScreen(c.at), inn = isInside(c.at, s);
         return <g key={c.key} className={'gs-q' + (inn ? ' is-inside' : '')} role="button" tabIndex={0} aria-roledescription="draggable charge"
-          aria-label={`${c.name}, ${c.sign > 0 ? 'positive' : 'negative'}, ${inn ? 'inside' : 'outside'} the surface. Arrow keys move it.`}
+          aria-label={`${c.name}, ${c.sign > 0 ? 'positive' : 'negative'}, ${inn ? 'inside' : 'outside'} the surface. Arrow keys move it; Home puts it back.`}
           transform={`translate(${p.x.toFixed(1)} ${p.y.toFixed(1)})`} onKeyDown={keys(c)}
           onPointerDown={e => { if (e.button !== 0) return; e.preventDefault(); grab.current = c.key; (e.currentTarget as SVGGElement).focus({preventScroll: true}); try { svg.current?.setPointerCapture(e.pointerId); } catch { /* still drags */ } }}>
           <circle className="gs-q-hit" r={22} />
@@ -134,15 +137,23 @@ function Closed() {
   </div>;
 }
 
+/** Each tab's own heading and lede: the closed surface's words over the tilted patch told the reader to drag
+ * charges that were not there. */
+const HEADS = {
+  patch: {title: 'Tilt the patch', lede: 'Turn the patch with the slider. The flux is the part of the field through it, EA cos θ: zero when the patch is edge on to the field, negative when the field goes through it the other way.'},
+  closed: {title: 'Move the charges', lede: 'Drag the charges in and out of the dashed surface, or move them with the arrow keys. The flux changes only when a charge crosses it.'},
+} as const;
 export function FluxInstrument() {
   const uid = useId();
+  // It opens on the flat patch, the idea the lesson starts from, before the closed surface built of such patches.
+  const [tab, setTab] = useState<keyof typeof HEADS>('patch');
   return <section className="gs-instrument gs-flux" aria-labelledby={`${uid}-title`}>
     <div className="gs-instrument-head">
-      <h2 id={`${uid}-title`} className="gs-instrument-title">Try it</h2>
-      <p className="gs-instrument-lede">Drag the charges in and out of the dashed surface, or move them with the arrow keys. The flux changes only when a charge crosses it.</p>
+      <h2 id={`${uid}-title`} className="gs-instrument-title">{HEADS[tab].title}</h2>
+      <p className="gs-instrument-lede">{HEADS[tab].lede}</p>
     </div>
-    <Tabs defaultValue="closed">
-      <TabsList aria-label="Instruments" className="exp-limit-tabs gs-tabs"><TabsTrigger value="closed">A closed surface</TabsTrigger><TabsTrigger value="patch">A flat patch</TabsTrigger></TabsList>
+    <Tabs value={tab} onValueChange={v => setTab(v === 'closed' ? 'closed' : 'patch')}>
+      <TabsList aria-label="Instruments" className="exp-limit-tabs gs-tabs"><TabsTrigger value="patch">A flat patch</TabsTrigger><TabsTrigger value="closed">A closed surface</TabsTrigger></TabsList>
       <TabsContent value="closed" className="gs-tab"><Closed /></TabsContent>
       <TabsContent value="patch" className="gs-tab"><Patch /></TabsContent>
     </Tabs>

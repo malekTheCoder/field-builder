@@ -44,7 +44,7 @@ export function SymmetryTest({sym, sign}: {sym: Sym; sign: 1 | -1}) {
   useEffect(() => () => timer.current?.stop(), []);
   const setMove = (m: Move | null) => setMade(m ? {setting, move: m} : null);
   function apply(m: Move) {
-    timer.current?.stop();
+    timer.current?.stop(); setReturning(false);
     setMove(m); setT(0);
     if (reduced) {
       // Stepped, never skipped: halfway, then there.
@@ -63,7 +63,30 @@ export function SymmetryTest({sym, sign}: {sym: Sym; sign: 1 | -1}) {
     raf = requestAnimationFrame(frame);
     timer.current = {stop: () => cancelAnimationFrame(raf)};
   }
-  const back = () => { timer.current?.stop(); setMove(null); setT(0); };
+  // Put it back glides home as a move glides out, and steps under reduced motion: the charge and its field are
+  // seen to return, not cut to the start.
+  const [returning, setReturning] = useState(false);
+  function back() {
+    if (!move) return;
+    timer.current?.stop();
+    const from = t, home = () => { timer.current = null; setReturning(false); setMove(null); setT(0); };
+    setReturning(true);
+    if (reduced) {
+      let k = 0;
+      const beat = window.setInterval(() => { k++; if (k >= 2) { window.clearInterval(beat); home(); } else setT(from / 2); }, 450);
+      timer.current = {stop: () => { window.clearInterval(beat); setReturning(false); }};
+      return;
+    }
+    let start = -1, raf = 0;
+    const frame = (now: number) => {
+      if (start < 0) start = now;
+      const f = Math.min(1, (now - start) / 800);
+      setT(from * (1 - f * f * (3 - 2 * f)));
+      if (f < 1) raf = requestAnimationFrame(frame); else home();
+    };
+    raf = requestAnimationFrame(frame);
+    timer.current = {stop: () => { cancelAnimationFrame(raf); setReturning(false); }};
+  }
   const done = !!move && t >= 1;
   const kept = move ? survives(sym, candidate, move, sign) : null;
   const pts = samples(sym);
@@ -81,7 +104,8 @@ export function SymmetryTest({sym, sign}: {sym: Sym; sign: 1 | -1}) {
     return {i, at, dir, front, depth: dot(at, TOWARD), ghost: F, X};
   }).sort((a, b) => a.depth - b.depth);
   const glyph = sign > 0 ? '+' : '−';
-  const verdict = !done ? '' : kept ? 'Unchanged: carried with the charge, this field lands on itself. The move allows it.' : 'Changed, though the charge did not: one charge cannot make two fields, so this field is impossible.';
+  // Said while the move plays, too: "Choose a move" over a move under way told the reader to do what they had done.
+  const verdict = returning ? 'Putting it back.' : !move ? 'Pick a move, then watch what happens to each arrow.' : !done ? `${move.label}: the field is carried with the charge.` : kept ? 'Unchanged: carried with the charge, this field lands on itself. The move allows it.' : 'Changed, though the charge did not: one charge cannot make two fields, so this field is impossible.';
   const candidateName = CANDIDATES[sym].find(c => c.key === candidate)?.label ?? '';
   return <section className="gs-instrument gs-symmetry" aria-labelledby={`${uid}-title`}>
     <div className="gs-instrument-head">
@@ -91,6 +115,8 @@ export function SymmetryTest({sym, sign}: {sym: Sym; sign: 1 | -1}) {
     <div className="gs-choices">
       <div className="cd-view-modes" role="group" aria-label="The field proposed">{CANDIDATES[sym].map(c => <button key={c.key} type="button" className={'cd-view-mode' + (candidate === c.key ? ' is-on' : '')} aria-pressed={candidate === c.key} onClick={() => setCandidate(c.key)}>{c.label}</button>)}</div>
     </div>
+    {/* The verdict sits over the picture, in the eye line, rather than under the buttons. */}
+    <p className={'gs-verdict is-above' + (done ? kept ? ' is-kept' : ' is-broken' : '')} aria-live="polite">{verdict}</p>
     <svg className="gs-symmetry-svg" viewBox="0 0 600 340" role="img" aria-label={`A ${sym === 'sphere' ? 'charged ball' : sym === 'line' ? 'charged line' : 'charged sheet'} with the proposed field, ${candidateName.toLowerCase()}${move ? `, after the ${move.label.toLowerCase()}` : ''}.`}>
       {arrows.filter(a => !a.front).map(a => <g key={a.i} className="is-far">{move && <Arrow a={a.X} b={add(a.X, a.ghost)} className="gs-arrow gs-ghost" />}<Arrow a={a.at} b={add(a.at, a.dir)} className="gs-arrow gs-e" /></g>)}
       <g className="gs-charge-layer">{charge}</g>
@@ -101,8 +127,7 @@ export function SymmetryTest({sym, sign}: {sym: Sym; sign: 1 | -1}) {
     </svg>
     <div className="gs-moves" role="group" aria-label="Moves that leave the charge as it was">
       {MOVES[sym].map(m => <button key={m.key} type="button" className="gs-move" aria-pressed={move?.key === m.key} onClick={() => apply(m)}>{m.label}</button>)}
-      <button type="button" className="text-button gs-back" onClick={back} disabled={!move}><RotateCcw size={14} aria-hidden="true" />Put it back</button>
+      <button type="button" className="text-button gs-back" onClick={back} aria-disabled={!move || returning || undefined}><RotateCcw size={14} aria-hidden="true" />Put it back</button>
     </div>
-    <p className={'gs-verdict' + (done ? kept ? ' is-kept' : ' is-broken' : '')} aria-live="polite">{verdict || 'Choose a move.'}</p>
   </section>;
 }

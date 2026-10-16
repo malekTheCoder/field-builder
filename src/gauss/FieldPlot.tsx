@@ -55,7 +55,7 @@ export function FieldPlot({kase, size, sign}: {kase: GaussCase; size: number; si
   return <section className="gs-instrument gs-plot" aria-labelledby={`${uid}-title`}>
     <div className="gs-instrument-head">
       <h2 id={`${uid}-title`} className="gs-instrument-title">The field against r</h2>
-      <p className="gs-instrument-lede">All four spheres carry the same charge, and the three with a size the same radius R. Outside R their fields are one curve; inside, they part. The bold curve is the case chosen above, and the line follows its slider.</p>
+      <p className="gs-instrument-lede">All four have the same total charge Q; three also have the same radius R. Outside R their fields are one curve; inside, they part. The bold curve is the case chosen above, and the line follows its slider.</p>
     </div>
     <svg ref={measure} className="gs-instrument-svg gs-plot-svg" viewBox="0 0 640 300" role="img" style={{'--cd-k': k} as CSSProperties}
       aria-label={`The radial field against r for a point charge, a thin shell, a uniform ball and a ball whose density rises with r, all of the same ${sign > 0 ? 'positive' : 'negative'} charge. The ${name} is drawn bold, with the sphere ${kind === 'point' ? 'at r' : x < 1 ? 'inside R' : 'outside R'}. ${now.words}`}>

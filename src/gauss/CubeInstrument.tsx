@@ -57,7 +57,7 @@ export function CubeInstrument({sign}: {sign: 1 | -1}) {
   return <section className="gs-instrument gs-cube" aria-labelledby={`${uid}-title`}>
     <div className="gs-instrument-head">
       <h2 id={`${uid}-title`} className="gs-instrument-title">A charge in a cube</h2>
-      <p className="gs-instrument-lede">A cube cut through its middle, with a charge in the cut. Drag the charge, or move it with the arrow keys: each face’s share of the flux changes, and their sum never does. Home puts it at the centre.</p>
+      <p className="gs-instrument-lede">A cube cut through its middle, with a charge in the cut: the square is the cut, its edges the top, bottom, left and right faces, each drawn as thick as its share; the front face is toward you and the back away from you. Drag the charge, or move it with the arrow keys: each face’s share of the flux changes, and their sum never does. Home puts it at the centre.</p>
     </div>
     <svg ref={svg} className="gs-instrument-svg gs-cube-svg" viewBox="0 0 640 344" role="group" aria-labelledby={`${uid}-what`}
       onPointerMove={e => { if (!grabbed.current) return; const w = toWorld(e); if (w) place(w); }}
@@ -70,6 +70,11 @@ export function CubeInstrument({sign}: {sign: 1 | -1}) {
         <line className="gs-cube-edge" x1={tl.x} y1={tl.y} x2={bl.x} y2={bl.y} strokeWidth={edge('left')} />
         <line className="gs-cube-edge" x1={tr.x} y1={tr.y} x2={br.x} y2={br.y} strokeWidth={edge('right')} />
         <circle className="gs-centre" cx={C.x} cy={C.y} r={2.5} />
+        {/* Each edge named for the face it is, so a bar can be found on the square. */}
+        <text className="gs-bar-name" x={(tl.x + tr.x) / 2} y={tl.y - 14} textAnchor="middle">Top</text>
+        <text className="gs-bar-name" x={(bl.x + br.x) / 2} y={bl.y + 22} textAnchor="middle">Bottom</text>
+        <text className="gs-bar-name" x={tl.x - 12} y={(tl.y + bl.y) / 2} textAnchor="end" dominantBaseline="middle">Left</text>
+        <text className="gs-bar-name" x={tr.x + 12} y={(tr.y + br.y) / 2} dominantBaseline="middle">Right</text>
       </g>
       <g className="gs-q is-inside" role="button" tabIndex={0} aria-roledescription="draggable charge"
         aria-label={`Charge q, ${sign > 0 ? 'positive' : 'negative'}, ${centred ? 'at the centre of' : 'off centre in'} the cube. Arrow keys move it; Home puts it at the centre.`}

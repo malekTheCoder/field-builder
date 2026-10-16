@@ -1,7 +1,7 @@
 import {describe, expect, it} from 'vitest';
 import katex from 'katex';
 import {EPS0, ballFraction, bandFlux, boundaries, carriesNothing, crossedArea, dot, enclosedCharge, fieldAt, inducedCharges, norm, numericFlux, patches, pointOn, solvedField, starFlux, surfacePoint, sub, throughPatch, v3, wallDensity, type Charge, type Surface} from '../src/gauss/physics';
-import {arrowLength, build, chainOf, drawnFlux, lookAt, REST, slice} from '../src/gauss/scene';
+import {arrowEnds, arrowLength, build, chainOf, drawnFlux, lookAt, REST, slice} from '../src/gauss/scene';
 import {BANDS, CANDIDATES, CAVITY, MOVES, SPHERE_KINDS, START, bandShares, blob, cavityField, cavityLines, cavityTex, density, enclosedOf, fieldAlong, fieldOf, fluxTex, flowRound, insideBands, insideTex, isInside, moveBy, profile, profileReach, proposed, qencFraction, qencTex, regionOf, samples, shellCharge, survives, wallMarks, type Charged} from '../src/gauss/instruments';
 import {GAUSS_LESSONS, gaussLesson} from '../src/gauss';
 import {diskField, elliptic, lensArea, lensVolume, piecesOf, ringField} from '../src/gauss/physics';
@@ -322,14 +322,15 @@ describe('no arrow is drawn where there is no field', () => {
       const b = build(c, size, sign);
       // A superposition's patches carry their own piece's field, and are held to it.
       const own = (piece?: number) => (piece !== undefined && b.pieces ? b.pieces[piece].charge : b.charge);
-      const arrows = [...b.patches.map(p => ({at: p.center, field: p.field, span: p.span, charge: own(p.piece)})), ...b.slice.map(s => ({at: s.mid, field: s.field, span: s.span ?? 0, charge: own(s.piece)})),
-        ...b.spokes.map(s => ({at: s.at, field: s.field, span: s.span ?? 0, charge: b.charge})), ...b.flatSpokes.map(s => ({at: s.at, field: s.field, span: s.span ?? 0, charge: b.charge})), {at: b.P, field: b.fieldAtP, span: b.spanAtP, charge: b.charge},
-        ...(b.pieces ?? []).map(p => ({at: b.P, field: p.fieldAtP, span: p.spanAtP, charge: p.charge}))];
+      const arrows = [...b.patches.map(p => ({at: p.center, field: p.field, span: p.span, back: p.back, charge: own(p.piece)})), ...b.slice.map(s => ({at: s.mid, field: s.field, span: s.span ?? 0, back: s.back, charge: own(s.piece)})),
+        ...b.spokes.map(s => ({at: s.at, field: s.field, span: s.span ?? 0, back: s.back, charge: b.charge})), ...b.flatSpokes.map(s => ({at: s.at, field: s.field, span: s.span ?? 0, back: s.back, charge: b.charge})), {at: b.P, field: b.fieldAtP, span: b.spanAtP, back: b.backAtP, charge: b.charge},
+        ...(b.pieces ?? []).map(p => ({at: b.P, field: p.fieldAtP, span: p.spanAtP, back: false, charge: p.charge}))];
       for (const a of arrows) {
         if (norm(a.field) < 1e-12) { expect(a.span).toBe(0); continue; }
-        const d = v3(a.field.x / norm(a.field), a.field.y / norm(a.field), a.field.z / norm(a.field));
+        // Along the arrow as it is laid: from its tail, which is the anchor or, for one laid tip-on, outside it.
+        const d = v3(a.field.x / norm(a.field), a.field.y / norm(a.field), a.field.z / norm(a.field)), o = arrowEnds(a.at, a.field, a.span, a.back).from;
         for (let k = 0; k <= 20; k++) {
-          const e = fieldAt(a.charge, v3(a.at.x + d.x * a.span * k / 20, a.at.y + d.y * a.span * k / 20, a.at.z + d.z * a.span * k / 20));
+          const e = fieldAt(a.charge, v3(o.x + d.x * a.span * k / 20, o.y + d.y * a.span * k / 20, o.z + d.z * a.span * k / 20));
           expect(norm(e), `${size} ${sign}`).toBeGreaterThan(0);
           expect(dot(e, d)).toBeGreaterThan(0);
         }
@@ -947,5 +948,48 @@ describe('what the lesson text claims, numerically', () => {
     expect(diskField(.5, v3(0, 0, 1)).z / sheet).toBeLessThan(.5);
     close(diskField(.5, v3(0, 0, 1)).z / sheet, 1 - 1 / Math.hypot(1, .5), 1e-9);
     expect(diskField(5, v3(0, 0, .1)).z / sheet).toBeGreaterThan(.95);
+  });
+});
+
+/* THE ARROWS DRAW |E| THE SAME FOR EITHER SIGN. An arrow of a field pointing in through a surface is laid tip on the
+ * patch, its tail outside, at its full length: cutting it short where it ran toward the charge drew a negative
+ * charge's field weaker than the same positive one's, and outside a hollow's metal drew none at all. */
+describe('the arrows are the same for either sign', () => {
+  const ends = (at: V3, field: V3, span: number, back?: boolean) => { const e = arrowEnds(at, field, span, back); return [e.from, e.to].map(p => [p.x, p.y, p.z].map(x => x.toFixed(6)).join(',')).sort().join('|'); };
+  for (const lesson of GAUSS_LESSONS) for (const c of lesson.cases) it(`${lesson.id} ${c.key}: every arrow has one length, and lies on one segment, for + and −`, () => {
+    const s = c.figure.surface.size;
+    for (let k = 0; k <= 12; k++) {
+      const size = s.min + (s.max - s.min) * k / 12, a = build(c, size, 1), b = build(c, size, -1);
+      a.patches.forEach((p, i) => { const q = b.patches[i]; close(p.span, q.span, 1e-12); expect(ends(p.center, p.field, p.span, p.back)).toBe(ends(q.center, q.field, q.span, q.back)); });
+      a.slice.forEach((p, i) => { const q = b.slice[i]; close(p.span ?? 0, q.span ?? 0, 1e-12); expect(ends(p.mid, p.field, p.span ?? 0, p.back)).toBe(ends(q.mid, q.field, q.span ?? 0, q.back)); });
+      a.spokes.forEach((p, i) => close(p.span ?? 0, b.spokes[i].span ?? 0, 1e-12));
+      a.flatSpokes.forEach((p, i) => close(p.span ?? 0, b.flatSpokes[i].span ?? 0, 1e-12));
+      close(a.spanAtP, b.spanAtP, 1e-12);
+      expect(a.shortened).toBe(b.shortened);
+    }
+  });
+  it('a field pointing in is drawn tip on the patch, its tail outside the surface', () => {
+    const c = gaussLesson('spheres')!.cases.find(k => k.key === 'point')!, b = build(c, 1.2, -1);
+    for (const p of b.patches) { expect(p.back).toBe(true); const {from} = arrowEnds(p.center, p.field, p.span, p.back); expect(norm(from)).toBeGreaterThan(1.2); }
+    expect(b.backAtP).toBe(true);
+  });
+  it('outside a hollow’s metal, a negative charge’s field is drawn as long as a positive one’s, not as a stub', () => {
+    const c = gaussLesson('conductors')!.cases.find(k => k.key === 'cavity')!, b = build(c, 1.38, -1);
+    close(b.spanAtP, arrowLength(c, norm(b.fieldAtP)), 1e-12);
+    expect(b.spanAtP).toBeGreaterThan(.5);
+  });
+  it('a uniform field is drawn one length wherever the pillbox is dragged: between a capacitor’s plates, by a sheet', () => {
+    for (const [id, key] of [['sheets', 'plates'], ['sheets', 'sheet'], ['symmetry', 'plane'], ['conductors', 'face']] as const) {
+      const c = gaussLesson(id)!.cases.find(k => k.key === key)!, s = c.figure.surface.size, lengths: number[] = [];
+      for (const sign of SIGNS) for (let k = 0; k <= 16; k++) { const b = build(c, s.min + (s.max - s.min) * k / 16, sign); lengths.push(...b.patches.filter(p => !p.zero).map(p => p.span), b.spanAtP); }
+      for (const l of lengths) close(l, lengths[0], 1e-9);
+    }
+  });
+  it('the arrows always grow as the sphere closes in on a point charge: no length is held at a cap', () => {
+    for (const [id, key] of [['spheres', 'point'], ['flux', 'point'], ['inside', 'centred']] as const) {
+      const c = gaussLesson(id)!.cases.find(k => k.key === key)!, s = c.figure.surface.size;
+      let last = 0;
+      for (let k = 0; k <= 40; k++) { const span = build(c, s.max - (s.max - s.min) * k / 40, 1).spanAtP; expect(span).toBeGreaterThan(last); expect(span).toBeLessThan(1.6); last = span; }
+    }
   });
 });

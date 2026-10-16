@@ -8,9 +8,11 @@ const raw = String.raw;
  * (σ/ε₀ between, nothing outside) and checked with a one-sided pillbox, the move the Conductors lesson needs next.
  * The profile under the figure shows the sheet's field flat as the pillbox's height is dragged. E_⊥ is the
  * field's signed part along each face's outward normal, negative where the field points toward the charge. */
-/** The field drawn at the standard arrow length in every case: a lone sheet's, σ/(2ε₀) = 2πkσ for unit σ. One
- * scale for the lesson, so the capacitor's σ/ε₀ is drawn twice as long as a sheet's. */
-const REFERENCE = 2 * Math.PI;
+/** The field drawn at the standard arrow length in every case: a little more than the capacitor's σ/ε₀ = 4πkσ for
+ * unit σ. One scale for the lesson, so the capacitor's field is drawn twice as long as a lone sheet's σ/(2ε₀); and
+ * small enough that the capacitor's arrow fits whole between the plates, on one side of its face or the other,
+ * wherever the pillbox's face is dragged, so a uniform field is drawn one length all the way across. */
+const REFERENCE = 4.2 * Math.PI;
 export const lesson: GaussLesson = {
   id: 'sheets',
   title: 'Sheets and slabs',

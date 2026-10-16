@@ -13,9 +13,13 @@
  width:min(100% + 2 * var(--card-gutter,0px),calc(min(78vh,860px) * 720 / 430));aspect-ratio:720/430}
 .gs-stage>.gs-svg{position:relative;z-index:1;display:block;width:100%;height:100%;overflow:visible}
 .gs-svg.cd-orbitable{cursor:grab;touch-action:none}
+/* On a touch screen a vertical swipe over the figure scrolls the page, as on the integral lessons' figure
+   (camera.css): this sheet's own rule above outweighed that one, and a thumb landing on the figure trapped the page. */
+@media(any-pointer:coarse){.gs-svg.cd-orbitable{touch-action:pan-y}}
 .gs-svg.cd-orbitable:active{cursor:grabbing}
 .gs-svg:focus-visible{outline:2px solid var(--primary);outline-offset:-2px;border-radius:12px}
 .gs-name{font-family:var(--font-display),Georgia,serif;font-style:italic;font-weight:600;font-size:calc(17.5px * var(--cd-k,1));fill:var(--foreground);
+ font-variant-numeric:lining-nums;font-feature-settings:'lnum';
  paint-order:stroke;stroke:var(--diagram);stroke-width:5px;stroke-linejoin:round;pointer-events:none}
 .gs-name .gs-sub{font-size:68%;font-style:normal}
 .gs-p-name{font-size:calc(20.5px * var(--cd-k,1))}
@@ -27,6 +31,14 @@
 .gs-zero-name{font-size:calc(15px * var(--cd-k,1));fill:var(--ghost)}
 .gs-inside-name,.gs-charge-name{fill:var(--charge)}
 .gs-sign{font-family:var(--font-ui),system-ui,sans-serif;font-weight:700;font-size:calc(18px * var(--cd-k,1));fill:var(--charge);paint-order:stroke;stroke:var(--diagram);stroke-width:4px;pointer-events:none}
+/* A point charge's sign on its own disc, in the paper's colour, as the instruments draw q. */
+.gs-sign.is-on-disc{fill:var(--diagram);stroke:none;font-size:calc(17px * min(var(--cd-k,1),1.25))}
+/* A charge of the opposite sign (a cable's outer shell, the lower plate, a hollow's wall) is dashed, in both views'
+   colour, so the two are told apart once their signs are no longer marked. */
+.gs-charge.is-opposite{stroke-dasharray:9 6}
+.gs-inside.is-opposite{stroke-dasharray:10 6}
+/* A density the case asks the reader to find: drawn plain until the run solves for it. */
+.gs-charge.is-unknown{fill:var(--charge-fill);fill-opacity:.5;stroke-dasharray:5 4}
 .gs-charge{stroke:var(--charge);fill:var(--charge)}
 .gs-charge.is-body{fill:var(--charge-fill);stroke-width:1.6}
 .gs-charge.is-shell{fill:none;stroke-width:2.6}
@@ -56,6 +68,12 @@
 .gs-cut{fill:var(--diagram);stroke:var(--foreground);stroke-opacity:.6;stroke-width:1.2}
 .gs-p{fill:var(--foreground);stroke:var(--diagram);stroke-width:2}
 .gs-dimension line{stroke:var(--muted-foreground);stroke-width:1.2;stroke-dasharray:2 3}
+/* The caption holds every case's in one cell, the others unseen, so it is as tall as the longest. */
+.gs-caption-stack{display:grid}
+.gs-caption-stack>span{grid-area:1 / 1}
+.gs-caption-reserve{visibility:hidden}
+.gs-turn-hint{margin:0;font-size:var(--t-fine,14px);color:var(--muted-foreground)}
+@media(max-width:600px){.gs-turn-hint{flex-basis:100%;order:3}}
 .gs-mismatch{font:700 calc(20px * var(--cd-k,1))/1 var(--font-ui),system-ui,sans-serif;fill:var(--foreground);paint-order:stroke;stroke:var(--diagram);stroke-width:4px}
 @media print{.gs-scene{display:none}.gs-figure .cd-toolbar{display:none}}
 
@@ -71,6 +89,19 @@
 .gs-choice .cd-view-modes:has(> :nth-child(3)){display:grid;grid-template-columns:1fr;justify-items:stretch}
 .gs-choice .cd-view-modes:has(> :nth-child(3))>.cd-view-mode{text-align:left}
 .gs-choice-about{margin:6px 0 0;max-width:36ch;font-size:var(--t-fine,14px);color:var(--muted-foreground);text-wrap:pretty}
+/* THE CASES HAVE A ROW OF THEIR OWN, above the size and the sign: in a third of the row their buttons stacked in a
+   narrow column and their labels broke mid-phrase. Each case is a button of its own, wrapping only as a whole. */
+.gs-page .exp-parameters .gs-parameters>.gs-choice.is-cases{flex:1 1 100%;max-width:none}
+.gs-choice.is-cases .cd-view-modes,.gs-choice.is-cases .cd-view-modes:has(> :nth-child(3)){display:flex;flex-wrap:wrap;gap:6px;border:0;overflow:visible}
+.gs-choice.is-cases .cd-view-modes>.cd-view-mode{border:1px solid var(--border);border-radius:var(--radius-control);white-space:nowrap;text-align:center}
+.gs-choice.is-cases .cd-view-modes>.cd-view-mode.is-on{border-color:var(--foreground)}
+.gs-choice.is-cases .gs-choice-about{max-width:62ch}
+/* On a phone every control has the row to itself, its name above it and its gloss under it. */
+@media(max-width:520px){
+ .gs-page .exp-parameters .gs-parameters>.exp-range,.gs-page .exp-parameters .gs-parameters>.gs-choice.is-cases{flex:none;width:100%;max-width:none}
+ .gs-page .exp-parameters .gs-parameters{display:flex;flex-direction:column;align-items:stretch}
+ .gs-choice.is-cases .cd-view-modes>.cd-view-mode{white-space:normal;text-align:left}
+}
 .gs-symmetry-svg,.gs-instrument-svg{display:block;width:100%;height:auto;max-height:420px;overflow:visible;-webkit-user-select:none;user-select:none}
 .gs-moves{display:flex;align-items:center;gap:8px;margin-top:8px}
 .gs-move{padding:6px 12px;border:1px solid var(--border-strong);border-radius:var(--radius-control,14px);background:var(--card);color:var(--foreground);font:inherit;font-size:var(--type-meta);cursor:pointer;transition:border-color var(--dur-state,.16s) var(--ease,ease)}
@@ -78,8 +109,9 @@
 .gs-move[aria-pressed=true]{background:var(--muted);border-color:var(--foreground)}
 .gs-move:focus-visible,.gs-back:focus-visible{outline:2px solid var(--primary);outline-offset:2px}
 .gs-back{display:inline-flex;align-items:center;gap:6px;font-size:var(--type-meta)}
-.gs-back:disabled{opacity:.45;cursor:default}
+.gs-back:disabled,.gs-back[aria-disabled=true]{opacity:.45;cursor:default}
 .gs-verdict{margin:12px 0 0;padding-top:12px;border-top:1px solid var(--border);font-size:var(--type-body);line-height:1.5;color:var(--muted-foreground);min-height:3em}
+.gs-verdict.is-above{margin:4px 0 8px;padding:0 0 10px;border-top:0;border-bottom:1px solid var(--border);min-height:3.2em}
 .gs-verdict.is-kept,.gs-verdict.is-broken{color:var(--foreground)}
 .gs-verdict.is-broken{font-weight:600}
 .gs-tabs{margin:4px 0 0}
@@ -95,6 +127,8 @@
 .gs-angle{fill:none;stroke:var(--muted-foreground);stroke-width:1.4}
 .gs-q{cursor:grab;outline:none}
 .gs-q:active{cursor:grabbing}
+/* On a phone a charge's hit circle is held near a fingertip's width once the drawing is scaled down. */
+@media(max-width:600px){.gs-q:not(.gs-hole-handle) .gs-q-hit{r:40px}}
 .gs-q-hit{fill:transparent}
 .gs-q-body{fill:var(--charge-fill);stroke:var(--charge);stroke-width:2}
 .gs-q.is-inside .gs-q-body{fill:var(--charge)}
@@ -104,6 +138,8 @@
 .gs-q:focus-visible .gs-q-hit{fill:none;stroke:var(--primary);stroke-width:2.5}
 .gs-range{max-width:420px}
 .gs-checks{display:grid;gap:14px}
+/* A check's title is a line of the list, under the section's summary, never over it. */
+.gs-check h3.exp-note-heading{font-size:var(--type-body);font-weight:600;line-height:1.35;letter-spacing:0}
 .gs-check{min-width:0}
 .gs-check p{margin:4px 0 0;font-size:var(--type-body);line-height:1.6}
 .gs-recipe-steps{list-style:none;margin:16px 0 0;padding:0;display:grid;gap:12px}
@@ -198,7 +234,9 @@
 .gs-dvec-name{fill:var(--foreground)}
 .gs-centre{fill:var(--foreground)}
 .gs-hole-handle{cursor:grab}
-.gs-holes .gs-q,.gs-cube .gs-q{touch-action:none}
+/* Every charge an instrument lets the reader drag takes the touch itself: left to the page, a drag scrolled it and
+   cancelled the move. */
+.gs-q,.gs-holes .gs-q,.gs-cube .gs-q{touch-action:none}
 @media (max-width:600px){.gs-cube .gs-bar-name{font-size:22px}}
 .gs-hole-grip{fill:var(--foreground);fill-opacity:.55}
 /* When symmetry runs out: the cube cut through its middle, its edges as thick as their faces' shares, and the bars. */

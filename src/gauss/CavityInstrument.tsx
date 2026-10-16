@@ -94,7 +94,7 @@ export function CavityInstrument({sign}: {sign: 1 | -1}) {
         return hasCharge && !net ? <text key={i} className="gs-sign gs-sign-small" x={s.x.toFixed(1)} y={s.y.toFixed(1)} textAnchor="middle" dominantBaseline="central">{glyph}</text>
           : <circle key={i} className="gs-mark-dot" cx={s.x} cy={s.y} r={3.4} />;
       })}</g>
-      <text className="gs-name gs-metal-name" x={C.x + (a + b) / 2 * U * Math.cos(-2.35)} y={C.y - (a + b) / 2 * U * Math.sin(-2.35)} textAnchor="middle" dominantBaseline="middle">E = 0</text>
+      <text className="gs-name gs-metal-name" x={C.x + (a + b) / 2 * U * Math.cos(-2.35)} y={C.y - (a + b) / 2 * U * Math.sin(-2.35)} textAnchor="middle" dominantBaseline="middle">E = <tspan className="gs-zero">0</tspan></text>
       <text className="gs-name gs-charge-name" x={C.x + b * U * .78} y={C.y - b * U * .78 - 6} textAnchor="start">{hasCharge ? (net ? 'Q + q' : 'q') : net ? 'Q' : ''}</text>
       {hasCharge && <g className="gs-q is-inside" role="button" tabIndex={0} aria-roledescription="draggable charge"
         aria-label={`Charge q, ${sign > 0 ? 'positive' : 'negative'}, ${off ? 'off centre in' : 'at the centre of'} the hollow. Arrow keys move it; Home puts it at the centre.`}

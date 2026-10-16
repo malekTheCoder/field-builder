@@ -24,10 +24,14 @@ export function lookAt(m: {key: GaussStageKey; progress: number} | null): Look {
   }
 }
 
+/** A point charge's disc, in the figure's pixels: large enough to carry its sign. The scene draws it the same size. */
+export const POINT_PX = 10.5;
 /** A patch as the figure draws it: whether it carries nothing, and E·n̂ at its centre (signed). */
 export type DrawnPatch = Patch & {zero: boolean; through: number; field: V3;
   /** How long its field arrow is drawn, in world units: `arrowSpan`. */
   span: number;
+  /** Whether the arrow is laid with its tip on the patch, its tail outside (`arrowPlace`), rather than its tail on it. */
+  back?: boolean;
   /** Which piece of a superposition the patch's surface is round, and whose field it carries: 0 the whole charge,
    * 1 the plug. Absent for a charge with no hole. */
   piece?: number};
@@ -35,8 +39,8 @@ export type DrawnPatch = Patch & {zero: boolean; through: number; field: V3;
 export type Seg = {key: string; part: PatchPart; a: [number, number]; b: [number, number]; mid: V3; normal: V3; field: V3; zero: boolean; through: number; arc?: number;
   /** The centre of an arc's circle, when it is not the origin. */
   about?: V3;
-  /** How long its field arrow is drawn, once a case is known (`build`). */
-  span?: number;
+  /** How long its field arrow is drawn, once a case is known (`build`), and whether its tip is on the segment. */
+  span?: number; back?: boolean;
   /** Which piece of a superposition it belongs to, as a patch's `piece`. */
   piece?: number};
 /** One piece of a superposition, solved alone: the whole charge, or the plug of the opposite sign filling its hole.
@@ -44,7 +48,7 @@ export type Seg = {key: string; part: PatchPart; a: [number, number]; b: [number
  * disc); its field at P is one of the two the answer adds. */
 export type Piece = {charge: Charge; surface: Surface | null; enclosed: number; fieldAtP: V3; spanAtP: number};
 /** A field arrow in space away from any surface, for the Symmetry stage: from `at`, along `field`, `span` long. */
-export type Spoke = {at: V3; field: V3; span?: number};
+export type Spoke = {at: V3; field: V3; span?: number; back?: boolean};
 
 export type Built = {
   charge: Charge;
@@ -55,6 +59,10 @@ export type Built = {
   spokes: Spoke[]; flatSpokes: Spoke[];
   /** The point where the field is wanted, on the surface, its outward normal, and the field there. */
   P: V3; normalAtP: V3; fieldAtP: V3; spanAtP: number;
+  /** Whether the answer's arrow ends at P (a field pointing in through the surface) rather than starting there. */
+  backAtP: boolean;
+  /** Whether some patch's arrow had no room for its length on either side and is drawn shorter than its field. */
+  shortened: boolean;
   /** Whether the run ends on the field at P. Not for a charge off the sphere's centre: there the answer is a flux,
    * and the field on the sphere is not the same from patch to patch, so no one arrow could stand for it. */
   answerAtP: boolean;
@@ -118,15 +126,21 @@ export function arrowLength(c: GaussCase, e: number): number {
   const k = c.figure.charge;
   if (k.kind === 'offset') {
     const near = 1 / (k.size - c.figure.surface.size.initial) ** 2;
-    return Math.max(.06, Math.min(1.6, 1.05 * Math.sqrt(Math.abs(e) / near)));
+    return Math.max(.06, rollOff(1.05 * Math.sqrt(Math.abs(e) / near)));
   }
   // A lesson may fix the scale for all its cases, so equal fields are drawn equal; otherwise the opening
   // surface's field, or where it sees none (inside a shell, in metal), the field the slider first reaches from
   // its outer end.
   const ref = scaleOf(c);
   if (!(ref > 0)) return 0;
-  return Math.max(.06, Math.min(1.6, .62 * Math.abs(e) / ref));
+  return Math.max(.06, rollOff(.62 * Math.abs(e) / ref));
 }
+/** The longest an arrow is drawn, and where it starts to bend toward it. Below the knee a length is in proportion
+ * to the field; above it the length still grows with the field, ever more slowly, and never reaches the longest. A
+ * hard cap held every arrow near a point charge at one length while the sphere was dragged in, which read as a field
+ * that stops growing. */
+export const LONGEST = 1.6, KNEE = 1;
+const rollOff = (x: number) => x <= KNEE ? x : KNEE + (LONGEST - KNEE) * Math.tanh((x - KNEE) / (LONGEST - KNEE));
 /** The field a case draws at the standard arrow length (`arrowLength`). */
 function scaleOf(c: GaussCase): number {
   const at = (size: number) => { const ch = chargeOf(c, 1), P = pointOn(surfaceOf(c, size), ch); return Math.abs(dot(fieldAt(ch, P.at), P.normal)); };
@@ -140,19 +154,41 @@ function scaleOf(c: GaussCase): number {
  * together until none is held to the longest length and none reaches past where the field turns round. */
 const fitsFrame = (c: Charge) => c.kind === 'segment' || (c.kind === 'point' && !!c.at);
 
-/** How long the arrow of the field `field` at `at` is drawn: its length by the scale, `k` times, cut short before
- * it would run into a place with no field (a conductor's metal, outside a cable, beyond a capacitor's far plate) or
- * where the field turns round (past a charge). An arrow drawn across metal would show a field where the lesson
- * says there is none. */
-export function arrowSpan(c: GaussCase, charge: Charge, at: V3, field: V3, k = 1): number {
+/** Where an arrow of the field `field` at `at` is laid, and how long: its length by the scale, `k` times, from `at`
+ * along the field (its tail there), or ending at `at` (its tip there, `back`). It goes on the side `outward` points to
+ * (a patch's outer side; for an arrow in space, the side a positive charge's field points to), so an arrow of a field
+ * pointing in through a surface ends on it, its tail outside, at its full length: the same place and length for either
+ * sign. Only when that side has no room (a conductor's metal, outside a cable, past a capacitor's far plate, past the
+ * charge) is it laid on the other; and only when neither has room is it cut short. An arrow drawn across metal would
+ * show a field where the lesson says there is none, and one cut short for a negative charge alone would draw its field
+ * weaker than the same positive charge's. */
+export function arrowPlace(c: GaussCase, charge: Charge, at: V3, field: V3, k = 1, outward?: V3): {span: number; back: boolean} {
   const want = arrowLength(c, norm(field)) * k, d = unit(field);
-  if (!(norm(field) > 1e-12) || !(want > 0)) return 0;
+  if (!(norm(field) > 1e-12) || !(want > 0)) return {span: 0, back: false};
   const n = 64;
-  for (let i = 1; i <= n; i++) {
-    const e = fieldAt(charge, add(at, scale(d, want * i / n)));
-    if (norm(e) < 1e-12 || dot(e, d) <= 0) return want * (i - 1) / n * .92;
-  }
-  return want;
+  // How much of the arrow fits on one side: forward from `at` (1), or back from it (−1), before the field there stops
+  // or turns against the arrow.
+  const room = (side: 1 | -1) => {
+    for (let i = 1; i <= n; i++) {
+      const e = fieldAt(charge, add(at, scale(d, side * want * i / n)));
+      if (norm(e) < 1e-12 || dot(e, d) <= 0) return want * (i - 1) / n * .92;
+    }
+    return want;
+  };
+  // A field along the surface (a patch that carries nothing) has no outer side: it goes where a positive charge's would.
+  const hint = outward && Math.abs(dot(d, outward)) > 1e-9 ? outward : fieldAt({...charge, sign: 1}, at);
+  const first: 1 | -1 = dot(d, hint) < 0 ? -1 : 1, a = room(first);
+  if (a >= want) return {span: want, back: first < 0};
+  const b = room(-first as 1 | -1);
+  if (b >= want) return {span: want, back: first > 0};
+  return a >= b ? {span: a, back: first < 0} : {span: b, back: first > 0};
+}
+/** How long the arrow of the field `field` at `at` is drawn (`arrowPlace`). */
+export const arrowSpan = (c: GaussCase, charge: Charge, at: V3, field: V3, k = 1, outward?: V3) => arrowPlace(c, charge, at, field, k, outward).span;
+/** An arrow's two ends, as `arrowPlace` lays it: its tail and its tip. */
+export function arrowEnds(at: V3, field: V3, span: number, back = false): {from: V3; to: V3} {
+  const d = scale(unit(field), span);
+  return back ? {from: sub(at, d), to: at} : {from: at, to: add(at, d)};
 }
 
 /** The cross-section through the axis, cut as the figure cuts the surface. */
@@ -284,7 +320,7 @@ export function build(c: GaussCase, size: number, sign: 1 | -1): Built {
   const solved: {charge: Charge; surface: Surface | null}[] = parts ? [{charge: parts[0], surface}, {charge: parts[1], surface: plugSurface(charge, surface, P)}] : [{charge, surface}];
   const drawn: DrawnPatch[] = solved.flatMap(({charge: q, surface: g}, i) => g ? patches(g, i === 0 && c.figure.surface.cut ? c.figure.surface.cut : CUT[g.kind]).map(p => {
     const field = fieldAt(q, p.center);
-    return {...p, zero: carriesNothing(q, p), through: throughPatch(q, p), field, span: arrowSpan(c, q, p.center, field), ...(parts ? {piece: i, key: `${i}${p.key}`} : {})};
+    return {...p, zero: carriesNothing(q, p), through: throughPatch(q, p), field, ...arrowPlace(c, q, p.center, field, 1, p.normal), ...(parts ? {piece: i, key: `${i}${p.key}`} : {})};
   }) : []);
   // Those that carry flux first, in the order they were cut; the ones that carry nothing after them, so the run
   // ends the left side on the parts it adds nothing for, and lights them as zero last.
@@ -293,7 +329,7 @@ export function build(c: GaussCase, size: number, sign: 1 | -1): Built {
     const e = fieldAt(q, P);
     return {charge: q, surface: g, enclosed: g ? enclosedCharge(q, g) : 0, fieldAtP: e, spanAtP: arrowLength(c, norm(e))};
   }) : undefined;
-  const cut = solved.flatMap(({charge: q, surface: g}, i) => g ? slice(q, g, parts ? {around: i ? 8 : 16, across: 2} : {}).map(s => ({...s, span: arrowSpan(c, q, s.mid, s.field), ...(parts ? {piece: i, key: `${i}${s.key}`} : {})})) : [])
+  const cut = solved.flatMap(({charge: q, surface: g}, i) => g ? slice(q, g, parts ? {around: i ? 8 : 16, across: 2} : {}).map(s => ({...s, ...arrowPlace(c, q, s.mid, s.field, 1, s.normal), ...(parts ? {piece: i, key: `${i}${s.key}`} : {})})) : [])
     .sort((a, b) => Number(a.zero) - Number(b.zero));
   // The dA named on the figure: a crossed patch a little round from P, so its arrow and P's do not lie on each other.
   const towards = surface.kind === 'pillbox' ? (charge.kind === 'plates' ? v3(.9 * surface.r, -.3 * surface.r, -surface.h) : v3(-.5 * surface.r, -.5 * surface.r, surface.h)) : surface.kind === 'cylinder' ? v3(-surface.r * .45, -surface.r * .9, surface.h * .5) : v3(-surface.r * .35, -surface.r * .55, surface.r * .76);
@@ -310,10 +346,12 @@ export function build(c: GaussCase, size: number, sign: 1 | -1): Built {
     for (const p of drawn) p.span = raw(p.field) * fit;
     for (const s of cut) s.span = raw(s.field) * fit;
   }
+  const shortened = !fitsFrame(charge) && [...drawn.map(p => [p.span, p.field] as const), ...cut.map(s => [s.span ?? 0, s.field] as const)].some(([span, e]) => norm(e) > 1e-12 && span < arrowLength(c, norm(e)) - 1e-9);
   // The spokes are drawn from their anchors, a little shorter than the patches' arrows, and never into metal.
-  const spoked = (list: Spoke[]) => list.map(s => ({...s, span: arrowSpan(c, charge, s.at, s.field, .85)}));
+  const spoked = (list: Spoke[]) => list.map(s => ({...s, ...arrowPlace(c, charge, s.at, s.field, .85)}));
+  const atP = parts ? {span: arrowLength(c, norm(fieldAtP)), back: false} : arrowPlace(c, charge, P, fieldAtP, 1, normalAtP);
   return {charge, surface, patches: drawn, slice: cut, spokes: spoked(spokes(charge)), flatSpokes: spoked(flatSpokes(charge)),
-    P, normalAtP, fieldAtP, spanAtP: parts ? arrowLength(c, norm(fieldAtP)) : arrowSpan(c, charge, P, fieldAtP), answerAtP: answersAtP(charge, surface), markP: charge.kind === 'segment', namedPatch, zeroPatch, half: halfOf(c), unit: unitOf(c), ...(pieces ? {pieces} : {})};
+    P, normalAtP, fieldAtP, spanAtP: atP.span, backAtP: atP.back, shortened, answerAtP: answersAtP(charge, surface), markP: charge.kind === 'segment', namedPatch, zeroPatch, half: halfOf(c), unit: unitOf(c), ...(pieces ? {pieces} : {})};
 }
 /** The surface a patch or a segment lies on: the slider's, or the plug's. */
 export const surfaceOfPiece = (b: Built, piece?: number): Surface => (piece ? b.pieces?.[piece]?.surface : null) ?? b.surface;

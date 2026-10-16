@@ -2,15 +2,16 @@
 /* Inline SVG needs role=img to expose one named figure, and in space the figure IS the control the arrow keys
    turn, so it takes the focus: as the integral lessons' figure does (ChargeDiagram), for the same reasons. */
 /* oxlint-disable jsx-a11y/prefer-tag-over-role, jsx-a11y/no-noninteractive-tabindex */
-import {memo, useCallback, useId, useMemo, useRef, useState, useSyncExternalStore, type CSSProperties, type KeyboardEvent, type PointerEvent, type ReactNode} from 'react';
+import {memo, useCallback, useEffect, useId, useMemo, useRef, useState, useSyncExternalStore, type CSSProperties, type KeyboardEvent, type PointerEvent, type ReactNode} from 'react';
 import {projectPoint} from '../diagrams/three/orthoCamera';
 import {ViewCube} from '../diagrams/ViewCube';
 import type {CameraView} from '../diagrams/camera';
 import type {RunClock} from '../explorer/BuildPlayer';
 import {useRenderedWidth} from '../components/useRenderedWidth';
-import {add, isBall, norm, scale, sub, unit as unitV, v3, type V3} from './physics';
+import {useReducedMotion} from 'motion/react';
+import {add, enclosedCharge, isBall, norm, scale, sub, v3, type V3} from './physics';
 import {moment, type GaussStage} from './run';
-import {build, chainOf, lookAt, REST, type Built, type Look, type Seg} from './scene';
+import {arrowEnds, build, chainOf, lookAt, POINT_PX, REST, type Built, type Look, type Seg} from './scene';
 import {GaussScene} from './GaussScene';
 import {regionOf} from './instruments';
 import type {GaussCase} from './types';
@@ -28,6 +29,9 @@ const opening = (c: GaussCase): CameraView => c.figure.surface.kind === 'pillbox
 const FLAT: CameraView = {yaw: 0, pitch: 0};
 type Props = {
   kase: GaussCase; size: number; sign: 1 | -1;
+  /** The lesson's other cases: the caption holds the room the longest of theirs needs, so choosing a case never
+   * moves the controls under the reader's hand. */
+  siblings?: readonly GaussCase[];
   /** The run, while it is open: its clock and stages, read here so a frame of it renders the figure alone. */
   run: {clock: RunClock; stages: readonly GaussStage[]} | null;
   view: FigureView; onView: (view: FigureView) => void;
@@ -49,7 +53,7 @@ function insideName(c: GaussCase, b: Built): ReactNode {
   // What is inside, as the right side writes it: all of a ball or a shell only once the surface is outside it.
   const q = c.figure.charge.symbol;
   const lo = g.low ?? -g.h, inSlab = (z: number) => Math.max(-R, Math.min(R, z));
-  const tail = k === 'line' ? '= λL' : k === 'segment' ? '= 2λℓ' : k === 'halo' ? '= Q(r)' : k === 'cusp' ? (g.r < R ? '= 2πβr²' : '= 2πβR²')
+  const tail = k === 'line' ? '= λL' : k === 'segment' ? '= 2λℓ' : k === 'halo' ? '= 4πρ₀a²(r − a arctan(r/a))' : k === 'cusp' ? (g.r < R ? '= 2πβr²' : '= 2πβR²')
     : k === 'oddslab' ? (inSlab(g.h) - inSlab(lo) < 1e-9 || g.h >= R ? '= 0' : '= ρ₀A(z² − a²)/2a') : k === 'sheet' || k === 'face' || k === 'plates' ? '= σA' : k === 'point' ? `= ${q}` : k === 'offset' ? (g.r > R ? `= ${q}` : '= 0')
     : isBall(k) ? (g.r >= R ? '= Q' : k === 'rising' ? '= Qr⁴/R⁴' : k === 'falling' ? '= Qr³(4R − 3r)/R⁴' : '= Qr³/R³')
     : k === 'shell' || k === 'metal' ? (g.r > R ? '= Q' : '= 0')
@@ -58,12 +62,27 @@ function insideName(c: GaussCase, b: Built): ReactNode {
     : k === 'cavity' ? (g.r < R ? '= q' : g.r <= B ? '= q − q = 0' : '= q − q + q = q')
     : k === 'tent' ? (g.h >= R ? '= ρ₀Aa' : '= 2ρ₀A(z − z²/2a)') : g.h >= R ? '= 2ρAa' : '= 2ρAz';
   const named = c.figure.charge.insideNames?.[regionOf(c, g.kind === 'pillbox' ? g.h : g.r)];
-  return <>Q<tspan className="gs-sub" dy="5">enc</tspan><tspan dy="-5"> </tspan><tspan>{named ?? zeroUpright(tail)}</tspan></>;
+  return <>Q<tspan className="gs-sub" dy="5">enc</tspan><tspan dy="-5"> </tspan><tspan>{zeroUpright(named ?? tail)}</tspan></>;
 }
 /** A name with its zeros, and its subscript zeros (ρ₀), set upright: the serif's italic zero reads as an o. */
 function zeroUpright(text: string): ReactNode {
-  const parts = text.split(/([0₀])/);
-  return parts.map((p, i) => p === '0' || p === '₀' ? <tspan key={i} className={'gs-zero' + (p === '₀' ? ' gs-sub' : '')}>0</tspan> : p);
+  // A subscript (ρ₀, or E_R as a lesson's own names write it) is dropped below the line and the text after it raised
+  // back: a subscript zero set in place rode high and read as ρ⁰.
+  const out: ReactNode[] = [];
+  let low = false, k = 0;
+  const put = (t: string, cls?: string, sub = false) => {
+    if (!t) return;
+    const dy = sub && !low ? 4 : !sub && low ? -4 : 0;
+    low = sub;
+    out.push(<tspan key={k++} className={cls} dy={dy || undefined}>{t}</tspan>);
+  };
+  for (const part of text.split(/([0₀]|_\w)/)) {
+    if (part === '0') put('0', 'gs-zero');
+    else if (part === '₀') put('0', 'gs-zero gs-sub', true);
+    else if (part.startsWith('_') && part.length === 2) put(part.slice(1), 'gs-sub', true);
+    else put(part);
+  }
+  return out;
 }
 /** What each piece of a superposition holds inside its own surface, as the board's right side writes it. */
 function pieceText(k: GaussCase['figure']['charge']['kind'], i: number): string {
@@ -73,8 +92,8 @@ function pieceText(k: GaussCase['figure']['charge']['kind'], i: number): string 
 }
 /** The sign marks on a charge: where each sits, and whether it has the charge's own sign or the opposite one (the
  * −λ of a coaxial pair's outer shell, the −σ plate, the −q a hollow's wall takes). */
-function signMarks(c: GaussCase['figure']['charge']): {at: V3; own: boolean}[] {
-  const R = c.size, B = c.outer ?? R * 2, own = (at: V3) => ({at, own: true}), other = (at: V3) => ({at, own: false});
+function signMarks(c: GaussCase['figure']['charge']): {at: V3; own: boolean; disc?: boolean}[] {
+  const R = c.size, B = c.outer ?? R * 2, own = (at: V3) => ({at, own: true}), other = (at: V3) => ({at, own: false}), disc = (at: V3) => ({at, own: true, disc: true});
   const round = (r: number, angles: number[]) => angles.map(t => v3(r * Math.sin(t), 0, r * Math.cos(t)));
   switch (c.kind) {
     case 'line': case 'rod': return [v3(0, 0, 1.7), v3(0, 0, -1.7), v3(0, 0, 2.4)].map(own);
@@ -83,19 +102,57 @@ function signMarks(c: GaussCase['figure']['charge']): {at: V3; own: boolean}[] {
     case 'sheet': case 'face': return [v3(1.5, -1.2, 0), v3(-1.6, 1.3, 0), v3(1.9, 1.1, 0), v3(-1.3, -1.6, 0)].map(own);
     case 'plates': return [...[v3(1.6, -1.2, 0), v3(-1.7, 1.3, 0)].map(own), ...[v3(1.6, -1.2, -R), v3(-1.7, 1.3, -R)].map(other)];
     case 'metal': return round(R, [.6, 2.2, 3.7, 5.2]).map(own);
-    case 'offset': return [own(v3(0, 0, R))];
+    case 'offset': return [disc(v3(0, 0, R))];
     case 'tent': return [v3(1.6, 0, 0), v3(-1.6, 0, 0)].map(own);
-    case 'cavity': return [own(v3(0, 0, 0)), ...round(R, [.9, 2.5, 4.1, 5.5]).map(other), ...round(B, [.5, 1.9, 3.3, 5.6]).map(own)];
+    case 'cavity': return [disc(v3(0, 0, 0)), ...round(R, [.9, 2.5, 4.1, 5.5]).map(other), ...round(B, [.5, 1.9, 3.3, 5.6]).map(own)];
     // A charge with a hole: its own sign on the charge, none in the hole, which is empty.
     case 'ballhole': return round(R * .72, [3.4, 4.3, 5.2, 2.5]).map(own);
     case 'rodhole': return [v3(-R * .55, 0, 1.7), v3(-R * .55, 0, -1.7)].map(own);
     case 'sheethole': return [v3(1.9, -1.4, 0), v3(-1.9, 1.5, 0), v3(2.1, 1.3, 0), v3(-1.6, -1.8, 0)].map(own);
     case 'segment': return [v3(0, 0, .2), v3(0, 0, -.35)].map(own);
     case 'oddslab': return [...[v3(2.3, 0, R * .5), v3(-2.3, 0, R * .5)].map(own), ...[v3(2.3, 0, -R * .5), v3(-2.3, 0, -R * .5)].map(other)];
-    default: return [own(c.at ?? v3(0, 0, 0))];
+    // A point charge's sign is set on its own disc, in the paper's colour: haloed over a small dot, it covered the
+    // dot, and a minus read as an equals sign.
+    default: return [disc(c.at ?? v3(0, 0, 0))];
   }
 }
-export const GaussFigure = memo(function GaussFigure({kase, size, sign, run, view, onView}: Props) {
+/** What the figure shows, said aloud: the charge with its sign said of the part it belongs to, where the closed
+ * surface stands to it, from the same regions and enclosed charge the board's right side counts, and, where the
+ * surface holds none, that it holds none. Never a default: "inside a closed cylinder" said of an infinite line, or
+ * of a metal ball a sphere sits within, was false. */
+export function describe(kase: GaussCase, b: Built, space: boolean): string {
+  const c = kase.figure.charge, g = b.surface, k = c.kind, R = c.size, B = c.outer ?? R * 2, r = g.r, h = g.h;
+  const sign = b.charge.sign, own = sign > 0 ? 'positive' : 'negative', other = sign > 0 ? 'negative' : 'positive';
+  const signed = k === 'coax' ? `the inner shell ${own}, the outer ${other}` : k === 'plates' ? `the upper plate ${own}, the lower ${other}`
+    : k === 'oddslab' ? `its upper half ${own}, its lower half ${other}` : k === 'cavity' ? `the charge in the hollow ${own}` : own;
+  const relation = (() => {
+    switch (k) {
+      case 'point': return g.kind === 'cube' ? 'inside a closed cube' : 'at the centre of a closed sphere';
+      case 'offset': return r > R ? 'inside a closed sphere, off its centre' : 'outside a closed sphere, which holds none of it';
+      case 'ball': case 'rising': case 'falling': case 'cusp': return r >= R ? 'inside a closed sphere round all of it' : 'with a closed sphere cutting through it, round the part nearer the centre';
+      case 'halo': return 'with a closed sphere round the part of it nearer the centre';
+      case 'shell': return r > R ? 'inside a closed sphere round all of it' : 'with a closed sphere inside the shell';
+      case 'metal': return r > R ? 'inside a closed sphere round all of it' : 'with a closed sphere inside the metal';
+      case 'cavity': return r < R ? 'with a closed sphere inside the hollow, round the charge' : r <= B ? 'with a closed sphere inside the metal, round the hollow' : 'inside a closed sphere round the whole ball';
+      case 'ballhole': return 'with a closed sphere about its centre, through it, and another about the hole';
+      case 'line': return 'with a closed cylinder round a length of it';
+      case 'segment': return h >= R ? 'inside a closed cylinder round all of it' : 'with a closed cylinder round the middle of it';
+      case 'rod': return r >= R ? 'with a closed cylinder round a length of it' : 'with a closed cylinder inside it, round a length of its axis';
+      case 'tube': return r > R ? 'with a closed cylinder round a length of it' : 'with a closed cylinder inside the shell';
+      case 'coax': return r <= R ? 'with a closed cylinder inside the inner shell' : r < B ? 'with a closed cylinder between the shells, round a length of the inner one' : 'with a closed cylinder round a length of both shells';
+      case 'rodhole': return 'with a closed cylinder about its axis, through it, and another about the hole';
+      case 'sheet': return 'with a closed pillbox through it';
+      case 'sheethole': return 'with a closed pillbox through it, about the hole';
+      case 'slab': case 'tent': return h >= R ? 'with a closed pillbox through it, its faces outside it' : 'with a closed pillbox through its middle plane, its faces inside it';
+      case 'oddslab': return 'with a closed pillbox through part of it';
+      case 'face': return 'with a closed pillbox through its face, one end in the metal';
+      case 'plates': return 'with a closed pillbox through the upper plate, its other end between the plates';
+    }
+  })();
+  const none = !b.pieces && Math.abs(enclosedCharge(b.charge, g)) < 1e-12 ? ' The surface holds no net charge.' : '';
+  return `${c.name.replace(/^./, x => x.toUpperCase())}, ${signed}, ${relation}.${none} ${space ? 'In space: drag, or use the arrow keys, to turn it; Home puts it back.' : 'The cross-section through the axis.'}`;
+}
+export const GaussFigure = memo(function GaussFigure({kase, size, sign, siblings, run, view, onView}: Props) {
   // THE RUN'S MOMENT, read from its clock here: a frame of the run renders this figure and nothing else on the page.
   // Held to a few hundred steps a stage, so a frame that moves nothing renders nothing.
   const subscribe = useCallback((on: () => void) => run ? run.clock.subscribe(on) : () => {}, [run]);
@@ -110,6 +167,25 @@ export const GaussFigure = memo(function GaussFigure({kase, size, sign, run, vie
   const [cams, setCams] = useState<Record<string, CameraView>>({});
   const camera = cams[kase.key] ?? opening(kase);
   const setCamera = (next: CameraView | ((c: CameraView) => CameraView)) => setCams(o => ({...o, [kase.key]: typeof next === 'function' ? next(o[kase.key] ?? opening(kase)) : next}));
+  // A view picked on the cube is glided to, as the integral lessons' figure glides, and said aloud; with reduced
+  // motion it is set at once.
+  const reduced = useReducedMotion();
+  const [announcement, setAnnouncement] = useState('');
+  const glide = useRef(0);
+  useEffect(() => () => cancelAnimationFrame(glide.current), []);
+  const stopGlide = () => { cancelAnimationFrame(glide.current); glide.current = 0; };
+  const glideTo = (to: CameraView, seconds = .5) => {
+    stopGlide();
+    const from = camera, turnOnce = 2 * Math.PI, dYaw = ((to.yaw - from.yaw + Math.PI) % turnOnce + turnOnce) % turnOnce - Math.PI, dPitch = to.pitch - from.pitch;
+    if (reduced || seconds <= 0) { setCamera(to); return; }
+    const t0 = performance.now();
+    const step = (now: number) => {
+      const f = Math.min(1, (now - t0) / (seconds * 1000)), e = f < .5 ? 4 * f * f * f : 1 - Math.pow(-2 * f + 2, 3) / 2;
+      setCamera(f >= 1 ? {...to} : {yaw: from.yaw + dYaw * e, pitch: from.pitch + dPitch * e});
+      glide.current = f < 1 ? requestAnimationFrame(step) : 0;
+    };
+    glide.current = requestAnimationFrame(step);
+  };
   const [failed, setFailed] = useState<false | 'failed' | 'lost'>(false);
   const space = view === '3d' && !failed;
   const cam = space ? camera : FLAT, unit = built.unit;
@@ -119,14 +195,15 @@ export const GaussFigure = memo(function GaussFigure({kase, size, sign, run, vie
   const k = Math.max(1, Math.min(1.9, 720 / Math.max(1, width) * .78));
   // TURNING THE FIGURE: a drag across it, the arrow keys, the view cube. Only in space.
   const drag = useRef<{x: number; y: number} | null>(null);
-  const turn = (dYaw: number, dPitch: number) => setCamera(c => ({yaw: c.yaw + dYaw, pitch: Math.max(-.6, Math.min(1.3, c.pitch + dPitch))}));
+  const turn = (dYaw: number, dPitch: number) => { stopGlide(); turnBy(dYaw, dPitch); };
+  const turnBy = (dYaw: number, dPitch: number) => setCamera(c => ({yaw: c.yaw + dYaw, pitch: Math.max(-.6, Math.min(1.3, c.pitch + dPitch))}));
   const orbit = space ? {
-    onPointerDown: (e: PointerEvent<SVGSVGElement>) => { if (e.button !== 0) return; drag.current = {x: e.clientX, y: e.clientY}; try { e.currentTarget.setPointerCapture(e.pointerId); } catch { /* still turns */ } },
+    onPointerDown: (e: PointerEvent<SVGSVGElement>) => { if (e.button !== 0) return; stopGlide(); drag.current = {x: e.clientX, y: e.clientY}; try { e.currentTarget.setPointerCapture(e.pointerId); } catch { /* still turns */ } },
     onPointerMove: (e: PointerEvent<SVGSVGElement>) => { const d = drag.current; if (!d) return; turn(-(e.clientX - d.x) * .009, (e.clientY - d.y) * .009); drag.current = {x: e.clientX, y: e.clientY}; },
     onPointerUp: () => { drag.current = null; }, onPointerCancel: () => { drag.current = null; },
     onKeyDown: (e: KeyboardEvent<SVGSVGElement>) => {
       const by: Record<string, [number, number]> = {ArrowLeft: [.14, 0], ArrowRight: [-.14, 0], ArrowUp: [0, .1], ArrowDown: [0, -.1]};
-      if (by[e.key]) { e.preventDefault(); turn(...by[e.key]); } else if (e.key === 'Home') { e.preventDefault(); setCamera(opening(kase)); }
+      if (by[e.key]) { e.preventDefault(); turn(...by[e.key]); } else if (e.key === 'Home') { e.preventDefault(); glideTo(opening(kase), .45); setAnnouncement('The opening view.'); }
     },
   } : {};
   const c = kase.figure.charge, g = built.surface;
@@ -134,7 +211,8 @@ export const GaussFigure = memo(function GaussFigure({kase, size, sign, run, vie
   // ---- the pieces of the drawing, in both views ----
   const lit = look.sweep * (space ? built.patches.length : built.slice.length);
   const showFieldNames = look.sweep > .5, showInside = look.enclosed > .02, showSolve = look.solve > .02 && (stage === 'solve' || stage === null);
-  const fieldLabelAt = (from: V3, e: V3, len: number) => proj(add(from, scale(unitV(e), len)));
+  // An arrow's name goes at its free end: its tip, or for one laid tip-on (a field pointing in), its tail.
+  const fieldLabelAt = (from: V3, e: V3, len: number, back = false) => { const ends = arrowEnds(from, e, len, back); return proj(back ? ends.from : ends.to); };
   const named = space ? built.namedPatch : nearestSeg(built.slice, g.kind === 'pillbox' ? v3(-g.r * .55, 0, g.h) : g.kind === 'cylinder' ? v3(-g.r, 0, g.h * .5) : v3(-g.r * .6, 0, g.r * .8));
   const namedFrom = space ? built.namedPatch.center : (named as Seg).mid;
   const namedNormalBase = space ? add(built.namedPatch.center, scale(sub(built.namedPatch.corners[0], built.namedPatch.center), .32)) : segBase(named as Seg);
@@ -142,11 +220,13 @@ export const GaussFigure = memo(function GaussFigure({kase, size, sign, run, vie
   const zeroAt = built.patches.some(p => p.zero) ? (g.kind === 'cylinder' ? v3(-g.r * 1.06, 0, g.h) : v3(-g.r * 1.06, 0, c.kind === 'plates' ? g.h * .5 : g.low !== undefined ? (g.low + g.h) / 2 : -g.h * .5)) : undefined;
   const dAlen = .34 * Math.min(1, built.half / 3.2);
   const nameDA = proj(add(namedNormalBase, scale(space ? built.namedPatch.normal : (named as Seg).normal, dAlen + .16)));
-  const namedField = space ? built.namedPatch.field : (named as Seg).field, nameE = fieldLabelAt(namedFrom, namedField, space ? built.namedPatch.span : (named as Seg).span ?? 0);
+  const namedField = space ? built.namedPatch.field : (named as Seg).field, nameE = fieldLabelAt(namedFrom, namedField, space ? built.namedPatch.span : (named as Seg).span ?? 0, space ? built.namedPatch.back : (named as Seg).back);
   // Where E and dA lie along each other and are drawn about as long, their names would land together: dA steps aside.
   const clash = Math.hypot(nameE.x - nameDA.x, nameE.y - nameDA.y) < 34;
   const pAt = proj(built.P);
-  const eTip = fieldLabelAt(built.P, built.fieldAtP, built.spanAtP);
+  const eTip = fieldLabelAt(built.P, built.fieldAtP, built.spanAtP, built.backAtP);
+  // The answer's arrow as laid: from P, or ending at P with its tail outside.
+  const answer = arrowEnds(built.P, built.fieldAtP, built.spanAtP * look.solve, built.backAtP), answerFrom = proj(answer.from), answerTo = proj(answer.to);
   const axial = c.kind === 'line' || c.kind === 'rod' || c.kind === 'tube' || c.kind === 'coax' || c.kind === 'rodhole' || c.kind === 'segment', flat = c.kind === 'sheet' || c.kind === 'face' || c.kind === 'plates' || c.kind === 'sheethole';
   // The charge inside is named under it; under the part of a ball the sphere encloses; above a charge off the centre
   // when it is inside, and at the centre, beneath the r, when it is outside and nothing is.
@@ -172,19 +252,19 @@ export const GaussFigure = memo(function GaussFigure({kase, size, sign, run, vie
     const where = c.kind === 'sheethole' ? v3(g.r + .25, 0, -.32) : c.kind === 'rodhole' ? v3(at.x + (i ? 0 : -Math.min(s!.r, p.charge.size)) , 0, -g.h - .3 - (i ? .42 : 0)) : i ? add(at, v3(0, 0, (c.hole?.radius ?? s!.r) + .3)) : v3(0, 0, -(Math.min(s!.r, p.charge.size) + .3));
     return {at: proj(where), text: pieceText(c.kind, i), anchor: 'middle' as const};
   }).filter(n => n !== null) : null;
-  // Where the closed surface stands to the charge, said as it is: round all of it, cutting through it, inside a
-  // shell, or beside a charge it leaves out.
-  const enclosesAll = c.kind === 'offset' ? g.r > c.size : isBall(c.kind) ? g.r >= c.size : c.kind === 'shell' ? g.r > c.size : true;
-  const relation = enclosesAll ? `inside a closed ${g.kind === 'pillbox' ? 'pillbox' : g.kind}` : c.kind === 'offset' ? 'outside a closed sphere' : c.kind === 'shell' ? 'round a closed sphere inside it' : 'with a closed sphere cutting through it';
-  const described = `${c.name.replace(/^./, s => s.toUpperCase())}, ${sign > 0 ? 'positive' : 'negative'}, ${relation}. ${space ? 'In space: drag, or use the arrow keys, to turn it; Home puts it back.' : 'The cross-section through the axis.'}`;
+  const described = describe(kase, built, space);
+  const reserve = useMemo(() => (siblings ?? []).filter(o => o.key !== kase.key).map(o => captionOf(o, build(o, o.figure.surface.size.initial, sign))), [siblings, kase.key, sign]);
+  const atRest = Math.abs(camera.yaw - opening(kase).yaw) < 1e-6 && Math.abs(camera.pitch - opening(kase).pitch) < 1e-6;
   const noField = norm(built.fieldAtP) < 1e-12;
   return <div className="gs-figure">
     <div className={'cd-stage gs-stage' + (space ? ' is-space' : ' is-flat')} data-stage={stage ?? 'rest'} data-sweep={look.sweep.toFixed(3)} data-solve={look.solve.toFixed(3)} style={{'--cd-k': k} as CSSProperties}>
       {space && <GaussScene kase={kase} built={built} look={look} yaw={camera.yaw} pitch={camera.pitch} unit={unit} origin={ORIGIN} onUnavailable={why => setFailed(why === 'lost' ? 'lost' : 'failed')} />}
       <svg ref={svgRef} className={'cd-svg gs-svg' + (space ? ' cd-orbitable' : '')} viewBox="0 0 720 430" role="img" tabIndex={space ? 0 : undefined} aria-label={described} {...orbit}>
-        {!space && <Flat built={built} look={look} lit={lit} proj={proj} />}
+        {!space && <Flat built={built} look={look} lit={lit} proj={proj} unknown={!!c.insideNames && c.kind === 'rising'} />}
         {/* Sign marks on the charge: the colour is the same for either sign, as everywhere on the site. */}
-        {(look.stage === null || look.stage === 'symmetry' || look.stage === 'surface') && marks.map((m, i) => { const q = proj(m.at); return <text key={i} className="gs-sign" x={q.x.toFixed(1)} y={(q.y + (axial || flat ? -10 : 0)).toFixed(1)} textAnchor="middle" dominantBaseline="middle">{m.own ? glyph : other}</text>; })}
+        {/* Kept through the right side, where the charge inside is counted: a coaxial pair's or a capacitor's two
+            charges, lit, are told apart by their signs alone. */}
+        {stage !== 'solve' && marks.map((m, i) => { const q = proj(m.at); return <text key={i} className={'gs-sign' + (m.disc ? ' is-on-disc' : '')} x={q.x.toFixed(1)} y={(q.y + (axial || flat ? -10 : 0) + (m.disc ? 1 : 0)).toFixed(1)} textAnchor="middle" dominantBaseline="middle">{m.own ? glyph : other}</text>; })}
         {(stage === 'symmetry' || stage === 'surface') && <Name x={chargeAt.x + 14} y={chargeAt.y} anchor="start" className="gs-charge-name">{chargeName}</Name>}
         {/* The size the slider moves, from the centre (or the sheet) to the surface. */}
         {look.surface > .5 && <g className="gs-dimension"><line x1={dimA.x} y1={dimA.y} x2={dimB.x} y2={dimB.y} /><Name x={dimMid.x + (g.kind === 'pillbox' ? -14 : 0)} y={dimMid.y + (g.kind === 'pillbox' ? 0 : Math.hypot(dimMid.x - nameDA.x - 10, dimMid.y - 13 - nameDA.y + 8) < 32 ? 16 : -13)}>{sizeName}</Name></g>}
@@ -205,10 +285,10 @@ export const GaussFigure = memo(function GaussFigure({kase, size, sign, run, vie
         {showSolve && !space && built.pieces && (() => {
           return chainOf(built).map((link, i) => <Arrow key={i} a={proj(link.from)} b={proj(add(link.from, scale(link.dir, link.length * look.solve)))} className="gs-arrow gs-e is-piece" head={9} />);
         })()}
-        {built.answerAtP && showSolve && !space && <Arrow a={pAt} b={{x: pAt.x + (eTip.x - pAt.x) * look.solve, y: pAt.y + (eTip.y - pAt.y) * look.solve}} className="gs-arrow gs-e is-answer" head={12} />}
+        {built.answerAtP && showSolve && !space && <Arrow a={answerFrom} b={answerTo} className="gs-arrow gs-e is-answer" head={12} />}
         {/* Where the field at P is zero (inside a shell) there is no arrow to name, so the name says so. */}
         {built.answerAtP && showSolve && look.solve > .6 && <Name x={eTip.x + 12} y={eTip.y - 10} anchor="start" className="gs-field-name is-answer">{noField ? <>E = <tspan className="gs-zero">0</tspan></> : 'E'}</Name>}
-        {space && <ViewCube view={camera} at={{x: 664, y: 58}} size={20} minFont={11 / k} onPick={next => setCamera(next)} onSpin={(dx, dy) => turn(-dx * .009, dy * .009)} onStep={key => turn(key === 'ArrowLeft' ? .2 : key === 'ArrowRight' ? -.2 : 0, key === 'ArrowUp' ? .12 : key === 'ArrowDown' ? -.12 : 0)} />}
+        {space && <ViewCube view={camera} at={{x: 664, y: 58}} size={20} minFont={11 / k} onPick={(next, label) => { glideTo(next, .5); setAnnouncement(label); }} onSpin={(dx, dy) => turn(-dx * .009, dy * .009)} onStep={key => turn(key === 'ArrowLeft' ? .2 : key === 'ArrowRight' ? -.2 : 0, key === 'ArrowUp' ? .12 : key === 'ArrowDown' ? -.12 : 0)} />}
       </svg>
     </div>
     <div className="cd-toolbar">
@@ -217,15 +297,34 @@ export const GaussFigure = memo(function GaussFigure({kase, size, sign, run, vie
           <button key={value} type="button" title={title} disabled={value === '3d' && failed === 'failed'} className={'cd-view-mode' + (view === value && !(value === '3d' && failed) ? ' is-on' : value === '2d' && failed ? ' is-on' : '')}
             aria-pressed={value === '2d' ? !space : space} onClick={() => { if (value === '3d') setFailed(f => f === 'lost' ? false : f); onView(value); }}>{label}</button>)}
       </div>
-      {space && <div className="cd-pad"><button type="button" className="text-button cd-orbit-reset" onClick={() => setCamera(opening(kase))} disabled={Math.abs(camera.yaw - opening(kase).yaw) < 1e-6 && Math.abs(camera.pitch - opening(kase).pitch) < 1e-6}>Reset view</button></div>}
+      {space && <p className="gs-turn-hint">Drag or use the arrow keys to turn it; Home puts it back.</p>}
+      {/* Marked unavailable rather than disabled once the view is back: a disabled button drops the keyboard's focus to
+          the page's top, so the next Tab started the page over. */}
+      {space && <div className="cd-pad"><button type="button" className="text-button cd-orbit-reset" aria-disabled={atRest || undefined} onClick={() => { if (atRest) return; glideTo(opening(kase), .45); setAnnouncement('The opening view.'); }}>Reset view</button></div>}
+      <output className="sr-only" aria-live="polite">{announcement}</output>
       {failed && <output className="cd-stage-unavailable">{failed === 'lost' ? 'The 3D view was interrupted, so the figure is drawn as its cross-section. Choose 3D to try again.' : 'The 3D view is not available on this device, so the figure is drawn as its cross-section.'}</output>}
     </div>
-    <div className="cd-caption"><span>{built.pieces
-      ? built.pieces[1]?.surface ? 'Each surface’s teal arrows are its own piece’s field: the whole charge’s, or the plug’s. Grey ones are the outward dA. At P the two pieces’ fields, thin, add to the answer, bold.'
-        : 'The pillbox’s teal arrows are the whole sheet’s field, as if the hole were filled; grey ones are the outward dA. At P the whole sheet’s field and the disc’s, thin, add to the answer, bold.'
-      : <>Teal arrows are the field E at each patch, grey ones the patch’s outward dA. Shaded patches carry no flux.{c.kind === 'offset' && ' Here an arrow’s length grows as the square root of the field, which changes too much over the sphere for one scale.'}</>}</span></div>
+    {/* Every case's caption is laid in one cell, the others unseen, so the cell is as tall as the longest and choosing
+        a case never moves the sliders under the reader's hand. */}
+    <div className="cd-caption gs-caption"><span className="gs-caption-stack">
+      <span>{captionOf(kase, built)}</span>
+      {reserve.map((text, i) => <span key={i} aria-hidden="true" className="gs-caption-reserve">{text}</span>)}
+    </span></div>
   </div>;
 });
+/** The figure's caption: what its arrows are, and anything about their lengths a reader comparing them needs. */
+export function captionOf(kase: GaussCase, b: Built): string {
+  if (b.pieces) return b.pieces[1]?.surface ? 'Each surface’s teal arrows are its own piece’s field: the whole charge’s, or the plug’s. Grey ones are the outward dA. At P the two pieces’ fields, thin, add to the answer, bold.'
+    : 'The pillbox’s teal arrows are the whole sheet’s field, as if the hole were filled; grey ones are the outward dA. At P the whole sheet’s field and the disc’s, thin, add to the answer, bold.';
+  const base = 'Teal arrows are the field E at each patch, grey ones the patch’s outward dA. Shaded patches carry no flux.';
+  if (kase.figure.charge.kind === 'offset') return base + ' Here an arrow’s length grows as the square root of the field, so the strong near side fits the frame.';
+  // Said only where it is true: in space, an arrow pointing at the reader is foreshortened, and looks shorter.
+  const drawn = b.patches.filter(p => p.span > 0), crossed = drawn.filter(p => !p.zero), same = (list: typeof drawn) => list.length > 1 && list.every(p => Math.abs(p.span - list[0].span) < 1e-6);
+  if (drawn.length === b.patches.length && same(drawn)) return base + ' Every arrow here is the same length: E has one size all over this surface.';
+  if (crossed.length < drawn.length && same(crossed)) return base + ' Every arrow through the surface is the same length: E has one size wherever it crosses.';
+  if (b.shortened) return base + ' Where the field has no room, the arrows are drawn shorter than it is: it is stronger there than they show.';
+  return base;
+}
 /** The segment nearest a point, for the names. */
 function nearestSeg(segs: Seg[], to: V3): Seg {
   const crossed = segs.filter(s => !s.zero), pool = crossed.length ? crossed : segs;
@@ -239,7 +338,9 @@ function segBase(s: Seg): V3 {
 }
 /** THE CROSS-SECTION: the plane through the axis, drawn flat. Every arrow in it lies in the plane, since every
  * one of these fields does there. */
-function Flat({built, look, lit, proj}: {built: Built; look: Look; lit: number; proj: (p: V3) => {x: number; y: number}}) {
+function Flat({built, look, lit, proj, unknown}: {built: Built; look: Look; lit: number; proj: (p: V3) => {x: number; y: number};
+  /** A charge the lesson asks the reader to find: its density is drawn only once the run solves for it. */
+  unknown?: boolean}) {
   const c = built.charge, g = built.surface, u = built.unit, o = proj(v3(0, 0, 0));
   const R = c.size * u, B = (c.outer ?? c.size * 2) * u;
   // Two vertical lines at ±x from the axis: a cylindrical shell's cut, the whole height or the length the surface holds.
@@ -247,10 +348,12 @@ function Flat({built, look, lit, proj}: {built: Built; look: Look; lit: number; 
   const ring = (r0: number, r1: number) => `M${o.x - r1} ${o.y}a${r1} ${r1} 0 1 0 ${2 * r1} 0a${r1} ${r1} 0 1 0 ${-2 * r1} 0Z` + (r0 > 0 ? `M${o.x - r0} ${o.y}a${r0} ${r0} 0 1 0 ${2 * r0} 0a${r0} ${r0} 0 1 0 ${-2 * r0} 0Z` : '');
   const gradient = useId().replace(/:/g, '');
   const at = c.kind === 'offset' ? proj(v3(0, 0, c.size)) : c.at ? proj(c.at) : o;
-  const charge = c.kind === 'point' || c.kind === 'offset' ? <circle className="gs-charge" cx={at.x} cy={at.y} r={6} />
+  const charge = c.kind === 'point' || c.kind === 'offset' ? <circle className="gs-charge" cx={at.x} cy={at.y} r={POINT_PX} />
     : c.kind === 'ball' ? <circle className="gs-charge is-body" cx={o.x} cy={o.y} r={R} />
     // A ball whose density varies with r is shaded as it does: darker where there is more charge.
-    : c.kind === 'rising' || c.kind === 'falling' ? <circle className="gs-charge is-body is-graded" cx={o.x} cy={o.y} r={R} style={{fill: `url(#${gradient})`}} />
+    : (c.kind === 'rising' || c.kind === 'falling') && !(unknown && look.stage !== 'solve') ? <circle className="gs-charge is-body is-graded" cx={o.x} cy={o.y} r={R} style={{fill: `url(#${gradient})`}} />
+    // Its density is what the case asks for: drawn plain, as not yet known, until the run solves for it.
+    : c.kind === 'rising' || c.kind === 'falling' ? <circle className="gs-charge is-body is-unknown" cx={o.x} cy={o.y} r={R} />
     // Charge with no edge: shading that thins out as the density does, past the frame's edges.
     : c.kind === 'halo' ? <circle className="gs-charge is-cloud" cx={o.x} cy={o.y} r={10 * R} style={{fill: `url(#${gradient})`}} />
     : c.kind === 'cusp' ? <circle className="gs-charge is-body is-graded" cx={o.x} cy={o.y} r={R} style={{fill: `url(#${gradient})`}} />
@@ -262,12 +365,12 @@ function Flat({built, look, lit, proj}: {built: Built; look: Look; lit: number; 
     : c.kind === 'sheet' ? <line className="gs-charge is-line" x1={-20} y1={o.y} x2={740} y2={o.y} />
     : c.kind === 'rod' ? <rect className="gs-charge is-body" x={o.x - R} y={-20} width={2 * R} height={470} />
     : c.kind === 'tube' ? walls(R, 'gs-charge is-line')
-    : c.kind === 'coax' ? <>{walls(R, 'gs-charge is-line')}{walls(B, 'gs-charge is-line')}</>
+    : c.kind === 'coax' ? <>{walls(R, 'gs-charge is-line')}{walls(B, 'gs-charge is-line is-opposite')}</>
     // A conductor: the metal grey, its charge a line along its surfaces.
     : c.kind === 'metal' ? <><path className="gs-metal" d={ring(0, R)} /><circle className="gs-charge is-shell" cx={o.x} cy={o.y} r={R} /></>
-    : c.kind === 'cavity' ? <><path className="gs-metal" d={ring(R, B)} fillRule="evenodd" /><circle className="gs-charge is-shell" cx={o.x} cy={o.y} r={R} /><circle className="gs-charge is-shell" cx={o.x} cy={o.y} r={B} /><circle className="gs-charge" cx={o.x} cy={o.y} r={6} /></>
+    : c.kind === 'cavity' ? <><path className="gs-metal" d={ring(R, B)} fillRule="evenodd" /><circle className="gs-charge is-shell is-opposite" cx={o.x} cy={o.y} r={R} /><circle className="gs-charge is-shell" cx={o.x} cy={o.y} r={B} /><circle className="gs-charge" cx={o.x} cy={o.y} r={POINT_PX} /></>
     : c.kind === 'face' ? <><rect className="gs-metal" x={-20} y={o.y} width={760} height={460 - o.y} /><line className="gs-charge is-line" x1={-20} y1={o.y} x2={740} y2={o.y} /></>
-    : c.kind === 'plates' ? <><line className="gs-charge is-line" x1={-20} y1={o.y} x2={740} y2={o.y} /><line className="gs-charge is-line" x1={-20} y1={o.y + R} x2={740} y2={o.y + R} /></>
+    : c.kind === 'plates' ? <><line className="gs-charge is-line" x1={-20} y1={o.y} x2={740} y2={o.y} /><line className="gs-charge is-line is-opposite" x1={-20} y1={o.y + R} x2={740} y2={o.y + R} /></>
     // A charge with a hole: the charge, and the hole in it as a gap the paper shows through.
     : c.kind === 'ballhole' && c.hole ? <><circle className="gs-charge is-body" cx={o.x} cy={o.y} r={R} /><circle className="gs-hole" cx={proj(c.hole.at).x} cy={proj(c.hole.at).y} r={c.hole.radius * u} /></>
     : c.kind === 'rodhole' && c.hole ? <><rect className="gs-charge is-body" x={o.x - R} y={-20} width={2 * R} height={470} /><rect className="gs-hole" x={proj(v3(c.hole.at.x - c.hole.radius, 0, 0)).x} y={-20} width={2 * c.hole.radius * u} height={470} /></>
@@ -282,18 +385,18 @@ function Flat({built, look, lit, proj}: {built: Built; look: Look; lit: number; 
     if (q.kind === 'sheet') return <line key={i} className="gs-inside is-line" x1={o.x - g.r * u} y1={o.y} x2={o.x + g.r * u} y2={o.y} />;
     return null;
   });
-  const inside = look.enclosed > .02 && (built.pieces ? <>{pieceInside}</> : c.kind === 'point' ? <circle className="gs-inside" cx={at.x} cy={at.y} r={13} />
+  const inside = look.enclosed > .02 && (built.pieces ? <>{pieceInside}</> : c.kind === 'point' ? <circle className="gs-inside" cx={at.x} cy={at.y} r={POINT_PX + 4} />
     : c.kind === 'halo' ? <circle className="gs-inside is-body" cx={o.x} cy={o.y} r={g.r * u} />
     : c.kind === 'cusp' ? <circle className="gs-inside is-body" cx={o.x} cy={o.y} r={Math.min(c.size, g.r) * u} />
     : c.kind === 'oddslab' ? (() => { const z1 = Math.max(-c.size, Math.min(c.size, g.h)), z0 = Math.max(-c.size, Math.min(c.size, g.low ?? -g.h)); return z1 - z0 > 1e-3 && <rect className="gs-inside is-body" x={o.x - g.r * u} y={o.y - z1 * u} width={2 * g.r * u} height={(z1 - z0) * u} />; })()
     : c.kind === 'segment' ? <line className="gs-inside is-line" x1={o.x} y1={o.y - Math.min(c.size, g.h) * u} x2={o.x} y2={o.y + Math.min(c.size, g.h) * u} />
-    : c.kind === 'offset' ? g.r > c.size && <circle className="gs-inside" cx={at.x} cy={at.y} r={13} />
+    : c.kind === 'offset' ? g.r > c.size && <circle className="gs-inside" cx={at.x} cy={at.y} r={POINT_PX + 4} />
     : isBall(c.kind) ? <circle className={'gs-inside ' + (c.kind === 'ball' ? 'is-body' : 'is-shell')} cx={o.x} cy={o.y} r={Math.min(c.size, g.r) * u} /> : c.kind === 'shell' || c.kind === 'metal' ? g.r > c.size && <circle className="gs-inside is-shell" cx={o.x} cy={o.y} r={R} />
     : c.kind === 'line' ? <line className="gs-inside is-line" x1={o.x} y1={o.y - H} x2={o.x} y2={o.y + H} />
     : c.kind === 'sheet' || c.kind === 'face' || c.kind === 'plates' ? <line className="gs-inside is-line" x1={o.x - g.r * u} y1={o.y} x2={o.x + g.r * u} y2={o.y} />
     : c.kind === 'rod' ? <rect className="gs-inside is-body" x={o.x - Math.min(c.size, g.r) * u} y={o.y - H} width={2 * Math.min(c.size, g.r) * u} height={2 * H} />
-    : c.kind === 'tube' || c.kind === 'coax' ? g.r > c.size && <>{walls(R, 'gs-inside is-line', H)}{c.kind === 'coax' && g.r * u > B && walls(B, 'gs-inside is-line', H)}</>
-    : c.kind === 'cavity' ? <><circle className="gs-inside" cx={o.x} cy={o.y} r={13} />{g.r > c.size && <circle className="gs-inside is-shell" cx={o.x} cy={o.y} r={R} />}{g.r * u > B && <circle className="gs-inside is-shell" cx={o.x} cy={o.y} r={B} />}</>
+    : c.kind === 'tube' || c.kind === 'coax' ? g.r > c.size && <>{walls(R, 'gs-inside is-line', H)}{c.kind === 'coax' && g.r * u > B && walls(B, 'gs-inside is-line is-opposite', H)}</>
+    : c.kind === 'cavity' ? <><circle className="gs-inside" cx={o.x} cy={o.y} r={POINT_PX + 4} />{g.r > c.size && <circle className="gs-inside is-shell is-opposite" cx={o.x} cy={o.y} r={R} />}{g.r * u > B && <circle className="gs-inside is-shell" cx={o.x} cy={o.y} r={B} />}</>
     : <rect className="gs-inside is-body" x={o.x - g.r * u} y={o.y - Math.min(g.h, c.size) * u} width={2 * g.r * u} height={2 * Math.min(g.h, c.size) * u} />);
   const dA = .34 * Math.min(1, built.half / 3.2);
   // The density's shading: from the centre out for a ball, from the middle plane out for the tent slab.
@@ -302,11 +405,14 @@ function Flat({built, look, lit, proj}: {built: Built; look: Look; lit: number; 
   return <g className="gs-flat">
     {(c.kind === 'rising' || c.kind === 'falling' || c.kind === 'halo' || c.kind === 'cusp') && <defs><radialGradient id={gradient} cx="50%" cy="50%" r="50%">{stops.map(([at, op]) => <stop key={at} offset={at} style={{stopColor: 'var(--charge)', stopOpacity: op * .62}} />)}</radialGradient></defs>}
     {c.kind === 'tent' && <defs><linearGradient id={gradient} x1="0" y1="0" x2="0" y2="1">{[[0, .05], [.5, .6], [1, .05]].map(([at, op]) => <stop key={at} offset={at} style={{stopColor: 'var(--charge)', stopOpacity: op}} />)}</linearGradient></defs>}
-    <g className="gs-charge-layer">{charge}</g>
-    {inside && <g style={{opacity: look.enclosed}}>{inside}</g>}
+    {/* The charge is cut to the plot: an infinite line or sheet runs to the frame's edge and no farther, never up
+        through the card's heading. */}
+    <defs><clipPath id={`${gradient}-plot`}><rect x={0} y={0} width={720} height={430} /></clipPath></defs>
+    <g className="gs-charge-layer" clipPath={`url(#${gradient}-plot)`}>{charge}</g>
+    {inside && <g style={{opacity: look.enclosed}} clipPath={`url(#${gradient}-plot)`}>{inside}</g>}
     {look.spokes > .01 && <g className="gs-spokes" style={{opacity: Math.min(1, look.spokes * 1.4)}}>{built.flatSpokes.map((s, i) => {
-      const len = (s.span ?? 0) * look.spokes, d = unitV(s.field), a = proj(s.at), b = proj(add(s.at, scale(d, len)));
-      return <Arrow key={i} a={a} b={b} className="gs-arrow gs-e" />;
+      const ends = arrowEnds(s.at, s.field, (s.span ?? 0) * look.spokes, s.back);
+      return <Arrow key={i} a={proj(ends.from)} b={proj(ends.to)} className="gs-arrow gs-e" />;
     })}</g>}
     {look.surface > .01 && <g className="gs-surface" style={{opacity: look.surface}}>
       {built.slice.map((s, i) => {
@@ -320,8 +426,8 @@ function Flat({built, look, lit, proj}: {built: Built; look: Look; lit: number; 
     <g className="gs-fields">{built.slice.map((s, i) => {
       const f = Math.max(0, Math.min(1, lit - i));
       if (!(f > 0)) return null;
-      const len = (s.span ?? 0) * f, a = proj(s.mid), b = proj(add(s.mid, scale(unitV(s.field), len)));
-      return <Arrow key={s.key} a={a} b={b} className={'gs-arrow gs-e' + (s.zero ? ' is-along' : '')} />;
+      const ends = arrowEnds(s.mid, s.field, (s.span ?? 0) * f, s.back);
+      return <Arrow key={s.key} a={proj(ends.from)} b={proj(ends.to)} className={'gs-arrow gs-e' + (s.zero ? ' is-along' : '')} />;
     })}</g>
   </g>;
 }

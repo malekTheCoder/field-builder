@@ -106,6 +106,8 @@ describe('Watch it build, the Gauss way', () => {
 describe('the flux instrument', () => {
   it('names the charges inside, and changes only when one crosses, by keyboard', async () => {
     const view = await open('flux');
+    // The instrument opens on the flat patch, the idea the lesson starts from; the closed surface is its second tab.
+    fireEvent.click(view.getByRole('tab', {name: 'A closed surface'}));
     const readout = () => document.querySelector<HTMLElement>('.gs-flux .gs-readout')!.dataset.inside;
     expect(readout()).toBe('q1,q3');
     const q2 = view.getByRole('button', {name: /^q₂, negative, outside/});
@@ -118,6 +120,8 @@ describe('the flux instrument', () => {
   }, 20000);
   it('takes a drag out of the surface, and the flux loses that charge', async () => {
     const view = await open('flux');
+    // The instrument opens on the flat patch, the idea the lesson starts from; the closed surface is its second tab.
+    fireEvent.click(view.getByRole('tab', {name: 'A closed surface'}));
     const readout = () => document.querySelector<HTMLElement>('.gs-flux .gs-readout')!.dataset.inside;
     const q1 = view.getByRole('button', {name: /^q₁, positive, inside/});
     const svg = document.querySelector<SVGSVGElement>('.gs-closed-svg')!;
@@ -224,7 +228,8 @@ describe('the symmetry instrument', () => {
     fireEvent.click(view.getByRole('button', {name: 'Leaning along the line'}));
     fireEvent.click(view.getByRole('button', {name: 'Mirror square to the line'}));
     const verdict = () => document.querySelector('.gs-verdict')?.textContent ?? '';
-    expect(verdict()).toBe('Choose a move.');
+    // While the move plays the line says what is happening, never "choose a move" over a move under way.
+    expect(verdict()).toBe('Mirror square to the line: the field is carried with the charge.');
     await waitFor(() => expect(verdict()).toContain('impossible'), {timeout: 4000});
     fireEvent.click(view.getByRole('button', {name: 'Straight out or in'}));
     fireEvent.click(view.getByRole('button', {name: 'Mirror square to the line'}));
@@ -404,5 +409,82 @@ describe('the hard cases', () => {
     cleanup(); newVisit();
     const prev = await open('runs-out');
     expect(prev.getByRole('link', {name: /^Next: The hard cases/}).getAttribute('href')).toBe('?g=hard');
+  }, 20000);
+});
+
+describe('the figure’s round of fixes', () => {
+  const label = () => document.querySelector('.gs-svg')?.getAttribute('aria-label') ?? '';
+  it('says where the surface stands from the enclosed charge, never "inside" by default', async () => {
+    let view = await open('symmetry');
+    fireEvent.click(view.getByRole('button', {name: 'Line'}));
+    expect(label()).toContain('a closed cylinder round a length of it');
+    expect(label()).not.toContain('inside a closed cylinder');
+    view.unmount(); newVisit();
+    view = await open('conductors');
+    // The opening sphere is in the metal, and the figure's Q_enc there is zero: the label says both.
+    expect(label()).toContain('a closed sphere inside the metal');
+    expect(label()).toContain('holds no net charge');
+    fireEvent.click(view.getByRole('button', {name: /^A charge in a hollow/}));
+    fireEvent.click(view.getByRole('button', {name: 'Negative'}));
+    expect(label()).toContain('the charge in the hollow negative');
+  }, 20000);
+  it('keeps the focus on Reset view once the view is back, and a turned view stays with its own lesson', async () => {
+    const view = await open('symmetry');
+    fireEvent.click(view.getByRole('button', {name: 'Line'}));
+    const reset = () => view.getByRole('button', {name: 'Reset view'});
+    expect(reset().getAttribute('aria-disabled')).toBe('true');
+    (document.querySelector('.gs-svg') as SVGSVGElement).focus();
+    await userEvent.keyboard('{ArrowLeft}{ArrowLeft}');
+    await waitFor(() => expect(reset().getAttribute('aria-disabled')).toBeNull());
+    reset().focus();
+    await userEvent.keyboard('{Enter}');
+    await waitFor(() => expect(reset().getAttribute('aria-disabled')).toBe('true'));
+    expect(document.activeElement).toBe(reset());
+    // Turned again, then another lesson: it opens at its own view, not this one's.
+    (document.querySelector('.gs-svg') as SVGSVGElement).focus();
+    await userEvent.keyboard('{ArrowLeft}');
+    fireEvent.click(view.getAllByRole('link').find(a => a.getAttribute('href') === '?g=lines')!);
+    await waitFor(() => expect(document.querySelector('h1')?.textContent).toContain('Lines'));
+    expect(view.getByRole('button', {name: 'Reset view'}).getAttribute('aria-disabled')).toBe('true');
+  }, 20000);
+  it('leads the lesson list with the Gauss family', async () => {
+    await open('sheets');
+    expect(document.querySelector('.exp-lessons .exp-family-name')?.textContent).toContain('Gauss');
+  }, 20000);
+  it('opens the flux instrument on the flat patch, its words its own', async () => {
+    const view = await open('flux');
+    expect(document.querySelector('.gs-flux .gs-instrument-title')?.textContent).toBe('Tilt the patch');
+    fireEvent.click(view.getByRole('tab', {name: 'A closed surface'}));
+    expect(document.querySelector('.gs-flux .gs-instrument-title')?.textContent).toBe('Move the charges');
+  }, 20000);
+  it('starts Carry it out from the case chosen, and holds the caption’s height as the case changes', async () => {
+    const view = await open('inside');
+    const height = () => (document.querySelector('.gs-caption') as HTMLElement).getBoundingClientRect().height;
+    const first = height();
+    expect(document.querySelector('.gs-caption')?.textContent).toContain('Every arrow here is the same length');
+    fireEvent.click(view.getByRole('button', {name: 'Charge outside'}));
+    expect(view.getByRole('button', {name: /^The charge q, outside the sphere/})).toBeTruthy();
+    expect(height()).toBe(first);
+    fireEvent.click(view.getByRole('button', {name: 'Charge off centre'}));
+    expect(height()).toBe(first);
+    fireEvent.click(view.getByRole('button', {name: 'Charge at the centre'}));
+    expect(view.getByRole('button', {name: /^The charge q, at the centre/})).toBeTruthy();
+  }, 20000);
+  it('cuts an infinite charge to the plot in the cross-section', async () => {
+    const view = await open('lines');
+    fireEvent.click(view.getByRole('button', {name: 'Cross-section'}));
+    const layer = document.querySelector('.gs-charge-layer')!;
+    expect(layer.getAttribute('clip-path')).toMatch(/^url\(#/);
+    // The clip is the plot's own frame, so the line stops at its edge, under the card's heading.
+    const id = layer.getAttribute('clip-path')!.slice(5, -1), rect = document.getElementById(id)?.querySelector('rect');
+    expect([rect?.getAttribute('y'), rect?.getAttribute('height')]).toEqual(['0', '430']);
+  }, 20000);
+  it('on a phone, a step played from the board brings the figure into view', async () => {
+    const view = await open('symmetry', 390, 844);
+    const step = view.getByRole('button', {name: 'Right side: play this step on the figure'});
+    step.scrollIntoView();
+    await new Promise(r => setTimeout(r, 50));
+    fireEvent.click(step);
+    await waitFor(() => { const r = document.querySelector('.gs-page .exp-diagram-card .cd-stage')!.getBoundingClientRect(); expect(r.top).toBeGreaterThanOrEqual(-1); expect(r.bottom).toBeLessThanOrEqual(845); }, {timeout: 4000});
   }, 20000);
 });

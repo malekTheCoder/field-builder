@@ -41,6 +41,8 @@ export function FieldProfile({kase, size, sign}: {kase: GaussCase; size: number;
   const here = fieldAlong(kase, sign, size), hx = px(size), hy = py(here);
   const region = s.regions?.[regionOf(kase, size)];
   const what = pillbox ? 'height' : 'radius';
+  // The field's symbol as the board writes it: E_z for the slab whose charge changes sign, whose answer is signed along z.
+  const axisSub = kase.figure.charge.kind === 'oddslab' ? 'z' : pillbox ? '⊥' : 'r';
   const described = `The field's component at P against the surface's ${what} ${variable}, for ${kase.figure.charge.name}, ${sign > 0 ? 'positive' : 'negative'}. The dot marks the ${what} the slider has chosen${region ? `: ${region.name}` : ''}.`;
   return <section className="gs-instrument gs-profile" aria-labelledby={`${uid}-title`}>
     <div className="gs-instrument-head">
@@ -53,13 +55,15 @@ export function FieldProfile({kase, size, sign}: {kase: GaussCase; size: number;
       <line className="gs-axis" x1={LEFT} y1={base} x2={RIGHT + 14} y2={base} />
       <line className="gs-axis" x1={yx} y1={TOP - 12} x2={yx} y2={BOTTOM + 8} />
       <text className="gs-name gs-axis-name" x={RIGHT + 20} y={base + (sign > 0 ? 4 : -4)} dominantBaseline="middle">{variable}</text>
-      <text className="gs-name gs-axis-name gs-field-name" x={yx - 12} y={base === BOTTOM ? TOP - 4 : base === TOP ? BOTTOM + 4 : TOP - 4} textAnchor="end" dominantBaseline="middle">E<tspan className="gs-sub" dy="5">{pillbox ? '⊥' : 'r'}</tspan></text>
+      <text className="gs-name gs-axis-name gs-field-name" x={yx - 12} y={base === TOP ? TOP - 22 : TOP - 4} textAnchor="end" dominantBaseline="middle">E<tspan className="gs-sub" dy="5">{axisSub}</tspan></text>
       {bounds.map((b, i) => <g key={i} className="gs-bound">
         <line x1={px(b)} y1={TOP - 6} x2={px(b)} y2={BOTTOM + 4} />
         <text className="gs-name gs-bound-name" x={px(b)} y={sign > 0 ? BOTTOM + 22 : TOP - 18} textAnchor="middle" dominantBaseline="middle">{names[i] ?? ''}</text>
       </g>)}
       {/* The slider's reach, faint, under the curve: the sizes the surface can take. */}
-      <line className="gs-reach" x1={px(s.size.min)} y1={base} x2={px(s.size.max)} y2={base} />
+      {/* Named where it lies under the curve; where the curve hangs from it, it would lie under the other labels, unnamed. */}
+      {base === BOTTOM && <><line className="gs-reach" x1={px(s.size.min)} y1={base} x2={px(s.size.max)} y2={base} />
+        <text className="gs-added-name" x={(px(s.size.min) + px(s.size.max)) / 2} y={BOTTOM + 40} textAnchor="middle">the slider’s range</text></>}
       {/* A field that grows without end at the axis leaves through the top of the plot, rather than being flattened. */}
       <clipPath id={`${uid}-clip`}><rect x={LEFT} y={TOP - 14} width={RIGHT - LEFT + 14} height={BOTTOM - TOP + 28} /></clipPath>
       <g clipPath={`url(#${uid}-clip)`}>{paths.map((d, i) => <path key={i} className={'gs-curve' + (added[i] ? ' is-added' : '')} d={d} />)}</g>

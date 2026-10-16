@@ -88,10 +88,10 @@ export function HoleInstrument({sign}: {sign: 1 | -1}) {
   return <section className="gs-instrument gs-holes" aria-labelledby={`${uid}-title`}>
     <div className="gs-instrument-head">
       <h2 id={`${uid}-title`} className="gs-instrument-title">Move the hole</h2>
-      <p className="gs-instrument-lede">{shape === 'ball' ? 'A charged ball cut through its centre and the centre of a hole in it.' : 'A charged rod cut square to its axis, with a hole drilled along it.'} Drag the hole, or move it with the arrow keys: every arrow in the hole is the same, and it follows d, the step from the {shape === 'ball' ? 'ball’s centre' : 'rod’s axis'} to the hole’s.</p>
+      <p className="gs-instrument-lede">{shape === 'ball' ? 'A charged ball cut through its centre and the centre of a hole in it.' : 'A charged rod cut square to its axis, with a hole drilled along it.'} Drag the hole, or move it with the arrow keys: every arrow in the hole is the same, and it follows d, the step from the {shape === 'ball' ? 'ball’s centre' : 'rod’s axis'} to the hole’s. Its shape is chosen here, apart from the case above.</p>
     </div>
     <div className="gs-choices">
-      <div className="cd-view-modes" role="group" aria-label="The charge">{([['A ball', 'ball'], ['A rod, end on', 'rod']] as const).map(([label, v]) => <button key={v} type="button" className={'cd-view-mode' + (shape === v ? ' is-on' : '')} aria-pressed={shape === v} onClick={() => setShape(v)}>{label}</button>)}</div>
+      <div className="cd-view-modes" role="group" aria-label="The shape">{([['A ball', 'ball'], ['A rod, end on', 'rod']] as const).map(([label, v]) => <button key={v} type="button" className={'cd-view-mode' + (shape === v ? ' is-on' : '')} aria-pressed={shape === v} onClick={() => setShape(v)}>{label}</button>)}</div>
       <div className="cd-view-modes" role="group" aria-label="At one point of the hole">{([['The field', false], ['Show the two pieces', true]] as const).map(([label, v]) => <button key={label} type="button" className={'cd-view-mode' + (pieces === v ? ' is-on' : '')} aria-pressed={pieces === v} onClick={() => setPieces(v)}>{label}</button>)}</div>
     </div>
     <svg ref={svg} className="gs-instrument-svg gs-hole-svg" viewBox="0 0 640 344" role="group" aria-labelledby={`${uid}-what`}
