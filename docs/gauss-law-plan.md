@@ -1,4 +1,4 @@
-# Gauss's law: plan (not started)
+# Gauss's law: plan (foundation and two lessons built; see gauss-lessons-howto.md)
 
 ## Why it belongs here
 The site teaches one method: cut the charge up, add Coulomb's law over the pieces. Gauss's law is
@@ -129,4 +129,4 @@ Proposed lesson list, updated:
 10. When symmetry runs out.
 11. The hard cases.
 
-The site's "coming soon" list shows the shorter seven until the owner picks.
+The site lists all eleven: Symmetry first and Flux, the idea are live (`?g=symmetry`, `?g=flux`); the rest are coming soon.

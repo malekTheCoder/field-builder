@@ -10,7 +10,10 @@ owner says they are urgent.
   [gauss-law-plan.md](gauss-law-plan.md). One agent builds the foundation (lesson model, ?g= routing, page,
   the five-stage run, the 3D Gaussian-surface figure) and the first two lessons (Symmetry first; Flux, the
   idea) with a how-to; then parallel agents write the other nine; then physics reviewers; then Gauss quiz
-  banks.
+  banks. **Two of eleven done**: the foundation (src/gauss, the readiness switch GAUSS_READY) and both lessons
+  are live at `?g=symmetry` and `?g=flux`, physics-reviewed (algebra and narration; figure and instruments),
+  the other nine listed as coming soon. Next agents add one file each, following
+  [gauss-lessons-howto.md](gauss-lessons-howto.md).
 - **A critique round on the redesigned site**: starts when the zoom work lands.
 
 ## Next
