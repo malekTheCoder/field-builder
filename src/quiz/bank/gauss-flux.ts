@@ -27,7 +27,7 @@ export const bank: Question[] = [
       {tex: raw`0`, misconception: 'angle-from-surface',
         why: raw`The flux is zero only when the field lies along the patch, $\beta=0$. At any other angle part of the field crosses it.`},
     ],
-    explanation: raw`The angle in $EA\cos\theta$ is measured from the normal. The normal is square to the surface, so the angle from it is $\theta=\pi/2-\beta$, and the flux is $EA\cos(\pi/2-\beta)=EA\sin\beta$: zero when the field lies along the patch, $EA$ when it is square to it.`,
+    explanation: raw`The angle in $EA\cos\theta$ is measured from the normal. The normal is perpendicular to the surface, so the angle from it is $\theta=\pi/2-\beta$, and the flux is $EA\cos(\pi/2-\beta)=EA\sin\beta$: zero when the field lies along the patch, $EA$ when it is perpendicular to it.`,
     review: {lesson: 'flux', section: 'The angle is from the normal'}},
 
   {id: 'flux-edge-on', lesson: 'flux', kind: 'predict',
@@ -39,7 +39,7 @@ export const bank: Question[] = [
       {text: raw`The flux is the most it can be, $EA$, since the field runs along the whole patch.`, misconception: 'angle-from-surface',
         why: raw`Flux counts field going through a patch, not along it. Edge on, the angle from the normal is $\pi/2$, and $\cos(\pi/2)=0$.`},
     ],
-    explanation: raw`Edge on, the field is square to the patch’s normal, so $\theta=\pi/2$ and $EA\cos\theta=0$. Nothing crosses the patch, yet the field there is the same uniform field it always was.`,
+    explanation: raw`Edge on, the field is perpendicular to the patch’s normal, so $\theta=\pi/2$ and $EA\cos\theta=0$. Nothing crosses the patch, yet the field there is the same uniform field it always was.`,
     review: {lesson: 'flux', section: 'The angle is from the normal'}},
 
   {id: 'flux-bigger-sphere', lesson: 'flux', kind: 'predict',
@@ -63,7 +63,7 @@ export const bank: Question[] = [
       {tex: raw`2\pi d^2E`, misconception: 'diameter-radius',
         why: raw`Halving the diameter is right, but the half is squared: $4\pi(d/2)^2=\pi d^2$, not $4\pi d^2/2$.`},
     ],
-    explanation: raw`The field is the same size all over the sphere and square to it, so the flux is $E$ times the area. With $r=d/2$, the area is $4\pi(d/2)^2=\pi d^2$.`,
+    explanation: raw`The field is the same size all over the sphere and perpendicular to it, so the flux is $E$ times the area. With $r=d/2$, the area is $4\pi(d/2)^2=\pi d^2$.`,
     review: {lesson: 'flux', section: 'Round a point charge'}},
 
   {id: 'flux-charge-outside', lesson: 'flux', kind: 'predict',
@@ -111,6 +111,6 @@ export const bank: Question[] = [
       {text: raw`It is zero unless there is charge outside the surface.`, misconception: 'zero-flux-zero-field',
         why: raw`Charge inside that adds to zero can still make a field: a positive and a negative charge side by side do, all over the surface, with nothing outside at all.`},
     ],
-    explanation: raw`Gauss’s law fixes the total, $\oint\vec E\cdot d\vec A=Q_{\text{enc}}/\varepsilon_0$, not the field at each point. Zero says the inward and outward flux balance; only a symmetry that makes the field the same and square to the surface everywhere would turn that into zero field.`,
+    explanation: raw`Gauss’s law fixes the total, $\oint\vec E\cdot d\vec A=Q_{\text{enc}}/\varepsilon_0$, not the field at each point. Zero says the inward and outward flux balance; only a symmetry that makes the field the same and perpendicular to the surface everywhere would turn that into zero field.`,
     review: {lesson: 'flux', section: 'Two traps'}},
 ];

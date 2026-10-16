@@ -121,7 +121,7 @@ export const bank: Question[] = [
     choices: [
       {correct: true, text: raw`Symmetry: the field is radial and the same size all over that sphere, so its flux can be zero only if the field is zero.`},
       {text: raw`It needs no symmetry: zero flux always means zero field.`, misconception: 'zero-flux-zero-field',
-        why: raw`Zero flux allows field going in on one side and out on the other. Only a field that is the same and square to the surface everywhere cannot do that.`},
+        why: raw`Zero flux allows field going in on one side and out on the other. Only a field that is the same and perpendicular to the surface everywhere cannot do that.`},
       {text: raw`Because there is no charge outside that sphere either.`, misconception: 'only-inside-field',
         why: raw`There is: the whole shell lies outside it. Its field counts toward $\vec E$; it is zero inside because of the shell’s symmetry, not because the shell is outside.`},
     ],

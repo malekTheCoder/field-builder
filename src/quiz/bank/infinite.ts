@@ -29,7 +29,7 @@ export const bank: Question[] = [
       {tex: raw`\Delta Q=\lambda r\,\Delta\alpha`, misconception: 'jacobian',
         why: raw`$r\,\Delta\alpha$ is the length only of the piece straight across from $P$. Farther along, the same angle takes in a longer stretch of line, longer by $\sec^2\alpha$.`},
       {tex: raw`\Delta Q=\lambda r\sec\alpha\,\Delta\alpha`, misconception: 'jacobian',
-        why: raw`$r\sec\alpha\,\Delta\alpha$ is the width of the angle at the piece’s distance, square to the line of sight. The line crosses that line of sight on a slant, which makes the piece longer by one more $\sec\alpha$.`},
+        why: raw`$r\sec\alpha\,\Delta\alpha$ is the width of the angle at the piece’s distance, perpendicular to the line of sight. The line crosses that line of sight on a slant, which makes the piece longer by one more $\sec\alpha$.`},
     ],
     explanation: raw`The piece sits at $y=r\tan\alpha$, so a step $\Delta\alpha$ moves along the line by $\Delta y=r\sec^2\alpha\,\Delta\alpha$. It holds $\lambda$ times that: $\lambda r\sec^2\alpha\,\Delta\alpha$. Far pieces are far longer than near ones.`,
     review: {lesson: 'infinite', stage: 'cut'}},

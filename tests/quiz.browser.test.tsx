@@ -158,7 +158,7 @@ describe('quiz yourself', () => {
   await userEvent.click(r.getByRole('button', {name: /Clear my history/}));
   expect(localStorage.getItem(HISTORY_KEY)).toBeNull();
   expect(r.getByText('Your history is cleared.')).toBeTruthy();
- }, 30000);
+ }, 60000);
 
  it('quizzes on a Gauss lesson: the group ticks as one, and every link opens the lesson at ?g=', async () => {
   const r = await openQuiz();

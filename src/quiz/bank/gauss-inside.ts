@@ -119,7 +119,7 @@ export const bank: Question[] = [
     choices: [
       {correct: true, text: raw`No. The field differs from patch to patch and crosses each at its own angle, so it cannot come out of the integral.`},
       {text: raw`Yes: the field is $q/(4\pi\varepsilon_0r^2)$ on every patch, as it was with the charge at the centre.`, misconception: 'false-symmetry',
-        why: raw`That needed the field square to the sphere and the same all over it, which only a charge at the centre gives. Off the centre it is stronger near the charge and slanted to most patches.`},
+        why: raw`That needed the field perpendicular to the sphere and the same all over it, which only a charge at the centre gives. Off the centre it is stronger near the charge and slanted to most patches.`},
       {text: raw`Yes, but only on the patch nearest the charge.`, misconception: 'false-symmetry',
         why: raw`Dividing the total flux by the area gives an average of the field’s outward part, not its value on any one patch. The nearest patch sees more than that average.`},
     ],

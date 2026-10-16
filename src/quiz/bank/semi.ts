@@ -53,7 +53,7 @@ export const bank: Question[] = [
       {tex: raw`\Delta Q=\lambda r\,\Delta\alpha`, misconception: 'jacobian',
         why: raw`$r\,\Delta\alpha$ is the length only of the piece right at the end, level with $P$. Farther out, the same angle takes in a longer stretch of line, longer by $\sec^2\alpha$.`},
       {tex: raw`\Delta Q=\lambda r\sec\alpha\,\Delta\alpha`, misconception: 'jacobian',
-        why: raw`$r\sec\alpha\,\Delta\alpha$ is the width of the angle at the piece’s distance, square to the line of sight. The line crosses that line of sight on a slant, which makes the piece longer by one more $\sec\alpha$.`},
+        why: raw`$r\sec\alpha\,\Delta\alpha$ is the width of the angle at the piece’s distance, perpendicular to the line of sight. The line crosses that line of sight on a slant, which makes the piece longer by one more $\sec\alpha$.`},
     ],
     explanation: raw`The piece sits at $y=r\tan\alpha$, so a step $\Delta\alpha$ moves along the line by $r\sec^2\alpha\,\Delta\alpha$. It holds $\lambda$ times that. With $r_i^2=r^2\sec^2\alpha$, the secants cancel and every piece makes $k\lambda\,\Delta\alpha/r$.`,
     review: {lesson: 'semi', stage: 'cut'}},
