@@ -16,7 +16,7 @@ import {BuildPlayer, runClock} from '../explorer/BuildPlayer';
 import {LessonIntro} from '../explorer/LessonIntro';
 import {Brand} from '../explorer/Brand';
 import {STORAGE} from '../explorer/Explorer';
-import {GAUSS, PlannedGlyph, ShapeGlyph, families} from '../explorer/lessons';
+import {GAUSS, PlannedGlyph, ShapeGlyph, families, plannedName} from '../explorer/lessons';
 import {GUIDE_HREF, QUIZ_HREF, inPlace, navigate, subscribeAddress} from '../state/route';
 import {gaussHref, gaussIdOf, gaussLesson, isGaussReady, type GaussId} from './index';
 import {gaussStages, moment, runSeconds, stageStart} from './run';
@@ -29,6 +29,7 @@ import {FieldProfile} from './FieldProfile';
 import {CavityInstrument} from './CavityInstrument';
 import {regionOf} from './instruments';
 import {InsideInstrument} from './InsideInstrument';
+import {QencInstrument} from './QencInstrument';
 import {GaussListFamily, GaussLibraryFamily} from './GaussFamily';
 import type {Sym} from './instruments';
 import '../explorer/explorer.css';
@@ -89,7 +90,7 @@ export default function GaussLesson() {
   useEffect(() => { const s = readSaved(); setDark(s.dark === true); setSidebarOpen(s.sidebarOpen !== false); setReady(true); }, []);
   useEffect(() => { if (ready) document.documentElement.classList.toggle('dark', dark); }, [dark, ready]);
   useEffect(() => { if (ready) writeSaved({dark, sidebarOpen}); }, [dark, sidebarOpen, ready]);
-  useEffect(() => { document.title = `${lesson.title} · Field Builder`; }, [lesson.title]);
+  useEffect(() => { document.title = `${lesson.title.replace('Q_enc', 'Q enc')} · Field Builder`; }, [lesson.title]);
   // A NEW LESSON STARTS AT ITS TOP, its text shut, its first case, its run closed, the focus on its title. The
   // first one is the site's to place (Site.tsx), since it may have come from another page.
   const shown = useRef(id);
@@ -234,7 +235,7 @@ export default function GaussLesson() {
       <main id="lesson" className="exp-main">
         <div className="exp-breadcrumb"><Hint label={sidebarOpen ? 'Hide the lesson list' : 'Show the lesson list'}><button type="button" className="exp-library-toggle" aria-expanded={sidebarOpen} aria-label={sidebarOpen ? 'Hide the lesson list' : 'Show the lesson list'} onClick={() => setSidebarOpen(v => !v)}><PanelLeft size={16} /></button></Hint>
           <div className="exp-crumbs"><button type="button" className="exp-crumb-link" aria-haspopup="dialog" aria-expanded={library} onClick={() => setLibrary(true)}><ChevronLeft size={13} aria-hidden="true" />Charge library</button></div></div>
-        <div className="exp-heading has-lesson"><div><p className="gs-kicker">{GAUSS.label}</p><h1 id={LESSON_TITLE} tabIndex={-1}>{lesson.title}</h1></div></div>
+        <div className="exp-heading has-lesson"><div><p className="gs-kicker">{GAUSS.label}</p><h1 id={LESSON_TITLE} tabIndex={-1}>{plannedName(lesson.title)}</h1></div></div>
         <LessonIntro lesson={lesson} open={lessonOpen} onToggle={toggleLesson} onBuild={toBuild} />
         <div className={'exp-workspace' + running}>
           <div className="exp-visual-column">
@@ -256,6 +257,7 @@ export default function GaussLesson() {
             {lesson.instrument === 'profile' && <FieldProfile kase={kase} size={size} sign={sign} />}
             {lesson.instrument === 'cavity' && <CavityInstrument sign={sign} />}
             {lesson.instrument === 'inside' && <InsideInstrument sign={sign} />}
+            {lesson.instrument === 'qenc' && <QencInstrument />}
           </div>
           <GaussBoard kase={kase} flux={lesson.id === 'flux' || lesson.id === 'inside'} build={boardBuild} onStep={boardStep} />
         </div>

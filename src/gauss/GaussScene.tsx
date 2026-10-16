@@ -48,6 +48,7 @@ export function GaussScene(props: SceneProps) {
       const key = new THREE.DirectionalLight(0xffffff, 2); key.position.set(4, -6, 9); scene.add(key);
       // The charge is matte and keeps its colour from every side, as in the integral lessons' scene.
       const bodyMaterial = new THREE.MeshStandardMaterial({color: CHARGE.body, roughness: .88, metalness: 0, transparent: true, opacity: .9});
+      const cutMaterial = new THREE.MeshStandardMaterial({color: CHARGE.body, roughness: .9, metalness: 0, transparent: true, opacity: .24, depthWrite: false});
       const sheetMaterial = new THREE.MeshStandardMaterial({color: CHARGE.body, roughness: .9, metalness: 0, transparent: true, opacity: .32, side: THREE.DoubleSide, depthWrite: false});
       const insideMaterial = new THREE.MeshStandardMaterial({color: CHARGE.body, emissive: CHARGE.glow, roughness: .7, metalness: 0, transparent: true, opacity: 1, side: THREE.DoubleSide});
       // A solid cylinder of charge: denser than a shell's skin, still clear enough to see a surface inside it.
@@ -132,7 +133,8 @@ export function GaussScene(props: SceneProps) {
         // THE CHARGE, as a body: a point, a ball, a shell, a line, a sheet or a slab.
         if (c.kind === 'point') charge.add(new THREE.Mesh(new THREE.SphereGeometry(.13, 24, 16), bodyMaterial));
         if (c.kind === 'offset') { const m = new THREE.Mesh(new THREE.SphereGeometry(.13, 24, 16), bodyMaterial); m.position.set(0, 0, c.size); charge.add(m); }
-        if (isBall(c.kind)) charge.add(new THREE.Mesh(new THREE.SphereGeometry(c.size, 48, 32), bodyMaterial));
+        // A ball the Gaussian sphere cuts through is drawn translucent, so the sphere and its patches show inside it.
+        if (isBall(c.kind)) charge.add(new THREE.Mesh(new THREE.SphereGeometry(c.size, 48, 32), g.r < c.size ? cutMaterial : bodyMaterial));
         if (c.kind === 'shell') charge.add(new THREE.Mesh(new THREE.SphereGeometry(c.size, 48, 32), sheetMaterial));
         if (c.kind === 'line') { const m = new THREE.Mesh(new THREE.CylinderGeometry(.045, .045, reach * 2, 16), bodyMaterial); m.rotation.x = Math.PI / 2; charge.add(m); }
         if (c.kind === 'sheet') charge.add(new THREE.Mesh(new THREE.PlaneGeometry(reach * 1.4, reach * 1.4), sheetMaterial));
@@ -150,7 +152,8 @@ export function GaussScene(props: SceneProps) {
         insideMesh = null;
         if (c.kind === 'point') insideMesh = new THREE.Mesh(new THREE.SphereGeometry(.2, 24, 16), insideMaterial);
         if (c.kind === 'offset' && g.r > c.size) { const m = new THREE.Mesh(new THREE.SphereGeometry(.2, 24, 16), insideMaterial); m.position.set(0, 0, c.size); insideMesh = m; }
-        if (isBall(c.kind)) insideMesh = new THREE.Mesh(new THREE.SphereGeometry(Math.min(c.size, g.r) * 1.01, 48, 32), insideMaterial);
+        // Inside a ball, the part enclosed sits just within the sphere, never over its patches.
+        if (isBall(c.kind)) insideMesh = new THREE.Mesh(new THREE.SphereGeometry(Math.min(c.size * 1.01, g.r * .985), 48, 32), insideMaterial);
         // A shell's charge is all on its surface: enclosed whole once the surface is outside it, and not at all before.
         if (c.kind === 'shell' && g.r > c.size) insideMesh = new THREE.Mesh(new THREE.SphereGeometry(c.size * 1.01, 48, 32), insideMaterial);
         if (c.kind === 'line') { const m = new THREE.Mesh(new THREE.CylinderGeometry(.075, .075, 2 * g.h, 16), insideMaterial); m.rotation.x = Math.PI / 2; insideMesh = m; }
@@ -280,7 +283,7 @@ export function GaussScene(props: SceneProps) {
           disposed = true; canvas.removeEventListener('webglcontextlost', onLost); observer.disconnect(); themeWatch.disconnect();
           for (const g of [charge, inside, skin, tints, arrows, spokes, marks]) clear(g);
           shaft.dispose(); head.dispose();
-          for (const m of [bodyMaterial, sheetMaterial, insideMaterial, rodMaterial, metalMaterial, skinMaterial, edgeMaterial, litMaterial, zeroMaterial, fieldFront, fieldBack, normalFront, normalBack, pointMaterial]) m.dispose();
+          for (const m of [bodyMaterial, cutMaterial, sheetMaterial, insideMaterial, rodMaterial, metalMaterial, skinMaterial, edgeMaterial, litMaterial, zeroMaterial, fieldFront, fieldBack, normalFront, normalBack, pointMaterial]) m.dispose();
           renderer.dispose();
           if (canvas.parentNode === mount) mount.removeChild(canvas);
         },

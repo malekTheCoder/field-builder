@@ -99,6 +99,7 @@
 .gs-q:focus-visible .gs-q-hit{fill:none;stroke:var(--primary);stroke-width:2.5}
 .gs-range{max-width:420px}
 .gs-checks{display:grid;gap:14px}
+.gs-check{min-width:0}
 .gs-check p{margin:4px 0 0;font-size:var(--type-body);line-height:1.6}
 .gs-recipe-steps{list-style:none;margin:16px 0 0;padding:0;display:grid;gap:12px}
 .gs-recipe-steps li{display:grid;gap:2px;padding:12px 0 0;border-top:1px solid var(--border)}
@@ -111,13 +112,43 @@
 .gs-centre{fill:var(--foreground)}
 .gs-level{stroke:var(--foreground);stroke-width:1.2;stroke-dasharray:5 4}
 .gs-baseline{stroke:var(--foreground);stroke-width:1.4}
-.gs-level-name,.gs-net-name{font-size:calc(19px * var(--cd-k,1))}
+/* Symbols in the instruments' SVG set upright: the serif italic's subscript zero reads as an o. */
+.gs-ui-name{font:600 calc(17px * var(--cd-k,1))/1 var(--font-ui),system-ui,sans-serif;fill:var(--foreground);paint-order:stroke;stroke:var(--card);stroke-width:4px;stroke-linejoin:round}
 .gs-stack{fill:var(--field);stroke:var(--diagram);stroke-width:1.5}
 .gs-stack.is-alt{fill:var(--contribution)}
 .gs-stack.is-back{fill:var(--ghost)}
 .gs-stack.is-back.is-alt{fill:color-mix(in srgb,var(--ghost) 70%,var(--diagram))}
 .gs-net{stroke:var(--foreground);stroke-width:3;stroke-linecap:round}
 .gs-stack-name{font:600 calc(17px * var(--cd-k,1))/1 var(--font-ui),system-ui,sans-serif;fill:var(--muted-foreground)}
+/* Shell by shell (Q_enc from a density): the ball's shells, the Gaussian sphere, and the plot of what each shell holds. */
+.gs-shell{fill:var(--charge);stroke:var(--diagram);stroke-width:.8}
+.gs-shell.is-inside{stroke:color-mix(in srgb,var(--charge) 50%,var(--diagram))}
+.gs-ball-edge{fill:none;stroke:var(--charge);stroke-width:1.4}
+.gs-gauss{fill:none;stroke:var(--foreground);stroke-width:2;stroke-dasharray:7 5}
+.gs-radius{stroke:var(--foreground);stroke-width:1.1;stroke-dasharray:2 3}
+.gs-plot-axis{stroke:var(--foreground);stroke-width:1.2}
+.gs-fill{fill:var(--charge);fill-opacity:.3}
+.gs-fill.is-wrong{fill:var(--ghost);fill-opacity:.35}
+.gs-curve{fill:none;stroke-width:2;stroke-linejoin:round}
+.gs-curve.is-dq{stroke:var(--charge);stroke-opacity:.45}
+.gs-curve.is-rho{stroke:var(--ghost);stroke-dasharray:6 4;stroke-opacity:.7}
+.gs-curve.is-dq.is-on{stroke-opacity:1;stroke-width:2.8}
+.gs-curve.is-rho.is-on{stroke-opacity:1;stroke-width:2.6}
+.gs-edge{stroke:var(--muted-foreground);stroke-width:1;stroke-dasharray:3 4}
+.gs-at{stroke:var(--foreground);stroke-width:1.4;stroke-dasharray:5 4}
+.gs-rho-name{fill:var(--ghost)}
+.gs-dq-name,.gs-share-name{fill:var(--charge)}
+.gs-share-track{fill:var(--muted)}
+.gs-share-fill{fill:var(--charge);fill-opacity:.7}
+.gs-wrong{font:600 calc(16px * var(--cd-k,1))/1 var(--font-ui),system-ui,sans-serif;fill:var(--muted-foreground)}
+/* The field against r (Spheres): four curves, the chosen one bold. */
+.gs-curve.is-other{stroke:var(--ghost);stroke-opacity:.55;stroke-width:1.6}
+.gs-curve.is-on:not(.is-dq):not(.is-rho){stroke:var(--field);stroke-width:3.2}
+.gs-curve-name{font:500 calc(14px * var(--cd-k,1))/1 var(--font-ui),system-ui,sans-serif;fill:var(--ghost);paint-order:stroke;stroke:var(--card);stroke-width:4px;stroke-linejoin:round}
+.gs-curve-name.is-on{fill:var(--field);font-weight:700}
+.gs-jump line{stroke:var(--foreground);stroke-width:1.6;stroke-dasharray:3 3}
+.gs-meet{fill:var(--card);stroke:var(--field);stroke-width:2.4}
+.gs-here{fill:var(--field);stroke:var(--card);stroke-width:2}
 @media(max-width:520px){
  .gs-instrument{padding:14px 13px 16px}
  .gs-name{stroke-width:4px}

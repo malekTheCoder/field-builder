@@ -93,12 +93,12 @@ export function InsideInstrument({sign}: {sign: 1 | -1}) {
       </g>
       {/* The stack. */}
       <line className="gs-level" x1={COL_A - 14} x2={COL_B + COL_W + 14} y1={TOP} y2={TOP} />
-      <text className="gs-name gs-level-name" x={COL_A - 20} y={TOP} textAnchor="end" dominantBaseline="middle">q/ε₀</text>
+      <text className="gs-ui-name" x={COL_A - 20} y={TOP} textAnchor="end" dominantBaseline="middle">q/ε₀</text>
       <line className="gs-baseline" x1={COL_A - 14} x2={COL_B + COL_W + 14} y1={BASE} y2={BASE} />
       {upRects.map((r, k) => <rect key={`u${r.i}`} className={'gs-stack' + (k % 2 ? ' is-alt' : '')} x={COL_A} y={r.y} width={COL_W} height={Math.max(0, r.h)} />)}
       {downRects.map((r, k) => <rect key={`d${r.i}`} className={'gs-stack is-back' + (k % 2 ? ' is-alt' : '')} x={COL_B} y={r.y} width={COL_W} height={Math.max(0, r.h)} />)}
       <line className="gs-net" x1={COL_A - 8} x2={COL_B + COL_W + 8} y1={netY} y2={netY} />
-      <text className="gs-name gs-net-name" x={COL_B + COL_W + 14} y={netY} dominantBaseline="middle">net</text>
+      <text className="gs-ui-name" x={COL_B + COL_W + 14} y={netY} dominantBaseline="middle">net</text>
       <text className="gs-stack-name" x={COL_A + COL_W / 2} y={BASE + 22} textAnchor="middle">{out}</text>
       <text className="gs-stack-name" x={COL_B + COL_W / 2} y={BASE + 22} textAnchor="middle">{back}</text>
     </svg>

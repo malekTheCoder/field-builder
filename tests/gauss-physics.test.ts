@@ -1,7 +1,8 @@
 import {describe, expect, it} from 'vitest';
-import {EPS0, bandFlux, boundaries, carriesNothing, crossedArea, dot, enclosedCharge, fieldAt, inducedCharges, norm, numericFlux, patches, pointOn, solvedField, starFlux, surfacePoint, sub, throughPatch, v3, wallDensity, type Charge, type Surface} from '../src/gauss/physics';
+import katex from 'katex';
+import {EPS0, ballFraction, bandFlux, boundaries, carriesNothing, crossedArea, dot, enclosedCharge, fieldAt, inducedCharges, norm, numericFlux, patches, pointOn, solvedField, starFlux, surfacePoint, sub, throughPatch, v3, wallDensity, type Charge, type Surface} from '../src/gauss/physics';
 import {build, drawnFlux, lookAt, REST, slice} from '../src/gauss/scene';
-import {BANDS, CANDIDATES, CAVITY, MOVES, START, bandShares, blob, cavityField, cavityLines, cavityTex, enclosedOf, fieldAlong, fluxTex, flowRound, insideBands, insideTex, isInside, moveBy, profile, profileReach, proposed, regionOf, samples, survives, wallMarks, type Charged} from '../src/gauss/instruments';
+import {BANDS, CANDIDATES, CAVITY, MOVES, SPHERE_KINDS, START, bandShares, blob, cavityField, cavityLines, cavityTex, density, enclosedOf, fieldAlong, fieldOf, fluxTex, flowRound, insideBands, insideTex, isInside, moveBy, profile, profileReach, proposed, qencFraction, qencTex, regionOf, samples, shellCharge, survives, wallMarks, type Charged} from '../src/gauss/instruments';
 import {GAUSS_LESSONS, gaussLesson} from '../src/gauss';
 import {REGISTRY} from '../src/distributions';
 import {EPS0 as SI_EPS0} from '../src/distributions/constants';
@@ -441,5 +442,107 @@ describe('a point charge off the sphere’s centre (Why only the charge inside)'
     }
     // Its slider's steps never land on the sphere, where the charge would be neither inside nor out.
     for (let k = 0; k <= 35; k++) expect(Math.abs(k * .06 - 1)).toBeGreaterThan(.01);
+  });
+});
+
+describe('Q_enc from a density, and the spheres: every right side against its own integral', () => {
+  /** Simpson's rule, for the density integrals: independent of the closed forms. */
+  const simpson = (f: (x: number) => number, a: number, b: number, n = 2000) => {
+    if (b <= a) return 0;
+    const h = (b - a) / n; let sum = f(a) + f(b);
+    for (let i = 1; i < n; i++) sum += f(a + i * h) * (i % 2 ? 4 : 2);
+    return sum * h / 3;
+  };
+  const R = 1.1, a = .7;
+  /** The densities as the lessons write them, ρ₀ fixed from Q = 1 by integrating over the ball numerically. */
+  const shapes: Record<'ball' | 'rising' | 'falling', (r: number) => number> = {ball: () => 1, rising: r => r / R, falling: r => 1 - r / R};
+  const rho0 = (k: keyof typeof shapes) => 1 / simpson(r => shapes[k](r) * 4 * Math.PI * r * r, 0, R);
+  it('normalises ρ₀ as the boards say: Q/(4/3 πR³), Q/πR³, 3Q/πR³', () => {
+    close(rho0('ball'), 3 / (4 * Math.PI * R ** 3), 1e-9);
+    close(rho0('rising'), 1 / (Math.PI * R ** 3), 1e-9);
+    close(rho0('falling'), 3 / (Math.PI * R ** 3), 1e-9);
+    // The instrument's densities are the same, in units of R and Q.
+    close(density('uniform', .4), 3 / (4 * Math.PI), 1e-12); close(density('rising', .4), .4 / Math.PI, 1e-12); close(density('falling', .4), .6 * 3 / Math.PI, 1e-12);
+  });
+  for (const kind of ['ball', 'rising', 'falling'] as const) for (const sign of SIGNS) it(`${kind} (${sign > 0 ? '+' : '−'}): Q_enc by shells, the flux, E inside and out, continuous at R`, () => {
+    const c: Charge = {kind, sign, size: R}, r0 = rho0(kind);
+    for (const r of [.35, .6, .8, 1, R * .999, R, 1.3, 2.2]) {
+      const g: Surface = {kind: 'sphere', r, h: 0};
+      const shells = sign * simpson(x => r0 * shapes[kind](x) * 4 * Math.PI * x * x, 0, Math.min(r, R));
+      close(enclosedCharge(c, g), shells, 1e-9);
+      // The left side by brute force, from E alone.
+      close(numericFlux(c, g, 120), shells / EPS0, 1e-6);
+      // And the closed forms the boards write: kQr/R³, kQ(4r − 3r²/R)/R³, kQr²/R⁴ inside; kQ/r² outside.
+      const inside = kind === 'ball' ? r / R ** 3 : kind === 'rising' ? r * r / R ** 4 : (4 * r - 3 * r * r / R) / R ** 3;
+      close(fieldAt(c, v3(r, 0, 0)).x, sign * (r <= R ? inside : 1 / (r * r)), 1e-12);
+    }
+    // Continuous at R, from either side.
+    close(fieldAt(c, v3(R * (1 - 1e-9), 0, 0)).x, fieldAt(c, v3(R * (1 + 1e-9), 0, 0)).x, 1e-6);
+  });
+  it('the falling ball’s field peaks inside, at 2R/3, at four thirds of kQ/R², and the outer half of the radius holds most of the charge', () => {
+    const c: Charge = {kind: 'falling', sign: 1, size: R};
+    let best = 0, at = 0;
+    for (let i = 1; i <= 4000; i++) { const r = R * i / 4000, e = fieldAt(c, v3(r, 0, 0)).x; if (e > best) { best = e; at = r; } }
+    close(at, 2 * R / 3, 1e-3);
+    close(best, 4 / 3 / (R * R), 1e-6);
+    expect(1 - ballFraction('falling', R / 2, R)).toBeGreaterThan(.5);
+  });
+  for (const sign of SIGNS) it(`the shell (${sign > 0 ? '+' : '−'}): nothing inside and no field there, all of Q outside, a jump of σ/ε₀`, () => {
+    const c: Charge = {kind: 'shell', sign, size: R};
+    for (const r of [.45, .8, 1.05]) { close(numericFlux(c, {kind: 'sphere', r, h: 0}, 60), 0, 1e-12); for (const p of patches({kind: 'sphere', r, h: 0})) expect(norm(fieldAt(c, p.center))).toBe(0); }
+    for (const r of [1.2, 2.4]) close(numericFlux(c, {kind: 'sphere', r, h: 0}, 60), sign / EPS0, 1e-9);
+    const sigma = 1 / (4 * Math.PI * R * R);
+    close(fieldAt(c, v3(R * (1 + 1e-12), 0, 0)).x - fieldAt(c, v3(R * (1 - 1e-12), 0, 0)).x, sign * sigma / EPS0, 1e-9);
+  });
+  for (const sign of SIGNS) it(`the tent slab (${sign > 0 ? '+' : '−'}): Q_enc by slices doubled, E inside and out, continuous at a, a sheet from outside`, () => {
+    const c: Charge = {kind: 'tent', sign, size: a};
+    for (const z of [.2, .45, .69, a, .9, 1.5]) {
+      const g: Surface = {kind: 'pillbox', r: .85, h: z}, A = Math.PI * .85 * .85;
+      // Slices from −z to z, the absolute value and all, by brute force.
+      const slices = sign * simpson(t => (Math.abs(t) <= a ? 1 - Math.abs(t) / a : 0) * A, -z, z, 4000);
+      close(enclosedCharge(c, g), slices, 1e-6);
+      close(numericFlux(c, g, 80), slices / EPS0, 1e-6);
+      // (ρ₀/ε₀)(z − z²/2a) inside, ρ₀a/2ε₀ outside; mirrored below.
+      const want = z <= a ? (z - z * z / (2 * a)) / EPS0 : a / (2 * EPS0);
+      close(fieldAt(c, v3(.3, -.2, z)).z, sign * want, 1e-12);
+      close(fieldAt(c, v3(.3, -.2, -z)).z, -sign * want, 1e-12);
+    }
+    close(fieldAt(c, v3(0, 0, a * (1 - 1e-9))).z, fieldAt(c, v3(0, 0, a * (1 + 1e-9))).z, 1e-6);
+    // From outside, a sheet of the slab's whole charge per area, ρ₀a: σ/2ε₀.
+    close(fieldAt(c, v3(0, 0, 3)).z, sign * (a / 2) / EPS0, 1e-12);
+  });
+});
+
+describe('Shell by shell, the Q_enc instrument', () => {
+  it('fills to the charge inside: its shells’ charge integrates to the fraction, all of Q once past R', () => {
+    for (const p of ['uniform', 'rising', 'falling'] as const) for (const x of [.1, .5, .8, 1, 1.3]) {
+      let sum = 0; const n = 4000, top = Math.min(x, 1);
+      for (let i = 0; i < n; i++) sum += shellCharge(p, (i + .5) * top / n) * top / n;
+      close(sum, qencFraction(p, x), 1e-6);
+      if (x >= 1) close(qencFraction(p, x), 1, 1e-12);
+    }
+  });
+  it('writes its readout for where the sphere is, and the mistake as not a charge', () => {
+    expect(qencTex('falling', .5).integral).toBe(String.raw`Q_{\text{enc}}=\int_0^{r}\rho_0\Big(1-\frac{r'}{R}\Big)4\pi r'^2\,dr'=Q\Big(\frac{4r^3}{R^3}-\frac{3r^4}{R^4}\Big)`);
+    expect(qencTex('rising', 1.2).integral).toBe(String.raw`Q_{\text{enc}}=\int_0^{R}\rho_0\frac{r'}{R}\,4\pi r'^2\,dr'=Q`);
+    expect(qencTex('uniform', .5, true).integral).toContain(String.raw`\neq Q_{\text{enc}}`);
+    for (const p of ['uniform', 'rising', 'falling'] as const) for (const x of [.5, 1.2]) for (const m of [false, true]) {
+      const t = qencTex(p, x, m);
+      for (const s of [t.density, t.integral]) expect(() => katex.renderToString(s, {throwOnError: true, strict: 'error'}), s).not.toThrow();
+    }
+  });
+});
+
+describe('The field against r, the spheres instrument', () => {
+  it('draws one curve outside R and four inside, for either sign', () => {
+    for (const sign of SIGNS) {
+      for (const r of [1.2, 1.7, 2.4]) for (const k of SPHERE_KINDS) close(fieldOf(k, r, sign), sign / (r * r), 1e-12);
+      for (const r of [.3, .7]) {
+        close(fieldOf('shell', r, sign), 0, 1e-12);
+        close(fieldOf('ball', r, sign), sign * r, 1e-12);
+        close(fieldOf('rising', r, sign), sign * r * r, 1e-12);
+        close(fieldOf('point', r, sign), sign / (r * r), 1e-12);
+      }
+    }
   });
 });

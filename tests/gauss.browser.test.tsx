@@ -38,7 +38,7 @@ describe('a Gauss lesson’s address', () => {
     expect(view.getByRole('heading', {level: 1}).textContent).toBe('Symmetry first');
     expect(document.title).toContain('Symmetry first');
     cleanup(); newVisit();
-    window.history.replaceState(null, '', '/?g=spheres');
+    window.history.replaceState(null, '', '/?g=hard');
     const home = render(<Site />);
     expect(await home.findByRole('heading', {level: 1, name: 'One law, every geometry.'})).toBeTruthy();
   }, 20000);
@@ -165,6 +165,28 @@ describe('why only the charge inside', () => {
       expect(document.querySelector('.gs-p')).toBeNull();
     } finally { f.restore(); }
   }, 30000);
+});
+
+describe('Q_enc from a density', () => {
+  it('builds Q_enc shell by shell: the upper limit is r inside the ball and R outside, and ρ dr′ is not a charge', async () => {
+    await open('qenc');
+    const tool = document.querySelector<HTMLElement>('.gs-qenc')!;
+    const integral = () => tool.querySelectorAll('.gs-readout .katex')[1]?.textContent ?? '';
+    expect(integral()).toContain('Qenc');
+    expect(tool.querySelectorAll('.gs-shell.is-inside').length).toBeGreaterThan(0);
+    const before = tool.querySelectorAll('.gs-shell.is-inside').length;
+    within(tool).getByRole('slider', {name: /Radius of the Gaussian sphere/}).focus();
+    await userEvent.keyboard('{End}');
+    await waitFor(() => expect(tool.querySelector('.gs-readout p')?.textContent).toContain('no charge beyond R'));
+    expect(tool.querySelectorAll('.gs-shell.is-inside').length).toBeGreaterThan(before);
+    expect(tool.querySelectorAll('.gs-shell:not(.is-inside)').length).toBe(0);
+    fireEvent.click(within(tool).getByRole('button', {name: /the mistake/}));
+    expect(integral()).toContain('≠');
+    expect(tool.querySelector('.gs-readout p')?.textContent).toContain('not a charge');
+    // The density picker changes the readout's density.
+    fireEvent.click(within(tool).getByRole('button', {name: 'Rising with r'}));
+    expect(tool.querySelector('.gs-readout .katex')?.textContent).toContain('ρ0');
+  }, 20000);
 });
 
 describe('the symmetry instrument', () => {

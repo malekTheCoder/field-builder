@@ -37,7 +37,7 @@ describe('Gauss\'s law on the home page', () => {
   const cards = [...family.querySelectorAll('.home-card')];
   expect(cards.length).toBe(GAUSS.lessons.length);
   for (const l of READY) {
-   const link = view.getByRole('link', {name: new RegExp(l.name)});
+   const link = view.getByRole('link', {name: new RegExp(l.name.replace('Q_enc', 'Qenc'))});
    expect(link.getAttribute('href')).toBe(`?g=${l.key}`);
    expect(family.contains(link)).toBe(true);
   }

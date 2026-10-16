@@ -251,11 +251,6 @@ export function density(p: Profile, x: number): number {
 export const shellCharge = (p: Profile, x: number) => density(p, x) * 4 * Math.PI * x * x;
 /** The charge inside a sphere of radius x (units of R), as a fraction of Q. */
 export const qencFraction = (p: Profile, x: number) => ballFraction(PROFILE_KIND[p], x, 1);
-/** The same, done the way the mistake does it: ∫ρ dr′, which is not a charge. For the drawing only. */
-export function wrongIntegral(p: Profile, x: number): number {
-  const m = Math.min(x, 1);
-  return p === 'uniform' ? 3 * m / (4 * Math.PI) : p === 'rising' ? m * m / (2 * Math.PI) : 3 * (m - m * m / 2) / Math.PI;
-}
 const raw = String.raw;
 /** The density as the board writes it, its constant fixed by the total Q, the shells' integrand, and the closed
  * form inside. */

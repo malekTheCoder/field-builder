@@ -167,7 +167,7 @@ export const GaussFigure = memo(function GaussFigure({kase, size, sign, run, vie
           {stage === 'left' && clash && norm(namedField) > 1e-9 ? <Name x={nameDA.x - 8} y={nameDA.y + 16} anchor="end" className="gs-normal-name">dA</Name>
             : <Name x={nameDA.x + 10} y={nameDA.y - 8} anchor="start" className="gs-normal-name">dA</Name>}
         </>}
-        {showFieldNames && zeroAt && look.sweep >= 1 - 1e-6 && (() => { const z = proj(zeroAt); return <Name x={z.x - 10} y={z.y + (g.kind === 'cylinder' ? -12 : 0)} anchor="end" className="gs-zero-name">E · dA = 0</Name>; })()}
+        {showFieldNames && zeroAt && look.sweep >= 1 - 1e-6 && (() => { const z = proj(zeroAt); return <Name x={z.x - 10} y={z.y + (g.kind === 'cylinder' ? -12 : 0)} anchor="end" className="gs-zero-name">E · dA = <tspan className="gs-zero">0</tspan></Name>; })()}
         {showInside && <Name x={insideAt.x + (round ? 0 : 16)} y={insideAt.y} anchor={round ? 'middle' : 'start'} className="gs-inside-name">{insideName(kase, built)}</Name>}
         {built.answerAtP && (stage === null || stage === 'solve') && <>
           <circle className="gs-p" cx={pAt.x} cy={pAt.y} r={4.5} />
