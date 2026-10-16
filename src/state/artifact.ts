@@ -242,9 +242,14 @@ export function proseHtml(text: string) {
   // The punctuation after a symbol stays on its line: a browser may break between an inline <math>
   // and the text after it, and the working printed "(sec α − cos α) dα" with its full stop starting
   // the next line.
+  // AND SO DOES A HYPHENATED TAIL. "$x$-axis" printed as "x" at the end of one line and "-axis" at the
+  // start of the next, in the ramp's problem box among others: forty-eight spans across the lessons and
+  // problems ($x$-axis, $xy$-plane, $x$-parts). The page's Math.tsx already holds the tail with its
+  // symbol; the copy now does too.
+  const TAIL = /^(?:-[A-Za-z]+)?[.,;:!?)’]*/;
   return parts.map((part, i) => {
-    if (i % 2 === 0) return escapeHtml(i > 0 ? part.replace(/^[.,;:!?)’]+/, '') : part);
-    const stop = /^[.,;:!?)’]+/.exec(parts[i + 1] ?? '')?.[0] ?? '';
+    if (i % 2 === 0) return escapeHtml(i > 0 ? part.replace(TAIL, '') : part);
+    const stop = TAIL.exec(parts[i + 1] ?? '')?.[0] ?? '';
     return stop ? `<span class="nobr">${mathml(part, false)}${escapeHtml(stop)}</span>` : mathml(part, false);
   }).join('');
 }
@@ -465,9 +470,21 @@ export function artifactHtml(a: LessonArtifact) {
   // equation stood at the foot of the Working and again under "The result" a heading below it. The last
   // step's sentence -- why the answer is what it is -- keeps its place, and the display it arrives at is
   // the one under "The result".
+  //
+  // And where the last line is the result with a remark after it, as the ring's potential ends on
+  // "V = kQ/√(R² + z²), V(0) = kQ/R": the lesson's Add them up ended on that V, the working's last
+  // display repeated it, and The result printed it a third time, one under the other. Only the remark,
+  // V(0) = kQ/R, stays under the step's sentence; the result says the rest.
   const last = shown.at(-1), arrives = !!last && !!a.results.length && restates(a.results[0], last.tex);
+  const clauses = last && !last.tex.includes('\\begin') ? last.tex.split(/,\s*\\qquad\s*/) : [];
+  const leads = !arrives && clauses.length > 1 && !!a.results.length && restates(a.results[0], clauses[0]);
+  const closing = arrives
+    ? [`<div class="step"><p>${proseHtml(last!.text)}</p></div>`]
+    : leads
+    ? [`<div class="step"><p>${proseHtml(last!.text)}</p>\n${display(clauses.slice(1).join(String.raw`,\qquad `))}</div>`]
+    : [];
   const working = shown.length
-    ? keep('<h2>Working</h2>', [...steps(arrives ? shown.slice(0, -1) : shown), ...(arrives ? [`<div class="step"><p>${proseHtml(last!.text)}</p></div>`] : [])])
+    ? keep('<h2>Working</h2>', [...steps(arrives || leads ? shown.slice(0, -1) : shown), ...closing])
     : '';
   const constant = !kSaid && [a.integralTex, a.secondaryIntegralTex ?? '', ...a.results, ...(a.derived ?? []), ...[...(a.worked ?? []), ...(a.back ?? [])].map(w => w.tex), ...(a.checks ?? []).map(c => c.formula)].some(usesK)
     ? `${kNote}\n`
@@ -481,22 +498,45 @@ export function artifactHtml(a: LessonArtifact) {
   // whole third sheet.
   const footer = '<footer>Saved from Field Builder. The equations are MathML, so this page needs no network to read or print.</footer>';
   // A printed link is only its words, so the address is printed under them.
+  // A SOURCE THE LESSON ALREADY NAMES IS NOT LISTED AGAIN. The potentials' read row names "§7.3 …; §7.4,
+  // Determining Field from Potential" under the §7.3 address only, so the problem's own §7.4 source passed
+  // the address check and OpenStax stood first and fourth in one list. A source whose section a row of the
+  // same publisher already names is that row.
   const readUrls = new Set((a.lesson?.read ?? []).map(r => r.url).filter(Boolean));
-  const moreReading = taughtFirst ? (a.sources ?? []).filter(s => !readUrls.has(s.url)) : [];
+  const publisher = (t: string) => /^[^\s,·]+/.exec(t)?.[0] ?? '';
+  const named = (s: {title: string}) => {
+    const section = /§\d+\.\d+/.exec(s.title)?.[0];
+    return !!section && (a.lesson?.read ?? []).some(r => publisher(r.book) === publisher(s.title) && r.where.includes(section));
+  };
+  const moreReading = taughtFirst ? (a.sources ?? []).filter(s => !readUrls.has(s.url) && !named(s)) : [];
+  // And what is left is set as the lesson's rows are, the book in italics and then where in it: the
+  // problems write "OpenStax · University Physics 2, §6.3, …", and under the rows' "OpenStax, University
+  // Physics Volume 2, §5.5, …" the same book read as a different one in a different hand. A book a row
+  // already names keeps that row's name for it.
+  const cited = (title: string) => {
+    const [maker, rest] = title.includes(' · ') ? title.split(' · ', 2) : ['', title];
+    const cut = rest.indexOf(', ');
+    const book = cut > 0 ? rest.slice(0, cut) : rest, where = cut > 0 ? rest.slice(cut + 2) : '';
+    const row = maker ? (a.lesson?.read ?? []).find(r => publisher(r.book) === maker) : undefined;
+    return {book: row?.book ?? (maker ? `${maker}, ${book}` : book), where};
+  };
   const sources = taughtFirst
     ? `${footer}\n`
     : a.sources?.length
     ? keep('<h2>Sources</h2>', [`<ul class="sources">${a.sources.map(s => `<li><a href="${escapeHtml(s.url)}">${escapeHtml(s.title)}</a><span class="url">${escapeHtml(s.url)}</span></li>`).join('\n')}</ul>\n${footer}`])
     : `${footer}\n`;
-  // THE LESSON LEADS THE COPY, as it leads the page and the page's print: the lead, the teaching under its
+  // THE LESSON LEADS THE COPY'S TEACHING, as it leads the page and the page's print: the lead, the teaching under its
   // headings with its equations set as the copy sets every other, and the books to read it in -- each with its
   // address printed, since on paper a link is only its words. Kept plain: no disclosure, no buttons. Its headings
   // are `taught`: some share a name with a stage of the build below (What cancels, Add them up), and are not it.
+  // THE PROBLEM COMES FIRST, THEN THE LESSON. The figure and the boxed problem were printed after the whole
+  // lesson and its reading list, so the handout stated what is asked only once it had answered it, and the
+  // box read as a footnote to Purcell. Now: title, lede, figure, the problem, then the lesson that solves it.
   const taught = a.lesson
     ? `<section class="lesson">\n${keep('<h2>The lesson</h2>', [`<p class="lead">${proseHtml(a.lesson.lead)}</p>`,
       ...a.lesson.sections.map((s, si) => `<div class="keep"><h3 class="taught">${escapeHtml(s.heading)}</h3>\n${s.body.map((b, bi) => typeof b === 'string' ? `<p>${proseHtml(b)}</p>` : lessonDisplay(b.tex, si, bi)).join('\n')}</div>`),
       ...(a.lesson.read.length || moreReading.length ? [`<div class="keep"><h3 class="taught">Read it in a textbook</h3>\n<ul class="sources">${[...a.lesson.read.map(r => `<li>${r.url ? `<a href="${escapeHtml(r.url)}"><cite>${escapeHtml(r.book)}</cite></a>` : `<cite>${escapeHtml(r.book)}</cite>`}, ${escapeHtml(r.where)}${r.url ? `<span class="url">${escapeHtml(r.url)}</span>` : ''}</li>`),
-        ...moreReading.map(s => `<li><a href="${escapeHtml(s.url)}">${escapeHtml(s.title)}</a><span class="url">${escapeHtml(s.url)}</span></li>`)].join('\n')}</ul></div>`] : [])])}</section>\n`
+        ...moreReading.map(s => { const c = cited(s.title); return `<li><a href="${escapeHtml(s.url)}"><cite>${escapeHtml(c.book)}</cite></a>${c.where ? `, ${escapeHtml(c.where)}` : ''}<span class="url">${escapeHtml(s.url)}</span></li>`; })].join('\n')}</ul></div>`] : [])])}</section>\n`
     : '';
   // The live lesson's address, in full: on paper a link is only what is printed.
   const address = a.address ? `<p class="address">The live lesson, as saved: <a href="${escapeHtml(a.address)}">${escapeHtml(a.address)}</a></p>\n` : '';
@@ -566,8 +606,8 @@ footer { margin-top: 36px; padding-top: 12px; border-top: 1px solid #d4d4d4; col
 <p class="kicker">Field Builder · saved copy</p>
 <h1>${escapeHtml(a.title)}</h1>
 <p class="lede">${escapeHtml(a.subtitle)}</p>
-${address}${taught}${figure}
-${taughtFirst ? `<p class="problem">${proseHtml(a.setup)}</p>\n` : keep('<h2>Setup</h2>', [`<p>${proseHtml(a.setup)}</p>`])}${building}${keep(`<h2>${a.secondaryIntegralTex ? 'The integrals' : 'The integral'}</h2>`, [displays([a.integralTex, ...(a.secondaryIntegralTex ? [a.secondaryIntegralTex] : [])]).map(tex => display(tex)).join('\n') + (a.route ? `\n<p class="note route">${proseHtml(a.route)}</p>` : '')])}${note}${constant}${working}${keep('<h2>The result</h2>', [`<div class="result">${displays(a.results).map(tex => display(tex)).join('\n')}</div>`])}${derived}${checks}${sources}</main>
+${address}${figure}
+${taughtFirst ? `<p class="problem">${proseHtml(a.setup)}</p>\n${taught}` : keep('<h2>Setup</h2>', [`<p>${proseHtml(a.setup)}</p>`])}${building}${keep(`<h2>${a.secondaryIntegralTex ? 'The integrals' : 'The integral'}</h2>`, [displays([a.integralTex, ...(a.secondaryIntegralTex ? [a.secondaryIntegralTex] : [])]).map(tex => display(tex)).join('\n') + (a.route ? `\n<p class="note route">${proseHtml(a.route)}</p>` : '')])}${note}${constant}${working}${keep('<h2>The result</h2>', [`<div class="result">${displays(a.results).map(tex => display(tex)).join('\n')}</div>`])}${derived}${checks}${sources}</main>
 <script>${FIT_ROOTS}</script>
 </body></html>`;
 }

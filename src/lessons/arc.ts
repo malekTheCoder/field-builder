@@ -34,12 +34,12 @@ export const lesson: Lesson = {
       {tex: raw`E_x=-\frac{2k\lambda}{R}\sin\frac{\varphi}{2}=-\frac{2kQ}{R^2\varphi}\sin\frac{\varphi}{2}`},
     ]},
     {heading: 'What the answer says', body: [
-      raw`For a positive charge $E_x$ is negative, the field pointing away from the arc; for a negative charge it points toward it. A very short arc, $\varphi\to0$, has $\sin(\varphi/2)$ nearly $\varphi/2$, and $E_x$ approaches $-kQ/R^2$, the field of a point charge $Q$ a distance $R$ away. A semicircle, $\varphi=\pi$, gives $-2k\lambda/R$. Close the arc into a full circle, $\varphi=2\pi$, and $\sin\pi=0$: every piece has a partner straight across, and the field at the centre is zero.`,
+      raw`For a positive charge $E_x$ is negative, the field pointing away from the middle of the arc, toward its gap once it opens past a semicircle; for a negative charge, the reverse. A very short arc, $\varphi\to0$, has $\sin(\varphi/2)$ nearly $\varphi/2$, and $E_x$ approaches $-kQ/R^2$, the field of a point charge $Q$ a distance $R$ away. A semicircle, $\varphi=\pi$, gives $-2k\lambda/R$. Close the arc into a full circle, $\varphi=2\pi$, and $\sin\pi=0$: every piece has a partner straight across, and the field at the centre is zero.`,
     ]},
   ],
   read: [
     {book: 'OpenStax, University Physics Volume 2', where: '§5.5, Calculating Electric Fields of Charge Distributions', url: 'https://openstax.org/books/university-physics-volume-2/pages/5-5-calculating-electric-fields-of-charge-distributions'},
-    {book: 'Griffiths, Introduction to Electrodynamics', where: '§2.1, The electric field of a continuous charge distribution'},
+    {book: 'Griffiths, Introduction to Electrodynamics', where: '§2.1.4, Continuous Charge Distributions'},
     {book: 'Purcell and Morin, Electricity and Magnetism', where: 'Chapter 1, Electrostatics'},
   ],
 };

@@ -57,7 +57,8 @@ describe('the offline copy prints the derivation the panel unfolds',()=>{
    expect(at('<h2>Checks</h2>'),p.id).toBeGreaterThan(at('<h2>The result</h2>'));
    for(const l of p.limits)expect(html,`${p.id}/${l.id}`).toContain(`<h3>${l.title.replace(/&/g,'&amp;').replace(/</g,'&lt;')}</h3>`);
    // A copy led by a lesson lists its sources with the lesson's books (content-w5-copy).
-   if(lessonFor(p.id)){for(const s of p.sources)expect(html,`${p.id} ${s.title}`).toContain(`href="${s.url}"`);continue;}
+   // A source whose section a lesson row already names is that row (content-w6-i1).
+   if(lessonFor(p.id)){for(const s of p.sources){const sec=/§\d+\.\d+/.exec(s.title)?.[0];expect(html,`${p.id} ${s.title}`).toContain(sec&&lessonFor(p.id)!.read.some(r=>r.where.includes(sec))?sec:`href="${s.url}"`);}continue;}
    expect(at('<h2>Sources</h2>'),p.id).toBeGreaterThan(at('<h2>Checks</h2>'));
    for(const s of p.sources)expect(html,`${p.id} ${s.title}`).toContain(`href="${s.url}"`);
    // Said where the reader first meets k: the copy now builds the integral before printing it, and

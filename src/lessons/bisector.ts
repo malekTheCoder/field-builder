@@ -49,7 +49,7 @@ export const lesson: Lesson = {
   ],
   read: [
     {book: 'OpenStax, University Physics Volume 2', where: '§5.5, Calculating Electric Fields of Charge Distributions', url: 'https://openstax.org/books/university-physics-volume-2/pages/5-5-calculating-electric-fields-of-charge-distributions'},
-    {book: 'Griffiths, Introduction to Electrodynamics', where: '§2.1, Example 2.1: a line segment, above its midpoint'},
+    {book: 'Griffiths, Introduction to Electrodynamics', where: '§2.1.4, Example 2.2 (Example 2.1 in the 3rd edition): a line segment of length 2L, above its midpoint'},
     {book: 'Purcell and Morin, Electricity and Magnetism', where: 'Chapter 1, Electrostatics'},
   ],
 };

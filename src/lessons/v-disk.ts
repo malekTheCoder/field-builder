@@ -43,7 +43,7 @@ export const lesson: Lesson = {
   ],
   read: [
     {book: 'OpenStax, University Physics Volume 2', where: '§7.3, Calculations of Electric Potential; §7.4, Determining Field from Potential', url: 'https://openstax.org/books/university-physics-volume-2/pages/7-3-calculations-of-electric-potential'},
-    {book: 'Griffiths, Introduction to Electrodynamics', where: '§2.3, Electric potential'},
+    {book: 'Griffiths, Introduction to Electrodynamics', where: '§2.3, Electric Potential'},
     {book: 'Purcell and Morin, Electricity and Magnetism', where: 'Chapter 2, The electric potential'},
   ],
 };
