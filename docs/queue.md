@@ -6,16 +6,19 @@ then to **Done**, with the commit. Newest requests are added at the bottom of **
 owner says they are urgent.
 
 ## In progress
-- **Critique round, wave 6** on the redesigned site: fixers finishing, then one publish. Usage was at 57%
-  weekly (stop at 60%) when it was let finish; stop it if usage reaches 60.
+Nothing. Paused at 58% weekly usage (stop at 60%) on 2026-10-16; CI green on 87b8d5d.
 
 ## Next
+0. **Owner's call (from wave 6):** a negative ring seen in space draws its stacked ΔE_z running through the
+   empty middle O. The fixer left it: an earlier deliberate choice, and capping it would make a negative
+   ring's arrows half a positive's. Leftovers from wave 6 are in .claude/loop/reports/LOG.md.
 1. **Gauss quiz banks** for the eleven Gauss lessons (the study lab's "mistakes graders see most" and its
    five misconceptions), then their physics review. Waiting for the weekly usage to reset (2026-10-20).
 2. **New lessons**, deferred by the cloud round, for the owner to choose from: a non-uniform semicircle, a
    spherical shell, an annulus, a rod with P off its bisector.
 
 ## Done
+- Critique round wave 6 on the redesigned site, published 41b8ef2 (+ CI fixes 73c17dc, 87b8d5d).
 - Gauss's law, all eleven lessons, on main (2026-10-16): foundation 0ff7e76; Symmetry first and Flux
   (777a864, 37dafe4); Why only the charge inside, Q_enc from a density, Spheres (255376e, 0e2c827, d5d0e9e);
   Lines and cylinders, Sheets and slabs, Conductors (9a896c7, 86147df, 05547f3); Holes by superposition,
