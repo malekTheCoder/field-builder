@@ -53,6 +53,6 @@ export const PLANNED_SECTIONS: ReadonlySet<'gauss'> = new Set(['gauss'] as const
 /** THE GAUSS LESSONS THAT ARE READY. The section is planned as eleven lessons (src/explorer/lessons.tsx, GAUSS),
  * built one file at a time under src/gauss/lessons/. A lesson named here, and written, is a link wherever the
  * section is shown and opens at `?g=<id>`; every other name stays "Coming soon". Adding an id publishes it. */
-export const GAUSS_READY: ReadonlySet<string> = new Set(['symmetry', 'flux', 'lines', 'sheets']);
+export const GAUSS_READY: ReadonlySet<string> = new Set(['symmetry', 'flux', 'lines', 'sheets', 'conductors']);
 /** The mark a planned lesson carries, in the words a reader sees and a screen reader hears. */
 export const PLANNED_LABEL = 'Coming soon';

@@ -41,15 +41,15 @@ describe('a Gauss lesson’s address', () => {
     const home = render(<Site />);
     expect(await home.findByRole('heading', {level: 1, name: 'One law, every geometry.'})).toBeTruthy();
   }, 20000);
-  it('the list offers the two ready lessons as links and the rest as words Tab passes over', async () => {
+  it('the list offers the ready lessons as links and the rest as words Tab passes over', async () => {
     const view = await open('flux');
     const list = view.getByRole('navigation', {name: 'Lessons'});
     const heading = within(list).getByRole('heading', {level: 2, name: /^Gauss’s law/});
     const family = heading.closest('.exp-family')!;
     const links = within(family as HTMLElement).getAllByRole('link');
-    expect(links.map(a => a.getAttribute('href'))).toEqual(['?g=symmetry', '?g=flux']);
+    expect(links.map(a => a.getAttribute('href'))).toEqual(['?g=symmetry', '?g=flux', '?g=lines', '?g=sheets', '?g=conductors']);
     expect(links[1].getAttribute('aria-current')).toBe('page');
-    expect(family.querySelectorAll('.exp-planned-row[aria-disabled=true]').length).toBe(GAUSS.lessons.length - 2);
+    expect(family.querySelectorAll('.exp-planned-row[aria-disabled=true]').length).toBe(GAUSS.lessons.length - 5);
     for (const row of family.querySelectorAll('.exp-planned-row')) expect(row.querySelector('a,button,[tabindex]')).toBeNull();
     expect(family.textContent).toContain('Coming soon');
     // Following one opens it, title focused.
@@ -165,7 +165,7 @@ describe('the symmetry instrument', () => {
 });
 
 describe('on a phone', () => {
-  it('fits 390 pixels with no sideways scroll, on both lessons', async () => {
+  it('fits 390 pixels with no sideways scroll, on the first two lessons', async () => {
     for (const id of ['symmetry', 'flux']) {
       const view = await open(id, 390, 844);
       await new Promise(r => setTimeout(r, 200));
@@ -173,4 +173,76 @@ describe('on a phone', () => {
       view.unmount(); newVisit();
     }
   }, 30000);
+  it('fits 390 pixels with no sideways scroll, on Lines, Sheets and Conductors', async () => {
+    for (const id of ['lines', 'sheets', 'conductors']) {
+      const view = await open(id, 390, 844);
+      await new Promise(r => setTimeout(r, 200));
+      expect(document.documentElement.scrollWidth, id).toBeLessThanOrEqual(390);
+      view.unmount(); newVisit();
+    }
+  }, 30000);
+});
+
+describe('the field against distance', () => {
+  it('rides the slider region by region: inside the rod, then outside it, said aloud', async () => {
+    const view = await open('lines');
+    fireEvent.click(view.getByRole('button', {name: 'Solid rod'}));
+    const readout = () => document.querySelector('.gs-profile .gs-readout')?.textContent ?? '';
+    const slider = view.getByRole('slider', {name: 'Radius r'});
+    expect(slider.getAttribute('aria-valuetext')).toBe('inside the rod');
+    expect(readout()).toContain('Inside the rod');
+    slider.focus();
+    await userEvent.keyboard('{End}');
+    await waitFor(() => expect(slider.getAttribute('aria-valuetext')).toBe('outside the rod'));
+    expect(readout()).toContain('Outside');
+    // The board's problem is the rod's, and the figure's charge inside follows the slider.
+    expect(document.querySelector('.gs-board .ew-problem-text')?.textContent).toContain('solid rod');
+    expect(document.querySelector('.gs-inside-name')?.textContent).toContain('λL');
+  }, 20000);
+  it('ends Lines on Next: Sheets and slabs, with the Infinite line to compare beside it', async () => {
+    const view = await open('lines');
+    const next = view.getByRole('link', {name: /^Next: Sheets and slabs/});
+    expect(next.getAttribute('href')).toBe('?g=sheets');
+    const compare = view.getByRole('link', {name: /^Compare: /});
+    expect(compare.getAttribute('href')).toBe('?p=infinite');
+    fireEvent.click(next);
+    await waitFor(() => expect(document.querySelector('h1')?.textContent).toBe('Sheets and slabs'));
+    expect(view.getByRole('link', {name: /^Next: Conductors/}).getAttribute('href')).toBe('?g=conductors');
+    expect(view.getByRole('link', {name: /^Compare: /}).getAttribute('href')).toBe('?p=sheet');
+  }, 20000);
+});
+
+describe('the integral lessons point to Gauss’s law', () => {
+  it('the Infinite line and the Infinite sheet each offer the same answer by Gauss’s law', async () => {
+    for (const [p, g] of [['infinite', 'lines'], ['sheet', 'sheets']]) {
+      await page.viewport(1280, 800);
+      window.history.replaceState(null, '', `/?p=${p}`);
+      const view = render(<Site />);
+      await view.findByRole('button', {name: 'Watch it build'});
+      expect(view.getByRole('link', {name: 'The same answer by Gauss’s law'}).getAttribute('href')).toBe(`?g=${g}`);
+      // Let the integral lesson settle (its address and its save are debounced) before the next mount.
+      await new Promise(r => setTimeout(r, 600));
+      view.unmount(); newVisit(); window.history.replaceState(null, '', '/');
+    }
+  }, 30000);
+});
+
+describe('a charge in a hollow', () => {
+  it('moves by keyboard, and the wall’s charge follows it; an empty hollow has nothing on its wall', async () => {
+    const view = await open('conductors');
+    const readout = () => document.querySelector<HTMLElement>('.gs-cavity .gs-readout')!;
+    expect(readout().dataset.off).toBe('yes');
+    expect(readout().querySelector('annotation')?.textContent).toBe(String.raw`q_{\text{wall}}=-q,\qquad q_{\text{outer}}=q`);
+    const q = view.getByRole('button', {name: /^Charge q, positive, off centre/});
+    q.focus();
+    await userEvent.keyboard('{Home}');
+    expect(readout().dataset.off).toBe('no');
+    expect(view.getByRole('button', {name: /^Charge q, positive, at the centre/})).toBeTruthy();
+    // The sign of the charge follows the page's sign.
+    fireEvent.click(view.getByRole('button', {name: 'Negative'}));
+    expect(view.getByRole('button', {name: /^Charge q, negative/})).toBeTruthy();
+    fireEvent.click(view.getByRole('button', {name: 'Nothing'}));
+    expect(readout().dataset.wall).toBe('none');
+    expect(view.queryByRole('button', {name: /^Charge q/})).toBeNull();
+  }, 20000);
 });
