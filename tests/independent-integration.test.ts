@@ -98,6 +98,10 @@ const GEOMETRY:Record<string,Geom>={
  disk:{P:p=>[0,0,p.distance],component:'z',total:p=>p.charge*1e-9,centroid:()=>[0,0,0],
   E(p){const R=p.size/2,sigma=p.charge*1e-9/(Math.PI*R*R),P=this.P(p),eps=Math.abs(sigma)/(2*E0)*REL;return seg(s=>annulus(sigma,s,P),[0,R/2,R],eps);},
   V(p){const R=p.size/2,sigma=p.charge*1e-9/(Math.PI*R*R),P=this.P(p),eps=Math.abs(sigma)*R/(2*E0)*REL;return segS(s=>annulusV(sigma,s,P),[0,R/2,R],eps);}},
+ // 'An annulus, a flat ring of charge with inner radius a and outer radius b … σ = Q/(π(b² − a²)). P = (0, 0, z).'
+ // Its rings run from a to b, each summed as AZ point charges round it: the disk's integral, started at the hole.
+ annulus:{P:p=>[0,0,p.distance],component:'z',total:p=>p.charge*1e-9,centroid:()=>[0,0,0],
+  E(p){const b=p.size/2,a=p.inner,sigma=p.charge*1e-9/(Math.PI*(b*b-a*a)),P=this.P(p),eps=Math.abs(sigma)/(2*E0)*REL;return seg(s=>annulus(sigma,s,P),[a,(a+b)/2,b],eps);}},
  // 'Positive uniform density λ extends from y = 0 to +∞. P = (r, 0), level with the end.'
  semi:{P:p=>[p.distance,0,0],component:'x',total:()=>Number.NaN,centroid:()=>null,
   E(p){const lam=p.charge*1e-9,P=this.P(p),eps=ke*Math.abs(lam)/Math.abs(p.distance)*REL;return halfLine(y=>coulomb(lam,[0,y,0],P),Math.abs(p.distance),eps);}},
@@ -128,9 +132,9 @@ const GEOMETRY:Record<string,Geom>={
 };
 /** Which charge layout each lesson sits on, read off its own setup sentence. Asserted
  * against the app's declaration below rather than taken from it. */
-const GEOM_OF:Record<string,string>={bisector:'bisector',axial:'axial',infinite:'infinite',ring:'ring',disk:'disk',semi:'semi',arc:'arc',sheet:'sheet',endpoint:'endpoint',ramp:'ramp',
+const GEOM_OF:Record<string,string>={bisector:'bisector',axial:'axial',infinite:'infinite',ring:'ring',disk:'disk',annulus:'annulus',semi:'semi',arc:'arc',sheet:'sheet',endpoint:'endpoint',ramp:'ramp',
  'v-ring':'ring','v-disk':'disk','v-arc':'arc','v-rod-bisector':'bisector','v-rod-axial':'axial','uneven-arc':'uneven-arc'};
-const FIELD_IDS=['bisector','axial','infinite','ring','disk','semi','arc','sheet','endpoint','ramp','uneven-arc'] as const;
+const FIELD_IDS=['bisector','axial','infinite','ring','disk','annulus','semi','arc','sheet','endpoint','ramp','uneven-arc'] as const;
 const POTENTIAL_IDS=['v-ring','v-disk','v-arc','v-rod-bisector','v-rod-axial'] as const;
 const truthE=(id:string,p:Params)=>GEOMETRY[GEOM_OF[id]].E(p);
 const truthV=(id:string,p:Params)=>GEOMETRY[GEOM_OF[id]].V!(p);
@@ -145,16 +149,17 @@ const params=(extra:Partial<Params>={}):Params=>({...DEFAULT_PARAMS,...extra});
 // another of the app's own spellings. A conditioning fault that only shows where the rod is long
 // and the point is close -- which is exactly the shape of the cancellation faults already fixed
 // in the axial, endpoint and ramp rods -- could sit in a corner no independent integral visited.
+// Each with the annulus's hole inside its rim (every other lesson ignores it): a narrow one, a wide one, nearly the rim.
 const SETTINGS:Partial<Params>[]=[
- {charge:2.4,distance:.8,size:3.8,phi:2.3},
- {charge:-1.7,distance:3,size:1.1,phi:.4},
- {charge:.35,distance:7.5,size:9.2,phi:5.9},
- {charge:-4.2,distance:1.9,size:.25,phi:Math.PI},
- {charge:5,distance:.5,size:8,phi:.1*Math.PI},
+ {charge:2.4,distance:.8,size:3.8,phi:2.3,inner:.7},
+ {charge:-1.7,distance:3,size:1.1,phi:.4,inner:.5},
+ {charge:.35,distance:7.5,size:9.2,phi:5.9,inner:2.5},
+ {charge:-4.2,distance:1.9,size:.25,phi:Math.PI,inner:.02},
+ {charge:5,distance:.5,size:8,phi:.1*Math.PI,inner:3.8},
  // 1.9π rather than the slider's 2π: a closed arc has exactly no field at its centre, and a
  // RELATIVE comparison of 7e-15 against 7e-15 is noise over noise. That case has its own check
  // further down, which normalises against a point charge and asserts the field is zero.
- {charge:-5,distance:6,size:1,phi:1.9*Math.PI},
+ {charge:-5,distance:6,size:1,phi:1.9*Math.PI,inner:.1},
 ];
 const worst=new Map<string,number>();
 const record=(what:string,error:number)=>{if(Number.isFinite(error)&&error>(worst.get(what)??-1))worst.set(what,error);};
@@ -178,7 +183,7 @@ describe('the constants the closed forms are built on',()=>{
  });
  it('each lesson sits on the charge layout its own setup sentence describes',()=>{
   for(const problem of PROBLEMS)expect(problem.geometry,problem.id).toBe(GEOM_OF[problem.id]);
-  expect(Object.keys(GEOM_OF)).toHaveLength(16);
+  expect(Object.keys(GEOM_OF)).toHaveLength(17);
  });
 });
 
@@ -188,7 +193,7 @@ describe('every field closed form against an independent adaptive integral',()=>
    const p=params(extra);closeVec(field(id,p),truthE(id,p),TOL,`E ${id}`);
   });
  // z < 0 is the same physics mirrored, and the only place a stray Math.abs shows up.
- for(const id of ['ring','disk','sheet'] as const)for(const charge of [2.4,-1.7])
+ for(const id of ['ring','disk','annulus','sheet'] as const)for(const charge of [2.4,-1.7])
   it(`${id} below the plane · charge ${charge}`,()=>{
    const p=params({charge,distance:-2.1,size:3.8});closeVec(field(id,p),truthE(id,p),TOL,`E ${id} z<0`);
    const above=field(id,{...p,distance:2.1});
@@ -232,6 +237,7 @@ describe('the closed form the lesson PRINTS is the one the integral produces',()
    case 'ring':return {...base,lambda:q/(2*Math.PI*R)};
    case 'arc':return {...base,lambda:q/(R*p.phi)};
    case 'disk':return {...base,sigma:q/(Math.PI*R*R)};
+   case 'annulus':return {...base,a:p.inner,b:R,sigma:q/(Math.PI*(R*R-p.inner**2))};
    case 'ramp':return {...base,lambda0:q,Q:q*L/2};               // the slider is the peak λ₀
    case 'uneven-arc':return {...base,lambda0:q/(2*R)};           // the slider is Q, and Q = 2λ₀R
    default:return {...base,lambda:q/L};
@@ -263,7 +269,7 @@ const DIRECTION:Record<string,V3>={
  bisector:[1,0,0],   // P sits on +x, the rod on the y-axis: pushed further out along +x
  axial:[1,0,0],      // P is beyond the right end: pushed further right
  infinite:[1,0,0],
- ring:[0,0,1],disk:[0,0,1],sheet:[0,0,1], // P above the plane at z > 0
+ ring:[0,0,1],disk:[0,0,1],annulus:[0,0,1],sheet:[0,0,1], // P above the plane at z > 0
  semi:[1,-1,0],      // the rod runs up +y from level with P, so P is pushed out and back down past the end
  arc:[-1,0,0],       // the charge is bunched toward +x, P at the centre is pushed to −x
  endpoint:[1,-1,0],  // the rod stands above P's level, so the transverse push is downward
@@ -300,7 +306,7 @@ describe('signs and conventions',()=>{
  // goes wrong, and no amount of integrating at one parameter setting would show it. Each
  // entry lists the sliders the geometry has no business reading at all.
  const IGNORES:Record<string,(keyof Params)[]>={
-  bisector:['phi'],axial:['phi'],ring:['phi'],disk:['phi'],endpoint:['phi'],ramp:['phi'],
+  bisector:['phi','inner'],axial:['phi','inner'],ring:['phi','inner'],disk:['phi','inner'],endpoint:['phi','inner'],ramp:['phi','inner'],annulus:['phi'],
   infinite:['phi','size'],semi:['phi','size'],sheet:['phi','size'], // unbounded: there is no L to read
   arc:['distance'],                                                // P is pinned to the centre of curvature
   'v-ring':['phi'],'v-disk':['phi'],'v-rod-bisector':['phi'],'v-rod-axial':['phi'],
@@ -308,7 +314,7 @@ describe('signs and conventions',()=>{
  };
  for(const [id,ignored] of Object.entries(IGNORES))for(const slider of ignored)
   it(`${id} does not read ${slider}`,()=>{
-   const a=params({charge:2.4,distance:1.9,size:3.8,phi:2.3}),b={...a,[slider]:slider==='phi'?1.1:5.3};
+   const a=params({charge:2.4,distance:1.9,size:3.8,phi:2.3}),b={...a,[slider]:slider==='phi'?1.1:slider==='inner'?.4:5.3};
    if(getProblem(id).quantity==='V'){expect(potential(id as ProblemId,b)).toBe(potential(id as ProblemId,a));return;}
    expect(field(id as ProblemId,b)).toEqual(field(id as ProblemId,a));
   });
@@ -468,7 +474,7 @@ describe('degenerate and boundary cases',()=>{
  it('every element the app draws is honest Coulomb, down to a single piece',()=>{
   const p=params({charge:2.4,distance:1.9,size:3.8,phi:2.3});
   for(const id of FIELD_IDS){
-   const P=GEOMETRY[id].P(p),surface=id==='disk'||id==='sheet'; // those two partition into whole annuli
+   const P=GEOMETRY[id].P(p),surface=id==='disk'||id==='annulus'||id==='sheet'; // those three partition into whole annuli
    for(const n of [1,5,37]){
     const samples=sampleDistribution(id,p,n);
     expect(samples,`${id} n=${n}`).toHaveLength(n);

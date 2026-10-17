@@ -81,7 +81,7 @@ const richardson=(f:(x:number)=>number,x:number,h:number)=>{
 type Law={m:number;e:number;angle:boolean};
 const Q_ROD:Law={m:-2,e:0,angle:false},Q_TURN:Law={m:-2,e:0,angle:true};
 const LAWS:Record<ProblemId,Law>={
- bisector:Q_ROD,axial:Q_ROD,endpoint:Q_ROD,disk:Q_ROD,
+ bisector:Q_ROD,axial:Q_ROD,endpoint:Q_ROD,disk:Q_ROD,annulus:Q_ROD,
  ring:Q_TURN,arc:Q_TURN,
  ramp:{m:-1,e:1,angle:false},semi:{m:-1,e:1,angle:false},infinite:{m:-1,e:1,angle:true},
  sheet:{m:0,e:2,angle:false},
@@ -99,7 +99,7 @@ const CHARGES=[-3,1],SCALES=[.37,2,7.5,1e3],QUAD_N=[1,7,400],SAMPLE_N=[1,5,37,20
 describe('length and charge scaling, through the closed form, the quadrature and every element',()=>{
  it('the three exponents are one exponent: a sample field is k dq/r², so m = e − 2',()=>{
   for(const [id,law] of Object.entries(LAWS))expect(law.m,id).toBe(law.e-2);
-  expect(ALL_IDS).toHaveLength(16);
+  expect(ALL_IDS).toHaveLength(17);
  });
  for(const id of ALL_IDS)for(const base of BASES)
   it(`${id} · d ${base.distance} m · L ${base.size} m`,()=>{
@@ -110,7 +110,7 @@ describe('length and charge scaling, through the closed form, the quadrature and
      // At s = 10³ the geometry spans six decades and the sums inside the quadrature carry
      // three more digits of rounding than at s = 2; one decade of slack, still two decades
      // above anything a misplaced length could hide in.
-     const ps={...p0,distance:s*p0.distance,size:s*p0.size},lift=s**(-law.m),tol=s>=1e3?1e-11:1e-12;
+     const ps={...p0,distance:s*p0.distance,size:s*p0.size,inner:s*p0.inner},lift=s**(-law.m),tol=s>=1e3?1e-11:1e-12;
      const tag=`${id} q=${charge} s=${s}`;
      // A sum whose terms cancel has to be measured against the terms, not against what is
      // left of them: a closed arc (φ = 2π) adds n point charges around a full circle and the

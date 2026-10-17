@@ -46,7 +46,7 @@ const SWAPS: Record<string, Swap[]> = {
   ring: [], arc: [], 'v-ring': [], 'v-arc': [],
   // The uneven semicircle's density changes from piece to piece; its distance never does, and its cosine is already in θ.
   'uneven-arc': [[String.raw`\lambda(\theta_i)=\lambda_0\cos\theta_i`, 'lambda0*cos(theta)', 'none']],
-  disk: [RING_CHARGE, ...RING_SWAPS], sheet: RING_SWAPS,
+  disk: [RING_CHARGE, ...RING_SWAPS], annulus: [RING_CHARGE, ...RING_SWAPS], sheet: RING_SWAPS,
   'v-disk': [RING_CHARGE, [String.raw`r_i=\sqrt{s_i^2+z^2}`, 'sqrt(s^2+z^2)', 'distance']],
   'v-rod-bisector': [[String.raw`r_i=\sqrt{y_i^2+r^2}`, 'sqrt(y^2+r^2)', 'distance']],
   'v-rod-axial': [[String.raw`r_i=L+a-x_i`, 'L+a-x', 'distance']],
@@ -106,8 +106,10 @@ describe('the derivation board', () => {
       expect(add, p.id).toMatch(/^The \$N\$ (piece|ring)s are numbered by \$i\$/);
       expect(add, p.id).not.toMatch(/variable you sum over/);
       // Dragging the brackets says which pieces are now counted, not the whole charge's ends.
-      const dragged = boardLines(p, ['a', 'b']).find(l => l.key === 'add')!.say!;
-      expect(dragged, p.id).toContain(`from $${v}=a$ to $${v}=b$`);
+      // Named c and d where a and b are the lesson's own ends, as the annulus's are: there a bracket on a and b is whole.
+      const [c, d] = p.boundTex[0] === 'a' ? ['c', 'd'] : ['a', 'b'];
+      const dragged = boardLines(p, [c, d]).find(l => l.key === 'add')!.say!;
+      expect(dragged, p.id).toContain(`from $${v}=${c}$ to $${v}=${d}$`);
       expect(dragged, p.id).toMatch(/bracketed/);
       // "So each of them is counted once" went from the whole charge's sentence as redundant, and from
       // the bracket's too.

@@ -15,6 +15,7 @@ import { createContext, memo, useCallback, useContext, useEffect, useId, useLayo
 import { animate, frame, motion, useMotionValue, useReducedMotion } from 'motion/react';
 import type { Params, Problem, ProblemId } from '../problems/types';
 import { field, magnitude, pretty, potential, type Vec } from '../symbolic/physics';
+import { annulusRadii } from '../distributions/disk';
 import { sampleDistribution, sumSamples, sumInterval, intervalWeights, sumPotential, activeIntervalIndex } from './sampling';
 import { intervalKey, orderedBounds, partitionCount, seamFractions, seamKey, splitFractions, splitProgress } from './subdivision';
 import { acrossAxis, alongAxis, pairOrder, pairPhase, pairPlan, pairShares, pairStepAt, pairSum, spacePairGain, spacePairShrink } from './pairs';
@@ -297,8 +298,10 @@ export function lessonRange(id: ProblemId, kind: 'E' | 'V'): readonly [number, n
   let lo = Infinity, hi = 0;
   const phis = id === 'arc' && kind === 'E' ? [.1, .25, .5, .75, 1, 1.25, 1.5, 1.75, 1.9].map(f => f * Math.PI) : [Math.PI];
   const at = (q: Params) => kind === 'E' ? magnitude(field(id, q)) : Math.abs(potential(id, q));
-  for (let d = .5; d <= 6.001; d += .25) for (let s = 1; s <= 8.001; s += .5) for (const phi of phis) {
-    const q: Params = { distance: d, size: s, charge: 5, phi, element: .5, slices: 5, continuum: 0 };
+  // The annulus's hole is a slider too: from none, the disk, to nearly the rim, where it is a thin ring.
+  const inners = id === 'annulus' ? [0, .25, .5, 1, 1.5, 2, 3, 3.8] : [1];
+  for (let d = .5; d <= 6.001; d += .25) for (let s = 1; s <= 8.001; s += .5) for (const phi of phis) for (const inner of inners) {
+    const q: Params = { distance: d, size: s, charge: 5, phi, element: .5, slices: 5, continuum: 0, inner };
     const strong = at(q), weak = at({ ...q, charge: .1 });
     if (strong > hi) hi = strong;
     if (weak > 0 && weak < lo) lo = weak;
@@ -406,7 +409,7 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
   const [zooming, setZooming] = useState(false);
   const zoomGoal = useRef(1), zoomNow = useRef(1), zoomFrame = useRef(0);
   const [fieldView, setFieldView] = useState<'lines' | 'vectors' | 'off'>('lines');
-  const reduced = !!useReducedMotion(), id = problem.geometry, scalar = problem.quantity === 'V', surface = id === 'disk' || id === 'sheet', perspective = surface || id === 'ring';
+  const reduced = !!useReducedMotion(), id = problem.geometry, scalar = problem.quantity === 'V', diskLike = id === 'disk' || id === 'annulus', surface = diskLike || id === 'sheet', perspective = surface || id === 'ring';
   // The ramp is the endpoint rod with a non-uniform density: same layout, different charge.
   const footed = id === 'endpoint' || id === 'ramp', ramp = id === 'ramp';
   // And the semicircle with uneven charge is the arc with a non-uniform density: drawn as the arc is, at a half turn,
@@ -449,6 +452,8 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
   // was interrupted used to leave it set for the rest of the session, and nothing said so.
   useLayoutEffect(() => { if (root.current) root.current.dataset.moving = String(moving); });
   const n = Math.max(3, Math.round(count)), R = p.size / 2;
+  // The annulus's hole, its inner radius a: the rings run from it out to the rim, R = b. Zero on every other lesson.
+  const hole = id === 'annulus' ? annulusRadii(p).a : 0;
   // The run's own piece, and whether Add them up is still handing it over to the chain (see `handOver`
   // below): for that first stretch the piece lit, joined to P and named is the run's piece, whose arrow
   // is the one shrinking -- not the first piece going into the sum, which would put a piece's name on
@@ -498,8 +503,8 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
   // them only as `n`, which is passed beside this. Keyed on the whole params object instead, the
   // run's last stage -- which writes a new `continuum` every frame -- re-cut the charge on every
   // frame into exactly the pieces it already had, and handed the field a new array each time.
-  const { distance: pDistance, size: pSize, charge: pCharge, phi: pPhi, element: pElement } = p;
-  const shape = useMemo<Params>(() => ({ distance: pDistance, size: pSize, charge: pCharge, phi: pPhi, element: pElement, slices: 0, continuum: 0 }), [pDistance, pSize, pCharge, pPhi, pElement]);
+  const { distance: pDistance, size: pSize, charge: pCharge, phi: pPhi, element: pElement, inner: pInner } = p;
+  const shape = useMemo<Params>(() => ({ distance: pDistance, size: pSize, charge: pCharge, phi: pPhi, element: pElement, slices: 0, continuum: 0, inner: pInner }), [pDistance, pSize, pCharge, pPhi, pElement, pInner]);
   const samples = useMemo(() => sampleDistribution(id, shape, n), [id, shape, n]);
   // What the FIELD is drawn from, which is not the same thing as what the reader is shown.
   //
@@ -607,7 +612,7 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
   // the run, or a teacher's link to the parts -- P stands lower over a slightly smaller charge: no more than 95 units
   // over O, and O as low as the near rim lets it go. Not for a negative charge, whose arrows point down at the charge:
   // they want the drop from P, which standing lower only shortens.
-  const roomy = (id === 'ring' || id === 'disk') && !scalar && p.charge > 0 && (!!build || ((components || pair) && mode === 'project'));
+  const roomy = (id === 'ring' || diskLike) && !scalar && p.charge > 0 && (!!build || ((components || pair) && mode === 'project'));
   const surfacePitch = (inSpace ? opening : FLAT).pitch, surfaceBelow = 371 - 10 - (296 + lift) - labelRoom;
   const surfaceFit = perspective ? surfaceUnit(p.distance, surfacePitch, id === 'sheet' ? 0 : R, surfaceBelow) : 0;
   const surfaceRoomy = roomy ? Math.max(18, Math.min(surfaceFit, Math.floor(95 / Math.max(.5, p.distance * Math.cos(surfacePitch)) / 5) * 5)) : surfaceFit;
@@ -624,7 +629,7 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
   // sixteen-unit gap and its full label height, the phone fell back to a foreshortened R beside s = 0,
   // leaving R, s and both limits crowded together. Lift the drawing by only that missing clearance;
   // its charge and arrow scales stay the same. Keep the same row when the reader zooms in below.
-  const flatDiskClearance = id === 'disk' && !inSpace ? 25 + 1.37 * SYM * labelScale + 8 : 0;
+  const flatDiskClearance = diskLike && !inSpace ? 25 + 1.37 * SYM * labelScale + 8 : 0;
   const surfaceRise = inSpace && boundedRound ? Math.max(0, R * surfaceRoomy * Math.abs(Math.sin(view.pitch)) - surfaceBelow + surfaceDrop + roundMargin - 10)
     : flatDiskClearance ? Math.max(0, 296 + lift + surfaceDrop + R * surfaceRoomy * Math.abs(Math.sin(view.pitch)) + flatDiskClearance - FOOTER_BAND) : 0;
   const originAt1: Point = perspective ? { x: 315, y: 296 + lift + surfaceDrop - surfaceRise } : footed ? { x: 210, y: 250 + lift } : id === 'semi' ? { x: 200, y: 275 + lift } : id === 'axial' ? { x: 130, y: 230 } : arcLike ? { x: 375, y: 218 } : { x: 220, y: 216 };
@@ -739,7 +744,7 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
     if (footed) return { x: 0, y: p.size * t, z: 0 };
     if (id === 'infinite') return { x: 0, y: p.distance * Math.tan(Math.PI * (clamp(t, .001, .999) - .5)), z: 0 };
     if (id === 'semi') return { x: 0, y: p.distance * Math.tan(Math.PI * clamp(t, 0, .999) / 2), z: 0 };
-    if (surface) return { x: id === 'disk' ? R * t : p.distance * Math.tan(Math.PI * clamp(t, 0, .999) / 2), y: 0, z: 0 };
+    if (surface) return { x: id === 'disk' ? R * t : id === 'annulus' ? hole + (R - hole) * t : p.distance * Math.tan(Math.PI * clamp(t, 0, .999) / 2), y: 0, z: 0 };
     const theta = id === 'ring' ? 2 * Math.PI * t : p.phi * (t - .5);
     return { x: R * Math.cos(theta), y: R * Math.sin(theta), z: 0 };
   };
@@ -1815,9 +1820,26 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
   // drawing dimensions the radius of a part seen edge-on: see `dims`.
   // The flat view reserves this whole row below its near rim, including on phones; in space the radius
   // keeps its true azimuth on the charge.
-  const flatR = id === 'disk' && !inSpace ? (() => { const y = O.y + R * unit * Math.abs(Math.sin(view.pitch)) + 16; return y + 9 + 1.37 * SYM * labelScale <= FOOTER_BAND ? y : null; })() : null;
-  const rim = id === 'disk' && flatR === null ? (() => {
+  const flatR = diskLike && !inSpace ? (() => { const y = O.y + R * unit * Math.abs(Math.sin(view.pitch)) + 16; return y + 9 + 1.37 * SYM * labelScale <= FOOTER_BAND ? y : null; })() : null;
+  const rim = diskLike && flatR === null ? (() => {
     const tip = ray({ x: -Math.SQRT1_2, y: -Math.SQRT1_2, z: 0 }, R * unit), d = direction(vsub(tip, O));
+    if (!d) return null;
+    const below = d.x >= 0 ? { x: -d.y, y: d.x } : { x: d.y, y: -d.x }, out = below.y >= 0 ? below : { x: -below.x, y: -below.y };
+    const at = (f: number, sgn: number) => besidePoint({ x: O.x + (tip.x - O.x) * f, y: O.y + (tip.y - O.y) * f }, { x: out.x * sgn, y: out.y * sgn }, 7, SYM * labelScale);
+    const spot = at(.6, 1), alt = [at(.6, -1), at(.85, 1), at(.85, -1), at(.4, 1)].map(q => `${q.x.toFixed(1)} ${q.y.toFixed(1)} ${q.anchor}`).join(';');
+    return { tip, spot, alt, mid: { x: O.x + (tip.x - O.x) * .6, y: O.y + (tip.y - O.y) * .6 } };
+  })() : null;
+  // The rim's letter: R on the disk, b on the annulus, whose answer is written in a and b.
+  const rimName = id === 'annulus' ? 'b' : 'R';
+  // In space the hole's radius is drawn as the rim's is, from O: straight across the screen to the left, the way the
+  // chosen ring's s runs to the right, so it lies along neither s nor the rim's b.
+  // Turned far enough round, screen-left lies along the rim's own azimuth or along s, the world's +x: then it is turned
+  // on past them, so a never names a stretch of b's line or of s's.
+  const holeTip = rim && hole > 0 ? (() => {
+    const turn = (a: number) => Math.abs(Math.atan2(Math.sin(a), Math.cos(a)));
+    let azimuth = view.yaw + Math.PI;
+    for (let k = 0; k < 4 && (turn(azimuth - 5 * Math.PI / 4) < .45 || turn(azimuth) < .45); k++) azimuth += .9;
+    const tip = ray({ x: Math.cos(azimuth), y: Math.sin(azimuth), z: 0 }, hole * unit), d = direction(vsub(tip, O));
     if (!d) return null;
     const below = d.x >= 0 ? { x: -d.y, y: d.x } : { x: d.y, y: -d.x }, out = below.y >= 0 ? below : { x: -below.x, y: -below.y };
     const at = (f: number, sgn: number) => besidePoint({ x: O.x + (tip.x - O.x) * f, y: O.y + (tip.y - O.y) * f }, { x: out.x * sgn, y: out.y * sgn }, 7, SYM * labelScale);
@@ -1857,9 +1879,9 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
   // is in. It stopped at that ring's middle, so at the end of Add them up the shading covered nine tenths
   // of the disk -- under-reporting the charge already summed, and disagreeing with the scene.
   let fillR = sample.position.x;
-  if (id === 'disk' && (mode === 'sum' || mode === 'integrate')) {
-    fillR = 0;
-    for (let i = 0; i < n; i++) if (Math.abs(weights[i]) > 0) fillR = Math.max(fillR, R * (i + Math.min(1, Math.abs(weights[i]))) / n);
+  if (diskLike && (mode === 'sum' || mode === 'integrate')) {
+    fillR = hole;
+    for (let i = 0; i < n; i++) if (Math.abs(weights[i]) > 0) fillR = Math.max(fillR, hole + (R - hole) * (i + Math.min(1, Math.abs(weights[i]))) / n);
   }
   function rodPath() {
     const x = upright ? O.x - rodHalf : rodLow, y = upright ? rodLow : O.y - rodHalf;
@@ -1977,7 +1999,7 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
   const sourceLabel: { symbol: Sym; tail?: string } = standIn
     ? (id === 'sheet' ? { symbol: `${elementSymbol} = σ 2πs z sec²α ${d}α` } : { symbol: `${elementSymbol} = λr sec²α ${d}α` })
     : surface ? { symbol: `${elementSymbol} = σ 2πs ${d}s` } : uneven ? { symbol: `${elementSymbol} ${d === 'd' ? '=' : '≈'} λ_0`, tail: `\u2009cos θ R ${d}θ` } : id === 'ring' || arcLike ? { symbol: `${elementSymbol} = λR ${d}θ` } : ramp ? { symbol: `${elementSymbol} = λ_0`, tail: `(y/L) ${d}y` } : { symbol: `${elementSymbol} = λ ${d}${coordinate}` };
-  const sourceText = id === 'disk' ? 'One ring sweeps out the disk' : id === 'sheet' ? 'A section of a sheet that never ends · one ring is one angle at P' : surface ? 'Whole annulus · transverse fields cancel' : id === 'infinite' ? 'A section of a line that never ends · one piece is one angle at P' : id === 'semi' ? 'A section of a line with one end · one piece is one angle at P' : arcLike ? 'Observation point fixed at the centre' : id === 'ring' ? 'One piece at a time · every piece is the same distance from P' : 'One piece at a time · the integral adds them all';
+  const sourceText = id === 'disk' ? 'One ring sweeps out the disk' : id === 'annulus' ? 'One ring sweeps out the annulus, from the hole’s edge to the rim' : id === 'sheet' ? 'A section of a sheet that never ends · one ring is one angle at P' : surface ? 'Whole annulus · transverse fields cancel' : id === 'infinite' ? 'A section of a line that never ends · one piece is one angle at P' : id === 'semi' ? 'A section of a line with one end · one piece is one angle at P' : arcLike ? 'Observation point fixed at the centre' : id === 'ring' ? 'One piece at a time · every piece is the same distance from P' : 'One piece at a time · the integral adds them all';
   // THE ARC'S φ, inside its own grey arc and on the far side of the axis from the run's piece -- whose angle θ
   // is marked on the near side -- half way round from that piece's mirror to the arc's end. Set just above
   // the axis, beside θ's wedge, the two letters read as a pair, φ as another name for θ; on a phone it fell
@@ -2276,7 +2298,10 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
   if (perspective && !inSpace) dims.push(dimBar('z', 'distance', { x: O.x - 30, y: O.y }, { x: O.x - 30, y: P.y }, 'z', -1));
   // Not on a phone in Shrink them, where "s = R" at the rim's handle names the disk's radius already: there six names
   // stood within seventy pixels of a forty-pixel disk, and R, on a leader under the foot, read with s as "R  s".
-  if (flatR !== null && !(narrow && building === 'limit')) dims.push({ ...dimBar('R', 'size', { x: O.x - R * unit, y: flatR }, { x: O.x, y: flatR }, 'R', 1), within: `0 ${flatR.toFixed(1)} 0 1;${(O.x - SYM * labelScale).toFixed(1)} 0 -1 0` });
+  // The annulus's two radii on that one row, from its centre: the rim's b out to the left, as the disk's R is, and
+  // the hole's a out to the right, so neither bar runs along the other.
+  if (flatR !== null && !(narrow && building === 'limit')) dims.push({ ...dimBar('R', 'size', { x: O.x - R * unit, y: flatR }, { x: O.x, y: flatR }, rimName, 1), within: `0 ${flatR.toFixed(1)} 0 1;${(O.x - SYM * labelScale).toFixed(1)} 0 -1 0` });
+  if (flatR !== null && hole > 0 && !(narrow && building === 'limit')) dims.push({ ...dimBar('a', 'inner', { x: O.x, y: flatR }, { x: O.x + hole * unit, y: flatR }, 'a', 1), within: `0 ${flatR.toFixed(1)} 0 1;${(O.x + SYM * labelScale * .2).toFixed(1)} 0 1 0` });
   if (perspective && inSpace) {
     // In space the bar would cross an axis on either side, so z is a letter alone: beside the axis,
     // between P and where the plane's far edge crosses it, clear of both.
@@ -2331,7 +2356,7 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
     // front of the far rim, hanging down beside P, the column is the potential AT P, and it stops above the near rim
     // and the level of the centre, so it never runs onto the ring or across the disk's near side.
     let floor = 371;
-    if (natural < 0 && (id === 'ring' || id === 'disk')) {
+    if (natural < 0 && (id === 'ring' || diskLike)) {
       const rim = circlePoints(R), top = (x0: number) => {
         let best = O.y;
         for (let k = 1; k < rim.length; k++) {
@@ -2416,7 +2441,7 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
     // Named past its far end, or beside it where the room is short -- and a column hanging down beside P over a ring or a
     // disk, beside its middle: its far end comes down by the far rim, where the limits' names stand in the last two
     // stages, and "V" set there read into them, "V θ = 0, 2π".
-    const hang = natural < 0 && (id === 'ring' || id === 'disk') && !beside;
+    const hang = natural < 0 && (id === 'ring' || diskLike) && !beside;
     const nameY = beside ? P.y - top + .3 * SYM * labelScale : hang ? P.y - top / 2 + .3 * SYM * labelScale : top >= 0 ? P.y - Math.max(12, top) - 6 : P.y - Math.min(-12, top) + 16;
     return { w, x, leftSide, fine, slots, filled, filling, box, lit, litRuns, at, got, top, up: top >= 0, stacked, name, extent, beside, nameY };
   })() : null;
@@ -2563,10 +2588,10 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
     // x = 0" and "s: 0 → ∞", and the handle there stood unnamed. Named as values of the variable, as the disk's
     // are. The sheet's far end, in space, is "s → ∞": a bare ∞ on the end of the x axis read as that axis'
     // arrowhead, and as x → ∞.
-    const naming = id === 'ring' || arcLike || ramp || id === 'disk';
+    const naming = id === 'ring' || arcLike || ramp || diskLike;
     // The ring too, once only one end is whole: a bare "0" stood beside the radius letter and read "R 0",
     // where the closed ring says "θ = 0, 2π" and the arc "θ = …".
-    const prefixed = ramp || arcLike || id === 'disk' || id === 'ring', variable = plainBound(problem.variableTex);
+    const prefixed = ramp || arcLike || diskLike || id === 'ring', variable = plainBound(problem.variableTex);
     // The half line's near end is its origin too, and was left out: its board integrates ∫₀^∞ dx, and its handle at O
     // carried only O while the axis lesson's identical end read "x = 0". And the endless line's ends are where α goes:
     // its board's limits are −π/2 and π/2, and the figure lit two bare arrows and a ±∞ the board never writes. Named
@@ -2593,7 +2618,9 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
     const out: Handle[] = [];
     for (const e of ends) {
       if (onPage(e.raw)) {
-        const tan = tangent(e.t), outward = e.i ? tan : { x: -tan.x, y: -tan.y };
+        // The annulus's lower end is the hole's edge, and outward from it along the radius is into the hole, toward O:
+        // its name stands above its handle instead, where it cannot be read as naming the centre.
+        const tan = tangent(e.t), outward = e.i ? tan : id === 'annulus' ? { x: 0, y: -1 } : { x: -tan.x, y: -tan.y };
         // Set out past the handle's margin as the names grow (see where the handles are made obstacles).
         const clear = 9 * labelScale + 4, along = besidePoint(e.raw, outward, clear, SYM * labelScale);
         // A rod standing on its foot has its ends' names to the side, out away from the axis: along the rod
@@ -2602,7 +2629,7 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
         const label = footed && !inSpace ? besidePoint(e.raw, { x: 1, y: 0 }, clear, SYM * labelScale) : along;
         // The flat disk's handles lie on its x axis, centre and rim, with R, s and the axis all crowding them: there a
         // name may also stand straight under its handle, below the axis -- where nothing of the disk's own is lettered.
-        const under = id === 'disk' && !inSpace ? besidePoint(e.raw, { x: 0, y: 1 }, clear, SYM * labelScale) : null;
+        const under = diskLike && !inSpace ? besidePoint(e.raw, { x: 0, y: 1 }, clear, SYM * labelScale) : null;
         const alts = [...(label === along ? [] : [along]), ...(under ? [under] : [])];
         out.push({ key: e.i ? 'upper' : 'lower', handle: String(e.i), at: e.raw, edge: null, name: named(e.i), label, alt: alts.length ? alts.map(q => `${q.x.toFixed(1)} ${q.y.toFixed(1)} ${q.anchor}`).join(';') : undefined, mark: handlesShown });
         continue;
@@ -2670,7 +2697,7 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
         b.within = `${mid.x.toFixed(1)} ${mid.y.toFixed(1)} ${u.x.toFixed(3)} ${u.y.toFixed(3)}`;
         // The flat disk's lower limit belongs above its central handle. Below and left is the disk's
         // own R dimension, which a short radius otherwise lets s = 0 slide onto.
-        if (id === 'disk' && !inSpace) {
+        if (diskLike && !inSpace) {
           a.within += `;0 ${(O.y - 10).toFixed(1)} 0 -1`;
           // The upper limit reads outside the rim, even when the radius is shorter than its name.
           b.within += `;${(b.at.x + 1.5 * SYM * labelScale).toFixed(1)} 0 1 0`;
@@ -2955,7 +2982,7 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
     const seg = (a: Point, b: Point, w: number) => { segmentBoxes(a, b, w, FRAME_BOX, obstacleBoxes, Math.max(2.5, Math.min(8, w))); };
     const line = (pts: Point[], w: number) => { for (let k = 1; k < pts.length; k++) seg(pts[k - 1], pts[k], w); };
     if (bodyPath) line(bodyPath.map(project), rodLike && !inSpace ? rodHalf * 2 + 2 : 12);
-    else if (id === 'disk') line(circlePoints(R), 8);
+    else if (diskLike) { line(circlePoints(R), 8); if (hole > .02) line(circlePoints(hole), 6); }
     // A surface's chosen ring, which the scene draws as a band right across the picture.
     if (surface && sceneElement.annulus) for (const r of [sceneElement.annulus.inner, sceneElement.annulus.outer]) if (r > .02) line(circlePoints(r), 5);
     // ...and the band between them, which the scene fills: with only its two edges known, s and Δα were set on the band
@@ -3018,6 +3045,7 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
     if (arcLike && !inSpace && arcLetters) { if (!uneven) line(circlePoints(R * PHI_AT, -p.phi / 2, p.phi / 2), 4); if (!pairing) { seg(arcLetters.barA, arcLetters.barB, 4); constructionLines.push({ a: arcLetters.barA, b: arcLetters.barB }); } }
     if (perspective) seg(O, radiusTip, 4);
     if (rim) seg(O, rim.tip, 4);
+    if (holeTip) seg(O, holeTip.tip, 4);
     // The chosen ring of a disk or a sheet, in every view: the scene draws it in space, the flat view
     // as an outline, and a name on it reads as naming it.
     if (surface && (showContribution || building === 'pieces') && ringOutlined) line(circlePoints(Math.max(.001, sample.position.x)), 5);
@@ -3355,7 +3383,7 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
     <div ref={stageBox} className="cd-stage">
     {!inSpace && !scalar && fieldView !== 'off' && <FieldCanvas samples={canvasSamples} detail={UNBOUNDED.has(id) ? 192 : 64} project={project} frame={{ width: 720, height: 430 }} mode={fieldView} reach={Math.max(2.5, p.distance * 1.7, p.size)}
       plane={perspective ? 'xz' : 'xy'} layout={surface ? 'surface' : 'wire'} hold={zooming} />}
-    {inSpace && <FieldStage taper={uneven ? R : undefined} quiet={!!building} kind={id === 'disk' ? 'disk' : id === 'sheet' ? 'sheet' : 'wire'} closed={id === 'ring'} samples={UNBOUNDED.has(id) ? fieldSamples : samples} fieldSamples={fieldSamples} detail={UNBOUNDED.has(id) ? 144 : 48} selected={selectedIndex}
+    {inSpace && <FieldStage taper={uneven ? R : undefined} quiet={!!building} hole={hole || undefined} kind={diskLike ? 'disk' : id === 'sheet' ? 'sheet' : 'wire'} closed={id === 'ring'} samples={UNBOUNDED.has(id) ? fieldSamples : samples} fieldSamples={fieldSamples} detail={UNBOUNDED.has(id) ? 144 : 48} selected={selectedIndex}
       radius={R} distance={p.distance} yaw={view.yaw} pitch={view.pitch} fieldView={scalar ? 'off' : fieldView} reach={fieldReach}
       bodyPath={bodyPath} point={pWorld} element={sceneElement} net={netShown ? scaleVec(displayed, netCut * gain / unit) : null} contribution={handOver ? scaleVec(handOver.field, handOver.multiplier * gain / unit) : pairNow ? (pairNow.step.fb && pairNow.cancel < .6 ? scaleVec(pairNow.step.fa, pairNow.grow * pairM * gain / unit) : null) : scalar || !showContribution || mode === 'sum' || building === 'limit' ? null : scaleVec(sample.field, selectedGain * gain / unit)}
       contributionFrom={pairNow ? scaleVec(pairSoFar, gain / unit) : null}
@@ -3363,7 +3391,7 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
       getView={() => ({ yaw: yawMv.get(), pitch: pitchMv.get() })} cutClock={sceneCutClock} onUnavailable={why => setNoScene(why === 'lost' ? 'lost' : 'failed')}
       // The run, for the scene to draw as bodies: the same partition, partner, sum and arrows the
       // flat marks below are drawn from, at the same scale, so the two can never tell it differently.
-      run={build ? runScene({ stage: building, kind: id === 'disk' ? 'disk' : id === 'sheet' ? 'sheet' : 'wire', closed: id === 'ring', n, selected: selectedIndex, at: world,
+      run={build ? runScene({ stage: building, kind: diskLike ? 'disk' : id === 'sheet' ? 'sheet' : 'wire', closed: id === 'ring', n, selected: selectedIndex, at: world,
         selectedSpan: halfPair && pairSlot ? [pairSlot.a.lo, pairSlot.a.hi] : null, mirrored: supportsPair,
         partner: partnerLit ? (mirrorArc ? 'across' : partnerIndex) : halfPair && pairSlot?.b ? { lo: pairSlot.b.lo, hi: pairSlot.b.hi } : null, weights, summing: mode === 'sum' || mode === 'integrate', continuum, split,
         // The stretches the pairs before this one have put in: the ring cut an odd number of ways takes pieces in by halves.
@@ -3409,12 +3437,13 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
         </g>}
         {perspective && <g ref={plane} className="cd-orbit-plane" transform={planeMatrix(view.yaw, view.pitch, O, unit)}>
           {id === 'sheet' && <g opacity={inSpace ? 0 : 1}><motion.path layoutId="fb-source-surface" data-source-body="true" data-dim="charge" initial={false} animate={{ d: pathThrough(worldArc(7), true) }} transition={{ duration: still ? 0 : .45 }} className="cd-surface" /></g>}
-          {id === 'disk' && <>
-            <g opacity={inSpace ? 0 : 1}><motion.path layoutId="fb-source-surface" data-source-body="true" data-dim="charge" initial={false} animate={{ d: pathThrough(worldArc(R), true) }} transition={{ duration: still ? 0 : .45 }} className="cd-surface" /></g>
+          {diskLike && <>
+            {/* An annulus's face is the disk's with the hole cut out of it: two closed paths, filled even-odd. */}
+            <g opacity={inSpace ? 0 : 1}><motion.path layoutId="fb-source-surface" data-source-body="true" data-dim="charge" initial={false} animate={{ d: pathThrough(worldArc(R), true) + (hole > 0 ? pathThrough(worldArc(hole), true) : '') }} transition={{ duration: still ? 0 : .45 }} className="cd-surface" fillRule="evenodd" /></g>
             {/* The shaded disk is the part already SUMMED, so it is drawn only while summing. Before
                 that it shaded the whole inner disk behind the chosen ring -- area πs², the very
                 mistake this lesson's own hint warns against -- when the piece is the thin ring. */}
-            {(mode === 'sum' || mode === 'integrate') && <motion.path className="cd-disk-sweep" data-disk-sweep="true" initial={false} animate={{ d: pathThrough(worldArc(Math.max(.001, fillR)), true) }} transition={{ duration: still ? 0 : .2 }} />}
+            {(mode === 'sum' || mode === 'integrate') && <motion.path className="cd-disk-sweep" data-disk-sweep="true" initial={false} animate={{ d: pathThrough(worldArc(Math.max(.001, fillR)), true) + (hole > 0 ? pathThrough(worldArc(hole), true) : '') }} transition={{ duration: still ? 0 : .2 }} fillRule="evenodd" />}
             <g className="cd-piece is-selected" data-piece-key={intervalKey(selectedIndex, n)} style={{ pointerEvents: 'none' }}><motion.path initial={false} animate={{ d: pathThrough(worldArc(Math.max(.001, sample.position.x))) }} transition={{ duration: still ? 0 : .2 }} fill="none" strokeWidth="4" /></g>
           </>}
           {id === 'ring' && <>
@@ -3444,7 +3473,7 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
           {/* A SURFACE'S CUTS, AS CUT IT UP MAKES THEM. Flat, a disk or a sheet showed no partition at all -- one
               ring and nothing round it -- so the stage that cuts it had nothing to cut. Its circles are made in order,
               outward, as a wire's cuts are made along it. In space the scene draws them (`.cd-in-space` hides these). */}
-          {(id === 'disk' || id === 'sheet') && building === 'pieces' && <g className="cd-seams cd-surface-seams" aria-hidden="true">
+          {surface && building === 'pieces' && <g className="cd-seams cd-surface-seams" aria-hidden="true">
             {seamFractions(n).map(t => <g key={seamKey(t)} data-seam={seamKey(t)} className="cd-seam" style={cutAt(t)}><path d={pathThrough(worldArc(Math.max(.001, Math.abs(world(t).x))), true)} fill="none" /></g>)}
           </g>}
         </g>}
@@ -3556,8 +3585,10 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
       {/* The radius, named beside its middle -- or nearer either end, above or below it, where the middle
           is taken: flat, a sheet's chosen ring is an ellipse that hems the radius in at its middle. */}
       {rim && <g data-dim="size" data-rim="true" className="cd-dimension"><path d={`M${O.x.toFixed(1)} ${O.y.toFixed(1)}L${rim.tip.x.toFixed(1)} ${rim.tip.y.toFixed(1)}`} clipPath={plotClip} />
-        <text x={rim.spot.x.toFixed(1)} y={rim.spot.y.toFixed(1)} textAnchor={rim.spot.anchor} data-mirror={`${rim.mid.x.toFixed(1)} ${rim.mid.y.toFixed(1)}`} data-alt={rim.alt} data-shaft={lineOf(O, rim.tip)} data-within={awayFromP(O, rim.tip)} {...GIVEN}>R</text></g>}
-      {perspective && <g data-dim={id === 'disk' ? undefined : 'size'} className={`cd-dimension${inSpace && !perspective ? ' is-hidden' : ''}`}><path d={`M${O.x} ${O.y}L${radiusTip.x} ${radiusTip.y}`} clipPath={plotClip} /><text x={O.x+(radiusTip.x-O.x)*.6} y={O.y+(radiusTip.y-O.y)*.6+19} data-mirror={`${(O.x+(radiusTip.x-O.x)*.6).toFixed(1)} ${(O.y+(radiusTip.y-O.y)*.6).toFixed(1)}`}
+        <text x={rim.spot.x.toFixed(1)} y={rim.spot.y.toFixed(1)} textAnchor={rim.spot.anchor} data-mirror={`${rim.mid.x.toFixed(1)} ${rim.mid.y.toFixed(1)}`} data-alt={rim.alt} data-shaft={lineOf(O, rim.tip)} data-within={awayFromP(O, rim.tip)} {...GIVEN}>{rimName}</text></g>}
+      {rim && holeTip && <g data-dim="inner" data-hole="true" className="cd-dimension"><path d={`M${O.x.toFixed(1)} ${O.y.toFixed(1)}L${holeTip.tip.x.toFixed(1)} ${holeTip.tip.y.toFixed(1)}`} clipPath={plotClip} />
+        <text x={holeTip.spot.x.toFixed(1)} y={holeTip.spot.y.toFixed(1)} textAnchor={holeTip.spot.anchor} data-mirror={`${holeTip.mid.x.toFixed(1)} ${holeTip.mid.y.toFixed(1)}`} data-alt={holeTip.alt} data-shaft={lineOf(O, holeTip.tip)} data-within={awayFromP(O, holeTip.tip)} {...GIVEN}>a</text></g>}
+      {perspective && <g data-dim={diskLike ? undefined : 'size'} className={`cd-dimension${inSpace && !perspective ? ' is-hidden' : ''}`}><path d={`M${O.x} ${O.y}L${radiusTip.x} ${radiusTip.y}`} clipPath={plotClip} /><text x={O.x+(radiusTip.x-O.x)*.6} y={O.y+(radiusTip.y-O.y)*.6+19} data-mirror={`${(O.x+(radiusTip.x-O.x)*.6).toFixed(1)} ${(O.y+(radiusTip.y-O.y)*.6).toFixed(1)}`}
         // Not past .85 of the way out on the flat sheet, where "s → ∞" stands under the axis' end: as the walk went out,
         // s took that place right under it and the two read as one garbled name, "s / s → ∞".
         data-alt={(id === 'sheet' && !inSpace ? [.35, .6] : [.35, .85]).flatMap(f => [19, -8].map(dy => `${(O.x + (radiusTip.x - O.x) * f).toFixed(1)} ${(O.y + (radiusTip.y - O.y) * f + dy).toFixed(1)} start`)).join(';')} data-shaft={lineOf(O, radiusTip)} data-within={awayFromP(O, radiusTip)} {...GIVEN}>{surface ? 's' : 'R'}</text></g>}

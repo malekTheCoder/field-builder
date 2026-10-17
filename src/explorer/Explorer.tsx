@@ -12,6 +12,7 @@ import {Dialog,DialogClose,DialogContent,DialogTitle,DialogDescription} from '@/
 import {Button} from '@/components/ui/button';
 import {PROBLEMS,getProblem} from '../problems/definitions';
 import {DEFAULT_PARAMS,type Params,type Problem,type ProblemId} from '../problems/types';
+import {HOLE_MAX} from '../distributions/disk';
 import {confusionTex} from '../symbolic/equivalence';
 import {sheetPiece} from '../diagrams/camera';
 import {activeIntervalIndex} from '../diagrams/sampling';
@@ -88,6 +89,9 @@ const libraryFocus=()=>document.querySelector<HTMLElement>('.exp-library-dialog 
  * ask for the parts or the mirror pair drawn (mode, pair, components): those are pictures the board agrees
  * with, and assignments are written with them. */
 const atRest=(v:Partial<Params>):Params=>({...cleanParams(v),continuum:0});
+/** A link's annulus keeps its hole inside its rim, as the slider does: ?p=annulus&inner=3 on a rim of 2 opens the
+ * widest hole the slider reaches, not one it could never show. Only the annulus reads `inner`, so only its is held. */
+const keepHole=(id:ProblemId,v:Params):Params=>id==='annulus'&&v.inner>HOLE_MAX*v.size/2?{...v,inner:Math.floor(HOLE_MAX*v.size/2/.05+1e-9)*.05}:v;
 /** EVERY WAY TO ANOTHER LESSON IS A LINK. Changing lesson pushes a history entry to ?p=<lesson>, so each of
  * these is a navigation in every sense but its element -- and as buttons a teacher could not Ctrl- or
  * middle-click a lesson open beside another, or copy its address, and a screen reader announced a way to
@@ -219,7 +223,7 @@ export default function Explorer({welcome}:{welcome?:boolean}={}){
  const [id,setId]=useState<ProblemId>('bisector');const [path,setPath]=useState('angular');const [mode,setMode]=useState<Mode>('divide');const [paramsMap,setParamsMap]=useState<Partial<Record<ProblemId,Params>>>({});const [dark,setDark]=useState(false);const [ready,setReady]=useState(false);const [storageOK,setStorageOK]=useState(true);const [onboarding,setOnboarding]=useState(false);const [hideTour,setHideTour]=useState(false);const [cued,setCued]=useState(false);const [library,setLibrary]=useState(false);const [sidebarOpen,setSidebarOpen]=useState(true);const [showNumbers,setShowNumbers]=useState(false);const [components,setComponents]=useState(false);const [pair,setPair]=useState(false);const [progress,setProgress]=useState(1);const [selected,setSelected]=useState<number|null>(null);const [bounds,setBounds]=useState<[number,number]>([0,100]);const [limitsOpen,setLimitsOpen]=useState(true);const [slipsOpen,setSlipsOpen]=useState(true);const [limitIndex,setLimitIndex]=useState(0);const [highlight,setHighlight]=useState('');const [status,setStatus]=useState('');const [building,setBuilding]=useState(false);const [runAt]=useState(runClock);const [buildIndex,setBuildIndex]=useState(0);const [buildShown,setBuildShown]=useState(false);const [runPiece,setRunPiece]=useState(.7);const [laws,setLaws]=useState(false);const [lessonOpen,setLessonOpen]=useState(false);const [cameFrom,setCameFrom]=useState<{id:ProblemId;from:string}|null>(null);const toolsButton=useRef<HTMLButtonElement>(null);const build=useRef<{stop:()=>void}|null>(null);const clock=useRef({at:0,stopAt:0});const buildC=useRef(-1);const buildStep=useRef(-1);const reduced=useReducedMotion();const routeLabel=useId(),endnotesHeading=useId();const tourButton=useRef<HTMLButtonElement>(null),watchButton=useRef<HTMLButtonElement>(null),walk=useRef<HTMLDivElement>(null),reveal=useRef(false);
  // Held per lesson: `getProblem` builds the infinite line afresh on every call, and a new problem
  // object is a changed prop to everything memoised below.
- const p=useMemo(()=>getProblem(id,'angular'),[id]),derivationProblem=useMemo(()=>getProblem(id,path),[id,path]),params=pinned(id,paramsMap[id]??DEFAULT_PARAMS);const continuum=params.continuum;const count=partitionCount(params.slices,continuum);const geom=p.geometry,scalar=p.quantity==='V';const isInfinite=['infinite','semi','sheet'].includes(geom);const isRound=['ring','disk','arc','uneven-arc'].includes(geom);const lim=p.limits[Math.min(limitIndex,p.limits.length-1)];
+ const p=useMemo(()=>getProblem(id,'angular'),[id]),derivationProblem=useMemo(()=>getProblem(id,path),[id,path]),params=pinned(id,paramsMap[id]??DEFAULT_PARAMS);const continuum=params.continuum;const count=partitionCount(params.slices,continuum);const geom=p.geometry,scalar=p.quantity==='V';const isInfinite=['infinite','semi','sheet'].includes(geom);const isRound=['ring','disk','arc','uneven-arc','annulus'].includes(geom);const lim=p.limits[Math.min(limitIndex,p.limits.length-1)];
  // Storage is an external system; initialize after hydration and surface write failures without aborting the lesson.
  // A LINK IS THE WHOLE LESSON IT NAMES. Its values used to be laid over what the student had saved for
  // that lesson -- and a link leaves out every value at its default, so each of those came from the
@@ -278,7 +282,7 @@ export default function Explorer({welcome}:{welcome?:boolean}={}){
   const saved=parsed&&typeof parsed==='object'&&!Array.isArray(parsed)?parsed:{};
   const pm:Partial<Record<ProblemId,Params>>={};for(const pr of PROBLEMS)if(saved.params?.[pr.id]&&typeof saved.params[pr.id]==='object')pm[pr.id]=atRest(saved.params[pr.id]);
   const url=parseAssignment(typeof location==='undefined'?'':location.search);const linked=url.id??(url.params||url.stage?'bisector':undefined);
-  if(linked&&isReady(linked)){setId(linked);pm[linked]=atRest({...DEFAULT_PARAMS,...url.params});if(url.stage)linkedStage.current=url.stage;if(url.view)setLinkedView({id:linked,view:url.view})}else if(PROBLEMS.some(p=>p.id===saved.id)&&isReady(saved.id))setId(saved.id);
+  if(linked&&isReady(linked)){setId(linked);pm[linked]=keepHole(linked,atRest({...DEFAULT_PARAMS,...url.params}));if(url.stage)linkedStage.current=url.stage;if(url.view)setLinkedView({id:linked,view:url.view})}else if(PROBLEMS.some(p=>p.id===saved.id)&&isReady(saved.id))setId(saved.id);
   // THE SYSTEM'S THEME UNTIL THE READER CHOOSES ONE. The page was light for everyone who had not pressed the moon,
   // so a student opening a link at night on a phone set to dark met a white page. With no choice saved it follows
   // the system (as the head's early line does, app/layout.tsx and index.html); a press of the toggle -- here, on the
@@ -379,7 +383,7 @@ export default function Explorer({welcome}:{welcome?:boolean}={}){
  // ...AND THE VIEW, where it is not the lesson's own, as every other value is left out at its default: view=3d for a rod,
  // a line or the arc turned into space, view=2d for a lesson that opens in space (the ring, the disk, the sheet) drawn
  // flat. A link without it opens each lesson its own way, as every link before it did.
- const opensInSpace=['ring','disk','sheet'].includes(geom);
+ const opensInSpace=['ring','disk','sheet','annulus'].includes(geom);
  const view=inSpace===null||inSpace===opensInSpace?undefined:inSpace?'3d' as const:'2d' as const;
  const address=`?${serializeAssignment(buildShown?{id,params:{...params,continuum:0},stage:buildIndex+1,view}:{id,mode,params:{...params,continuum:0},pair,components,view})||`p=${id}`}`;
  useEffect(()=>{if(!ready||typeof history==='undefined')return;
@@ -412,7 +416,7 @@ export default function Explorer({welcome}:{welcome?:boolean}={}){
   const url=parseAssignment(location.search),to=url.id??(url.params?'bisector':undefined);
   if(!to||!isReady(to))return;
   if(to!==id)changeDistribution(to);
-  setParamsMap(old=>({...old,[to]:atRest({...DEFAULT_PARAMS,...url.params})}));
+  setParamsMap(old=>({...old,[to]:keepHole(to,atRest({...DEFAULT_PARAMS,...url.params}))}));
   if(url.mode)setMode(url.mode);if(url.pair)setPair(true);if(url.components)setComponents(true);if(url.stage){if(to===id)openLinked(url.stage);else linkedStage.current=url.stage}if(url.view)setLinkedView({id:to,view:url.view})
  });
  useEffect(()=>{window.addEventListener('popstate',revisit);return()=>window.removeEventListener('popstate',revisit)},[revisit]);
@@ -506,11 +510,11 @@ export default function Explorer({welcome}:{welcome?:boolean}={}){
  // re-rendered whole on every frame of Add them up and Shrink them, about nine hundred a run, half a
  // millisecond each on a laptop and some four times that on a Chromebook, in the two stages that move most.
  // It reads the values only to check a bound typed against the charge's size, so they reach it without the cut.
- const {distance:bd,size:bs,charge:bq,phi:bp,slices:bn,element:be}=params;
+ const {distance:bd,size:bs,charge:bq,phi:bp,slices:bn,element:be,inner:bi}=params;
  // And the limiting cases, open with the page now, take the same: handed the run's cut, the open card summed its
  // seventy samples again on every frame of Shrink them -- a fifth of a frame's cost there on a slow machine -- for a
  // sweep that reads none of it.
- const boardParams=useMemo(()=>({distance:bd,size:bs,charge:bq,phi:bp,slices:bn,element:be,continuum:0}),[bd,bs,bq,bp,bn,be]);
+ const boardParams=useMemo(()=>({distance:bd,size:bs,charge:bq,phi:bp,slices:bn,element:be,continuum:0,inner:bi}),[bd,bs,bq,bp,bn,be,bi]);
  const updateParams=useCallback((partial:Partial<Params>)=>{setParamsMap(old=>({...old,[id]:{...(old[id]??DEFAULT_PARAMS),...partial}}));},[id]);
  /** Whether the run came to rest by itself -- played to the end of what it was asked to play -- rather
   * than being stopped: the board looks again at the one and leaves the other alone (see the follow). */
@@ -1090,12 +1094,14 @@ export default function Explorer({welcome}:{welcome?:boolean}={}){
     const planned=<GaussLibraryFamily key="gauss"/>;
     return <>{families(PROBLEMS.filter(pr=>isReady(pr.id))).map(g=>block(g.label,g.items))}{planned}{soon.length>0&&block('Coming soon',soon)}</>;
    },[id,choose]);
- const {distance,size,charge,phi,slices}=params;
- const parameterGrid=useMemo(()=><div className="parameter-grid">{geom!=='arc'&&geom!=='uneven-arc'&&<Range describe="distance" onDescribe={setHighlight} label={['ring','disk','sheet'].includes(geom)?'Height z':geom==='axial'?'End distance a':'Distance r'} format={METERS} value={distance} min={.5} max={6} step={.05} onChange={distance=>updateParams({distance})}/>} {!isInfinite&&<Range describe="size" onDescribe={setHighlight} label={isRound?'Radius R':'Length L'} format={METERS} value={isRound?size/2:size} min={isRound?.5:1} max={isRound?4:8} step={.05} onChange={v=>updateParams({size:isRound?v*2:v})}/>}<Range describe="charge" onDescribe={setHighlight} label={geom==='sheet'?'Surface density σ':geom==='ramp'?'Peak density λ₀':['infinite','semi'].includes(geom)?'Line density λ':'Total charge Q'} unit={geom==='sheet'?PER_SQUARE_METER:geom==='ramp'||['infinite','semi'].includes(geom)?PER_METER:NANOCOULOMBS} value={charge} min={-5} max={5} step={.1} onChange={(next,reason)=>updateParams({charge:snapCharge(next,charge,reason)})}/>{/* In degrees, on the same grid as before (a tenth of π to 2π in hundredths of π): run in
+ const {distance,size,charge,phi,slices,inner}=params;
+ // The annulus's hole stays inside its rim: HOLE_MAX of b, on the slider's own grid.
+ const holeMax=Math.floor(HOLE_MAX*size/2/.05+1e-9)*.05;
+ const parameterGrid=useMemo(()=><div className="parameter-grid">{geom!=='arc'&&geom!=='uneven-arc'&&<Range describe="distance" onDescribe={setHighlight} label={['ring','disk','sheet','annulus'].includes(geom)?'Height z':geom==='axial'?'End distance a':'Distance r'} format={METERS} value={distance} min={.5} max={6} step={.05} onChange={distance=>updateParams({distance})}/>} {!isInfinite&&<Range describe="size" onDescribe={setHighlight} label={geom==='annulus'?'Outer radius b':isRound?'Radius R':'Length L'} format={METERS} value={isRound?size/2:size} min={isRound?.5:1} max={isRound?4:8} step={.05} onChange={v=>updateParams(geom==='annulus'&&inner>HOLE_MAX*v?{size:v*2,inner:Math.floor(HOLE_MAX*v/.05+1e-9)*.05}:{size:isRound?v*2:v})}/>}{geom==='annulus'&&<Range describe="inner" onDescribe={setHighlight} label="Inner radius a" format={METERS} value={Math.min(inner,holeMax)} min={0} max={holeMax} step={.05} onChange={v=>updateParams({inner:Math.min(v,holeMax)})}/>}<Range describe="charge" onDescribe={setHighlight} label={geom==='sheet'?'Surface density σ':geom==='ramp'?'Peak density λ₀':['infinite','semi'].includes(geom)?'Line density λ':'Total charge Q'} unit={geom==='sheet'?PER_SQUARE_METER:geom==='ramp'||['infinite','semi'].includes(geom)?PER_METER:NANOCOULOMBS} value={charge} min={-5} max={5} step={.1} onChange={(next,reason)=>updateParams({charge:snapCharge(next,charge,reason)})}/>{/* In degrees, on the same grid as before (a tenth of π to 2π in hundredths of π): run in
      units of π, the slider read "1.5" to a screen reader, which meant 1.5π and said nothing of it. */}{geom==='arc'&&<Range describe="angle" onDescribe={setHighlight} label="Arc angle φ" format={DEGREES} value={phi*180/Math.PI} min={18} max={360} step={1.8} onChange={v=>updateParams({phi:v*Math.PI/180})}/>}{/* How finely the charge is cut. It used to live inside one step of the walkthrough, so the
      one control that shows the sum closing in on the integral was three clicks deep. Named by what the run cuts:
      the disk, the sheet and the disk's potential are cut into rings -- the stage is "One ring", the board says
-     "the N rings" -- and the slider under them alone said Pieces. */}<Range describe="pieces" onDescribe={setHighlight} label={geom==='disk'||geom==='sheet'?'Rings N':'Pieces N'} value={slices} min={3} max={30} onChange={recut}/><button onClick={resetGeometry} className="text-button exp-reset" aria-label="Reset geometry" title="Reset geometry"><RotateCcw size={13}/></button></div>,[geom,isInfinite,isRound,distance,size,charge,phi,slices,updateParams,recut,resetGeometry]);
+     "the N rings" -- and the slider under them alone said Pieces. */}<Range describe="pieces" onDescribe={setHighlight} label={geom==='disk'||geom==='sheet'||geom==='annulus'?'Rings N':'Pieces N'} value={slices} min={3} max={30} onChange={recut}/><button onClick={resetGeometry} className="text-button exp-reset" aria-label="Reset geometry" title="Reset geometry"><RotateCcw size={13}/></button></div>,[geom,isInfinite,isRound,distance,size,charge,phi,slices,inner,holeMax,updateParams,recut,resetGeometry]);
  /** The offline copy, made in the light theme whatever the screen is in -- it is for paper, as the
   * print sheet is -- and put back the moment the figure has been read.
   *
@@ -1233,8 +1239,9 @@ export default function Explorer({welcome}:{welcome?:boolean}={}){
   {/* The quiz is its own page, but the end of a lesson is when a reader is ready for it: this opens it with
       this lesson's shape already ticked. */}
   <p className="exp-quiz-this no-print"><a className="exp-came-back" href={`${QUIZ_HREF}=${id}`} onClick={e=>{if(!inPlace(e))return;e.preventDefault();navigate(`${QUIZ_HREF}=${id}`)}}><ClipboardCheck size={15} aria-hidden="true"/>Quiz yourself on this shape</a></p>
-  {/* The line and the sheet are the two fields Gauss's law gets in two lines: say so, once its lesson is ready. */}
-  {(()=>{const g=id==='infinite'?'lines':id==='sheet'?'sheets':null;return g&&isGaussReady(g)&&<p className="exp-quiz-this no-print"><a className="exp-came-back" href={gaussHref(g)} onClick={e=>{if(!inPlace(e))return;e.preventDefault();navigate(gaussHref(g))}}><ArrowRight size={15} aria-hidden="true"/>The same answer by Gauss’s law</a></p>})()}
+  {/* The line and the sheet are the two fields Gauss's law gets in two lines: say so, once its lesson is ready. The
+      annulus's rim run out is a sheet with a hole, which the Gauss lesson on holes builds by superposition. */}
+  {(()=>{const g=id==='infinite'?'lines':id==='sheet'?'sheets':id==='annulus'?'holes':null;return g&&isGaussReady(g)&&<p className="exp-quiz-this no-print"><a className="exp-came-back" href={gaussHref(g)} onClick={e=>{if(!inPlace(e))return;e.preventDefault();navigate(gaussHref(g))}}><ArrowRight size={15} aria-hidden="true"/>{id==='annulus'?'A sheet with a hole, by Gauss’s law and superposition':'The same answer by Gauss’s law'}</a></p>})()}
   {/* A card, not a line: the lesson's last word is where to go next, its shape, its name and why. */}
   {related&&<a className="exp-next" href={lessonHref(related.id)} aria-label={`Next: ${related.short}. ${related.text}`} onClick={e=>{if(!inPlace(e))return;e.preventDefault();follow(related.id,related.from)}}>
    <span className="exp-next-glyph"><ShapeGlyph id={related.id} size={22}/></span>

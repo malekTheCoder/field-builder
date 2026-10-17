@@ -93,6 +93,7 @@ const ORDER:{leg:string;items:{id:ProblemId;text:string}[]}[]=[
  {leg:'Round shapes and a sheet',items:[
   {id:'ring',text:String.raw`Every piece is the same distance from $P$, so the sideways parts cancel all the way round.`},
   {id:'disk',text:'A disk is rings. The ring’s answer becomes the piece you add up.'},
+  {id:'annulus',text:String.raw`A disk with a hole: the same rings, added from the hole’s edge $a$ out to the rim $b$.`},
   {id:'sheet',text:'A disk with no edge. The far rings make the larger fields, and the field never changes with height.'},
   {id:'arc',text:String.raw`Every piece is $R$ from $P$. How far the arc opens decides what survives.`},
   {id:'uneven-arc',text:String.raw`The semicircle again, its charge piled toward the middle: $\lambda(\theta)$ goes inside the integral, and the mirror pairs still cancel across the axis.`}]},

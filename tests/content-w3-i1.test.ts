@@ -59,12 +59,12 @@ describe('the Unfold the handout prints names no stage of the run',()=>{
 });
 
 describe('every far check says why the object looks like a point, and how good the point is',()=>{
- const ORDER:Record<string,string>={bisector:'(L/r)²',ring:'(R/z)²',disk:'(R/z)²',endpoint:'(L/r)²','v-ring':'(R/z)²','v-disk':'(R/z)²','v-rod-bisector':'(L/r)²'};
+ const ORDER:Record<string,string>={bisector:'(L/r)²',ring:'(R/z)²',disk:'(R/z)²',annulus:'(b/z)²',endpoint:'(L/r)²','v-ring':'(R/z)²','v-disk':'(R/z)²','v-rod-bisector':'(L/r)²'};
  it('no far explanation is the old generic sentence, and each names its order',()=>{
   // The ramp's far check has its own point to make, which charge the far field counts: Q = λ₀L/2.
   for(const p of lessons.filter(p=>p.id!=='ramp'))for(const l of p.limits.filter(l=>l.mode==='far')){
    expect(plain(l.explanation),p.id).not.toMatch(/the object’s size becomes negligible/);
-   expect(plain(l.explanation),p.id).toMatch(/of order \((?:L\/r|R\/z|L\/a)\)²/);
+   expect(plain(l.explanation),p.id).toMatch(/of order \((?:L\/r|R\/z|L\/a|b\/z)\)²/);
   }
   for(const [id,order] of Object.entries(ORDER))expect(plain(getProblem(id).limits.find(l=>l.mode==='far')!.explanation),id).toContain(`of order ${order}`);
  });

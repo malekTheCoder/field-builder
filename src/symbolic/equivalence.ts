@@ -2,7 +2,7 @@ import {parse,type MathNode,type SymbolNode,type FunctionNode,type OperatorNode,
 import type {Problem} from '../problems/types';
 import {REGISTRY} from '../distributions';
 const allowedFunctions=new Set(['sqrt','sin','cos','tan','sec','abs','log']);
-const allowedSymbols=new Set(['d','Q','L','R','r','a','z','x','y','s','theta','alpha','phi','lambda','lambda0','sigma','eps0','pi','k','ri','dQ','dE','dV','V','dx','dy','dz','ds','dr','dl','dtheta','dalpha','dA','Infinity']);
+const allowedSymbols=new Set(['d','Q','L','R','r','a','b','z','x','y','s','theta','alpha','phi','lambda','lambda0','sigma','eps0','pi','k','ri','dQ','dE','dV','V','dx','dy','dz','ds','dr','dl','dtheta','dalpha','dA','Infinity']);
 export function normalize(input:string):string {
  // Both ln and log denote the natural logarithm; bases are intentionally unsupported.
  // λ₀ is the peak density of a non-uniform rod: one symbol, never λ times zero.
@@ -57,6 +57,8 @@ function constrain(scope:Record<string,number>,p:Problem,random:()=>number){
  if(g==='infinite'||g==='bisector'){scope.y=(random()*2-1)*scope.L/2;scope.ri=Math.hypot(scope.y,scope.r);scope.alpha=adjacent(scope.r,scope.ri);return}
  if(g==='semi'){scope.x=scope.r*Math.tan(random()*.4*Math.PI/2);scope.ri=Math.hypot(scope.x,scope.r);scope.alpha=adjacent(scope.r,scope.ri);return}
  if(g==='endpoint'||g==='ramp'){scope.y=.05*scope.L+random()*.9*scope.L;scope.ri=Math.hypot(scope.y,scope.r);scope.alpha=adjacent(scope.r,scope.ri);return}
+ // The annulus's rings run from its hole's edge a out to its rim b, which lies past it.
+ if(g==='annulus'){scope.b=scope.a+Math.exp(-1.6+random()*3.2);scope.s=scope.a+random()*(scope.b-scope.a);scope.ri=Math.hypot(scope.s,scope.z);scope.alpha=adjacent(scope.z,scope.ri);return}
  if(g==='disk'){scope.s=random()*scope.R;scope.ri=Math.hypot(scope.s,scope.z);scope.alpha=adjacent(scope.z,scope.ri);return}
  if(g==='sheet'){scope.s=Math.abs(scope.z)*Math.tan(random()*.4*Math.PI);scope.ri=Math.hypot(scope.s,scope.z);scope.alpha=adjacent(scope.z,scope.ri);return}
  if(g==='arc'){scope.theta=(random()-.5)*scope.phi;scope.ri=scope.R;}

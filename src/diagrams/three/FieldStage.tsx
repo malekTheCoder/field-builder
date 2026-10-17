@@ -22,6 +22,8 @@ import {cutPiece,cutShare,dropStyle,keptSpans,type RunScene,type RunTone} from '
 export type FieldStageProps={
  /** Which body to build. A wire runs through its samples; a disk or a sheet is a surface. */
  kind:BodyKind; closed:boolean; radius:number; distance:number;
+ /** The annulus's hole, its inner radius in metres: a disk with no charge inside it. Left out, a whole disk. */
+ hole?:number;
  samples:readonly ChargeSample[]; selected:number;
  /** What the FIELD is traced from, where that is not the reader's own pieces: a partition fine
   * enough to be the charge itself (see ChargeDiagram). The pieces -- a disk's rings, the run's cuts
@@ -855,7 +857,7 @@ export function FieldStage(props:FieldStageProps){
      centres.push(...apartOnScreen(marks,toScreen,apart));
     }else if(p.kind==='disk'){
      // A sunflower over the face, as dense everywhere as the charge is (see `diskSignMarks`).
-     centres.push(...apartOnScreen(diskSignMarks(Math.max(.01,p.radius),p.unit,band,h+ring).map(at=>({at,foot:at,alpha:1})),toScreen,apart));
+     centres.push(...apartOnScreen(diskSignMarks(Math.max(.01,p.radius),p.unit,band,h+ring,p.hole??0).map(at=>({at,foot:at,alpha:1})),toScreen,apart));
     }else if(far){
      // On the sheet: a sunflower laid on the plane itself, so the marks turn and tilt with it; a view
      // decides only which of them are drawn, and how strongly.
@@ -1002,8 +1004,11 @@ export function FieldStage(props:FieldStageProps){
      sheetFarKey='';
      return;
     }
-    body.add(new THREE.Mesh(new THREE.CircleGeometry(1,128),bodyMaterial));
+    // An annulus is the disk's face with its middle cut out, and an edge round the hole as well as the rim.
+    const hole=p.kind==='disk'&&p.hole&&p.radius>0?Math.min(.999,p.hole/p.radius):0;
+    body.add(new THREE.Mesh(hole>0?new THREE.RingGeometry(hole,1,128,1):new THREE.CircleGeometry(1,128),bodyMaterial));
     body.add(new THREE.Line(unitCircle(),pickedMaterial));
+    if(hole>0){const edge=new THREE.Line(unitCircle(),pickedMaterial);edge.scale.setScalar(hole);body.add(edge);}
    };
    let builds=0,laid=0;
    // What the field was last built as, kept so that its colour, its arrowheads and the arrows hidden
@@ -1396,13 +1401,14 @@ export function FieldStage(props:FieldStageProps){
     // shading dissolves exactly as the sheet under it does rather than ending at a hard rim.
     const filled=run&&!wire?run.filled:null;
     const reach=p.kind==='sheet'?spread:Math.max(.01,p.radius);
-    const nextFill=filled!==null?`${p.kind}:${quantise(Math.min(filled,reach)/reach,400)}:${spread.toFixed(3)}:${frameWorld.toFixed(2)}:${positive}:${farKey}:${dark}`:'';
+    const nextFill=filled!==null?`${p.kind}:${quantise(Math.min(filled,reach)/reach,400)}:${spread.toFixed(3)}:${frameWorld.toFixed(2)}:${positive}:${farKey}:${dark}:${(p.hole??0).toFixed(4)}`:'';
     if(nextFill!==fillKey){
      fillKey=nextFill;fill.geometry.dispose();
      const r=Math.max(.001,Math.min(filled??0,reach));
      fill.geometry=filled===null?new THREE.BufferGeometry()
       :p.kind==='sheet'?fillGeometry(r,frameWorld*.45,far,fillAlpha(dark))
-      :fadeGeometry(new THREE.RingGeometry(0,r,128,4),0,0,fillAlpha(dark)*1.2);
+      // An annulus's sum starts at its hole's edge: the shading never covers the hole, where nothing was added.
+      :fadeGeometry(new THREE.RingGeometry(Math.min(p.hole??0,r*.999),r,128,4),0,0,fillAlpha(dark)*1.2);
     }
     fill.visible=filled!==null;fill.position.z=wr*.03;fill.rotation.z=far?yaw:0;
     // In the dark it glows a little, as the sheet under it does, rather than sitting on it as a grey slab.
@@ -1528,7 +1534,7 @@ export function FieldStage(props:FieldStageProps){
     const shape=`${sampleKey(p)}:${taperR}`;
     // A disk and a sheet are drawn at unit size and scaled, so how finely they are cut says
     // nothing about their body; it was rebuilt at every doubling of the limit regardless.
-    const bodyShape=p.kind==='wire'?shape:`${p.kind}:${p.closed}`;
+    const bodyShape=p.kind==='wire'?shape:`${p.kind}:${p.closed}:${p.hole&&p.radius>0?(p.hole/p.radius).toFixed(4):0}`;
     if(bodyKey!==bodyShape){buildBody(p);bodyKey=bodyShape;}
     const frameWorld=Math.max(f.right-f.left,f.top-f.bottom);
     const extent=frameExtent(p.reach,frameWorld);

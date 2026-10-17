@@ -29,6 +29,8 @@ export function limitTex(p: Problem, percent: number, which: 1 | 2) {
     : g === 'arc' ? plain(t - .5, raw`\varphi`)
     : g === 'uneven-arc' ? plain(t - .5, raw`\pi`)
     : g === 'disk' ? plain(t, 'R')
+    // Half way across the annulus's band its ring sits midway between the hole's edge and the rim.
+    : g === 'annulus' ? (Math.abs(t - .5) < 1e-9 ? '(a+b)/2' : null)
     : p.id === 'infinite' ? plain(t - .5, raw`\pi`)
     // Half way out in angle, the semi-infinite line's piece is r along it and the sheet's ring z out.
     : Math.abs(t - .5) < 1e-9 ? (g === 'sheet' ? 'z' : 'r') : null;

@@ -3,7 +3,7 @@ import {bisector} from './bisector';
 import {axial} from './axial';
 import {infinite,semi} from './infinite';
 import {ring,arc,unevenArc} from './ring';
-import {disk,sheet} from './disk';
+import {disk,sheet,annulus} from './disk';
 import {endpoint} from './endpoint';
 import {ramp} from './ramp';
 import {vRing,vDisk,vArc,vRodBisector,vRodAxial} from './potential';
@@ -13,7 +13,11 @@ export {EPS0,K,type Vec} from './constants';
  * here; `ProblemId` is derived from these keys, so a definition, glyph map or diagram branch that
  * forgets the new id fails to typecheck rather than silently drawing nothing. Order is the
  * library order; the practice wizard's icon map is keyed by ProblemId. */
-export const REGISTRY={bisector,axial,infinite,ring,disk,semi,arc,sheet,endpoint,ramp,'v-ring':vRing,'v-disk':vDisk,'v-arc':vArc,'v-rod-bisector':vRodBisector,'v-rod-axial':vRodAxial,'uneven-arc':unevenArc} as const satisfies Record<string,Distribution>;
+export const REGISTRY={bisector,axial,infinite,ring,disk,semi,arc,sheet,endpoint,ramp,'v-ring':vRing,'v-disk':vDisk,'v-arc':vArc,'v-rod-bisector':vRodBisector,'v-rod-axial':vRodAxial,'uneven-arc':unevenArc,annulus} as const satisfies Record<string,Distribution>;
 export type ProblemId=keyof typeof REGISTRY;
 export const PROBLEM_IDS=Object.keys(REGISTRY) as ProblemId[];
 export const distribution=(id:ProblemId):Distribution=>REGISTRY[id];
+/** The geometries summed as whole rings round an axis through P: their pieces are rings, their field lies along
+ * the axis, and the figure draws them in perspective. */
+export const RING_SUMS:ReadonlySet<string>=new Set(['disk','sheet','annulus']);
+export const ringSum=(id:string)=>RING_SUMS.has(id);

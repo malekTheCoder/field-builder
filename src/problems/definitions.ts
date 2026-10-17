@@ -1,5 +1,5 @@
 import type {Problem,Answer} from './types';
-import {axial,ring,disk,semi,arc,sheet,endpoint,ramp,infiniteFrom,vRing,vDisk,vArc,vRodBisector,vRodAxial,unevenArc} from './more';
+import {axial,ring,disk,semi,arc,sheet,endpoint,ramp,infiniteFrom,vRing,vDisk,vArc,vRodBisector,vRodAxial,unevenArc,annulus} from './more';
 import {heldProblem} from './prose';
 const raw=String.raw;
 export const SOURCE={title:'OpenStax · University Physics 2, §5.5',url:'https://openstax.org/books/university-physics-volume-2/pages/5-5-calculating-electric-fields-of-charge-distributions'};
@@ -23,5 +23,5 @@ export const bisector:Problem={
  ],limits:[{id:'far',title:'Far away, a rod becomes a point',prompt:'When r ≫ L, which expression should the field approach?',answer:'kQ/r²',choices:['kQ/r²','2kλ/r','0 at every distance'],explanation:'Far away every piece is nearly r from P and its field points nearly along x, so the rod acts as its charge Q gathered at its centre. The error in that is of order (L/r)².',formula:raw`r\gg L:\quad E_x\sim\frac{kQ}{r^2}`,mode:'far',reference:'Point charge'},{id:'infinite',title:'Let the rod extend without end',prompt:'Hold λ fixed and let L → ∞. What happens?',answer:'E → 2kλ/r',choices:['E → 2kλ/r','E → kQ/r² with Q fixed','E → 0'],explanation:'Charge density stays fixed, so total charge grows with L. Dividing numerator and denominator by L reveals 2kλ/r.',formula:raw`L\to\infty\; (\lambda\text{ fixed}):\quad E_x\to\frac{2k\lambda}{r}`,mode:'infinite',reference:'Infinite line'}],sources:[SOURCE],link:{id:'infinite',text:'Take this rod to infinity',from:'From the finite rod: hold λ fixed and let it run to infinity'}
 };
 // Every lesson as the page shows it: its short formulas held together by no-break spaces (prose.ts).
-export const PROBLEMS:Problem[]=[bisector,axial,infiniteFrom(bisector),ring,disk,semi,arc,sheet,endpoint,ramp,vRing,vDisk,vArc,vRodBisector,vRodAxial,unevenArc].map(heldProblem);
+export const PROBLEMS:Problem[]=[bisector,axial,infiniteFrom(bisector),ring,disk,semi,arc,sheet,endpoint,ramp,vRing,vDisk,vArc,vRodBisector,vRodAxial,unevenArc,annulus].map(heldProblem);
 export function getProblem(id:string,path='angular'):Problem{return id==='infinite'?heldProblem(infiniteFrom(bisector,path)):PROBLEMS.find(p=>p.id===id)??PROBLEMS[0];}

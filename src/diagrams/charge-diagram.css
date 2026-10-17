@@ -238,6 +238,9 @@
    r_i already answer the slider. */
 .cd-focus-size [data-dim="size"] path,.cd-focus-size [data-dim="size"] line{stroke:var(--field);stroke-width:2.8;stroke-opacity:1}
 .cd-focus-size [data-dim="size"] text{fill:var(--field);font-weight:700}
+/* The annulus's hole, lit from its own slider as the rim is from its size. */
+.cd-focus-inner [data-dim="inner"] path,.cd-focus-inner [data-dim="inner"] line{stroke:var(--field);stroke-width:2.8;stroke-opacity:1}
+.cd-focus-inner [data-dim="inner"] text{fill:var(--field);font-weight:700}
 .cd-focus-angle [data-dim="angle"] path{stroke:var(--field);stroke-width:2.8;stroke-opacity:1}
 .cd-focus-angle [data-dim="angle"] text{fill:var(--field);font-weight:700}
 /* Charge is the one quantity with no bracket to light: what it changes is how much is

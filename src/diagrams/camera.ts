@@ -22,7 +22,7 @@ const OPENING: Record<string, CameraView> = {
   // line on screen, so below about pitch .6 the axis letter lands on P and the placer cannot move
   // it -- an axis letter that shifts stops naming its axis. Use the view cube's side faces to go
   // edge-on deliberately; that is what it is for.
-  disk: {yaw: -.5, pitch: .6}, sheet: {yaw: -.5, pitch: .6}, ring: {yaw: -.5, pitch: .6},
+  disk: {yaw: -.5, pitch: .6}, annulus: {yaw: -.5, pitch: .6}, sheet: {yaw: -.5, pitch: .6}, ring: {yaw: -.5, pitch: .6},
 };
 export const openingCamera = (geometry: string): CameraView => ({...(OPENING[geometry] ?? DEFAULT_CAMERA)});
 /** Pixels per metre the ring, the disk and the sheet open at: the figure's `baseUnit` for the

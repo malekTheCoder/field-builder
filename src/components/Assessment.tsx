@@ -4,7 +4,8 @@
 import {Fragment,memo,useDeferredValue,useId,useMemo,useState,type KeyboardEvent,type PointerEvent,type ReactNode} from 'react';
 import {Slider} from '@/components/ui/slider';
 import type {Problem,ProblemId,Params,Limit} from '../problems/types';
-import {pretty,sampleLimit,limitPlot,halfPieces,RING_PEAK_T,type LimitPlot,type LimitSample,type Vec} from '../symbolic/physics';
+import {HOLE_MAX} from '../distributions/disk';
+import {pretty,sampleLimit,limitPlot,halfPieces,thinGap,RING_PEAK_T,type LimitPlot,type LimitSample,type Vec} from '../symbolic/physics';
 export {sampleLimit};
 import {MathText} from './Math';
 import {useRenderedWidth} from './useRenderedWidth';
@@ -115,16 +116,24 @@ function LimitFigure({id,mode,t,vector,scale,arrow}:{id:ProblemId;mode:Limit['mo
  const S=66,Y=24,filled=id!=='ring',FRAME=21;
  const [radius,gap]=mode==='far'?(g=>[Math.max(1.5,g/(2*t)),g])(Math.min(150,2*FRAME*t))
   :mode==='maximum'?[20,20*3*(t-1)/29]
+  // The annulus closing its hole and narrowing onto its rim: the rim held, P held, the hole moving.
+  :mode==='hole'||mode==='thin'?[20,30]
   :mode==='center'?[20,20*(arrow?Math.SQRT1_2*(1-(t-1)/29):1-t/30)]
   :mode==='infinite'?[18*t,18]
   :[Infinity,5*t];
  // Seen almost edge-on, a disk is a narrow ellipse; once it is taller than the frame it is a band.
  const unbounded=radius>FRAME,rx=.28*Math.min(radius,FRAME);
+ // The annulus's hole, edge-on: an inner ellipse cut out of the face. Half the rim at rest and grown out; the sweep's
+ // own hole where the sweep moves it.
+ const hole=id!=='annulus'?0:mode==='hole'?HOLE_MAX*(1-(t-1)/29):mode==='thin'?1-thinGap(t):.5;
+ // Grown out, the rim runs off the frame and the hole keeps its own size, half P's height.
+ const holeRy=mode==='infinite'&&id==='annulus'?9:Math.min(radius,FRAME)*hole,holeRx=rx*hole,holeCut=hole>0?`M${S-holeRx} ${Y}a${holeRx} ${holeRy} 0 1 0 ${2*holeRx} 0a${holeRx} ${holeRy} 0 1 0 ${-2*holeRx} 0Z`:'';
  // The source's near edge on the axis: its ellipse's (or band's) right-hand side, half its stroke out.
  const edge=unbounded&&!filled?S+1.5:S+rx+(filled?1.25:1.75);
  return <><path d={`M${S} ${Y}H${S+Math.max(gap,6)}`} {...RAIL}/>
   {unbounded
-   ?<>{filled&&<rect x={S-rx} y="-4" width={2*rx} height="56" fill="color-mix(in srgb,var(--charge) 20%,transparent)"/>}<path d={filled?`M${S-rx} -4V52M${S+rx} -4V52`:`M${S} -4V52`} {...CHARGE} strokeWidth={filled?2.5:3}/><path d={`M${S-7} 8l7-6 7 6M${S-7} 40l7 6 7-6`} {...CHARGE}/></>
+   ?<>{filled&&<path d={`M${S-rx} -4H${S+rx}V52H${S-rx}Z${holeCut}`} fillRule="evenodd" fill="color-mix(in srgb,var(--charge) 20%,transparent)"/>}{holeCut&&<path d={holeCut} {...CHARGE} fill="none" strokeWidth={1.5}/>}<path d={filled?`M${S-rx} -4V52M${S+rx} -4V52`:`M${S} -4V52`} {...CHARGE} strokeWidth={filled?2.5:3}/><path d={`M${S-7} 8l7-6 7 6M${S-7} 40l7 6 7-6`} {...CHARGE}/></>
+   :hole>0?<path d={`M${S-rx} ${Y}a${rx} ${radius} 0 1 0 ${2*rx} 0a${rx} ${radius} 0 1 0 ${-2*rx} 0Z${holeCut}`} fillRule="evenodd" {...CHARGE} fill="color-mix(in srgb,var(--charge) 20%,transparent)" strokeWidth={2.5}/>
    :<ellipse cx={S} cy={Y} rx={rx} ry={radius} {...CHARGE} fill={filled?'color-mix(in srgb,var(--charge) 20%,transparent)':'none'} strokeWidth={filled?2.5:3.5}/>}
   {P(S+gap,Y,true,undefined,edge+CLEAR)}</>
 }
@@ -159,7 +168,9 @@ function yWindow(plot:LimitPlot,values:number[]):[number,number]{
 export function sweepName(problem:Problem,limit:Limit):string{
  const g=problem.geometry,disk=g==='disk'||g==='sheet';
  switch(limit.mode){
-  case 'infinite':return disk?'Grow the disk':'Grow the rod';
+  case 'infinite':return g==='annulus'?'Grow the rim':disk?'Grow the disk':'Grow the rod';
+  case 'hole':return 'Close the hole';
+  case 'thin':return 'Narrow it';
   case 'center':return 'Bring P down';
   case 'near':return 'Move P in';
   case 'full':return 'Open the arc';
@@ -199,7 +210,7 @@ const S_MIN=1,S_MAX=30,snap=(v:number)=>Math.round(Math.min(S_MAX,Math.max(S_MIN
 const ARRIVED=.01,APART=.05,ZERO=.02;
 type Moment='start'|'middle'|'end';
 /** What the source is called in a sentence. */
-const SOURCE:Record<ProblemId,string>={bisector:'rod',axial:'rod',endpoint:'rod',ramp:'rod',ring:'ring',disk:'disk',arc:'arc','uneven-arc':'semicircle',infinite:'line',semi:'half line',sheet:'sheet'} as Record<ProblemId,string>;
+const SOURCE:Record<ProblemId,string>={bisector:'rod',axial:'rod',endpoint:'rod',ramp:'rod',ring:'ring',disk:'disk',annulus:'annulus',arc:'arc','uneven-arc':'semicircle',infinite:'line',semi:'half line',sheet:'sheet'} as Record<ProblemId,string>;
 /** ONE SENTENCE FOR WHERE THE SCRUB IS, in words and symbols only. The caption under the card says how
  * to read the whole plot; this says what is true at the dot -- close in, on the way, or arrived -- so
  * dragging along the curve reads as the argument it is: "close up the rod's size still shows", "far
@@ -230,6 +241,10 @@ export function limitNow(problem:Problem,limit:Limit,plot:LimitPlot,here:number,
    'Farther out, how the charge is spread matters less and less: the curve is closing on the dashed line.',
    'Far away, only the rod’s charge and its centre of charge matter: the vertical field is the first-moment field.']);
   case 'infinite':{
+   if(g==='annulus')return pick(converged,[
+    `Still finite, the annulus’s field at P is ${cmp('a holed sheet’s')}.`,
+    'Wider and wider, the annulus looks more and more like an endless sheet with the same hole from P: its rim adds less and less.',
+    'Wide enough, the annulus looks like an endless sheet with a hole from P: the curve lies on the dashed line.']);
    const disk=g==='disk'||g==='sheet',grown=disk?'disk':'rod',big=disk?'Wider and wider':'Longer and longer',ideal=disk?'an infinite sheet':g==='endpoint'||g==='semi'?'a semi-infinite line':'an infinite line';
    if(scalar)return pick(along,[
     `A ${disk?'small disk':'short rod'}: V and its dashed growth law have only begun to climb.`,
@@ -258,6 +273,14 @@ export function limitNow(problem:Problem,limit:Limit,plot:LimitPlot,here:number,
     `The rod’s far end is still close enough to show: with no charge beyond it, the field is ${cmp('k|λ|/a')}.`,
     'Walking in, the rod looks more and more like a half line from P: its far end counts for less and less.',
     'Close up, the rod looks like a half line from P: the far end no longer matters.']);
+  case 'hole':return pick(converged,[
+   `A wide hole: the annulus’s field is ${cmp('the whole disk’s')}, by the field of the rings the hole takes out.`,
+   'As the hole closes, the rings it took out come back: the curve is closing on the dashed line.',
+   'With no hole left, the annulus is the disk: the curve lies on the dashed line.']);
+  case 'thin':return pick(converged,[
+   `Still wide, the annulus spreads its charge over many radii: its field is ${cmp('a ring’s')}.`,
+   'Narrowing onto its rim, every ring is nearly b from the axis: the curve is closing on the dashed line.',
+   'Thin enough, all of the annulus is one distance from P: it is a ring, and the curve lies on the dashed line.']);
   case 'maximum':return here>.98?'At the marked peak, inside z = R: the field on the axis is as strong as it gets.'
    :t<RING_PEAK_T?(here<.5?'Near the centre the pieces’ fields mostly cancel: the field on the axis is weak.':'Rising towards the peak: the pieces’ fields lean out of the ring’s plane, so less of each cancels.')
    :'Past the peak, P is moving away from every piece: the field weakens again.';
@@ -315,7 +338,7 @@ function AssessmentView({problem,params:live,limit}:{problem:Problem;params:Para
  // the straight line -- and every log axis now says it is one, or the rod's ln(L/r), drawn straight,
  // read as V growing in proportion to L.
  const linearGrowth=plot.kind==='growth'&&problem.geometry==='disk';
- const log=(limit.mode==='far'||limit.mode==='moment'||limit.mode==='infinite'||limit.mode==='near'||(limit.mode==='half'&&!scalar)||plot.kind==='law'||semi)&&!linearGrowth;
+ const log=(limit.mode==='far'||limit.mode==='moment'||limit.mode==='infinite'||limit.mode==='near'||limit.mode==='thin'||(limit.mode==='half'&&!scalar)||plot.kind==='law'||semi)&&!linearGrowth;
  const axisName=log?`${plot.axis} (log scale)`:plot.axis;
  const tAt=(i:number)=>log?30**(i/69):1+29*i/69,xAt=(u:number)=>X0+(log?Math.log(u)/Math.log(30):(u-1)/29)*(X1-X0);
  // The slider moves along the plot's own axis, so its thumb and the dot on the curve stay in step.

@@ -465,6 +465,10 @@ const PARTS: Record<ProblemId, Parts> = {
   disk: {...DISK, ...COS_AXIS('s'), dirIs: ANGLE_RINGS, pairSay: ACROSS_RING, simplify: true,
     anti: {pre: String.raw`2\pi k\sigma z`, inner: String.raw`-\frac1{\sqrt{s^2+z^2}}`, check: '-2*pi*k*sigma*z/sqrt(s^2+z^2)'},
     check: {dq: 'sigma*2*pi*s', r: 'sqrt(s^2+z^2)', dir: 'z/sqrt(s^2+z^2)'}},
+  // The annulus is the disk's rings from the hole's edge out: the same piece, the same antiderivative.
+  annulus: {...DISK, ...COS_AXIS('s'), dirIs: ANGLE_RINGS, pairSay: ACROSS_RING, simplify: true,
+    anti: {pre: String.raw`2\pi k\sigma z`, inner: String.raw`-\frac1{\sqrt{s^2+z^2}}`, check: '-2*pi*k*sigma*z/sqrt(s^2+z^2)'},
+    check: {dq: 'sigma*2*pi*s', r: 'sqrt(s^2+z^2)', dir: 'z/sqrt(s^2+z^2)'}},
   sheet: {...SHEET, ...COS_AXIS('s'), dirIs: ANGLE_SHEET, pairSay: ACROSS_RING, simplify: true,
     anti: {pre: String.raw`2\pi k\sigma z`, inner: String.raw`-\frac1{\sqrt{s^2+z^2}}`, check: '-2*pi*k*sigma*z/sqrt(s^2+z^2)'},
     check: {dq: 'sigma*2*pi*s', r: 'sqrt(s^2+z^2)', dir: 'z/sqrt(s^2+z^2)'}},
@@ -532,7 +536,7 @@ export function fx(term: Term, tex: string) { return String.raw`\htmlClass{fx fx
 /** The component being built, as the figure and the result name it. */
 export function componentOf(p: Problem): string {
   if (p.quantity === 'V') return 'V';
-  return ['ring', 'disk', 'sheet'].includes(p.geometry) ? 'E_z' : 'E_x';
+  return ['ring', 'disk', 'sheet', 'annulus'].includes(p.geometry) ? 'E_z' : 'E_x';
 }
 /** Is the sum on the board exact at any cut? Of a ring's field along its axis, and of a ring's or
  * an arc's potential, it is: every piece is the same distance from P (at the same angle), so each
@@ -597,6 +601,7 @@ const SPANS: Record<string, {each: string; run: (lo: string, hi: string) => stri
   arc: {each: String.raw`piece $i$ sits at the angle $\theta_i$`, run: (lo, hi) => `from one end of the arc, ${lo}, to the other, ${hi}`},
   'uneven-arc': {each: String.raw`piece $i$ sits at the angle $\theta_i$`, run: (lo, hi) => `from one end of the semicircle, ${lo}, to the other, ${hi}`},
   disk: {each: 'ring $i$ sits at the radius $s_i$', run: (lo, hi) => `from the centre, ${lo}, to the rim, ${hi}`},
+  annulus: {each: 'ring $i$ sits at the radius $s_i$', run: (lo, hi) => `from the hole’s edge, ${lo}, to the rim, ${hi}`},
   sheet: {each: 'ring $i$ sits at the radius $s_i$', run: lo => String.raw`from the centre, ${lo}, on to $\infty$`},
 };
 /** A stacked fraction, written with a slash for a remark: set inline, the stacked one shrinks. */
@@ -622,7 +627,7 @@ export function boardLines(p: Problem, bounds?: [string, string], opts: {keeps?:
   // so loudly, rather than mixing the two the day a route tab is wired to the board.
   if (p.id === 'infinite' && p.variable !== 'alpha') throw Error('The board builds the infinite line in α; pass the angular lesson.');
   const t = PARTS[p.id], scalar = p.quantity === 'V', lhs = componentOf(p), v = p.variableTex;
-  const surface = p.geometry === 'disk' || p.geometry === 'sheet', unit = surface ? 'ring' : 'piece';
+  const surface = p.geometry === 'disk' || p.geometry === 'sheet' || p.geometry === 'annulus', unit = surface ? 'ring' : 'piece';
   const [lo, hi] = bounds ?? p.boundTex;
   const whole = !bounds || (lo === p.boundTex[0] && hi === p.boundTex[1]);
   const keeps = opts.keeps ?? (whole || (p.geometry !== 'ring' && lo === `-${hi}`));
@@ -1065,6 +1070,12 @@ const SET_OVER_TWO_LINES: Partial<Record<ProblemId, string[]>> = {
   // were rid of below. So a third row puts σ = Q/(πR²) in: 2πkσ is 2kQ/R², one change from the first row.
   disk: [String.raw`\begin{aligned}E_z&=2\pi k\sigma\left(1-\frac{z}{\sqrt{R^2+z^2}}\right)${rowGap(1)}&=\frac{\sigma}{2\varepsilon_0}\left(1-\frac{z}{\sqrt{R^2+z^2}}\right)${rowGap(1)}&=\frac{2kQ}{R^2}\left(1-\frac{z}{\sqrt{R^2+z^2}}\right)\\&\phantom{{}={}}(z>0)\end{aligned}`],
   sheet: [String.raw`E_z=2\pi k\sigma=\frac{\sigma}{2\varepsilon_0}\quad(z>0)`],
+  // The annulus's answer needs no "(z > 0)": its lower end is the hole's edge, √(a² + z²), never the √(z²) = |z| that
+  // makes the disk's answer hold on one side only. The same rows as the disk's: in k, in ε₀, then in the Q the slider
+  // holds, σ = Q/(π(b² − a²)).
+  // Too wide for the panel on one row, each bracket is set over two, as the ramp's is: \bigg( by hand, since
+  // \left…\right cannot span a break. The ε₀ form is in Unfold's last steps.
+  annulus: [String.raw`\begin{aligned}E_z&=2\pi k\sigma z\bigg(\frac1{\sqrt{a^2+z^2}}\\&\phantom{{}=2\pi k\sigma z\bigg(}-\frac1{\sqrt{b^2+z^2}}\bigg)\\&=\frac{2kQz}{b^2-a^2}\bigg(\frac1{\sqrt{a^2+z^2}}\\&\phantom{{}=\frac{2kQz}{b^2-a^2}\bigg(}-\frac1{\sqrt{b^2+z^2}}\bigg)\end{aligned}`],
   'v-disk': [String.raw`\begin{aligned}V&=2\pi k\sigma\left(\sqrt{R^2+z^2}-z\right)${rowGap(.7)}&=\frac{\sigma}{2\varepsilon_0}\left(\sqrt{R^2+z^2}-z\right)${rowGap(.88)}&=\frac{2kQ}{R^2}\left(\sqrt{R^2+z^2}-z\right)\\&\phantom{{}={}}(z>0)\end{aligned}`],
   // THE LESSONS THAT HOLD Q AS THE SLIDER MOVES, SAID IN Q TOO. The arc, the rod on its axis and the two
   // rod potentials keep their total charge fixed as φ or L changes -- their setups say so -- and their
@@ -1166,6 +1177,14 @@ export const DISK_UNFOLD: WorkedStep[] = [
   {text: 'Upper end minus lower end.',
     tex: String.raw`\begin{aligned}E_z&=2\pi k\sigma z\left[-\frac1{\sqrt{s^2+z^2}}\right]_0^R${rowGap(1)}&=2\pi k\sigma z\left(\frac1{\sqrt{z^2}}-\frac1{\sqrt{R^2+z^2}}\right)\end{aligned}`},
 ];
+/** The annulus's integral: the disk's three steps, then its own ends, the hole's edge and the rim. */
+export const ANNULUS_UNFOLD: WorkedStep[] = [
+  {text: String.raw`The factor $2\pi k\sigma z$ is the same for every ring: the height $z$ is fixed while $s$ runs over the rings. So it comes outside the integral.`,
+    tex: String.raw`E_z=2\pi k\sigma z\int_a^b\frac{s\,ds}{(s^2+z^2)^{3/2}}`},
+  DISK_UNFOLD[1], DISK_UNFOLD[2],
+  {text: 'Upper end minus lower end: the rim, then the hole’s edge.',
+    tex: String.raw`\begin{aligned}E_z&=2\pi k\sigma z\left[-\frac1{\sqrt{s^2+z^2}}\right]_a^b${rowGap(1)}&=2\pi k\sigma z\left(\frac1{\sqrt{a^2+z^2}}-\frac1{\sqrt{b^2+z^2}}\right)\end{aligned}`},
+];
 /** The arc's integral from its board's last line. Its Unfold opened already integrated, −(kλ/R)[sin θ],
  * under "Integrate the angular projection", and finished on "Sine is odd" -- the two steps a reader
  * needs, kλ/R coming out and sin(−φ/2) = −sin(φ/2), named rather than written. */
@@ -1264,6 +1283,8 @@ export const V_ROD_BISECTOR_UNFOLD: WorkedStep[] = [
 // claimed completeness and never derived its own last equality. One step more, in the lesson's terms.
 export const DISK_Q: WorkedStep = {text: String.raw`The disk holds $Q$ spread over its area $\pi R^2$, so $\sigma=Q/(\pi R^2)$ and $2\pi k\sigma=2kQ/R^2$.`,
   tex: String.raw`E_z=\frac{2kQ}{R^2}\left(1-\frac{z}{\sqrt{R^2+z^2}}\right)`};
+export const ANNULUS_Q: WorkedStep = {text: String.raw`The annulus holds $Q$ spread over its area $\pi(b^2-a^2)$, so $\sigma=Q/\bigl(\pi(b^2-a^2)\bigr)$ and $2\pi k\sigma=2kQ/(b^2-a^2)$.`,
+  tex: String.raw`E_z=\frac{2kQz}{b^2-a^2}\left(\frac1{\sqrt{a^2+z^2}}-\frac1{\sqrt{b^2+z^2}}\right)`};
 export const V_DISK_Q: WorkedStep = {text: DISK_Q.text, tex: String.raw`V=\frac{2kQ}{R^2}\left(\sqrt{R^2+z^2}-z\right)`};
 /** WHY DIFFERENTIATE. Under "Differentiate back" the first step talked of symmetry and differentiated;
  * that the field is minus the derivative arrived only in the second. A student does not know why they
@@ -1343,6 +1364,7 @@ export function workedSteps(p: Problem, algebra: Problem = p): {worked: WorkedSt
       ? [...INFINITE_UNFOLD, ...inherit(original.slice(2)).map(s => ({...s, tex: s.tex.replace(String.raw`E_x=2k\lambda/r=\lambda/(2\pi\varepsilon_0r)`, String.raw`E_x=\frac{2k\lambda}{r}=\frac{\lambda}{2\pi\varepsilon_0r}`)}))]
     : g === 'semi' ? [...SEMI_UNFOLD, ...inherit(original.slice(-1))]
     : g === 'disk' ? [...DISK_UNFOLD, ...inherit(original.slice(1)), DISK_Q]
+    : g === 'annulus' ? [...ANNULUS_UNFOLD, ...inherit(original.slice(2)), ANNULUS_Q]
     : g === 'sheet' ? SHEET_UNFOLD
     : g === 'arc' ? [...ARC_UNFOLD, ...inherit(original.slice(2))]
     : g === 'axial' ? AXIAL_UNFOLD

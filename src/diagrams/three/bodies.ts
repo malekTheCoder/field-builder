@@ -503,8 +503,8 @@ export function strokeSide(kind:BodyKind,a:Point3,b:Point3):{a:Point3;b:Point3;b
  * sign. Now the marks are spread evenly over the parts of the disk the chosen ring does NOT cover, from a
  * fifth of the radius out to nine tenths of it, `clear` metres (a mark's half-size) clear of either wall
  * of `annulus`, the chosen ring. `unit` is viewBox units per metre: a ring of marks every sixty or so. */
-export function diskSignRadii(R:number,unit:number,annulus:{inner:number;outer:number}|null,clear:number):number[]{
- const lo=.2*R,hi=.92*R,most=Math.max(2,Math.min(4,Math.round(R*unit/60)));
+export function diskSignRadii(R:number,unit:number,annulus:{inner:number;outer:number}|null,clear:number,hole=0):number[]{
+ const lo=signFloor(R,hole,clear),hi=signCeiling(R,hole,clear),most=Math.max(2,Math.min(4,Math.round(R*unit/60)));
  const cut=annulus?[annulus.inner-clear,annulus.outer+clear] as const:null;
  // The free stretches of [lo, hi], and their total length.
  const free:[number,number][]=cut?[[lo,Math.min(hi,cut[0])],[Math.max(lo,cut[1]),hi]]:[[lo,hi]];
@@ -516,6 +516,13 @@ export function diskSignRadii(R:number,unit:number,annulus:{inner:number;outer:n
  const count=Math.max(1,Math.min(most,Math.round(total*unit/30)+1));
  return Array.from({length:count},(_,k)=>at(count>1?total*k/(count-1):total/2));
 }
+/** WHERE A FACE'S MARKS MAY START. On a disk, a fifth of the radius out, clear of the axis and P's foot. On an
+ * annulus the middle is a hole with no charge in it, and a mark there would put charge where there is none: they
+ * start a mark's half size clear of the hole's edge, `hole` metres out, and never nearer the middle than a disk's. */
+export function signFloor(R:number,hole:number,half:number):number{return hole>0?Math.max(.2*R,Math.min(hole+half,signCeiling(R,hole,half))):.2*R;}
+/** And where they stop: nine tenths of the radius on a disk. On an annulus whose hole reaches past that, the band is
+ * all there is, so they may run out to half a mark short of the rim, and never inside the hole. */
+export function signCeiling(R:number,hole:number,half:number):number{return hole>0?Math.min(R,Math.max(.92*R,R-half,hole)):.92*R;}
 /** How far apart the disk's sign marks are laid on its face, in units of the figure: about the spacing a
  * wire's marks are laid at along it (see `signMarks`). */
 export const DISK_SIGN_SPACING=28;
@@ -535,8 +542,8 @@ export const DISK_SIGN_FREE=8;
  * the rim is; none on the chosen ring or within `half` of its walls; and none closer to another than a mark's
  * width and a little paper (2.6 half sizes), so the smallest disk carries no pile. A disk too small for any
  * gets one mark, off the chosen ring. */
-export function diskSignMarks(R:number,unit:number,annulus:{inner:number;outer:number}|null,half:number):Point3[]{
- const lo=.2*R,hi=.92*R,cut=annulus?[annulus.inner-half,annulus.outer+half] as const:null;
+export function diskSignMarks(R:number,unit:number,annulus:{inner:number;outer:number}|null,half:number,hole=0):Point3[]{
+ const lo=signFloor(R,hole,half),hi=signCeiling(R,hole,half),cut=annulus?[annulus.inner-half,annulus.outer+half] as const:null;
  // A SMALL DISK IS MARKED MORE FINELY, NOT LESS. On a phone the disk is a sixth smaller in the figure's units, and with
  // the chosen washer across the middle of its radius -- five rings, the lesson's default -- the face round it held five
  // places for a mark, and the names gathered round O took all but one: a disk with a single plus. So as many are laid
@@ -552,7 +559,7 @@ export function diskSignMarks(R:number,unit:number,annulus:{inner:number;outer:n
   out.push(at);
  }
  // Too small for any: one, on the outermost free radius, off the chosen ring.
- if(!out.length){const radii=diskSignRadii(R,unit,annulus,half),r=radii.length?radii[radii.length-1]:0;out.push({x:r*Math.cos(.3),y:r*Math.sin(.3),z:0});}
+ if(!out.length){const radii=diskSignRadii(R,unit,annulus,half,hole),r=radii.length?radii[radii.length-1]:hole>0?(hole+R)/2:0;out.push({x:r*Math.cos(.3),y:r*Math.sin(.3),z:0});}
  return out;
 }
 /** THE MARKS THAT CAN BE TOLD APART ON THE SCREEN: each kept unless it would be drawn within `gap` viewBox

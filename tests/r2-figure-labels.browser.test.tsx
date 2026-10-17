@@ -99,11 +99,11 @@ function boxToSegment(b: Box, a: {x: number; y: number}, e: {x: number; y: numbe
  * the distance and loses the angle at P, which is only that angle seen flat. */
 function terms(id: string, n: 2 | 3, space = false): string[] {
  const all = flatTerms(id, n), g = getProblem(id as never).geometry;
- return space && !['ring', 'disk', 'sheet'].includes(g) ? all.filter(t => t !== 'α' && t !== 'θ' && t !== 'y') : all;
+ return space && !['ring', 'disk', 'annulus', 'sheet'].includes(g) ? all.filter(t => t !== 'α' && t !== 'θ' && t !== 'y') : all;
 }
 function flatTerms(id: string, n: 2 | 3): string[] {
  const p = getProblem(id as never), g = p.geometry, scalar = p.quantity === 'V';
- const surface = g === 'disk' || g === 'sheet', round = g === 'ring' || surface;
+ const surface = g === 'disk' || g === 'annulus' || g === 'sheet', round = g === 'ring' || surface;
  const ri = g === 'arc' || g === 'uneven-arc' ? (scalar ? [] : ['ri = R']) : g === 'axial' ? ['ri = L + a − x'] : ['ri'];
  if (scalar) {
   const pairs = ['bisector', 'ring', 'arc', 'uneven-arc'].includes(g);

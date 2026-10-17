@@ -38,7 +38,7 @@ import {DEFAULT_PARAMS,type Params,type Problem,type ProblemId} from '../src/pro
 // closed forms, recorded next to the algebra that produced them.
 // ---------------------------------------------------------------------------
 
-const FIELD_IDS=['bisector','axial','infinite','ring','disk','semi','arc','sheet','endpoint','ramp','uneven-arc'] as const;
+const FIELD_IDS=['bisector','axial','infinite','ring','disk','annulus','semi','arc','sheet','endpoint','ramp','uneven-arc'] as const;
 const ALL_IDS=[...FIELD_IDS,'v-ring','v-disk','v-arc','v-rod-bisector','v-rod-axial'] as const;
 /** The finite path of the infinite-line lesson is a sixteenth Problem that never reaches PROBLEMS. */
 const FINITE=getProblem('infinite','finite');
@@ -61,7 +61,7 @@ afterAll(()=>{if(process.env.AUTHORED_REPORT)process.stderr.write('\n'+ledger.ma
 /** P, transcribed from each lesson's own setup sentence. Used only to place the mirror planes. */
 const OBSERVER:Record<string,(p:Params)=>[number,number,number]>={
  bisector:p=>[p.distance,0,0],axial:p=>[p.size+p.distance,0,0],infinite:p=>[p.distance,0,0],
- ring:p=>[0,0,p.distance],disk:p=>[0,0,p.distance],sheet:p=>[0,0,p.distance],
+ ring:p=>[0,0,p.distance],disk:p=>[0,0,p.distance],annulus:p=>[0,0,p.distance],sheet:p=>[0,0,p.distance],
  semi:p=>[p.distance,0,0],arc:()=>[0,0,0],endpoint:p=>[p.distance,0,0],ramp:p=>[p.distance,0,0],
  'uneven-arc':()=>[0,0,0],
 };
@@ -189,6 +189,8 @@ function scopeFor(p:Problem,o:Setting):Scope{
   case 'arc':sc.Q=charge;sc.lambda=charge/(R*phi);sc.ri=R;break;
   case 'uneven-arc':sc.Q=charge;sc.lambda0=charge/(2*R);sc.ri=R;break;   // the slider is Q, and Q = 2λ₀R
   case 'disk':sc.Q=charge;sc.sigma=charge/(Math.PI*R*R);sc.ri=Math.hypot(sc.s,dist);break;
+  // The annulus's hole is half its rim, so it scales with every other length; its rings' s (.61 R) lies between.
+  case 'annulus':sc.Q=charge;sc.a=R/2;sc.b=R;sc.sigma=charge/(Math.PI*(R*R-sc.a*sc.a));sc.ri=Math.hypot(sc.s,dist);break;
   case 'sheet':sc.sigma=charge;sc.ri=Math.hypot(sc.s,dist);break;              // no total Q exists
   case 'semi':sc.lambda=charge;sc.ri=Math.hypot(sc.y,dist);break;              // no total Q exists
   case 'infinite':sc.lambda=charge;sc.Q=charge*L;                              // REGISTRY's scope convention
@@ -197,7 +199,7 @@ function scopeFor(p:Problem,o:Setting):Scope{
  }
  if(!angular)sc.alpha=Math.acos(Math.min(1,Math.abs(dist)/sc.ri));   // the adjacent side is always the standoff
  // The dependent differentials, derived rather than assigned, so they scale on their own.
- sc.dQ=g==='disk'||g==='sheet'?sc.sigma*2*Math.PI*sc.s*sc.ds:(g==='uneven-arc'?sc.lambda0*Math.cos(sc.theta):Number.isFinite(sc.lambda0)?sc.lambda0*sc.y/L:sc.lambda)*sc.dl;
+ sc.dQ=g==='disk'||g==='sheet'||g==='annulus'?sc.sigma*2*Math.PI*sc.s*sc.ds:(g==='uneven-arc'?sc.lambda0*Math.cos(sc.theta):Number.isFinite(sc.lambda0)?sc.lambda0*sc.y/L:sc.lambda)*sc.dl;
  sc.dE=kk*sc.dQ/(sc.ri*sc.ri);sc.dV=kk*sc.dQ/sc.ri;sc.V=sc.dV;
  return sc;
 }
@@ -604,7 +606,7 @@ describe('dimensional consistency of every authored formula, by simultaneous sca
   const answer=p.quantity==='E'?E:V;
   // dE/dv drops one power of length when the sweep variable is a length, none when it is an angle.
   const kernel:Dim=[answer[0],answer[1],answer[2]-(p.variable==='theta'||p.variable==='alpha'?0:1)];
-  const area=p.geometry==='disk'||p.geometry==='sheet';
+  const area=p.geometry==='disk'||p.geometry==='sheet'||p.geometry==='annulus';
   expectDimension(p.result,p,answer,`${key} result`);
   if(p.secondaryResult)expectDimension(p.secondaryResult,p,answer,`${key} secondaryResult`);
   expectDimension(p.kernel,p,kernel,`${key} kernel`);
@@ -710,7 +712,7 @@ describe('the symmetry claim names exactly the components the geometry annihilat
    const id=p.geometry as ProblemId;
    const at:Params={...DEFAULT_PARAMS,charge:2.4,distance:1.9,size:3.8,phi:2.3};
    const samples=sampleDistribution(id,at,64),P=OBSERVER[id](at);
-   const annuli=id==='disk'||id==='sheet';
+   const annuli=id==='disk'||id==='annulus'||id==='sheet';
    const derived:Axis[]=[];
    const point=(s:(typeof samples)[number])=>[s.position.x,s.position.y,s.position.z,s.dq];
    const span=Math.max(1,...samples.flatMap(s=>point(s).slice(0,3).map(Math.abs)));
@@ -764,7 +766,9 @@ describe('the symmetry claim names exactly the components the geometry annihilat
 //   v-disk    (σ/2ε₀)(√(z²+R²) − z) = kQ/z(1 − R²/4z² + …)           ⇒ −1/4   in R
 const FAR:Record<string,{c:number;p:1|2;param:'L'|'R';magnitude?:boolean}>={
  bisector:{c:-1/8,p:2,param:'L'},axial:{c:-1,p:1,param:'L'},ring:{c:-3/2,p:2,param:'R'},
- disk:{c:-3/4,p:2,param:'R'},endpoint:{c:-3/8,p:2,param:'L',magnitude:true},
+ disk:{c:-3/4,p:2,param:'R'},
+ // kQ/z²(1 − 3(a² + b²)/4z² + …): at the default hole a = b/2 that is −15/16 in b.
+ annulus:{c:-15/16,p:2,param:'R'},endpoint:{c:-3/8,p:2,param:'L',magnitude:true},
  ramp:{c:-19/36,p:2,param:'L',magnitude:true},'v-rod-bisector':{c:-1/24,p:2,param:'L'},
  'v-rod-axial':{c:-1/2,p:1,param:'L'},'v-ring':{c:-1/2,p:2,param:'R'},'v-disk':{c:-1/4,p:2,param:'R'},
 };
@@ -779,7 +783,7 @@ describe('“far” limits are approached at the predicted order and coefficient
    const q=Math.abs(REGISTRY[geom].total?.(where)??where.charge*1e-9);
    const asymptote=p.quantity==='V'?K*q/where.distance:K*q/where.distance**2;
    const closed=p.quantity==='V'?Math.abs(potential(geom,where))
-    :expected.magnitude?magnitude(field(geom,where)):Math.abs(field(geom,where)[geom==='ring'||geom==='disk'?'z':'x']);
+    :expected.magnitude?magnitude(field(geom,where)):Math.abs(field(geom,where)[geom==='ring'||geom==='disk'||geom==='annulus'?'z':'x']);
    // The lesson's own printed string, evaluated without touching field() or potential().
    const scope=scopeFor(p,{...BASE,L:where.size,R:where.size/2,dist:where.distance,phi:where.phi,charge:where.charge*1e-9});
    return {e:closed/asymptote-1,printed:Math.abs(ev(p.result,scope))/asymptote-1,t};
@@ -973,7 +977,7 @@ describe('REGISTRY substitutions, density strings and dq = density × element',(
   const L=at.size,R=at.size/2,Q=at.charge*1e-9;
   const cases:[string,number][]=[
    ['bisector',Q],['axial',Q],['endpoint',Q],['v-rod-bisector',Q],['v-rod-axial',Q],
-   ['ring',Q],['v-ring',Q],['arc',Q],['v-arc',Q],['disk',Q],['v-disk',Q],
+   ['ring',Q],['v-ring',Q],['arc',Q],['v-arc',Q],['disk',Q],['v-disk',Q],['annulus',Q],
    ['ramp',Q*L/2],                                              // λ₀L/2, not λ₀L: the ramp is half empty
    ['infinite',Q*L]];                                           // λL: a scope convention, see below
   for(const [id,want] of cases){
@@ -1013,7 +1017,7 @@ describe('REGISTRY substitutions, density strings and dq = density × element',(
    expect(close(q,2*l0*R,1e-6),`${key}: ∫λ R dθ = ${q} vs 2λ₀R`).toBe(true);
   });
   if(p.geometry!=='ramp'&&p.geometry!=='uneven-arc')it(`${key}: the density string is the lesson’s own λ or σ`,()=>{
-   const symbol=p.geometry==='disk'||p.geometry==='sheet'?'sigma':'lambda';
+   const symbol=p.geometry==='disk'||p.geometry==='sheet'||p.geometry==='annulus'?'sigma':'lambda';
    expect(equivalent(p.density,symbol,p).ok,`${key}: ${p.density} vs ${symbol}`).toBe(true);
   });
  }
@@ -1055,8 +1059,8 @@ describe('integralTex’s limits are boundTex, boundTex is bounds, and its integ
   });
  }
  it('every lesson in the library was covered',()=>{
-  expect(PROBLEMS).toHaveLength(16);
-  expect(VARIANTS).toHaveLength(17);
+  expect(PROBLEMS).toHaveLength(17);
+  expect(VARIANTS).toHaveLength(18);
  });
 });
 

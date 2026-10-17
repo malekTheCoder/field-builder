@@ -93,7 +93,7 @@ describe('the bank', () => {
   expect(MISCONCEPTIONS.map(m => m.id).filter(id => !used.has(id))).toEqual([]);
  });
  it('names the stage the lesson’s own run names: One ring for the shapes cut into rings', () => {
-  for (const id of ['disk', 'sheet', 'v-disk'] as const) expect(place({lesson: id, stage: 'piece'}).title).toBe(`${getProblem(id).short}, One ring`);
+  for (const id of ['disk', 'annulus', 'sheet', 'v-disk'] as const) expect(place({lesson: id, stage: 'piece'}).title).toBe(`${getProblem(id).short}, One ring`);
   for (const id of ['ring', 'arc', 'v-ring', 'v-arc'] as const) expect(place({lesson: id, stage: 'piece'}).title).toBe(`${getProblem(id).short}, One piece`);
  });
 });

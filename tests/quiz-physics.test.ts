@@ -516,6 +516,66 @@ describe('the disk, on its axis', () => {
  });
 });
 
+/* THE ANNULUS'S BANK (src/quiz/bank/annulus.ts): the disk's band from a to b, every claim summed from point charges. */
+describe('the annulus, on its axis', () => {
+ const a = .6, b = 1.5, Q = 2, sig = Q / (Math.PI * (b * b - a * a));
+ const exact = (z: number, s = sig, lo = a, hi = b) => 2 * Math.PI * k * s * z * (1 / Math.hypot(lo, z) - 1 / Math.hypot(hi, z));
+ const band_ = (z: number, s = sig, lo = a, hi = b, nu = 3000) => diskCharges(hi, s, z, lo, nu);
+ it('has the lesson’s field along the axis only, with the sign of σ, on either side (what-cancels, result, negative)', () => {
+  for (const z of [.3, 1, 3]) for (const sign of [1, -1]) {
+   const f = at(0, 0, z, band_(z, sign * sig));
+   close(f.ez, sign * exact(z), 1e-4); expect(Math.hypot(f.ex, f.ey)).toBeLessThan(1e-9);
+   expect(Math.sign(f.ez)).toBe(sign);
+   // The swapped ends give the field turned round: pointing at a positive annulus.
+   expect(Math.sign(-exact(z, sign * sig))).toBe(-sign);
+  }
+  const below = at(0, 0, -1, band_(1));
+  close(below.ez, -exact(1), 1e-4);
+ });
+ it('σ = Q/(π(b² − a²)) puts Q on the band; Q/(πb²) or Q/(π(b − a)²) do not (density)', () => {
+  close(total(band_(1)), Q, 1e-9);
+  expect(Math.abs(total(band_(1, Q / (Math.PI * b * b))) - Q) / Q).toBeGreaterThan(.1);
+  expect(Math.abs(total(band_(1, Q / (Math.PI * (b - a) ** 2))) - Q) / Q).toBeGreaterThan(.1);
+ });
+ it('one ring of radius s makes k ΔQ z/(s² + z²)^{3/2}: not with b, not whole (one-ring)', () => {
+  const s = .9, dQ = .01, z = .8, f = ring(s, dQ, z, 64).ez;
+  close(f, k * dQ * z / (s * s + z * z) ** 1.5, 1e-12);
+  for (const wrong of [k * dQ * z / (b * b + z * z) ** 1.5, k * dQ / (s * s + z * z)]) expect(Math.abs(wrong - f) / f).toBeGreaterThan(.1);
+ });
+ it('the rings run from a to b: from 0, from 0 to b − a, or on to ∞ are other charges (bounds, result)', () => {
+  const z = .7, f = at(0, 0, z, band_(z)).ez;
+  close(f, exact(z), 1e-4);
+  for (const wrong of [exact(z, sig, 0, b), exact(z, sig, 0, b - a), exact(z, sig, a, 1e4)]) expect(Math.abs(wrong - f) / f).toBeGreaterThan(.05);
+  // The whole disk's 2πkσ(1 − z/√(b² + z²)) is the integral from 0.
+  close(exact(z, sig, 0, b), 2 * Math.PI * k * sig * (1 - z / Math.hypot(b, z)), 1e-12);
+ });
+ it('a → 0 at fixed σ is the disk of radius b, not zero and not the sheet (no-hole)', () => {
+  const z = .9, f = at(0, 0, z, band_(z, sig, 1e-6)).ez, disk = 2 * Math.PI * k * sig * (1 - z / Math.hypot(b, z));
+  close(f, disk, 1e-4); expect(f).toBeLessThan(sig / (2 * eps0));
+ });
+ it('b → ∞ at fixed σ is a sheet with a hole: σ/(2ε₀) z/√(a² + z²), not σ/(2ε₀), zero or twice (holed-sheet)', () => {
+  for (const z of [.5, 1]) {
+   const f = at(0, 0, z, band_(z, sig, a, 1e4)).ez, holed = sig / (2 * eps0) * z / Math.hypot(a, z);
+   close(f, holed, 1e-3);
+   expect(Math.abs(f - sig / (2 * eps0)) / f).toBeGreaterThan(.05);
+  }
+  expect(at(0, 0, 1, band_(1, Q / (Math.PI * 1e8), a, 1e4)).ez).toBeLessThan(1e-6);
+ });
+ it('far up the axis is kQ/z² with Q = σπ(b² − a²), not kσπb²/z² (far)', () => {
+  const z = 300, f = at(0, 0, z, band_(z, sig, a, b, 400)).ez;
+  close(f, k * Q / z ** 2, 1e-4);
+  expect(Math.abs(k * sig * Math.PI * b * b / z ** 2 - f) / f).toBeGreaterThan(.1);
+ });
+ it('a → b at fixed Q is a ring of radius b, not zero and not kQ/z² (thin)', () => {
+  const z = .8, lo = .9995 * b, s = Q / (Math.PI * (b * b - lo * lo)), f = at(0, 0, z, band_(z, s, lo, b, 50)).ez;
+  close(f, k * Q * z / (b * b + z * z) ** 1.5, 1e-3);
+  expect(Math.abs(k * Q / z ** 2 - f) / f).toBeGreaterThan(.1);
+  expect(Math.abs(k * Q / (b * b + z * z) - f) / f).toBeGreaterThan(.1);
+  // The bracket over b² − a² is the derivative the explanation names.
+  close((1 / Math.hypot(lo, z) - 1 / Math.hypot(b, z)) / (b * b - lo * lo), 1 / (2 * (b * b + z * z) ** 1.5), 1e-3);
+ });
+});
+
 describe('the infinite sheet', () => {
  const sig = .8, E = sig / (2 * eps0);
  const field = (z: number, a0?: number, a1?: number, nu?: number) => at(0, 0, z, sheetCharges(sig, z, a0, a1, nu)).ez;

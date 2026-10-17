@@ -198,7 +198,7 @@ describe('the equal-angle first line is geometry, not a rate', () => {
 
 describe('the run', () => {
   it('a disk’s and a sheet’s second stage is One ring', () => {
-    for (const p of PROBLEMS) expect(buildStages(p)[1].name, p.id).toBe(['disk', 'sheet'].includes(p.geometry) ? 'One ring' : 'One piece');
+    for (const p of PROBLEMS) expect(buildStages(p)[1].name, p.id).toBe(['disk', 'sheet', 'annulus'].includes(p.geometry) ? 'One ring' : 'One piece');
   });
   it('every symbol in a run line is marked for the page to set as math, and the plain line is the same words', () => {
     for (const p of PROBLEMS) for (const s of buildStages(p)) {

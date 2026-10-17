@@ -16,6 +16,7 @@ import {bank as semi} from './bank/semi';
 import {bank as vRodBisector} from './bank/v-rod-bisector';
 import {bank as vRodAxial} from './bank/v-rod-axial';
 import {bank as disk} from './bank/disk';
+import {bank as annulus} from './bank/annulus';
 import {bank as sheet} from './bank/sheet';
 import {bank as arc} from './bank/arc';
 import {bank as vRing} from './bank/v-ring';
@@ -44,7 +45,7 @@ import {bank as gHard} from './bank/gauss-hard';
 export const BANKS: Partial<Record<ShapeId, Question[]>> = {
   bisector, ring, infinite,
   axial, endpoint, ramp, semi, 'v-rod-bisector': vRodBisector, 'v-rod-axial': vRodAxial,
-  disk, sheet, arc, 'uneven-arc': unevenArc, 'v-ring': vRing, 'v-disk': vDisk, 'v-arc': vArc,
+  disk, annulus, sheet, arc, 'uneven-arc': unevenArc, 'v-ring': vRing, 'v-disk': vDisk, 'v-arc': vArc,
   symmetry: gSymmetry, flux: gFlux, inside: gInside, qenc: gQenc, spheres: gSpheres,
   lines: gLines, sheets: gSheets, conductors: gConductors, holes: gHoles, 'runs-out': gRunsOut, hard: gHard,
 };
@@ -245,7 +246,7 @@ export const PAGE_SECTIONS = ['Limiting cases', 'Easy to confuse with'];
  * rings, and their second stage is One ring (src/explorer/buildRun.ts). */
 export function stageName(lesson: ProblemId, stage: StageWord): string {
   const geometry = getProblem(lesson).geometry;
-  return stage === 'piece' && (geometry === 'disk' || geometry === 'sheet') ? 'One ring' : STAGE_NAME[stage];
+  return stage === 'piece' && (geometry === 'disk' || geometry === 'sheet' || geometry === 'annulus') ? 'One ring' : STAGE_NAME[stage];
 }
 /** A Gauss lesson's parts below its figure that a pointer may name, besides the lesson's own headings. */
 export const GAUSS_PAGE_SECTIONS = ['Check the answer', 'Easy to confuse with'];

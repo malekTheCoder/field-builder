@@ -38,7 +38,7 @@ import type {Params} from '../src/problems/types';
 const near = (v: {x: number; y: number; z: number}) => Math.hypot(v.x, v.y, v.z);
 const gap = (a: {x: number; y: number; z: number}, b: {x: number; y: number; z: number}) =>
   Math.hypot(a.x - b.x, a.y - b.y, a.z - b.z);
-const BASE: Params = {distance: 3, size: 4, charge: 2, phi: Math.PI, element: .65, slices: 5, continuum: 0};
+const BASE: Params = {distance: 3, size: 4, charge: 2, phi: Math.PI, element: .65, slices: 5, continuum: 0, inner: 1};
 type Field = (p: Params) => {x: number; y: number; z: number};
 /** The rule itself, in one place, so the mutation test at the end can apply it unchanged to a
  * formula that is deliberately wrong. Returns the settings at which the formula is NOT what the
@@ -68,14 +68,15 @@ const PHI = [.1 * Math.PI, Math.PI, 1.5 * Math.PI, 2 * Math.PI];
 function domain(id: ProblemId): {p: Params; at: string}[] {
   const angled = id === 'arc' || id === 'v-arc';
   const out: {p: Params; at: string}[] = [];
+  // The annulus's hole too, as far as its slider goes: none (the disk), half the rim, and as near the rim as it reaches.
   for (const distance of DISTANCE) for (const size of SIZE) for (const charge of CHARGE)
-    for (const phi of angled ? PHI : [Math.PI])
-      out.push({p: {...BASE, distance, size, charge, phi}, at: `r=${distance} L=${size} q=${charge}${angled ? ` phi=${(phi / Math.PI).toFixed(2)}pi` : ''}`});
+    for (const phi of angled ? PHI : [Math.PI]) for (const hole of id === 'annulus' ? [0, .5, .95] : [null])
+      out.push({p: {...BASE, distance, size, charge, phi, inner: hole === null ? BASE.inner : hole * size / 2}, at: `r=${distance} L=${size} q=${charge}${angled ? ` phi=${(phi / Math.PI).toFixed(2)}pi` : ''}${hole === null ? '' : ` a=${hole}b`}`});
   return out;
 }
 /** Two element counts that really are a refinement for this geometry, coarse then fine. */
 const refinement = (id: ProblemId): [number, number] =>
-  id === 'disk' || id === 'sheet' || id === 'v-disk' ? [40000, 160000] : [2000, 8000];
+  id === 'disk' || id === 'sheet' || id === 'v-disk' || id === 'annulus' ? [40000, 160000] : [2000, 8000];
 /** Where doubles stop being able to tell the closed form and the sum apart. Above the ring's
  * accumulated rounding at the counts used here, and far below any real disagreement. */
 const FLOOR = 1e-11;
@@ -114,7 +115,7 @@ describe('every closed form is the limit of its own quadrature, everywhere the s
 const RESOLVES: Record<string, number> = {
   bisector: 1e-9, ring: 1e-9, arc: 1e-9, endpoint: 1e-9, 'v-ring': 1e-9, 'v-arc': 1e-9, 'v-rod-bisector': 1e-9,
   axial: 1e-8, ramp: 1e-8, 'v-rod-axial': 1e-8,
-  semi: 3e-8, infinite: 1e-7, disk: 1e-7, 'v-disk': 1e-7,
+  semi: 3e-8, infinite: 1e-7, disk: 1e-7, 'v-disk': 1e-7, annulus: 1e-7,
   // The uneven semicircle's pieces hold their stretch's exact charge, so its sum falls short by (Δθ/2)²/6, from
   // taking each direction at its piece's middle: at two and eight thousand pieces a smaller bend hides inside that.
   'uneven-arc': 3e-7,

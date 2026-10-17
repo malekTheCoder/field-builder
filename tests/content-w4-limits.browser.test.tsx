@@ -34,7 +34,7 @@ describe('a ratio plot stands on zero', () => {
 });
 describe('the limiting case’s slider says what it moves', () => {
   it('a visible name beside the track, from the plot’s own sweep', () => {
-    const expected: Record<string, RegExp> = {far: /^Move P out$/, moment: /^Move P out$/, scale: /^Move P out$/, maximum: /^Move P out$/, infinite: /^Grow the (rod|disk)$/, center: /^Bring P down$/, near: /^Move P in$/, full: /^Open the arc$/, half: /^Add pieces$/};
+    const expected: Record<string, RegExp> = {far: /^Move P out$/, moment: /^Move P out$/, scale: /^Move P out$/, maximum: /^Move P out$/, infinite: /^Grow the (rod|disk|rim)$/, center: /^Bring P down$/, near: /^Move P in$/, full: /^Open the arc$/, half: /^Add pieces$/, hole: /^Close the hole$/, thin: /^Narrow it$/};
     for (const problem of lessons) for (const limit of problem.limits) {
       const {container, getByRole, unmount} = render(<div style={{width: 560}}><Assessment problem={problem} params={DEFAULT_PARAMS} limit={limit} /></div>);
       const name = container.querySelector<HTMLElement>('.limit-slider-name');
