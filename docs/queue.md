@@ -15,11 +15,7 @@ bottom, finish In progress, then take Next in order.
   guide): one round, one publish. Usage 76% weekly at launch (stop at 90%).
 
 ## Next
-1. **Critique round 16, the first strict one** (owner, 2026-10-17): stricter critics, students, teachers,
-   an administrator, physics critics; fixers fix everything; then improvers. `.claude/loop/swarm.js` is
-   ready (wave 8: copy it to run-swarm-w8.js with EMBEDDED {"wave": 8, "iterations": 1, "ready": [],
-   "publishEvery": 99}). About 10–12% of weekly usage: after the reset on 2026-10-20 if usage is tight.
-   Then keep going, one round at a time, until a round finds nothing; remind the owner after each.
+1. **Strict critique round 17 and onward** (owner, 2026-10-17): continue all five lenses across the whole site, fix every confirmed finding, then make four to eight teaching improvements. One fully validated local suite and one publish per round. Stop only at a genuinely clean critique or the authorized usage/time limit. Read the local Codex round-16 report before repeating coverage.
 2. **The potential's column explained in place** (owner asked "what's this?", 2026-10-17): a callout on the
    lit block ("one piece's ΔV"), a bracket showing the column's height is V ≈ ΣΔV, and one caption line
    the first time it shows. Waiting for the owner's OK on this option.
@@ -35,6 +31,7 @@ bottom, finish In progress, then take Next in order.
    ring's arrows half a positive's. Leftovers from wave 6 are in .claude/loop/reports/LOG.md.
 
 ## Done
+- 2026-10-17, Codex strict round 16: 50 findings fixed (17 WRONG, 10 MISLEADING, 10 CONFUSING, 6 UGLY, 7 POLISH), eight teaching improvements; full local suite and static build green (067d577..e057cbd). Evidence: local .claude/loop/reports/codex/round-16.md. Owner decisions remain pending; no clean round claimed.
 - 2026-10-17: four new integral lessons, each with a textbook lesson, quiz bank and two physics reviews:
   the uneven semicircle (766b27d), the annulus (d919211), the rod with P off its middle (bf22a41), the
   spherical shell built from rings (e7b8768). Gauss leftovers (dcd19c2..8de34f3) and the site-wide QA
