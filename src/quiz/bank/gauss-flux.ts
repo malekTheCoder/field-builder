@@ -19,7 +19,7 @@ export const bank: Question[] = [
     review: {lesson: 'flux', section: 'Through a flat patch'}},
 
   {id: 'flux-angle-to-surface', lesson: 'flux', kind: 'transfer',
-    prompt: raw`A problem says instead that the uniform field makes the angle $\beta$ with the patch’s surface itself. What is the flux through the patch?`,
+    prompt: raw`The uniform field makes the angle $\beta$ with the patch’s surface. Choose the normal with a nonnegative component of the field along it. What is the flux through the patch?`,
     choices: [
       {correct: true, tex: raw`EA\sin\beta`},
       {tex: raw`EA\cos\beta`, misconception: 'angle-from-surface',
@@ -75,7 +75,7 @@ export const bank: Question[] = [
       {text: raw`The flux is not zero: the side facing the charge sees a stronger field than the far side.`, misconception: 'outside-counts',
         why: raw`The near side does see a stronger field, but seen from the charge it fills the same cone of directions as the far side. Equal cones carry equal flux, in on one side and out on the other.`},
     ],
-    explanation: raw`Every cone of directions from the charge that meets the surface crosses it twice, once going in and once coming out, and carries equal flux of opposite sign at the two crossings. The net flux is zero, though the field is nowhere zero on the surface.`,
+    explanation: raw`Every cone of directions from the charge that meets the surface crosses inward and outward in pairs, with equal flux of opposite sign for each pair. A folded surface can have several such pairs. The net flux is zero, though the field is nowhere zero on the surface.`,
     review: {lesson: 'flux', section: 'A charge outside'}},
 
   {id: 'flux-two-charges', lesson: 'flux', kind: 'transfer',
@@ -85,7 +85,7 @@ export const bank: Question[] = [
       {tex: raw`\frac{q_1+q_2}{\varepsilon_0}`, misconception: 'outside-counts',
         why: raw`$q_2$’s field crosses the surface in as much as out, so it adds nothing to the net flux, wherever outside it sits.`},
       {tex: raw`\frac{q_1-q_2}{\varepsilon_0}`, misconception: 'outside-counts',
-        why: raw`A charge outside does not take flux away either. Every cone from $q_2$ crosses the surface twice, in and out, and the two crossings cancel.`},
+        why: raw`A charge outside does not take flux away either. Every cone from $q_2$ crosses the surface inward and outward in pairs, and each pair cancels.`},
     ],
     explanation: raw`Fields add, so fluxes add: $q_1$, inside, gives $q_1/\varepsilon_0$, and $q_2$, outside, gives zero. The flux is $q_1/\varepsilon_0$. The field on the surface is the sum of both charges’ fields; only its net flux ignores $q_2$.`,
     review: {lesson: 'flux', section: 'A charge outside'}},

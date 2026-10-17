@@ -11,9 +11,9 @@ export const bank: Question[] = [
     choices: [
       {correct: true, text: raw`As $1/r$: the charge inside keeps growing, in step with $r$, however far out the sphere.`},
       {text: raw`As $1/r^2$, like any charge seen from far away.`, misconception: 'qenc-limit',
-        why: raw`A point charge’s fall-off needs the charge inside to stop growing. The halo has no edge: each shell far out holds about $4\pi\rho_0a^2\,dr$, so the charge inside grows in step with $r$ for good.`},
+        why: raw`A point charge’s fall-off needs the enclosed charge to approach a fixed total. The halo has no edge: each shell far out holds about $4\pi\rho_0a^2\,dr$, so the charge inside remains proportional to $r$ for good.`},
       {text: raw`As $1/r^4$: the density falls as $1/r^2$ on top of the inverse square.`, misconception: 'local-density',
-        why: raw`The field at $r$ is set by all the charge inside $r$, not by the density at $r$. That charge keeps growing, so the field falls more slowly than $1/r^2$, not faster.`},
+        why: raw`The field at $r$ is set by all the charge inside $r$, not by the density at $r$. That charge keeps growing in magnitude, so the field strength falls more slowly than $1/r^2$, not faster.`},
     ],
     explanation: raw`Far out, $Q_{\text{enc}}\approx4\pi\rho_0a^2r$, so $E_r(4\pi r^2)=Q_{\text{enc}}/\varepsilon_0$ gives $E_r\approx\rho_0a^2/(\varepsilon_0r)$: it heads for $1/r$, never $1/r^2$, out for a positive $\rho_0$ and in for a negative one.`,
     review: {lesson: 'hard', stage: 'solve', case: 'halo'}},
@@ -59,7 +59,7 @@ export const bank: Question[] = [
     choices: [
       {correct: true, tex: raw`\rho=\frac{4\varepsilon_0E_R\,r}{R^2}`},
       {tex: raw`\rho=\frac{3\varepsilon_0E_R\,r}{R^2}`, misconception: 'density-from-field',
-        why: raw`That is $Q_{\text{enc}}$ divided by $\frac43\pi r^3$: the average density inside $r$, not the density at $r$. The density is how fast $Q_{\text{enc}}$ grows, per unit of shell volume.`},
+        why: raw`That is $Q_{\text{enc}}$ divided by $\frac43\pi r^3$: the average density inside $r$, not the density at $r$. The density is how fast $Q_{\text{enc}}$ changes, per unit of shell volume.`},
       {tex: raw`\rho=\frac{2\varepsilon_0E_R\,r}{R^2}`, misconception: 'density-from-field',
         why: raw`That is $\varepsilon_0\,dE_r/dr$, the derivative of the field alone. A sphere’s area grows as $r^2$ too, so the density is $\frac{\varepsilon_0}{r^2}\frac{d}{dr}\big(r^2E_r\big)$, with the $r^2$ inside the derivative.`},
     ],

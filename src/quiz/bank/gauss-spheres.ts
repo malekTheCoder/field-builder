@@ -31,7 +31,7 @@ export const bank: Question[] = [
     review: {lesson: 'spheres', stage: 'right', case: 'ball'}},
 
   {id: 'spheres-rising-qenc', lesson: 'spheres', kind: 'setup',
-    prompt: raw`The ball’s density rises as $\rho=\rho_0r/R$, and its total charge is $Q$. In terms of what the problem gives, $Q$, $R$ and $r$, what is the charge inside $r<R$?`,
+    prompt: raw`The ball’s density is $\rho=\rho_0r/R$, and its total charge is $Q$. In terms of what the problem gives, $Q$, $R$ and $r$, what is the charge inside $r<R$?`,
     choices: [
       {correct: true, tex: raw`Q\,\frac{r^4}{R^4}`},
       {tex: raw`Q\,\frac{r^3}{R^3}`, misconception: 'ratio-power',

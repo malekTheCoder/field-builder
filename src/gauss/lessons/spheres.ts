@@ -10,7 +10,7 @@ export const lesson: GaussLesson = {
   id: 'spheres',
   title: 'Spheres',
   short: 'Spheres',
-  about: 'No field inside a shell, a field that grows inside a ball, a point charge’s outside both.',
+  about: 'No field inside a shell, a field that strengthens inside a ball, a point charge’s outside both.',
   lead: raw`For any charge that depends only on the distance from a centre, take a concentric sphere as the Gaussian surface, and the left side of Gauss’s law is always $E_r\,(4\pi r^2)$. Everything else is the charge inside, worked out afresh for each region: inside a shell, inside a ball, outside them all.`,
   sections: [
     {heading: 'One surface for every region', body: [
@@ -29,10 +29,10 @@ export const lesson: GaussLesson = {
       {tex: raw`E_r=\frac{kQ}{r^2}\cdot\frac{r^3}{R^3}=\frac{kQr}{R^3}\quad(r\le R)`},
       raw`The field’s size grows in proportion to $r$ from zero at the centre, is largest at the surface, and falls as $1/r^2$ outside. At $r=R$ the two answers agree, $kQ/R^2$: checking that is a free mark on any exam.`,
     ]},
-    {heading: 'A density that grows with r', body: [
-      raw`Now let the density rise from zero at the centre, $\rho=\rho_0r/R$, the ball holding $Q$ in all. By thin shells, $Q_{\text{enc}}=\int_0^r\rho_0\frac{r'}{R}\,4\pi r'^2\,dr'=\pi\rho_0r^4/R$, and setting $r=R$ fixes $\rho_0=Q/\pi R^3$:`,
+    {heading: 'A density proportional to r', body: [
+      raw`Now let the density be proportional to radius and zero at the centre, $\rho=\rho_0r/R$, the ball holding $Q$ in all. By thin shells, $Q_{\text{enc}}=\int_0^r\rho_0\frac{r'}{R}\,4\pi r'^2\,dr'=\pi\rho_0r^4/R$, and setting $r=R$ fixes $\rho_0=Q/\pi R^3$:`,
       {tex: raw`Q_{\text{enc}}=Q\,\frac{r^4}{R^4},\qquad E_r=\frac{kQr^2}{R^4}\quad(r\le R)`},
-      raw`With less charge near the centre the field starts more slowly, as $r^2$, and still reaches $kQ/R^2$ at the surface.`,
+      raw`With less charge near the centre the field’s magnitude grows more slowly at first, as $r^2$. Its signed component still reaches $kQ/R^2$ at the surface.`,
     ]},
     {heading: 'Continuous, or a jump', body: [
       raw`The plot under the figure shows all four at once. Outside $R$ they are one curve: every sphere of charge $Q$ looks like a point charge from outside. Inside they part. Where the charge has a finite density, $Q_{\text{enc}}$ changes smoothly through $R$ and the field is continuous there. Where a finite charge sits on a surface of no thickness, $Q_{\text{enc}}$ steps as the sphere crosses it, and the field jumps by $\sigma/\varepsilon_0$:`,
@@ -160,9 +160,9 @@ export const lesson: GaussLesson = {
       solve: {
         tex: raw`E_r=\frac{Q_{\text{enc}}}{4\pi\varepsilon_0r^2}=\begin{cases}\dfrac{kQr}{R^3}, & r\le R\\[6pt]\dfrac{kQ}{r^2}, & r\ge R\end{cases}`,
         answer: raw`E_r=\begin{cases}\dfrac{kQr}{R^3}, & r\le R\\[6pt]\dfrac{kQ}{r^2}, & r\ge R\end{cases}`,
-        say: raw`Inside, the field grows in proportion to $r$; outside it falls as $1/r^2$. Both give $kQ/R^2$ at $r=R$.`,
-        line: raw`Inside, $E_r$ grows as $r$; outside, it falls as $1/r^2$; they meet at $R$.`,
-        caption: 'Divide by four π ε₀ r squared in each region. Inside, the field grows in proportion to r from zero at the centre; outside, it falls as one over r squared. Both give k Q over R squared at the surface.',
+        say: raw`Inside, the field’s magnitude grows in proportion to $r$; outside it falls as $1/r^2$. Both signed formulas give $E_r=kQ/R^2$ at $r=R$.`,
+        line: raw`Inside, $|E_r|$ grows as $r$; outside, it falls as $1/r^2$; they meet at $R$.`,
+        caption: 'Divide by four π ε₀ r squared in each region. Inside, the field’s magnitude grows in proportion to r from zero at the centre; outside, it falls as one over r squared. Both signed formulas give E_r equal to k Q over R squared at the surface.',
       },
       checks: [
         {title: 'Continuous at R', text: raw`Inside at $r=R$: $kQR/R^3=kQ/R^2$, the outside value. With a finite density no charge sits on the surface itself, so the field cannot jump there.`},
@@ -172,8 +172,8 @@ export const lesson: GaussLesson = {
     },
     {
       key: 'rising', label: 'Rising density',
-      figure: {charge: {kind: 'rising', size: 1.1, symbol: 'Q', name: 'a ball whose density rises with r'}, surface: {kind: 'sphere', size: {min: .35, max: 2.4, initial: .8}, other: 0, label: 'Radius r'}},
-      setup: raw`A ball of radius $R$ holds a total charge $Q$, with a density that rises from zero at its centre, $\rho=\rho_0r/R$. Find the field inside the ball and outside it.`,
+      figure: {charge: {kind: 'rising', size: 1.1, symbol: 'Q', name: 'a ball whose density is proportional to r'}, surface: {kind: 'sphere', size: {min: .35, max: 2.4, initial: .8}, other: 0, label: 'Radius r'}},
+      setup: raw`A ball of radius $R$ holds a total charge $Q$, with a density proportional to radius and zero at its centre, $\rho=\rho_0r/R$. Find the field inside the ball and outside it.`,
       symmetry: {
         tex: raw`\vec E=E_r(r)\,\hat{\mathbf r}`,
         say: raw`The density depends only on $r$, so every turn about the centre leaves the ball as it was: $\vec E$ is radial.`,
@@ -193,7 +193,7 @@ export const lesson: GaussLesson = {
         caption: 'The left side is E_r times four π r squared, as for every sphere in this lesson.',
       },
       right: {
-        tex: raw`\begin{aligned}Q_{\text{enc}}&=\int_0^{r}\rho_0\frac{r'}{R}\,4\pi r'^2\,dr'\\&=\frac{\pi\rho_0r^4}{R}=Q\,\frac{r^4}{R^4}\end{aligned}`,
+        tex: raw`\begin{aligned}Q_{\text{enc}}&=\int_0^{\min(r,R)}\rho_0\frac{r'}{R}\,4\pi r'^2\,dr'\\&=\begin{cases}Q\,\dfrac{r^4}{R^4}, & r\le R\\[6pt]Q, & r\ge R\end{cases}\end{aligned}`,
         say: raw`At $r=R$ the same integral is $\pi\rho_0R^3$, which must be $Q$: so $\rho_0=Q/\pi R^3$. For $r\ge R$ the shells stop at $R$, and $Q_{\text{enc}}=Q$.`,
         line: raw`Thin shells out to $r$: $Q_{\text{enc}}=Qr^4/R^4$ inside, all of $Q$ outside.`,
         caption: 'The right side, by thin shells. Each holds ρ₀ r prime over R times four π r prime squared d r prime; out to r they hold Q times r to the fourth over R to the fourth, with ρ₀ fixed by the whole ball holding Q. Outside, all of Q.',
@@ -201,21 +201,21 @@ export const lesson: GaussLesson = {
       solve: {
         tex: raw`E_r=\frac{Q_{\text{enc}}}{4\pi\varepsilon_0r^2}=\begin{cases}\dfrac{kQr^2}{R^4}, & r\le R\\[6pt]\dfrac{kQ}{r^2}, & r\ge R\end{cases}`,
         answer: raw`E_r=\begin{cases}\dfrac{kQr^2}{R^4}, & r\le R\\[6pt]\dfrac{kQ}{r^2}, & r\ge R\end{cases}`,
-        say: raw`Inside, the field grows as $r^2$; at $r=R$ it is $kQ/R^2$, the outside value.`,
-        line: raw`Inside, $E_r$ grows as $r^2$; at $R$ it meets the outside field.`,
-        caption: 'Divide by four π ε₀ r squared. Inside, the field grows as r squared, more slowly than in a uniform ball at first, since less charge lies near the centre. At the surface both answers give k Q over R squared.',
+        say: raw`Inside, the field’s magnitude grows as $r^2$; at $r=R$ its signed component is $E_r=kQ/R^2$, the outside value.`,
+        line: raw`Inside, $|E_r|$ grows as $r^2$; at $R$ it meets the outside field’s magnitude.`,
+        caption: 'Divide by four π ε₀ r squared. Inside, the field’s magnitude grows as r squared, more slowly than in a uniform ball at first, since less charge lies near the centre. At the surface both signed answers give E_r equal to k Q over R squared.',
       },
       checks: [
         {title: 'Continuous at R', text: raw`Inside at $r=R$: $kQR^2/R^4=kQ/R^2$, the outside value.`},
-        {title: 'Slower at first', text: raw`Near the centre $E_r\propto r^2$, smaller in size than the uniform ball’s $kQr/R^3$ all the way in, because the rising density puts less of the charge near the centre.`},
-        {title: 'Far away, a point charge', text: raw`Far away every sphere here looks like a point charge, $kQ/r^2$, and so does every finite charge whose total is not zero: the Ring lesson’s field on its axis, added up piece by piece, falls to $kQ/z^2$ far out, and so does the Disk lesson’s.`},
+        {title: 'Slower at first', text: raw`Near the centre $E_r\propto r^2$, smaller in size than the uniform ball’s $kQr/R^3$ all the way in, because the density’s magnitude increases toward the surface, putting less of the charge near the centre.`},
+        {title: 'Far away, a point charge', text: raw`Far away every sphere here looks like a point charge, $kQ/r^2$, and so does every finite charge whose total is not zero: the Ring lesson’s field on its axis, added up piece by piece, approaches $kQ/z^2$ far out, and so does the Disk lesson’s.`},
         {title: 'Either sign', text: raw`For a negative $Q$, $E_r$ is negative in both regions: the field points in.`},
       ],
     },
   ],
   traps: [
     {wrong: 'Inside a shell the field is zero only at the centre.', right: raw`It is zero at every point inside. The sphere through any inner point encloses no charge, and symmetry makes the field the same all over that sphere, so it must be zero there.`},
-    {wrong: 'Inside a ball, the field is the whole ball’s, kQ over r squared.', right: raw`Only the charge inside $r$ counts: $Q_{\text{enc}}=Qr^3/R^3$ for a uniform ball, and the field grows as $r$, falling to zero at the centre.`},
+    {wrong: 'Inside a ball, the field is the whole ball’s, kQ over r squared.', right: raw`Only the charge inside $r$ counts: $Q_{\text{enc}}=Qr^3/R^3$ for a uniform ball, and the field’s magnitude grows as $r$, tending to zero at the centre.`},
     {wrong: 'The field must be continuous at R for every sphere.', right: raw`For a finite density, yes. Across a surface charge it jumps by $\sigma/\varepsilon_0$: zero just inside a shell, $kQ/R^2$ just outside.`},
   ],
   instrument: 'plot',

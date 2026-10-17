@@ -6,8 +6,8 @@ const raw = String.raw;
  * normalising ρ₀ when the problem gives Q, and the integral mistakes graders see most.
  *
  * The three cases each let the surface pass through the charge and out of it, so each right side is written for
- * both regions: a uniform ball by the ratio of volumes, a ball whose density falls to zero at its surface by thin
- * shells after fixing ρ₀ from Q, and a slab whose density falls from its middle plane, by slices doubled for the
+ * both regions: a uniform ball by the ratio of volumes, a ball whose density tends to zero at its surface by thin
+ * shells after fixing ρ₀ from Q, and a slab whose density decreases in magnitude away from its middle plane, by slices doubled for the
  * half below. The instrument builds Q_enc shell by shell for three densities, and shows the ρ dr′ mistake for what it
  * is. Every sentence holds for either sign. */
 export const lesson: GaussLesson = {
@@ -30,16 +30,21 @@ export const lesson: GaussLesson = {
     {heading: 'When the density varies: thin shells', body: [
       raw`If $\rho$ changes with $r$ you cannot multiply it by a volume. But across a thin shell it hardly changes, so take one shell, multiply its volume by the density there, and add the shells from the centre out to the surface. The shell’s volume is its area times its thickness:`,
       {tex: raw`dV=4\pi r'^2\,dr'\ \ \text{(sphere)},\qquad dV=2\pi r'L\,dr'\ \ \text{(cylinder)},\qquad dV=A\,dz'\ \ \text{(slab)}`},
-      raw`Each is the derivative of the volume it builds: $\frac{d}{dr}\big(\frac43\pi r^3\big)=4\pi r^2$, and $\frac{d}{dr}(\pi r^2L)=2\pi rL$. For a ball,`,
+      raw`Each is the derivative of the volume it builds: $\frac{d}{dr}\big(\frac43\pi r^3\big)=4\pi r^2$, and $\frac{d}{dr}(\pi r^2L)=2\pi rL$. For a point inside a ball,`,
       {tex: raw`Q_{\text{enc}}(r)=\int_0^{r}\rho(r')\,4\pi r'^2\,dr'`},
-      raw`Keep $r$ and $r'$ apart. $r$ is the Gaussian sphere’s radius, where you want the field: it is the upper limit, fixed while you integrate. $r'$ runs over the shells, from the centre to $r$. Writing $\rho(r)\,4\pi r^2\,dr$ with the limit $r$ as well mixes the two up, and the result means nothing.`,
+      raw`Keep $r$ and $r'$ apart. $r$ is the Gaussian sphere’s radius, where you want the field: it is the upper limit, fixed while you integrate. $r'$ runs over the shells, from the centre to $r$. A dummy variable can be renamed without changing an integral, but using $r'$ makes the two roles visible. Keep the density as $\rho(r')$ inside the integral: replacing it by the fixed boundary value $\rho(r)$ would treat every shell as if it had the same density.`,
+    ]},
+    {heading: 'Choose the region before integrating', body: [
+      raw`Mark the material’s edge $R$ and the Gaussian radius $r$ before writing a limit. The shells stop at whichever comes first: the Gaussian surface or the end of the charge. One expression can keep both cases straight:`,
+      {tex: raw`Q_{\text{enc}}(r)=\int_0^{\min(r,R)}\rho(r')\,4\pi r'^2\,dr'`},
+      raw`Here $\min(r,R)$ means the smaller of the two radii. At fixed $r$, changing the dummy symbol $r'$ changes nothing; changing that upper limit changes which charge you count. Sketch the enclosed region first, then choose its thin shell or slice.`,
     ]},
     {heading: 'Normalising when you are given Q', body: [
-      raw`A problem may say only that $\rho$ is proportional to some shape, and give the total charge. Then write $\rho$ with an unknown constant $\rho_0$, integrate over the whole object, and set the result equal to $Q$. For a ball whose density falls to zero at its surface,`,
+      raw`A problem may say only that $\rho$ is proportional to some shape, and give the total charge. Then write $\rho$ with an unknown constant $\rho_0$, integrate over the whole object, and set the result equal to $Q$. For a ball whose density tends to zero at its surface,`,
       {tex: raw`\begin{aligned}Q&=\int_0^{R}\rho_0\Big(1-\frac{r'}{R}\Big)4\pi r'^2\,dr'=4\pi\rho_0\Big[\frac{r'^3}{3}-\frac{r'^4}{4R}\Big]_0^R\\&=4\pi\rho_0\Big(\frac{R^3}{3}-\frac{R^3}{4}\Big)=\frac{\pi\rho_0R^3}{3}\;\Rightarrow\;\rho_0=\frac{3Q}{\pi R^3}\end{aligned}`},
-      raw`The charge inside a sphere of radius $r$ is then the same antiderivative taken from $0$ to $r$, with that $\rho_0$ put in:`,
+      raw`For a sphere inside the ball, $r\le R$, the enclosed charge is the same antiderivative taken from $0$ to $r$, with that $\rho_0$ put in:`,
       {tex: raw`Q_{\text{enc}}=4\pi\rho_0\Big(\frac{r^3}{3}-\frac{r^4}{4R}\Big)=\frac{12Q}{R^3}\Big(\frac{r^3}{3}-\frac{r^4}{4R}\Big)=Q\Big(\frac{4r^3}{R^3}-\frac{3r^4}{R^4}\Big)`},
-      raw`If the problem hands you $\rho_0$, leave it in the answer.`,
+      raw`For $r\ge R$, the sphere encloses the whole ball, so $Q_{\text{enc}}=Q$. If the problem hands you $\rho_0$, leave it in the answer.`,
     ]},
     {heading: 'The mistakes graders see most', body: [
       raw`Integrating $\rho\,dr'$ instead of $\rho\,4\pi r'^2\,dr'$: check the units, since $Q_{\text{enc}}$ must come out as a charge, and $\int\rho\,dr'$ is a charge per area. Using $\frac43\pi r^3$ as $dV$: a $dV$ must contain $dr'$. The upper limit $R$ for a point inside: inside, $Q_{\text{enc}}$ must change with $r$ and reach $Q$ only at $R$. The upper limit $r$ for a point outside: there is no charge beyond $R$, so outside $Q_{\text{enc}}$ is constant. Leaving $\rho_0$ unknown when $Q$ was given: normalise first. Dropping the slab’s factor of two: the pillbox runs from $-z$ to $z$, so integrate from zero to $z$ and double. Leaving $L$ or $A$ in $E$: the surface is imaginary, and they must cancel. And inside and outside answers that do not meet at $R$: with a finite density the field is continuous, so a mismatch is an algebra slip.`,
@@ -85,7 +90,7 @@ export const lesson: GaussLesson = {
         answer: raw`E_r=\begin{cases}\dfrac{kQr}{R^3}, & r\le R\\[6pt]\dfrac{kQ}{r^2}, & r\ge R\end{cases}`,
         say: raw`Each region has its own $Q_{\text{enc}}$; the two answers meet at $r=R$.`,
         line: raw`Divide by $4\pi\varepsilon_0r^2$ in each region: the two answers meet at $r=R$.`,
-        caption: 'Set the two sides equal and divide by four π ε₀ r squared, in each region. Inside, the field grows in proportion to r; outside, it falls as a point charge’s. At r equal to R both give k Q over R squared.',
+        caption: 'Set the two sides equal and divide by four π ε₀ r squared, in each region. Inside, the field’s magnitude grows in proportion to r; outside, it falls as a point charge’s. At r equal to R both signed formulas give E_r equal to k Q over R squared.',
       },
       checks: [
         {title: 'Shells agree', text: raw`Thin shells give the same. The density $\rho=Q/\frac43\pi R^3$ is the same in every shell, so $\int_0^r\rho\,4\pi r'^2\,dr'$ is $\rho\,\frac43\pi r^3$, which is $Qr^3/R^3$. The ratio method is the shells, done in your head.`},
@@ -95,8 +100,8 @@ export const lesson: GaussLesson = {
     },
     {
       key: 'shells', label: 'Falling density',
-      figure: {charge: {kind: 'falling', size: 1.1, symbol: 'Q', name: 'a ball whose density falls to zero at its surface'}, surface: {kind: 'sphere', size: {min: .35, max: 2.2, initial: .8}, other: 0, label: 'Radius r'}},
-      setup: raw`A ball of radius $R$ holds a total charge $Q$, with a density that falls from its centre to zero at its surface, $\rho=\rho_0(1-r/R)$. Find the field inside the ball and outside it.`,
+      figure: {charge: {kind: 'falling', size: 1.1, symbol: 'Q', name: 'a ball whose density tends to zero at its surface'}, surface: {kind: 'sphere', size: {min: .35, max: 2.2, initial: .8}, other: 0, label: 'Radius r'}},
+      setup: raw`A ball of radius $R$ holds a total charge $Q$, with a density whose size falls from its centre to zero at its surface, $\rho=\rho_0(1-r/R)$. Find the field inside the ball and outside it.`,
       symmetry: {
         tex: raw`\vec E=E_r(r)\,\hat{\mathbf r}`,
         say: raw`The density depends only on $r$, so the ball is still unchanged by every turn about its centre: $\vec E$ is radial.`,
@@ -116,9 +121,9 @@ export const lesson: GaussLesson = {
         caption: 'The left side is E_r times four π r squared, as for any sphere. All the work is on the right.',
       },
       right: {
-        tex: raw`\begin{aligned}Q_{\text{enc}}&=\int_0^{r}\rho_0\Big(1-\frac{r'}{R}\Big)4\pi r'^2\,dr'\\&=4\pi\rho_0\Big(\frac{r^3}{3}-\frac{r^4}{4R}\Big)\\&=Q\Big(\frac{4r^3}{R^3}-\frac{3r^4}{R^4}\Big)\end{aligned}`,
+        tex: raw`\begin{aligned}Q_{\text{enc}}&=\int_0^{\min(r,R)}\rho_0\Big(1-\frac{r'}{R}\Big)4\pi r'^2\,dr'\\&=\begin{cases}Q\Big(\dfrac{4r^3}{R^3}-\dfrac{3r^4}{R^4}\Big), & r\le R\\[6pt]Q, & r\ge R\end{cases}\end{aligned}`,
         say: raw`A thin shell at $r'$ holds $\rho(r')\,4\pi r'^2\,dr'$. The same integral out to $R$ gives $Q=\pi\rho_0R^3/3$, which fixes $\rho_0=3Q/\pi R^3$. For $r\ge R$ the shells stop at $R$, and $Q_{\text{enc}}=Q$.`,
-        line: raw`Add thin shells, $\rho\,4\pi r'^2\,dr'$ each, from the centre out to $r$.`,
+        line: raw`Add shells to the surface or the ball’s edge, whichever comes first.`,
         caption: 'The right side, by thin shells. A shell of radius r prime and thickness d r prime holds the density there times four π r prime squared d r prime. Adding them from the centre to r, with ρ₀ fixed by the whole ball holding Q, gives the charge inside; outside the ball the shells stop at R, and it is all of Q.',
       },
       solve: {
@@ -137,8 +142,8 @@ export const lesson: GaussLesson = {
     },
     {
       key: 'slab', label: 'Slab, densest at its middle',
-      figure: {charge: {kind: 'tent', size: .7, symbol: raw`\rho`, name: 'a slab whose density falls from its middle plane'}, surface: {kind: 'pillbox', size: {min: .2, max: 1.5, initial: .45}, other: .85, label: 'Height z'}},
-      setup: raw`A slab of thickness $2a$, infinite in its other two directions, has a density $\rho=\rho_0(1-|z|/a)$: greatest on its middle plane and zero at its faces, with $\rho_0$ given. Find the field a height $z$ above the middle plane.`,
+      figure: {charge: {kind: 'tent', size: .7, symbol: raw`\rho`, name: 'a slab whose density decreases in magnitude away from its middle plane'}, surface: {kind: 'pillbox', size: {min: .2, max: 1.5, initial: .45}, other: .85, label: 'Height z'}},
+      setup: raw`A slab of thickness $2a$, infinite in its other two directions, has a density $\rho=\rho_0(1-|z|/a)$: greatest in size on its middle plane and zero at its faces, with $\rho_0$ given. Find the field a height $z$ above the middle plane.`,
       symmetry: {
         tex: raw`\vec E=E_\perp(z)\,\hat{\mathbf n}`,
         say: raw`$\hat{\mathbf n}$ points away from the middle plane on either side. The slab is the same at $z$ and $-z$, so the field below is the mirror of the field above. $E_\perp$ is negative where the field points toward the middle.`,
@@ -158,9 +163,9 @@ export const lesson: GaussLesson = {
         caption: 'The left side. Both faces carry E_⊥ times A, since the outward normal points away from the middle on each, and the side carries nothing.',
       },
       right: {
-        tex: raw`\begin{aligned}Q_{\text{enc}}&=2\int_0^{z}\rho_0\Big(1-\frac{z'}{a}\Big)A\,dz'\\&=2\rho_0A\Big[z'-\frac{z'^2}{2a}\Big]_0^z\\&=2\rho_0A\Big(z-\frac{z^2}{2a}\Big)\end{aligned}`,
+        tex: raw`\begin{aligned}Q_{\text{enc}}&=2\int_0^{\min(z,a)}\rho_0\Big(1-\frac{z'}{a}\Big)A\,dz'\\&=\begin{cases}2\rho_0A\Big(z-\dfrac{z^2}{2a}\Big), & z\le a\\[6pt]\rho_0Aa, & z\ge a\end{cases}\end{aligned}`,
         say: raw`Thin slices of area $A$ and thickness $dz'$. The pillbox runs from $-z$ to $z$: integrate the top half and double it, which also deals with $|z'|$. For $z\ge a$ the slices stop at the face, and $Q_{\text{enc}}=\rho_0Aa$.`,
-        line: raw`Slices $\rho A\,dz'$ from the middle up to $z$, doubled for the half below.`,
+        line: raw`Add slices to the box’s face or the slab’s edge; double for the half below.`,
         caption: 'The right side, by thin slices. Each slice of area A and thickness d z prime holds the density there times A d z prime. Add the slices from the middle plane up to z, then double for the half below; outside the slab the slices stop at its face, a.',
       },
       solve: {
@@ -168,7 +173,7 @@ export const lesson: GaussLesson = {
         answer: raw`E_\perp=\begin{cases}\dfrac{\rho_0}{\varepsilon_0}\Big(z-\dfrac{z^2}{2a}\Big), & z\le a\\[6pt]\dfrac{\rho_0a}{2\varepsilon_0}, & z\ge a\end{cases}`,
         say: raw`Divide by $2A\varepsilon_0$: $A$ cancels, and the two answers meet at $z=a$.`,
         line: raw`Divide by $2A\varepsilon_0$: $A$ cancels, and the answers meet at $z=a$.`,
-        caption: 'Set the two sides equal and divide by two A ε₀. The face area A cancels. Inside, the field grows from zero on the middle plane; outside, it is the same at every height, and the two meet at the slab’s face.',
+        caption: 'Set the two sides equal and divide by two A ε₀. The face area A cancels. Inside, the field’s magnitude grows from zero on the middle plane; outside, it is the same at every height, and the two meet at the slab’s face.',
       },
       checks: [
         {title: 'The factor of two', text: raw`Integrating only from zero to $z$, without doubling, would enclose half the charge and give half the field. The pillbox reaches as far below the middle as above it.`},
@@ -182,7 +187,7 @@ export const lesson: GaussLesson = {
     {wrong: raw`$Q_{\text{enc}}$ is the object’s total charge.`, right: raw`Only once the surface is outside the object. Inside, it is the part within the surface, and with a varying density an integral that depends on $r$.`},
     {wrong: raw`$\int_0^r\rho\,dr'$ is the charge inside.`, right: raw`It adds densities along one radius, and its units are charge per area. Each shell’s area belongs in it: $\int_0^r\rho\,4\pi r'^2\,dr'$.`},
     {wrong: raw`$dV$ is $\frac43\pi r^3$.`, right: raw`That is a whole ball’s volume. A thin shell’s is its area times its thickness, $4\pi r'^2\,dr'$, the derivative of $\frac43\pi r^3$.`},
-    {wrong: 'Where the density is small, there is little charge.', right: raw`A shell’s charge is its density times its volume, and the outer shells are large. In this lesson’s ball, whose density falls steadily to zero at its surface, more than half the charge lies in the outer half of the radius.`},
+    {wrong: 'Where the density is small, there is little charge.', right: raw`A shell’s charge is its density times its volume, and the outer shells are large. In this lesson’s ball, whose density tends steadily to zero at its surface, more than half the charge lies in the outer half of the radius.`},
   ],
   instrument: 'qenc',
   next: 'spheres',

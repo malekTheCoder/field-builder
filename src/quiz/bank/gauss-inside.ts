@@ -39,7 +39,7 @@ export const bank: Question[] = [
       {text: raw`It depends on the shape: a lumpy surface fills more.`, misconception: 'bigger-surface',
         why: raw`A closed surface round the charge meets every direction out of it; where a fold makes a line cross three times, out, in and out, two of the crossings cancel. Every direction counts once, whatever the shape.`},
     ],
-    explanation: raw`A closed surface round $q$ fills every direction from it exactly once: the whole solid angle, $4\pi$. So its flux is $\frac{q}{4\pi\varepsilon_0}\,(4\pi)=q/\varepsilon_0$, whatever its shape and wherever inside it the charge sits.`,
+    explanation: raw`A closed surface round $q$ has one net outward crossing in every direction from it: extra inward and outward crossings cancel. Its signed solid angle is, $4\pi$. So its flux is $\frac{q}{4\pi\varepsilon_0}\,(4\pi)=q/\varepsilon_0$, whatever its shape and wherever inside it the charge sits.`,
     review: {lesson: 'inside', stage: 'solve', case: 'off'}},
 
   {id: 'inside-why-zero', lesson: 'inside', kind: 'check',
@@ -47,7 +47,7 @@ export const bank: Question[] = [
     choices: [
       {correct: true, text: raw`Every cone of directions from $q$ that meets the sphere crosses it twice, in and out, and the two crossings carry equal flux of opposite sign.`},
       {text: raw`The charge’s field does not reach the sphere.`, misconception: 'zero-flux-zero-field',
-        why: raw`A point charge’s field reaches everywhere. It is strongest on the side of the sphere facing $q$, and it crosses every patch.`},
+        why: raw`A point charge’s field reaches everywhere. It is strongest on the side of the sphere facing $q$, and it is nonzero everywhere on the sphere, even along the circle where it is tangent.`},
       {text: raw`Only the charge inside a surface makes a field on it.`, misconception: 'only-inside-field',
         why: raw`Every charge makes a field everywhere. The charge outside makes a field all over the sphere; its flux cancels, not its field.`},
     ],

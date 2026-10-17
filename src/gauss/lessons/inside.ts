@@ -170,7 +170,7 @@ export const lesson: GaussLesson = {
         caption: 'The two sides cancel exactly, so the flux is zero, as Gauss’s law says with nothing inside. The field is not zero anywhere on the sphere: it goes in on one side and out on the other.',
       },
       checks: [
-        {title: 'Zero flux, not zero field', text: raw`Every patch has field crossing it. The arrows on the side facing $q$ and on the far side point opposite ways through the surface; only their total is zero.`},
+        {title: 'Zero flux, not zero field', text: raw`The field is nonzero everywhere on the sphere. It is tangent along the circle separating inward from outward flux; on either side its normal component has opposite signs. The inward and outward contributions cancel in the total.`},
         {title: 'Let it out', text: raw`In the instrument below, slide the charge out through the sphere: the stacked flux stays $q/\varepsilon_0$ until the moment it crosses the surface, then drops to zero, and returns to $q/\varepsilon_0$ only when the charge comes back in.`},
         {title: 'Either sign', text: raw`For a negative $q$ the near side carries flux out and the far side in. The total is still zero.`},
       ],

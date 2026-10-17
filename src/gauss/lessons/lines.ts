@@ -33,7 +33,7 @@ export const lesson: GaussLesson = {
     {heading: 'A solid rod: where the integral lives', body: [
       raw`Spread the same $\lambda$ evenly through a rod of radius $R$, so its density is $\rho=\lambda/(\pi R^2)$. Outside, the cylinder holds all of a length $L$ of rod, $\lambda L$, and the field is the line’s again: from outside, the rod cannot be told from a line. Inside, the cylinder holds only the core within $r$. Cut that core into thin cylindrical shells of radius $r'$ and thickness $dr'$, each of volume $2\pi r'L\,dr'$, and add them up to $r$, not to $R$:`,
       {tex: raw`Q_{\text{enc}}=\int_0^{r}\rho\,2\pi r'L\,dr'=\pi\rho Lr^2=\lambda L\frac{r^2}{R^2}`},
-      raw`Then $E_r=\lambda r/(2\pi\varepsilon_0R^2)$: zero on the axis, growing in step with $r$, and meeting the outside answer exactly at $r=R$. The inside and outside answers must meet there, since the rod has no surface charge; if yours do not, something is wrong, most often an upper limit.`,
+      raw`Then $E_r=\lambda r/(2\pi\varepsilon_0R^2)$: zero on the axis, proportional to $r$, and meeting the outside answer exactly at $r=R$. The inside and outside answers must meet there, since the rod has no surface charge; if yours do not, something is wrong, most often an upper limit.`,
     ]},
     {heading: 'A shell, and a cable', body: [
       raw`Put the charge on a thin cylindrical shell of radius $R$ instead. A cylinder inside it encloses nothing, so $E_r(2\pi rL)=0$, and since $E_r$ is the same all over the wall, it is zero: no field anywhere inside. Outside, the line’s field again. Crossing the shell the field jumps, by $\lambda/(2\pi\varepsilon_0R)$, which is $\sigma/\varepsilon_0$ for the shell’s $\sigma=\lambda/(2\pi R)$: the same jump every surface charge makes.`,
@@ -102,7 +102,7 @@ export const lesson: GaussLesson = {
       symmetry: {
         tex: raw`\vec E=E_r(r)\,\hat{\mathbf r}`,
         say: raw`The rod is a thick line: the same flips leave it as it was, inside and out.`,
-        line: raw`A thick line is still a line: the field points straight out from the axis.`,
+        line: raw`A thick line is still a line: the field is radial from the axis, outward or inward.`,
         caption: 'The rod is unchanged by the same flips and turns as a line, so its field, inside the rod and outside it, points straight out from the axis or straight in, and its size depends only on the distance r.',
       },
       surface: {
@@ -231,7 +231,7 @@ export const lesson: GaussLesson = {
   traps: [
     {wrong: 'A cylinder works for any rod.', right: raw`Only for one long enough to treat as infinite. Near a finite rod’s ends the field leans, its size changes along the wall and the ends catch flux, so Gauss’s law will not give $\vec E$.`},
     {wrong: raw`The answer may keep an $L$ in it.`, right: raw`$L$ is the length of a surface you chose. It is on both sides and must cancel; one left over is an algebra slip.`},
-    {wrong: 'The ends of the cylinder carry flux.', right: raw`The field points straight out from the axis, so it lies along the flat ends and $\vec E\cdot d\vec A=0$ on every patch of them.`},
+    {wrong: 'The ends of the cylinder carry flux.', right: raw`The field points radially from the axis, outward or inward, so it lies along the flat ends and $\vec E\cdot d\vec A=0$ on every patch of them.`},
     {wrong: 'Inside a charged rod the field is zero.', right: raw`Only inside a hollow shell, or a metal rod. Inside a solid rod of charge a cylinder still encloses the core within $r$, and the field grows in step with $r$.`},
   ],
   instrument: 'profile',

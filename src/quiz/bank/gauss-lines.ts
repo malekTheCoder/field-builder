@@ -14,7 +14,7 @@ export const bank: Question[] = [
       {text: raw`As long as the line, so that it encloses all of the charge.`, misconception: 'surface-real',
         why: raw`An infinite line has no end to reach, and the surface never needs all the charge. It needs the field perpendicular to its wall and the same all over it, and along it on the ends, which holds for a cylinder of any length.`},
       {text: raw`Short compared with $r$, or its two ends would carry flux.`, misconception: 'parallel-patch',
-        why: raw`The ends carry no flux at any length: the field points straight out from the line, so it lies along every patch of the flat ends.`},
+        why: raw`The ends carry no flux at any length: the field is radial from the line, outward or inward, so it lies along every patch of the flat ends.`},
     ],
     explanation: raw`The wall carries $E_r\,(2\pi rL)$ and the cylinder holds $\lambda L$, so $L$ is on both sides and cancels. A surface you chose cannot set the field, so its size had to drop out.`,
     review: {lesson: 'lines', section: 'The surface is forced, its length is not'}},
@@ -40,7 +40,7 @@ export const bank: Question[] = [
       {text: raw`The same field: the line is infinite, so moving away from it changes nothing.`, misconception: 'line-falloff',
         why: raw`That is a sheet’s story, which looks the same from every height. A line does not: twice as far away, its field is spread over a wall twice as large.`},
     ],
-    explanation: raw`Both cylinders hold $\lambda L$, so both carry the flux $\lambda L/\varepsilon_0$. The wider one spreads it over a wall of $2\pi(2r)L$, twice the first’s, so the field on it is half as big: $E_r$ falls as $1/r$.`,
+    explanation: raw`Both cylinders hold $\lambda L$, so both carry the flux $\lambda L/\varepsilon_0$. The wider one spreads it over a wall of $2\pi(2r)L$, twice the first’s, so the field on it is half as big: $|E_r|$ falls as $1/r$.`,
     review: {lesson: 'lines', section: 'Check the answer', case: 'line'}},
 
   {id: 'lines-rod-qenc', lesson: 'lines', kind: 'setup',

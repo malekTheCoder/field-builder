@@ -33,7 +33,7 @@ export const lesson: GaussLesson = {
       raw`An infinite sheet with a uniform $\sigma$ is unchanged by a turn about the line through $P$ perpendicular to it. Such a turn swings any part of $\vec E$ along the sheet round, so there is none: $\vec E$ is perpendicular to the sheet. And a mirror in the sheet’s own plane leaves the sheet as it was and swaps its two sides, so the field below is the mirror of the field above: away from the sheet on both sides, or toward it on both.`,
     ]},
     {heading: 'The three usable symmetries', body: [
-      raw`Spherical: the charge depends only on the distance from a point. $\vec E$ is radial; draw a sphere about the centre. Cylindrical: the charge depends only on the distance from an axis, and goes on for ever along it. $\vec E$ points straight out from the axis; draw a cylinder about it. Planar: the charge depends only on the height above an infinite plane, and is the same at equal heights above and below it. $\vec E$ is perpendicular to the plane; draw a pillbox, a short flat cylinder standing across it with one face on each side.`,
+      raw`Spherical: the charge depends only on the distance from a point. $\vec E$ is radial; draw a sphere about the centre. Cylindrical: the charge depends only on the distance from an axis, and goes on for ever along it. $\vec E$ points along the radius from the axis, outward or inward; draw a cylinder about it. Planar: the charge depends only on the height above an infinite plane, and is the same at equal heights above and below it. $\vec E$ is perpendicular to the plane; draw a pillbox, a short flat cylinder standing across it with one face on each side.`,
       {tex: raw`\text{sphere: }\ 4\pi r^2E_r\qquad\text{cylinder: }\ 2\pi rL\,E_r\qquad\text{pillbox: }\ 2AE_\perp`},
       raw`Those are what the left side of Gauss’s law becomes on each surface. Symmetry gives the shape of the field, never its strength; Gauss’s law supplies the strength.`,
     ]},
@@ -87,7 +87,7 @@ export const lesson: GaussLesson = {
         caption: 'Set the two sides equal and divide by the area. Outside the ball its field is exactly a point charge’s, as if all of Q sat at the centre: pointing out for positive Q, in for negative.',
       },
       checks: [
-        {title: 'Like a point charge', text: raw`The answer has no $R$ in it: outside, any ball of charge $Q$, however big, makes the field of a point charge $Q$ at its centre. Coulomb’s law comes back out of Gauss’s law.`},
+        {title: 'Like a point charge', text: raw`The answer has no $R$ in it: outside, any spherically symmetric ball of charge $Q$, however big, makes the field of a point charge $Q$ at its centre. Coulomb’s law comes back out of Gauss’s law.`},
         {title: 'At the surface', text: raw`At $r=R$ it gives $E_r=Q/(4\pi\varepsilon_0R^2)$, the field just outside the ball. Inside, the sphere encloses only part of the ball, and the Spheres lesson takes the same sphere in to find how the field falls to zero at the centre.`},
         {title: 'Either sign', text: raw`For a negative $Q$, $E_r$ is negative and the field points in, toward the centre. Nothing in the argument used the sign.`},
       ],
@@ -100,7 +100,7 @@ export const lesson: GaussLesson = {
         tex: raw`\vec E=E_r(r)\,\hat{\mathbf r}`,
         say: raw`$\hat{\mathbf r}$ points straight out from the line; $E_r$ is negative where the field points in.`,
         line: raw`Flips that leave the line unchanged forbid any part along it or round it.`,
-        caption: 'A flip in a mirror perpendicular to the line leaves the line unchanged but would reverse any part of E along it, so there is none. A flip in a mirror containing the line would reverse any swirl round it, so there is none. E points straight out from the line, and its size depends only on the distance r.',
+        caption: 'A flip in a mirror perpendicular to the line leaves the line unchanged but would reverse any part of E along it, so there is none. A flip in a mirror containing the line would reverse any swirl round it, so there is none. E is radial from the line, outward for positive λ and inward for negative λ; its size depends only on the distance r.',
       },
       surface: {
         tex: raw`A_{\text{wall}}=2\pi rL`,
@@ -124,7 +124,7 @@ export const lesson: GaussLesson = {
         tex: raw`E_r\,(2\pi rL)=\frac{\lambda L}{\varepsilon_0}\;\Rightarrow\;E_r=\frac{\lambda}{2\pi\varepsilon_0 r}`,
         answer: raw`E_r=\frac{\lambda}{2\pi\varepsilon_0r}=\frac{2k\lambda}{r}`,
         say: raw`$L$ cancels, as it must: the cylinder is imaginary, and the field cannot depend on its length.`,
-        line: raw`Set them equal: $L$ cancels, and $E_r$ falls as $1/r$.`,
+        line: raw`Set them equal: $L$ cancels, and $|E_r|$ falls as $1/r$.`,
         caption: 'Set the two sides equal and divide. The length L cancels, as it must, since the cylinder is imaginary. The field falls as one over r, and points out from the line for positive λ, in for negative.',
       },
       checks: [

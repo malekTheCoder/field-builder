@@ -31,7 +31,7 @@ export const bank: Question[] = [
       {text: raw`No, because Gauss’s law is false for a rod with ends.`, misconception: 'law-fails',
         why: raw`Gauss’s law is true for every closed surface and every charge: the flux through that cylinder is still the charge inside over $\varepsilon_0$. What fails is pulling $E$ out of the integral to solve for it.`},
     ],
-    explanation: raw`A finite rod survives too few of the moves that made the infinite line’s field straight out and the same along a cylinder’s wall. The flux through any closed surface round it is still $Q_{\text{enc}}/\varepsilon_0$, but on no surface is $\vec E$ the same and perpendicular to it all over, so no division gives $E$. Its field comes from adding up its pieces, as the integral lessons do.`,
+    explanation: raw`A finite rod survives too few of the moves that made the infinite line’s field radial and the same along a cylinder’s wall. The flux through any closed surface round it is still $Q_{\text{enc}}/\varepsilon_0$, but on no surface is $\vec E$ the same and perpendicular to it all over, so no division gives $E$. Its field comes from adding up its pieces, as the integral lessons do.`,
     review: {lesson: 'symmetry', section: 'When it only looks symmetric'}},
 
   {id: 'symmetry-ball-surface', lesson: 'symmetry', kind: 'setup',
@@ -57,7 +57,7 @@ export const bank: Question[] = [
       {tex: raw`E_r\,(2\pi r^2)`, misconception: 'parallel-patch',
         why: raw`That is the area of the two ends, which the field slides along and never crosses. The field crosses the curved wall, of area $2\pi rL$.`},
       {tex: raw`E_r\,(4\pi r^2)`, misconception: 'wrong-surface',
-        why: raw`That is a sphere’s area. Round a line the field points straight out from the axis, not from a point, so a sphere would see it slanted and of different sizes; the surface that fits is a cylinder.`},
+        why: raw`That is a sphere’s area. Round a line the field is radial from the axis, outward or inward, not radial from a point, so a sphere would see it slanted and of different sizes; the surface that fits is a cylinder.`},
     ],
     explanation: raw`On the curved wall $\vec E$ is perpendicular to every patch and has the same $E_r$ all over, so the wall carries $E_r$ times its area, $2\pi rL$. On the two ends $\vec E$ lies along the surface and carries nothing. The left side is $E_r\,(2\pi rL)+0+0$.`,
     review: {lesson: 'symmetry', stage: 'left', case: 'line'}},
@@ -73,7 +73,7 @@ export const bank: Question[] = [
       {tex: raw`E_r=\frac{\lambda}{2\varepsilon_0}`, misconception: 'line-falloff',
         why: raw`A field that does not change with distance is a sheet’s. A line’s field must weaken as $P$ moves away, because the same charge is spread over a wider wall.`},
     ],
-    explanation: raw`Setting $E_r\,(2\pi rL)$ equal to $\lambda L/\varepsilon_0$, the length cancels, as it must, and $E_r=\lambda/(2\pi\varepsilon_0r)=2k\lambda/r$. It falls as $1/r$, and it agrees with the Infinite line lesson’s sum of pieces.`,
+    explanation: raw`Setting $E_r\,(2\pi rL)$ equal to $\lambda L/\varepsilon_0$, the length cancels, as it must, and $E_r=\lambda/(2\pi\varepsilon_0r)=2k\lambda/r$. Its magnitude falls as $1/r$, and it agrees with the Infinite line lesson’s sum of pieces.`,
     review: {lesson: 'symmetry', stage: 'solve', case: 'line'}},
 
   {id: 'symmetry-pillbox-left', lesson: 'symmetry', kind: 'setup',

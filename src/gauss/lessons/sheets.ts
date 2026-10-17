@@ -176,7 +176,7 @@ export const lesson: GaussLesson = {
         say: raw`Twice a lone sheet’s field, and the same as the two halves added.`,
         line: raw`$\sigma/\varepsilon_0$ between, the two halves added; nothing outside.`,
         caption: 'Divide by A. Between the plates the field is σ over ε₀, the two sheets’ halves added, the same everywhere between them, pointing from the positive plate to the negative one. Outside the pair there is none.',
-        note: raw`Between the plates the field points from the $\sigma$ plate toward the $-\sigma$ one. The zero outside comes from adding the two sheets’ fields; the one-sided pillbox, which stands on it, checks the field between them. Reversing the charges reverses the field.`,
+        note: raw`$E_\perp$ is measured from the $\sigma$ plate toward the $-\sigma$ one: the field points that way for positive $\sigma$, and the other way for negative $\sigma$. The zero outside comes from adding the two sheets’ fields; the one-sided pillbox, which stands on it, checks the field between them. Reversing the charges reverses the field.`,
       },
       checks: [
         {title: 'Superposition agrees', text: raw`Adding the two sheets’ fields gave $\sigma/(2\varepsilon_0)+\sigma/(2\varepsilon_0)=\sigma/\varepsilon_0$ between them; the one-sided pillbox gives the same.`},

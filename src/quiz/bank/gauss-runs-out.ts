@@ -39,7 +39,7 @@ export const bank: Question[] = [
       {text: raw`The total grows, since a wider cylinder catches more of the field.`, misconception: 'bigger-surface',
         why: raw`A wider cylinder has a larger wall, but the field on it is weaker. The total flux counts only the charge inside, which has not changed.`},
       {text: raw`It all still leaves through the wall: the ends of a cylinder on the axis never carry flux.`, misconception: 'parallel-patch',
-        why: raw`They carry none round an infinite line, whose field is straight out. A finite rod’s field gains a part along the axis toward its ends, so it crosses the flat ends.`},
+        why: raw`They carry none round an infinite line, whose field is radial, outward or inward. A finite rod’s field gains a part along the axis toward its ends, so it crosses the flat ends.`},
     ],
     explanation: raw`The sum is fixed by the charge inside. How it divides is not: as the cylinder widens, its ends fill more of the directions out from the rod and the wall fewer, so the ends’ share grows while the total stays $2\lambda\ell/\varepsilon_0$.`,
     review: {lesson: 'runs-out', section: 'Check the answer', case: 'rod'}},

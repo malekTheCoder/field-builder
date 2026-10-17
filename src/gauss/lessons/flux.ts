@@ -35,7 +35,7 @@ export const lesson: GaussLesson = {
       raw`Now make the surface lumpy. Seen from $q$, each patch fills a narrow cone. A patch farther out along the same cone is bigger, by exactly the factor the field is weaker, and a patch tilted to the cone is bigger again, by exactly the factor its tilt takes off. So cones of the same opening carry the same flux whatever patch they end on; a cone that crosses a fold of the surface out, in and out again nets one crossing. The cones together carry $q/\varepsilon_0$ through any closed surface round $q$.`,
     ]},
     {heading: 'A charge outside', body: [
-      raw`For a charge outside the surface, every cone that enters the surface leaves it again. It crosses twice, once going in and once coming out, and carries equal flux of opposite sign at the two crossings, so the net flux is zero. With many charges the fields add, so the fluxes add: each charge inside gives its own $q_i/\varepsilon_0$, and each charge outside gives nothing. That is Gauss’s law:`,
+      raw`For a charge outside the surface, every cone that enters the surface leaves it again. Its crossings come in inward and outward pairs, each carrying equal flux of opposite sign. Even a folded surface, with several such pairs, has zero net flux from that charge. With many charges the fields add, so the fluxes add: each charge inside gives its own $q_i/\varepsilon_0$, and each charge outside gives nothing. That is Gauss’s law:`,
       {tex: raw`\oint\vec E\cdot d\vec A=\frac{Q_{\text{enc}}}{\varepsilon_0}`},
     ]},
     {heading: 'Two traps', body: [

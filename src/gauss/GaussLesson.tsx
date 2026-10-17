@@ -72,7 +72,7 @@ function writeSaved(patch: Record<string, unknown>) {
 }
 const RECIPE: {name: string; text: string}[] = [
   {name: 'Symmetry', text: 'Find what the charge’s symmetry forces the field to do: which way it points, and where its size is the same.'},
-  {name: 'The surface', text: 'Draw a closed surface through P on which every patch has E square to it and the same, E along it, or E zero.'},
+  {name: 'The surface', text: 'Draw a closed surface through P on which each part has E perpendicular to it and constant in size, E along it, or E zero.'},
   {name: 'Left side', text: 'The flux integral collapses to E times the area the field crosses.'},
   {name: 'Right side', text: 'Add up only the charge inside the surface, integrating a density if there is one.'},
   {name: 'Solve', text: 'Set the two sides equal and divide. Then check the limits, the boundaries and the sign.'},
