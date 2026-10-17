@@ -23,7 +23,7 @@ const BALL = {R: 1.4, b: .55, at: v3(.6, 0, .33)};
 export const lesson: GaussLesson = {
   id: 'holes',
   title: 'Holes by superposition',
-  short: 'Holes',
+  short: 'Holes by superposition',
   about: 'A hole as the whole charge plus a plug of the opposite sign, each solved by Gauss’s law.',
   lead: raw`A charge with a hole in it has lost the symmetry Gauss’s law needs, but it is two charges that each have it: the whole charge, as if the hole were filled, and a plug of the opposite charge filling the hole. Solve each by Gauss’s law and add the fields.`,
   sections: [

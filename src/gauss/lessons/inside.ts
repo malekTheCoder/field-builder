@@ -13,7 +13,7 @@ const raw = String.raw;
 export const lesson: GaussLesson = {
   id: 'inside',
   title: 'Why only the charge inside',
-  short: 'Only the charge inside',
+  short: 'Why only the charge inside',
   about: 'A sphere, then any shape, then a charge outside, then many charges at once.',
   lead: raw`Gauss’s law counts only the charge inside the surface, though the field in it is the whole field. Four steps show why: a sphere round a point charge, any surface round it, a charge outside, and many charges at once.`,
   sections: [

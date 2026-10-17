@@ -8,7 +8,8 @@ import {viewOf} from '../src/state/route';
 import {gaussLesson, isGaussReady} from '../src/gauss';
 import {STAGE_KEYS} from '../src/gauss/run';
 import {MISCONCEPTION, MISCONCEPTIONS} from '../src/quiz/misconceptions';
-import {BANK, BANKS, GAUSS_PAGE_SECTIONS, HISTORY_KEY, PAGE_SECTIONS, QUIZ_SHAPES, isGauss, isGaussPointer, pointerWord, shapeHref, clearHistory, confidence, draw, drawAgain, drawWeak, emptyHistory, grade, inWords, place, pointerFor, readHistory, record, score, tally, toRevisit, weakSpots, writeHistory, type Drawn} from '../src/quiz/engine';
+import {GAUSS} from '../src/explorer/lessons';
+import {BANK, BANKS, GAUSS_PAGE_SECTIONS, HISTORY_KEY, PAGE_SECTIONS, QUIZ_SHAPES, isGauss, isGaussPointer, pointerWord, shapeHref, shapeShort, clearHistory, confidence, draw, drawAgain, drawWeak, emptyHistory, grade, inWords, place, pointerFor, readHistory, record, score, tally, toRevisit, weakSpots, writeHistory, type Drawn} from '../src/quiz/engine';
 import type {Answer, Pointer, Question} from '../src/quiz/types';
 import type {ProblemId} from '../src/problems/types';
 
@@ -255,5 +256,16 @@ describe('the address', () => {
   expect(place({lesson: 'ring', stage: 'cancel'}).href).toBe('?p=ring&stage=cancel');
   expect(place({lesson: 'ring', stage: 'cancel'}).title).toBe(`${getProblem('ring').short}, What cancels`);
   expect(viewOf(place({lesson: 'bisector', stage: 'cut'}).href)).toBe('lesson');
+ });
+});
+
+describe('one name for each Gauss lesson', () => {
+ // The quiz said "Holes" and "Only the charge inside" where home and the lesson list said "Holes by superposition"
+ // and "Why only the charge inside". The list's name is the one name, and the quiz's is that name.
+ it('names every Gauss lesson in the quiz as the lesson list does', () => {
+  for (const l of GAUSS.lessons) if (isGaussReady(l.key)) {
+   expect(shapeShort(l.key)).toBe(l.name);
+   expect(gaussLesson(l.key)!.title).toBe(l.name);
+  }
  });
 });

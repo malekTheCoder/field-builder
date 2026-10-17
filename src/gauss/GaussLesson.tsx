@@ -304,11 +304,12 @@ export default function GaussLesson() {
   // ---- the parts ----
   const setSize = (n: number) => setSizes(old => ({...old, [`${id}/${kase.key}`]: n}));
   const goField = useSteady((pid: string, e: React.MouseEvent) => { if (!inPlace(e)) return; e.preventDefault(); setLibrary(false); navigate(lessonHref(pid)); });
-  // On a Gauss page its own family leads the list: below every integral lesson it sat a screen and more down, and a
-  // reader could not see where the section went next.
-  const lessonList = useMemo(() => <><GaussListFamily current={id} />{families(FIELD_LESSONS).map(g => <div className="exp-family" key={g.label}><h2 className="exp-family-name">{g.label}</h2><SidebarMenu>{g.items.map(pr => <SidebarMenuItem key={pr.id}>
+  // The list in home's order on every page, the integral families then Gauss's law: leading with the open lesson's own
+  // family made the list reorder itself between the two kinds of page. The open lesson is still in view, since the
+  // list scrolls to its row (the effect above), so the section's next lessons are on screen beside it.
+  const lessonList = useMemo(() => <>{families(FIELD_LESSONS).map(g => <div className="exp-family" key={g.label}><h2 className="exp-family-name">{g.label}</h2><SidebarMenu>{g.items.map(pr => <SidebarMenuItem key={pr.id}>
     <SidebarMenuButton className="exp-shape-button" render={<a href={lessonHref(pr.id)} />} onClick={(e: React.MouseEvent) => goField(pr.id, e)}><span className="shape-icon"><ShapeGlyph id={pr.id} /></span><span>{pr.short}</span></SidebarMenuButton>
-  </SidebarMenuItem>)}</SidebarMenu></div>)}</>, [id, goField]);
+  </SidebarMenuItem>)}</SidebarMenu></div>)}<GaussListFamily current={id} /></>, [id, goField]);
   const next = lesson.next && isGaussReady(lesson.next) ? {href: gaussHref(lesson.next), glyph: <PlannedGlyph id={lesson.next} size={22} />, name: gaussLesson(lesson.next)!.title, why: gaussLesson(lesson.next)!.about}
     : lesson.related && isReady(lesson.related.field) ? {href: lessonHref(lesson.related.field), glyph: <ShapeGlyph id={lesson.related.field} size={22} />, name: PROBLEMS.find(p => p.id === lesson.related!.field)?.short ?? '', why: lesson.related.text}
     // The last lesson leads home, to every lesson and the quiz.

@@ -509,9 +509,17 @@ describe('the figure’s round of fixes', () => {
     await waitFor(() => expect(document.querySelector('h1')?.textContent).toContain('Lines'));
     expect(view.getByRole('button', {name: 'Reset view'}).getAttribute('aria-disabled')).toBe('true');
   }, 20000);
-  it('leads the lesson list with the Gauss family', async () => {
+  it('keeps the lesson list in home’s order, the Gauss family last, with the open lesson in view', async () => {
     await open('sheets');
-    expect(document.querySelector('.exp-lessons .exp-family-name')?.textContent).toContain('Gauss');
+    const names = [...document.querySelectorAll('.exp-lessons .exp-family-name')].map(h => h.textContent ?? '');
+    expect(names[0]).toBe('Straight rods');
+    expect(names.at(-1)).toContain('Gauss');
+    const row = document.querySelector<HTMLElement>('.exp-lessons [aria-current=page]')!, list = row.closest<HTMLElement>('[data-slot=sidebar-content]')!;
+    await waitFor(() => {
+      const r = row.getBoundingClientRect(), l = list.getBoundingClientRect();
+      expect(r.top).toBeGreaterThanOrEqual(Math.max(l.top, 0) - 1);
+      expect(r.bottom).toBeLessThanOrEqual(Math.min(l.bottom, window.innerHeight) + 1);
+    });
   }, 20000);
   it('opens the flux instrument on the flat patch, its words its own', async () => {
     const view = await open('flux');
