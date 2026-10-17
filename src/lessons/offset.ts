@@ -36,6 +36,7 @@ export const lesson: Lesson = {
     {heading: 'Shrink them', body: [
       raw`As $N\to\infty$ each $\Delta y$ becomes $dy$, each sum an integral from $y_1$ to $y_2$, and the approximation becomes exact.`,
       {tex: raw`E_x=\int_{y_1}^{y_2}\frac{k\lambda\,dy}{y^2+r^2}\cdot\frac{r}{\sqrt{y^2+r^2}}`},
+      {tex: raw`E_y=-\int_{y_1}^{y_2}\frac{k\lambda\,dy}{y^2+r^2}\cdot\frac{y}{\sqrt{y^2+r^2}}`},
       raw`These are the bisector’s integrals between new limits: $y=r\tan\alpha$ for the first, $u=y^2+r^2$ for the part along the rod. Upper end minus lower end, with $\alpha_1$ and $\alpha_2$ the angles at $P$ to the two ends:`,
       {tex: raw`E_x=\frac{k\lambda}{r}\left(\sin\alpha_2-\sin\alpha_1\right)`},
       {tex: raw`E_y=\frac{k\lambda}{r}\left(\cos\alpha_2-\cos\alpha_1\right)`},

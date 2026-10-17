@@ -716,6 +716,8 @@ const ZERO_FROM_TEX:[RegExp,Axis[]][]=[
  [/E_x=E_y=0/,['x','y']],
  [/E_x\\ne0/,['z']],
  [/E_y\\ne0/,['z']],
+ // The offset's leftover integral permits E_y = 0 at h = 0; these settings are off the middle.
+ [/E_y=-k\\lambda\\int_\{\\text\{leftover\}\}/,['z']],
  [/E_y=0/,['y','z']],
 ];
 const sorted=(a:Axis[])=>[...a].sort().join('');

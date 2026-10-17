@@ -7,10 +7,10 @@ const raw = String.raw;
  * far E_y remembers the centre of charge, 2L/3. */
 export const lesson: Lesson = {
   id: 'ramp',
-  lead: raw`Find the field level with the empty end of a rod whose density grows along it. The density rides inside the integral as $\lambda(y)$, and nothing cancels.`,
+  lead: raw`Find the field level with the empty end of a rod whose density grows in magnitude along it. The density rides inside the integral as $\lambda(y)$, and nothing cancels.`,
   sections: [
     {heading: 'The setup', body: [
-      raw`A thin rod stands on the $x$-axis at the origin, from $y=0$ up to $y=L$, but its charge is not spread evenly. Its density, the charge per unit length, is $\lambda(y)=\lambda_0\,(y/L)$: zero at the foot, rising steadily to $\lambda_0$ at the top. The point $P=(r,0)$ is a distance $r$ out, level with the empty end.`,
+      raw`A thin rod lies along the $y$-axis, from $y=0$ up to $y=L$, but its charge is not spread evenly. Its density, the charge per unit length, is $\lambda(y)=\lambda_0\,(y/L)$: zero at the foot, changing steadily to $\lambda_0$ at the top. Its magnitude grows toward the top for either sign of charge. The point $P=(r,0)$ is a distance $r$ out, level with the empty end.`,
       raw`The total charge is the average density, half of $\lambda_0$, times the length: $Q=\lambda_0L/2$.`,
     ]},
     {heading: 'Cut it up', body: [

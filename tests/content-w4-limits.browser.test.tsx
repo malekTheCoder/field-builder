@@ -34,7 +34,7 @@ describe('a ratio plot stands on zero', () => {
 });
 describe('the limiting case’s slider says what it moves', () => {
   it('a visible name beside the track, from the plot’s own sweep', () => {
-    const expected: Record<string, RegExp> = {far: /^Move P out$/, moment: /^Move P out$/, scale: /^Move P out$/, maximum: /^Move P out$/, infinite: /^Grow the (rod|disk|rim)$/, center: /^Bring P down$/, near: /^Move P in$/, full: /^Open the arc$/, half: /^Add pieces$/, hole: /^Close the hole$/, thin: /^Narrow it$/};
+    const expected: Record<string, RegExp> = {far: /^Move P out$/, moment: /^Move P out$/, scale: /^Move P out$/, maximum: /^Move P out$/, infinite: /^Grow the (rod|disk|rim)$/, center: /^Bring P down$/, near: /^Move P in$/, full: /^Open the arc$/, half: /^Add pieces$/, hole: /^Close the hole$/, thin: /^Narrow it$/, even: /^Spread it evenly$/, middle: /^Slide P to the middle$/, end: /^Slide P to an end$/, outside: /^Move P out$/, inside: /^Bring P in$/, jump: /^Close the gap$/};
     for (const problem of lessons) for (const limit of problem.limits) {
       const {container, getByRole, unmount} = render(<div style={{width: 560}}><Assessment problem={problem} params={DEFAULT_PARAMS} limit={limit} /></div>);
       const name = container.querySelector<HTMLElement>('.limit-slider-name');
@@ -55,4 +55,22 @@ describe('the limiting case’s slider says what it moves', () => {
       unmount();
     }
   });
+});
+
+
+/* A reference label above its line crossed the offset and uneven-arc curves as they approached
+ * from above. Check its actual SVG text box, so a larger phone label must clear the line too. */
+describe('reference labels leave the side the curve approaches from clear', () => {
+ for (const [id, mode] of [['offset','end'], ['uneven-arc','even']] as const) {
+  it(`${id}: the label is entirely below the reference when the curve approaches from above`, () => {
+   const problem = getProblem(id), limit = problem.limits.find(l => l.mode === mode)!;
+   for (const width of [354, 560]) for (const charge of [-5, 5]) {
+    const {container, unmount} = render(<div style={{width}}><Assessment problem={problem} params={{...DEFAULT_PARAMS, charge}} limit={limit}/></div>);
+    const label = container.querySelector<SVGTextElement>('.comparison-line')!;
+    const reference = Number(container.querySelector('.comparison-reference')!.getAttribute('y1'));
+    expect(label.getBBox().y, `${id} at ${width}, charge ${charge}: text overlaps the approaching curve`).toBeGreaterThan(reference + 2);
+    unmount();
+   }
+  }, 20000);
+ }
 });

@@ -33,11 +33,11 @@ export const lesson: Lesson = {
       raw`and the whole field at $P$ is $E_x$, perpendicular to the rod.`,
     ]},
     {heading: 'Add them up', body: [
-      raw`Adding the $x$-parts of all $N$ pieces, from $y=-L/2$ to $y=L/2$, gives the field, nearly: each piece is still only nearly a point.`,
+      raw`Adding the $x$-parts of all $N$ pieces, from $y=-L/2$ to $y=L/2$, gives the field, nearly: each piece is still only nearly a point. The index $i$ labels a piece, and $\sum_i$ means add the contribution for every piece.`,
       {tex: raw`E_x\approx\sum_i\frac{k\,\Delta Q_i}{r_i^2}\cos\alpha_i`},
     ]},
     {heading: 'Shrink them', body: [
-      raw`As $N\to\infty$ the pieces grow ever thinner. Each $\Delta y$ becomes $dy$, the sum becomes an integral over $y$, and the approximation becomes exact, since in the limit each piece is a point charge:`,
+      raw`As $N\to\infty$ the pieces grow ever thinner. Each $\Delta y$ becomes $dy$, the sum becomes an integral over $y$, and the approximation becomes exact. The integral sign $\int$ names this limit of the sums:`,
       {tex: raw`E_x=\int_{-L/2}^{L/2}\frac{k\lambda\,dy}{y^2+r^2}\cdot\frac{r}{\sqrt{y^2+r^2}}`},
       raw`The projection puts one more power of the distance underneath, so the two together are $(y^2+r^2)^{3/2}$. The substitution $y=r\tan\alpha$ turns the integrand into $k\lambda\cos\alpha\,d\alpha/r$, whose integral is $k\lambda\sin\alpha/r$, that is $k\lambda y/(r\sqrt{y^2+r^2})$. Evaluated at the two ends, with $\lambda L=Q$:`,
       {tex: raw`E_x=\frac{kQ}{r\sqrt{(L/2)^2+r^2}}`},

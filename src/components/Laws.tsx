@@ -52,8 +52,8 @@ const LAWS:Law[]=([
  // slips "Easy to confuse with" diagnoses. The page a student is sent to look things up in had no row for it.
  {id:'density',name:'Charge density',tex:String.raw`dQ=\lambda\,d\ell=\sigma\,dA`,
   why:'What turns a piece’s size into its charge. λ is charge per unit length and σ charge per unit area; each is the same everywhere only where the lesson says the charge is uniform.',
-  detail:'A piece’s charge is the density times the piece’s own length or area, measured in the variable the charge is cut by. A rod cut along y gives pieces dy long. A ring or an arc cut by angle gives pieces R dθ long: an angle is not a length. A disk cut into rings gives rings of area 2πs ds: circumference times width, growing with the radius. Where the density changes along the charge, as on the ramp, it is read at the piece’s own place.',
-  more:[String.raw`d\ell=dy\qquad d\ell=R\,d\theta\qquad dA=2\pi s\,ds`,String.raw`\lambda(y)=\lambda_{0}\,\frac{y}{L}`]}] as Law[]).map(l=>({...l,why:hold(l.why),detail:hold(l.detail)}));
+  detail:'A piece’s charge is the density times the piece’s own length or area, measured in the variable the charge is cut by. A rod cut along y gives pieces dy long. A ring or an arc cut by angle gives pieces R dθ long: an angle is not a length. A disk cut into rings gives rings of area 2πs ds: circumference times width, growing with the radius. A spherical band has circumference 2πR sin θ and width R dθ. Where the density changes, as on the ramp or uneven semicircle, it is read at the piece’s own place.',
+  more:[String.raw`d\ell=dy\qquad d\ell=R\,d\theta\qquad dA=2\pi s\,ds`,String.raw`dA=2\pi R^2\sin\theta\,d\theta`,String.raw`\lambda(y)=\lambda_{0}\,\frac{y}{L}\qquad\lambda(\theta)=\lambda_0\cos\theta`]}] as Law[]).map(l=>({...l,why:hold(l.why),detail:hold(l.detail)}));
 /** The scalar law leads on a potential lesson, because that is the one being used there. */
 /** Each law's name as it reads inside a sentence. */
 const IN_PROSE:Record<string,string>={coulomb:'Coulomb’s law',superposition:'superposition',potential:'a point charge’s potential',density:'charge density'};

@@ -126,7 +126,7 @@ export const bank: Question[] = [
         why: raw`Every piece is on the rod, on one side of $P$, so all their parts along $x$ point the same way. They add wherever $P$ is.`},
     ],
     explanation: raw`Pieces mirrored across the horizontal line through $P$ still cancel along the rod. But the rod reaches further below $P$ than above it, and that extra stretch has no partners: its parts along the rod are left over. For a positive rod they point up, away from the longer side, and tip $P$’s field that way.`,
-    review: {lesson: 'endpoint', stage: 'cancel'}},
+    review: {lesson: 'offset', stage: 'cancel'}},
 
   {id: 'bisector-uneven', lesson: 'bisector', kind: 'transfer',
     prompt: raw`Keep the rod and $P$ where they are, but make the charge denser toward the top than the bottom, all of one sign. Is $E_y$ at $P$ still zero?`,

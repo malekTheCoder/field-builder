@@ -16,9 +16,9 @@ export const bank: Question[] = [
       {text: raw`Neither: rings of equal angle make equal fields, as the pieces of an endless line do.`, misconception: 'sheet-far-pieces',
         why: raw`On an endless line every piece of equal angle makes a field of the same size. A ring of the sheet runs round the axis as well, and a far ring is much longer round than a near one, so it holds more charge for the angle it takes.`},
       {text: raw`The near ring: the far ring’s field is nearly sideways, so most of it cancels round the ring.`, misconception: 'sheet-far-pieces',
-        why: raw`Only $\cos\alpha$ of each bit’s field survives along the axis, and for a far ring that fraction is small. But the far ring holds so much more charge that its part along the axis is still the larger: $2\pi k\sigma\sin\alpha\,\Delta\alpha$ grows with $\alpha$.`},
+        why: raw`Only $\cos\alpha$ of each bit’s field survives along the axis, and for a far ring that fraction is small. But the far ring holds so much more charge that its part along the axis is still the larger: $2\pi k|\sigma|\sin\alpha\,\Delta\alpha$ grows with $\alpha$.`},
     ],
-    explanation: raw`A ring at the angle $\alpha$ holds $\sigma(2\pi s)(z\sec^2\alpha\,\Delta\alpha)$, and its field at $P$ comes to $2\pi k\sigma\sin\alpha\,\Delta\alpha$, which grows with $\alpha$. A far ring is farther away, and its field meets the axis more slantwise, but it is so much bigger that its share of the field is larger: here the far parts of the charge matter most.`,
+    explanation: raw`A ring at the angle $\alpha$ holds $\sigma(2\pi s)(z\sec^2\alpha\,\Delta\alpha)$, and its field at $P$ comes to $2\pi k\sigma\sin\alpha\,\Delta\alpha$, whose magnitude grows with $\alpha$. A far ring is farther away, and its field meets the axis more slantwise, but it is so much bigger that its share of the field is larger: here the far parts of the charge matter most.`,
     review: {lesson: 'sheet', stage: 'piece'}},
 
   {id: 'sheet-dq', lesson: 'sheet', kind: 'setup',
@@ -46,7 +46,7 @@ export const bank: Question[] = [
       {tex: raw`\Delta E_z=2\pi k\sigma\sin\alpha\cos^2\alpha\,\Delta\alpha`, misconception: 'jacobian',
         why: raw`That takes the ring as $z\,\Delta\alpha$ wide. With $s=z\tan\alpha$ it is $z\sec^2\alpha\,\Delta\alpha$ wide, and those two powers of $\sec\alpha$ cancel the $\cos^2\alpha$.`},
     ],
-    explanation: raw`$\Delta Q=2\pi\sigma z^2\tan\alpha\sec^2\alpha\,\Delta\alpha$ and $r_i^2=z^2\sec^2\alpha$, so $k\,\Delta Q/r_i^2=2\pi k\sigma\tan\alpha\,\Delta\alpha$, and times $\cos\alpha$ that is $2\pi k\sigma\sin\alpha\,\Delta\alpha$. Every $z$ has cancelled, and what is left grows with $\alpha$.`,
+    explanation: raw`$\Delta Q=2\pi\sigma z^2\tan\alpha\sec^2\alpha\,\Delta\alpha$ and $r_i^2=z^2\sec^2\alpha$, so $k\,\Delta Q/r_i^2=2\pi k\sigma\tan\alpha\,\Delta\alpha$, and times $\cos\alpha$ that is $2\pi k\sigma\sin\alpha\,\Delta\alpha$. Every $z$ has cancelled, and the magnitude of what is left grows with $\alpha$.`,
     review: {lesson: 'sheet', stage: 'piece'}},
 
   {id: 'sheet-finite', lesson: 'sheet', kind: 'predict',

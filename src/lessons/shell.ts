@@ -21,7 +21,7 @@ export const lesson: Lesson = {
     {heading: 'One ring', body: [
       raw`A ring seen from its axis is the ring lesson’s answer: its field points along the axis. This ring sits at the height $R\cos\theta$, so $P$ is $z-R\cos\theta$ above its plane, and by the law of cosines`,
       {tex: raw`r_i^2=R^2+z^2-2zR\cos\theta`},
-      raw`Its part along the axis is the fraction $(z-R\cos\theta)/r_i$ of a point charge’s field:`,
+      raw`The angle $\alpha$ at $P$ compares the bit-to-$P$ direction with $+z$: $\cos\alpha=(z-R\cos\theta)/r_i$. This is the axial projection:`,
       {tex: raw`\Delta E_z=\frac{k\,\Delta Q\,(z-R\cos\theta)}{r_i^3}`},
       raw`For a ring above $P$ the factor $z-R\cos\theta$ is negative: its field points the other way along the axis.`,
     ]},
@@ -32,7 +32,7 @@ export const lesson: Lesson = {
     {heading: 'Add them up', body: [
       raw`Adding all $N$ rings gives the field nearly, each ring’s charge counted at one angle $\theta_i$:`,
       {tex: raw`E_z\approx\sum_i\frac{k\,\Delta Q_i\,(z-R\cos\theta_i)}{r_i^3}`},
-      raw`With few rings the sum misses both answers; with enough it comes as close as you like, though near the surface it takes many.`,
+      raw`With enough rings the sum comes as close as you like; near the surface it takes many.`,
     ]},
     {heading: 'Shrink them', body: [
       raw`As $N\to\infty$ the sum becomes an integral from the top, $0$, to the bottom, $\pi$:`,

@@ -97,7 +97,7 @@ export const bank: Question[] = [
       {tex: raw`E_x=0`, misconception: 'cancel-survivor',
         why: raw`The parts across the line never cancel: every piece is on the same side of $P$, and all those parts point the same way, away from the line for a positive charge.`},
     ],
-    explanation: raw`Every piece makes $k\lambda\,d\alpha/r$. Over the quarter turn, $\int_0^{\pi/2}\sin\alpha\,d\alpha$ and $\int_0^{\pi/2}\cos\alpha\,d\alpha$ are both one, since the sine takes the cosine’s values in reverse order. So $E_x$ is the same size as $E_y$, pointing away from the line: $k\lambda/r$.`,
+    explanation: raw`Every piece makes $k\lambda\,d\alpha/r$. Over the quarter turn, $\int_0^{\pi/2}\sin\alpha\,d\alpha$ and $\int_0^{\pi/2}\cos\alpha\,d\alpha$ are both one, since the sine takes the cosine’s values in reverse order. So $E_x=k\lambda/r$ and $E_y=-k\lambda/r$ have the same magnitude, $k|\lambda|/r$. The $x$-part points away from a positive line and toward a negative one.`,
     review: {lesson: 'semi', stage: 'shrink'}},
 
   {id: 'semi-double-r', lesson: 'semi', kind: 'check',

@@ -26,13 +26,13 @@ export const bank: Question[] = [
     choices: [
       {correct: true, tex: raw`Q=\frac{\lambda_0L}{2}`},
       {tex: raw`Q=\lambda_0L`, misconception: 'density-inside',
-        why: raw`That would be a rod with density $\lambda_0$ all along it. This one rises evenly from zero to $\lambda_0$, so on average it holds half of $\lambda_0$ per unit length.`},
+        why: raw`That would be a rod with density $\lambda_0$ all along it. This one changes evenly from zero to $\lambda_0$, so on average it holds half of $\lambda_0$ per unit length.`},
       {tex: raw`Q=\frac{\lambda_0L^2}{2}`, misconception: 'density-inside',
         why: raw`That integrates $\lambda_0\,y$ and drops the $1/L$ in the density. $\lambda_0\,y$ is not a density, and the result is not a charge: it has an extra length in it.`},
       {tex: raw`Q=\frac{\lambda_0}{2}`, misconception: 'piece-length',
         why: raw`That is the average density, a charge per unit length. The total charge is the average density times the rod’s length.`},
     ],
-    explanation: raw`Add up every piece: $\int_0^L\lambda_0\,(y/L)\,dy=\lambda_0L/2$. The density rises evenly from zero to $\lambda_0$, so its average is $\lambda_0/2$, and the total is that average times $L$.`,
+    explanation: raw`Add up every piece: $\int_0^L\lambda_0\,(y/L)\,dy=\lambda_0L/2$. The density changes evenly from zero to $\lambda_0$, so its average is $\lambda_0/2$, and the total is that average times $L$.`,
     review: {lesson: 'ramp', section: 'The setup'}},
 
   {id: 'ramp-ex-integrand', lesson: 'ramp', kind: 'setup',
@@ -118,6 +118,6 @@ export const bank: Question[] = [
       {text: raw`Straight toward the rod, along $x$.`, misconception: 'cancel-survivor',
         why: raw`The sign does not create a partner. Every piece is still above $P$, so the parts along the rod still add, now pointing up.`},
     ],
-    explanation: raw`Every piece’s field now points from $P$ toward the piece: back toward the rod along $x$, and up. Both $E_x$ and $E_y$ carry the sign of $\lambda_0$, so $E_x<0$ and $E_y>0$.`,
+    explanation: raw`Every piece’s field now points from $P$ toward the piece: back toward the rod along $x$, and up. $E_x$ has the sign of $\lambda_0$ and $E_y$ the opposite sign, so $E_x<0$ and $E_y>0$.`,
     review: {lesson: 'ramp', section: 'What the answer says'}},
 ];

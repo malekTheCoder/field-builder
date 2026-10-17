@@ -63,13 +63,13 @@ export const bank: Question[] = [
     choices: [
       {correct: true, tex: raw`E_z=\frac{kQ}{z^2}`},
       {tex: raw`E_z\approx\frac{kQ}{z^2}\text{, but only far away}`, misconception: 'outside-point',
-        why: raw`For most shapes the point charge’s field is only the far limit. For a shell it is exact at every distance outside: the bracket is $8R$ for every $z>R$, and $\sigma\,4\pi R^2=Q$.`},
+        why: raw`For most shapes the point charge’s field is only the far limit. For a shell it is exact at every distance outside: the lesson’s bracket is $1-(-1)=2$ for every $z>R$, and $\sigma\,4\pi R^2=Q$.`},
       {tex: raw`E_z=\frac{kQ}{(z-R)^2}`, misconception: 'fixed-distance',
         why: raw`$z-R$ is the distance to the nearest point of the shell. The charge acts as if it sat at the centre, $z$ away.`},
       {tex: raw`E_z=0`, misconception: 'cancel-survivor',
         why: raw`That is the field inside. Outside, every ring is below $P$ and its field points the same way along the axis; nothing cancels along it.`},
     ],
-    explanation: raw`Outside, $|z-R|=z-R$, so the bracket is $4R-(-4R)=8R$ and $E_z=\frac{\pi k\sigma R}{2z^2}\cdot8R=\frac{4\pi R^2k\sigma}{z^2}=\frac{kQ}{z^2}$: a point charge at the centre, exactly, at every $z>R$.`,
+    explanation: raw`Outside, $|z-R|=z-R$, so the lesson’s bracket is $1-(-1)=2$ and $E_z=\frac{2\pi k\sigma R^2}{z^2}\cdot2=\frac{4\pi R^2k\sigma}{z^2}=\frac{kQ}{z^2}$: a point charge at the centre, exactly, at every $z>R$.`,
     review: {lesson: 'shell', section: 'What the answer says'}},
 
   {id: 'shell-inside', lesson: 'shell', kind: 'check',
@@ -77,11 +77,11 @@ export const bank: Question[] = [
     choices: [
       {correct: true, text: raw`Zero: the rings above $P$ and the rings below it cancel exactly.`},
       {text: raw`Zero only at the centre; elsewhere inside there is a field along the axis.`, misconception: 'shell-inside',
-        why: raw`The near cap is close but small; the far side is farther but larger. With $u$ the squared distance, both ends of the bracket give $4R$ for every $z<R$, so they cancel at every point inside, not only at the centre.`},
+        why: raw`The near cap is close but small; the far side is farther but larger. The lesson’s fraction $(R-z\cos\theta)/\sqrt{R^2+z^2-2zR\cos\theta}$ equals $1$ at both ends for every $z<R$, so they cancel at every point inside, not only at the centre.`},
       {text: raw`$kQ/z^2$, as outside.`, misconception: 'missed-cancel',
         why: raw`Outside, every ring is below $P$ and their fields all point the same way along the axis. Inside, the rings above $P$ point the other way, and they cancel the rest.`},
     ],
-    explanation: raw`Inside, $|z-R|=R-z$, and the top of the shell gives $2(R-z)+2(z+R)=4R$, the same as the bottom. The bracket is zero and so is $E_z$, at every point inside: the small cap close to $P$ cancels the larger part of the shell farther away.`,
+    explanation: raw`Inside, $|z-R|=R-z$, and the lesson’s fraction at the top is $(R-z)/(R-z)=1$, the same as the bottom. The bracket is zero and so is $E_z$, at every point inside: the small cap close to $P$ cancels the larger part of the shell farther away.`,
     review: {lesson: 'shell', section: 'What the answer says'}},
 
   {id: 'shell-what-cancels', lesson: 'shell', kind: 'predict',
@@ -93,7 +93,7 @@ export const bank: Question[] = [
       {text: raw`Every ring’s field at $P$ points the same way along the axis, as it does outside.`, misconception: 'missed-cancel',
         why: raw`For a positive shell the rings below $P$ make a field pointing up there and the rings above it one pointing down: $z-R\cos\theta$ changes sign at the height of $P$.`},
     ],
-    explanation: raw`Symmetry about the axis cancels each ring’s sideways parts. What is left is each ring’s part along the axis, whose sign is that of $z-R\cos\theta$: one way for the rings below $P$, the other for those above. Only the integral shows the two sides cancel exactly.`,
+    explanation: raw`Symmetry about the axis cancels each ring’s sideways parts. What is left is each ring’s part along the axis, whose sign is that of $\Delta Q\,(z-R\cos\theta)$: one way for the rings below $P$, the other for those above. Only the integral shows the two sides cancel exactly.`,
     review: {lesson: 'shell', stage: 'cancel'}},
 
   {id: 'shell-surface', lesson: 'shell', kind: 'check',

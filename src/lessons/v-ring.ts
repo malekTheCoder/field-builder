@@ -9,7 +9,7 @@ export const lesson: Lesson = {
   lead: raw`Find the potential of a uniform ring at a point $P$ on its axis. The idea that makes it work: potential is a number, not an arrow, and all of the ring is the same distance from $P$, so its pieces simply add, exactly.`,
   sections: [
     {heading: 'The setup', body: [
-      raw`A ring of radius $R$ carries a charge $Q$ spread evenly round it, so $\lambda=Q/(2\pi R)$. It lies in the $xy$-plane with its centre at the origin, and $P=(0,0,z)$ is on its axis. The potential $V$ is measured relative to infinity, where it is zero.`,
+      raw`A ring of radius $R$ carries a charge $Q$ spread evenly round it, so $\lambda=Q/(2\pi R)$. It lies in the $xy$-plane with its centre at the origin, and $P=(0,0,z)$ is on its axis. The potential $V$ is potential energy per unit test charge, measured in volts (joules per coulomb). It is measured relative to infinity, where it is zero.`,
     ]},
     {heading: 'Cut it up', body: [
       raw`Cut the ring into $N$ pieces. The angle $\theta$ says where a piece is round the ring, and a piece $\Delta\theta$ wide holds`,
