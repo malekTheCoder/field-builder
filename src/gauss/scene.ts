@@ -1,6 +1,7 @@
 import {CUT, add, boundaries, carriesNothing, cross, dot, enclosedCharge, fieldAt, isBall, norm, patches, piecesOf, pointOn, scale, sub, throughPatch, unit, v3, type Charge, type Patch, type PatchPart, type Surface, type V3} from './physics';
 import type {GaussCase} from './types';
 import {projectPoint} from '../diagrams/three/orthoCamera';
+import type {CameraView} from '../diagrams/camera';
 import type {GaussStageKey} from './run';
 /* WHAT THE GAUSS FIGURE DRAWS, WORKED OUT APART FROM DRAWING IT. The 3D scene (GaussScene) and the flat cross-section
  * (GaussFigure) draw the same things from here: the charge, the closed surface cut into patches in the order the run
@@ -73,6 +74,10 @@ export type Built = {
   namedPatch: DrawnPatch; zeroPatch: DrawnPatch | null;
   /** Half the world's extent the figure fits, and the pixels per world unit that fit it in 720 by 430. */
   half: number; unit: number;
+  /** The pixels per world unit while the Symmetry stage's arrows stand round the charge: no more than `unit`. */
+  spokeUnit: number;
+  /** The same two for a sphere drawn in the phone's narrower frame (`CROP`): no more than the wide frame's. */
+  narrowUnit: number; narrowSpokeUnit: number;
   /** For a charge with a hole: the whole charge and the plug, each solved round its own surface. The patches and the
    * slice then hold both surfaces' (each marked with its `piece`), carrying each piece's own field; the field at P
    * is the real one, the two added. */
@@ -116,35 +121,82 @@ export const openingView = (c: GaussCase) => c.figure.surface.kind === 'pillbox'
 /** Where the figure's origin sits in its 720 by 430 frame. */
 export const FIGURE_ORIGIN = {x: 360, y: 222};
 const UNITS = new WeakMap<GaussCase, number>();
-/** PIXELS PER WORLD UNIT: THE FIGURE FITTED TO WHAT IT DRAWS. It was fitted to a sphere round the largest surface
- * with a margin for arrows any length, which left a ball at its opening size a third of its card. Now the case is
- * drawn, both signs, at sizes across the slider's whole reach, and every point of it (the surface's corners, every
- * arrow's two ends, the spokes, P and the answer's arrow, the charge's own edges) is projected at the opening view and
- * in the cross-section: the scale is the largest at which all of it stays inside the frame, less a margin for the
- * names. Fixed per case, so dragging the surface never rescales the picture, and an arrow's length keeps meaning the
- * field's size on one scale; never smaller than the old fit. */
-export function unitOf(c: GaussCase): number {
-  const known = UNITS.get(c);
-  if (known) return known;
-  const old = Math.round(.92 * 430 / (2 * halfOf(c))), s = c.figure.surface.size, views = [openingView(c), {yaw: 0, pitch: 0}];
+/** How far what a case draws at one surface size reaches from the figure's origin, in world units, up, down and to
+ * either side, at the opening view and in the cross-section: the surface's corners, every arrow's two ends (both
+ * signs), the spokes, P and the answer's arrow, the charge's own edges. `atRest` leaves out the Symmetry stage's
+ * spokes, which the figure at rest does not draw. */
+function reachAt(c: GaussCase, size: number, atRest = false, views: CameraView[] = [openingView(c), {yaw: 0, pitch: 0}]): {up: number; down: number; side: number} {
   let up = 1e-6, down = 1e-6, side = 1e-6;
   const see = (p: V3) => { for (const v of views) { const q = projectPoint(p, {x: 0, y: 0}, 1, v.yaw, v.pitch); up = Math.max(up, -q.y); down = Math.max(down, q.y); side = Math.max(side, Math.abs(q.x)); } };
   const ends = (at: V3, field: V3, span: number | undefined, back?: boolean) => { if (!(span! > 0) || !(norm(field) > 1e-12)) return; const e = arrowEnds(at, field, span!, back); see(e.from); see(e.to); };
-  for (let k = 0; k <= 6; k++) for (const sign of [1, -1] as const) {
-    const b = build(c, s.min + (s.max - s.min) * k / 6, sign, 1);
+  for (const sign of [1, -1] as const) {
+    const b = build(c, size, sign, 1);
     for (const p of b.patches) { for (const q of p.corners) see(q); ends(p.center, p.field, p.span, p.back); }
-    for (const sp of b.spokes) ends(sp.at, sp.field, sp.span, sp.back);
+    if (!atRest) for (const sp of b.spokes) ends(sp.at, sp.field, sp.span, sp.back);
     see(b.P); if (b.answerAtP) ends(b.P, b.fieldAtP, b.spanAtP, b.backAtP);
     for (const link of chainOf(b)) { see(link.from); see(add(link.from, scale(link.dir, link.length))); }
   }
   // A finite charge's own edge: a ball's, a hollow's metal, a finite rod's ends.
   const ch = c.figure.charge, edge = Math.max(0, ...boundaries(ch).map(Math.abs), ch.kind === 'ballhole' || ch.kind === 'segment' ? ch.size : 0);
   if (ch.kind !== 'line' && ch.kind !== 'sheet' && ch.kind !== 'slab' && ch.kind !== 'tent' && ch.kind !== 'oddslab' && ch.kind !== 'rod' && ch.kind !== 'tube' && ch.kind !== 'coax' && ch.kind !== 'rodhole' && ch.kind !== 'face' && ch.kind !== 'plates' && ch.kind !== 'sheethole' && ch.kind !== 'halo') { up = Math.max(up, edge); down = Math.max(down, edge); side = Math.max(side, edge); }
-  const fit = Math.min((FIGURE_ORIGIN.y - 14) / up, (430 - FIGURE_ORIGIN.y - 14) / down, (360 - 40) / side);
+  return {up, down, side};
+}
+/** The largest scale at which a reach stays inside the 720 by 430 frame, less a margin for the names. */
+const fitOf = (r: {up: number; down: number; side: number}, half = 360) => Math.min((FIGURE_ORIGIN.y - 14) / r.up, (430 - FIGURE_ORIGIN.y - 14) / r.down, (half - 40) / r.side);
+/** THE FRAME ON A PHONE, for a sphere: the middle of the 720 by 430 frame, its sides cut off. A sphere drawn in the wide
+ * frame on a portrait phone was a small ball with a band of empty ground either side and above and below it; cut to
+ * this, the figure is drawn half as large again in the same card. Everything a sphere's figure draws keeps inside it
+ * at the narrow scale (`scaleAt`), the names and the view cube with it (GaussFigure). */
+export const CROP = {x0: 120, x1: 600};
+const NARROW_HALF = (CROP.x1 - CROP.x0) / 2 + 10;
+/** PIXELS PER WORLD UNIT: THE FIGURE FITTED TO WHAT IT DRAWS. It was fitted to a sphere round the largest surface
+ * with a margin for arrows any length, which left a ball at its opening size a third of its card. Now the case is
+ * drawn, both signs, at sizes across the slider's whole reach, and every point of it (`reachAt`) is projected at the
+ * opening view and in the cross-section: the scale is the largest at which all of it stays inside the frame, less a
+ * margin for the names. Fixed per case for the cylinders, pillboxes and the cube, so dragging the surface never
+ * rescales the picture; never smaller than the old fit. A sphere's is `unitAt`. */
+export function unitOf(c: GaussCase): number {
+  const known = UNITS.get(c);
+  if (known) return known;
+  const old = Math.round(.92 * 430 / (2 * halfOf(c))), s = c.figure.surface.size;
+  let fit = Infinity;
+  for (let k = 0; k <= 6; k++) fit = Math.min(fit, fitOf(reachAt(c, s.min + (s.max - s.min) * k / 6)));
   const unit = Math.max(old, Math.round(Math.min(fit, old * 1.9)));
   UNITS.set(c, unit);
   return unit;
 }
+/** How much of the frame's height a sphere's figure fills at rest at its opening size: about three quarters, the
+ * rest the margin its names and the view cube need. */
+export const OPENING_FILL = .76;
+const OPENING = new WeakMap<GaussCase, number>(), SIZED = new WeakMap<GaussCase, Map<string, Scale>>();
+/** A SPHERE'S SCALE, AT THE SIZE ITS SURFACE IS DRAWN. Fitted to the whole slider's reach, a sphere's figure at its
+ * opening size filled a third to a half of its card: the largest radius, three times the opening one, set the scale
+ * for all of them. Now the opening state is drawn to fill about three quarters of the frame's height, and the figure
+ * keeps that scale for every size whose drawing fits the frame; past that, a larger surface zooms the view out just
+ * enough to keep everything it draws inside, continuously as the slider moves, and back in as it returns. Within one
+ * picture every arrow is still on one scale, the field's size by its length, and the surface, the charge and the
+ * arrows zoom together. `spokes` is the scale the Symmetry stage's arrows, which stand off the charge, need: the run
+ * glides out to it as they grow and back as the surface arrives (GaussFigure). */
+type Scale = {unit: number; spokes: number; narrow: number; narrowSpokes: number};
+export function scaleAt(c: GaussCase, size: number): Scale {
+  if (c.figure.surface.kind !== 'sphere') { const u = unitOf(c); return {unit: u, spokes: u, narrow: u, narrowSpokes: u}; }
+  let open = OPENING.get(c);
+  if (open === undefined) {
+    const s = c.figure.surface.size.initial, rest = reachAt(c, s, true, [openingView(c)]);
+    open = Math.min(OPENING_FILL * 430 / (rest.up + rest.down), fitOf(reachAt(c, s, true)));
+    OPENING.set(c, open);
+  }
+  let sized = SIZED.get(c);
+  if (!sized) SIZED.set(c, sized = new Map());
+  const key = size.toFixed(4), known = sized.get(key);
+  if (known) return known;
+  const rest = reachAt(c, size, true), all = reachAt(c, size), unit = Math.min(open, fitOf(rest)), narrow = Math.min(open, fitOf(rest, NARROW_HALF));
+  const at = {unit, spokes: Math.min(unit, fitOf(all)), narrow, narrowSpokes: Math.min(narrow, fitOf(all, NARROW_HALF))};
+  if (sized.size > 400) sized.clear();
+  sized.set(key, at);
+  return at;
+}
+export const unitAt = (c: GaussCase, size: number) => scaleAt(c, size).unit;
 
 /** The size an arrow is drawn at, in world units, for a field of magnitude `e`: in proportion to the field,
  * on a scale fixed by the field on the crossed part of the case's opening surface, so dragging the surface out
@@ -383,8 +435,9 @@ export function build(c: GaussCase, size: number, sign: 1 | -1, fixedUnit?: numb
   // The spokes are drawn from their anchors, a little shorter than the patches' arrows, and never into metal.
   const spoked = (list: Spoke[]) => list.map(s => ({...s, ...arrowPlace(c, charge, s.at, s.field, .85)}));
   const atP = parts ? {span: arrowLength(c, norm(fieldAtP)), back: false} : arrowPlace(c, charge, P, fieldAtP, 1, normalAtP);
+  const scaled = fixedUnit ? {unit: fixedUnit, spokes: fixedUnit, narrow: fixedUnit, narrowSpokes: fixedUnit} : scaleAt(c, size);
   return {charge, surface, patches: drawn, slice: cut, spokes: spoked(spokes(charge)), flatSpokes: spoked(flatSpokes(charge)),
-    P, normalAtP, fieldAtP, spanAtP: atP.span, backAtP: atP.back, shortened, answerAtP: answersAtP(charge, surface), markP: charge.kind === 'segment', namedPatch, zeroPatch, half: halfOf(c), unit: fixedUnit ?? unitOf(c), ...(pieces ? {pieces} : {})};
+    P, normalAtP, fieldAtP, spanAtP: atP.span, backAtP: atP.back, shortened, answerAtP: answersAtP(charge, surface), markP: charge.kind === 'segment', namedPatch, zeroPatch, half: halfOf(c), unit: scaled.unit, spokeUnit: scaled.spokes, narrowUnit: scaled.narrow, narrowSpokeUnit: scaled.narrowSpokes, ...(pieces ? {pieces} : {})};
 }
 /** The surface a patch or a segment lies on: the slider's, or the plug's. */
 export const surfaceOfPiece = (b: Built, piece?: number): Surface => (piece ? b.pieces?.[piece]?.surface : null) ?? b.surface;

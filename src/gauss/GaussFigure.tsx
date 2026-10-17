@@ -12,7 +12,7 @@ import {useRenderedWidth} from '../components/useRenderedWidth';
 import {useReducedMotion} from 'motion/react';
 import {add, dot, enclosedCharge, isBall, norm, scale, sub, v3, type V3} from './physics';
 import {moment, type GaussStage} from './run';
-import {arrowEnds, build, chainOf, FIGURE_ORIGIN, lookAt, openingView, POINT_PX, REST, type Built, type Look, type Seg} from './scene';
+import {arrowEnds, build, chainOf, CROP, FIGURE_ORIGIN, lookAt, openingView, POINT_PX, REST, type Built, type Look, type Seg} from './scene';
 import {GaussScene} from './GaussScene';
 import {regionOf} from './instruments';
 import type {GaussCase} from './types';
@@ -223,11 +223,21 @@ export const GaussFigure = memo(function GaussFigure({kase, size, sign, siblings
   };
   const [failed, setFailed] = useState<false | 'failed' | 'lost'>(false);
   const space = view === '3d' && !failed;
-  const cam = space ? camera : FLAT, unit = built.unit;
+  // The Symmetry stage's arrows stand off the charge, farther out than anything the figure at rest draws: the view
+  // glides out as they grow and back in as the surface arrives, so the figure at rest fills its card (scene.ts, scaleAt).
+  // ON A PHONE A SPHERE IS DRAWN IN THE FRAME'S MIDDLE, its sides cut off (scene.ts, CROP), at the scale that keeps it
+  // there: in the wide frame on a portrait card it was a small ball in a band of empty ground.
+  const [figureRef, figureWidth] = useRenderedWidth(720);
+  const crop = kase.figure.surface.kind === 'sphere' && figureWidth < 600;
+  const rest = crop ? built.narrowUnit : built.unit, spread = crop ? built.narrowSpokeUnit : built.spokeUnit;
+  const cam = space ? camera : FLAT, unit = rest + (spread - rest) * look.spokes;
   const proj = (p: V3) => projectPoint(p, ORIGIN, unit, cam.yaw, cam.pitch);
   const [svgRef, width] = useRenderedWidth(720);
   // Names are held at a readable size as the figure shrinks on a phone, as the integral lessons' are.
-  const k = Math.max(1, Math.min(1.9, 720 / Math.max(1, width) * .78));
+  // At the least about fifteen pixels for a seventeen-unit name, so a subscript is still ten.
+  const k = Math.max(1, Math.min(2.1, 720 / Math.max(1, width) * .86));
+  /** The part of the 720-unit frame on screen: all of it, or the middle a phone's sphere is cut to. */
+  const left = crop ? CROP.x0 : 0, right = crop ? CROP.x1 : 720;
   // TURNING THE FIGURE: a drag across it, the arrow keys, the view cube. Only in space.
   const drag = useRef<{x: number; y: number} | null>(null);
   const turn = (dYaw: number, dPitch: number) => { stopGlide(); turnBy(dYaw, dPitch); };
@@ -278,7 +288,7 @@ export const GaussFigure = memo(function GaussFigure({kase, size, sign, siblings
   const glyph = sign > 0 ? '+' : '−';
   // Only the marks that fall inside the frame: an infinite line's, out along it, stood in the card's heading once the
   // figure was fitted to what it draws.
-  const marks = signMarks(c).filter(m => { const q = proj(m.at); return q.x > 10 && q.x < 710 && q.y > 14 && q.y < 416; }), other = sign > 0 ? '−' : '+';
+  const marks = signMarks(c).filter(m => { const q = proj(m.at); return q.x > left + 10 && q.x < right - 10 && q.y > 14 && q.y < 416; }), other = sign > 0 ? '−' : '+';
   const chargeName = c.symbol === '\\lambda' ? 'λ' : c.symbol === '\\sigma' ? 'σ' : c.symbol === '\\rho' ? 'ρ' : c.symbol;
   const chargeAt = proj(c.kind === 'line' || c.kind === 'rod' ? v3(0, 0, 2.2) : c.kind === 'segment' ? v3(0, 0, c.size + .3) : c.kind === 'point' && c.at ? add(c.at, v3(0, 0, .32)) : c.kind === 'rodhole' ? v3(-c.size * .55, 0, 2.2) : c.kind === 'tube' || c.kind === 'coax' ? v3(c.size, 0, 2.2) : flat ? v3(2.2, -1.9, 0) : c.kind === 'tent' || c.kind === 'oddslab' ? v3(2.2, -1.9, c.size * .5)
     : v3(0, 0, c.kind === 'ball' || c.kind === 'metal' || c.kind === 'shell' || c.kind === 'ballhole' || c.kind === 'cusp' || isBall(c.kind) ? c.size + .22 : c.kind === 'halo' ? c.size * 2 + .2 : c.kind === 'offset' ? c.size + .32 : .32));
@@ -338,7 +348,9 @@ export const GaussFigure = memo(function GaussFigure({kase, size, sign, siblings
   if (answerShaft) stroke(answer.from, answer.to);
   if (stage !== 'solve') for (const m of marks) { const q = proj(m.at); marksAt.push({x: q.x - 9, y: q.y + (axial || flat ? -10 : 0) - 10, width: 18, height: 20}); }
   if ((built.answerAtP || built.markP) && (stage === null || stage === 'solve')) marksAt.push({x: pAt.x - 6, y: pAt.y - 6, width: 12, height: 12});
-  if (space) marksAt.push({x: 612, y: 16, width: 100, height: 86});
+  if (space) marksAt.push({x: right - 108, y: 16, width: 100, height: 86});
+  // Cut to the frame's middle, the sides are off the screen: no name is placed there.
+  if (crop) marksAt.push({x: -40, y: -40, width: left + 46, height: 510}, {x: right - 6, y: -40, width: 760 - right, height: 510});
   // The radius lines, and a line or rod of charge along its axis (its axis and, for a rod, its two edges as seen):
   // names keep off them as they keep off arrows, or Q_enc and dA were struck through by the charge they name.
   if (look.surface > .5) { strokes.push({a: dimA, b: dimB}); if (plugA) strokes.push({a: plugA, b: dimB}); }
@@ -352,11 +364,11 @@ export const GaussFigure = memo(function GaussFigure({kase, size, sign, siblings
   const described = describe(kase, built, space);
   const reserve = useMemo(() => (siblings ?? []).filter(o => o.key !== kase.key).map(o => captionOf(o, build(o, o.figure.surface.size.initial, sign))), [siblings, kase.key, sign]);
   const atRest = Math.abs(camera.yaw - opening(kase).yaw) < 1e-6 && Math.abs(camera.pitch - opening(kase).pitch) < 1e-6;
-  return <div className="gs-figure">
-    <div className={'cd-stage gs-stage' + (space ? ' is-space' : ' is-flat')} data-stage={stage ?? 'rest'} data-sweep={look.sweep.toFixed(3)} data-solve={look.solve.toFixed(3)} style={{'--cd-k': k} as CSSProperties}>
+  return <div className="gs-figure" ref={figureRef as unknown as React.Ref<HTMLDivElement>}>
+    <div className={'cd-stage gs-stage' + (space ? ' is-space' : ' is-flat') + (crop ? ' is-crop' : '')} data-stage={stage ?? 'rest'} data-sweep={look.sweep.toFixed(3)} data-solve={look.solve.toFixed(3)} style={{'--cd-k': k} as CSSProperties}>
       {space && <GaussScene kase={kase} built={built} look={look} yaw={camera.yaw} pitch={camera.pitch} unit={unit} origin={ORIGIN} onUnavailable={why => setFailed(why === 'lost' ? 'lost' : 'failed')} />}
       <svg ref={svgRef} className={'cd-svg gs-svg' + (space ? ' cd-orbitable' : '')} viewBox="0 0 720 430" role="img" tabIndex={space ? 0 : undefined} aria-label={described} {...orbit}>
-        {!space && <Flat built={built} look={look} lit={lit} proj={proj} unknown={!!c.insideNames && c.kind === 'rising'} />}
+        {!space && <Flat built={built} look={look} lit={lit} proj={proj} u={unit} unknown={!!c.insideNames && c.kind === 'rising'} />}
         {/* Sign marks on the charge: the colour is the same for either sign, as everywhere on the site. */}
         {/* Kept through the right side, where the charge inside is counted: a coaxial pair's or a capacitor's two
             charges, lit, are told apart by their signs alone. */}
@@ -374,7 +386,7 @@ export const GaussFigure = memo(function GaussFigure({kase, size, sign, siblings
           {n.leader && <line className="gs-leader" x1={n.leader.a.x.toFixed(1)} y1={n.leader.a.y.toFixed(1)} x2={n.leader.b.x.toFixed(1)} y2={n.leader.b.y.toFixed(1)} />}
           <Name x={n.x} y={n.y} anchor={n.anchor} className={n.className}>{n.content}</Name>
         </g>)}
-        {space && <ViewCube view={camera} at={{x: 664, y: 58}} size={20} minFont={11 / k} onPick={(next, label) => { glideTo(next, .5); setAnnouncement(label); }} onSpin={(dx, dy) => turn(-dx * .009, dy * .009)} onStep={key => turn(key === 'ArrowLeft' ? .2 : key === 'ArrowRight' ? -.2 : 0, key === 'ArrowUp' ? .12 : key === 'ArrowDown' ? -.12 : 0)} />}
+        {space && <ViewCube view={camera} at={{x: right - 56, y: 58}} size={20} minFont={11 * 720 / Math.max(1, width)} onPick={(next, label) => { glideTo(next, .5); setAnnouncement(label); }} onSpin={(dx, dy) => turn(-dx * .009, dy * .009)} onStep={key => turn(key === 'ArrowLeft' ? .2 : key === 'ArrowRight' ? -.2 : 0, key === 'ArrowUp' ? .12 : key === 'ArrowDown' ? -.12 : 0)} />}
       </svg>
     </div>
     <div className="cd-toolbar">
@@ -395,7 +407,12 @@ export const GaussFigure = memo(function GaussFigure({kase, size, sign, siblings
     <div className="cd-caption gs-caption"><span className="gs-caption-stack">
       <span>{captionOf(kase, built)}</span>
       {reserve.map((text, i) => <span key={i} aria-hidden="true" className="gs-caption-reserve">{text}</span>)}
-    </span></div>
+    </span>
+    {/* KEYBOARD HELP, a footnote on the caption's line as the integral lessons' figure has it (ChargeDiagram): what Tab
+        reaches and what the keys do, said to a reader who cannot see the turning hint or the transport. */}
+    <details className="cd-controls gs-keys"><summary>Keyboard help</summary>
+      <p>The same controls the figure and the page carry, reachable from the keyboard, not a second set. Tab moves between them; arrow keys adjust one, Home and End (Search with ← and → on a Chromebook) take it to its limits.{space ? ' The figure takes focus too: arrow keys turn it, Home puts it back.' : ''} In Watch it build, Space plays and pauses, the left and right arrow keys step from stage to stage, and Escape closes it.</p>
+    </details></div>
   </div>;
 });
 /** The figure's caption: what its arrows are, and anything about their lengths a reader comparing them needs. */
@@ -424,10 +441,12 @@ function segBase(s: Seg): V3 {
 }
 /** THE CROSS-SECTION: the plane through the axis, drawn flat. Every arrow in it lies in the plane, since every
  * one of these fields does there. */
-function Flat({built, look, lit, proj, unknown}: {built: Built; look: Look; lit: number; proj: (p: V3) => {x: number; y: number};
+function Flat({built, look, lit, proj, u, unknown}: {built: Built; look: Look; lit: number; proj: (p: V3) => {x: number; y: number};
+  /** Pixels per world unit, as `proj` draws: the view's own, which glides out at the Symmetry stage. */
+  u: number;
   /** A charge the lesson asks the reader to find: its density is drawn only once the run solves for it. */
   unknown?: boolean}) {
-  const c = built.charge, g = built.surface, u = built.unit, o = proj(v3(0, 0, 0));
+  const c = built.charge, g = built.surface, o = proj(v3(0, 0, 0));
   const R = c.size * u, B = (c.outer ?? c.size * 2) * u;
   // Two vertical lines at ±x from the axis: a cylindrical shell's cut, the whole height or the length the surface holds.
   const walls = (x: number, cls: string, half = 0) => <>{[-1, 1].map(k => <line key={k} className={cls} x1={o.x + k * x} y1={half ? o.y - half : -20} x2={o.x + k * x} y2={half ? o.y + half : 450} />)}</>;

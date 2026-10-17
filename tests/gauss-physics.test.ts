@@ -1,7 +1,8 @@
 import {describe, expect, it} from 'vitest';
 import katex from 'katex';
 import {EPS0, ballFraction, bandFlux, boundaries, carriesNothing, crossedArea, dot, enclosedCharge, fieldAt, inducedCharges, norm, numericFlux, patches, pointOn, solvedField, starFlux, surfacePoint, sub, throughPatch, v3, wallDensity, type Charge, type Surface} from '../src/gauss/physics';
-import {arrowEnds, arrowLength, build, chainOf, drawnFlux, lookAt, REST, slice} from '../src/gauss/scene';
+import {arrowEnds, arrowLength, build, chainOf, CROP, drawnFlux, FIGURE_ORIGIN, lookAt, openingView, REST, slice} from '../src/gauss/scene';
+import {projectPoint} from '../src/diagrams/three/orthoCamera';
 import {BANDS, CANDIDATES, CAVITY, MOVES, SPHERE_KINDS, START, bandShares, blob, cavityField, cavityLines, cavityTex, density, enclosedOf, fieldAlong, fieldOf, fluxTex, flowRound, insideBands, insideTex, isInside, moveBy, profile, profileReach, proposed, qencFraction, qencTex, regionOf, samples, shellCharge, survives, wallMarks, type Charged} from '../src/gauss/instruments';
 import {GAUSS_LESSONS, gaussLesson} from '../src/gauss';
 import {diskField, elliptic, lensArea, lensVolume, piecesOf, ringField} from '../src/gauss/physics';
@@ -990,6 +991,55 @@ describe('the arrows are the same for either sign', () => {
       const c = gaussLesson(id)!.cases.find(k => k.key === key)!, s = c.figure.surface.size;
       let last = 0;
       for (let k = 0; k <= 40; k++) { const span = build(c, s.max - (s.max - s.min) * k / 40, 1).spanAtP; expect(span).toBeGreaterThan(last); expect(span).toBeLessThan(1.6); last = span; }
+    }
+  });
+});
+
+/* A SPHERE FILLS ITS CARD. Fitted to the slider's whole reach, a sphere's figure at its opening size filled a third to
+ * a half of the frame; now the opening state fills about three quarters of its height, and a larger surface zooms the
+ * view out just enough that everything it draws, at either sign, stays inside the frame (and inside the phone's
+ * narrower one), the same scale for every arrow in one picture. */
+describe('a sphere fills its card, and zooms out to keep a larger surface in it', () => {
+  const reach = (c: Parameters<typeof build>[0], size: number, sign: 1 | -1, unit: number, view: {yaw: number; pitch: number}) => {
+    const b = build(c, size, sign, unit);
+    let top = Infinity, bottom = -Infinity, left = Infinity, right = -Infinity;
+    const see = (p: V3) => { const q = projectPoint(p, FIGURE_ORIGIN, unit, view.yaw, view.pitch); top = Math.min(top, q.y); bottom = Math.max(bottom, q.y); left = Math.min(left, q.x); right = Math.max(right, q.x); };
+    for (const p of b.patches) { p.corners.forEach(see); if (p.span > 0) { const e = arrowEnds(p.center, p.field, p.span, p.back); see(e.from); see(e.to); } }
+    see(b.P); if (b.answerAtP && b.spanAtP > 0) { const e = arrowEnds(b.P, b.fieldAtP, b.spanAtP, b.backAtP); see(e.from); see(e.to); }
+    // A finite charge's own edge: a metal ball the surface sits inside is drawn too.
+    const ch = c.figure.charge, R = ch.kind === 'point' || ch.kind === 'offset' || ch.kind === 'halo' ? 0 : Math.max(ch.size, ch.outer ?? 0);
+    if (R) { see(v3(0, 0, R)); see(v3(0, 0, -R)); }
+    return {top, bottom, left, right};
+  };
+  const spheres = GAUSS_LESSONS.flatMap(l => l.cases.filter(c => c.figure.surface.kind === 'sphere').map(c => [`${l.id}/${c.key}`, c] as const));
+  it('opens at about three quarters of the frame’s height', () => {
+    expect(spheres.length).toBeGreaterThan(10);
+    for (const [name, c] of spheres) {
+      const b = build(c, c.figure.surface.size.initial, 1), r = reach(c, c.figure.surface.size.initial, 1, b.unit, openingView(c));
+      const fill = (r.bottom - r.top) / 430;
+      expect(fill, name).toBeGreaterThan(.7); expect(fill, name).toBeLessThan(.8);
+    }
+  });
+  it('keeps every size inside the frame, wide and narrow, never closer in than it opens', () => {
+    for (const [name, c] of spheres) {
+      const s = c.figure.surface.size, open = build(c, s.initial, 1).unit;
+      for (let k = 0; k <= 12; k++) {
+        const size = s.min + (s.max - s.min) * k / 12, b = build(c, size, 1);
+        expect(b.narrowUnit, name).toBeLessThanOrEqual(b.unit + 1e-9);
+        expect(b.unit, name).toBeLessThanOrEqual(open + 1e-9);
+        for (const sign of SIGNS) for (const view of [openingView(c), {yaw: 0, pitch: 0}]) {
+          const wide = reach(c, size, sign, b.unit, view), narrow = reach(c, size, sign, b.narrowUnit, view);
+          expect(wide.top, name).toBeGreaterThanOrEqual(13); expect(wide.bottom, name).toBeLessThanOrEqual(417);
+          expect(wide.left, name).toBeGreaterThanOrEqual(39); expect(wide.right, name).toBeLessThanOrEqual(681);
+          expect(narrow.left, name).toBeGreaterThanOrEqual(CROP.x0); expect(narrow.right, name).toBeLessThanOrEqual(CROP.x1);
+        }
+      }
+    }
+  });
+  it('keeps the other surfaces on one scale for every size', () => {
+    for (const l of GAUSS_LESSONS) for (const c of l.cases.filter(k => k.figure.surface.kind !== 'sphere')) {
+      const s = c.figure.surface.size;
+      expect(build(c, s.min, 1).unit, `${l.id}/${c.key}`).toBe(build(c, s.max, 1).unit);
     }
   });
 });
