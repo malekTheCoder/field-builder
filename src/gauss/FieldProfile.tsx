@@ -43,7 +43,8 @@ export function FieldProfile({kase, size, sign}: {kase: GaussCase; size: number;
   const what = pillbox ? 'height' : 'radius';
   // The field's symbol as the board writes it: E_z for the slab whose charge changes sign, whose answer is signed along z.
   const axisSub = kase.figure.charge.kind === 'oddslab' ? 'z' : pillbox ? '⊥' : 'r';
-  const described = `The field's component at P against the surface's ${what} ${variable}, for ${kase.figure.charge.name}, ${sign > 0 ? 'positive' : 'negative'}. The dot marks the ${what} the slider has chosen${region ? `: ${region.name}` : ''}.`;
+  const chargeSign = kase.figure.charge.kind === 'oddslab' ? `with ${sign > 0 ? 'positive' : 'negative'} ρ₀ and density of both signs` : `${sign > 0 ? 'positive' : 'negative'}`;
+  const described = `The field's component at P against the surface's ${what} ${variable}, for ${kase.figure.charge.name}, ${chargeSign}. The dot marks the ${what} the slider has chosen${region ? `: ${region.name}` : ''}.`;
   return <section className="gs-instrument gs-profile" aria-labelledby={`${uid}-title`}>
     <div className="gs-instrument-head">
       <h2 id={`${uid}-title`} className="gs-instrument-title">The field against {variable}</h2>

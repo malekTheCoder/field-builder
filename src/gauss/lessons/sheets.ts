@@ -34,7 +34,7 @@ export const lesson: GaussLesson = {
     {heading: 'A thick slab, and the factor of two', body: [
       raw`Fill the region between $z=-a$ and $z=a$ with a uniform density $\rho$. The slab is the same above and below its middle, so stand the pillbox there, faces at $z$ and $-z$. Inside the slab the pillbox holds a block of thickness $2z$, not $z$:`,
       {tex: raw`Q_{\text{enc}}=\int_{-z}^{z}\rho A\,dz'=2\rho Az`},
-      raw`and $2E_\perp A=2\rho Az/\varepsilon_0$ gives $E_\perp=\rho z/\varepsilon_0$, growing from zero at the middle. Outside, the integral stops at $a$, the box holds $2\rho Aa$ whatever its height, and $E_\perp=\rho a/\varepsilon_0$ for good. From outside the slab looks like a sheet with $\sigma=2\rho a$, and $\sigma/(2\varepsilon_0)$ agrees. The two halves of the answer meet at $z=a$: a volume charge has no surface charge to make a jump.`,
+      raw`and $2E_\perp A=2\rho Az/\varepsilon_0$ gives $E_\perp=\rho z/\varepsilon_0$, growing in magnitude from zero at the middle. Outside, the integral stops at $a$, the box holds $2\rho Aa$ whatever its height, and $E_\perp=\rho a/\varepsilon_0$ for good. From outside the slab looks like a sheet with $\sigma=2\rho a$, and $\sigma/(2\varepsilon_0)$ agrees. The two halves of the answer meet at $z=a$: a volume charge has no surface charge to make a jump.`,
     ]},
     {heading: 'Two sheets: superposition first', body: [
       raw`A capacitor’s plates are two parallel sheets carrying $\sigma$ and $-\sigma$, here with the $\sigma$ plate above. A pillbox standing across both plates encloses zero net charge, so the flux through it is zero. That says only that the field above the pair is the same as the field below it, in size and direction, which a uniform field could also do; it does not give the size. For that, add the two sheets’ fields. Each has size $|\sigma|/(2\varepsilon_0)$, away from the positive sheet and toward the negative one. Between the plates the two point the same way and add; outside, they point opposite ways and cancel. Measured from the $\sigma$ plate toward the $-\sigma$ one:`,
@@ -97,7 +97,7 @@ export const lesson: GaussLesson = {
       key: 'slab', label: 'Thick slab',
       figure: {charge: {kind: 'slab', size: .6, symbol: raw`\rho`, name: 'a thick slab of charge', bounds: ['a']}, surface: {kind: 'pillbox', size: {min: .2, max: 1.6, initial: .4}, other: .85, label: 'Height z',
         regions: [
-          {name: 'inside the slab', tex: raw`E_\perp=\frac{\rho z}{\varepsilon_0}`, say: raw`Inside, the pillbox holds a block of thickness $2z$, and the field grows in step with $z$.`},
+          {name: 'inside the slab', tex: raw`E_\perp=\frac{\rho z}{\varepsilon_0}`, say: raw`Inside, the pillbox holds a block of thickness $2z$, and the field’s magnitude grows in step with $z$.`},
           {name: 'outside the slab', tex: raw`E_\perp=\frac{\rho a}{\varepsilon_0}`, say: raw`Outside, the pillbox holds the slab’s whole thickness $2a$, and the field is the same at every height.`},
         ]}, reference: REFERENCE},
       setup: raw`An infinite slab fills the space between $z=-a$ and $z=a$ with a uniform charge $\rho$ per unit volume. Find the field a height $z$ from its middle, inside the slab and outside it.`,
@@ -130,7 +130,7 @@ export const lesson: GaussLesson = {
         answer: raw`E_\perp=\begin{cases}\dfrac{\rho z}{\varepsilon_0}, & z\le a\\[6pt]\dfrac{\rho a}{\varepsilon_0}, & z\ge a\end{cases}`,
         say: raw`The two twos cancel; so does $A$.`,
         line: raw`The twos cancel: $\rho z/\varepsilon_0$ inside, $\rho a/\varepsilon_0$ outside.`,
-        caption: 'Set the sides equal and divide by two A. Inside, the field grows in step with z, from zero at the middle. Outside, it is the same at every height. Away from the slab for a positive ρ, toward it for a negative one.',
+        caption: 'Set the sides equal and divide by two A. Inside, the field’s magnitude grows in step with z, from zero at the middle. Outside, it is the same at every height. Away from the slab for a positive ρ, toward it for a negative one.',
       },
       checks: [
         {title: 'Like a sheet from outside', text: raw`From outside the slab is a sheet holding $\sigma=2\rho a$ per unit area, and $\sigma/(2\varepsilon_0)=\rho a/\varepsilon_0$. Squash the slab thin keeping $2\rho a$ fixed and you have the sheet.`},

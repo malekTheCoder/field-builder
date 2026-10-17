@@ -24,7 +24,7 @@ export const bank: Question[] = [
     choices: [
       {correct: true, tex: raw`E_\perp=\frac{\sigma}{2\varepsilon_0}`},
       {tex: raw`E_\perp=\frac{\sigma}{\varepsilon_0}`, misconception: 'sheet-double',
-        why: raw`That drops the two: a lone sheet’s flux crosses both faces, half each way. $\sigma/\varepsilon_0$ is the field just outside a conductor, where all of it leaves through one face.`},
+        why: raw`That drops the two: a lone sheet’s flux crosses both faces, half each way. $\sigma/\varepsilon_0$ is the field just outside a conductor, where all the flux crosses one face.`},
       {tex: raw`E_\perp=\frac{\sigma A}{2\varepsilon_0}`, misconception: 'size-left-in',
         why: raw`The face area is on both sides, in $2E_\perp A$ and in $\sigma A$, and cancels. A field cannot depend on the size of a surface you drew.`},
     ],
@@ -52,7 +52,7 @@ export const bank: Question[] = [
       {tex: raw`2\rho Aa`, misconception: 'qenc-limit',
         why: raw`That is the slab’s whole thickness, which a pillbox holds only once its faces are outside the slab. Inside, the slices run only from $-z$ to $z$.`},
     ],
-    explanation: raw`Slices of volume $A\,dz'$ from $-z$ to $z$ add to $\int_{-z}^{z}\rho A\,dz'=2\rho Az$. With $2E_\perp A$ on the left, the twos cancel and $E_\perp=\rho z/\varepsilon_0$, growing from zero at the middle.`,
+    explanation: raw`Slices of volume $A\,dz'$ from $-z$ to $z$ add to $\int_{-z}^{z}\rho A\,dz'=2\rho Az$. With $2E_\perp A$ on the left, the twos cancel and $E_\perp=\rho z/\varepsilon_0$, growing in magnitude from zero at the middle.`,
     review: {lesson: 'sheets', stage: 'right', case: 'slab'}},
 
   {id: 'sheets-slab-outside', lesson: 'sheets', kind: 'check',

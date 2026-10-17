@@ -26,6 +26,7 @@ import {BOARD, useBoardFollowsRun} from './useBoardFollow';
 import {GaussRange} from './GaussRange';
 import {useRenderedWidth} from '../components/useRenderedWidth';
 import {SymmetryTest} from './SymmetryTest';
+import {ChooseSurface} from './ChooseSurface';
 import {FluxInstrument} from './FluxInstrument';
 import {FieldProfile} from './FieldProfile';
 import {CavityInstrument} from './CavityInstrument';
@@ -376,12 +377,12 @@ export default function GaussLesson() {
               {signRow}
             </div></section>
             <div className="gs-instruments" ref={instrumentsRef as unknown as React.Ref<HTMLDivElement>} style={{'--cd-k': instrumentK} as CSSProperties}>
-            {lesson.instrument === 'symmetry' && <SymmetryTest sym={sym} sign={sign} />}
+            {lesson.instrument === 'symmetry' && <><SymmetryTest sym={sym} sign={sign} /><ChooseSurface key={sym} sym={sym} /></>}
             {lesson.instrument === 'flux' && <FluxInstrument />}
             {lesson.instrument === 'profile' && <FieldProfile kase={kase} size={size} sign={sign} />}
             {lesson.instrument === 'cavity' && <CavityInstrument sign={sign} />}
             {lesson.instrument === 'inside' && <InsideInstrument key={kase.key} sign={sign} start={insideStart(kase.key)} />}
-            {lesson.instrument === 'qenc' && <QencInstrument />}
+            {lesson.instrument === 'qenc' && <QencInstrument sign={sign} />}
             {lesson.instrument === 'plot' && <FieldPlot kase={kase} size={size} sign={sign} />}
             {lesson.instrument === 'hole' && <HoleInstrument sign={sign} />}
             {lesson.instrument === 'cube' && <CubeInstrument sign={sign} />}

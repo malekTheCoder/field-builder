@@ -2,6 +2,7 @@ import {describe, expect, it} from 'vitest';
 import {gaussLesson} from '../src/gauss';
 import {bank as fluxBank} from '../src/quiz/bank/gauss-flux';
 import {bank as holesBank} from '../src/quiz/bank/gauss-holes';
+import {bank as hardBank} from '../src/quiz/bank/gauss-hard';
 import {bank as qencBank} from '../src/quiz/bank/gauss-qenc';
 import {EPS0, dot, fieldAt, norm, v3} from '../src/gauss/physics';
 
@@ -29,6 +30,26 @@ describe('Gauss teaching keeps a formula in the region where it applies', () => 
       }
     });
   }
+
+  it('the cusp field excludes its singular centre even though the enclosed charge is finite', () => {
+    const c = kase('hard', 'cusp');
+    expect(c.solve.tex).toContain(raw`0<r\le R`);
+    expect(c.solve.answer).toContain(raw`0<r\le R`);
+    const section = gaussLesson('hard')!.sections.find(s => s.heading === 'A density that blows up')!;
+    const prose = section.body.filter(b => typeof b === 'string').join(' ');
+    expect(prose).toContain('no direction-independent limit');
+    const q = hardBank.find(q => q.id === 'hard-cusp-field')!;
+    expect(q.prompt).toContain('away from the centre');
+    expect(q.explanation).toContain('centre');
+    for (const sign of [1, -1] as const) for (const r of [1e-3, 1e-5]) {
+      const charge = {kind: 'cusp' as const, sign, size: 1.1, amount: .5};
+      const right = fieldAt(charge, v3(r, 0, 0)), left = fieldAt(charge, v3(-r, 0, 0));
+      expect(right.x).toBeCloseTo(sign * Math.PI, 10);
+      expect(left.x).toBeCloseTo(-sign * Math.PI, 10);
+      expect(norm(right)).toBeCloseTo(norm(left), 10);
+      expect(c.right.tex).toContain(raw`r\le R`);
+    }
+  });
   it('the backwards density vanishes beyond its ball, including the answer box', () => {
     const c = kase('hard', 'backwards');
     expect(c.right.tex).toContain(raw`r\ge R`);

@@ -19,15 +19,15 @@ const P0 = 70, P1 = 612, MAX = 2.4, X = (x: number) => P0 + (P1 - P0) * x / MAX;
 const PER = 150;
 const NAMES: Record<SphereKind, string> = {point: 'point', shell: 'shell', ball: 'uniform ball', rising: 'ρ ∝ r'};
 /** Where each curve is named, in units of R along r, and which side of it. */
-const NAMED: Record<SphereKind, {x: number; dy: number; anchor: 'start' | 'end'}> = {point: {x: .78, dy: 0, anchor: 'end'}, shell: {x: .45, dy: 18, anchor: 'start'}, ball: {x: .5, dy: -14, anchor: 'end'}, rising: {x: .62, dy: 18, anchor: 'start'}};
+const NAMED: Record<SphereKind, {x: number; dy: number; anchor: 'start' | 'end'}> = {point: {x: .9, dy: 0, anchor: 'end'}, shell: {x: .45, dy: 18, anchor: 'start'}, ball: {x: .5, dy: -14, anchor: 'end'}, rising: {x: .62, dy: 18, anchor: 'start'}};
 /** What the sphere encloses, and the field, in the region the slider is in: for the readout. */
 function region(k: SphereKind, x: number): {tex: string; words: string} {
   const raw = String.raw;
   if (k === 'point') return {tex: raw`Q_{\text{enc}}=Q,\quad E_r=\frac{kQ}{r^2}`, words: 'Every sphere round the point encloses all of its charge.'};
   if (x >= 1) return {tex: raw`Q_{\text{enc}}=Q,\quad E_r=\frac{kQ}{r^2}`, words: 'Outside R the sphere encloses all of Q, and every one of the four makes the same field: a point charge’s.'};
   if (k === 'shell') return {tex: raw`Q_{\text{enc}}=0,\quad E_r=0`, words: 'Inside the shell the sphere encloses none of its charge, and the field is zero everywhere there.'};
-  if (k === 'ball') return {tex: raw`Q_{\text{enc}}=Q\,\frac{r^3}{R^3},\quad E_r=\frac{kQr}{R^3}`, words: 'Inside the uniform ball the sphere encloses the fraction r³/R³ of the charge, and the field grows in proportion to r.'};
-  return {tex: raw`Q_{\text{enc}}=Q\,\frac{r^4}{R^4},\quad E_r=\frac{kQr^2}{R^4}`, words: 'Inside the ball whose density rises with r, little charge lies near the centre: the sphere encloses r⁴/R⁴ of it, and the field grows as r².'};
+  if (k === 'ball') return {tex: raw`Q_{\text{enc}}=Q\,\frac{r^3}{R^3},\quad E_r=\frac{kQr}{R^3}`, words: 'Inside the uniform ball the sphere encloses the fraction r³/R³ of the charge, and the field’s magnitude grows in proportion to r.'};
+  return {tex: raw`Q_{\text{enc}}=Q\,\frac{r^4}{R^4},\quad E_r=\frac{kQr^2}{R^4}`, words: 'Inside the ball whose density is proportional to r, little charge lies near the centre: the sphere encloses r⁴/R⁴ of it, and the field’s magnitude grows as r².'};
 }
 
 export function FieldPlot({kase, size, sign}: {kase: GaussCase; size: number; sign: 1 | -1}) {
@@ -39,7 +39,6 @@ export function FieldPlot({kase, size, sign}: {kase: GaussCase; size: number; si
   const R = kase.figure.charge.size || 1.1, x = size / R;
   // A positive charge's curves rise from a baseline low in the frame; a negative one's fall from one high in it.
   const base = sign > 0 ? 250 : 58, Y = (e: number) => base - PER * e;
-  const clip = (e: number) => Math.max(-1.42, Math.min(1.42, e));
   const path = (kd: SphereKind) => {
     const pts: string[] = [];
     // Sampled finely, and either side of R exactly, so the shell's step is drawn where it is.
@@ -49,7 +48,12 @@ export function FieldPlot({kase, size, sign}: {kase: GaussCase; size: number; si
     for (const v of xs) pts.push(`${X(v).toFixed(1)} ${Y(Math.max(-2, Math.min(2, fieldOf(kd, v, sign)))).toFixed(1)}`);
     return `M${pts.join('L')}`;
   };
-  const here = clip(fieldOf(kind, x, sign));
+  // A marker is a value, not decoration: never clamp it to a fabricated finite field. The point-charge
+  // curve can leave this stable scale. Its edge arrow then identifies the selected radius without
+  // pretending that the field has flattened; an in-range selection keeps its exact dot on the curve.
+  const here = fieldOf(kind, x, sign), offScale = Y(here) < 16 || Y(here) > 292;
+  const scaleWords = offScale ? 'The selected field is beyond the plot’s vertical scale; the edge arrow marks its radius. ' : '';
+  const edge = sign > 0 ? 16 : 292;
   const now = region(kind, x);
   const name = NAMES[kind];
   return <section className="gs-instrument gs-plot" aria-labelledby={`${uid}-title`}>
@@ -58,7 +62,7 @@ export function FieldPlot({kase, size, sign}: {kase: GaussCase; size: number; si
       <p className="gs-instrument-lede">All four have the same total charge Q; three also have the same radius R. Outside R their fields are one curve; inside, they part. The bold curve is the case chosen above, and the line follows its slider.</p>
     </div>
     <svg ref={measure} className="gs-instrument-svg gs-plot-svg" viewBox="0 0 640 300" role="img" style={{'--cd-k': k} as CSSProperties}
-      aria-label={`The radial field against r for a point charge, a thin shell, a uniform ball and a ball whose density rises with r, all of the same ${sign > 0 ? 'positive' : 'negative'} charge. The ${name} is drawn bold, with the sphere ${kind === 'point' ? 'at r' : x < 1 ? 'inside R' : 'outside R'}. ${now.words}`}>
+      aria-label={`The radial field against r for a point charge, a thin shell, a uniform ball and a ball whose density is proportional to r, all of the same ${sign > 0 ? 'positive' : 'negative'} charge. The ${name} is drawn bold, with the sphere ${kind === 'point' ? 'at r' : x < 1 ? 'inside R' : 'outside R'}. ${scaleWords}${now.words}`}>
       <line className="gs-baseline" x1={P0} x2={P1 + 4} y1={base} y2={base} />
       <line className="gs-plot-axis" x1={P0} x2={P0} y1={sign > 0 ? base : base - 6} y2={sign > 0 ? 24 : 284} />
       <text className="gs-name" x={P0 - 10} y={sign > 0 ? 30 : 278} textAnchor="end" dominantBaseline="middle">E<tspan className="gs-sub" dy="5">r</tspan></text>
@@ -76,11 +80,13 @@ export function FieldPlot({kase, size, sign}: {kase: GaussCase; size: number; si
         <text className="gs-ui-name" x={X(1) + 20} y={(Y(0) + Y(sign)) / 2} dominantBaseline="middle">σ/ε₀</text>
       </g>}
       {(kind === 'ball' || kind === 'rising') && <circle className="gs-meet" cx={X(1)} cy={Y(sign)} r={5} />}
-      {SPHERE_KINDS.map(kd => { const n = NAMED[kd], e = clip(fieldOf(kd, n.x, sign)); return <text key={kd} className={'gs-curve-name' + (kd === kind ? ' is-on' : '')} x={X(n.x) + (n.anchor === 'end' ? -8 : 8)} y={kd === 'shell' ? base + sign * n.dy : Y(e) + sign * n.dy} textAnchor={n.anchor} dominantBaseline="middle">{NAMES[kd]}</text>; })}
+      {SPHERE_KINDS.map(kd => { const n = NAMED[kd], e = fieldOf(kd, n.x, sign); return <text key={kd} className={'gs-curve-name' + (kd === kind ? ' is-on' : '')} x={X(n.x) + (n.anchor === 'end' ? -8 : 8)} y={kd === 'shell' ? base + sign * n.dy : Y(e) + sign * n.dy} textAnchor={n.anchor} dominantBaseline="middle">{NAMES[kd]}</text>; })}
       <text className="gs-curve-name" x={X(2.05)} y={Y(fieldOf('ball', 2.05, sign)) - sign * 18} textAnchor="middle">all four: kQ/r²</text>
       <line className="gs-at" x1={X(x)} x2={X(x)} y1={sign > 0 ? base + 4 : base - 4} y2={sign > 0 ? 30 : 278} />
-      <circle className="gs-here" cx={X(x)} cy={Y(here)} r={5.5} />
+      {offScale
+        ? <path className="gs-here gs-offscale-marker" d={`M${X(x)} ${edge}l-7 ${sign * 12}h14Z`} />
+        : <circle className="gs-here" cx={X(x)} cy={Y(here)} r={5.5} />}
     </svg>
-    <div className="gs-readout"><MathText tex={now.tex} block /><p>{now.words}</p></div>
+    <div className="gs-readout"><MathText tex={now.tex} block /><p>{scaleWords}{now.words}</p></div>
   </section>;
 }

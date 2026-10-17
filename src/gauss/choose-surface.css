@@ -1,0 +1,13 @@
+.gs-surface-options{display:grid;gap:8px}
+.gs-surface-options button{display:flex;flex-direction:column;gap:4px;width:100%;min-height:44px;padding:12px 14px;text-align:left;border:1px solid var(--border);border-radius:var(--radius-control,14px);background:var(--card);color:var(--foreground);font:inherit;cursor:pointer}
+.gs-surface-options button strong{font-size:var(--type-body);line-height:1.4;font-weight:600}
+.gs-surface-options button span{font-size:var(--type-meta);line-height:1.55;color:var(--muted-foreground);text-wrap:pretty}
+.gs-surface-options button:hover{border-color:var(--border-strong)}
+.gs-surface-options button[aria-pressed=true]{border-color:var(--foreground);background:var(--muted)}
+.gs-surface-options button:focus-visible{outline:2px solid var(--primary);outline-offset:3px}
+.gs-surface-feedback{margin-top:16px;padding-top:14px;border-top:1px solid var(--border)}
+.gs-surface-feedback h3,.gs-surface-print h3{margin:0 0 8px;font-size:var(--type-body);line-height:1.4;font-weight:600}
+.gs-surface-feedback p,.gs-surface-print p{margin:6px 0 0;font-size:var(--type-meta);line-height:1.55;color:var(--muted-foreground);text-wrap:pretty}
+.gs-surface-feedback .math,.gs-surface-print .math{font-size:var(--type-body)}
+.gs-surface-print{display:none}
+@media print{.gs-surface-options,.gs-surface-screen{display:none!important}.gs-surface-print{display:block}}
