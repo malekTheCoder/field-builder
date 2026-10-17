@@ -452,6 +452,8 @@
 /* A surface's cut is a circle: drawn round from nothing, never scaled out of its centre past the disk's rim. */
 .cd-stage-pieces .cd-surface-seams .cd-seam{animation-name:cd-cut-round}
 @keyframes cd-cut-round{from{opacity:0}to{opacity:1}}
+/* ...and seen from the side, a ring outline in the charge's colour: a paper-coloured gap there covered the whole face. */
+.cd-stage-pieces .cd-surface-seams.is-flat .cd-seam path{stroke:var(--charge,#b8460f);stroke-width:1.2;stroke-opacity:.75}
 .cd-stage-pieces .cd-piece{animation:cd-free .7s ease-out both;animation-delay:calc(var(--free,0) * 1.5s + .3s - var(--cd-local,0s))}
 @keyframes cd-free{0%{filter:none}35%{filter:drop-shadow(0 0 8px var(--charge,#b8460f)) brightness(1.15)}100%{filter:none}}
 /* A rod's pieces are cells; until a piece is free, its outline is not drawn, and the rod reads as one bar. */
