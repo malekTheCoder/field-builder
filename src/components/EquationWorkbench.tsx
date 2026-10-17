@@ -6,6 +6,7 @@ import { MathText, Prose } from './Math';
 import { DerivationBoard, type BoardState } from './DerivationBoard';
 import { equivalent, safeParse } from '../symbolic/equivalence';
 import { annulusRadii } from '../distributions/disk';
+import { offsetCut, offsetAt, offsetEnds, offsetT } from '../distributions/offset';
 import { alongIntegralOf, backLead, componentOf, exactSum, partHasAlso, partResult, resultLines, workedSteps, type Term } from '../workbench/derivation';
 import { buildStages } from '../explorer/buildRun';
 import { bracketLines, bracketOf, ratio } from '../workbench/bracket';
@@ -30,16 +31,18 @@ const clamp=(n:number)=>Math.max(0,Math.min(1,n));
 function scaled(n:number,s:string){if(n===0)return'0';const[a,d]=ratio(n),m=Math.abs(a)===1?'':`${Math.abs(a)}`;return`${a<0?'-':''}${m}${s}${d===1?'':`/${d}`}`;}
 /** A lesson's own bound, from the parser's spelling to the page's. */
 const shown=(b:string)=>b.replace(/\*?\bphi\b/g,'φ').replace(/\*?\bpi\b/g,'π').replace(/Infinity/g,'∞');
-function boundExpression(p:Problem,percent:number){const t=clamp(percent/100),g=p.geometry;if(t===0)return shown(p.bounds[0]);if(t===1)return shown(p.bounds[1]);if(g==='bisector'||(p.id==='infinite'&&p.variable==='y'))return scaled(t-.5,'L');if(g==='axial'||g==='endpoint'||g==='ramp')return scaled(t,'L');if(g==='ring')return scaled(2*t,'π');if(g==='arc')return scaled(t-.5,'φ');if(g==='uneven-arc')return scaled(t-.5,'π');if(g==='disk')return scaled(t,'R');if(g==='annulus')return Math.abs(t-.5)<1e-9?'(a+b)/2':`a+${scaled(t,'(b-a)')}`;if(p.id==='infinite')return scaled(t-.5,'π');if(Math.abs(t-.5)<1e-9)return g==='sheet'?'z':'r';return `${g==='sheet'?'z':'r'} tan(${scaled(t/2,'π')})`;}
-function boundPercent(p:Problem,value:string,params:Params){if(equivalent(value,p.bounds[0],p).ok)return 0;if(equivalent(value,p.bounds[1],p).ok)return 100;const x=safeParse(value).compile().evaluate({L:params.size,R:params.size/2,z:params.distance,r:params.distance,a:p.geometry==='annulus'?annulusRadii(params).a:params.distance,b:params.size/2,pi:Math.PI,phi:params.phi,Infinity});if(typeof x!=='number'||!Number.isFinite(x))throw Error('Use a bound inside this distribution.');const g=p.geometry;if(g==='bisector'||(p.id==='infinite'&&p.variable==='y'))return 100*(x/params.size+.5);if(g==='axial'||g==='endpoint'||g==='ramp')return 100*x/params.size;if(g==='ring')return 100*x/(2*Math.PI);if(g==='arc')return 100*(x/params.phi+.5);if(g==='uneven-arc')return 100*(x/Math.PI+.5);if(g==='disk')return 200*x/params.size;if(g==='annulus'){const {a,b}=annulusRadii(params);return 100*(x-a)/(b-a);}if(p.id==='infinite')return 100*(x/Math.PI+.5);return 200*Math.atan(x/Math.abs(params.distance))/Math.PI;}
+// The rod off its bisector is cut kinked where its mirrored stretch meets its leftover (distributions/offset.ts), so a
+// handle's place along it is read through its own cut, and written as a share of L up from y₁.
+function boundExpression(p:Problem,percent:number,params?:Params){const t=clamp(percent/100),g=p.geometry;if(t===0)return shown(p.bounds[0]);if(t===1)return shown(p.bounds[1]);if(g==='offset'&&params){const c=offsetCut(params,params.slices);return `y1+${scaled((offsetAt(c,t)-c.y1)/c.L,'L')}`;}if(g==='bisector'||(p.id==='infinite'&&p.variable==='y'))return scaled(t-.5,'L');if(g==='axial'||g==='endpoint'||g==='ramp')return scaled(t,'L');if(g==='ring')return scaled(2*t,'π');if(g==='arc')return scaled(t-.5,'φ');if(g==='uneven-arc')return scaled(t-.5,'π');if(g==='disk')return scaled(t,'R');if(g==='annulus')return Math.abs(t-.5)<1e-9?'(a+b)/2':`a+${scaled(t,'(b-a)')}`;if(p.id==='infinite')return scaled(t-.5,'π');if(Math.abs(t-.5)<1e-9)return g==='sheet'?'z':'r';return `${g==='sheet'?'z':'r'} tan(${scaled(t/2,'π')})`;}
+function boundPercent(p:Problem,value:string,params:Params){if(equivalent(value,p.bounds[0],p).ok)return 0;if(equivalent(value,p.bounds[1],p).ok)return 100;const ends=offsetEnds(params),x=safeParse(value).compile().evaluate({y1:ends.y1,y2:ends.y2,L:params.size,R:params.size/2,z:params.distance,r:params.distance,a:p.geometry==='annulus'?annulusRadii(params).a:params.distance,b:params.size/2,pi:Math.PI,phi:params.phi,Infinity});if(typeof x!=='number'||!Number.isFinite(x))throw Error('Use a bound inside this distribution.');const g=p.geometry;if(g==='offset')return 100*offsetT(offsetCut(params,params.slices),x);if(g==='bisector'||(p.id==='infinite'&&p.variable==='y'))return 100*(x/params.size+.5);if(g==='axial'||g==='endpoint'||g==='ramp')return 100*x/params.size;if(g==='ring')return 100*x/(2*Math.PI);if(g==='arc')return 100*(x/params.phi+.5);if(g==='uneven-arc')return 100*(x/Math.PI+.5);if(g==='disk')return 200*x/params.size;if(g==='annulus'){const {a,b}=annulusRadii(params);return 100*(x-a)/(b-a);}if(p.id==='infinite')return 100*(x/Math.PI+.5);return 200*Math.atan(x/Math.abs(params.distance))/Math.PI;}
 /** Which factor a pointed-at feature of the figure, or a slider, stands behind. The length lights
  * the limits because the limits are written in it; the charge lights the piece's charge. */
-const LIGHTS:Record<string,Term>={element:'element',charge:'element',distance:'distance',projection:'projection',bounds:'bounds',size:'bounds',angle:'bounds'};
+const LIGHTS:Record<string,Term>={element:'element',charge:'element',distance:'distance',projection:'projection',bounds:'bounds',size:'bounds',angle:'bounds',height:'bounds'};
 const REST:BoardState={open:false,index:-1,playing:false,settled:true};
 // THE ANSWER, NAMED AS ONE. Its box was headed "The whole distribution": a first-year reader did not take it for
 // the answer, and "distribution" is a word they do not have yet. It says it is the answer, and for what, in the
 // figure's own noun; the bracketed part's box says the same of the part.
-const WHOLE:Record<string,string>={bisector:'rod',axial:'rod',endpoint:'rod',ramp:'rod',infinite:'line',semi:'line',ring:'ring',disk:'disk',annulus:'annulus',sheet:'sheet',arc:'arc','uneven-arc':'semicircle'};
+const WHOLE:Record<string,string>={bisector:'rod',offset:'rod',axial:'rod',endpoint:'rod',ramp:'rod',infinite:'line',semi:'line',ring:'ring',disk:'disk',annulus:'annulus',sheet:'sheet',arc:'arc','uneven-arc':'semicircle'};
 export function EquationWorkbench({problem:p,derivationProblem,params,onModeChange,onHighlight,boundRange,onBoundRangeChange,build=REST,onStep,highlight=''}:EquationWorkbenchProps){
  // THE PANEL RE-RENDERS EVERY FRAME OF THE RUN, because the page does: the figure has to move. What
  // is on the panel changes only when the run enters a stage, pauses or settles, or a bracket moves.
@@ -48,7 +51,7 @@ export function EquationWorkbench({problem:p,derivationProblem,params,onModeChan
  // One lesson is one object for this panel's life: the infinite line's is rebuilt on every render
  // of the page, so the memos key on the one held here rather than on whatever object arrived.
  const[held,setHeld]=useState(p);const same=held.id===p.id&&held.variable===p.variable;if(!same)setHeld(p);const q=same?held:p;
- const uid=useId();const[worked,setWorked]=useState(false);const[stepCount,setStepCount]=useState(1);const[boundsOpen,setBoundsOpen]=useState(false);const[bounds,setBounds]=useState<[string,string]>(()=>[boundExpression(p,boundRange[0]),boundExpression(p,boundRange[1])]);const[feedback,setFeedback]=useState('');
+ const uid=useId();const[worked,setWorked]=useState(false);const[stepCount,setStepCount]=useState(1);const[boundsOpen,setBoundsOpen]=useState(false);const[bounds,setBounds]=useState<[string,string]>(()=>[boundExpression(p,boundRange[0],params),boundExpression(p,boundRange[1],params)]);const[feedback,setFeedback]=useState('');
  const[syncedRange,setSyncedRange]=useState(boundRange);
  // The range the form itself just asked for, so the answer to "Apply interval" survives the range
  // coming back -- and only that range. A drag on the figure, or the bound slider, moves the range
@@ -62,7 +65,7 @@ export function EquationWorkbench({problem:p,derivationProblem,params,onModeChan
   setSyncedRange(boundRange);
   // Once the range has moved from outside, the form's request is spent: coming back to the same range
   // by a drag is the figure's doing, and the fields follow it.
-  if(!(asked&&asked[0]===boundRange[0]&&asked[1]===boundRange[1])){setBounds([boundExpression(p,boundRange[0]),boundExpression(p,boundRange[1])]);setFeedback('');setAsked(null);}
+  if(!(asked&&asked[0]===boundRange[0]&&asked[1]===boundRange[1])){setBounds([boundExpression(p,boundRange[0],params),boundExpression(p,boundRange[1],params)]);setFeedback('');setAsked(null);}
  }
  const g=p.geometry,scalar=p.quantity==='V',allBounds=boundRange[0]<=.001&&boundRange[1]>=99.999;
  const[from,to]=boundRange;
@@ -111,7 +114,7 @@ export function EquationWorkbench({problem:p,derivationProblem,params,onModeChan
  const lead=exactSum(q)?'Adding up the pieces gives this, exactly, however many there are; the integral above agrees.':secondary?'Doing the integrals gives this.':'Doing the integral gives this.';
  // What the sign means, in words a first-year reader has: "signed field component" did not say that a
  // component can come out negative, or what that says. Two components are named as two.
- const both=['semi','endpoint','ramp'].includes(p.id);
+ const both=['semi','endpoint','ramp','offset'].includes(p.id);
  const sign=scalar?'The potential $V$ can come out negative: reversing the charge reverses its sign, and there is no direction to keep track of.'
   :both?'Both $E_x$ and $E_y$ can come out negative: each one’s sign says which way it points, and reversing the charge reverses both.'
   :`The component $${componentOf(q)}$ can come out negative: its sign says which way it points, and reversing the charge reverses it.`;

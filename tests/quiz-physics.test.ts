@@ -262,6 +262,72 @@ describe('the rod, level with one end', () => {
  });
 });
 
+/* THE ROD OFF ITS BISECTOR'S BANK (src/quiz/bank/offset.ts): a rod from y₁ = −h − L/2 to y₂ = L/2 − h, P = (r, 0), every
+ * claim summed from point charges by `line`. */
+describe('the rod off its bisector', () => {
+ const L = 2, Q = 3, lam = Q / L, h = .4, y1 = -h - L / 2, y2 = L / 2 - h;
+ const ex = (r: number, a = y1, b = y2) => k * lam / r * (b / Math.hypot(b, r) - a / Math.hypot(a, r));
+ const ey = (r: number, a = y1, b = y2) => k * lam * (1 / Math.hypot(b, r) - 1 / Math.hypot(a, r));
+ it('has the lesson’s two components, in the angles at P to the two ends (direction, ey-integrand)', () => {
+  for (const r of [.3, 1, 4]) {
+   const f = line(r, 0, y1, y2, () => lam);
+   close(f.ex, ex(r)); close(f.ey, ey(r));
+   const s = (y: number) => y / Math.hypot(y, r), c = (y: number) => r / Math.hypot(y, r);
+   close(f.ex, k * lam / r * (s(y2) - s(y1))); close(f.ey, k * lam / r * (c(y2) - c(y1)));
+   // P above the middle: away from the rod, and up, away from the leftover below.
+   expect(f.ex).toBeGreaterThan(0); expect(f.ey).toBeGreaterThan(0);
+  }
+ });
+ it('only the stretch from −y₂ to y₂ cancels along the rod; the leftover below makes all of E_y (what-cancels, leftover)', () => {
+  const r = .9, mirrored = line(r, 0, -y2, y2, () => lam), leftover = line(r, 0, y1, -y2, () => lam), whole = line(r, 0, y1, y2, () => lam);
+  expect(Math.abs(mirrored.ey)).toBeLessThan(1e-9 * mirrored.ex);
+  close(leftover.ey, whole.ey, 1e-9);
+  close(mirrored.ex + leftover.ex, whole.ex, 1e-9);
+  // Not every part along the rod cancels, and the parts along x of the mirrored stretch add.
+  expect(whole.ey / whole.ex).toBeGreaterThan(.05);
+  expect(mirrored.ex).toBeGreaterThan(0);
+ });
+ it('E_y is −∫ kλ y dy/(y² + r²)^{3/2} from y₁ to y₂; the sign dropped, the cosine, and zero are other numbers (ey-integrand)', () => {
+  const r = 1, n = 100000, dy = L / n; let s = 0, c = 0;
+  for (let i = 0; i < n; i++) { const y = y1 + (i + .5) * dy; s -= k * lam * y * dy / (y * y + r * r) ** 1.5; c -= k * lam * r * dy / (y * y + r * r) ** 1.5; }
+  close(s, ey(r), 1e-6);
+  expect(Math.abs(-s - ey(r)) / Math.abs(ey(r))).toBeGreaterThan(1);
+  expect(Math.abs(c - ey(r)) / Math.abs(ey(r))).toBeGreaterThan(.1);
+  expect(Math.abs(ey(r))).toBeGreaterThan(.01);
+ });
+ it('the bounds are y₁ to y₂: −L/2 to L/2, 0 to L, or −y₂ to y₂ are other fields (bounds)', () => {
+  const r = .7, f = line(r, 0, y1, y2, () => lam);
+  for (const [a, b] of [[-L / 2, L / 2], [0, L], [-y2, y2]]) {
+   const g = line(r, 0, a, b, () => lam);
+   expect(Math.hypot(g.ex - f.ex, g.ey - f.ey) / Math.hypot(f.ex, f.ey)).toBeGreaterThan(.05);
+  }
+ });
+ it('slid level with the middle, E_y vanishes and E_x is the bisector’s (middle)', () => {
+  const r = 1.3, f = line(r, 0, -L / 2, L / 2, () => lam);
+  expect(Math.abs(f.ey)).toBeLessThan(1e-9);
+  close(f.ex, k * Q / (r * Math.sqrt((L / 2) ** 2 + r * r)), 1e-6);
+  close(f.ex, k * lam / r * 2 * (L / 2) / Math.hypot(L / 2, r), 1e-6);
+ });
+ it('slid level with the lower end it is the rod level with its end, which leans; not the bisector, not half of it (end)', () => {
+  const r = 1.1, f = line(r, 0, 0, L, () => lam);
+  close(f.ex, k * Q / (r * Math.sqrt(L * L + r * r)), 1e-6); close(f.ey, -k * lam * (1 / r - 1 / Math.sqrt(L * L + r * r)), 1e-6);
+  expect(Math.abs(f.ey / f.ex)).toBeGreaterThan(.1);
+ });
+ it('far out, |E| tends to k|Q|/(r² + h²); not k|Q|/√(r² + h²) nor 2k|λ|/r (far)', () => {
+  const r = 300, f = line(r, 0, y1, y2, () => lam, 4000), m = Math.hypot(f.ex, f.ey);
+  close(m, k * Q / (r * r + h * h), 1e-4);
+  for (const wrong of [k * Q / Math.hypot(r, h), 2 * k * lam / r]) expect(wrong / m).toBeGreaterThan(10);
+ });
+ it('grown at both ends at fixed λ and h: 2kλ/r along x, not √2 k|λ|/r and not zero (grow)', () => {
+  const r = 1, f = line(r, 0, -1e5 - h, 1e5 - h, () => lam, 400000);
+  close(f.ex, 2 * k * lam / r, 1e-3); expect(Math.abs(f.ey / f.ex)).toBeLessThan(1e-3);
+  expect(Math.abs(f.ex - Math.SQRT2 * k * lam / r) / f.ex).toBeGreaterThan(.1);
+ });
+ it('a negative rod’s field points toward the rod and down (negative)', () => {
+  const f = line(1, 0, y1, y2, () => -lam); expect(f.ex).toBeLessThan(0); expect(f.ey).toBeLessThan(0);
+ });
+});
+
 describe('the ramp', () => {
  const L = 2, l0 = 1.5, Q = l0 * L / 2, ramp = (y: number) => l0 * y / L;
  const ex = (r: number) => k * l0 / L * (1 - r / Math.sqrt(L * L + r * r));

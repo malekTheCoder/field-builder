@@ -139,7 +139,7 @@ describe('the answer in Q where the lesson holds Q', () => {
   const fixesQ = (p: (typeof PROBLEMS)[number]) => /uniform charge \$Q\$|\$Q\$ is fixed|fixed total charge \$Q\$|total charge \$Q\$ is fixed/.test(p.setup);
   it('every lesson whose setup fixes Q says its answer in Q too', () => {
     const held = PROBLEMS.filter(fixesQ).map(p => p.id).sort();
-    expect(held).toEqual(['arc', 'axial', 'bisector', 'endpoint', 'ring', 'v-arc', 'v-ring', 'v-rod-axial', 'v-rod-bisector']);
+    expect(held).toEqual(['arc', 'axial', 'bisector', 'endpoint', 'offset', 'ring', 'v-arc', 'v-ring', 'v-rod-axial', 'v-rod-bisector']);
     for (const id of held) {
       const tex = resultLines(lesson(id)).join(' ');
       expect(tex, id).toMatch(/kQ/);

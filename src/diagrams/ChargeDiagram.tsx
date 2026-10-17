@@ -16,6 +16,7 @@ import { animate, frame, motion, useMotionValue, useReducedMotion } from 'motion
 import type { Params, Problem, ProblemId } from '../problems/types';
 import { field, magnitude, pretty, potential, type Vec } from '../symbolic/physics';
 import { annulusRadii } from '../distributions/disk';
+import { offsetAt, offsetCut, offsetEnds, offsetPartner } from '../distributions/offset';
 import { sampleDistribution, sumSamples, sumInterval, intervalWeights, sumPotential, activeIntervalIndex } from './sampling';
 import { intervalKey, orderedBounds, partitionCount, seamFractions, seamKey, splitFractions, splitProgress } from './subdivision';
 import { acrossAxis, alongAxis, pairOrder, pairPhase, pairPlan, pairShares, pairStepAt, pairSum, spacePairGain, spacePairShrink } from './pairs';
@@ -300,8 +301,10 @@ export function lessonRange(id: ProblemId, kind: 'E' | 'V'): readonly [number, n
   const at = (q: Params) => kind === 'E' ? magnitude(field(id, q)) : Math.abs(potential(id, q));
   // The annulus's hole is a slider too: from none, the disk, to nearly the rim, where it is a thin ring.
   const inners = id === 'annulus' ? [0, .25, .5, 1, 1.5, 2, 3, 3.8] : [1];
-  for (let d = .5; d <= 6.001; d += .25) for (let s = 1; s <= 8.001; s += .5) for (const phi of phis) for (const inner of inners) {
-    const q: Params = { distance: d, size: s, charge: 5, phi, element: .5, slices: 5, continuum: 0, inner };
+  // And P's height above the middle of the rod off its bisector, from the middle out to an end (held to L/2 there).
+  const heights = id === 'offset' ? [0, .5, 1, 2, 4] : [1];
+  for (let d = .5; d <= 6.001; d += .25) for (let s = 1; s <= 8.001; s += .5) for (const phi of phis) for (const inner of inners) for (const height of heights) {
+    const q: Params = { distance: d, size: s, charge: 5, phi, element: .5, slices: 5, continuum: 0, inner, height };
     const strong = at(q), weak = at({ ...q, charge: .1 });
     if (strong > hi) hi = strong;
     if (weak > 0 && weak < lo) lo = weak;
@@ -415,8 +418,11 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
   // And the semicircle with uneven charge is the arc with a non-uniform density: drawn as the arc is, at a half turn,
   // with no opening angle of its own to mark, and its pieces as heavy as the charge they hold.
   const arcLike = id === 'arc' || id === 'uneven-arc', uneven = id === 'uneven-arc';
+  // THE ROD OFF ITS BISECTOR is the bisector's rod with P raised or lowered off its middle: drawn as the bisector's,
+  // with only the stretch that mirrors itself across P's level paired (distributions/offset.ts).
+  const offset = id === 'offset', besideRod = id === 'bisector' || offset;
   // The lessons whose piece has a mirror partner that cancels its sideways part.
-  const supportsPair = !scalar && (id === 'bisector' || id === 'infinite' || id === 'ring' || arcLike);
+  const supportsPair = !scalar && (besideRod || id === 'infinite' || id === 'ring' || arcLike);
   // Looking straight down the z axis IS the flat drawing of a planar lesson: projectCamera
   // at yaw 0 and pitch a quarter turn reproduces the old planar projection to within 4e-16.
   // For a ring, a disk or a sheet the flat drawing is the textbook side view instead, the
@@ -452,6 +458,11 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
   // was interrupted used to leave it set for the rest of the session, and nothing said so.
   useLayoutEffect(() => { if (root.current) root.current.dataset.moving = String(moving); });
   const n = Math.max(3, Math.round(count)), R = p.size / 2;
+  // The rod off its bisector's cut at this N: where its mirrored stretch starts and how long it is, and its ends.
+  const offsetNow = offset ? offsetCut(p, n) : null;
+  // A rod beside P, by its two ends in the world: the bisector's at ±L/2, the rod off its bisector's at y₁ and y₂.
+  const rodY: [number, number] = offsetNow ? [offsetNow.y1, offsetNow.y2] : [-R, R];
+  const mirrorStart = offsetNow?.mirror.start ?? 0, mirrorCount = offsetNow?.mirror.count ?? 0;
   // The annulus's hole, its inner radius a: the rings run from it out to the rim, R = b. Zero on every other lesson.
   const hole = id === 'annulus' ? annulusRadii(p).a : 0;
   // The run's own piece, and whether Add them up is still handing it over to the chain (see `handOver`
@@ -477,9 +488,13 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
   // AND AT REST, IN THE SUM'S OWN VIEW. A teacher's link to the sum (`mode=sum`, with or without the pair) is the
   // run's finished Add them up, and drew it as the chain: on these four lessons the arch the run no longer draws, the
   // picture the owner took out. It is the same pairs there, all of them in: the sum along the axis, a tick per pair.
-  const pairedRun = supportsPair && boundRange[0] === 0 && boundRange[1] === 100 && (build ? build.key === 'add' || build.key === 'limit' : mode === 'sum');
+  // The rod off its bisector with P level with an end has no mirrored stretch at all: its sum is the chain, as the rod
+  // level with its end's is.
+  const pairedRun = supportsPair && !(offsetNow && offsetNow.mirror.count === 0) && boundRange[0] === 0 && boundRange[1] === 100 && (build ? build.key === 'add' || build.key === 'limit' : mode === 'sum');
   const pairStart = id === 'ring' && runPiece >= 0 ? runPiece : 0;
-  const pairSlots = useMemo(() => pairedRun ? pairOrder(id, n, pairStart) : null, [pairedRun, id, n, pairStart]);
+  // The compiler lint cannot prove that the mirrored stretch's two numbers will not be mutated later; they are numbers.
+  // oxlint-disable-next-line react/react-compiler
+  const pairSlots = useMemo(() => pairedRun ? pairOrder(id, n, pairStart, offset ? { start: mirrorStart, count: mirrorCount } : undefined) : null, [pairedRun, id, n, pairStart, offset, mirrorStart, mirrorCount]);
   const pairAt = pairSlots && handsOver && !handingOver ? pairStepAt(pairSlots.length, sumProgress) : null;
   const pairSlot = pairAt && pairSlots ? pairSlots[pairAt.k] : null;
   // The ring's last pair at an odd count is two half pieces: neither is a whole piece to light.
@@ -491,7 +506,9 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
   const interior = (i: number) => clamp(i, Math.ceil(.15 * n), Math.max(Math.ceil(.15 * n), Math.floor(.85 * n) - 1));
   const selectedIndex = handingOver ? runPiece : pairSlot ? pairSlot.a.of : handsOver ? activeIntervalIndex(n, boundRange, sumProgress)
     : build?.key === 'limit' ? interior(clamp(Math.round(selected), 0, n - 1)) : clamp(Math.round(selected), 0, n - 1);
-  const partnerIndex = id === 'ring' ? (selectedIndex + Math.floor(n / 2)) % n : n - 1 - selectedIndex;
+  // The rod off its bisector's piece has its mirror inside the mirrored stretch, and a leftover piece none: then it is
+  // given itself, as the middle piece of an odd cut is, and is drawn alone.
+  const partnerIndex = id === 'ring' ? (selectedIndex + Math.floor(n / 2)) % n : offsetNow ? (j => j < 0 ? selectedIndex : j)(offsetPartner(offsetNow, selectedIndex)) : n - 1 - selectedIndex;
   // A PIECE THAT IS ITS OWN MIRROR -- the middle one of an odd number, level with P -- has no partner: its
   // sideways part is nothing already. Paired with itself, it was drawn with a phantom mirror -- its ΔE twice,
   // a pair line over r_i, and a second ΔE_x laid on the first, so one piece showed twice its field, with α
@@ -503,8 +520,11 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
   // them only as `n`, which is passed beside this. Keyed on the whole params object instead, the
   // run's last stage -- which writes a new `continuum` every frame -- re-cut the charge on every
   // frame into exactly the pieces it already had, and handed the field a new array each time.
-  const { distance: pDistance, size: pSize, charge: pCharge, phi: pPhi, element: pElement, inner: pInner } = p;
-  const shape = useMemo<Params>(() => ({ distance: pDistance, size: pSize, charge: pCharge, phi: pPhi, element: pElement, slices: 0, continuum: 0, inner: pInner }), [pDistance, pSize, pCharge, pPhi, pElement, pInner]);
+  // The rod off its bisector alone reads `slices`: its two stretches are shared out from the reader's own N, so that
+  // Shrink them's doublings keep every cut (see `offsetCut`). Every other lesson keeps it at nought, as before.
+  const { distance: pDistance, size: pSize, charge: pCharge, phi: pPhi, element: pElement, inner: pInner, height: pHeight } = p;
+  const pSlices = offset ? p.slices : 0;
+  const shape = useMemo<Params>(() => ({ distance: pDistance, size: pSize, charge: pCharge, phi: pPhi, element: pElement, slices: pSlices, continuum: 0, inner: pInner, height: pHeight }), [pDistance, pSize, pCharge, pPhi, pElement, pInner, pHeight, pSlices]);
   const samples = useMemo(() => sampleDistribution(id, shape, n), [id, shape, n]);
   // What the FIELD is drawn from, which is not the same thing as what the reader is shown.
   //
@@ -541,7 +561,9 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
   // The pairs with their fields, and where the sum has got to: every step before this one in, and as much of
   // this one's part along the axis as the sum's arrow has taken. A piece is coloured in once all of it is in --
   // the ring's lengths straight across go in half a piece at a time -- and not while it is lit as the pair.
-  const pairSteps = useMemo(() => pairSlots ? pairPlan(id, samples, pairStart) : null, [pairSlots, id, samples, pairStart]);
+  // The compiler lint cannot prove that the mirrored stretch's two numbers will not be mutated later; they are numbers.
+  // oxlint-disable-next-line react/react-compiler
+  const pairSteps = useMemo(() => pairSlots ? pairPlan(id, samples, pairStart, offset ? { start: mirrorStart, count: mirrorCount } : undefined) : null, [pairSlots, id, samples, pairStart, offset, mirrorStart, mirrorCount]);
   const pairNow = pairSteps && pairAt ? { ...pairAt, ...pairPhase(pairAt.u), step: pairSteps[pairAt.k] } : null;
   const pairSoFar = pairNow && pairSteps ? pairSum(pairSteps, pairNow.k) : zero;
   // At rest the pairs are in whole, as many as the sum's progress has taken: all of them, as the page leaves it.
@@ -632,7 +654,11 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
   const flatDiskClearance = diskLike && !inSpace ? 25 + 1.37 * SYM * labelScale + 8 : 0;
   const surfaceRise = inSpace && boundedRound ? Math.max(0, R * surfaceRoomy * Math.abs(Math.sin(view.pitch)) - surfaceBelow + surfaceDrop + roundMargin - 10)
     : flatDiskClearance ? Math.max(0, 296 + lift + surfaceDrop + R * surfaceRoomy * Math.abs(Math.sin(view.pitch)) + flatDiskClearance - FOOTER_BAND) : 0;
-  const originAt1: Point = perspective ? { x: 315, y: 296 + lift + surfaceDrop - surfaceRise } : footed ? { x: 210, y: 250 + lift } : id === 'semi' ? { x: 200, y: 275 + lift } : id === 'axial' ? { x: 130, y: 230 } : arcLike ? { x: 375, y: 218 } : { x: 220, y: 216 };
+  // The rod off its bisector keeps its rod where the bisector's stands, centred on the same spot at the same scale, and
+  // its origin, P's foot, moves with P: a height h above the rod's middle, h·unit up the screen. So dragging h moves P
+  // along the rod, and neither the rod nor the scale under it.
+  const offsetUnit = Math.min(45, 140 / R);
+  const originAt1: Point = perspective ? { x: 315, y: 296 + lift + surfaceDrop - surfaceRise } : offset ? { x: 220, y: 216 - offsetEnds(p).h * offsetUnit } : footed ? { x: 210, y: 250 + lift } : id === 'semi' ? { x: 200, y: 275 + lift } : id === 'axial' ? { x: 130, y: 230 } : arcLike ? { x: 375, y: 218 } : { x: 220, y: 216 };
   // Pixels per metre, times whatever the reader has zoomed to. The projection, the canvas
   // and the 3D frustum all read this, so one multiply zooms the whole figure and no layer
   // can disagree with another about scale.
@@ -651,7 +677,7 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
   // The ring, the disk and the sheet: see `surfaceUnit`.
   const baseUnit = perspective ? surfaceRoomy
     : footed ? Math.min(45, 150 / p.size)
-    : id === 'bisector' ? Math.min(45, 140 / R)
+    : besideRod ? offsetUnit
     : id === 'axial' ? fit(p.size + p.distance, 400, 20, 70)
     // A little smaller on a phone, where the axis' letter is set half as large again and lower: at sixty-five per metre
     // the half circle's top end reached the y axis' top, and the letter stood on the arc beside the top handle and its
@@ -740,6 +766,7 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
   const P = project(pWorld);
   const world = (t: number): Vec => {
     if (id === 'bisector') return { x: 0, y: p.size * (t - .5), z: 0 };
+    if (offsetNow) return { x: 0, y: offsetAt(offsetNow, clamp(t, 0, 1)), z: 0 };
     if (id === 'axial') return { x: p.size * t, y: 0, z: 0 };
     if (footed) return { x: 0, y: p.size * t, z: 0 };
     if (id === 'infinite') return { x: 0, y: p.distance * Math.tan(Math.PI * (clamp(t, .001, .999) - .5)), z: 0 };
@@ -755,7 +782,7 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
   // A rod or a line, drawn flat as a bar this many units either side of its axis.
   const rodLike = !surface && id !== 'ring' && !arcLike, rodHalf = 7;
   // Where the charge is, seen from P: the middle of the rod, the ring's centre, the arc's own middle.
-  const chargeCentre: Vec = arcLike ? world(.5) : id === 'axial' ? { x: p.size / 2, y: 0, z: 0 } : footed ? { x: 0, y: p.size / 2, z: 0 } : zero;
+  const chargeCentre: Vec = arcLike ? world(.5) : id === 'axial' ? { x: p.size / 2, y: 0, z: 0 } : footed ? { x: 0, y: p.size / 2, z: 0 } : offsetNow ? { x: 0, y: (rodY[0] + rodY[1]) / 2, z: 0 } : zero;
   const toCharge = vsub(project(chargeCentre), P);
   // The diameter lying across the screen: (cos yaw, sin yaw, 0) is exactly the direction the camera maps
   // to screen-horizontal. See the fan below.
@@ -851,7 +878,7 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
     let partialSum: Vec = zero;
     // Where the sum goes in mirror pairs, what it reaches is the pairs' running sum along the axis and each
     // pair's arrows drawn from its tip -- not the arch the chain would have made, which is never drawn.
-    const runPairs = supportsPair && full ? pairPlan(id, runSamples, id === 'ring' && runPiece >= 0 ? Math.floor((runPiece + .5) / n * runSamples.length) : 0) : null;
+    const runPairs = supportsPair && full ? pairPlan(id, runSamples, id === 'ring' && runPiece >= 0 ? Math.floor((runPiece + .5) / n * runSamples.length) : 0, offset ? offsetCut(p, runSamples.length).mirror : undefined) : null;
     if (runPairs) for (const st of runPairs) {
       for (const f of [st.fa, st.fb ?? zero, alongAxis(id, st.fa)]) reach.push(screen({ x: partialSum.x + f.x, y: partialSum.y + f.y, z: partialSum.z + f.z }));
       partialSum = { x: partialSum.x + st.along.x, y: partialSum.y + st.along.y, z: partialSum.z + st.along.z };
@@ -993,7 +1020,8 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
     // The room each piece's arrows have, as the length of its own arrow: the strongest pieces set the power, and where
     // even the weakest has less than the target, the length it starts from. Never more than three times the target either:
     // at rest a piece level with P, forty times the end piece, was drawn four hundred units long across the picture.
-    const room = cut.map((s, i) => sizes[i] > 1e-30 ? Math.min(roomFor(s.field, id !== 'ring' && i === cut.length - 1 - i) * gain * sizes[i], 3 * pieceTarget) : Infinity);
+    const cutOffset = offset ? offsetCut(p, cut.length) : null;
+    const room = cut.map((s, i) => sizes[i] > 1e-30 ? Math.min(roomFor(s.field, cutOffset ? offsetPartner(cutOffset, i) < 0 : id !== 'ring' && i === cut.length - 1 - i) * gain * sizes[i], 3 * pieceTarget) : Infinity);
     let power = 1;
     for (let i = 0; i < cut.length; i++) if (sizes[i] > lo * 1.001) power = Math.min(power, room[i] > pieceTarget ? Math.log(room[i] / pieceTarget) / Math.log(sizes[i] / lo) : 0);
     power = Math.max(power, .25);
@@ -1140,8 +1168,8 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
     // the pair, enlarged at its tip, was drawn over the rod and the L bracket beside it, its sum's name on the rod. So
     // drawn flat, the enlarged arrows stop short of where the charge is drawn -- the rod with its bracket, the endless
     // line's band, a wire's own curve -- and a pair whose tip is already on it goes in at its true size.
-    const lBar = id === 'bisector' || footed ? O.x - 40 - (22 + 26 * (labelScale - 1)) : 0;
-    const ends = id === 'bisector' ? [O.y - R * unit, O.y + R * unit] : footed ? [O.y - p.size * unit, O.y] : [0, 0];
+    const lBar = besideRod || footed ? O.x - 40 - (22 + 26 * (labelScale - 1)) : 0;
+    const ends = besideRod ? [O.y - rodY[1] * unit, O.y - rodY[0] * unit] : footed ? [O.y - p.size * unit, O.y] : [0, 0];
     const wire = !inSpace && !lBar && id !== 'infinite' ? (bodyPath ?? []).map(project) : [];
     const onCharge = (q: Point) => !inSpace && (lBar ? (Math.abs(q.x - O.x) <= rodHalf + 4 || Math.abs(q.x - lBar) <= 6) && q.y >= Math.min(...ends) - 6 && q.y <= Math.max(...ends) + 6
       : id === 'infinite' ? Math.abs(q.x - O.x) <= rodHalf + 4 : wire.some(c => Math.hypot(c.x - q.x, c.y - q.y) < 8));
@@ -1159,12 +1187,15 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
   const pairDraw = pairNow ? (() => {
     const { step, grow, cancel, merge } = pairNow;
     const m = pairM;
-    const from = plus(P, fieldScreen(pairSoFar)), g = (v: Vec, k = 1) => fieldScreen(v, grow * k * m);
-    const aKeep = g(alongAxis(id, step.fa)), bKeep = step.fb ? g(alongAxis(id, step.fb)) : null;
+    const from = plus(P, scaleVec2(fieldScreen(pairSoFar), offset && netCut < 1 ? netCut : 1)), g = (v: Vec, k = 1) => fieldScreen(v, grow * k * m);
+    // A lone leftover piece goes in whole, both parts at once: nothing of it cancels.
+    const aKeep = g(step.alone ? step.fa : alongAxis(id, step.fa)), bKeep = step.fb ? g(alongAxis(id, step.fb)) : null;
     const aDrop = g(acrossAxis(id, step.fa), 1 - cancel), bDrop = step.fb ? g(acrossAxis(id, step.fb), 1 - cancel) : null;
     const across = Math.hypot(fieldScreen(acrossAxis(id, step.fa)).x, fieldScreen(acrossAxis(id, step.fa)).y);
     return { from, a: g(step.fa), b: step.fb ? g(step.fb) : null, aKeep, bKeep, aDrop, bDrop, bKeepFrom: plus(from, scaleVec2(aKeep, cancel)),
-      hasDrop: !!step.fb && across > 1, whole: clamp(1 - cancel * 1.25, 0, 1), dropFade: clamp((1 - cancel) * 6, 0, 1), keepFade: 1 - merge };
+      hasDrop: !!step.fb && across > 1, whole: clamp(1 - cancel * 1.25, 0, 1), dropFade: clamp((1 - cancel) * 6, 0, 1),
+      // A lone leftover piece's arrow stays where it went in: it is the next link of the leftover's chain (see `pairTicks`).
+      keepFade: step.alone ? 1 : 1 - merge };
   })() : null;
   // A TICK ACROSS THE SUM'S ARROW WHERE EACH PAIR'S SHARE ENDS: long steps for the near pairs, short for the far.
   // In Shrink them they crowd and fade as the pieces multiply, as the chain's links used to. Not at the arrow's
@@ -1176,8 +1207,13 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
   // it is, a part that has gone: a ghost of the axis out to the farthest the sum reached, dashed and faint as
   // What cancels draws its ghosts, its ticks on it. And never closer than ten units, where a ring cut thirty ways
   // packed seven across the arrow into a fishbone.
+  // THE ROD OFF ITS BISECTOR'S LEFTOVER, GOING IN. Its pairs build the sum along the axis, as the bisector's do; then
+  // its leftover pieces go in whole, and the sum's arrow leans off the axis. From there the pairs' share is kept on the
+  // axis as a dashed line from P with its ticks, and the leftover's arrows laid tip to tail from its end to the sum's
+  // tip: the axis leg, the leftover's chain, and the sum's arrow closing the two, so the lean is seen to come from the
+  // leftover alone. `axis`, `axisTicks` and `chain` are empty everywhere else.
   const pairTicks = (() => {
-    const none = { d: '', ghost: '', ghostTicks: '' };
+    const none = { d: '', ghost: '', ghostTicks: '', axis: '', axisTicks: '', chain: [] as Point[] };
     if (!pairSteps) return none;
     const ends = pairNow ? pairNow.k : restPairs >= 0 ? restPairs : build?.key === 'limit' ? pairSteps.length : 0;
     const u = direction(fieldScreen(id === 'ring' ? { x: 0, y: 0, z: 1 } : { x: 1, y: 0, z: 0 }));
@@ -1185,6 +1221,15 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
     const nrm = { x: -u.y, y: u.x }, tipV = net, tipA = tipV.x * u.x + tipV.y * u.y;
     const at = (a: number) => ({ x: P.x + u.x * a, y: P.y + u.y * a });
     const tick = (a: number) => { const c = at(a); return `M${(c.x - nrm.x * 6).toFixed(1)} ${(c.y - nrm.y * 6).toFixed(1)}L${(c.x + nrm.x * 6).toFixed(1)} ${(c.y + nrm.y * 6).toFixed(1)}`; };
+    const paired = pairSteps.filter(st => !st.alone).length;
+    if (offset && (ends > paired || (pairNow && pairNow.step.alone))) {
+      const lean = netCut < 1 ? netCut : 1, pt = (k: number) => plus(P, scaleVec2(fieldScreen(pairSum(pairSteps, k)), lean));
+      const axisEnd = pt(paired), axisLen = Math.hypot(axisEnd.x - P.x, axisEnd.y - P.y);
+      let axisTicks = '', last = 0;
+      for (let j = 1; j < paired; j++) { const c = pt(j), a = (c.x - P.x) * u.x + (c.y - P.y) * u.y; if (Math.abs(a) > 4 && Math.abs(a) < axisLen - 6 && Math.abs(a) - last >= 10) { axisTicks += tick(a); last = Math.abs(a); } }
+      const chain = Array.from({ length: Math.max(0, ends - paired) + 1 }, (_, k) => pt(paired + k));
+      return { ...none, axis: paired > 0 && axisLen > 2 ? `M${P.x.toFixed(1)} ${P.y.toFixed(1)}L${axisEnd.x.toFixed(1)} ${axisEnd.y.toFixed(1)}` : '', axisTicks, chain };
+    }
     const along = Array.from({ length: ends }, (_, j) => { const c = fieldScreen(pairSum(pairSteps, j + 1)); return c.x * u.x + c.y * u.y; });
     // The way the arrow points, or with no arrow to speak of, the way the sum went.
     const far = along.reduce((m, a) => Math.abs(a) > Math.abs(m) ? a : m, 0), sign = Math.abs(tipA) >= 9 ? Math.sign(tipA) : Math.sign(far) || 1;
@@ -1196,14 +1241,21 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
     }
     const farthest = Math.max(0, ...along.map(a => a * sign));
     // A sum cut at the frame went on past it, not back from it: no ghost there.
-    if (farthest < reach + 9 || netCut < 1) return { d, ghost: '', ghostTicks: '' };
+    if (farthest < reach + 9 || netCut < 1) return { ...none, d };
     for (const a of [...along].sort((x, y) => x * sign - y * sign)) {
       const s = a * sign;
       if (s > reach + 6 && s - lastOver >= 10) { ghostTicks += tick(s * sign); lastOver = s; }
     }
     const g0 = at(sign * (reach + 3)), g1 = at(sign * farthest);
-    return { d, ghost: `M${g0.x.toFixed(1)} ${g0.y.toFixed(1)}L${g1.x.toFixed(1)} ${g1.y.toFixed(1)}`, ghostTicks };
+    return { ...none, d, ghost: `M${g0.x.toFixed(1)} ${g0.y.toFixed(1)}L${g1.x.toFixed(1)} ${g1.y.toFixed(1)}`, ghostTicks };
   })();
+  // The same in space: the pairs' sum along the axis as one link, then each leftover piece's arrow that is in.
+  const offsetChain = offset && pairSteps && pairTicks.chain.length > 1 ? (() => {
+    const paired = pairSteps.filter(st => !st.alone).length;
+    const fields = [pairSum(pairSteps, paired), ...pairSteps.slice(paired, paired + pairTicks.chain.length - 1).map(st => st.fa)], weights = fields.map(() => 1);
+    if (pairNow?.step.alone && pairNow.merge > 0) { fields.push(pairNow.step.fa); weights.push(pairNow.merge); }
+    return { fields, weights };
+  })() : null;
   // Pointing at one piece's CHARGE lights the piece and names it; it does not need the arrow and
   // the construction lines, which belong to the distance and the direction. The run's first stage
   // lights the charge while it cuts, and drawing the arrow there would show the second stage early.
@@ -1848,9 +1900,9 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
   })() : null;
   // A rod or ring is one object. Doubling N inserts mid-cuts on pieces that already
   // exist (stable intervalKey / seamKey), instead of remounting a newly indexed set.
-  const upright = id === 'bisector' || id === 'infinite' || id === 'semi' || footed;
+  const upright = besideRod || id === 'infinite' || id === 'semi' || footed;
   const along = (pt: Point) => upright ? pt.y : pt.x;
-  const rodEnds: [number, number] = id === 'bisector' ? [O.y - R * unit, O.y + R * unit] : footed ? [O.y - p.size * unit, O.y] : id === 'infinite' ? [55, 370] : id === 'semi' ? [55, O.y] : id === 'axial' ? [O.x, O.x + p.size * unit] : [O.x, 640];
+  const rodEnds: [number, number] = besideRod ? [O.y - rodY[1] * unit, O.y - rodY[0] * unit] : footed ? [O.y - p.size * unit, O.y] : id === 'infinite' ? [55, 370] : id === 'semi' ? [55, O.y] : id === 'axial' ? [O.x, O.x + p.size * unit] : [O.x, 640];
   const rodLow = Math.min(...rodEnds), rodHigh = Math.max(...rodEnds);
   /** Where a line from a piece of a rod toward `to` leaves the rod, a little clear of its edge. The
    * dashed lines from a piece and its partner to P began at the piece's middle, which is where its +
@@ -1886,7 +1938,7 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
   function rodPath() {
     const x = upright ? O.x - rodHalf : rodLow, y = upright ? rodLow : O.y - rodHalf;
     const w = upright ? rodHalf * 2 : rodHigh - rodLow, h = upright ? rodHigh - rodLow : rodHalf * 2;
-    const r = (id === 'bisector' || id === 'axial' || footed) ? rodHalf : 0;
+    const r = (besideRod || id === 'axial' || footed) ? rodHalf : 0;
     if (!r) return `M${x},${y}h${w}v${h}h${-w}z`;
     return `M${x + r},${y}h${w - 2 * r}a${r},${r} 0 0 1 ${r},${r}v${h - 2 * r}a${r},${r} 0 0 1 ${-r},${r}h${-(w - 2 * r)}a${r},${r} 0 0 1 ${-r},${-r}v${-(h - 2 * r)}a${r},${r} 0 0 1 ${r},${-r}z`;
   }
@@ -1920,7 +1972,10 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
   const markCount = Math.max(0, Math.floor((rodHigh - rodLow) / pitch));
   // The ramp keeps a density-weighted placement, because crowding IS the lesson there, but
   // any mark that lands on a cut is dropped rather than drawn over it.
-  const cuts = Array.from({ length: Math.max(0, n - 1) }, (_, i) => rodLow + pieceSpan * (i + 1));
+  // The rod off its bisector's pieces are not all one length (its two stretches are cut apart), so its cuts and its
+  // pieces' middles are read off its own cut, as the pieces are drawn.
+  const cutAtPiece = (i: number) => along(project(world(i / n)));
+  const cuts = offset ? Array.from({ length: Math.max(0, n - 1) }, (_, i) => cutAtPiece(i + 1)) : Array.from({ length: Math.max(0, n - 1) }, (_, i) => rodLow + pieceSpan * (i + 1));
   const clearOfCuts = (v: number) => cuts.every(c => Math.abs(v - c) > 5 * labelScale);
   // THE BREAK MARKS where a line that never ends is cut off by the frame: two short strokes across it,
   // a little way in from each edge -- at the edge they crowded the axis letter, the ∞ and the limit's
@@ -1963,6 +2018,11 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
     : fanned ? Array.from({ length: markCount }, (_, k) => rodLow + (rodHigh - rodLow) * (k + .5) / markCount).filter(v => clearOfCuts(v) && clearOfBreaks(v))
     // Clear of the breaks here too: in the limit the line's marks come from the partition, and a + stood between
     // the two strokes of each break, its ground ring cutting one of them in two.
+    // One at each piece's middle, a mark's pitch from the last at the least: a sliver of a leftover piece beside P's level
+    // must not thin out the marks of the full-length pieces next to it.
+    : offset ? (() => { const edges = Array.from({ length: n + 1 }, (_, i) => cutAtPiece(i)), out: number[] = [];
+      for (let i = 0; i < n; i++) { const c = (edges[i] + edges[i + 1]) / 2; if (Math.abs(edges[i + 1] - edges[i]) >= 16 * labelScale && (!out.length || Math.abs(c - out[out.length - 1]) >= pitch)) out.push(c); }
+      return out; })()
     : Array.from({ length: Math.max(1, n) }, (_, i) => rodLow + pieceSpan * (i + .5)).filter((v, i) => i % markStride === 0 && clearOfBreaks(v));
   const arcMarks = arcLike && !inSpace ? (() => {
     const per = Math.abs(p.phi) * R * unit / n, stride = Math.max(1, Math.ceil(19 * labelScale / Math.max(1, per)));
@@ -2093,7 +2153,7 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
     // The axis lesson's in space too, on the rod as projected: its bracket, under the rod seen flat, is drawn by the flat
     // view's fixed rows, and was simply left out once the view turned -- with the Δx the footer writes ΔQ in.
     // ...and the rod on its bisector's, beside the rod as projected on the side away from P, where r_i's line is not.
-    const projected = surface || (inSpace && (id === 'axial' || id === 'bisector'));
+    const projected = surface || (inSpace && (id === 'axial' || besideRod));
     if (projected) {
       if (id === 'sheet' && selectedIndex >= n - 1) return null;
       const end = (t: number) => project(surface ? { x: Math.abs(world(t).x), y: 0, z: 0 } : world(t));
@@ -2105,7 +2165,7 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
       if (Math.hypot(b.x - a.x, b.y - a.y) < 12) { if (!shrinking) return null; a = { x: middle.x - u.x * 6, y: middle.y - u.y * 6 }; b = { x: middle.x + u.x * 6, y: middle.y + u.y * 6 }; }
       let nrm = { x: -u.y, y: u.x };
       // Away from P; on the rod, which P stands in line with, on its lower side, away from r_i's bracket.
-      if (surface || id === 'bisector' ? nrm.x * (P.x - middle.x) + nrm.y * (P.y - middle.y) > 0 : nrm.y < 0) nrm = { x: -nrm.x, y: -nrm.y };
+      if (surface || besideRod ? nrm.x * (P.x - middle.x) + nrm.y * (P.y - middle.y) > 0 : nrm.y < 0) nrm = { x: -nrm.x, y: -nrm.y };
       const at = (q: Point, k = 9): Point => ({ x: q.x + nrm.x * k, y: q.y + nrm.y * k }), A = at(a), B = at(b), M = at(middle);
       const tick = (q: Point) => `M${(q.x - nrm.x * 4).toFixed(1)} ${(q.y - nrm.y * 4).toFixed(1)}l${(nrm.x * 8).toFixed(1)} ${(nrm.y * 8).toFixed(1)}`;
       const label = besidePoint(M, nrm, 5, size), ends = [direction({ x: nrm.x - u.x, y: nrm.y - u.y }) ?? nrm, direction({ x: nrm.x + u.x, y: nrm.y + u.y }) ?? nrm];
@@ -2157,8 +2217,8 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
       const x = O.x + p.size * unit;
       return { top: [spot(x, O.y - rodHalf - 10, 'middle'), spot(x + 10, barY + 8 + 1.9 * SYM * labelScale, 'middle')].join(';'), bottom: '', topWithin: undefined, bottomWithin: undefined };
     }
-    const top = id === 'bisector' ? O.y - R * unit : O.y - p.size * unit, bottom = id === 'bisector' ? O.y + R * unit : O.y;
-    const under = id === 'bisector' ? Math.min(bottom + 20, 366) : O.y - 9;
+    const top = besideRod ? O.y - rodY[1] * unit : O.y - p.size * unit, bottom = besideRod ? O.y - rodY[0] * unit : O.y;
+    const under = besideRod ? Math.min(bottom + 20, 366) : O.y - 9;
     const cap = Math.max(24, .6 * (bottom - top) / 2);
     return {
       // On P's side of the rod only: across it, an end's name stood by L's bracket and read as a second name for it.
@@ -2177,13 +2237,13 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
         const out = O.x + rodHalf + 30, side = spot(out, top - 8, 'start'), above = up.map(d => spot(O.x + 17, top - d, 'start'));
         return {
           top: (bottom - top < 60 ? [side, ...above] : [...above.slice(0, 1), side, ...above.slice(1)]).join(';'),
-          bottom: [...(down > 4 ? [spot(O.x + 17, Math.min(under + down, 368), 'start')] : []), ...(id === 'bisector' ? [spot(out, Math.min(bottom + 20, 366), 'start')] : [spot(O.x + 17, O.y + 24, 'start')])].join(';'),
+          bottom: [...(down > 4 ? [spot(O.x + 17, Math.min(under + down, 368), 'start')] : []), ...(besideRod ? [spot(out, Math.min(bottom + 20, 366), 'start')] : [spot(O.x + 17, O.y + 24, 'start')])].join(';'),
         };
       })(),
       // ...and the search round those spots kept to the same cap: a name's centre no further up than that.
       // And no further out than seventy-five units past the rod's face, for the same reason as the side spot.
       topWithin: `${(O.x + rodHalf).toFixed(1)} 0 1 0;${(O.x + rodHalf + 75).toFixed(1)} 0 -1 0;0 ${top.toFixed(1)} 0 -1;0 ${(top - cap - 4).toFixed(1)} 0 1`,
-      bottomWithin: `${(O.x + rodHalf).toFixed(1)} 0 1 0;${(O.x + rodHalf + 75).toFixed(1)} 0 -1 0${id === 'bisector' ? `;0 ${bottom.toFixed(1)} 0 1;0 ${(bottom + cap + 4).toFixed(1)} 0 -1` : ''}`,
+      bottomWithin: `${(O.x + rodHalf).toFixed(1)} 0 1 0;${(O.x + rodHalf + 75).toFixed(1)} 0 -1 0${besideRod ? `;0 ${bottom.toFixed(1)} 0 1;0 ${(bottom + cap + 4).toFixed(1)} 0 -1` : ''}`,
     };
   })();
   // THE y AXIS' LETTER ON A FOOTED ROD THAT REACHES THE AXIS' TOP goes on the axis' other side. Right of it, it stood
@@ -2201,8 +2261,8 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
   // nothing else, lost every given on the figure. Drawn through the projection instead, on true segments: L's bracket
   // beside the rod on the side away from P, r's from the rod to P beside the x axis, under it, and each end's name
   // past its end.
-  const spaceRod = inSpace && id === 'bisector' ? (() => {
-    const o = project(zero), top = project({ x: 0, y: R, z: 0 }), bottom = project({ x: 0, y: -R, z: 0 });
+  const spaceRod = inSpace && besideRod ? (() => {
+    const o = project(zero), top = project({ x: 0, y: rodY[1], z: 0 }), bottom = project({ x: 0, y: rodY[0], z: 0 });
     const along = direction(vsub(top, bottom)), toP = direction(vsub(P, o));
     if (!along || !toP) return null;
     let away = { x: -along.y, y: along.x };
@@ -2222,14 +2282,30 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
     const rn = { x: -toP.y, y: toP.x }, rSide = rn.x * under.x + rn.y * under.y >= 0 ? 1 : -1;
     if (Math.hypot(to.x - from.x, to.y - from.y) > 12) dims.push({ ...dimBar('r', 'distance', from, to, 'r', rSide), within: `${off.x.toFixed(1)} ${off.y.toFixed(1)} ${under.x.toFixed(3)} ${under.y.toFixed(3)}` });
   }
-  if ((id === 'bisector' && !spaceRod) || footed) {
+  if ((besideRod && !spaceRod) || footed) {
     // L's bracket stands left of the rod; its letter sits left of the bracket and up from the x
     // axis, which runs through the bracket's middle on the bisector.
-    const top = id === 'bisector' ? O.y - R * unit : O.y - p.size * unit, bottom = id === 'bisector' ? O.y + R * unit : O.y;
+    const top = besideRod ? O.y - rodY[1] * unit : O.y - p.size * unit, bottom = besideRod ? O.y - rodY[0] * unit : O.y;
     const bar = dimBar('L', 'size', { x: O.x - 40 - lOut, y: top }, { x: O.x - 40 - lOut, y: bottom }, 'L', 1);
-    const at = id === 'bisector' ? top + (bottom - top) * .73 : (top + bottom) / 2;
+    // Off the x axis, which crosses the bar at P's level: on the rod off its bisector, in the middle of the longer of the
+    // bar's two stretches either side of it.
+    const at = id === 'bisector' ? top + (bottom - top) * .73 : offset ? (O.y - top >= bottom - O.y ? (top + O.y) / 2 : (O.y + bottom) / 2) : (top + bottom) / 2;
     dims.push({ ...bar, label: { x: O.x - 48 - lOut, y: at + .3 * SYM * labelScale, anchor: 'end' } });
   }
+  // WHICH PART OF THE ROD HAS MIRRORS. The rod off its bisector's whole lesson is that only part of it mirrors itself
+  // across P's level: the stretch from −m to m, m the nearer end's distance from that level. A bracket beside the rod,
+  // out past L's, marks that stretch "pairs" and the rest "leftover", in the order the sum takes them in; flat only,
+  // where the rod is upright on the page, and only where there are both.
+  const partsBracket = offset && offsetNow && !inSpace && offsetNow.m > 1e-9 && offsetNow.L - 2 * offsetNow.m > 1e-9 ? (() => {
+    const x = O.x - 40 - lOut - 26 * labelScale, gap = 2, m = offsetNow.m;
+    const pairs: [number, number] = [O.y - m * unit, O.y + m * unit];
+    const rest: [number, number] = offsetNow.h > 0 ? [O.y + m * unit, O.y - rodY[0] * unit] : [O.y - rodY[1] * unit, O.y - m * unit];
+    const bar = ([a, b]: [number, number], first: boolean) => { const lo = Math.min(a, b) + (first ? 0 : gap), hi = Math.max(a, b) - (first ? gap : 0); return { lo, hi, d: `M${(x + 5).toFixed(1)} ${lo.toFixed(1)}H${x.toFixed(1)}V${hi.toFixed(1)}H${(x + 5).toFixed(1)}` }; };
+    // The upper stretch's bar stops a little short of the lower's, so the two read as two.
+    const pairsUpper = offsetNow.h > 0, a = bar(pairs, pairsUpper), b = bar(rest, !pairsUpper);
+    const name = (lo: number, hi: number) => ({ x: x - 7, y: (lo + hi) / 2 + .3 * SYM * labelScale, mid: { x, y: (lo + hi) / 2 } });
+    return { d: a.d + b.d, pairs: { ...name(a.lo, a.hi), long: a.hi - a.lo }, rest: { ...name(b.lo, b.hi), long: b.hi - b.lo } };
+  })() : null;
   // EVERY ARROW DRAWN FROM P, as points along it, for the bars measuring r to stay clear of: a bar
   // laid at a fixed offset put its tick under the head of a part pointing straight down from P.
   const fromP: Point[] = (() => {
@@ -2252,7 +2328,7 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
   // The semi-infinite line too, whose leg stands up from the rod to P: its bar had to stand left of everything
   // drawn from P, so it jumped from stage to stage and in What cancels stood far out past ΔE_x's tip, while
   // the leg that IS r went unlettered.
-  const rOnLeg = !inSpace && !scalar && (id === 'bisector' || id === 'infinite' || footed || id === 'semi') && components && hasDrop && showContribution
+  const rOnLeg = !inSpace && !scalar && (besideRod || id === 'infinite' || footed || id === 'semi') && components && hasDrop && showContribution
     && building !== 'add' && building !== 'limit' && selectedOnFrame && P.x - O.x >= rodHalf + 6;
   // A NEGATIVE CHARGE'S ΔE_x LIES ON THE r LEG. Its part along the axis points from P back at the rod, down the leg
   // that is r, and the leg was painted over it: the arrow read as the leg with a teal head, and the two names took
@@ -2271,7 +2347,7 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
     const u = direction(keepScreen)!, n = { x: -u.y * keepSide, y: u.x * keepSide };
     return [[.8, 7], [.9, 4], [.97, 3], [.4, 7]].map(([f, g]) => besidePoint(plus(P, scaleVec2(keepScreen, f)), n, g, SYM * labelScale, .52)).map(q => `${q.x.toFixed(1)} ${q.y.toFixed(1)} ${q.anchor}`).join(';');
   })() : undefined;
-  if ((id === 'bisector' || id === 'infinite' || footed || id === 'semi') && !rOnLeg && !spaceRod) {
+  if ((besideRod || id === 'infinite' || footed || id === 'semi') && !rOnLeg && !spaceRod) {
     // r, from the rod to P, on a bar below the axis that stops at P rather than running into it --
     // and below anything drawn down from P over that stretch, sixteen units clear of its lowest point.
     // From the rod's edge -- or its axis, for a P closer in than the edge's tick could stand.
@@ -2460,7 +2536,7 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
     // ...but not once the last pair has gone in. The gain is the size it ARRIVED at, and on the held last frame of the
     // stage the pair is in at its true size and no pair arrow is drawn at all: the corner claimed an enlargement that was
     // nowhere on the figure, beside the finished sum.
-    if (pairNow && pairGain > 1.25 && !(pairSteps && pairNow.k === pairSteps.length - 1 && pairNow.merge > .99)) return 'This pair drawn larger';
+    if (pairNow && pairGain > 1.25 && !(pairSteps && pairNow.k === pairSteps.length - 1 && pairNow.merge > .99)) return pairNow.step.alone || !pairNow.step.fb ? 'This piece drawn larger' : 'This pair drawn larger';
     if (build && !scalar && (building === 'one' || building === 'cancel') && showContribution) {
       // Said of what changed -- the arrows, not the piece, which is the size it was -- and of both pieces where
       // What cancels draws the mirror's too; on the disk, the sheet and their potential the piece is a ring.
@@ -2517,7 +2593,7 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
     // between the column's name and its blocks.
     if (gauge) { add({ x: gauge.leftSide ? -1 : 1, y: 0 }); add({ x: gauge.leftSide ? -1 : 1, y: gauge.up ? -1 : 1 }); add({ x: 0, y: gauge.up ? -1 : 1 }); }
     // The bars beneath P and beside it.
-    if (!inSpace && (id === 'bisector' || id === 'infinite' || id === 'semi' || footed || id === 'axial')) add({ x: 0, y: 1 });
+    if (!inSpace && (besideRod || id === 'infinite' || id === 'semi' || footed || id === 'axial')) add({ x: 0, y: 1 });
     if (!inSpace && perspective) add({ x: -1, y: 0 });
     // Up-left first, then the other diagonals, then the sides: the order a hand would letter a point.
     //
@@ -3392,16 +3468,20 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
       // The run, for the scene to draw as bodies: the same partition, partner, sum and arrows the
       // flat marks below are drawn from, at the same scale, so the two can never tell it differently.
       run={build ? runScene({ stage: building, kind: diskLike ? 'disk' : id === 'sheet' ? 'sheet' : 'wire', closed: id === 'ring', n, selected: selectedIndex, at: world,
-        selectedSpan: halfPair && pairSlot ? [pairSlot.a.lo, pairSlot.a.hi] : null, mirrored: supportsPair,
+        // A leftover piece of the rod off its bisector has no mirror, so its sideways part survives and is drawn solid.
+        selectedSpan: halfPair && pairSlot ? [pairSlot.a.lo, pairSlot.a.hi] : null, mirrored: supportsPair && !(offset && (pairNow ? !!pairNow.step.alone : partnerIndex === selectedIndex)),
         partner: partnerLit ? (mirrorArc ? 'across' : partnerIndex) : halfPair && pairSlot?.b ? { lo: pairSlot.b.lo, hi: pairSlot.b.hi } : null, weights, summing: mode === 'sum' || mode === 'integrate', continuum, split,
         // The stretches the pairs before this one have put in: the ring cut an odd number of ways takes pieces in by halves.
         added: pairNow && pairSteps ? pairSteps.slice(0, pairNow.k).flatMap(s => s.b ? [[s.a.lo, s.a.hi], [s.b.lo, s.b.hi]] as [number, number][] : [[s.a.lo, s.a.hi]] as [number, number][]) : null,
         // The pair going in, laid from the tip of the sum so far at the sum's own scale: see `pairDraw`.
-        arrows: pairNow ? { scale: pairNow.grow * pairM * gain / unit, field: pairNow.step.fa, keep: alongAxis(id, pairNow.step.fa), drop: acrossAxis(id, pairNow.step.fa), partner: pairNow.step.fb,
+        arrows: pairNow ? { scale: pairNow.grow * pairM * gain / unit, field: pairNow.step.fa, keep: pairNow.step.alone ? pairNow.step.fa : alongAxis(id, pairNow.step.fa), drop: pairNow.step.alone ? zero : acrossAxis(id, pairNow.step.fa), partner: pairNow.step.fb,
             partnerKeep: pairNow.step.fb ? alongAxis(id, pairNow.step.fb) : zero, partnerDrop: pairNow.step.fb ? acrossAxis(id, pairNow.step.fb) : zero, components: true, cancelled: pairNow.cancel,
             from: scaleVec(pairSoFar, gain / unit), fade: 1 - pairNow.merge }
           : !scalar && showContribution && mode !== 'sum' && building !== 'limit' ? { scale: selectedGain * gain / unit, field: sample.field, keep, drop, partner: pairing ? partnerField : null, partnerKeep, partnerDrop, components, cancelled: cancelT } : null,
-        chain: chaining ? { scale: gain / unit, fields: samples.map(s => s.field), weights } : null }) : null} />}
+        // The rod off its bisector's leftover going in: the pairs' share along the axis, then the leftover's arrows tip to
+        // tail from its end, as the flat figure lays them (see `pairTicks`).
+        chain: chaining ? { scale: gain / unit, fields: samples.map(s => s.field), weights }
+          : offsetChain ? { scale: netCut * gain / unit, fields: offsetChain.fields, weights: offsetChain.weights } : null }) : null} />}
     <LabelScale.Provider value={labelScale}>
     <svg ref={svg} className={`cd-svg${inSpace ? ' cd-orbitable' : ''}${scalar ? ' cd-scalar' : ''}`} style={{ '--cd-plot-clip': plotClip } as CSSProperties} viewBox="0 0 720 430" role="img" tabIndex={inSpace ? 0 : undefined} {...(inSpace ? orbit : {})} aria-label={`${problem.title}. Interactive charge distribution and ${scalar ? 'electric potential' : 'electric field'} visualization.${inSpace ? ' Drag or use the arrow keys to rotate the view, plus and minus to zoom, Home to reset it.' : ''}`}>
       <defs>
@@ -3566,7 +3646,13 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
         {d.label && <text x={d.label.x} y={d.label.y} textAnchor={d.label.anchor} data-mirror={`${((d.a.x + d.b.x) / 2).toFixed(1)} ${((d.a.y + d.b.y) / 2).toFixed(1)}`} data-alt={d.alt} data-within={d.within} data-shaft={lineOf(d.a, d.b)} {...GIVEN}>{d.name}</text>}
       </g>)}
       {id === 'bisector' && !spaceRod && <g data-dim="size" className={`cd-dimension${inSpace && !perspective ? ' is-hidden' : ''}`}><text className="cd-end" x={O.x+17} y={O.y-R*unit-8} data-names={`${O.x.toFixed(1)} ${(O.y-R*unit).toFixed(1)}`} data-alt={rodEndAlt.top} data-within={rodEndAlt.topWithin} {...endAttrs}>+L/2</text><text className="cd-end" x={O.x+17} y={Math.min(O.y+R*unit+20, 366)} data-names={`${O.x.toFixed(1)} ${(O.y+R*unit).toFixed(1)}`} data-alt={rodEndAlt.bottom} data-within={rodEndAlt.bottomWithin} {...endAttrs}>−L/2</text></g>}
-      {spaceRod && <g data-dim="size" className="cd-dimension">{([['+L/2', spaceRod.top, spaceRod.along], ['\u2212L/2', spaceRod.bottom, { x: -spaceRod.along.x, y: -spaceRod.along.y }]] as const).map(([name, end, out]) => {
+      {partsBracket && <g className="cd-parts" data-parts="true" data-dim="height" aria-hidden="true">
+        <path d={partsBracket.d} clipPath={plotClip} />
+        {([['pairs', partsBracket.pairs], ['leftover', partsBracket.rest]] as const).map(([word, at]) => at.long > 14 && <text key={word} className="cd-parts-name" data-part={word} x={at.x.toFixed(1)} y={at.y.toFixed(1)} textAnchor="end" data-mirror={`${at.mid.x.toFixed(1)} ${at.mid.y.toFixed(1)}`} data-priority={.5} data-within={`${at.mid.x.toFixed(1)} 0 -1 0`}><tspan className="cd-word">{word}</tspan></text>)}
+      </g>}
+      {/* The rod off its bisector's ends, by their coordinates, y₂ above and y₁ below, as the bisector's are ±L/2. */}
+      {offset && !spaceRod && <g data-dim="size" className={`cd-dimension${inSpace && !perspective ? ' is-hidden' : ''}`}><text className="cd-end" x={O.x+17} y={O.y-rodY[1]*unit-8} data-names={`${O.x.toFixed(1)} ${(O.y-rodY[1]*unit).toFixed(1)}`} data-alt={rodEndAlt.top} data-within={rodEndAlt.topWithin} {...endAttrs}><SymbolText symbol="y_2" /></text><text className="cd-end" x={O.x+17} y={Math.min(O.y-rodY[0]*unit+20, 366)} data-names={`${O.x.toFixed(1)} ${(O.y-rodY[0]*unit).toFixed(1)}`} data-alt={rodEndAlt.bottom} data-within={rodEndAlt.bottomWithin} {...endAttrs}><SymbolText symbol="y_1" /></text></g>}
+      {spaceRod && <g data-dim="size" className="cd-dimension">{([[offset ? 'y_2' : '+L/2', spaceRod.top, spaceRod.along], [offset ? 'y_1' : '\u2212L/2', spaceRod.bottom, { x: -spaceRod.along.x, y: -spaceRod.along.y }]] as const).map(([name, end, out]) => {
         // Kept: in space the y axis runs on past each end and the z axis stands beside the top one, so a name the placer
         // was free to drop found nowhere clear and both went.
         // Past its end on P's side, off the y axis, which runs on along the rod in space and takes the spot straight past
@@ -3575,7 +3661,7 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
         const at = besidePoint(end, slant(near), 8, spaceRod.size);
         const past = (k: number) => ({ x: end.x + out.x * k, y: end.y + out.y * k });
         const alt = [besidePoint(end, near, 10, spaceRod.size), besidePoint(end, slant(near), 22, spaceRod.size), besidePoint(end, slant(away), 8, spaceRod.size), besidePoint(past(12), away, 8, spaceRod.size), besidePoint(past(12), near, 8, spaceRod.size), besidePoint(end, out, 22, spaceRod.size)];
-        return <text key={name} className="cd-end" x={at.x.toFixed(1)} y={at.y.toFixed(1)} textAnchor={at.anchor} data-mirror={`${end.x.toFixed(1)} ${end.y.toFixed(1)}`} data-alt={alt.map(q => `${q.x.toFixed(1)} ${q.y.toFixed(1)} ${q.anchor}`).join(';')} data-keep="true">{name}</text>;
+        return <text key={name} className="cd-end" x={at.x.toFixed(1)} y={at.y.toFixed(1)} textAnchor={at.anchor} data-mirror={`${end.x.toFixed(1)} ${end.y.toFixed(1)}`} data-alt={alt.map(q => `${q.x.toFixed(1)} ${q.y.toFixed(1)} ${q.anchor}`).join(';')} data-keep="true">{offset ? <SymbolText symbol={name} /> : name}</text>;
       })}</g>}
       {footed && <g data-dim="size" className={`cd-dimension${inSpace && !perspective ? ' is-hidden' : ''}`}><text className={ramp ? 'cd-end cd-density-end' : 'cd-end'} x={O.x+17} y={O.y-p.size*unit-8} data-names={`${O.x.toFixed(1)} ${(O.y-p.size*unit).toFixed(1)}`} data-alt={rodEndAlt.top} data-within={rodEndAlt.topWithin} {...(ramp ? {} : endAttrs)}>{ramp ? <SymbolText symbol="λ = λ_0" /> : 'y = L'}</text><text className={ramp ? 'cd-end cd-density-end' : 'cd-end'} x={O.x+19} y={O.y-9} data-names={`${O.x.toFixed(1)} ${O.y.toFixed(1)}`} data-alt={rodEndAlt.bottom} data-within={rodEndAlt.bottomWithin} {...(ramp ? {} : endAttrs)}>{ramp ? 'λ = 0' : 'y = 0'}</text></g>}
       {/* The rod's far end, by its coordinate: "L" here as well as under the bar was two L's. */}
@@ -3731,6 +3817,12 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
       {/* Each pair's share of the sum, marked across its arrow. */}
       {netShown && pairTicks.d && <path className="cd-pair-ticks" data-pair-ticks={String((pairTicks.d.match(/M/g) ?? []).length)} d={pairTicks.d} fill="none" clipPath={plotClip} style={build?.key === 'limit' ? { opacity: clamp((1 - continuum) / .7, 0, 1) } : undefined} />}
       {/* Where the sum went before the far pairs brought it back: see `pairTicks`. */}
+      {/* The rod off its bisector's pairs, kept on the axis, and its leftover's arrows tip to tail from their end (see
+          `pairTicks`): what the sum's leaning arrow closes. */}
+      {netShown && pairTicks.axis && <g className="cd-pair-axis" data-pair-axis="true" clipPath={plotClip} style={build?.key === 'limit' ? { opacity: clamp((1 - continuum) / .7, 0, 1) } : undefined}>
+        <path className="cd-pair-axis-line" d={pairTicks.axis} fill="none" />{pairTicks.axisTicks && <path className="cd-pair-ticks" d={pairTicks.axisTicks} fill="none" />}</g>}
+      {netShown && pairTicks.chain.length > 1 && <g className="cd-leftover-chain" data-leftover-chain={String(pairTicks.chain.length - 1)} clipPath={plotClip} style={build?.key === 'limit' ? { opacity: clamp((1 - continuum) / .7, 0, 1) } : undefined}>
+        {pairTicks.chain.slice(1).map((q, k) => Math.hypot(q.x - pairTicks.chain[k].x, q.y - pairTicks.chain[k].y) < 6 ? <line key={k} x1={pairTicks.chain[k].x} y1={pairTicks.chain[k].y} x2={q.x} y2={q.y} stroke="var(--contribution)" strokeWidth={1.8} strokeLinecap="round" /> : <Vector key={k} from={pairTicks.chain[k]} to={q} clip={plotClip} color="var(--contribution)" width={1.8} reduced />)}</g>}
       {netShown && pairTicks.ghost && <g className="cd-pair-overshoot" data-pair-overshoot={String((pairTicks.ghostTicks.match(/M/g) ?? []).length)} clipPath={plotClip} style={build?.key === 'limit' ? { opacity: clamp((1 - continuum) / .7, 0, 1) } : undefined}>
         <path className="cd-pair-overshoot-line" d={pairTicks.ghost} fill="none" /><path className="cd-pair-overshoot-ticks" d={pairTicks.ghostTicks} fill="none" /></g>}
       {netShown && trueField && <g className="cd-true-field" data-true-field="true">

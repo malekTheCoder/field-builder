@@ -9,7 +9,8 @@ import {DEFAULT_PARAMS} from '../src/problems/types';
  * for either sign, any cut, and a ring cut an odd number of ways, whose last pair is two half pieces. */
 const plus = (a: {x: number; y: number; z: number}, b: {x: number; y: number; z: number}) => ({x: a.x + b.x, y: a.y + b.y, z: a.z + b.z});
 describe('every partial sum lies on the axis, and the whole is the sum of the pieces', () => {
- for (const id of PAIRED) for (const charge of [2, -3]) for (const n of [3, 4, 5, 7, 30]) for (const distance of [.5, 3, 6]) it(`${id} q=${charge} n=${n} r=${distance}`, () => {
+ // The rod off its bisector pairs only part of itself, and its leftover leans the sum on purpose: tests/offset.test.ts.
+ for (const id of [...PAIRED].filter(id => id !== 'offset')) for (const charge of [2, -3]) for (const n of [3, 4, 5, 7, 30]) for (const distance of [.5, 3, 6]) it(`${id} q=${charge} n=${n} r=${distance}`, () => {
   const p = {...DEFAULT_PARAMS, charge, distance, slices: n, phi: id === 'arc' ? 1.7 * Math.PI : DEFAULT_PARAMS.phi};
   const samples = sampleDistribution(id as never, p, n), total = sumSamples(samples);
   const scale = Math.max(magnitude(total), ...samples.map(s => magnitude(s.field)));

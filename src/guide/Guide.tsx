@@ -99,6 +99,7 @@ const ORDER:{leg:string;items:{id:ProblemId;text:string}[]}[]=[
   {id:'uneven-arc',text:String.raw`The semicircle again, its charge piled toward the middle: $\lambda(\theta)$ goes inside the integral, and the mirror pairs still cancel across the axis.`}]},
  {leg:'When less cancels',items:[
   {id:'endpoint',text:String.raw`No mirror pieces, so neither part cancels: one integral for $E_x$, one for $E_y$.`},
+  {id:'offset',text:String.raw`$P$ between the middle and an end: the stretch that mirrors itself across $P$’s level cancels along the rod, and the leftover leans the field.`},
   {id:'ramp',text:String.raw`The density grows along the rod, so $\lambda(y)$ goes inside the integral.`},
   {id:'semi',text:String.raw`Half an infinite line. Nothing beyond the end cancels, and the field leans at exactly $\pi/4$.`}]},
  {leg:'Potential, last',items:[

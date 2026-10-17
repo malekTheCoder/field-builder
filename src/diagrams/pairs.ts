@@ -21,8 +21,14 @@ import type {Vec} from '../symbolic/physics';
  * pieces. Going round, (N − 1)/2 pieces and the lengths across them cover all but two half pieces --
  * the first half of the next piece and the last half of the one before the first -- and those two are
  * straight across from each other, so they make the last pair. Every bit of a ring makes the same field
- * along the axis for its charge, so the sum is exactly the N pieces' sum, pair by pair. */
-export const PAIRED = new Set<string>(['bisector', 'infinite', 'ring', 'arc', 'uneven-arc']);
+ * along the axis for its charge, so the sum is exactly the N pieces' sum, pair by pair.
+ *
+ * THE ROD OFF ITS BISECTOR HAS A MIRROR FOR PART OF ITSELF. Only the stretch that reaches as far on each side of P's
+ * level as the nearer end does mirrors itself; the rod is cut so that stretch has pieces of its own
+ * (`distributions/offset.ts`), and it goes in first, in pairs from the middle out, as the bisector's whole rod does.
+ * The leftover pieces then go in one at a time, whole, nearest P's level first: nothing cancels their parts along
+ * the rod, so each step adds the whole arrow, and the sum, which ran along the axis while the pairs went in, leans. */
+export const PAIRED = new Set<string>(['bisector', 'infinite', 'ring', 'arc', 'uneven-arc', 'offset']);
 /** One stretch of charge in a step: where it is along the charge, as fractions of the parameter the
  * charge is cut by (the ring's runs once round per unit, so a stretch straight across can run past 1);
  * and what it is -- a whole piece, the ring's length straight across the step's other member, or half
@@ -33,6 +39,8 @@ export type PairSlot = {
  a: PairSpan; b: PairSpan | null;
  /** How much of each piece the step takes in, as [piece, share]. */
  shares: [number, number][];
+ /** A piece with no mirror at all, off P's line, going in whole: the rod off its bisector's leftover. */
+ alone?: true;
 };
 export type PairStep = PairSlot & {
  /** The field each member makes at P. */
@@ -51,11 +59,33 @@ const mirrored = (id: string, v: Vec): Vec => id === 'ring' ? {x: -v.x, y: -v.y,
 /** A ring piece's field turned about the axis by `angle`: the field of the same charge that far round. */
 const turned = (v: Vec, angle: number): Vec => ({x: v.x * Math.cos(angle) - v.y * Math.sin(angle), y: v.x * Math.sin(angle) + v.y * Math.cos(angle), z: v.z});
 const whole = (i: number, n: number): PairSpan => ({lo: i / n, hi: (i + 1) / n, kind: 'whole', of: i});
+/** The middle-out pairs of `count` pieces starting at piece `from`, in a charge cut into `n`. */
+function middleOut(from: number, count: number, n: number): PairSlot[] {
+ const out: PairSlot[] = [], at = (i: number) => from + i;
+ if (count % 2) {
+  const c = (count - 1) / 2;
+  out.push({a: whole(at(c), n), b: null, shares: [[at(c), 1]]});
+  for (let d = 1; d <= c; d++) out.push({a: whole(at(c + d), n), b: whole(at(c - d), n), shares: [[at(c + d), 1], [at(c - d), 1]]});
+ } else {
+  for (let d = 0; d < count / 2; d++) out.push({a: whole(at(count / 2 + d), n), b: whole(at(count / 2 - 1 - d), n), shares: [[at(count / 2 + d), 1], [at(count / 2 - 1 - d), 1]]});
+ }
+ return out;
+}
 /** The pairs, in the order they are added, for a charge cut into `n`: which stretches go in together.
- * `start` is the ring's first piece; the other lessons go from the middle out. Null where the lesson
- * has no mirror symmetry. */
-export function pairOrder(id: string, n: number, start = 0): PairSlot[] | null {
+ * `start` is the ring's first piece; the other lessons go from the middle out. `mirror` is where the rod off its
+ * bisector's mirrored stretch starts and how many pieces it has (`offsetCut`); its leftover follows, whole. Null
+ * where the lesson has no mirror symmetry. */
+export function pairOrder(id: string, n: number, start = 0, mirror?: {start: number; count: number}): PairSlot[] | null {
  if (!PAIRED.has(id) || !(n >= 1)) return null;
+ if (id === 'offset') {
+  if (!mirror) return null;
+  const {start: m0, count: mc} = mirror, out = middleOut(m0, mc, n);
+  // The leftover lies on one side of the mirrored stretch: below it when that stretch starts above piece 0. Nearest
+  // P's level first, so the lean grows piece by piece outward.
+  const lone = m0 > 0 ? Array.from({length: m0}, (_, k) => m0 - 1 - k) : Array.from({length: n - mc}, (_, k) => mc + k);
+  for (const i of lone) out.push({a: whole(i, n), b: null, shares: [[i, 1]], alone: true});
+  return out;
+ }
  if (id !== 'ring') {
   const out: PairSlot[] = [];
   if (n % 2) {
@@ -80,15 +110,16 @@ export function pairOrder(id: string, n: number, start = 0): PairSlot[] | null {
 }
 /** The pairs with the field each member makes at P, from the pieces' own: a length straight across makes
  * its piece's field mirrored, and half a ring piece holds half its charge, at its own middle. */
-export function pairPlan(id: string, samples: readonly ChargeSample[], start = 0): PairStep[] | null {
- const n = samples.length, order = pairOrder(id, n, start);
+export function pairPlan(id: string, samples: readonly ChargeSample[], start = 0, mirror?: {start: number; count: number}): PairStep[] | null {
+ const n = samples.length, order = pairOrder(id, n, start, mirror);
  if (!order) return null;
  return order.map(slot => {
   const {a, b} = slot;
   let fa = samples[a.of].field;
   if (a.kind === 'half') { const t = turned(fa, (a.lo + a.hi - (2 * a.of + 1) / n) * Math.PI); fa = {x: t.x / 2, y: t.y / 2, z: t.z / 2}; }
   const fb = !b ? null : b.kind === 'whole' ? samples[b.of].field : mirrored(id, fa);
-  return {...slot, fa, fb, along: add(alongAxis(id, fa), fb ? alongAxis(id, fb) : ZERO)};
+  // A lone piece of the leftover adds its whole arrow: nothing cancels its part along the rod.
+  return {...slot, fa, fb, along: slot.alone ? fa : add(alongAxis(id, fa), fb ? alongAxis(id, fb) : ZERO)};
  });
 }
 /** The running sum after `steps` whole steps and `fraction` of the next one's part along the axis. */

@@ -38,7 +38,7 @@ const ROD_SWAPS: Swap[] = [[String.raw`r_i^2=y_i^2+r^2`, 'y^2+r^2', 'distance^2'
 const RING_SWAPS: Swap[] = [[String.raw`r_i^2=s_i^2+z^2`, 's^2+z^2', 'distance^2'], [String.raw`\cos\alpha_i=z/\sqrt{s_i^2+z^2}`, 'z/sqrt(s^2+z^2)', 'projection']];
 const RING_CHARGE: Swap = [String.raw`\Delta Q_i=\sigma\,2\pi s_i\,\Delta s`, 'sigma*2*pi*s', 'none'];
 const SWAPS: Record<string, Swap[]> = {
-  bisector: ROD_SWAPS, endpoint: ROD_SWAPS,
+  bisector: ROD_SWAPS, endpoint: ROD_SWAPS, offset: ROD_SWAPS,
   ramp: [[String.raw`\lambda(y_i)=\lambda_0\,(y_i/L)`, 'lambda0*y/L', 'none'], ...ROD_SWAPS],
   axial: [[String.raw`r_i^2=(L+a-x_i)^2`, '(L+a-x)^2', 'distance^2']],
   infinite: [[String.raw`r_i^2=r^2\sec^2\alpha_i`, 'r^2/cos(alpha)^2', 'distance^2']],
@@ -263,7 +263,7 @@ describe('the derivation board', () => {
     // later; α arrived in What cancels with no word for it at all.
     for (const p of PROBLEMS.filter(q => q.quantity === 'E' && q.id !== 'axial')) {
       // The rods index their piece's angle from its first appearance, α_i (see `HYPOTENUSE` on the board).
-      const angle = p.id === 'arc' || p.id === 'uneven-arc' ? '\\theta' : ['bisector', 'endpoint', 'ramp'].includes(p.id) ? '\\alpha_i' : '\\alpha';
+      const angle = p.id === 'arc' || p.id === 'uneven-arc' ? '\\theta' : ['bisector', 'endpoint', 'ramp', 'offset'].includes(p.id) ? '\\alpha_i' : '\\alpha';
       const lines = boardLines(p);
       const uses = (tex?: string) => !!tex && tex.replace(/\\Delta\\(theta|alpha)/g, '').includes(angle);
       const first = lines.findIndex(l => [l.tex, l.where, l.finish, l.cancels, l.also].some(uses));

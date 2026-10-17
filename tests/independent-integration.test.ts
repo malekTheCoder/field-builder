@@ -118,6 +118,11 @@ const GEOMETRY:Record<string,Geom>={
  // 'A thin rod … stands on the x-axis, running from y = 0 up to y = L. P … (r, 0).'
  endpoint:{P:p=>[p.distance,0,0],component:'x',total:p=>p.charge*1e-9,centroid:p=>[0,p.size/2,0],
   E(p){const q=p.charge*1e-9,L=p.size,P=this.P(p),eps=ke*Math.abs(q)/p.distance**2*REL;return seg(y=>coulomb(q/L,[0,y,0],P),[0,L/2,L],eps);}},
+ // 'A thin rod of length L … lies on the y-axis from y = y₁ up to y = y₂ … P = (r, 0) … at a height h above the rod's
+ // middle: y₁ = −h − L/2 and y₂ = L/2 − h, with |h| ≤ L/2.' Split at P's level, where the integrand turns over.
+ offset:{P:p=>[p.distance,0,0],component:'x',total:p=>p.charge*1e-9,centroid:p=>[0,-Math.max(-p.size/2,Math.min(p.size/2,p.height)),0],
+  E(p){const q=p.charge*1e-9,L=p.size,h=Math.max(-L/2,Math.min(L/2,p.height)),y1=-h-L/2,y2=L/2-h,P=this.P(p),eps=ke*Math.abs(q)/p.distance**2*REL;
+   return seg(y=>coulomb(q/L,[0,y,0],P),[...new Set([y1,...(y1<0&&y2>0?[0]:[]),y2])],eps);}},
  // 'λ(y) = λ₀ y/L, zero at the lower end and λ₀ at the top … total charge is Q = λ₀L/2.'
  ramp:{P:p=>[p.distance,0,0],component:'x',total:p=>p.charge*1e-9*p.size/2,centroid:p=>[0,2*p.size/3,0],
   E(p){const l0=p.charge*1e-9,L=p.size,P=this.P(p),eps=ke*Math.abs(l0)*L/2/p.distance**2*REL;return seg(y=>coulomb(l0*y/L,[0,y,0],P),[0,L/2,L],eps);}},
@@ -132,9 +137,9 @@ const GEOMETRY:Record<string,Geom>={
 };
 /** Which charge layout each lesson sits on, read off its own setup sentence. Asserted
  * against the app's declaration below rather than taken from it. */
-const GEOM_OF:Record<string,string>={bisector:'bisector',axial:'axial',infinite:'infinite',ring:'ring',disk:'disk',annulus:'annulus',semi:'semi',arc:'arc',sheet:'sheet',endpoint:'endpoint',ramp:'ramp',
+const GEOM_OF:Record<string,string>={bisector:'bisector',axial:'axial',infinite:'infinite',ring:'ring',disk:'disk',annulus:'annulus',semi:'semi',arc:'arc',sheet:'sheet',endpoint:'endpoint',ramp:'ramp',offset:'offset',
  'v-ring':'ring','v-disk':'disk','v-arc':'arc','v-rod-bisector':'bisector','v-rod-axial':'axial','uneven-arc':'uneven-arc'};
-const FIELD_IDS=['bisector','axial','infinite','ring','disk','annulus','semi','arc','sheet','endpoint','ramp','uneven-arc'] as const;
+const FIELD_IDS=['bisector','axial','infinite','ring','disk','annulus','semi','arc','sheet','endpoint','ramp','uneven-arc','offset'] as const;
 const POTENTIAL_IDS=['v-ring','v-disk','v-arc','v-rod-bisector','v-rod-axial'] as const;
 const truthE=(id:string,p:Params)=>GEOMETRY[GEOM_OF[id]].E(p);
 const truthV=(id:string,p:Params)=>GEOMETRY[GEOM_OF[id]].V!(p);
@@ -183,7 +188,7 @@ describe('the constants the closed forms are built on',()=>{
  });
  it('each lesson sits on the charge layout its own setup sentence describes',()=>{
   for(const problem of PROBLEMS)expect(problem.geometry,problem.id).toBe(GEOM_OF[problem.id]);
-  expect(Object.keys(GEOM_OF)).toHaveLength(17);
+  expect(Object.keys(GEOM_OF)).toHaveLength(18);
  });
 });
 
@@ -238,6 +243,7 @@ describe('the closed form the lesson PRINTS is the one the integral produces',()
    case 'arc':return {...base,lambda:q/(R*p.phi)};
    case 'disk':return {...base,sigma:q/(Math.PI*R*R)};
    case 'annulus':return {...base,a:p.inner,b:R,sigma:q/(Math.PI*(R*R-p.inner**2))};
+   case 'offset':{const h=Math.max(-L/2,Math.min(L/2,p.height));return {...base,lambda:q/L,y1:-h-L/2,y2:L/2-h};}
    case 'ramp':return {...base,lambda0:q,Q:q*L/2};               // the slider is the peak λ₀
    case 'uneven-arc':return {...base,lambda0:q/(2*R)};           // the slider is Q, and Q = 2λ₀R
    default:return {...base,lambda:q/L};
@@ -275,6 +281,7 @@ const DIRECTION:Record<string,V3>={
  endpoint:[1,-1,0],  // the rod stands above P's level, so the transverse push is downward
  ramp:[1,-1,0],
  'uneven-arc':[-1,0,0], // the charge is bunched toward +x, densest on the axis: P at the centre is pushed to −x
+ offset:[1,1,0],     // P a height h > 0 above the middle: more rod below P than above, so the push along the rod is up
 };
 describe('signs and conventions',()=>{
  for(const id of FIELD_IDS)for(const charge of [2.4,-2.4])it(`${id} points away from positive charge · q ${charge}`,()=>{
@@ -306,11 +313,13 @@ describe('signs and conventions',()=>{
  // goes wrong, and no amount of integrating at one parameter setting would show it. Each
  // entry lists the sliders the geometry has no business reading at all.
  const IGNORES:Record<string,(keyof Params)[]>={
-  bisector:['phi','inner'],axial:['phi','inner'],ring:['phi','inner'],disk:['phi','inner'],endpoint:['phi','inner'],ramp:['phi','inner'],annulus:['phi'],
-  infinite:['phi','size'],semi:['phi','size'],sheet:['phi','size'], // unbounded: there is no L to read
-  arc:['distance'],                                                // P is pinned to the centre of curvature
-  'v-ring':['phi'],'v-disk':['phi'],'v-rod-bisector':['phi'],'v-rod-axial':['phi'],
-  'v-arc':['phi','distance'],                                      // every element is R away whatever φ is
+  // P's height above the middle is the rod off its bisector's alone: every other lesson ignores it.
+  bisector:['phi','inner','height'],axial:['phi','inner','height'],ring:['phi','inner','height'],disk:['phi','inner','height'],endpoint:['phi','inner','height'],ramp:['phi','inner','height'],annulus:['phi','height'],
+  offset:['phi','inner'],
+  infinite:['phi','size','height'],semi:['phi','size','height'],sheet:['phi','size','height'], // unbounded: there is no L to read
+  arc:['distance','height'],                                       // P is pinned to the centre of curvature
+  'v-ring':['phi','height'],'v-disk':['phi','height'],'v-rod-bisector':['phi','height'],'v-rod-axial':['phi','height'],
+  'v-arc':['phi','distance','height'],                             // every element is R away whatever φ is
  };
  for(const [id,ignored] of Object.entries(IGNORES))for(const slider of ignored)
   it(`${id} does not read ${slider}`,()=>{

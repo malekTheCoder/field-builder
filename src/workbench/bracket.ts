@@ -34,6 +34,8 @@ export function limitTex(p: Problem, percent: number, which: 1 | 2) {
     : p.id === 'infinite' ? plain(t - .5, raw`\pi`)
     // Half way out in angle, the semi-infinite line's piece is r along it and the sheet's ring z out.
     : Math.abs(t - .5) < 1e-9 ? (g === 'sheet' ? 'z' : 'r') : null;
+  // The rod off its bisector's own ends are y₁ and y₂, so a handle between them is y_a or y_b.
+  if (g === 'offset') return `${p.variableTex}_${which === 1 ? 'a' : 'b'}`;
   return nice ?? `${p.variableTex}_${which}`;
 }
 /** How much angle a bracket on a ring or an arc takes, named as the board names a limit: a bracketed
@@ -44,7 +46,8 @@ export const wholeBracket = (range: readonly [number, number]) => range[0] <= .0
 /** Does the bracket still hold every piece's mirror partner? Off-centre it does not, and the part
  * across the axis survives: the board said E_y = 0 over a figure whose ΣΔE leaned 17° on the upper
  * half of the rod, 45° on a quarter of the arc. A ring needs the whole turn. */
-export const bracketKeeps = (p: Problem, [from, to]: readonly [number, number]) => wholeBracket([from, to]) || (p.geometry !== 'ring' && Math.abs(from + to - 100) < 1e-6);
+// The rod off its bisector never holds every mirror: only part of it mirrors itself, whole or bracketed.
+export const bracketKeeps = (p: Problem, [from, to]: readonly [number, number]) => p.geometry !== 'offset' && (wholeBracket([from, to]) || (p.geometry !== 'ring' && Math.abs(from + to - 100) < 1e-6));
 export type Bracket = {whole: boolean; keeps: boolean; oneSided: boolean; below: boolean; above: boolean; lower: string; upper: string; span?: string};
 export function bracketOf(p: Problem, range: readonly [number, number]): Bracket {
   const [from, to] = range, g = p.geometry, whole = wholeBracket(range);

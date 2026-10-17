@@ -5,6 +5,7 @@ import {Fragment,memo,useDeferredValue,useId,useMemo,useState,type KeyboardEvent
 import {Slider} from '@/components/ui/slider';
 import type {Problem,ProblemId,Params,Limit} from '../problems/types';
 import {HOLE_MAX} from '../distributions/disk';
+import {offsetEnds} from '../distributions/offset';
 import {pretty,sampleLimit,limitPlot,halfPieces,thinGap,RING_PEAK_T,type LimitPlot,type LimitSample,type Vec} from '../symbolic/physics';
 export {sampleLimit};
 import {MathText} from './Math';
@@ -52,7 +53,7 @@ function rodScale(mode:Limit['mode'],t:number,room:number,far:number,near:number
 /** Silhouette of the geometry the plot above is actually sweeping: source in charge colour, P as a
  *  filled dot with the field it feels. Decorative -- every number is in the plot's aria-label and
  *  the table under it. */
-function LimitFigure({id,mode,t,vector,scale,arrow}:{id:ProblemId;mode:Limit['mode'];t:number;vector?:Vec;scale:number;arrow:boolean}){
+function LimitFigure({id,mode,t,vector,scale,arrow,offsetShare=0,offsetOverR=0}:{id:ProblemId;mode:Limit['mode'];t:number;vector?:Vec;scale:number;arrow:boolean;offsetShare?:number;offsetOverR?:number}){
  const P=(x:number,y:number,axial=false,floor?:number,wall?:number,right?:number)=><Observer x={x} y={y} vector={arrow?vector:undefined} axial={axial} scale={scale} floor={floor} wall={wall} right={right}/>;
  // A stopped arrow keeps this much clear of the charge's edge: touching it, the head read as part of it.
  const CLEAR=2.5;
@@ -63,6 +64,14 @@ function LimitFigure({id,mode,t,vector,scale,arrow}:{id:ProblemId;mode:Limit['mo
   // Centred on P's level: the rod's whole length L against P's distance r, half above and half below.
   const {length,gap,unbounded}=rodScale(mode,t,42,134,30),h=Math.max(1.5,length/2);
   return <><path d={`M64 25H${64+gap-8}`} {...RAIL}/><path d={`M64 ${25-h}V${25+h}`} {...CHARGE} strokeWidth="7"/>{unbounded&&<path d="M57 6l14-4M57 44l14 4" {...CHARGE}/>}{P(64+gap,25,false,undefined,64+3.5+CLEAR)}</>}
+ // THE ROD OFF ITS BISECTOR, as the bisector's thumbnail draws its rod, with P a height h above the rod's middle: the
+ // rod's ends at h ∓ L/2 from P's level, the rod and h on one scale. Moved out or grown, the rod keeps the reader's own
+ // h/L; slid along, the sweep's own h, from the end to the middle or from the middle to an end.
+ if(id==='offset'){
+  // Grown at its own h, h keeps its size against r while L outgrows the frame.
+  const {length,gap,unbounded}=rodScale(mode,t,42,134,30),s=(t-1)/29,side=Math.sign(offsetShare)||-1;
+  const lift=Math.max(-21,Math.min(21,mode==='infinite'?offsetOverR*30:(mode==='middle'?side*.5*(1-s):mode==='end'?side*.5*s:offsetShare)*length)),y1=25+lift+length/2,y2=25+lift-length/2;
+  return <><path d={`M64 25H${64+gap-8}`} {...RAIL}/><path d={`M64 ${Math.min(y2,y1-3)}V${y1}`} {...CHARGE} strokeWidth="7"/>{unbounded&&<path d="M57 6l14-4M57 44l14 4" {...CHARGE}/>}{P(64+gap,25,false,undefined,64+3.5+CLEAR)}</>}
  // On its own line: the rod's length L against the gap a. Far away the two share the frame's
  // length in the proportion a = tL; walking in, the rod keeps its length and the gap closes on it.
  if(id==='axial'){const w=mode==='near'?85:Math.max(4,170/(1+t)),x=mode==='near'?129+85/t:214;return <><path d={`M${44+w} 25H${x-8}`} {...RAIL}/><path d={`M44 25h${w}`} {...CHARGE} strokeWidth="7"/>{P(x,25,false,undefined,44+w+5)}</>}
@@ -138,7 +147,7 @@ function LimitFigure({id,mode,t,vector,scale,arrow}:{id:ProblemId;mode:Limit['mo
   {P(S+gap,Y,true,undefined,edge+CLEAR)}</>
 }
 /** Room above and below a thumbnail's 48-unit frame, for the arrows that lean out of it. */
-const THUMB_PAD:Partial<Record<ProblemId,[number,number]>>={semi:[0,20],endpoint:[0,20],ramp:[0,20]};
+const THUMB_PAD:Partial<Record<ProblemId,[number,number]>>={semi:[0,20],endpoint:[0,20],ramp:[0,20],offset:[20,20]};
 // The plot's frame, in the SVG's own units.
 const X0=40,X1=452,TOP=34,BASE=165,WIDTH=480;
 /** What the plotted curve is at one sample: the exact value over the reference, or, where the
@@ -170,6 +179,8 @@ export function sweepName(problem:Problem,limit:Limit):string{
  switch(limit.mode){
   case 'infinite':return g==='annulus'?'Grow the rim':disk?'Grow the disk':'Grow the rod';
   case 'hole':return 'Close the hole';
+  case 'middle':return 'Slide P to the middle';
+  case 'end':return 'Slide P to an end';
   case 'thin':return 'Narrow it';
   case 'center':return 'Bring P down';
   case 'near':return 'Move P in';
@@ -210,7 +221,7 @@ const S_MIN=1,S_MAX=30,snap=(v:number)=>Math.round(Math.min(S_MAX,Math.max(S_MIN
 const ARRIVED=.01,APART=.05,ZERO=.02;
 type Moment='start'|'middle'|'end';
 /** What the source is called in a sentence. */
-const SOURCE:Record<ProblemId,string>={bisector:'rod',axial:'rod',endpoint:'rod',ramp:'rod',ring:'ring',disk:'disk',annulus:'annulus',arc:'arc','uneven-arc':'semicircle',infinite:'line',semi:'half line',sheet:'sheet'} as Record<ProblemId,string>;
+const SOURCE:Record<ProblemId,string>={bisector:'rod',offset:'rod',axial:'rod',endpoint:'rod',ramp:'rod',ring:'ring',disk:'disk',annulus:'annulus',arc:'arc','uneven-arc':'semicircle',infinite:'line',semi:'half line',sheet:'sheet'} as Record<ProblemId,string>;
 /** ONE SENTENCE FOR WHERE THE SCRUB IS, in words and symbols only. The caption under the card says how
  * to read the whole plot; this says what is true at the dot -- close in, on the way, or arrived -- so
  * dragging along the curve reads as the argument it is: "close up the rod's size still shows", "far
@@ -273,6 +284,15 @@ export function limitNow(problem:Problem,limit:Limit,plot:LimitPlot,here:number,
     `The rod’s far end is still close enough to show: with no charge beyond it, the field is ${cmp('k|λ|/a')}.`,
     'Walking in, the rod looks more and more like a half line from P: its far end counts for less and less.',
     'Close up, the rod looks like a half line from P: the far end no longer matters.']);
+  // The rod off its bisector slid along: E_y falling away toward the middle, and the field becoming the end-on rod's.
+  case 'middle':return pick(converged,[
+   'Near an end, nearly the whole rod is leftover on one side of P: the field leans its most.',
+   'Sliding toward the middle, the mirrored stretch grows and the leftover shrinks: Eᵧ falls.',
+   'Level with the middle every piece has its mirror: Eᵧ is zero, and this is the bisector.']);
+  case 'end':return pick(converged,[
+   `Near the middle, most of the rod mirrors itself: the field is ${cmp('the end-on rod’s')}.`,
+   'Sliding toward an end, the mirrored stretch shrinks: the curve is closing on the dashed line.',
+   'Level with the end, no piece has a mirror: this is the rod level with its end, and the curve lies on the dashed line.']);
   case 'hole':return pick(converged,[
    `A wide hole: the annulus’s field is ${cmp('the whole disk’s')}, by the field of the rings the hole takes out.`,
    'As the hole closes, the rings it took out come back: the curve is closing on the dashed line.',
@@ -483,7 +503,7 @@ function AssessmentView({problem,params:live,limit}:{problem:Problem;params:Para
      it: it laid out five hundred pixels wide and a phone page scrolled sideways as soon as Limiting
      cases opened. The block around it does honour one pixel and hidden overflow, and clips it. */}
  <div className="sr-only"><table className="sr-only"><caption>{limit.title}: {semi?'|Eₓ| versus |Eᵧ|':`exact ${qty} versus reference`}</caption><thead><tr><th scope="col">t</th><th scope="col">{semi?'|Eₓ|':'exact'}</th><th scope="col">{semi?'|Eᵧ|':'reference'}</th></tr></thead><tbody>{samples.map((s,i)=><tr key={i}><td>{tAt(i)}</td><td>{s.actual}</td><td>{s.target}</td></tr>)}</tbody></table></div>
- <div className="limit-mini" aria-hidden="true"><svg viewBox={`0 ${-pad[0]} 260 ${48+pad[0]+pad[1]}`} style={pad[0]+pad[1]?{height:`${(44+(pad[0]+pad[1])*200/260).toFixed(1)}px`}:undefined}><LimitFigure id={problem.geometry} mode={limit.mode} t={t} vector={val.vector} scale={scale} arrow={arrow}/></svg></div>
+ <div className="limit-mini" aria-hidden="true"><svg viewBox={`0 ${-pad[0]} 260 ${48+pad[0]+pad[1]}`} style={pad[0]+pad[1]?{height:`${(44+(pad[0]+pad[1])*200/260).toFixed(1)}px`}:undefined}><LimitFigure id={problem.geometry} mode={limit.mode} t={t} vector={val.vector} scale={scale} arrow={arrow} offsetShare={problem.geometry==='offset'?offsetEnds(params).h/params.size:0} offsetOverR={problem.geometry==='offset'?offsetEnds(params).h/params.distance:0}/></svg></div>
  {/* What is true where the dot is, in words. Polite, and it changes only at the three moments of the
      sweep, so a drag is not read out tick by tick. */}
  <p id={nowId} className="limit-now" aria-live="polite"><SymText text={now}/></p>

@@ -9,8 +9,8 @@ export type Assignment = { id?: ProblemId; mode?: ExploreMode; params?: Partial<
 export const STAGE_WORDS = ['cut', 'piece', 'cancel', 'add', 'shrink'] as const;
 const MODES = new Set<string>(['divide', 'project', 'sum', 'integrate']);
 const IDS = new Set<string>(PROBLEM_IDS);
-const RANGES: Record<keyof Params, [number, number]> = { distance: [.5, 6], size: [1, 8], charge: [-5, 5], phi: [Math.PI * .1, Math.PI * 2], element: [0, 1], slices: [3, 30], continuum: [0, 1], inner: [0, 3.8] };
-const ALIAS: Record<string, keyof Params> = { r: 'distance', L: 'size', Q: 'charge', N: 'slices', c: 'continuum', distance: 'distance', size: 'size', charge: 'charge', phi: 'phi', slices: 'slices', continuum: 'continuum', element: 'element', inner: 'inner' };
+const RANGES: Record<keyof Params, [number, number]> = { distance: [.5, 6], size: [1, 8], charge: [-5, 5], phi: [Math.PI * .1, Math.PI * 2], element: [0, 1], slices: [3, 30], continuum: [0, 1], inner: [0, 3.8], height: [-4, 4] };
+const ALIAS: Record<string, keyof Params> = { r: 'distance', L: 'size', Q: 'charge', N: 'slices', c: 'continuum', distance: 'distance', size: 'size', charge: 'charge', phi: 'phi', slices: 'slices', continuum: 'continuum', element: 'element', inner: 'inner', h: 'height', height: 'height' };
 
 /** Values held to what the controls can reach. That includes the charge's gap at zero: the slider steps
  * over it (Explorer.tsx, snapCharge), because with no charge every sentence the run says is about nothing,

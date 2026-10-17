@@ -38,7 +38,7 @@ import {DEFAULT_PARAMS,type Params,type Problem,type ProblemId} from '../src/pro
 // closed forms, recorded next to the algebra that produced them.
 // ---------------------------------------------------------------------------
 
-const FIELD_IDS=['bisector','axial','infinite','ring','disk','annulus','semi','arc','sheet','endpoint','ramp','uneven-arc'] as const;
+const FIELD_IDS=['bisector','axial','infinite','ring','disk','annulus','semi','arc','sheet','endpoint','ramp','uneven-arc','offset'] as const;
 const ALL_IDS=[...FIELD_IDS,'v-ring','v-disk','v-arc','v-rod-bisector','v-rod-axial'] as const;
 /** The finite path of the infinite-line lesson is a sixteenth Problem that never reaches PROBLEMS. */
 const FINITE=getProblem('infinite','finite');
@@ -63,7 +63,7 @@ const OBSERVER:Record<string,(p:Params)=>[number,number,number]>={
  bisector:p=>[p.distance,0,0],axial:p=>[p.size+p.distance,0,0],infinite:p=>[p.distance,0,0],
  ring:p=>[0,0,p.distance],disk:p=>[0,0,p.distance],annulus:p=>[0,0,p.distance],sheet:p=>[0,0,p.distance],
  semi:p=>[p.distance,0,0],arc:()=>[0,0,0],endpoint:p=>[p.distance,0,0],ramp:p=>[p.distance,0,0],
- 'uneven-arc':()=>[0,0,0],
+ 'uneven-arc':()=>[0,0,0],offset:p=>[p.distance,0,0],
 };
 
 // ===========================================================================
@@ -161,6 +161,7 @@ function spotOf(p:Problem,o:Setting):number{
  switch(g){
   case 'bisector':return .23*o.L;
   case 'endpoint':case 'ramp':return .37*o.L;
+  case 'offset':return -.31*o.L;                                // below P's level, on the rod's longer reach
   case 'axial':return .41*o.L;
   case 'semi':return 1.7*o.dist;
   case 'sheet':return 1.3*o.dist;
@@ -184,6 +185,8 @@ function scopeFor(p:Problem,o:Setting):Scope{
   case 'bisector':sc.Q=charge;sc.lambda=charge/L;sc.ri=Math.hypot(sc.y,dist);break;
   case 'axial':sc.Q=charge;sc.lambda=charge/L;sc.ri=L+dist-sc.x;break;
   case 'endpoint':sc.Q=charge;sc.lambda=charge/L;sc.ri=Math.hypot(sc.y,dist);break;
+  // P a quarter of the rod above its middle, so its ends scale with every other length: y₁ = −3L/4, y₂ = L/4.
+  case 'offset':sc.Q=charge;sc.lambda=charge/L;sc.y1=-.75*L;sc.y2=.25*L;sc.h=.25*L;sc.alpha1=Math.atan(sc.y1/dist);sc.alpha2=Math.atan(sc.y2/dist);sc.ri=Math.hypot(sc.y,dist);break;
   case 'ramp':sc.lambda0=charge;sc.Q=charge*L/2;sc.ri=Math.hypot(sc.y,dist);break;
   case 'ring':sc.Q=charge;sc.lambda=charge/(2*Math.PI*R);sc.ri=Math.hypot(R,dist);break;
   case 'arc':sc.Q=charge;sc.lambda=charge/(R*phi);sc.ri=R;break;
@@ -682,6 +685,8 @@ const ZERO_FROM_ANSWER:Record<string,Axis[]>={
  'Transverse components cancel; z adds':['x','y'],
  'Each ring’s transverse components cancel':['x','y'],
  'Neither component cancels':['z'],
+ // The rod off its bisector: its mirrored stretch cancels its own y-parts, but no whole component of the field vanishes.
+ 'Only the mirrored stretch’s y-components cancel':['z'],
 };
 const ZERO_FROM_TEX:[RegExp,Axis[]][]=[
  [/E_x=E_y=0/,['x','y']],
@@ -1059,8 +1064,8 @@ describe('integralTex’s limits are boundTex, boundTex is bounds, and its integ
   });
  }
  it('every lesson in the library was covered',()=>{
-  expect(PROBLEMS).toHaveLength(17);
-  expect(VARIANTS).toHaveLength(18);
+  expect(PROBLEMS).toHaveLength(18);
+  expect(VARIANTS).toHaveLength(19);
  });
 });
 

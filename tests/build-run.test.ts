@@ -47,7 +47,7 @@ describe('the build sequence tells the same story for every lesson', () => {
   // ADDS, which is the contrast with the field. `tests/build-ui.browser.test.tsx` checks the figure
   // really lights it, so this list cannot promise a partner the drawing does not show.
   const asks = PROBLEMS.filter(p => buildStages(p)[2].pair).map(p => p.id).sort();
-  expect(asks).toEqual(['arc', 'bisector', 'infinite', 'ring', 'uneven-arc', 'v-arc', 'v-ring', 'v-rod-bisector']);
+  expect(asks).toEqual(['arc', 'bisector', 'infinite', 'offset', 'ring', 'uneven-arc', 'v-arc', 'v-ring', 'v-rod-bisector']);
  });
  it('a scalar lesson never claims anything cancels', () => {
   // V is a number. There is no direction to cancel, and saying otherwise would teach the one

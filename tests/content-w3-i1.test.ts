@@ -64,7 +64,7 @@ describe('every far check says why the object looks like a point, and how good t
   // The ramp's far check has its own point to make, which charge the far field counts: Q = λ₀L/2.
   for(const p of lessons.filter(p=>p.id!=='ramp'))for(const l of p.limits.filter(l=>l.mode==='far')){
    expect(plain(l.explanation),p.id).not.toMatch(/the object’s size becomes negligible/);
-   expect(plain(l.explanation),p.id).toMatch(/of order \((?:L\/r|R\/z|L\/a|b\/z)\)²/);
+   expect(plain(l.explanation),p.id).toMatch(/of order \((?:L\/r|R\/z|L\/a|b\/z|L\/d)\)²/);
   }
   for(const [id,order] of Object.entries(ORDER))expect(plain(getProblem(id).limits.find(l=>l.mode==='far')!.explanation),id).toContain(`of order ${order}`);
  });

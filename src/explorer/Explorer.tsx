@@ -13,6 +13,7 @@ import {Button} from '@/components/ui/button';
 import {PROBLEMS,getProblem} from '../problems/definitions';
 import {DEFAULT_PARAMS,type Params,type Problem,type ProblemId} from '../problems/types';
 import {HOLE_MAX} from '../distributions/disk';
+import {offsetCut,offsetPartner} from '../distributions/offset';
 import {confusionTex} from '../symbolic/equivalence';
 import {sheetPiece} from '../diagrams/camera';
 import {activeIntervalIndex} from '../diagrams/sampling';
@@ -91,7 +92,11 @@ const libraryFocus=()=>document.querySelector<HTMLElement>('.exp-library-dialog 
 const atRest=(v:Partial<Params>):Params=>({...cleanParams(v),continuum:0});
 /** A link's annulus keeps its hole inside its rim, as the slider does: ?p=annulus&inner=3 on a rim of 2 opens the
  * widest hole the slider reaches, not one it could never show. Only the annulus reads `inner`, so only its is held. */
-const keepHole=(id:ProblemId,v:Params):Params=>id==='annulus'&&v.inner>HOLE_MAX*v.size/2?{...v,inner:Math.floor(HOLE_MAX*v.size/2/.05+1e-9)*.05}:v;
+const keepHole=(id:ProblemId,v:Params):Params=>id==='annulus'&&v.inner>HOLE_MAX*v.size/2?{...v,inner:Math.floor(HOLE_MAX*v.size/2/.05+1e-9)*.05}:id==='offset'?keepHeight(v,v.size):v;
+/** The rod off its bisector keeps P level with some part of the rod, |h| ≤ L/2, on the slider's own grid, as its slider and
+ * its length's do: a link's ?h=3 beside L = 4 opens P level with the end. */
+const heightMax=(size:number)=>Math.floor(size/2/.05+1e-9)*.05;
+const keepHeight=(v:Params,size:number):Params=>{const m=heightMax(size);return Math.abs(v.height)>m?{...v,size,height:Math.sign(v.height)*m}:{...v,size};};
 /** EVERY WAY TO ANOTHER LESSON IS A LINK. Changing lesson pushes a history entry to ?p=<lesson>, so each of
  * these is a navigation in every sense but its element -- and as buttons a teacher could not Ctrl- or
  * middle-click a lesson open beside another, or copy its address, and a screen reader announced a way to
@@ -431,7 +436,8 @@ export default function Explorer({welcome}:{welcome?:boolean}={}){
  // across the middle -- which decides whether What cancels draws a mirror at all.
  const runIndex=Math.min(count-1,Math.floor(runPiece*count));
  const partBracket=!wholeBracket(bounds),bracketKept=partBracket&&bracketKeeps(p,bounds);
- const mirrorIn=(()=>{if(!partBracket)return true;const t=100*(runIndex+.5)/count,m=geom==='ring'?(t+50)%100:100-t;return m>=bounds[0]-1e-6&&m<=bounds[1]+1e-6})();
+ // The rod off its bisector's mirror is across P's level, within its mirrored stretch only (distributions/offset.ts).
+ const mirrorIn=(()=>{if(!partBracket)return true;if(geom==='offset'){const j=offsetPartner(offsetCut(params,count),runIndex);if(j<0)return false;const m=100*(j+.5)/count;return m>=bounds[0]-1e-6&&m<=bounds[1]+1e-6}const t=100*(runIndex+.5)/count,m=geom==='ring'?(t+50)%100:100-t;return m>=bounds[0]-1e-6&&m<=bounds[1]+1e-6})();
  const stages=useMemo(()=>buildStages(p,partBracket?{keeps:bracketKept,mirrorIn}:undefined),[p,partBracket,bracketKept,mirrorIn]);
  // The board's lines over that bracket, for the transport to write what the panel writes.
  const bracket=useMemo(()=>bracketOf(p,bounds),[p,bounds]);
@@ -498,7 +504,7 @@ export default function Explorer({welcome}:{welcome?:boolean}={}){
  // Over the answer, where it came from, in the panel's words (EquationWorkbench): the pieces added up where
  // the sum was exact all along, the integral done everywhere else -- and, where the answer has an E_y the
  // run built no line for, that it is the surviving part added up the same way.
- const playerLead=useMemo(()=>{if(!bracket.whole)return 'Done between the bracket’s ends, the integral gives the bracketed part’s answer.';const two=['endpoint','ramp','semi'].includes(p.id);return (exactSum(p)?'Adding up the pieces gives this, exactly, however many there are.':two?'Doing the integrals gives this.':'Doing the integral gives this.')+(two?String.raw` $E_y$ is the surviving $\Delta E_y$ added up the same way.`:'')},[p,bracket]);
+ const playerLead=useMemo(()=>{if(!bracket.whole)return 'Done between the bracket’s ends, the integral gives the bracketed part’s answer.';const two=['endpoint','ramp','semi','offset'].includes(p.id);return (exactSum(p)?'Adding up the pieces gives this, exactly, however many there are.':two?'Doing the integrals gives this.':'Doing the integral gives this.')+(two?String.raw` $E_y$ is the surviving $\Delta E_y$ added up the same way.`:'')},[p,bracket]);
  // What the figure and the board are told about the run, held still until it actually changes.
  // The run's clock goes with it, and where the stage on screen starts and how long it lasts: a stage
  // that moves within itself reads its own moment off the clock, so a pause or a seek holds it there.
@@ -510,11 +516,11 @@ export default function Explorer({welcome}:{welcome?:boolean}={}){
  // re-rendered whole on every frame of Add them up and Shrink them, about nine hundred a run, half a
  // millisecond each on a laptop and some four times that on a Chromebook, in the two stages that move most.
  // It reads the values only to check a bound typed against the charge's size, so they reach it without the cut.
- const {distance:bd,size:bs,charge:bq,phi:bp,slices:bn,element:be,inner:bi}=params;
+ const {distance:bd,size:bs,charge:bq,phi:bp,slices:bn,element:be,inner:bi,height:bh}=params;
  // And the limiting cases, open with the page now, take the same: handed the run's cut, the open card summed its
  // seventy samples again on every frame of Shrink them -- a fifth of a frame's cost there on a slow machine -- for a
  // sweep that reads none of it.
- const boardParams=useMemo(()=>({distance:bd,size:bs,charge:bq,phi:bp,slices:bn,element:be,continuum:0,inner:bi}),[bd,bs,bq,bp,bn,be,bi]);
+ const boardParams=useMemo(()=>({distance:bd,size:bs,charge:bq,phi:bp,slices:bn,element:be,continuum:0,inner:bi,height:bh}),[bd,bs,bq,bp,bn,be,bi,bh]);
  const updateParams=useCallback((partial:Partial<Params>)=>{setParamsMap(old=>({...old,[id]:{...(old[id]??DEFAULT_PARAMS),...partial}}));},[id]);
  /** Whether the run came to rest by itself -- played to the end of what it was asked to play -- rather
   * than being stopped: the board looks again at the one and leaves the other alone (see the follow). */
@@ -624,10 +630,13 @@ export default function Explorer({welcome}:{welcome?:boolean}={}){
   * another piece; at three its only bounded piece is the middle one, its own mirror, and What cancels would
   * have nothing to show -- there it keeps the outer angle, which has a partner. */
  /** The piece the run talks about: see above. The offline copy draws it too, as One piece shows it. */
- function runPieceAt(){let i=geom==='ring'?Math.floor(count*(1-.5/(2*Math.PI)))%count:geom==='bisector'?count-1:geom==='sheet'?sheetPiece(count,params.distance):count-1-Math.floor((count-1)/4);
+ // The rod off its bisector talks about the end piece of its mirrored stretch, at the rod's nearer end, as the bisector
+ // talks about its end piece: its mirror is the stretch's other end, and What cancels has a pair to show. With no
+ // pair in the stretch -- P level with an end, or a stretch of one piece -- the rule every other rod keeps.
+ function runPieceAt(){const cut=geom==='offset'?offsetCut(params,count):null;let i=geom==='ring'?Math.floor(count*(1-.5/(2*Math.PI)))%count:geom==='bisector'?count-1:cut&&cut.mirror.count>1?(cut.mirror.start>0?cut.mirror.start+cut.mirror.count-1:cut.mirror.start):geom==='sheet'?sheetPiece(count,params.distance):count-1-Math.floor((count-1)/4);
   if(geom==='semi'||geom==='infinite'&&count>3)i=Math.min(i,count-2);
   if(!wholeBracket(bounds)){
-   const at=(k:number)=>100*(k+.5)/count,inside=(t:number)=>t>=bounds[0]-1e-6&&t<=bounds[1]+1e-6,mirror=(k:number)=>geom==='ring'?(at(k)+50)%100:100-at(k);
+   const at=(k:number)=>100*(k+.5)/count,inside=(t:number)=>t>=bounds[0]-1e-6&&t<=bounds[1]+1e-6,mirror=(k:number)=>geom==='ring'?(at(k)+50)%100:cut?(j=>j<0?-1e3:at(j))(offsetPartner(cut,k)):100-at(k);
    const open=[...Array(count).keys()].filter(k=>inside(at(k))&&!((geom==='semi'||geom==='infinite')&&k===count-1&&count>3));
    // A piece that is its own mirror -- the middle one at an odd N -- has no sideways part to show cancelling.
    const rank=(k:number)=>(Math.abs(mirror(k)-at(k))<1e-6?500:inside(mirror(k))?0:1e3)+Math.abs(k-i);
@@ -1094,14 +1103,16 @@ export default function Explorer({welcome}:{welcome?:boolean}={}){
     const planned=<GaussLibraryFamily key="gauss"/>;
     return <>{families(PROBLEMS.filter(pr=>isReady(pr.id))).map(g=>block(g.label,g.items))}{planned}{soon.length>0&&block('Coming soon',soon)}</>;
    },[id,choose]);
- const {distance,size,charge,phi,slices,inner}=params;
+ const {distance,size,charge,phi,slices,inner,height}=params;
  // The annulus's hole stays inside its rim: HOLE_MAX of b, on the slider's own grid.
  const holeMax=Math.floor(HOLE_MAX*size/2/.05+1e-9)*.05;
- const parameterGrid=useMemo(()=><div className="parameter-grid">{geom!=='arc'&&geom!=='uneven-arc'&&<Range describe="distance" onDescribe={setHighlight} label={['ring','disk','sheet','annulus'].includes(geom)?'Height z':geom==='axial'?'End distance a':'Distance r'} format={METERS} value={distance} min={.5} max={6} step={.05} onChange={distance=>updateParams({distance})}/>} {!isInfinite&&<Range describe="size" onDescribe={setHighlight} label={geom==='annulus'?'Outer radius b':isRound?'Radius R':'Length L'} format={METERS} value={isRound?size/2:size} min={isRound?.5:1} max={isRound?4:8} step={.05} onChange={v=>updateParams(geom==='annulus'&&inner>HOLE_MAX*v?{size:v*2,inner:Math.floor(HOLE_MAX*v/.05+1e-9)*.05}:{size:isRound?v*2:v})}/>}{geom==='annulus'&&<Range describe="inner" onDescribe={setHighlight} label="Inner radius a" format={METERS} value={Math.min(inner,holeMax)} min={0} max={holeMax} step={.05} onChange={v=>updateParams({inner:Math.min(v,holeMax)})}/>}<Range describe="charge" onDescribe={setHighlight} label={geom==='sheet'?'Surface density σ':geom==='ramp'?'Peak density λ₀':['infinite','semi'].includes(geom)?'Line density λ':'Total charge Q'} unit={geom==='sheet'?PER_SQUARE_METER:geom==='ramp'||['infinite','semi'].includes(geom)?PER_METER:NANOCOULOMBS} value={charge} min={-5} max={5} step={.1} onChange={(next,reason)=>updateParams({charge:snapCharge(next,charge,reason)})}/>{/* In degrees, on the same grid as before (a tenth of π to 2π in hundredths of π): run in
+ // The rod off its bisector's P stays level with some part of the rod: |h| no more than L/2, on the slider's grid.
+ const hMax=heightMax(size);
+ const parameterGrid=useMemo(()=><div className="parameter-grid">{geom!=='arc'&&geom!=='uneven-arc'&&<Range describe="distance" onDescribe={setHighlight} label={['ring','disk','sheet','annulus'].includes(geom)?'Height z':geom==='axial'?'End distance a':'Distance r'} format={METERS} value={distance} min={.5} max={6} step={.05} onChange={distance=>updateParams({distance})}/>} {!isInfinite&&<Range describe="size" onDescribe={setHighlight} label={geom==='annulus'?'Outer radius b':isRound?'Radius R':'Length L'} format={METERS} value={isRound?size/2:size} min={isRound?.5:1} max={isRound?4:8} step={.05} onChange={v=>updateParams(geom==='annulus'&&inner>HOLE_MAX*v?{size:v*2,inner:Math.floor(HOLE_MAX*v/.05+1e-9)*.05}:geom==='offset'?keepHeight(params,v):{size:isRound?v*2:v})}/>}{geom==='offset'&&<Range describe="height" onDescribe={setHighlight} label="Height h" format={METERS} value={Math.max(-hMax,Math.min(hMax,height))} min={-hMax} max={hMax} step={.05} onChange={v=>updateParams({height:Math.max(-hMax,Math.min(hMax,v))})}/>}{geom==='annulus'&&<Range describe="inner" onDescribe={setHighlight} label="Inner radius a" format={METERS} value={Math.min(inner,holeMax)} min={0} max={holeMax} step={.05} onChange={v=>updateParams({inner:Math.min(v,holeMax)})}/>}<Range describe="charge" onDescribe={setHighlight} label={geom==='sheet'?'Surface density σ':geom==='ramp'?'Peak density λ₀':['infinite','semi'].includes(geom)?'Line density λ':'Total charge Q'} unit={geom==='sheet'?PER_SQUARE_METER:geom==='ramp'||['infinite','semi'].includes(geom)?PER_METER:NANOCOULOMBS} value={charge} min={-5} max={5} step={.1} onChange={(next,reason)=>updateParams({charge:snapCharge(next,charge,reason)})}/>{/* In degrees, on the same grid as before (a tenth of π to 2π in hundredths of π): run in
      units of π, the slider read "1.5" to a screen reader, which meant 1.5π and said nothing of it. */}{geom==='arc'&&<Range describe="angle" onDescribe={setHighlight} label="Arc angle φ" format={DEGREES} value={phi*180/Math.PI} min={18} max={360} step={1.8} onChange={v=>updateParams({phi:v*Math.PI/180})}/>}{/* How finely the charge is cut. It used to live inside one step of the walkthrough, so the
      one control that shows the sum closing in on the integral was three clicks deep. Named by what the run cuts:
      the disk, the sheet and the disk's potential are cut into rings -- the stage is "One ring", the board says
-     "the N rings" -- and the slider under them alone said Pieces. */}<Range describe="pieces" onDescribe={setHighlight} label={geom==='disk'||geom==='sheet'||geom==='annulus'?'Rings N':'Pieces N'} value={slices} min={3} max={30} onChange={recut}/><button onClick={resetGeometry} className="text-button exp-reset" aria-label="Reset geometry" title="Reset geometry"><RotateCcw size={13}/></button></div>,[geom,isInfinite,isRound,distance,size,charge,phi,slices,inner,holeMax,updateParams,recut,resetGeometry]);
+     "the N rings" -- and the slider under them alone said Pieces. */}<Range describe="pieces" onDescribe={setHighlight} label={geom==='disk'||geom==='sheet'||geom==='annulus'?'Rings N':'Pieces N'} value={slices} min={3} max={30} onChange={recut}/><button onClick={resetGeometry} className="text-button exp-reset" aria-label="Reset geometry" title="Reset geometry"><RotateCcw size={13}/></button></div>,[geom,isInfinite,isRound,distance,size,charge,phi,slices,inner,holeMax,height,hMax,params,updateParams,recut,resetGeometry]);
  /** The offline copy, made in the light theme whatever the screen is in -- it is for paper, as the
   * print sheet is -- and put back the moment the figure has been read.
   *

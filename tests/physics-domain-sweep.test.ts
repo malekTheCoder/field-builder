@@ -38,7 +38,7 @@ import type {Params} from '../src/problems/types';
 const near = (v: {x: number; y: number; z: number}) => Math.hypot(v.x, v.y, v.z);
 const gap = (a: {x: number; y: number; z: number}, b: {x: number; y: number; z: number}) =>
   Math.hypot(a.x - b.x, a.y - b.y, a.z - b.z);
-const BASE: Params = {distance: 3, size: 4, charge: 2, phi: Math.PI, element: .65, slices: 5, continuum: 0, inner: 1};
+const BASE: Params = {distance: 3, size: 4, charge: 2, phi: Math.PI, element: .65, slices: 5, continuum: 0, inner: 1, height: 1};
 type Field = (p: Params) => {x: number; y: number; z: number};
 /** The rule itself, in one place, so the mutation test at the end can apply it unchanged to a
  * formula that is deliberately wrong. Returns the settings at which the formula is NOT what the
@@ -71,7 +71,9 @@ function domain(id: ProblemId): {p: Params; at: string}[] {
   // The annulus's hole too, as far as its slider goes: none (the disk), half the rim, and as near the rim as it reaches.
   for (const distance of DISTANCE) for (const size of SIZE) for (const charge of CHARGE)
     for (const phi of angled ? PHI : [Math.PI]) for (const hole of id === 'annulus' ? [0, .5, .95] : [null])
-      out.push({p: {...BASE, distance, size, charge, phi, inner: hole === null ? BASE.inner : hole * size / 2}, at: `r=${distance} L=${size} q=${charge}${angled ? ` phi=${(phi / Math.PI).toFixed(2)}pi` : ''}${hole === null ? '' : ` a=${hole}b`}`});
+      // And the rod off its bisector's P from level with its lower end, through the middle, to level with its upper end.
+      for (const lift of id === 'offset' ? [-.5, -.2, 0, .3, .5] : [null])
+      out.push({p: {...BASE, distance, size, charge, phi, inner: hole === null ? BASE.inner : hole * size / 2, height: lift === null ? BASE.height : lift * size}, at: `r=${distance} L=${size} q=${charge}${angled ? ` phi=${(phi / Math.PI).toFixed(2)}pi` : ''}${hole === null ? '' : ` a=${hole}b`}${lift === null ? '' : ` h=${lift}L`}`});
   return out;
 }
 /** Two element counts that really are a refinement for this geometry, coarse then fine. */
@@ -113,7 +115,7 @@ describe('every closed form is the limit of its own quadrature, everywhere the s
  * one number for all fifteen would have been a comfortable lie -- and was my first draft, which
  * claimed 1e-9 everywhere and was caught here by the axial and ramp rods refusing to fail. */
 const RESOLVES: Record<string, number> = {
-  bisector: 1e-9, ring: 1e-9, arc: 1e-9, endpoint: 1e-9, 'v-ring': 1e-9, 'v-arc': 1e-9, 'v-rod-bisector': 1e-9,
+  bisector: 1e-9, ring: 1e-9, arc: 1e-9, endpoint: 1e-9, offset: 1e-9, 'v-ring': 1e-9, 'v-arc': 1e-9, 'v-rod-bisector': 1e-9,
   axial: 1e-8, ramp: 1e-8, 'v-rod-axial': 1e-8,
   semi: 3e-8, infinite: 1e-7, disk: 1e-7, 'v-disk': 1e-7, annulus: 1e-7,
   // The uneven semicircle's pieces hold their stretch's exact charge, so its sum falls short by (Δθ/2)²/6, from

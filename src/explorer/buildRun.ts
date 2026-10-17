@@ -66,6 +66,9 @@ const CANCELS: Record<string, string> = {
   // Of the pieces and their mirrors, as the run's lines are (see `CANCEL_LINES`): a reader can choose the
   // run's piece, and at an odd N the middle one is its own mirror, with nothing drawn opposite it.
   bisector: 'Now the mirror pieces, each the same distance from P as its partner, on the other side of the x-axis. A piece’s part along the rod is equal and opposite to its mirror’s, so those two cancel, and what is left of both points the same way, perpendicular to the rod.',
+  // Only part of this rod has mirrors: the stretch that reaches as far beyond P's level on the long side as the nearer
+  // end does on the short side. The rest is the leftover, and it is the whole of what the lesson adds to the bisector.
+  offset: 'Now the mirror pieces, each as far from P as its partner across the x-axis. Only the stretch reaching as far beyond P’s level on the long side as the near end does on the short side has them: there a pair’s parts along the rod cancel, and their perpendicular parts add. The leftover has no mirrors, so its pieces keep both parts.',
   // Not "the piece": at an odd N -- the default five among them -- no piece's middle is half a turn
   // from another's, and the figure draws an arc of the piece's length centred straight across. That
   // length of ring is what cancels the piece's part, at any N.
@@ -112,6 +115,7 @@ const CANCELS: Record<string, string> = {
 // word -- and what survives is the part along the axis.
 const CANCEL_LINES: Record<string, string> = {
   bisector: 'Mirror pieces cancel each other’s parts along the rod; the perpendicular parts survive.',
+  offset: 'Mirror pieces cancel their parts along the rod; the leftover’s pieces keep theirs.',
   // Of the piece's part, not of "the ring half a turn round", which named the whole ring as the partner. Nor
   // "the piece half a turn round": at an odd N that is the cut between two pieces (see `PAIR_RING` on the board).
   ring: 'Each piece’s sideways part is undone half a turn round; the part along the axis survives.',
@@ -145,7 +149,7 @@ const NO_CANCEL = 'Nothing cancels here. Every piece lies above the x-axis, the 
  * showing nothing. A potential lesson gets one wherever it has a partner at the same distance,
  * because there the contrast with the field is the lesson: the same piece cancels one and adds
  * to the other. */
-const PAIRS = new Set(['bisector', 'infinite', 'ring', 'arc', 'uneven-arc']);
+const PAIRS = new Set(['bisector', 'offset', 'infinite', 'ring', 'arc', 'uneven-arc']);
 /** What a mirror pair does as it goes into the sum, in each lesson's own words for its two parts (see
  * `CANCEL_LINES`): true for either sign of charge, since it says which parts, not which way they point.
  * And which way the sum then runs, named: "straight along the axis" never said which axis on the rod and
@@ -309,6 +313,8 @@ export function buildStages(p: Problem, bracket?: RunBracket): BuildStage[] {
     add: part ? (scalar ? (exact ? `Stack each bracketed piece’s number: the column is exactly that part’s potential at${P}.`
         : `Stack each bracketed ${unit}’s number: it becomes that part’s potential at${P} as they shrink.`)
         : `Bracketed ${unit}s’ arrows, tip to tail, add up to that part’s field at${P} as they shrink.`)
+      // The rod off its bisector: its pairs, then its leftover whole -- and the lean that leftover makes.
+      : geometry === 'offset' && !scalar ? `Mirror pairs go in along $x$, then the leftover pieces whole: the sum leans.`
       : pairs && !scalar ? (exact ? `Pairs half a turn apart: sideways parts cancel; $z$ parts sum to exactly the field at${P}.`
         // Ending on what the sum reaches, not on the lone middle piece: the board under the line and the
         // caption say why that piece needs no partner, and the line closed on that footnote without ever
@@ -386,6 +392,8 @@ export function buildStages(p: Problem, bracket?: RunBracket): BuildStage[] {
   // as near as every other.
   const adds = part
     ? `Now add the arrows of the bracketed ${unit}s, tip to tail.${pairs ? bracket.keeps ? ' Each one’s mirror is bracketed too, so the sideways parts undo each other along the way and the chain bends back to the axis.' : ' A piece whose mirror lies outside the bracket keeps its sideways part, so the chain leans.' : ''} Where it stops is the sum of the bracketed ${unit}s: that part’s field at P once they shrink.`
+    : geometry === 'offset' && !scalar
+    ? `Now add the mirrored stretch in pairs from the middle out: their parts along the rod cancel, so the sum runs along the x-axis. Then add the leftover pieces whole, nearest P’s level first. Nothing cancels theirs, so the sum leans, and ${stops}`
     : pairs && exact
     ? 'Now add the pieces in pairs, each with the same length of ring straight across from it. In each pair the sideways parts cancel and the parts along the axis add, so the sum, E = Σ ΔE, grows straight along the axis to exactly the field at P: every piece is the same distance away at the same angle, so cutting finer changes nothing.'
     : pairs

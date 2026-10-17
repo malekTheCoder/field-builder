@@ -17,6 +17,8 @@ export const GLYPHS:Record<ProblemId,React.ReactNode>={
  semi:<><path d="M6 12.6V1.8M3.6 4.2 6 1.8l2.4 2.4"/><circle cx="14" cy="12.6" r="1.3" fill="currentColor" stroke="none"/></>,
  arc:<><path d="M4.2 13.8A6.8 6.8 0 0 1 13.8 4.2"/><circle cx="9" cy="9" r="1.3" fill="currentColor" stroke="none"/></>,
  sheet:<path d="M1.8 12.4 6.6 6.6h9.6l-4.8 5.8Z"/>,
+ // The bisector's rod with P raised off its middle: level with neither the middle nor an end.
+ offset:<><path d="M7 2.6v12.8M4.6 2.6h4.8M4.6 15.4h4.8"/><circle cx="14" cy="5.8" r="1.3" fill="currentColor" stroke="none"/></>,
  endpoint:<><path d="M6 3.4v9.2M3.6 3.4h4.8"/><circle cx="14" cy="12.6" r="1.3" fill="currentColor" stroke="none"/></>,
  ramp:<><path d="M6 12.6 3.8 3.4h4.4Z" fill="currentColor" fillOpacity=".3"/><circle cx="14" cy="12.6" r="1.3" fill="currentColor" stroke="none"/></>,
  'v-ring':<circle cx="9" cy="9" r="5.8"/>,
@@ -35,7 +37,7 @@ export function ShapeGlyph({id,size=18}:{id:ProblemId;size?:number}){return <svg
 // which is the single most useful thing the list could have told them. The families are the
 // lesson, so the list is grouped by them and each group says its own name.
 export const FAMILIES:{label:string;ids:ProblemId[]}[]=[
- {label:'Straight rods',ids:['bisector','axial','endpoint','ramp']},
+ {label:'Straight rods',ids:['bisector','axial','endpoint','offset','ramp']},
  {label:'Rings, disks and arcs',ids:['ring','disk','annulus','arc','uneven-arc']},
  {label:'Charge with no end',ids:['infinite','semi','sheet']},
  {label:'The same shapes, as potential',ids:['v-ring','v-disk','v-arc','v-rod-bisector','v-rod-axial']}];

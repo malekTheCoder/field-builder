@@ -14,7 +14,7 @@ export const DEFAULT_CAMERA: Readonly<CameraView> = Object.freeze({ yaw: -.5, pi
 const OPENING: Record<string, CameraView> = {
   // A rod, an arc or a ring lies flat in z = 0 and what matters is its SHAPE, so these look well
   // down on the plane: a low camera turns a rod into a line and an arc into a line segment.
-  arc: {yaw: -.42, pitch: .78}, 'uneven-arc': {yaw: -.42, pitch: .78}, bisector: {yaw: -.42, pitch: .82}, axial: {yaw: -.42, pitch: .82},
+  arc: {yaw: -.42, pitch: .78}, 'uneven-arc': {yaw: -.42, pitch: .78}, bisector: {yaw: -.42, pitch: .82}, offset: {yaw: -.42, pitch: .82}, axial: {yaw: -.42, pitch: .82},
   endpoint: {yaw: -.42, pitch: .8}, ramp: {yaw: -.42, pitch: .8},
   infinite: {yaw: -.42, pitch: .82}, semi: {yaw: -.42, pitch: .82},
   // The three with P on an axis keep the shallower standard angle. Lower would show the field

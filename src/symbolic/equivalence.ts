@@ -2,11 +2,14 @@ import {parse,type MathNode,type SymbolNode,type FunctionNode,type OperatorNode,
 import type {Problem} from '../problems/types';
 import {REGISTRY} from '../distributions';
 const allowedFunctions=new Set(['sqrt','sin','cos','tan','sec','abs','log']);
-const allowedSymbols=new Set(['d','Q','L','R','r','a','b','z','x','y','s','theta','alpha','phi','lambda','lambda0','sigma','eps0','pi','k','ri','dQ','dE','dV','V','dx','dy','dz','ds','dr','dl','dtheta','dalpha','dA','Infinity']);
+const allowedSymbols=new Set(['d','Q','L','R','r','a','b','h','z','x','y','y1','y2','s','theta','alpha','alpha1','alpha2','phi','lambda','lambda0','sigma','eps0','pi','k','ri','dQ','dE','dV','V','dx','dy','dz','ds','dr','dl','dtheta','dalpha','dA','Infinity']);
 export function normalize(input:string):string {
  // Both ln and log denote the natural logarithm; bases are intentionally unsupported.
  // λ₀ is the peak density of a non-uniform rod: one symbol, never λ times zero.
  let s=input.replace(/\\(?:ln|log)\b|\bln\b/g,'log').trim().replace(/^(?:E_[xyz]|dE_[xyz]|dQ|dE|E|[A-Za-z_]+)\s*=/,'').replace(/−|–/g,'-').replace(/(?:λ|\\lambda|\blambda)\s*(?:₀|_(?:\{0\}|0))/g,' lambda0 ').replace(/λ|\\lambda/g,' lambda ').replace(/σ|\\sigma/g,' sigma ').replace(/ε₀|ε0|\\(?:var)?epsilon(?:_(?:\{0\}|0)|0)?/g,' eps0 ').replace(/π|\\pi/g,' pi ').replace(/θ|\\theta/g,' theta ').replace(/α|\\alpha/g,' alpha ').replace(/φ|ϕ|\\varphi|\\phi/g,' phi ').replace(/∞|\\infty|\binf\b/gi,'Infinity').replace(/r[′']/g,'s').replace(/r_\{i\}|r_i|rᵢ/g,'ri').replace(/ℓ/g,'l').replace(/\bd\s+(theta|alpha|x|y|z|s|r|l)\b/g,'d$1').replace(/\\(?:left|right|,|;|!)/g,'').replace(/\\(?:cdot|times)|·|×/g,'*').replace(/²/g,'^2').replace(/³/g,'^3');
+ // The ends of the rod off its bisector, y₁ and y₂, and the angles at P to them, α₁ and α₂: one symbol each however
+ // they are written, y_1, y_{1}, y₁ (the α is already a word here).
+ s=s.replace(/\b(y|alpha)\s*(?:_\s*(?:\{\s*([12])\s*\}|([12]))|([₁₂]))/g,(_,w:string,a?:string,b?:string,c?:string)=>` ${w}${a??b??(c==='₁'?'1':'2')} `);
  // Innermost braces are reduced first, preserving nested fractions and roots.
  for(let i=0;i<20;i++){const next=s.replace(/\\(?:dfrac|tfrac|frac)\{([^{}]*)\}\{([^{}]*)\}/g,'(($1)/($2))').replace(/\\sqrt\{([^{}]*)\}/g,'sqrt($1)').replace(/\^\{([^{}]*)\}/g,'^($1)');if(next===s)break;s=next;}
  s=s.replace(/\\(sin|cos|tan|sec|sqrt)/g,'$1').replace(/[{}]/g,m=>m==='{'?'(':')').replace(/\|([^|]+)\|/g,'abs($1)').replace(/\bD([xyzs])\b/g,'d$1').trim();
@@ -57,6 +60,9 @@ function constrain(scope:Record<string,number>,p:Problem,random:()=>number){
  if(g==='infinite'||g==='bisector'){scope.y=(random()*2-1)*scope.L/2;scope.ri=Math.hypot(scope.y,scope.r);scope.alpha=adjacent(scope.r,scope.ri);return}
  if(g==='semi'){scope.x=scope.r*Math.tan(random()*.4*Math.PI/2);scope.ri=Math.hypot(scope.x,scope.r);scope.alpha=adjacent(scope.r,scope.ri);return}
  if(g==='endpoint'||g==='ramp'){scope.y=.05*scope.L+random()*.9*scope.L;scope.ri=Math.hypot(scope.y,scope.r);scope.alpha=adjacent(scope.r,scope.ri);return}
+ // The rod off its bisector runs from y₁ to y₂, its length L between them and P's level inside, so y₁ ≤ 0 ≤ y₂; its α is
+ // signed like y.
+ if(g==='offset'){const h=(random()*2-1)*.45*scope.L;scope.h=h;scope.y1=-h-scope.L/2;scope.y2=scope.L/2-h;scope.alpha1=Math.atan(scope.y1/scope.r);scope.alpha2=Math.atan(scope.y2/scope.r);scope.y=scope.y1+random()*scope.L;scope.ri=Math.hypot(scope.y,scope.r);scope.alpha=Math.sign(scope.y)*adjacent(scope.r,scope.ri);return}
  // The annulus's rings run from its hole's edge a out to its rim b, which lies past it.
  if(g==='annulus'){scope.b=scope.a+Math.exp(-1.6+random()*3.2);scope.s=scope.a+random()*(scope.b-scope.a);scope.ri=Math.hypot(scope.s,scope.z);scope.alpha=adjacent(scope.z,scope.ri);return}
  if(g==='disk'){scope.s=random()*scope.R;scope.ri=Math.hypot(scope.s,scope.z);scope.alpha=adjacent(scope.z,scope.ri);return}
@@ -95,7 +101,7 @@ export function equivalent(input:string,expected:string,p:Problem):Check{
 // letter by letter -- dθ as d·t·h·e·t·a, rᵢ as r·i, ε₀ as e·p·s·0 -- and sets L, s, ds and dV upright,
 // because it reads them as units (litres, seconds, deciseconds, decivolts). The lessons write them as
 // a textbook does: italic, with Greek letters and subscripts. φ is the lessons' φ, \varphi.
-const TEX_NAMES:Record<string,string>={theta:'\\theta',alpha:'\\alpha',phi:'\\varphi',lambda:'\\lambda',lambda0:'\\lambda_0',sigma:'\\sigma',eps0:'\\varepsilon_0',pi:'\\pi',ri:'r_i',dtheta:'d\\theta',dalpha:'d\\alpha',dl:'d\\ell',Infinity:'\\infty'};
+const TEX_NAMES:Record<string,string>={y1:'y_1',y2:'y_2',alpha1:'\\alpha_1',alpha2:'\\alpha_2',theta:'\\theta',alpha:'\\alpha',phi:'\\varphi',lambda:'\\lambda',lambda0:'\\lambda_0',sigma:'\\sigma',eps0:'\\varepsilon_0',pi:'\\pi',ri:'r_i',dtheta:'d\\theta',dalpha:'d\\alpha',dl:'d\\ell',Infinity:'\\infty'};
 // No padding space: the bound labels' tidy() reads "\frac{-L}{2}" as -L/2 only with nothing between
 // the brace and the name. The one command a name can directly follow is \cdot, spaced below.
 const nameTex=(node:SymbolNode)=>TEX_NAMES[node.name]??node.name;

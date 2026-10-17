@@ -773,3 +773,10 @@ html:not(.dark) .cd-svg .cd-vector-label:not(.is-muted){fill:color-mix(in oklab,
    the window and out of the figure, over the card's heading, caption and controls. Strokes only: a name is never cut
    in half -- the placer keeps it in, or hides it once what it names has left the window. */
 .cd-svg :is(.cd-dimension,.cd-triangle,.cd-piece-angle,.cd-angle-twin,.cd-ri-line,.cd-piece-length,.cd-gauge,.cd-sum-newest,.cd-pair-step,.cd-cancel-ghost,.cd-true-field) :is(path,line,circle,rect,polygon,polyline,ellipse){clip-path:var(--cd-plot-clip)}
+
+/* The rod off its bisector: the bracket beside the rod that marks which stretch has mirrors ("pairs") and which is left
+   over, in the dimensions' ink but lighter, and its two words, smaller than a symbol. And the pairs' share of the sum
+   kept on the axis once the leftover goes in, dashed, as a part of the sum laid off along its line. */
+.cd-svg .cd-parts path{fill:none;stroke:var(--cd-muted);stroke-width:1.4;stroke-linecap:round;stroke-linejoin:round}
+.cd-svg .cd-parts-name{font-size:calc(13px * var(--cd-k,1));fill:var(--cd-muted)}
+.cd-pair-axis-line{stroke:var(--field,#0b6b63);stroke-width:2.4;stroke-dasharray:4 3;stroke-opacity:.6;pointer-events:none}

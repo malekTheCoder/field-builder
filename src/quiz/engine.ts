@@ -11,6 +11,7 @@ import {bank as ring} from './bank/ring';
 import {bank as infinite} from './bank/infinite';
 import {bank as axial} from './bank/axial';
 import {bank as endpoint} from './bank/endpoint';
+import {bank as offset} from './bank/offset';
 import {bank as ramp} from './bank/ramp';
 import {bank as semi} from './bank/semi';
 import {bank as vRodBisector} from './bank/v-rod-bisector';
@@ -44,7 +45,7 @@ import {bank as gHard} from './bank/gauss-hard';
  * `bank/gauss-<id>.ts`). A shape with no bank yet is listed on the set-up screen as coming soon. */
 export const BANKS: Partial<Record<ShapeId, Question[]>> = {
   bisector, ring, infinite,
-  axial, endpoint, ramp, semi, 'v-rod-bisector': vRodBisector, 'v-rod-axial': vRodAxial,
+  axial, endpoint, offset, ramp, semi, 'v-rod-bisector': vRodBisector, 'v-rod-axial': vRodAxial,
   disk, annulus, sheet, arc, 'uneven-arc': unevenArc, 'v-ring': vRing, 'v-disk': vDisk, 'v-arc': vArc,
   symmetry: gSymmetry, flux: gFlux, inside: gInside, qenc: gQenc, spheres: gSpheres,
   lines: gLines, sheets: gSheets, conductors: gConductors, holes: gHoles, 'runs-out': gRunsOut, hard: gHard,

@@ -386,6 +386,17 @@ const PARTS: Record<ProblemId, Parts> = {
     anti: {pre: String.raw`\frac{k\lambda}{r}`, inner: String.raw`\frac{y}{\sqrt{y^2+r^2}}`, check: 'k*lambda/r*y/sqrt(y^2+r^2)'},
     antiAlso: {pre: String.raw`k\lambda`, inner: String.raw`\frac1{\sqrt{y^2+r^2}}`, check: 'k*lambda/sqrt(y^2+r^2)'},
     simplify: true, check: {dq: 'lambda', r: 'sqrt(y^2+r^2)', dir: 'r/sqrt(y^2+r^2)'}},
+  // THE ROD OFF ITS BISECTOR: the bisector's pieces, angle and antiderivatives, between its own ends y₁ and y₂. Part of it
+  // mirrors itself across P's level and part does not, so its whole rod is written as the bisector's lopsided bracket
+  // is -- the part along the rod survives, and E_y comes with the answer -- with the pairs that do cancel said too
+  // (see `boardLines`).
+  offset: {...ROD_Y, ...COS_ROD, dirIs: ANGLE_ROD, mirrorSay: MIRROR(String.raw`\alpha_i`), pairSay: PAIR('along the rod'), mirror: {across: String.raw`\sin\alpha`, lost: 'along the rod'},
+    signed: String.raw`On the triangle, $\sin\alpha_i=y_i/\sqrt{y_i^2+r^2}$.`,
+    survivor: SURVIVOR(String.raw`\alpha_i`, 'along the rod', 'y_i'),
+    anti: {pre: String.raw`\frac{k\lambda}{r}`, inner: String.raw`\frac{y}{\sqrt{y^2+r^2}}`, check: 'k*lambda/r*y/sqrt(y^2+r^2)'},
+    antiAlso: {pre: String.raw`k\lambda`, inner: String.raw`\frac1{\sqrt{y^2+r^2}}`, check: 'k*lambda/sqrt(y^2+r^2)'},
+    alongIntegral: {tex: String.raw`E_y=-\int_{y_1}^{y_2}\frac{k\lambda y}{(y^2+r^2)^{3/2}}\,dy`, check: '-k*lambda*y/(y^2+r^2)^(3/2)'},
+    simplify: true, check: {dq: 'lambda', r: 'sqrt(y^2+r^2)', dir: 'r/sqrt(y^2+r^2)'}},
   endpoint: {...ROD_Y, ...COS_ROD, dirIs: ANGLE_ROD_END, also: ALONG_ROD, alsoOf: SIN_ROD, nothing: ABOVE, simplify: true,
     anti: {pre: String.raw`\frac{k\lambda}{r}`, inner: String.raw`\frac{y}{\sqrt{y^2+r^2}}`, check: 'k*lambda/r*y/sqrt(y^2+r^2)'},
     antiAlso: {pre: String.raw`k\lambda`, inner: String.raw`\frac1{\sqrt{y^2+r^2}}`, check: 'k*lambda/sqrt(y^2+r^2)'},
@@ -593,6 +604,7 @@ const SPANS: Record<string, {each: string; run: (lo: string, hi: string) => stri
   bisector: {each: 'piece $i$ sits at $y_i$', run: (lo, hi) => `from one end, ${lo}, to the other, ${hi}`},
   axial: {each: 'piece $i$ sits at $x_i$', run: (lo, hi) => `from one end, ${lo}, to the other, ${hi}`},
   endpoint: {each: 'piece $i$ sits at $y_i$', run: (lo, hi) => `from one end, ${lo}, to the other, ${hi}`},
+  offset: {each: 'piece $i$ sits at $y_i$, negative below $P$’s level', run: (lo, hi) => `from the lower end, ${lo}, to the upper, ${hi}`},
   ramp: {each: 'piece $i$ sits at $y_i$', run: (lo, hi) => `from one end, ${lo}, to the other, ${hi}`},
   // In the angle the infinite line is finite: its far ends are where α reaches a right angle.
   infinite: {each: String.raw`piece $i$ sits at the angle $\alpha_i$`, run: (lo, hi) => `from ${lo}, far along the line one way, to ${hi}, far along it the other`},
@@ -630,8 +642,9 @@ export function boardLines(p: Problem, bounds?: [string, string], opts: {keeps?:
   const surface = p.geometry === 'disk' || p.geometry === 'sheet' || p.geometry === 'annulus', unit = surface ? 'ring' : 'piece';
   const [lo, hi] = bounds ?? p.boundTex;
   const whole = !bounds || (lo === p.boundTex[0] && hi === p.boundTex[1]);
-  const keeps = opts.keeps ?? (whole || (p.geometry !== 'ring' && lo === `-${hi}`));
-  const oneSided = opts.oneSided ?? (p.geometry !== 'ring' && (lo === '0' || hi === '0'));
+  // The rod off its bisector never holds every mirror, whole or bracketed: only part of it mirrors itself.
+  const keeps = p.geometry === 'offset' ? false : opts.keeps ?? (whole || (p.geometry !== 'ring' && lo === `-${hi}`));
+  const oneSided = p.geometry === 'offset' ? false : opts.oneSided ?? (p.geometry !== 'ring' && (lo === '0' || hi === '0'));
   const dQ = fx('element', String.raw`\Delta Q`), ri = fx('distance', 'r_i');
   // The square inside the factor, so it stacks over the subscript as r_i^2 does anywhere else, takes
   // the distance's colour and is part of what lights. Outside the \htmlClass group it was set after
@@ -649,7 +662,7 @@ export function boardLines(p: Problem, bounds?: [string, string], opts: {keeps?:
   const indexed = (tex: string) => /^\\(theta|alpha)$/.test(v) ? tex.replace(new RegExp('\\' + v + '(?!_)', 'g'), `${v}_i`)
     : tex.replace(new RegExp(String.raw`(?<![\\a-zA-Z]|\\Delta\s?)${v}(?![a-zA-Z_])`, 'g'), `${v}_i`);
   // The rods index piece i's position, and its angle, from One piece on (see `HYPOTENUSE`).
-  const rod = ['bisector', 'endpoint', 'ramp', 'axial', 'v-rod-bisector', 'v-rod-axial'].includes(p.id);
+  const rod = ['bisector', 'offset', 'endpoint', 'ramp', 'axial', 'v-rod-bisector', 'v-rod-axial'].includes(p.id);
   const ofPiece = (tex: string) => rod ? indexed(tex) : tex;
   const angleOf = (tex: string) => rod ? nth(tex) : tex;
   const dir = t.dir ? fx('projection', angleOf(t.dir)) : '';
@@ -776,6 +789,7 @@ export function boardLines(p: Problem, bounds?: [string, string], opts: {keeps?:
   // survives is, and the remark says why. On one side of the middle no mirror is inside at all, and
   // "some" said too little.
   const lopsided = !scalar && !!t.mirror && !keeps;
+  const offsetWhole = p.geometry === 'offset' && whole && !scalar;
   // The rods' survivor is a signed component, which adds along the bracket. The ring's used to be
   // written |ΔE⊥| = … sin α "survives too": a magnitude, which cannot survive a sum, beside a sin α
   // the card never defined. On part of a ring the pieces' parts across the axis point different ways
@@ -787,15 +801,18 @@ export function boardLines(p: Problem, bounds?: [string, string], opts: {keeps?:
   // Which side of the middle the bracket reaches, for the survivor's sentence: on a bracket wholly above
   // it, "below the x-axis α is negative" explained a negative α that never occurs, and on one wholly
   // below it "down for a piece above the x-axis" described no piece the bracket holds.
-  const below = opts.below ?? (lo.startsWith('-') || /_[12]$/.test(lo));
-  const above = opts.above ?? !(hi === '0' || hi.startsWith('-'));
+  // The rod off its bisector reaches both sides of P's level wherever P is off its ends.
+  const below = p.geometry === 'offset' || (opts.below ?? (lo.startsWith('-') || /_[12ab]$/.test(lo)));
+  const above = p.geometry === 'offset' || (opts.above ?? !(hi === '0' || hi.startsWith('-')));
   // "The ring straight across every piece" read as one ring that is straight across: what lies outside
   // is the length of ring across from each piece, in `PAIR_RING`'s own words.
   const offCentre = p.geometry === 'ring'
     ? `With the bracket ${oneSided ? 'on half the ring or less, the length of ring straight across from each piece lies' : 'short of the whole ring, the length of ring straight across from some pieces lies'} outside it, so the part across the axis no longer cancels: the integral below builds $${lhs}$ alone.`
     // "Builds E_x alone" was the whole truth while the part's answer was E_x alone; it now writes E_y too
     // (see `partResult`), so the sentence says where, not that E_y is left out.
-    : `With the bracket ${oneSided ? 'on one side of the middle, every piece’s mirror lies outside it' : 'off-centre, not every piece’s mirror is inside it'}, so the part ${t.mirror?.lost} no longer cancels: the integral below builds $${lhs}$${t.antiAlso ? ', and $E_y$ comes with the part’s answer' : ' alone'}.`;
+    // The rod off its bisector, whole: the pairs it has are said in `cancelsSay`, and this says what is left over.
+    : p.geometry === 'offset' && whole ? String.raw`Wherever $P$ is off the middle, the rest of the rod, on the side it reaches farther, has no mirror pieces, so its parts along the rod do not cancel: they all point the same way. The integral below builds $E_x$, and $E_y$ comes with the answer.`
+    : `With the bracket ${oneSided ? 'on one side of the middle, every piece’s mirror lies outside it' : p.geometry === 'offset' ? 'on part of the rod, not every piece’s mirror is inside it' : 'off-centre, not every piece’s mirror is inside it'}, so the part ${t.mirror?.lost} no longer cancels: the integral below builds $${lhs}$${t.antiAlso ? ', and $E_y$ comes with the part’s answer' : ' alone'}.`;
   const cancel: BoardLine = scalar
     // Why, where there is a mirror: the field's twin cancelled the same piece one lesson earlier, and
     // "Its mirror piece adds the same; nothing cancels." gave no reason. The ring's is the same length of
@@ -819,9 +836,11 @@ export function boardLines(p: Problem, bounds?: [string, string], opts: {keeps?:
           ? p.geometry === 'ring' ? ' ' + ringAcross
             : (t.survivor ? BREAK + t.survivor(above, below) : '') + (t.signed ? ' ' + t.signed : '')
           : t.mirrorSay) ?? ''),
-        cancels: lopsided ? undefined : gloss(undone),
-        cancelsSay: lopsided ? undefined : t.pairSay,
-        nothing: lopsided ? offCentre : t.nothing,
+        // The rod off its bisector, whole, has pairs that do cancel, only not all of it: the cancellation without its
+        // conclusion, E_y = 0, which is false here, and the stretch it holds in.
+        cancels: offsetWhole ? gloss(String.raw`\Delta E_y+(-\Delta E_y)=0`) : lopsided ? undefined : gloss(undone),
+        cancelsSay: offsetWhole ? `${t.pairSay} Only the stretch reaching as far beyond $P$’s level on the long side as the nearer end does on the short side has mirror pieces, and there each pair’s parts along the rod cancel.${BREAK}${offCentre}` : lopsided ? undefined : t.pairSay,
+        nothing: offsetWhole ? undefined : lopsided ? offCentre : t.nothing,
         also: gloss(lopsided ? across : t.also?.(dQ, ri2)),
         // The surviving component's factor, glossed under the line that uses it (`alsoOf`). Beside the
         // cosine's, the two fractions ran past a 240px board.
@@ -849,7 +868,7 @@ export function boardLines(p: Problem, bounds?: [string, string], opts: {keeps?:
   // A dragged limit the board names y₁ or y₂ was named nowhere else: neither the panel nor the figure
   // said what y₂ is. It is where a handle stands, so the sentence says so. An end at infinity is "on to
   // ∞", as the whole charge's sentence says it -- "to x = ∞" set a point where there is none.
-  const named = [lo, hi].filter(b => /_[12]$/.test(b));
+  const named = [lo, hi].filter(b => /_[12ab]$/.test(b) && !(p.geometry === 'offset' && /_[12]$/.test(b)));
   const handles = named.length === 2 ? ` Here $${lo}$ and $${hi}$ are where the bracket’s handles stand on the figure.`
     : named.length ? ` Here $${named[0]}$ is where the bracket’s handle stands on the figure.` : '';
   const placed = bounds && !whole
@@ -864,6 +883,8 @@ export function boardLines(p: Problem, bounds?: [string, string], opts: {keeps?:
   // At an odd N -- the default five -- the figure's first step is the middle piece alone (`pairOrder`), under a
   // remark that promised pairs: so the remark says why it needs no partner.
   const inPairs = whole && !scalar && (p.geometry === 'bisector' || p.geometry === 'infinite' || p.geometry === 'arc' || p.geometry === 'uneven-arc');
+  // The rod off its bisector adds its mirrored stretch in pairs, then its leftover a piece at a time, whole.
+  const inPairsThenLeftover = whole && !scalar && p.geometry === 'offset';
   // Why only ≈. The disk's pieces were called thin rings from the first line, so "each ring is still
   // treated as one thin ring" gave the approximation as its own reason. What is approximate is that a
   // ring Δs wide has all its charge counted at one radius. The sheet's ring is the stand-in itself.
@@ -917,7 +938,7 @@ export function boardLines(p: Problem, bounds?: [string, string], opts: {keeps?:
     : '';
   const sumIs = constant
     ? `${BREAK}Every piece is ${p.geometry === 'arc' ? '$R$ from' : 'the same distance from'}${NB}$P$${scalar ? '' : ' at the same angle'}, so this sum is already exact, however the ${p.geometry === 'arc' ? 'arc' : 'ring'} is cut: ${same ? `every $r_i$ is the same, $${t.r}$,${scalar ? '' : ' and every $\\alpha$ the same,'} so $${shared}$ comes out of the sum` : `$${shared}$ is the same in every term and comes out of the sum`}, and $\\sum_i\\Delta Q_i$ is ${whole ? 'the whole charge $Q$. The answer needs no integral' : 'the bracketed part’s charge'}.`
-    : `${BREAK}${scalar ? 'The column on the figure stacks these numbers, and its height is this sum.' : inPairs ? `The figure adds the whole arrows in mirror pairs, whose sideways parts cancel (a lone middle piece, on the $x$-axis, has none), so the sum it builds runs along ${along}, and how far it reaches is this sum.` : `The chain on the figure adds the whole arrows, and how far it reaches along ${along} is this sum.`}${reachY} It is only $\\approx$: ${roughly}.${finite}`;
+    : `${BREAK}${scalar ? 'The column on the figure stacks these numbers, and its height is this sum.' : inPairsThenLeftover ? `The figure adds the mirrored stretch’s arrows in mirror pairs first, whose parts along the rod cancel, so that much of the sum runs along ${along}; then the leftover pieces, each whole, and the sum leans. How far it reaches along ${along} is this sum.${BREAK}` : inPairs ? `The figure adds the whole arrows in mirror pairs, whose sideways parts cancel (a lone middle piece, on the $x$-axis, has none), so the sum it builds runs along ${along}, and how far it reaches is this sum.` : `The chain on the figure adds the whole arrows, and how far it reaches along ${along} is this sum.`}${reachY} It is only $\\approx$: ${roughly}.${finite}`;
   // THE EXACT SUM, DONE. Add said in words that the shared factor leaves the sum and Σ ΔQ_i is Q, so
   // "the answer needs no integral" -- and the line under it was still E_z = Σ k ΔQ_i cos α / r_i². The
   // board then integrated anyway, while the answer credited the sum: the claim was never shown. So the
@@ -1053,6 +1074,10 @@ const SET_OVER_TWO_LINES: Partial<Record<ProblemId, string[]>> = {
   // holds Q as L changes, and in λ alone E_x grows with L where at fixed Q it falls. (E_x in Q above
   // E_y in λ asked whether they were two different charges, so each is said in both.)
   endpoint: [String.raw`\begin{aligned}E_x&=\frac{k\lambda L}{r\sqrt{L^2+r^2}}${rowGap(1)}&=\frac{kQ}{r\sqrt{L^2+r^2}}${COMPONENT_GAP}E_y&=-k\lambda\left(\frac1r-\frac1{\sqrt{L^2+r^2}}\right)${rowGap(1)}&=-\frac{kQ}{L}\left(\frac1r-\frac1{\sqrt{L^2+r^2}}\right)\end{aligned}`],
+  // Both components in λ and the ends' y₁ and y₂, as the board integrated, then in Q and the angles at P that the
+  // figure marks: (kQ/(Lr))(sin α₂ − sin α₁) and (kQ/(Lr))(cos α₂ − cos α₁), with α signed like y. Each bracket set over two rows, as
+  // the ramp's is: on one row it ran out of the panel.
+  offset: [String.raw`\begin{aligned}E_x&=\frac{k\lambda}{r}\bigg(\frac{y_2}{\sqrt{y_2^2+r^2}}\\&\phantom{{}=\frac{k\lambda}{r}\bigg(}-\frac{y_1}{\sqrt{y_1^2+r^2}}\bigg)\\&=\frac{kQ}{Lr}\left(\sin{\alpha_2}-\sin{\alpha_1}\right)${rowGap(1.3)}E_y&=k\lambda\bigg(\frac1{\sqrt{y_2^2+r^2}}\\&\phantom{{}=k\lambda\bigg(}-\frac1{\sqrt{y_1^2+r^2}}\bigg)\\&=\frac{kQ}{Lr}\left(\cos{\alpha_2}-\cos{\alpha_1}\right)\end{aligned}`],
   // The magnitude on a row of its own: it is not a signed component, and the note under the
   // components says they are signed.
   semi: [String.raw`\begin{aligned}E_x&=\frac{k\lambda}{r}${rowGap(1.25)}E_y&=-\frac{k\lambda}{r}${rowGap(1.25)}|\mathbf E|&=\frac{\sqrt2\,k|\lambda|}{r}\end{aligned}`],
@@ -1133,6 +1158,10 @@ export const BISECTOR_UNFOLD = rodUnfold('-L/2', 'L/2');
  * go on from "the lower bound sits at y = 0". */
 export const ENDPOINT_UNFOLD: WorkedStep[] = [...rodUnfold('0', 'L'),
   {text: 'Evaluate that between the ends.', tex: String.raw`E_x=k\lambda\left[\frac{y}{r\sqrt{y^2+r^2}}\right]_0^L`}];
+/** The rod off its bisector's E_x: the bisector's four steps between its own ends, y₁ and y₂, and their evaluation;
+ * then its E_y by the substitution and the power rule, as the rod level with an end's is done (see `workedSteps`). */
+export const OFFSET_UNFOLD: WorkedStep[] = [...rodUnfold('y_1', 'y_2'),
+  {text: 'Evaluate that between the ends.', tex: String.raw`E_x=k\lambda\left[\frac{y}{r\sqrt{y^2+r^2}}\right]_{y_1}^{y_2}`}];
 /** The infinite line's integral from the board's own last line. Unfold opened on "Substitute
  * y = r tan α" applied to r dy/(r² + y²)^{3/2}, a y-integral the board never wrote -- it was in α from
  * its first line -- and folded the two steps a student needs, kλ/r coming out and ∫cos α dα = sin α,
@@ -1358,6 +1387,11 @@ export function workedSteps(p: Problem, algebra: Problem = p): {worked: WorkedSt
     : p.quantity === 'V' ? inherit(original)
     : g === 'bisector' ? [...BISECTOR_UNFOLD, ...inherit(original.slice(1))]
     : g === 'endpoint' ? [...ENDPOINT_UNFOLD, ...endpointEy]
+    // The rod off its bisector: the lesson's evaluation, then E_y by u = y² + r² and the power rule, then the lesson's
+    // bracket, its sign and its two components.
+    : g === 'offset' ? [...OFFSET_UNFOLD, ...inherit(original.slice(1, 2)),
+      {...U_ROD[0], text: String.raw`With $P$ off the middle only part of the rod has mirror pieces, so $E_y$, the part along the rod, does not cancel, and its integral has to be done. ${U_ROD[0].text}`}, U_ROD[1],
+      ...inherit(original.slice(2, 3).map(st => ({...st, text: 'Upper end minus lower end. The minus from the projection meets the minus in the antiderivative.'}))), ...inherit(original.slice(3))]
     // The finite-rod route keeps the lesson's own steps: they are written in y, and so is it.
     : algebra.id === 'infinite' && algebra.variable !== 'y'
       // Its last row stacked, as the answer above it is: "2kλ/r = λ/(2πε₀r)" was the one inline fraction.

@@ -3,6 +3,7 @@ import {REGISTRY} from '../distributions';
 export {EPS0,K,type Vec} from '../distributions/constants';
 import {K,EPS0,type Vec} from '../distributions/constants';
 import {annulusRadii,HOLE_MAX} from '../distributions/disk';
+import {offsetEnds} from '../distributions/offset';
 /** The thin annulus's sweep: its width b − a, as a share of b, at sweep position t ∈ [1, 30]: the whole disk at the
  * start, about a hundred and sixtieth of the rim at the end, swept on a log axis. */
 export const thinGap=(t:number)=>Math.pow(t,-1.5);
@@ -65,7 +66,8 @@ export function sampleLimit(problem:Problem,p:Params,limit:Limit,t:number):Limit
   case 'far':{copy.distance=t*p.size;
    // The rod on its own axis is placed by its near end, a. Its charge is centred L/2 further off,
    // and measured from there the point-charge form is off by a term of order (L/a)², not L/a.
-   const d=geom==='axial'?copy.distance+p.size/2:copy.distance;
+   // The rod off its bisector is counted from its middle too, a height h below P: d = √(r² + h²).
+   const d=geom==='axial'?copy.distance+p.size/2:geom==='offset'?Math.hypot(copy.distance,offsetEnds(copy).h):copy.distance;
    if(scalar){actual=Math.abs(potential(geom,copy));target=K*q/d;}else{actual=fieldOf(geom,copy);target=K*q/d**2;}break;}
   // The vertical far field, along the rod, is a first moment: −kQ y_c/r³ with y_c the centre of
   // charge. Only the ramp uses it, and its y_c is 2L/3. ("Transverse" named it once, which beside a
@@ -78,6 +80,9 @@ export function sampleLimit(problem:Problem,p:Params,limit:Limit,t:number):Limit
   case 'infinite':if(geom==='annulus'){const {a,b}=annulusRadii(p),sigma=p.charge/(Math.PI*(b*b-a*a)),grown=a+t*Math.hypot(a,p.distance);copy.size=2*grown;copy.inner=a;copy.charge=sigma*Math.PI*(grown*grown-a*a);actual=fieldOf('annulus',copy);target=Math.abs(sigma)*1e-9/(2*EPS0)*Math.abs(p.distance)/Math.hypot(p.distance,a);}
    else if(scalar&&geom==='disk'){const sigma=p.charge/(Math.PI*R*R);copy.size=2*t*p.distance;copy.charge=sigma*Math.PI*(copy.size/2)**2;actual=Math.abs(potential('disk',copy));target=Math.abs(sigma)*1e-9*(copy.size/2)/(2*EPS0);}
    else if(scalar){const lambda=p.charge/p.size;copy.size=t*p.distance;copy.charge=lambda*copy.size;actual=Math.abs(potential('bisector',copy));target=2*K*Math.abs(lambda)*1e-9*Math.log(Math.max(copy.size/p.distance,1));}
+   // The rod off its bisector grown at its own λ and its own h, both ends running off: L = 2|h| + tr keeps P the same
+   // height above the middle all the way, and the reference is the endless line's 2kλ/r, straight along x.
+   else if(geom==='offset'){const lambda=p.charge/p.size,h=offsetEnds(p).h;copy.size=2*Math.abs(h)+t*p.distance;copy.height=h;copy.charge=lambda*copy.size;actual=fieldOf('offset',copy);target=2*K*Math.abs(lambda)*1e-9/p.distance;}
    else if(geom==='bisector'||geom==='infinite'){const lambda=geom==='infinite'?p.charge:p.charge/p.size;copy.size=t*p.distance;copy.charge=lambda*copy.size;actual=fieldOf('bisector',copy);target=2*K*Math.abs(lambda)*1e-9/p.distance;}
    // The half line's own case is the same rod grown from its end, read from the line's side: its charge
    // slider is λ itself, as the infinite line's is, and the rod beside P carries that λ.
@@ -99,6 +104,13 @@ export function sampleLimit(problem:Problem,p:Params,limit:Limit,t:number):Limit
   case 'hole':{const {a,b}=annulusRadii(p),sigma=p.charge/(Math.PI*(b*b-a*a));copy.inner=HOLE_MAX*b*(1-(t-1)/29);copy.charge=sigma*Math.PI*(b*b-copy.inner**2);actual=fieldOf('annulus',copy);target=Math.abs(field('disk',{...copy,charge:sigma*Math.PI*b*b}).z);break;}
   // And narrowing onto its rim at its own Q, against a ring of radius b holding that Q.
   case 'thin':copy.inner=R*(1-thinGap(t));actual=fieldOf('annulus',copy);target=Math.abs(field('ring',copy).z);break;
+  // THE ROD OFF ITS BISECTOR SLID ALONG IT, P held at its r, the rod's L and Q held. To the middle: from level with the
+  // end on the reader's own side down to h = 0, where E_y falls to nothing (plotted scaled, its reference zero). To an
+  // end: from the middle out to that end, against the field of the rod level with its end at the same L and r, which
+  // is what the rod is once the mirrored stretch has shrunk to nothing (turned over, at the upper end: the same size).
+  case 'middle':case 'end':{const side=Math.sign(offsetEnds(p).h)||-1,s=(t-1)/29;copy.height=side*p.size/2*(limit.mode==='middle'?1-s:s);
+   if(limit.mode==='middle'){vector=field('offset',copy);actual=Math.abs(vector.y);target=0;}
+   else{actual=fieldOf('offset',copy);target=magnitude(field('endpoint',copy));}break;}
   case 'maximum':copy.distance=ringPeakZ(R,t);actual=fieldOf('ring',copy);target=K*q/(R*R)*2/(3*Math.sqrt(3));break;
   // The potential is a sum over the arc's point charges, so its flat line is measured, not assumed.
   // Beside it goes the field at the same centre, which falls to zero as the arc closes: the case is
@@ -139,7 +151,7 @@ export const DOUBLINGS=[2,4,8,16];
 const LOG_STRAIGHT=(ratio:string)=>` The axis is a log scale, on which a logarithm is a straight line: V grows only as ln(${ratio}).`;
 export type LimitPlot={kind:LimitKind;y:string;axis:string;from:string;to:string;line:string;caption:string;solid?:string;second?:string;marks?:{t:number;label:string}[]};
 export function limitPlot(problem:Problem,limit:Limit):LimitPlot{
- const g=problem.geometry,scalar=problem.quantity==='V',rod=g==='bisector'||g==='axial'||g==='endpoint'||g==='ramp';
+ const g=problem.geometry,scalar=problem.quantity==='V',rod=g==='bisector'||g==='axial'||g==='endpoint'||g==='ramp'||g==='offset';
  const d=g==='axial'?'a':g==='ring'||g==='disk'||g==='annulus'?'z':'r',size=rod?'L':g==='annulus'?'b':'R',Q=scalar?'|V|':'|E|',qty=scalar?'potential':'field';
  // A symbolic phrase such as "r ≫ L" never breaks across a line.
  const settles=(what:string,to:string)=>`On the dashed line the exact ${qty} equals ${what}. The curve settles onto it as ${to.replace(/ /g,'\u00a0')}.`;
@@ -159,6 +171,7 @@ export function limitPlot(problem:Problem,limit:Limit):LimitPlot{
    // it "your exact field" told a student their answer fell short of the true field -- and so did
    // the caption under it, "the exact field equals an infinite line's", in the lesson whose exact
    // field IS the infinite line's. There the caption names the rod or the disk, as the legend does.
+   if(g==='offset')return{kind:'ratio',y:'|E| ÷ infinite-line field',axis:'rod length L, with λ and h fixed',from:'L ∼ r',to:'L ≫ r',line:'infinite line',caption:'On the dashed line the exact field equals an infinite line’s, straight out along x. The curve settles onto it as both ends run off, L\u00a0≫\u00a0r: P’s height above the middle stops mattering once the rod is far longer than it.'};
    if(g==='annulus')return{kind:'ratio',y:'|E| ÷ holed-sheet field',axis:'outer radius b, with σ and a fixed',from:'b ∼ √(a² + z²)',to:'b ≫ a, z',line:'sheet with a hole',caption:'On the dashed line the exact field equals an infinite sheet’s with the same hole. The curve settles onto it once the rim is far past both the hole and P’s height, b\u00a0≫\u00a0a and b\u00a0≫\u00a0z.'};
    if(g==='disk'||g==='sheet')return{kind:'ratio',y:'|E| ÷ infinite-sheet field',axis:'disk radius R, with σ fixed',from:'R ∼ z',to:'R ≫ z',line:'infinite sheet',...g==='sheet'?{solid:'A disk of radius R',caption:'On the dashed line a disk’s field equals the infinite sheet’s. The curve settles onto it as R ≫ z.'}:{caption:settles('an infinite sheet’s','R ≫ z')}};
    // The half line's case is the infinite line's, from its end: the curve is a rod's, not the lesson's.
@@ -189,6 +202,8 @@ export function limitPlot(problem:Problem,limit:Limit):LimitPlot{
    :{kind:'growth',y:'|V| and k|λ| ln(L/a), scaled',axis:'gap a to the rod’s end',from:'a ∼ L',to:'a ≪ L',line:'k|λ| ln(L/a)',caption:'Both grow without end as P walks onto the rod’s end, and draw together: the difference between them, k|λ| ln((L\u00a0+\u00a0a)/L), vanishes as a\u00a0≪\u00a0L.'+LOG_STRAIGHT('L/a')};
   case 'hole':return{kind:'ratio',y:'|E| ÷ disk field',axis:'the hole closing, with σ fixed',from:'a wide hole',to:'no hole',line:'the disk',caption:'On the dashed line the annulus’s field equals the whole disk’s, with the same rim and the same σ. The curve settles onto it as the hole closes.'};
   case 'thin':return{kind:'ratio',y:'|E| ÷ ring field',axis:'the annulus narrowing, with Q fixed',from:'a whole disk',to:'a thin ring',line:'ring of radius b',caption:'On the dashed line the annulus’s field equals a ring’s of radius b holding the same Q. The curve settles onto it as the annulus narrows onto its rim, a\u00a0→\u00a0b.'};
+  case 'middle':return{kind:'decay',y:'|Eᵧ|, scaled',axis:'P sliding from an end to the middle',from:'level with an end',to:'level with the middle',line:'zero',caption:'As P slides level with the rod’s middle, the stretch that mirrors itself across P’s level grows to the whole rod, the leftover shrinks to nothing, and Eᵧ falls to zero with it: the bisector.'};
+  case 'end':return{kind:'ratio',y:'|E| ÷ end-on rod field',axis:'P sliding from the middle to an end',from:'level with the middle',to:'level with an end',line:'rod level with an end',caption:'On the dashed line the exact field equals the field of the rod level with its end, the same L and r. The curve settles onto it as P reaches the end, where the mirrored stretch has shrunk to nothing.'};
   case 'maximum':return{kind:'peak',y:'|E| ÷ its peak',axis:'height z on the axis',from:'the centre',to:'farther out',line:'the peak',marks:[{t:RING_PEAK_T,label:'peak'},{t:RING_EDGE_T,label:'R'}],caption:'The curve rises from zero at the centre, touches the dashed line once, at the marked peak inside z\u00a0=\u00a0R, and falls away beyond it.'};
   // The arc opens at fixed Q, so λ = Q/(Rφ) thins as it opens and |E| ∝ sin(φ/2)/φ only falls. At
   // fixed λ it would rise to the semicircle first, and the axis is where a reader learns which.
