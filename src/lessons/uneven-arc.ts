@@ -11,7 +11,7 @@ export const lesson: Lesson = {
     {heading: 'The setup', body: [
       raw`A semicircle of radius $R$ is set symmetrically about the $x$-axis, and $P$ is its centre. A piece’s angle $\theta$ is measured from the $x$-axis, so the semicircle runs from $\theta=-\pi/2$ to $\theta=\pi/2$. Its charge per unit length is`,
       {tex: raw`\lambda(\theta)=\lambda_0\cos\theta`},
-      raw`largest in size on the axis and zero at the two ends. (Measured instead from the diameter, from one end, the same density reads $\lambda_0\sin\theta'$.) It holds $Q=\int\lambda_0\cos\theta\,R\,d\theta=2\lambda_0R$ in all.`,
+      raw`largest in size on the axis and zero at the two ends. (Measured instead from the diameter, from one end, the same density reads $\lambda_0\sin\theta'$.) It holds $Q=\int_{-\pi/2}^{\pi/2}\lambda_0\cos\theta\,R\,d\theta=2\lambda_0R$ in all.`,
     ]},
     {heading: 'Cut it up', body: [
       raw`Cut the semicircle into $N$ pieces. A piece $\Delta\theta$ wide is $R\,\Delta\theta$ long, and the density across it is nearly its value at the middle, so it holds`,

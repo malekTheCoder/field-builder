@@ -295,13 +295,14 @@ export function limitNow(problem:Problem,limit:Limit,plot:LimitPlot,here:number,
     `The rod’s far end is still close enough to show: with no charge beyond it, the field is ${cmp('k|λ|/a')}.`,
     'Walking in, the rod looks more and more like a half line from P: its far end counts for less and less.',
     'Close up, the rod looks like a half line from P: the far end no longer matters.']);
-  // The rod off its bisector slid along: E_y falling away toward the middle, and the field becoming the end-on rod's.
+  // The rod off its bisector slid along: E_y falling away toward the middle, and the field becoming the rod's level with
+  // its end. (Not "the end-on rod's": that is the site's name for the axial rod, with P on the rod's own line.)
   case 'middle':return pick(converged,[
    'Near an end, nearly the whole rod is leftover on one side of P: the field leans its most.',
    'Sliding toward the middle, the mirrored stretch grows and the leftover shrinks: Eᵧ falls.',
    'Level with the middle every piece has its mirror: Eᵧ is zero, and this is the bisector.']);
   case 'end':return pick(converged,[
-   `Near the middle, most of the rod mirrors itself: the field is ${cmp('the end-on rod’s')}.`,
+   `Near the middle, most of the rod mirrors itself: the field is ${cmp('the rod’s level with its end')}.`,
    'Sliding toward an end, the mirrored stretch shrinks: the curve is closing on the dashed line.',
    'Level with the end, no piece has a mirror: this is the rod level with its end, and the curve lies on the dashed line.']);
   case 'hole':return pick(converged,[
@@ -422,11 +423,18 @@ function AssessmentView({problem,params:live,limit}:{problem:Problem;params:Para
  // A law falls, and its exact curve lies on it, so neither side of it is clear by the middle: there
  // the ghost runs just under it. Its name goes early and above, to the right, in the open corner a
  // falling curve leaves.
+ // AND A LEVEL LINE'S NAME GOES ON THE SIDE THE CURVE IS NOT. Named always just above its line, it was struck
+ // through by every curve that settles from above: the rod off its middle closing on "rod level with an end"
+ // ran its teal line straight through the words. Where the curve's last third, the stretch under the name at
+ // the right end, runs above the line on average, the name goes under it; the window stands on zero, so
+ // there is always room there, a line of its own type size below.
  const law=plot.kind==='law',named=guide?Math.round(samples.length*(law?.3:.55)):0,under=guide&&!law?guide[named]<values[named]:false;
+ const tail=values.slice(Math.floor(values.length*2/3)).filter(Number.isFinite);
+ const over=plot.kind!=='decay'&&tail.length>0&&tail.reduce((a,v)=>a+v,0)/tail.length>reference;
  const lineLabel:{x:number;y:number;anchor:'start'|'end'}=guide
   ?law?{x:xAt(tAt(named))+10,y:yAt(guide[named])-10,anchor:'start'}
   :{x:xAt(tAt(named))+(under?6:-6),y:yAt(guide[named])+(under?15:-7),anchor:under?'start':'end'}
-  :{x:plot.kind==='decay'?X0+8:X1,y:yAt(reference)-7,anchor:plot.kind==='decay'?'start':'end'};
+  :{x:plot.kind==='decay'?X0+8:X1,y:yAt(reference)+(over?5+10*grow:-7),anchor:plot.kind==='decay'?'start':'end'};
  // The thumbnail's frame is 48 units tall. Where P's arrow leans out of it -- up and to the left
  // above a half line's end, down and away beside a rod standing on P's level -- the frame grows by
  // just that much, at the same scale, rather than cutting the arrow off at its edge.

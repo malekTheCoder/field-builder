@@ -3,6 +3,7 @@ import {snapshotLayer} from '../diagrams/snapshot';
 import {PLOT} from '../diagrams/vectorfield';
 import {buildStages} from '../explorer/buildRun';
 import {getProblem} from '../problems/definitions';
+import {symbolic} from '../problems/prose';
 import {lessonFor, type Lesson} from '../lessons';
 import type {Problem} from '../problems/types';
 import {alongIntegralOf, boardLines, resultLines, workedSteps, type BoardLine} from '../workbench/derivation';
@@ -173,6 +174,30 @@ function restates(result: string, line: string) {
  * -- the Δ of ΔV -- stays upright, as TeX sets it. */
 export function greekHtml(text: string) {
   return escapeHtml(text).replace(/[Ͱ-Ͽ]+/g, run => run.split('').map(c => `<span class="g${c === c.toLowerCase() ? '' : ' up'}">${c}</span>`).join(''));
+}
+
+/** The operator names KaTeX sets upright: never a symbol's letters, however short. */
+const OPERATOR_NAMES = new Set(['sin', 'cos', 'tan', 'sec', 'ln', 'log', 'exp', 'sgn']);
+/** A sentence of the checks, its symbols in the face of the formula above it: the page's mathProse
+ * (Explorer.tsx), for the copy.
+ *
+ * ONE SYMBOL, ONE FACE, ON PAPER TOO. The copy styled only the Greek, so "kQ/z²", "z < R" and "P" printed in
+ * the body's upright sans under MathML that sets every one of them italic, where the page itself sets them
+ * italic. A sentence written with $…$ spans is set as MathML, as the setup is. One written plain has its symbols
+ * found as prose.ts holds them (`symbolic`): a run of one or two Latin letters goes italic, an operator's name
+ * and the digits stay upright. A lone "a", "A" or "I" is a word unless prose.ts held it to a symbol beside it
+ * ("a ≪ L"), since "a uniform rod" is English. */
+export function symbolsHtml(text: string) {
+  if (text.includes('$')) return proseHtml(text);
+  const latin = (part: string) => part.split(/([A-Za-z]+[₀-₉ᵢᵧₓ²³′]*)/).map((run, i) => {
+    const letters = /^[A-Za-z]+/.exec(run)?.[0] ?? '';
+    return i % 2 && letters.length <= 2 && !OPERATOR_NAMES.has(letters) ? `<span class="g">${escapeHtml(run)}</span>` : greekHtml(run);
+  }).join('');
+  // Held runs are joined by no-break spaces (prose.ts): a run of more than one piece is a formula.
+  return text.split(' ').map(token => {
+    const pieces = token.split(' '), held = pieces.length > 1;
+    return pieces.map(p => symbolic(p) && (held || !/^[aAI]$/.test(p)) ? latin(p) : greekHtml(p)).join(' ');
+  }).join(' ');
 }
 
 /** Whether a lesson's sentence or display says what k is: k = 1/(4πε₀), in either way of writing the fraction. */
@@ -492,7 +517,7 @@ export function artifactHtml(a: LessonArtifact) {
   // What the page checks the answer against, and where the physics is written up. A handout without
   // them gave a student nothing to test the result by and nowhere to read further.
   const checks = a.checks?.length
-    ? keep('<h2>Checks</h2>', a.checks.map(c => `<div class="check"><h3>${escapeHtml(c.title)}</h3>\n${mathml(c.formula)}\n<p>${greekHtml(c.explanation)}</p></div>`))
+    ? keep('<h2>Checks</h2>', a.checks.map(c => `<div class="check"><h3>${escapeHtml(c.title)}</h3>\n${mathml(c.formula)}\n<p>${symbolsHtml(c.explanation)}</p></div>`))
     : '';
   // The footer closes the copy with the sources it follows: printed on its own, it took the ring's
   // whole third sheet.

@@ -171,7 +171,10 @@ export function limitPlot(problem:Problem,limit:Limit):LimitPlot{
  // A symbolic phrase such as "r ≫ L" never breaks across a line.
  const settles=(what:string,to:string)=>`On the dashed line the exact ${qty} equals ${what}. The curve settles onto it as ${to.replace(/ /g,'\u00a0')}.`;
  switch(limit.mode){
-  case 'far':return{kind:'ratio',y:`${Q} ÷ point-charge ${qty}`,axis:`distance ${d}`,from:`${d} ∼ ${size}`,to:`${d} ≫ ${size}`,line:'point charge',caption:settles('a point charge’s',`${d} ≫ ${size}`)};
+  // The rod off its middle writes its far case in d = √(r² + h²), the distance from P to the rod's middle, and
+  // the plot sweeps r. Since |h| ≤ L/2 the two grow large together, and the caption says so: a card with a
+  // formula in d over a plot in r used two distances and never said how they relate.
+  case 'far':return{kind:'ratio',y:`${Q} ÷ point-charge ${qty}`,axis:`distance ${d}`,from:`${d} ∼ ${size}`,to:`${d} ≫ ${size}`,line:'point charge',caption:settles('a point charge’s',`${d} ≫ ${size}`)+(g==='offset'?' With it d ≫ L, since d = √(r² + h²) and |h| is at most half of L.':'')};
   case 'moment':return{kind:'ratio',y:'|Eᵧ| ÷ first-moment field',axis:'distance r',from:'r ∼ L',to:'r ≫ L',line:'first moment',caption:'On the dashed line the vertical field is the first-moment field, set by the centre of charge ȳ. The curve settles onto it as r\u00a0≫\u00a0L.'};
   case 'infinite':
    // The dashed curve is named by how it grows, as the rod's near case names its logarithm: "growth
@@ -218,7 +221,7 @@ export function limitPlot(problem:Problem,limit:Limit):LimitPlot{
   case 'hole':return{kind:'ratio',y:'|E| ÷ disk field',axis:'the hole closing, with σ fixed',from:'a wide hole',to:'no hole',line:'the disk',caption:'On the dashed line the annulus’s field equals the whole disk’s, with the same rim and the same σ. The curve settles onto it as the hole closes.'};
   case 'thin':return{kind:'ratio',y:'|E| ÷ ring field',axis:'the annulus narrowing, with Q fixed',from:'a whole disk',to:'a thin ring',line:'ring of radius b',caption:'On the dashed line the annulus’s field equals a ring’s of radius b holding the same Q. The curve settles onto it as the annulus narrows onto its rim, a\u00a0→\u00a0b.'};
   case 'middle':return{kind:'decay',y:'|Eᵧ|, scaled',axis:'P sliding from an end to the middle',from:'level with an end',to:'level with the middle',line:'zero',caption:'As P slides level with the rod’s middle, the stretch that mirrors itself across P’s level grows to the whole rod, the leftover shrinks to nothing, and Eᵧ falls to zero with it: the bisector.'};
-  case 'end':return{kind:'ratio',y:'|E| ÷ end-on rod field',axis:'P sliding from the middle to an end',from:'level with the middle',to:'level with an end',line:'rod level with an end',caption:'On the dashed line the exact field equals the field of the rod level with its end, the same L and r. The curve settles onto it as P reaches the end, where the mirrored stretch has shrunk to nothing.'};
+  case 'end':return{kind:'ratio',y:'|E| ÷ field level with an end',axis:'P sliding from the middle to an end',from:'level with the middle',to:'level with an end',line:'rod level with an end',caption:'On the dashed line the exact field equals the field of the rod level with its end, the same L and r. The curve settles onto it as P reaches the end, where the mirrored stretch has shrunk to nothing.'};
   case 'maximum':return{kind:'peak',y:'|E| ÷ its peak',axis:'height z on the axis',from:'the centre',to:'farther out',line:'the peak',marks:[{t:RING_PEAK_T,label:'peak'},{t:RING_EDGE_T,label:'R'}],caption:'The curve rises from zero at the centre, touches the dashed line once, at the marked peak inside z\u00a0=\u00a0R, and falls away beyond it.'};
   // The arc opens at fixed Q, so λ = Q/(Rφ) thins as it opens and |E| ∝ sin(φ/2)/φ only falls. At
   // fixed λ it would rise to the semicircle first, and the axis is where a reader learns which.
