@@ -68,6 +68,10 @@ export type FieldStageProps={
  /** Told, once, that the scene cannot start here -- no WebGL context, or its chunk never arrived -- so the
   * figure can draw itself flat instead. Without it the stage says so itself, over its empty layer. */
  onUnavailable?:(why?:'lost')=>void;
+ /** The radius of an arc about the origin whose density is λ₀ cos θ, θ from +x: the uneven semicircle. Its wire, its
+  * pieces and its chosen piece are then as thick as the charge they hold, thinning to a thread at the two ends, as
+  * the flat figure's band does. Absent, a wire is one thickness throughout. */
+ taper?:number;
 };
 /** The cuts are made in order along the charge, at the same pace as the flat figure's
  * `.cd-stage-pieces .cd-seam` animation, so a reader who flips between 2D and 3D sees one run. */
@@ -242,6 +246,22 @@ export function FieldStage(props:FieldStageProps){
    field.renderOrder=1;slices.renderOrder=1;marks.renderOrder=2;overlay.renderOrder=3;
    element.name='element';
    let elementKey='';
+   // The uneven semicircle's taper (see `taper`), read from the props on every update.
+   let taperR=0;
+   /** How thick the wire is at a point of it, against its full thickness: the density there, cos θ, with a floor so the
+    * ends stay a thread rather than vanish. One everywhere on a wire with no taper. */
+   const taperAt=(c:{x:number;y:number})=>taperR>0?.12+.88*Math.max(0,Math.cos(Math.atan2(c.y,c.x))):1;
+   /** A tube built round an arc about the origin, thinned to the density: each vertex is moved toward the arc's own
+    * point under it, R out at the vertex's own angle, by the taper there. */
+   const taperTube=<G extends InstanceType<typeof THREE.BufferGeometry>>(g:G):G=>{
+    if(!(taperR>0))return g;
+    const pos=g.getAttribute('position') as InstanceType<typeof THREE.BufferAttribute>;
+    for(let i=0;i<pos.count;i++){
+     const x=pos.getX(i),y=pos.getY(i),z=pos.getZ(i),phi=Math.atan2(y,x),cx=taperR*Math.cos(phi),cy=taperR*Math.sin(phi),f=taperAt({x:cx,y:cy});
+     pos.setXYZ(i,cx+(x-cx)*f,cy+(y-cy)*f,z*f);
+    }
+    pos.needsUpdate=true;return g;
+   };
    type Geometry=NonNullable<ReturnType<typeof mergeGeometries>>;
    type Attribute=InstanceType<typeof THREE.BufferAttribute>;
    /** Turn a geometry inside out: normals the other way, triangles wound the other way.
@@ -334,7 +354,7 @@ export function FieldStage(props:FieldStageProps){
     // A straight rod's element is two points, which CatmullRom cannot curve; a ring's is
     // thirteen along the real arc, so the piece bends exactly as the wire does.
     element.geometry=fadeGeometry(points.length>1
-     ?new THREE.TubeGeometry(new THREE.CatmullRomCurve3(points,false,'centripetal'),Math.max(8,points.length*2),radius,14,false)
+     ?taperTube(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(points,false,'centripetal'),Math.max(8,points.length*2),radius,14,false))
      :new THREE.BufferGeometry(),0,0);
    };
    // AN ARROWHEAD IS A FLAT TRIANGLE, turned about the arrow to face the camera. It was a cone, squat
@@ -400,10 +420,11 @@ export function FieldStage(props:FieldStageProps){
     const pos:number[]=[],nor:number[]=[],col:number[]=[],idx:number[]=[];
     const t=new THREE.Vector3(),n=new THREE.Vector3(),b=new THREE.Vector3(),aside=new THREE.Vector3();
     const ring=(c:Vec,normal:{x:number;y:number;z:number}|null,rgba:readonly number[])=>{
+     const thin=taperAt(c);
      for(let j=0;j<radial;j++){
       const angle=2*Math.PI*j/radial,cs=Math.cos(angle),sn=Math.sin(angle);
       const dx=n.x*cs+b.x*sn,dy=n.y*cs+b.y*sn,dz=n.z*cs+b.z*sn;
-      pos.push(c.x+dx*radius,c.y+dy*radius,c.z+dz*radius);
+      pos.push(c.x+dx*radius*thin,c.y+dy*radius*thin,c.z+dz*radius*thin);
       if(normal)nor.push(normal.x,normal.y,normal.z);else nor.push(dx,dy,dz);
       col.push(rgba[0],rgba[1],rgba[2],rgba[3]);
      }
@@ -969,7 +990,7 @@ export function FieldStage(props:FieldStageProps){
      const points=source.map(v=>new THREE.Vector3(v.x,v.y,v.z));
      if(points.length<2)return;
      const curve=new THREE.CatmullRomCurve3(points,p.closed,'centripetal');
-     body.add(new THREE.Mesh(new THREE.TubeGeometry(curve,Math.min(320,Math.max(64,points.length*2)),wireRadius(p.reach),14,p.closed),bodyMaterial));
+     body.add(new THREE.Mesh(taperTube(new THREE.TubeGeometry(curve,Math.min(320,Math.max(64,points.length*2)),wireRadius(p.reach),14,p.closed)),bodyMaterial));
      return;
     }
     // A disk and a sheet are both flat surfaces; only how they end differs. A disk stops at
@@ -1303,7 +1324,7 @@ export function FieldStage(props:FieldStageProps){
     body.visible=!opened;
     const signature=(v:Vec|undefined)=>v?`${v.x.toFixed(3)},${v.y.toFixed(3)},${v.z.toFixed(3)}`:'-';
     const partsKey=run?.parts.map((q,i)=>q?`${i}${q.map(s=>`${s.tone[0]}${s.lo.toFixed(4)}-${s.hi.toFixed(4)}`).join(',')}`:'').join('')??'';
-    const nextPieces=opened?`${n}:${run!.tones.join('')}:${partsKey}:${Array.from({length:n},(_,i)=>{const e=ends(i);return `${(e.head/step).toFixed(0)},${(e.tail/step).toFixed(0)}`;}).join(';')}:${(midWidth/step).toFixed(0)}:${signature(pieceOf(0)?.[0])}:${signature(pieceOf(n-1)?.at(-1))}:${wr.toFixed(4)}:${positive}`:'';
+    const nextPieces=opened?`${n}:${run!.tones.join('')}:${partsKey}:${Array.from({length:n},(_,i)=>{const e=ends(i);return `${(e.head/step).toFixed(0)},${(e.tail/step).toFixed(0)}`;}).join(';')}:${(midWidth/step).toFixed(0)}:${signature(pieceOf(0)?.[0])}:${signature(pieceOf(n-1)?.at(-1))}:${wr.toFixed(4)}:${positive}:${taperR}`:'';
     if(nextPieces!==piecesKey){
      piecesKey=nextPieces;
      const solid:{points:Vec[];rgba:number[]}[]=[],ghost:{points:Vec[];rgba:number[]}[]=[];
@@ -1503,7 +1524,8 @@ export function FieldStage(props:FieldStageProps){
     }
     const tint=themeTint,paper=themePaper;
     const positive=p.charge>=0;
-    const shape=sampleKey(p);
+    taperR=p.taper??0;
+    const shape=`${sampleKey(p)}:${taperR}`;
     // A disk and a sheet are drawn at unit size and scaled, so how finely they are cut says
     // nothing about their body; it was rebuilt at every doubling of the limit regardless.
     const bodyShape=p.kind==='wire'?shape:`${p.kind}:${p.closed}`;
@@ -1596,7 +1618,7 @@ export function FieldStage(props:FieldStageProps){
      element.visible=true;
      const key='annulus' in p.element
       ?`a:${p.element.annulus.inner.toFixed(4)}:${p.element.annulus.outer.toFixed(4)}:${thick.toFixed(4)}:${frameWorld.toFixed(2)}:${pieceFar?`${pieceFar.inner.toFixed(2)},${pieceFar.outer.toFixed(2)}`:''}`
-      :`p:${thick.toFixed(4)}:${p.element.path.map(v=>`${v.x.toFixed(3)},${v.y.toFixed(3)},${v.z.toFixed(3)}`).join(';')}`;
+      :`p:${thick.toFixed(4)}:${taperR}:${p.element.path.map(v=>`${v.x.toFixed(3)},${v.y.toFixed(3)},${v.z.toFixed(3)}`).join(';')}`;
      // THE CHOSEN PIECE IS NEVER FADED BY DISTANCE, even on the sheet, where the plane around it
      // is. It used to take the sheet's own ramp -- solid to a fifth of the way out, gone by four
      // fifths -- and so the outermost ring, which runs from about 9 m to the truncation, was

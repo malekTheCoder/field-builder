@@ -38,7 +38,7 @@ import {DEFAULT_PARAMS,type Params,type Problem,type ProblemId} from '../src/pro
 // closed forms, recorded next to the algebra that produced them.
 // ---------------------------------------------------------------------------
 
-const FIELD_IDS=['bisector','axial','infinite','ring','disk','semi','arc','sheet','endpoint','ramp'] as const;
+const FIELD_IDS=['bisector','axial','infinite','ring','disk','semi','arc','sheet','endpoint','ramp','uneven-arc'] as const;
 const ALL_IDS=[...FIELD_IDS,'v-ring','v-disk','v-arc','v-rod-bisector','v-rod-axial'] as const;
 /** The finite path of the infinite-line lesson is a sixteenth Problem that never reaches PROBLEMS. */
 const FINITE=getProblem('infinite','finite');
@@ -63,6 +63,7 @@ const OBSERVER:Record<string,(p:Params)=>[number,number,number]>={
  bisector:p=>[p.distance,0,0],axial:p=>[p.size+p.distance,0,0],infinite:p=>[p.distance,0,0],
  ring:p=>[0,0,p.distance],disk:p=>[0,0,p.distance],sheet:p=>[0,0,p.distance],
  semi:p=>[p.distance,0,0],arc:()=>[0,0,0],endpoint:p=>[p.distance,0,0],ramp:p=>[p.distance,0,0],
+ 'uneven-arc':()=>[0,0,0],
 };
 
 // ===========================================================================
@@ -165,6 +166,7 @@ function spotOf(p:Problem,o:Setting):number{
   case 'sheet':return 1.3*o.dist;
   case 'ring':return 1.9;
   case 'arc':return .19*o.phi;
+  case 'uneven-arc':return .19*Math.PI;                         // a half turn, whatever φ the setting carries
   default:return .61*o.R;                                       // the disk sweeps its radius
  }
 }
@@ -185,6 +187,7 @@ function scopeFor(p:Problem,o:Setting):Scope{
   case 'ramp':sc.lambda0=charge;sc.Q=charge*L/2;sc.ri=Math.hypot(sc.y,dist);break;
   case 'ring':sc.Q=charge;sc.lambda=charge/(2*Math.PI*R);sc.ri=Math.hypot(R,dist);break;
   case 'arc':sc.Q=charge;sc.lambda=charge/(R*phi);sc.ri=R;break;
+  case 'uneven-arc':sc.Q=charge;sc.lambda0=charge/(2*R);sc.ri=R;break;   // the slider is Q, and Q = 2λ₀R
   case 'disk':sc.Q=charge;sc.sigma=charge/(Math.PI*R*R);sc.ri=Math.hypot(sc.s,dist);break;
   case 'sheet':sc.sigma=charge;sc.ri=Math.hypot(sc.s,dist);break;              // no total Q exists
   case 'semi':sc.lambda=charge;sc.ri=Math.hypot(sc.y,dist);break;              // no total Q exists
@@ -194,7 +197,7 @@ function scopeFor(p:Problem,o:Setting):Scope{
  }
  if(!angular)sc.alpha=Math.acos(Math.min(1,Math.abs(dist)/sc.ri));   // the adjacent side is always the standoff
  // The dependent differentials, derived rather than assigned, so they scale on their own.
- sc.dQ=g==='disk'||g==='sheet'?sc.sigma*2*Math.PI*sc.s*sc.ds:(Number.isFinite(sc.lambda0)?sc.lambda0*sc.y/L:sc.lambda)*sc.dl;
+ sc.dQ=g==='disk'||g==='sheet'?sc.sigma*2*Math.PI*sc.s*sc.ds:(g==='uneven-arc'?sc.lambda0*Math.cos(sc.theta):Number.isFinite(sc.lambda0)?sc.lambda0*sc.y/L:sc.lambda)*sc.dl;
  sc.dE=kk*sc.dQ/(sc.ri*sc.ri);sc.dV=kk*sc.dQ/sc.ri;sc.V=sc.dV;
  return sc;
 }
@@ -253,7 +256,7 @@ function perVariable(p:Problem):string{
 function builtKernel(p:Problem,projection:string):string{
  const dq=need(p,'dq').expected,element=need(p,'element').expected;
  const power=p.quantity==='E'?2:1;
- const sign=p.geometry==='arc'&&p.quantity==='E'?'-1*':'';    // the arc's cosine factor points to −x
+ const sign=(p.geometry==='arc'||p.geometry==='uneven-arc')&&p.quantity==='E'?'-1*':'';    // the arc's cosine factor points to −x
  const proj=p.quantity==='E'?`*(${projection})`:'';
  return `${sign}k*(${dq})/(${element})*(${perVariable(p)})${proj}/(${p.distance})^${power}`;
 }
@@ -510,7 +513,7 @@ describe('every displayed “=” in a worked chain is true, and the chain ends 
  });
  it('the Q-substitution steps are ordinary identities under each lesson’s own density',()=>{
   for(const [id,written,machine] of [['bisector','k*lambda*L','k*Q'],['ring','2*pi*lambda*R','Q'],
-   ['arc','lambda*R*phi','Q'],['disk','sigma*pi*R^2','Q'],['ramp','lambda0*L/2','Q']] as const)
+   ['arc','lambda*R*phi','Q'],['disk','sigma*pi*R^2','Q'],['ramp','lambda0*L/2','Q'],['uneven-arc','2*lambda0*R','Q']] as const)
    expect(equivalent(written,machine,getProblem(id)).ok,`${id}: ${written} = ${machine}`).toBe(true);
  });
 });
@@ -1003,7 +1006,13 @@ describe('REGISTRY substitutions, density strings and dq = density × element',(
    const built=`(${p.density})*(${need(p,'element').expected})`;
    expect(equivalent(built,p.dq,p).ok,`${key}: ${built} vs ${p.dq}`).toBe(true);
   });
-  if(p.geometry!=='ramp')it(`${key}: the density string is the lesson’s own λ or σ`,()=>{
+  // The two lessons whose density varies write it as a function of where the piece is, in λ₀.
+  if(p.geometry==='uneven-arc')it(`${key}: the density string is λ₀ cos θ, and adds round the half turn to Q`,()=>{
+   expect(equivalent(p.density,'lambda0*cos(theta)',p).ok,`${key}: ${p.density}`).toBe(true);
+   const R=1.7,l0=.8,n=4000;let q=0;for(let i=0;i<n;i++){const t=-Math.PI/2+Math.PI*(i+.5)/n;q+=ev(p.density,{lambda0:l0,theta:t,pi:Math.PI})*R*Math.PI/n;}
+   expect(close(q,2*l0*R,1e-6),`${key}: ∫λ R dθ = ${q} vs 2λ₀R`).toBe(true);
+  });
+  if(p.geometry!=='ramp'&&p.geometry!=='uneven-arc')it(`${key}: the density string is the lesson’s own λ or σ`,()=>{
    const symbol=p.geometry==='disk'||p.geometry==='sheet'?'sigma':'lambda';
    expect(equivalent(p.density,symbol,p).ok,`${key}: ${p.density} vs ${symbol}`).toBe(true);
   });
@@ -1046,8 +1055,8 @@ describe('integralTex’s limits are boundTex, boundTex is bounds, and its integ
   });
  }
  it('every lesson in the library was covered',()=>{
-  expect(PROBLEMS).toHaveLength(15);
-  expect(VARIANTS).toHaveLength(16);
+  expect(PROBLEMS).toHaveLength(16);
+  expect(VARIANTS).toHaveLength(17);
  });
 });
 

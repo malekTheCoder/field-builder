@@ -71,6 +71,11 @@ const CANCELS: Record<string, string> = {
   // length of ring is what cancels the piece's part, at any N.
   ring: 'Now the same length of ring straight across from it. Its sideways part is equal and opposite, so the two cancel, and what is left of both points along the axis.',
   arc: 'Now the mirror pieces, at the mirror angles. A piece’s part across the axis is equal and opposite to its mirror’s, so those two cancel, and what is left of both points along the axis.',
+  // WHAT THE UNEVEN DENSITY CHANGES. Not what cancels: cos(−θ) = cos θ, so a piece and its mirror still hold equal
+  // charges and cancel exactly as the even arc's do. What changes is how much each pair is worth -- the heavy pairs sit
+  // near the axis, where nearly all of a piece's field points along it, and the light ones near the ends, whose fields
+  // lie mostly across the axis, are the ones that cancel most. So less of the charge is spent on cancelling.
+  'uneven-arc': 'Now the mirror pieces. Since cos(−θ) = cos θ, a piece and its mirror hold the same charge: their parts across the axis cancel. The density changes how much a pair adds, not what cancels: a heavy pair’s pieces near the axis point almost along it, so little cancels; a light pair’s near an end point almost across it, and mostly cancel.',
   infinite: 'Now the mirror pieces, on the other side of the perpendicular from P. A piece’s part along the line is equal and opposite to its mirror’s, so those cancel, and what is left of both points perpendicular to the line.',
   // The board says how a ring cancels -- each bit's part across the axis undone by the bit straight
   // across -- so the note under it says what that leaves, rather than the same sentence again.
@@ -109,6 +114,7 @@ const CANCEL_LINES: Record<string, string> = {
   // "the piece half a turn round": at an odd N that is the cut between two pieces (see `PAIR_RING` on the board).
   ring: 'Each piece’s sideways part is undone half a turn round; the part along the axis survives.',
   arc: 'Mirror pieces cancel each other’s parts across the axis; the parts along it survive.',
+  'uneven-arc': 'Mirror pieces hold equal charge: across the axis they cancel; along it they survive.',
   infinite: 'Mirror pieces cancel each other’s parts along the line; the perpendicular parts survive.',
   disk: 'Each ring’s sideways parts already cancel round it: only the part along the axis is left.',
   sheet: 'Each ring’s sideways parts already cancel round it: only the part along the axis is left.',
@@ -136,7 +142,7 @@ const NO_CANCEL = 'Nothing cancels here. Every piece lies above the x-axis, the 
  * showing nothing. A potential lesson gets one wherever it has a partner at the same distance,
  * because there the contrast with the field is the lesson: the same piece cancels one and adds
  * to the other. */
-const PAIRS = new Set(['bisector', 'infinite', 'ring', 'arc']);
+const PAIRS = new Set(['bisector', 'infinite', 'ring', 'arc', 'uneven-arc']);
 /** What a mirror pair does as it goes into the sum, in each lesson's own words for its two parts (see
  * `CANCEL_LINES`): true for either sign of charge, since it says which parts, not which way they point.
  * And which way the sum then runs, named: "straight along the axis" never said which axis on the rod and
@@ -147,6 +153,7 @@ const PAIR_PARTS: Record<string, {parts: string; runs: string}> = {
   bisector: {parts: 'the parts along the rod cancel, the perpendicular parts', runs: 'straight along the x-axis, perpendicular to the rod'},
   infinite: {parts: 'the parts along the line cancel, the perpendicular parts', runs: 'straight along the x-axis, perpendicular to the line'},
   arc: {parts: 'the parts across the axis cancel, the parts along it', runs: 'straight along the axis'},
+  'uneven-arc': {parts: 'the parts across the axis cancel, the parts along it', runs: 'straight along the axis'},
 };
 const SCALAR_PAIRS = new Set(['bisector', 'ring', 'arc']);
 // Of the mirror pieces, as the field's captions are: at an odd N the run's piece can be the middle one,
@@ -231,6 +238,8 @@ export function buildStages(p: Problem, bracket?: RunBracket): BuildStage[] {
       // The arc's field: every bit IS R from P, so "small enough to be a point charge" left a reader
       // asking what goes wrong with a big piece. Direction does: the field turns along a piece.
       : geometry === 'arc' ? `Short pieces: every bit is $R$ from${P}, but the field’s direction turns along a piece.`
+      // And the density changes along one too: it is the piece's charge, as well as its direction, taken at its middle.
+      : geometry === 'uneven-arc' ? `Short pieces: all $R$ from${P}, but the density and the direction change along one.`
       // Small compared with what: a piece beside P is not a point charge however short it is said to be.
       // At r = ½ beside L = 8 and three pieces the bisector's chain is 2.7 times the field -- and there the
       // drawn pieces are five times their distance from P, so the line says when a piece is nearly a point
@@ -263,6 +272,8 @@ export function buildStages(p: Problem, bracket?: RunBracket): BuildStage[] {
       // more charge, farther away -- are the two that do not vary here. Only direction does, which is
       // why the answer is 2kλ sin(φ/2)/R.
       : geometry === 'arc' ? `Every piece is $R$ from${P} and holds the same charge: the arrows differ only in direction.`
+      // The one thing the even arc's line rules out, back: the pieces near the axis hold more charge.
+      : geometry === 'uneven-arc' ? `Every piece is $R$ from${P}, but those near the axis hold more: their arrows are longer.`
       : `A piece’s field lies along the line to${P}: more charge, bigger; farther, smaller.`,
     cancel: scalar ? (part && pairs && !bracket.mirrorIn ? 'Its mirror is outside the bracket, so it is not added; and a potential has no direction.'
       : pairs ? geometry === 'ring' ? 'An equal length of ring opposite is just as far away and adds as much: nothing cancels.'
@@ -315,7 +326,7 @@ export function buildStages(p: Problem, bracket?: RunBracket): BuildStage[] {
     limit: part ? (exact ? 'As $N\\to\\infty$, the sum becomes the integral over the bracket, already exact.'
         : 'As $N\\to\\infty$, the sum becomes the integral over the bracket, exactly.')
       : exact ? 'As $N\\to\\infty$, the sum becomes an integral, and the answer, already exact, does not move.'
-      : geometry === 'arc' ? 'As $N\\to\\infty$, $\\cos\\theta$ stops changing across a piece: the sum is the integral, exactly.'
+      : geometry === 'arc' || geometry === 'uneven-arc' ? 'As $N\\to\\infty$, $\\cos\\theta$ stops changing across a piece: the sum is the integral, exactly.'
       : geometry === 'sheet' ? 'As $N\\to\\infty$, treating each ring as a thin ring becomes exact: the sum is the integral.'
       : surface ? 'As $N\\to\\infty$, counting each ring at one radius becomes exact: the sum is the integral.'
       : 'As $N\\to\\infty$, treating each piece as a point charge becomes exact: the sum is the integral.',
@@ -326,6 +337,7 @@ export function buildStages(p: Problem, bracket?: RunBracket): BuildStage[] {
     : geometry === 'disk' ? 'One thin ring at a time. Every bit of it is the same distance from P and makes the same angle with the axis, which is what lets the whole ring be added up at once in the next step.'
     : exact ? 'Each piece is drawn as a point charge at its middle, its field along the line joining them. A large piece’s own field leans a little closer to the axis, but its part along the axis is exactly this one’s, and that is the only part that will count.'
     : geometry === 'arc' ? 'Each piece makes a field at P along the radius, pointing from the piece through P and on, for positive charge. Every piece is the same distance away and holds the same charge, so every arrow is the same size; only its direction changes round the arc.'
+    : geometry === 'uneven-arc' ? 'Each piece makes a field at P along the radius, pointing from the piece through P and on, for positive charge. Every piece is the same distance away, but not every one holds the same charge: the density is largest in size on the axis and nothing at the two ends, so the arrows are longest in the middle and shrink toward the ends.'
     : 'Each piece makes a field at P along the line joining them. How big depends on how much charge it holds and how far away it is.';
   // A ring is not a point charge, and saying so is the honest start for a disk or a sheet: what
   // makes a ring easy is not that it is small, but that all of it is the same distance away.
@@ -346,6 +358,8 @@ export function buildStages(p: Problem, bracket?: RunBracket): BuildStage[] {
         // Short beside what: the arc's every bit is R from P, so what a long piece gets wrong is direction.
         : geometry === 'arc'
           ? 'Start by cutting the arc into pieces short compared with their distance from P, which is R. Every bit of a piece is R from P, but the bits’ fields point different ways, so only a short piece is nearly a point charge, and for a point charge the field is something we already know.'
+        : geometry === 'uneven-arc'
+          ? 'Start by cutting the semicircle into pieces short compared with R, their distance from P. Every bit of a piece is R from P, but along a piece the bits’ fields turn and the density changes, so only a short piece is nearly a point charge, and for a point charge the field is something we already know.'
           : `Start by cutting the charge into pieces short compared with their distance from P: small enough that each one is nearly a point charge, and for a point charge the ${scalar ? 'potential' : 'field'} is something we already know.`;
   // The chain is the arrows themselves, not their surviving parts: it is the sideways parts
   // undoing each other along the way that makes it bend back, where the geometry is symmetric.
@@ -359,7 +373,7 @@ export function buildStages(p: Problem, bracket?: RunBracket): BuildStage[] {
   // Thinner in angle where the cut is by angle at P: the outermost piece of an endless line, and the
   // sheet's outermost ring, never ends at any N, so it grows no thinner in length.
   const thinner = unbounded || geometry === 'sheet' ? 'grow ever thinner in angle' : 'grow ever thinner';
-  const exactNow = geometry === 'arc' ? 'taking cos θ at each piece’s middle, which was only nearly right, becomes exact, since cos θ stops changing across a piece'
+  const exactNow = geometry === 'arc' || geometry === 'uneven-arc' ? 'taking cos θ at each piece’s middle, which was only nearly right, becomes exact, since cos θ stops changing across a piece'
     : geometry === 'sheet' ? 'treating each ring as a thin ring, which was only nearly right, becomes exact'
     : surface ? 'counting each ring’s charge at one radius, which was only nearly right, becomes exact'
     : 'treating each piece as a point charge, which was only nearly right, becomes exact';

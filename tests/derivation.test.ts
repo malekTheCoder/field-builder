@@ -44,6 +44,8 @@ const SWAPS: Record<string, Swap[]> = {
   infinite: [[String.raw`r_i^2=r^2\sec^2\alpha_i`, 'r^2/cos(alpha)^2', 'distance^2']],
   semi: [[String.raw`r_i^2=y_i^2+r^2`, 'y^2+r^2', 'distance^2'], [String.raw`\cos\alpha_i=r/\sqrt{y_i^2+r^2}`, 'r/sqrt(y^2+r^2)', 'projection']],
   ring: [], arc: [], 'v-ring': [], 'v-arc': [],
+  // The uneven semicircle's density changes from piece to piece; its distance never does, and its cosine is already in θ.
+  'uneven-arc': [[String.raw`\lambda(\theta_i)=\lambda_0\cos\theta_i`, 'lambda0*cos(theta)', 'none']],
   disk: [RING_CHARGE, ...RING_SWAPS], sheet: RING_SWAPS,
   'v-disk': [RING_CHARGE, [String.raw`r_i=\sqrt{s_i^2+z^2}`, 'sqrt(s^2+z^2)', 'distance']],
   'v-rod-bisector': [[String.raw`r_i=\sqrt{y_i^2+r^2}`, 'sqrt(y^2+r^2)', 'distance']],
@@ -259,7 +261,7 @@ describe('the derivation board', () => {
     // later; α arrived in What cancels with no word for it at all.
     for (const p of PROBLEMS.filter(q => q.quantity === 'E' && q.id !== 'axial')) {
       // The rods index their piece's angle from its first appearance, α_i (see `HYPOTENUSE` on the board).
-      const angle = p.id === 'arc' ? '\\theta' : ['bisector', 'endpoint', 'ramp'].includes(p.id) ? '\\alpha_i' : '\\alpha';
+      const angle = p.id === 'arc' || p.id === 'uneven-arc' ? '\\theta' : ['bisector', 'endpoint', 'ramp'].includes(p.id) ? '\\alpha_i' : '\\alpha';
       const lines = boardLines(p);
       const uses = (tex?: string) => !!tex && tex.replace(/\\Delta\\(theta|alpha)/g, '').includes(angle);
       const first = lines.findIndex(l => [l.tex, l.where, l.finish, l.cancels, l.also].some(uses));

@@ -84,6 +84,10 @@ type Parts = {
   also?: (dQ: string, ri2: string) => string; alsoOf?: string;
   /** Where nothing cancels and there is no partner: why, in words. */
   nothing?: string;
+  /** The piece's charge is only nearly `piece`: where the density changes across a piece and `piece` takes it at the
+   * middle -- on the uneven semicircle, whose density is a cosine. (On the ramp it is linear, and the middle's value
+   * times the length is the piece's charge exactly.) */
+  nearly?: boolean;
   /** Show the integral once more with the algebra done: only where that changes what it looks like. */
   simplify: boolean;
   /** For the shrink line's rule: the charge per piece, where it changes from piece to piece, written
@@ -482,6 +486,24 @@ const PARTS: Record<ProblemId, Parts> = {
     antiAlso: {pre: String.raw`\frac{k\lambda}{R}`, inner: String.raw`\cos\theta`, check: 'k*lambda/R*cos(theta)'},
     tail: String.raw`, while $r_i$ is $R$ for every piece, a constant`,
     check: {dq: 'lambda*R', r: 'R', dir: '-cos(theta)'}},
+  // The arc's centre, its distance and its direction, with the density weighted: λ(θ) = λ₀ cos θ, so the charge a
+  // piece holds carries one cos θ and the part of its field along x the other. Its mirror holds the same charge,
+  // cos(−θ) = cos θ, which is what keeps the pairs.
+  'uneven-arc': {...ARC, dq: String.raw`\lambda_0\cos\theta\,R\,d\theta`, piece: String.raw`\lambda_0\cos\theta\,R\,\Delta\theta`, density: String.raw`\lambda(\theta)=\lambda_0\cos\theta`,
+    holds: String.raw`A piece’s angle round the arc is $\theta$, measured from the${NB}$x$-axis, its line of symmetry. The density $\lambda(\theta)=\lambda_0\cos\theta$ is the charge per unit length where the piece is: $\lambda_0$ on the axis, falling to zero at the two ends, $\theta=\pm\pi/2$.${BREAK}A piece $\Delta\theta$ wide is $R\,\Delta\theta$ long (angles in radians), so it holds nearly the density at its middle times its length: the density changes across it, and the shorter the piece, the less.`,
+    nearly: true,
+    sign: '-', dir: String.raw`\cos\theta`, dirOf: String.raw`\cos\theta`, simplify: true,
+    dirIs: String.raw`With $P$ at the centre, the radius to a piece at angle $\theta$ makes the angle $\theta$ with the${NB}$x$-axis. ${ARROW} lies along that radius carried on through${NB}$P$, pointing for positive charge from the piece back through${NB}$P$: its part along $x$ is $-\Delta E\cos\theta$.`,
+    mirrorSay: String.raw` Its mirror piece, at $-\theta$, holds the same charge, since $\cos(-\theta)=\cos\theta$, and makes the same $\Delta E_x$.`,
+    pairSay: PAIR('across the axis'), mirror: {across: String.raw`\sin\theta`, lost: 'across the axis'},
+    survivor: (above, below) => String.raw`Its part along $y$ is $-\Delta E\sin\theta$: the radius back through${NB}$P$ points ${[
+      ...above ? [String.raw`down for a piece above the${NB}$x$-axis, where $\theta>0$`] : [],
+      ...below ? [String.raw`up for ${above ? 'one' : 'a piece'} below ${above ? 'it' : String.raw`the${NB}$x$-axis`}, where $\theta<0$`] : []].join(', and ')}.`,
+    anti: {pre: String.raw`-\frac{k\lambda_0}{R}`, inner: String.raw`\frac\theta2+\frac{\sin(2\theta)}4`, check: '-k*lambda0/R*(theta/2+sin(2*theta)/4)'},
+    antiAlso: {pre: String.raw`\frac{k\lambda_0}{2R}`, inner: String.raw`\cos^2\theta`, check: 'k*lambda0/(2*R)*cos(theta)^2'},
+    charge: String.raw`\lambda(\theta)=\lambda_0\cos\theta`,
+    tail: String.raw`, while the direction’s $\cos\theta_i$ already is, and $r_i$ is $R$ for every piece, a constant`,
+    check: {dq: 'lambda0*cos(theta)*R', r: 'R', dir: '-cos(theta)'}},
   'v-ring': {...RING, simplify: true,
     constant: {term: String.raw`\frac{k\lambda R}{\sqrt{R^2+z^2}}`, whole: String.raw`\frac{k\,(2\pi R\lambda)}{\sqrt{R^2+z^2}}`,
       span: 'once round the ring', adds: String.raw`\int_0^{2\pi}d\theta=2\pi`, total: String.raw`2\pi R\lambda=Q`},
@@ -573,6 +595,7 @@ const SPANS: Record<string, {each: string; run: (lo: string, hi: string) => stri
   semi: {each: 'piece $i$ sits at $y_i$', run: lo => String.raw`from the end, ${lo}, on to $\infty$`},
   ring: {each: String.raw`piece $i$ sits at the angle $\theta_i$ round the ring`, run: (lo, hi) => `from ${lo} once round to ${hi}`},
   arc: {each: String.raw`piece $i$ sits at the angle $\theta_i$`, run: (lo, hi) => `from one end of the arc, ${lo}, to the other, ${hi}`},
+  'uneven-arc': {each: String.raw`piece $i$ sits at the angle $\theta_i$`, run: (lo, hi) => `from one end of the semicircle, ${lo}, to the other, ${hi}`},
   disk: {each: 'ring $i$ sits at the radius $s_i$', run: (lo, hi) => `from the centre, ${lo}, to the rim, ${hi}`},
   sheet: {each: 'ring $i$ sits at the radius $s_i$', run: lo => String.raw`from the centre, ${lo}, on to $\infty$`},
 };
@@ -835,7 +858,7 @@ export function boardLines(p: Problem, bounds?: [string, string], opts: {keeps?:
   // Over a bracketed part there is no mirror to pair with, and the figure draws the chain.
   // At an odd N -- the default five -- the figure's first step is the middle piece alone (`pairOrder`), under a
   // remark that promised pairs: so the remark says why it needs no partner.
-  const inPairs = whole && !scalar && (p.geometry === 'bisector' || p.geometry === 'infinite' || p.geometry === 'arc');
+  const inPairs = whole && !scalar && (p.geometry === 'bisector' || p.geometry === 'infinite' || p.geometry === 'arc' || p.geometry === 'uneven-arc');
   // Why only ≈. The disk's pieces were called thin rings from the first line, so "each ring is still
   // treated as one thin ring" gave the approximation as its own reason. What is approximate is that a
   // ring Δs wide has all its charge counted at one radius. The sheet's ring is the stand-in itself.
@@ -850,14 +873,16 @@ export function boardLines(p: Problem, bounds?: [string, string], opts: {keeps?:
   // "Short compared with", not "short beside": a reader took "beside" for "next to".
   const roughly = p.geometry === 'sheet' ? 'each ring is still treated as one thin ring'
     : surface ? String.raw`each ring is $\Delta s$ wide, but all its charge is counted at one radius $s$, one distance $r_i$ from${NB}$P$, which is close only while a ring is narrow compared with that distance`
-    : p.geometry === 'arc' ? String.raw`every bit of a piece is $R$ from${NB}$P$, but the bits’ fields point different ways: $\cos\theta$ changes across the piece, and the sum takes it at the piece’s middle`
+    // The uneven semicircle's pieces hold their own stretch's charge exactly (see its distribution), so what the sum
+    // still approximates is the arc's: the direction, taken at the middle.
+    : p.geometry === 'arc' || p.geometry === 'uneven-arc' ? String.raw`every bit of a piece is $R$ from${NB}$P$, but the bits’ fields point different ways: $\cos\theta$ changes across the piece, and the sum takes it at the piece’s middle`
     : equalAngle ? 'each piece is still treated as a point charge'
     : String.raw`each piece is still treated as a point charge, which is close only while a piece is short compared with its distance from${NB}$P$`;
   // What makes the ≈ an = in the limit, for the rule under the integral: the same approximation, gone.
   const sharper = surface ? p.geometry === 'sheet'
     ? 'the thinner a ring in angle, the more nearly its field is its thin ring’s, and in the limit it is'
     : 'the thinner a ring, the more nearly all its charge sits at one radius, and in the limit it does'
-    : p.geometry === 'arc' ? String.raw`the shorter a piece, the less $\cos\theta$ changes across it, and in the limit not at all`
+    : p.geometry === 'arc' || p.geometry === 'uneven-arc' ? String.raw`the shorter a piece, the less $\cos\theta$ changes across it, and in the limit not at all`
     : equalAngle ? 'the thinner a piece in angle, the more nearly its field is its point charge’s, and in the limit it is'
     : 'the thinner a piece, the more nearly it is a point charge, and in the limit it is one';
   // WHY AN EXACT SUM NEEDS NO CALCULUS. Called exact and then integrated anyway, the ring's integral
@@ -964,7 +989,7 @@ export function boardLines(p: Problem, bounds?: [string, string], opts: {keeps?:
   return [
     // One factor, not two: both sides are the element, and lit -- every run's first stage, or the charge
     // slider pointed at -- two chips' rings used up the relation's space and pinched the "=" between them.
-    {key: 'pieces', tex: fx('element', String.raw`\Delta Q=${t.piece}`), where: gloss(t.pieceIs ?? t.density ?? p.densityTex), say: t.holds},
+    {key: 'pieces', tex: fx('element', String.raw`\Delta Q${t.nearly ? String.raw`\approx ` : '='}${t.piece}`), where: gloss(t.pieceIs ?? t.density ?? p.densityTex), say: t.holds},
     // A vector, so it carries its direction: the unit vector the next line turns into a cosine.
     {key: 'one', tex: scalar ? String.raw`\Delta V=${one}` : oneField, where: distance, say: toward},
     cancel,
@@ -1055,6 +1080,9 @@ const SET_OVER_TWO_LINES: Partial<Record<ProblemId, string[]>> = {
   // One change per "=": λ becomes Q/L and the logarithm keeps its argument. Its second row rewrote that
   // too, as 1 + L/a -- the far-away limit's form, which a reader had to check against (L + a)/a alone.
   'v-rod-axial': [String.raw`\begin{aligned}V&=k\lambda\ln\frac{L+a}{a}${rowGap(.75)}&=\frac{kQ}{L}\ln\frac{L+a}{a}\end{aligned}`],
+  // In λ₀, as the board integrated, then in Q = 2λ₀R, the charge the slider holds: the comparison with the even
+  // semicircle is at one Q.
+  'uneven-arc': [String.raw`\begin{aligned}E_x&=-\frac{\pi k\lambda_0}{2R}${rowGap(.75)}&=-\frac{\pi kQ}{4R^2}\end{aligned}`],
 };
 /** What the integral comes to, the built component first. */
 export function resultLines(p: Problem): string[] {

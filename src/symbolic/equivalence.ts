@@ -60,6 +60,8 @@ function constrain(scope:Record<string,number>,p:Problem,random:()=>number){
  if(g==='disk'){scope.s=random()*scope.R;scope.ri=Math.hypot(scope.s,scope.z);scope.alpha=adjacent(scope.z,scope.ri);return}
  if(g==='sheet'){scope.s=Math.abs(scope.z)*Math.tan(random()*.4*Math.PI);scope.ri=Math.hypot(scope.s,scope.z);scope.alpha=adjacent(scope.z,scope.ri);return}
  if(g==='arc'){scope.theta=(random()-.5)*scope.phi;scope.ri=scope.R;}
+ // The semicircle with uneven charge runs θ over the half turn, and every piece is R from the centre.
+ if(g==='uneven-arc'){scope.theta=(random()-.5)*Math.PI*.95;scope.ri=scope.R;}
 }
 export function equivalent(input:string,expected:string,p:Problem):Check{
  if(!input.trim())return {ok:false,error:'Add an expression first.'};

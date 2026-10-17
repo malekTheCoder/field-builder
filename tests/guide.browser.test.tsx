@@ -35,8 +35,8 @@ describe('the study guide', () => {
   // All fifteen lessons, each once, each a link to its own address, starting with the finite line.
   const all = [...container.querySelectorAll<HTMLAnchorElement>('a.guide-lesson')];
   const lessons = all.filter(a => a.getAttribute('href')!.startsWith('?p='));
-  expect(lessons.length).toBe(15);
-  expect(new Set(lessons.map(a => a.getAttribute('href'))).size).toBe(15);
+  expect(lessons.length).toBe(16);
+  expect(new Set(lessons.map(a => a.getAttribute('href'))).size).toBe(16);
   expect(lessons[0].getAttribute('href')).toBe('?p=bisector');
   expect(lessons[0].textContent).toContain(getProblem('bisector').short);
   expect(lessons.at(-1)!.getAttribute('href')).toMatch(/^\?p=v-/);

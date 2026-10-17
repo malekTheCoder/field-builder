@@ -115,6 +115,9 @@ const RESOLVES: Record<string, number> = {
   bisector: 1e-9, ring: 1e-9, arc: 1e-9, endpoint: 1e-9, 'v-ring': 1e-9, 'v-arc': 1e-9, 'v-rod-bisector': 1e-9,
   axial: 1e-8, ramp: 1e-8, 'v-rod-axial': 1e-8,
   semi: 3e-8, infinite: 1e-7, disk: 1e-7, 'v-disk': 1e-7,
+  // The uneven semicircle's pieces hold their stretch's exact charge, so its sum falls short by (Δθ/2)²/6, from
+  // taking each direction at its piece's middle: at two and eight thousand pieces a smaller bend hides inside that.
+  'uneven-arc': 3e-7,
   sheet: 5e-6,
 };
 describe('and the rule above has teeth, checked rather than asserted', () => {

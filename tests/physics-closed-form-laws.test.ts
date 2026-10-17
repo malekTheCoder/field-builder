@@ -86,18 +86,20 @@ const LAWS:Record<ProblemId,Law>={
  ramp:{m:-1,e:1,angle:false},semi:{m:-1,e:1,angle:false},infinite:{m:-1,e:1,angle:true},
  sheet:{m:0,e:2,angle:false},
  'v-ring':Q_TURN,'v-arc':Q_TURN,'v-disk':Q_ROD,'v-rod-bisector':Q_ROD,'v-rod-axial':Q_ROD,
+ // The semicircle with uneven charge: its slider is Q, as the arc's is, and its partition is in the angle.
+ 'uneven-arc':Q_TURN,
 };
 const ALL_IDS=Object.keys(LAWS) as ProblemId[];
 // The ten lessons whose geometry defines an absolute potential: the two unbounded lines and
 // the sheet have none (the integral diverges), and endpoint/ramp were never given one.
-const HAS_V=new Set<ProblemId>(['bisector','axial','ring','disk','arc','v-ring','v-disk','v-arc','v-rod-bisector','v-rod-axial']);
+const HAS_V=new Set<ProblemId>(['bisector','axial','ring','disk','arc','v-ring','v-disk','v-arc','v-rod-bisector','v-rod-axial','uneven-arc']);
 const BASES:Partial<Params>[]=[{distance:3,size:4},{distance:.5,size:8,phi:.3*Math.PI},{distance:6,size:1,phi:2*Math.PI}];
 const CHARGES=[-3,1],SCALES=[.37,2,7.5,1e3],QUAD_N=[1,7,400],SAMPLE_N=[1,5,37,200];
 
 describe('length and charge scaling, through the closed form, the quadrature and every element',()=>{
  it('the three exponents are one exponent: a sample field is k dq/r², so m = e − 2',()=>{
   for(const [id,law] of Object.entries(LAWS))expect(law.m,id).toBe(law.e-2);
-  expect(ALL_IDS).toHaveLength(15);
+  expect(ALL_IDS).toHaveLength(16);
  });
  for(const id of ALL_IDS)for(const base of BASES)
   it(`${id} · d ${base.distance} m · L ${base.size} m`,()=>{

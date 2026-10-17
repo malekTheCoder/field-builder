@@ -79,6 +79,18 @@ function LimitFigure({id,mode,t,vector,scale,arrow}:{id:ProblemId;mode:Limit['mo
    {/* The ramp is a wedge: empty at the foot, widest at the top. */}
    {id==='ramp'?<path d={`M104 34L100 ${34-h}h8Z`} {...CHARGE} fill="var(--charge)" strokeWidth="1.5"/>:<path d={`M104 34V${34-h}`} {...CHARGE} strokeWidth="7"/>}
    {unbounded&&<path d="M97 12l7-6 7 6" {...CHARGE}/>}{P(104+gap,34,false,undefined,(id==='ramp'?108.75:107.5)+CLEAR)}</>}
+ // THE SEMICIRCLE WITH UNEVEN CHARGE, as the arc's thumbnail draws a semicircle: its point charges sized by the
+ // charge each holds, so the plot's N pieces show where the charge is -- and, as it is spread evenly, its stroke
+ // thinning in the middle and filling out at the ends.
+ if(id==='uneven-arc'){
+  // A negative arrow stops short of the stroke's inner edge, which is half its widest, 3.2 units, on the axis.
+  const R=20.5,inner=152+R-3.2-CLEAR,at=(s:number)=>({x:152+R*Math.cos(s),y:25-R*Math.sin(s)});
+  // Each dot's area grows with the charge it holds, Q sin(π/2N) cos θ: the lone dot at N = 1 holds all of Q.
+  if(mode==='half'){const n=halfPieces(t),w=Math.sin(Math.PI/(2*n));return <>{Array.from({length:n},(_,i)=>{const s=-Math.PI/2+Math.PI*(i+.5)/n,q=at(s);return <circle key={i} cx={q.x.toFixed(1)} cy={q.y.toFixed(1)} r={(1.2+2.6*Math.sqrt(Math.cos(s)*w)).toFixed(2)} fill="var(--charge)"/>})}{P(152,25,false,undefined,undefined,inner)}</>}
+  // The even share s of the sweep: the stroke is a run of short arcs, each as thick as the density there.
+  const keep=(30-t)/29,k=12;
+  return <>{Array.from({length:k},(_,i)=>{const a=-Math.PI/2+Math.PI*i/k,b=a+Math.PI/k,m=(a+b)/2,density=keep*Math.PI/2*Math.cos(m)+(1-keep),p0=at(a),p1=at(b);
+   return <path key={i} d={`M${p0.x.toFixed(1)},${p0.y.toFixed(1)}A${R} ${R} 0 0 0 ${p1.x.toFixed(1)},${p1.y.toFixed(1)}`} {...CHARGE} strokeLinecap="butt" strokeWidth={(1+3.4*density).toFixed(2)}/>})}{P(152,25,false,undefined,undefined,inner)}</>}
  if(id==='arc'){
   // A negative arc's field at its centre points at the arc. At a radius of 17 a stopped arrow had no room
   // between P's dot and the arc's inner edge; at 20.5 it has a short shaft, and the arc still fits the
@@ -152,6 +164,7 @@ export function sweepName(problem:Problem,limit:Limit):string{
   case 'near':return 'Move P in';
   case 'full':return 'Open the arc';
   case 'half':return 'Add pieces';
+  case 'even':return 'Spread it evenly';
   default:return 'Move P out';
  }
 }
@@ -186,7 +199,7 @@ const S_MIN=1,S_MAX=30,snap=(v:number)=>Math.round(Math.min(S_MAX,Math.max(S_MIN
 const ARRIVED=.01,APART=.05,ZERO=.02;
 type Moment='start'|'middle'|'end';
 /** What the source is called in a sentence. */
-const SOURCE:Record<ProblemId,string>={bisector:'rod',axial:'rod',endpoint:'rod',ramp:'rod',ring:'ring',disk:'disk',arc:'arc',infinite:'line',semi:'half line',sheet:'sheet'} as Record<ProblemId,string>;
+const SOURCE:Record<ProblemId,string>={bisector:'rod',axial:'rod',endpoint:'rod',ramp:'rod',ring:'ring',disk:'disk',arc:'arc','uneven-arc':'semicircle',infinite:'line',semi:'half line',sheet:'sheet'} as Record<ProblemId,string>;
 /** ONE SENTENCE FOR WHERE THE SCRUB IS, in words and symbols only. The caption under the card says how
  * to read the whole plot; this says what is true at the dot -- close in, on the way, or arrived -- so
  * dragging along the curve reads as the argument it is: "close up the rod's size still shows", "far
@@ -257,6 +270,10 @@ export function limitNow(problem:Problem,limit:Limit,plot:LimitPlot,here:number,
     'On a narrow arc the pieces’ fields point much the same way, so they mostly add.',
     'Opening the arc spreads its pieces’ fields in direction: more and more of them cancel.',
     'Closed into a full circle, every piece is cancelled by the one opposite: the field at the centre is zero.']);
+  case 'even':return pick(converged,[
+   'With the charge piled toward the middle, most of it sits where a piece’s field points along the axis: the field is stronger than the even semicircle’s.',
+   'As more of the charge moves out toward the ends, more of its field lies across the axis, where its mirror cancels it.',
+   'Spread evenly, the field is the even semicircle’s: the curve lies on the dashed line.']);
   case 'half':return pick(converged,[
    `Few pieces: their field at P is ${here<1?'weaker':'stronger'} than the semicircle’s, the dashed line.`,
    'More pieces: their sum is closing on the semicircle’s field.',

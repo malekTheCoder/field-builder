@@ -94,7 +94,8 @@ const ORDER:{leg:string;items:{id:ProblemId;text:string}[]}[]=[
   {id:'ring',text:String.raw`Every piece is the same distance from $P$, so the sideways parts cancel all the way round.`},
   {id:'disk',text:'A disk is rings. The ring’s answer becomes the piece you add up.'},
   {id:'sheet',text:'A disk with no edge. The far rings make the larger fields, and the field never changes with height.'},
-  {id:'arc',text:String.raw`Every piece is $R$ from $P$. How far the arc opens decides what survives.`}]},
+  {id:'arc',text:String.raw`Every piece is $R$ from $P$. How far the arc opens decides what survives.`},
+  {id:'uneven-arc',text:String.raw`The semicircle again, its charge piled toward the middle: $\lambda(\theta)$ goes inside the integral, and the mirror pairs still cancel across the axis.`}]},
  {leg:'When less cancels',items:[
   {id:'endpoint',text:String.raw`No mirror pieces, so neither part cancels: one integral for $E_x$, one for $E_y$.`},
   {id:'ramp',text:String.raw`The density grows along the rod, so $\lambda(y)$ goes inside the integral.`},

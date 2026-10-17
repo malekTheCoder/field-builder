@@ -91,7 +91,17 @@ export function sampleLimit(problem:Problem,p:Params,limit:Limit,t:number):Limit
   // the contrast, and a flat line alone said only half of it.
   case 'full':copy.phi=2*Math.PI*t/30;if(scalar){actual=Math.abs(arcPotentialSum(copy));target=K*q/R;second=fieldOf('arc',copy);}else{actual=fieldOf('arc',copy);target=0;}break;
   // The half ring is built from N point charges, N growing with t: their sum settles onto 2kλ/R.
-  case 'half':copy.phi=Math.PI;vector=numerical('arc',copy,halfPieces(t));actual=magnitude(vector);target=2*K*q/(Math.PI*R*R);break;
+  case 'half':copy.phi=Math.PI;
+   // The uneven semicircle's N point charges each hold the charge of their own stretch, so one of them holds all of Q
+   // and gives kQ/R²; their sum settles onto πkQ/(4R²).
+   if(geom==='uneven-arc'){vector=numerical('uneven-arc',copy,halfPieces(t));actual=magnitude(vector);target=Math.PI*K*q/(4*R*R);break;}
+   vector=numerical('arc',copy,halfPieces(t));actual=magnitude(vector);target=2*K*q/(Math.PI*R*R);break;
+  // THE SAME CHARGE, SPREAD EVENLY. The uneven semicircle's charge is moved, Q fixed, from its cosine density to an
+  // even spread: at sweep position t a share s = (30 − t)/29 is still laid as λ₀ cos θ and the rest evenly. Both
+  // halves are point-charge sums of the two lessons' own pieces, so the curve is measured, not two closed forms
+  // blended; the dashed line is the even semicircle's 2kQ/(πR²), which the curve reaches when s is zero.
+  case 'even':{copy.phi=Math.PI;const s=(30-t)/29,cos=numerical('uneven-arc',copy,400),even=numerical('arc',copy,400);
+   vector={x:s*cos.x+(1-s)*even.x,y:s*cos.y+(1-s)*even.y,z:0};actual=magnitude(vector);target=2*K*q/(Math.PI*R*R);break;}
   // Point-charge sums at P = t metres: the sheet's field against σ/2ε₀, the infinite line's against
   // 2kλ/r, and the semi-infinite line's two components against each other. None reads a closed form.
   // The line's `second` is a point charge's 1/r² fall, through the line's own value at the sweep's
@@ -170,6 +180,7 @@ export function limitPlot(problem:Problem,limit:Limit):LimitPlot{
   case 'full':return scalar
    ?{kind:'constant',y:'|V| ÷ k|Q|/R, and |E| scaled',axis:'opening angle φ, with Q fixed',from:'φ small',to:'full circle',line:'k|Q|/R',solid:'The arc’s pieces, added up',second:'The field |E|, scaled',caption:'As the arc closes the field falls to zero, while the potential stays on the dashed line at every φ.'}
    :{kind:'decay',y:'|E|, scaled',axis:'opening angle φ, with Q fixed',from:'φ small',to:'full circle',line:'zero',caption:'With the charge fixed, the field only falls as the arc opens, and reaches zero when it closes into a full circle.'};
+  case 'even':return{kind:'ratio',y:'|E| ÷ even semicircle’s',axis:'the charge moved to an even spread, Q fixed',from:'cosine density',to:'spread evenly',line:'even semicircle',solid:'The pieces of both, added up',caption:'As more of the same charge is moved out toward the ends, where its field lies mostly across the axis and its mirror cancels that part, the field at P falls onto the even semicircle’s, the dashed line.'};
   case 'half':return{kind:'ratio',y:'|sum| ÷ integral',axis:'the semicircle as N point charges',from:'one piece',to:'many pieces',line:'the integral',solid:'Sum of N point charges',caption:'The plot builds the semicircle from N point charges: the more there are, the closer their sum comes to the integral, the dashed line.'};
   // The sheet's curve is its rings added up, the line's its pieces: neither is the closed form, and a
   // legend that said "your exact field" read as σ/(2ε₀) divided by itself.

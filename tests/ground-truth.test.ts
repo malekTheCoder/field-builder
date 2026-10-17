@@ -319,7 +319,7 @@ describe('degenerate and edge cases',()=>{
   expect(PROBLEMS.map(x=>x.id).sort()).toEqual([...PROBLEM_IDS].sort());
  });
  it('the library is fifteen lessons, five of them potential',()=>{
-  expect(PROBLEMS).toHaveLength(15);
+  expect(PROBLEMS).toHaveLength(16);
   expect(PROBLEMS.filter(p=>p.quantity==='V').map(p=>p.id)).toEqual(['v-ring','v-disk','v-arc','v-rod-bisector','v-rod-axial']);
  });
 });

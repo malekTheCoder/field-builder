@@ -16,6 +16,9 @@
 .cd-scale text{font-size:9px}
 .cd-axes path{stroke:var(--ghost,#6d8492);stroke-width:1.5;fill:none;opacity:.85}
 .cd-charge-base{stroke:var(--charge,#b8460f);stroke-width:11;stroke-opacity:.22;fill:none;stroke-linecap:round}
+/* The uneven semicircle's body is a filled band as wide as its density, not a stroke. */
+.cd-charge-base.is-density{stroke:none;fill:var(--charge,#b8460f);fill-opacity:.24}
+.cd-focus-charge .cd-charge-base.is-density,.cd-focus-size .cd-charge-base.is-density{fill-opacity:.4}
 .cd-sum-chain{stroke:var(--contribution,#2f9089);stroke-width:2.3;stroke-linejoin:round;stroke-linecap:round;fill:none;opacity:.9}
 .cd-source-rod{fill:var(--charge-fill,#fdefe6);stroke:var(--charge,#b8460f);stroke-width:1.5}
 .cd-orbit-plane path,.cd-orbit-plane line{vector-effect:non-scaling-stroke}

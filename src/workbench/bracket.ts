@@ -27,6 +27,7 @@ export function limitTex(p: Problem, percent: number, which: 1 | 2) {
     : g === 'axial' || g === 'endpoint' || g === 'ramp' ? plain(t, 'L')
     : g === 'ring' ? plain(2 * t, raw`\pi`)
     : g === 'arc' ? plain(t - .5, raw`\varphi`)
+    : g === 'uneven-arc' ? plain(t - .5, raw`\pi`)
     : g === 'disk' ? plain(t, 'R')
     : p.id === 'infinite' ? plain(t - .5, raw`\pi`)
     // Half way out in angle, the semi-infinite line's piece is r along it and the sheet's ring z out.
@@ -35,7 +36,7 @@ export function limitTex(p: Problem, percent: number, which: 1 | 2) {
 }
 /** How much angle a bracket on a ring or an arc takes, named as the board names a limit: a bracketed
  * integral of a constant finishes on it, and pasting the limits into "hi − lo" wrote (φ/4 − −φ/4). */
-export function spanTex(p: Problem, from: number, to: number) { const g = p.geometry, n = (to - from) / 100; return g === 'ring' ? plain(2 * n, raw`\pi`) ?? undefined : g === 'arc' ? plain(n, raw`\varphi`) ?? undefined : undefined; }
+export function spanTex(p: Problem, from: number, to: number) { const g = p.geometry, n = (to - from) / 100; return g === 'ring' ? plain(2 * n, raw`\pi`) ?? undefined : g === 'arc' ? plain(n, raw`\varphi`) ?? undefined : g === 'uneven-arc' ? plain(n, raw`\pi`) ?? undefined : undefined; }
 /** Whether a bracket, in percent of the charge, holds all of it. */
 export const wholeBracket = (range: readonly [number, number]) => range[0] <= .001 && range[1] >= 99.999;
 /** Does the bracket still hold every piece's mirror partner? Off-centre it does not, and the part

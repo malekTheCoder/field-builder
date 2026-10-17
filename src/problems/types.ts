@@ -7,7 +7,7 @@ export type Answer={id:string;label:string;expected:string;tex:string;options:st
  * symmetry (a scalar has nothing to cancel) and may add a gradient step, E = −dV/dz, at the end. */
 export type StepKind='origin'|'element'|'contribution'|'symmetry'|'variable'|'bounds'|'integrate'|'limits'|'gradient';
 export type Step={kind:StepKind;title:string;text:string;fields?:Answer[];hint:string;worked?:{text:string;tex:string}[]};
-export type Limit={id:string;title:string;prompt:string;answer:string;choices:string[];explanation:string;formula:string;mode:'far'|'infinite'|'center'|'half'|'full'|'scale'|'maximum'|'moment'|'near';reference:string};
+export type Limit={id:string;title:string;prompt:string;answer:string;choices:string[];explanation:string;formula:string;mode:'far'|'infinite'|'center'|'half'|'full'|'scale'|'maximum'|'moment'|'near'|'even';reference:string};
 /** `secondaryIntegralTex` is the y-component's own integral, on a lesson whose result has an E_y
  * that no cancellation removes (semi, endpoint, ramp): the offline copy printed E_y with no integral it
  * came from. `quantity` is what the integral produces; `geometry` is the field problem whose charge layout and diagram this one shares (itself, for a field problem). */

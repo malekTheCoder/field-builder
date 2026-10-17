@@ -117,12 +117,20 @@ const GEOMETRY:Record<string,Geom>={
  // 'λ(y) = λ₀ y/L, zero at the lower end and λ₀ at the top … total charge is Q = λ₀L/2.'
  ramp:{P:p=>[p.distance,0,0],component:'x',total:p=>p.charge*1e-9*p.size/2,centroid:p=>[0,2*p.size/3,0],
   E(p){const l0=p.charge*1e-9,L=p.size,P=this.P(p),eps=ke*Math.abs(l0)*L/2/p.distance**2*REL;return seg(y=>coulomb(l0*y/L,[0,y,0],P),[0,L/2,L],eps);}},
+ // 'A semicircle of radius R … spans −π/2 ≤ θ ≤ π/2 … λ(θ) = λ₀ cos θ … P is the centre of curvature. The total
+ // charge is Q = 2λ₀R.' A half turn whatever φ the setting carries: the lesson has no opening angle. Its centre of
+ // charge is ∫R cos θ λ₀ cos θ R dθ / Q = πR/4 along the axis.
+ 'uneven-arc':{P:()=>[0,0,0],component:'x',total:p=>p.charge*1e-9,centroid:p=>[Math.PI*p.size/8,0,0],
+  E(p){const q=p.charge*1e-9,R=p.size/2,l0=q/(2*R),P=this.P(p),eps=ke*Math.abs(q)/(R*R)*REL;
+   return seg(t=>coulomb(l0*Math.cos(t)*R,[R*Math.cos(t),R*Math.sin(t),0],P),[-Math.PI/2,-Math.PI/4,0,Math.PI/4,Math.PI/2],eps);},
+  V(p){const q=p.charge*1e-9,R=p.size/2,l0=q/(2*R),P=this.P(p),eps=ke*Math.abs(q)/R*REL;
+   return segS(t=>coulombV(l0*Math.cos(t)*R,[R*Math.cos(t),R*Math.sin(t),0],P),[-Math.PI/2,-Math.PI/4,0,Math.PI/4,Math.PI/2],eps);}},
 };
 /** Which charge layout each lesson sits on, read off its own setup sentence. Asserted
  * against the app's declaration below rather than taken from it. */
 const GEOM_OF:Record<string,string>={bisector:'bisector',axial:'axial',infinite:'infinite',ring:'ring',disk:'disk',semi:'semi',arc:'arc',sheet:'sheet',endpoint:'endpoint',ramp:'ramp',
- 'v-ring':'ring','v-disk':'disk','v-arc':'arc','v-rod-bisector':'bisector','v-rod-axial':'axial'};
-const FIELD_IDS=['bisector','axial','infinite','ring','disk','semi','arc','sheet','endpoint','ramp'] as const;
+ 'v-ring':'ring','v-disk':'disk','v-arc':'arc','v-rod-bisector':'bisector','v-rod-axial':'axial','uneven-arc':'uneven-arc'};
+const FIELD_IDS=['bisector','axial','infinite','ring','disk','semi','arc','sheet','endpoint','ramp','uneven-arc'] as const;
 const POTENTIAL_IDS=['v-ring','v-disk','v-arc','v-rod-bisector','v-rod-axial'] as const;
 const truthE=(id:string,p:Params)=>GEOMETRY[GEOM_OF[id]].E(p);
 const truthV=(id:string,p:Params)=>GEOMETRY[GEOM_OF[id]].V!(p);
@@ -170,7 +178,7 @@ describe('the constants the closed forms are built on',()=>{
  });
  it('each lesson sits on the charge layout its own setup sentence describes',()=>{
   for(const problem of PROBLEMS)expect(problem.geometry,problem.id).toBe(GEOM_OF[problem.id]);
-  expect(Object.keys(GEOM_OF)).toHaveLength(15);
+  expect(Object.keys(GEOM_OF)).toHaveLength(16);
  });
 });
 
@@ -225,6 +233,7 @@ describe('the closed form the lesson PRINTS is the one the integral produces',()
    case 'arc':return {...base,lambda:q/(R*p.phi)};
    case 'disk':return {...base,sigma:q/(Math.PI*R*R)};
    case 'ramp':return {...base,lambda0:q,Q:q*L/2};               // the slider is the peak λ₀
+   case 'uneven-arc':return {...base,lambda0:q/(2*R)};           // the slider is Q, and Q = 2λ₀R
    default:return {...base,lambda:q/L};
   }
  }
@@ -259,6 +268,7 @@ const DIRECTION:Record<string,V3>={
  arc:[-1,0,0],       // the charge is bunched toward +x, P at the centre is pushed to −x
  endpoint:[1,-1,0],  // the rod stands above P's level, so the transverse push is downward
  ramp:[1,-1,0],
+ 'uneven-arc':[-1,0,0], // the charge is bunched toward +x, densest on the axis: P at the centre is pushed to −x
 };
 describe('signs and conventions',()=>{
  for(const id of FIELD_IDS)for(const charge of [2.4,-2.4])it(`${id} points away from positive charge · q ${charge}`,()=>{

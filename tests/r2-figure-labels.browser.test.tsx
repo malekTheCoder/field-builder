@@ -104,13 +104,13 @@ function terms(id: string, n: 2 | 3, space = false): string[] {
 function flatTerms(id: string, n: 2 | 3): string[] {
  const p = getProblem(id as never), g = p.geometry, scalar = p.quantity === 'V';
  const surface = g === 'disk' || g === 'sheet', round = g === 'ring' || surface;
- const ri = g === 'arc' ? (scalar ? [] : ['ri = R']) : g === 'axial' ? ['ri = L + a − x'] : ['ri'];
+ const ri = g === 'arc' || g === 'uneven-arc' ? (scalar ? [] : ['ri = R']) : g === 'axial' ? ['ri = L + a − x'] : ['ri'];
  if (scalar) {
-  const pairs = ['bisector', 'ring', 'arc'].includes(g);
+  const pairs = ['bisector', 'ring', 'arc', 'uneven-arc'].includes(g);
   return n === 2 ? ['ΔV', ...ri, ...(g === 'bisector' ? ['y'] : []), surface ? 'ring ΔQ' : 'ΔQ'] : [pairs ? 'ΔV + ΔV' : 'ΔV'];
  }
  if (n === 2) return [surface ? 'ΔEz' : 'ΔE', ...ri, surface ? 'ring ΔQ' : 'ΔQ'];
- const angle = g === 'arc' ? 'θ' : 'α';
+ const angle = g === 'arc' || g === 'uneven-arc' ? 'θ' : 'α';
  if (g === 'axial') return ['ΔE', ...ri];
  if (surface) return ['ΔEz', angle, ...ri];
  // The piece's own whole arrow too, which What cancels' line says "lies along that line" -- and not the mirror's part

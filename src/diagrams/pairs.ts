@@ -22,7 +22,7 @@ import type {Vec} from '../symbolic/physics';
  * the first half of the next piece and the last half of the one before the first -- and those two are
  * straight across from each other, so they make the last pair. Every bit of a ring makes the same field
  * along the axis for its charge, so the sum is exactly the N pieces' sum, pair by pair. */
-export const PAIRED = new Set<string>(['bisector', 'infinite', 'ring', 'arc']);
+export const PAIRED = new Set<string>(['bisector', 'infinite', 'ring', 'arc', 'uneven-arc']);
 /** One stretch of charge in a step: where it is along the charge, as fractions of the parameter the
  * charge is cut by (the ring's runs once round per unit, so a stretch straight across can run past 1);
  * and what it is -- a whole piece, the ring's length straight across the step's other member, or half

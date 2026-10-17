@@ -182,7 +182,8 @@ describe('small things said once, and said right', () => {
     expect(lines[0].say).toMatch(/rising from zero at \$y=0\$ to \$\\lambda_0\$ at the top, \$y=L\$/);
   });
   it('Cut it up is one element, so a lit chip never pinches its "="', () => {
-    for (const p of PROBLEMS) expect(step(p.id, 'pieces').tex, p.id).toMatch(/^\\htmlClass\{fx fx-element\}\{\\Delta Q=/);
+    // ≈ where the piece's charge is the density at its middle times its length only nearly (the uneven semicircle's).
+    for (const p of PROBLEMS) expect(step(p.id, 'pieces').tex, p.id).toMatch(/^\\htmlClass\{fx fx-element\}\{\\Delta Q(=|\\approx )/);
   });
   it('every cancellation ends on what it means for the whole field, and its symbols are named in a sentence', () => {
     for (const id of ['ring', 'disk', 'sheet']) expect(step(id, 'cancel').cancels, id).toMatch(/\\Rightarrow\\;\\mathbf E_\\perp=\\mathbf 0$/);

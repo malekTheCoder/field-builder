@@ -21,6 +21,7 @@ import {bank as arc} from './bank/arc';
 import {bank as vRing} from './bank/v-ring';
 import {bank as vDisk} from './bank/v-disk';
 import {bank as vArc} from './bank/v-arc';
+import {bank as unevenArc} from './bank/uneven-arc';
 import {bank as gSymmetry} from './bank/gauss-symmetry';
 import {bank as gFlux} from './bank/gauss-flux';
 import {bank as gInside} from './bank/gauss-inside';
@@ -43,7 +44,7 @@ import {bank as gHard} from './bank/gauss-hard';
 export const BANKS: Partial<Record<ShapeId, Question[]>> = {
   bisector, ring, infinite,
   axial, endpoint, ramp, semi, 'v-rod-bisector': vRodBisector, 'v-rod-axial': vRodAxial,
-  disk, sheet, arc, 'v-ring': vRing, 'v-disk': vDisk, 'v-arc': vArc,
+  disk, sheet, arc, 'uneven-arc': unevenArc, 'v-ring': vRing, 'v-disk': vDisk, 'v-arc': vArc,
   symmetry: gSymmetry, flux: gFlux, inside: gInside, qenc: gQenc, spheres: gSpheres,
   lines: gLines, sheets: gSheets, conductors: gConductors, holes: gHoles, 'runs-out': gRunsOut, hard: gHard,
 };
