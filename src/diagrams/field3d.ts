@@ -1,7 +1,7 @@
 import {K} from '../distributions/constants';
 import type {ChargeSample} from '../distributions/types';
 import type {Vec} from '../symbolic/physics';
-import {bodyDistance,bodyFoot,logWeights} from './vectorfield';
+import {bodyDistance,bodyFoot,logWeights,withoutNulls} from './vectorfield';
 import {localRadii,refineEnds} from './fieldlines';
 /** The field in space, for the 3D view.
  *
@@ -661,8 +661,10 @@ export function spaceGrid(samples:readonly ChargeSample[],extent:number,spacing:
   if(!Number.isFinite(magnitude)||magnitude<=0)continue;
   raw.push({at,dir:scale(e,1/magnitude),magnitude});
  }
- const weights=logWeights(raw.map(a=>a.magnitude));
- return raw.map((a,i)=>({...a,weight:weights[i]}));
+ // No arrow at a null, where the sum leaves only round-off: see `withoutNulls`.
+ const kept=withoutNulls(raw);
+ const weights=logWeights(kept.map(a=>a.magnitude));
+ return kept.map((a,i)=>({...a,weight:weights[i]}));
 }
 /** THE INFINITE SHEET'S FIELD IN SPACE, drawn as what it is: straight lines, square to the plane,
  * equally dense everywhere, leaving both faces.
@@ -853,8 +855,9 @@ export function latticeCore(samples:readonly ChargeSample[],reach:number,layout:
   if(!Number.isFinite(magnitude)||magnitude<=0)continue;
   raw.push({at,dir:scale(e,1/magnitude),magnitude});
  }
- const weights=logWeights(raw.map(a=>a.magnitude));
- return raw.map((a,i)=>({...a,weight:weights[i]}));
+ const kept=withoutNulls(raw);
+ const weights=logWeights(kept.map(a=>a.magnitude));
+ return kept.map((a,i)=>({...a,weight:weights[i]}));
 }
 /** WHERE THE ARROWS STAND: about the middle of the charge and P together, not about O.
  *

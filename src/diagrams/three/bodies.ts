@@ -39,6 +39,9 @@ export const SHEET_FADE={inner:.22,outer:.8};
  * enough to read as the field on the far face, little enough that the line is plainly seen to start at
  * the plane rather than run through it. See `sheetColumns`. */
 export const SHEET_UNDER=.45;
+/** How strongly the far side of the shell's chosen band is drawn through the skin, against its near side: see
+ * FieldStage's `elementBack`. */
+export const SHELL_BAND_BACK=.4;
 /** A smooth 1 → 0 ramp -- solid up to `inner`, gone by `outer`.
  *
  * Every edge the scene cannot honestly draw uses this one curve: the sheet, the ground grid
@@ -119,6 +122,24 @@ export function gapShrink(pitch:number,kind:BodyKind):number{
  const t=Math.min(1,Math.max(0,(Math.abs(pitch)-.85)/.4));
  return 1-.6*t*t*(3-2*t);
 }
+/** HOW MUCH OF ITSELF A SURFACE KEEPS AT THE MIDDLE OF THE GAP ROUND P, by the pitch: `BEHIND_GAP.low` from the side,
+ * rising smoothly to `ABOVE_GAP.low` from above, over the pitches `gapShrink` shrinks the gap over -- and the chosen piece,
+ * which keeps PIECE_FAR_LOW of itself from the side, keeps `ABOVE_GAP.keep` from above. A wire keeps the side's.
+ *
+ * Shrunk to P's halo from above, the gap still erased the face under it: about thirty units of the disk's, the sheet's
+ * or the annulus's chosen washer were washed nearly to the paper, and the charge under P looked missing -- the one place
+ * a reader looks. From above, the charge under P is the ground it stands over, not a far line passing behind it, so it
+ * is only let back a little there, enough for P's dot and halo to read on it, and the washer plainly goes on under them.
+ * `gapAbove` is how far the view has come to that, 0 from the side and 1 from above. */
+export const ABOVE_GAP={low:.5,keep:.8} as const;
+export function gapAbove(pitch:number,kind:BodyKind):number{
+ if(kind==='wire')return 0;
+ const t=Math.min(1,Math.max(0,(Math.abs(pitch)-.85)/.4));
+ return t*t*(3-2*t);
+}
+export const gapLow=(pitch:number,kind:BodyKind)=>BEHIND_GAP.low+(ABOVE_GAP.low-BEHIND_GAP.low)*gapAbove(pitch,kind);
+/** What the chosen piece keeps of itself at the middle of the gap, by the pitch: see `gapLow`. */
+export const gapKeep=(pitch:number,kind:BodyKind)=>PIECE_FAR_LOW+(ABOVE_GAP.keep-PIECE_FAR_LOW)*gapAbove(pitch,kind);
 /** How much of the gap applies to a point `behind` metres further from the camera than the depth the gap
  * starts at, over a ramp `depth` metres deep: none in front of it, all of it a ramp's depth behind. */
 export function gapDepth(behind:number,depth:number):number{

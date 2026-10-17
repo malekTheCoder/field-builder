@@ -3,7 +3,7 @@ import {useEffect,useRef,useState} from 'react';
 import type {ChargeSample} from '../../distributions/types';
 import type {Vec} from '../../symbolic/physics';
 import {cameraBasis,cameraPosition,frameTarget,frustum,tickStep} from './orthoCamera';
-import {apartOnScreen,ARROW_INSET,arrowHead,fitInWindow,besideWire,LEVEL_MARGIN,slabCovers,BEHIND_GAP,gapDepth,gapLift,gapShrink,gapRamp,gapStart,NAME_MARGIN,PIECE_FAR_LOW,SHEET_SIGN_GAP,bodyReach,CHAIN_ASIDE,chainAside,keepAside,diskSignMarks,drawOrder,fadeOut,farAlpha,fillAlpha,fillFade,frameExtent,latticeClear,lineReach,segmentGap,lineStrength,pieceFade,SHEET_FADE,sheetSignRoots,sheetSigns,signMarks,strokeSide,tickGaps,SHEET_UNDER,sheetColumns,sheetFarFade,sheetInk,sheetSides,surfaceOpacity,visibleRadii,washerHalf,washWall,wirePath,wireRadius,writesDepth,type BodyKind,type FarFade} from './bodies';
+import {SHELL_BAND_BACK,apartOnScreen,ARROW_INSET,arrowHead,fitInWindow,besideWire,LEVEL_MARGIN,slabCovers,BEHIND_GAP,ABOVE_GAP,gapAbove,gapDepth,gapLift,gapLow,gapShrink,gapRamp,gapStart,NAME_MARGIN,PIECE_FAR_LOW,SHEET_SIGN_GAP,bodyReach,CHAIN_ASIDE,chainAside,keepAside,diskSignMarks,drawOrder,fadeOut,farAlpha,fillAlpha,fillFade,frameExtent,latticeClear,lineReach,segmentGap,lineStrength,pieceFade,SHEET_FADE,sheetSignRoots,sheetSigns,signMarks,strokeSide,tickGaps,SHEET_UNDER,sheetColumns,sheetFarFade,sheetInk,sheetSides,surfaceOpacity,visibleRadii,washerHalf,washWall,wirePath,wireRadius,writesDepth,type BodyKind,type FarFade} from './bodies';
 import {endlessAxis,endlessBody,endlessRay,latticeBody,latticeCore,latticeFrame,radialLines,rayField,rayLines,sheetLines,shellLines,shellOf,spaceLines,traceTo,type Layout} from '../field3d';
 import {boxGap,controlBox,HEAD_ROOM,LINE_HEAD,lineHeads,meetsBoxes,paintedLabels,seedPool,touchesLabels,type Box} from '../fieldlines';
 import {coarsen} from '../sampling';
@@ -247,6 +247,14 @@ export function FieldStage(props:FieldStageProps){
    // depth buffer rather than by which translucent thing three happened to sort first.
    field.renderOrder=1;slices.renderOrder=1;marks.renderOrder=2;overlay.renderOrder=3;
    element.name='element';
+   /** THE FAR SIDE OF THE SHELL'S CHOSEN BAND, seen through the skin: its inside, drawn flat and light. The band was
+    * drawn double-sided in the lit material at four fifths strength, and its far inner face, lit from behind, came out
+    * an opaque dark crescent: with the pale open end beside it the sphere read as sliced, or as a glass ball standing
+    * in a brown bowl, while the flat figure draws the same ring as a thin line. A band is a ring of the skin, seen
+    * round both sides, so its far side is still drawn -- unlit, in the charge's ink washed toward the paper, at two
+    * fifths of the near side's strength, the way the skin's own far side is lighter than its near one. */
+   const elementBackMaterial=new THREE.MeshBasicMaterial({side:THREE.BackSide,transparent:true,vertexColors:true,depthWrite:false,opacity:SHELL_BAND_BACK});
+   const elementBack=new THREE.Mesh(element.geometry,elementBackMaterial);elementBack.visible=false;element.add(elementBack);
    let elementKey='';
    // The uneven semicircle's taper (see `taper`), read from the props on every update.
    let taperR=0;
@@ -514,7 +522,7 @@ export function FieldStage(props:FieldStageProps){
    // strength left inside it, and the hard cut's radius, in drawing-buffer pixels sized from the figure's own
    // units (see BEHIND_GAP); `uGapOn` is 1 for a surface and 2 for a wire. `uGapKeep`, each material's own, is
    // what the chosen piece keeps of itself in the gap (PIECE_FAR_LOW), and below zero for everything else.
-   const gap={uGapP:{value:new THREE.Vector3(0,0,2)},uGapOn:{value:0},uGapLift:{value:1},uGapDepth:{value:1e-3},uGapRamp:{value:new THREE.Vector4(BEHIND_GAP.inner,BEHIND_GAP.outer,BEHIND_GAP.low,BEHIND_GAP.hard)}};
+   const gap={uGapP:{value:new THREE.Vector3(0,0,2)},uGapOn:{value:0},uGapLift:{value:1},uGapAbove:{value:0},uGapDepth:{value:1e-3},uGapRamp:{value:new THREE.Vector4(BEHIND_GAP.inner,BEHIND_GAP.outer,BEHIND_GAP.low,BEHIND_GAP.hard)}};
    const EDGE_GLSL='if(uEdgeOn>.5){vec2 fc=gl_FragCoord.xy;float e=clamp(min(min(fc.x-uEdgeRect.x,uEdgeRect.z-fc.x),min(fc.y-uEdgeRect.y,uEdgeRect.w-fc.y))/uEdgeFeather,0.,1.);gl_FragColor.a*=e*e*(3.-2.*e);}';
    // A WIRE IN THE GAP IS DIMMED, NOT CUT. It was cut clean within the hard radius, the drafting gap a far line is given
    // behind a near point -- and a ring tipped up, with P over its far rim, came out as an open C, a closed loop of charge
@@ -522,7 +530,7 @@ export function FieldStage(props:FieldStageProps){
    // body and pieces: see `cubeFade`) it is mixed toward the paper, to PIECE_FAR_LOW of itself, as the chosen piece is:
    // still plainly behind P, still plainly closed. `WIRE_GAP` is replaced per material.
    const GAP_GLSL='if(uGapOn>.5){float k=smoothstep(uGapP.z,uGapP.z+uGapDepth,gl_FragCoord.z)*uGapLift;if(k>0.){float d=distance(gl_FragCoord.xy,uGapP.xy);'
-    +'if(uGapOn>1.5&&uGapKeep<0.){WIRE_GAP}else gl_FragColor.a*=mix(1.,mix(uGapKeep<0.?uGapRamp.z:uGapKeep,1.,smoothstep(uGapRamp.x,uGapRamp.y,d)),k);}}';
+    +`if(uGapOn>1.5&&uGapKeep<0.){WIRE_GAP}else gl_FragColor.a*=mix(1.,mix(uGapKeep<0.?uGapRamp.z:mix(uGapKeep,${ABOVE_GAP.keep.toFixed(3)},uGapAbove),1.,smoothstep(uGapRamp.x,uGapRamp.y,d)),k);}}`;
    const WIRE_CUT='if(k>.5&&d<uGapRamp.w)discard;',WIRE_DIM=`if(k>.5&&d<uGapRamp.w)gl_FragColor.rgb=mix(uPaper,gl_FragColor.rgb,${PIECE_FAR_LOW.toFixed(3)});`;
    // THE CHARGE GOES UNDER THE VIEW CUBE BY FADING INTO THE PAPER. The cube and its four buttons stand inside the
    // window at its top-left corner, and the infinite and the semi-infinite lines run up the picture into that corner:
@@ -542,7 +550,7 @@ export function FieldStage(props:FieldStageProps){
     const own={uGapKeep:{value:keep}};
     m.onBeforeCompile=shader=>{
      Object.assign(shader.uniforms,gap,own,edgeFade?edge:{},cube?cubeFade:{});
-     shader.fragmentShader=shader.fragmentShader.replace('void main() {',`${edgeFade?'uniform vec4 uEdgeRect;\nuniform float uEdgeFeather;\nuniform float uEdgeOn;\n':''}${cube?'uniform vec4 uCubeRect;\nuniform float uCubeFeather;\nuniform float uCubeOn;\nuniform vec3 uPaper;\n':''}uniform vec3 uGapP;\nuniform float uGapOn;\nuniform float uGapLift;\nuniform float uGapDepth;\nuniform float uGapKeep;\nuniform vec4 uGapRamp;\nvoid main() {`)
+     shader.fragmentShader=shader.fragmentShader.replace('void main() {',`${edgeFade?'uniform vec4 uEdgeRect;\nuniform float uEdgeFeather;\nuniform float uEdgeOn;\n':''}${cube?'uniform vec4 uCubeRect;\nuniform float uCubeFeather;\nuniform float uCubeOn;\nuniform vec3 uPaper;\n':''}uniform vec3 uGapP;\nuniform float uGapOn;\nuniform float uGapLift;\nuniform float uGapAbove;\nuniform float uGapDepth;\nuniform float uGapKeep;\nuniform vec4 uGapRamp;\nvoid main() {`)
       .replace('#include <opaque_fragment>',`#include <opaque_fragment>\n${edgeFade?EDGE_GLSL:''}\n${GAP_GLSL.replace('WIRE_GAP',cube?WIRE_DIM:WIRE_CUT)}\n${cube?CUBE_GLSL:''}`);
     };
     m.customProgramCacheKey=()=>`field-stage:${edgeFade?'edge+gap':'gap'}:${keep<0?'cut':'keep'}${cube?':cube':''}`;
@@ -644,7 +652,7 @@ export function FieldStage(props:FieldStageProps){
     dashM.compose(dashP,linkQ,dashS);chainLinks.setMatrixAt(at,dashM);
     return at+1;
    };
-   const layChain=(from:Vec,chain:readonly Vec[]|null,thick:number,net:Vec|null,beside:boolean,settle=1,newest=false)=>{
+   const layChain=(from:Vec,chain:readonly Vec[]|null,thick:number,net:Vec|null,beside:boolean,settle=1,newest=false,jogs:readonly boolean[]|null=null)=>{
     // Moved to one side of the net arrow where it would lie inside it (see `RunScene.chainBeside`): ten
     // units of the figure, as the flat chain is moved -- right of an arrow standing up on the screen,
     // above one lying across it -- and tied back to P by a hairline, so it still visibly starts there.
@@ -659,11 +667,25 @@ export function FieldStage(props:FieldStageProps){
     // infinitely many infinitesimal pieces IS the integral, so it ends inside E rather than as a second bar
     // standing beside E at full strength, with a tick at its end, read as a dimension line or a double shaft.
     let shift:Vec={x:0,y:0,z:0};
-    const end=chain?.[chain.length-1],shown=end?Math.hypot(end.x*screenRight.x+end.y*screenRight.y+end.z*screenRight.z,end.x*screenUp.x+end.y*screenUp.y+end.z*screenUp.z)/px:0;
+    const onScreen=(v:Vec)=>Math.hypot(v.x*screenRight.x+v.y*screenRight.y+v.z*screenRight.z,v.x*screenUp.x+v.y*screenUp.y+v.z*screenUp.z)/px;
+    // THE SHELL'S STAIRCASE (`jogs`): its links are all along the axis, the first one is the axis' direction, and the
+    // jogs say which way the columns step. How long it is on the screen is how far it reaches from P, as the flat
+    // figure measures it: inside the shell the rings below P bring the chain back up toward where it began, and
+    // measured from its end it never came to thirty units, so it was never moved aside and its first column lay over
+    // ΣΔE's arrow on P's own line.
+    const stair=!!jogs?.some(Boolean)&&!!chain;
+    const firstLink=stair?jogs!.indexOf(false):-1,firstJog=stair?jogs!.indexOf(true):-1;
+    const end=chain?.[chain.length-1],shown=!end?0:stair?Math.max(...chain!.map(onScreen)):onScreen(end);
+    let axis:Vec|null=null;
     if(chain&&end&&beside&&shown>=CHAIN_ASIDE.from&&settle>.02){
-     const u=linkA.set(net?.x??end.x,net?.y??end.y,net?.z??end.z).normalize();
+     const ax=stair&&firstLink>=0?{x:chain[firstLink+1].x-chain[firstLink].x,y:chain[firstLink+1].y-chain[firstLink].y,z:chain[firstLink+1].z-chain[firstLink].z}:null;
+     const u=linkA.set(ax?.x??net?.x??end.x,ax?.y??net?.y??end.y,ax?.z??net?.z??end.z).normalize();
+     if(stair)axis={x:u.x,y:u.y,z:u.z};
      const upright=Math.abs(u.dot(screenUp))>=Math.abs(u.dot(screenRight));
-     aside.copy(upright?screenRight:screenUp).addScaledVector(u,-(upright?screenRight:screenUp).dot(u));
+     // The staircase is moved aside the way its columns step, so it never crosses back over the axis.
+     if(stair&&firstJog>=0)aside.set(chain[firstJog+1].x-chain[firstJog].x,chain[firstJog+1].y-chain[firstJog].y,chain[firstJog+1].z-chain[firstJog].z);
+     else aside.copy(upright?screenRight:screenUp);
+     aside.addScaledVector(u,-aside.dot(u));
      if(aside.lengthSq()<1e-10)aside.copy(across.crossVectors(u,toCamera));
      aside.normalize().multiplyScalar(chainAside(shown)*settle*px);
      shift={x:aside.x,y:aside.y,z:aside.z};
@@ -680,7 +702,14 @@ export function FieldStage(props:FieldStageProps){
     const marked=newest&&!!last&&lastShown>6;
     let drawn=0;
     if(links&&(shift.x||shift.y||shift.z))drawn=link(from,chain![0],moved(chain![0]),thick*.45,drawn);
-    for(let k=0;k<links-(marked?1:0);k++)drawn=link(from,moved(chain![k]),moved(chain![k+1]),thick,drawn);
+    // A jog is a hairline, as the tie is: drawn at a link's weight it read as a link of the sum, a sideways ΔE.
+    for(let k=0;k<links-(marked?1:0);k++)drawn=link(from,moved(chain![k]),moved(chain![k+1]),jogs?.[k]?thick*.45:thick,drawn);
+    // ...and the staircase's last column is tied back across to the axis, as the flat figure ticks it, so how high it
+    // ends is read against P's own line.
+    if(axis&&end){
+     const top=moved(end),along=top.x*axis.x+top.y*axis.y+top.z*axis.z;
+     drawn=link(from,top,{x:axis.x*along,y:axis.y*along,z:axis.z*along},thick*.45,drawn);
+    }
     chainLinks.count=drawn;chainLinks.instanceMatrix.needsUpdate=true;
     if(marked){
      const d={x:last!.b.x-last!.a.x,y:last!.b.y-last!.a.y,z:last!.b.z-last!.a.z};
@@ -690,12 +719,17 @@ export function FieldStage(props:FieldStageProps){
     // Beads only while they can be told apart, as in the flat figure, which stops marking the joins
     // past sixty-five pieces: past that they are a bead necklace, not a chain of arrows. Not on the
     // last join, either: that is the sum's own arrowhead, which a bead sat on and hid.
-    const beads=chain&&chain.length<=65?chain.length-2:0;
-    for(let k=0;k<beads;k++){
+    // On a staircase, only at the top of each ring's link, as the flat figure marks it: a bead at both ends of a jog
+    // made the jog a link of its own.
+    const joins=chain&&chain.length<=65?chain.length-2:0;
+    let beads=0;
+    for(let k=0;k<joins;k++){
+     if(jogs?.[k])continue;
      const c=moved(chain![k+1]);dashP.set(from.x+c.x,from.y+c.y,from.z+c.z);
-     dashM.compose(dashP,linkQ.identity(),dashS.copy(one).multiplyScalar(thick*1.7));chainJoints.setMatrixAt(k,dashM);
+     dashM.compose(dashP,linkQ.identity(),dashS.copy(one).multiplyScalar(thick*1.7));chainJoints.setMatrixAt(beads++,dashM);
     }
-    chainJoints.count=Math.max(0,beads);chainJoints.instanceMatrix.needsUpdate=true;
+    chainJoints.count=beads;chainJoints.instanceMatrix.needsUpdate=true;
+    if(chain&&end)stage?.setAttribute('data-run-chain-beads',String(beads));else stage?.removeAttribute('data-run-chain-beads');
    };
    // The lattice's arrows: an instanced shaft, a unit cylinder along +y, and an instanced flat head --
    // the same camera-facing triangle as every other arrow here. They were a cone merged onto the shaft,
@@ -1500,7 +1534,7 @@ export function FieldStage(props:FieldStageProps){
     partnerKeepFade=arrows?.pair?1:Math.min(1,Math.max(0,((arrows?.cancelled??0)-.5)*2));
     // The pair that cancels fades as it shrinks, never quite to nothing until it is gone.
     fadeMaterial.opacity=Math.max(.12,1-(arrows?.cancelled??0));
-    layChain(P,run?.chain??null,wr*.6,p.net,!!run?.chainBeside,run?.stage==='limit'?run.open:1,run?.stage==='add');
+    layChain(P,run?.chain??null,wr*.6,p.net,!!run?.chainBeside,run?.stage==='limit'?run.open:1,run?.stage==='add',run?.jogs??null);
     return !!selectedPath;
    };
    const apply=(p:FieldStageProps)=>{
@@ -1546,8 +1580,8 @@ export function FieldStage(props:FieldStageProps){
     const tint=themeTint,paper=themePaper;
     const positive=p.charge>=0;
     taperR=p.taper??0;shellR=p.radius;
-    // The shell's chosen band is seen all the way round, its far half through the skin.
-    elementMaterial.side=p.kind==='shell'?THREE.DoubleSide:THREE.FrontSide;
+    // The shell's chosen band: its near side in the lit material, its far side by `elementBack`.
+    elementMaterial.side=THREE.FrontSide;
     const shape=`${sampleKey(p)}:${taperR}`;
     // A disk and a sheet are drawn at unit size and scaled, so how finely they are cut says
     // nothing about their body; it was rebuilt at every doubling of the limit regardless.
@@ -1664,6 +1698,8 @@ export function FieldStage(props:FieldStageProps){
     // charge is being cut, and a piece already lit said it had been cut before the stage began.
     const unnamed=p.run?.stage==='pieces'&&cutLocal(performance.now())<NAMED_AT;
     if(unnamed)element.visible=false;
+    // The band's far side shares the band's geometry, whichever built it this frame.
+    elementBack.geometry=element.geometry;elementBack.visible=p.kind==='shell';
     // How far Cut it up has got, said on the stage for a test to read: the cuts made so far, and whether the piece
     // is named yet. Nothing a reader sees; the drawing is a canvas.
     if(p.run?.stage==='pieces'){
@@ -1728,7 +1764,9 @@ export function FieldStage(props:FieldStageProps){
     gap.uGapDepth.value=gapRamp(px)/depthSpan;
     // Smaller from above, on a surface, where P stands over the charge rather than in front of a far rim: see `gapShrink`.
     const shrink=gapShrink(view.pitch,p.kind);
-    gap.uGapRamp.value.set(BEHIND_GAP.inner*shrink*sx,BEHIND_GAP.outer*shrink*sx,BEHIND_GAP.low,BEHIND_GAP.hard*sx);
+    gap.uGapRamp.value.set(BEHIND_GAP.inner*shrink*sx,BEHIND_GAP.outer*shrink*sx,gapLow(view.pitch,p.kind),BEHIND_GAP.hard*sx);
+    // ...and let back further, the chosen piece most, so the charge under P is plainly there: see `gapLow`.
+    gap.uGapAbove.value=gapAbove(view.pitch,p.kind);
     mount.parentElement?.setAttribute('data-gap-shrink',shrink.toFixed(3));
     gap.uGapOn.value=p.kind==='wire'?2:1;
     // A surface leaves no gap while P hovers close over it (see `gapLift`).
@@ -1758,6 +1796,7 @@ export function FieldStage(props:FieldStageProps){
     pointMaterial.color.copy(tint);pointMaterial.emissive.copy(tint);pointMaterial.emissiveIntensity=dark?.7:.3;
     haloMaterial.color.copy(tint);
     elementMaterial.color.set(CHARGE.line);elementMaterial.emissive.set(CHARGE.line);elementMaterial.emissiveIntensity=dark?.34:.14;
+    mixInk(elementBackMaterial.color,paper,elementMaterial.color,dark?.75:.6);
     netMaterial.color.copy(tint);netMaterial.emissive.copy(tint);netMaterial.emissiveIntensity=dark?.6:.25;
     // The flat figure's contribution colour, which is what every label of one piece's arrow is set in.
     partMaterial.color.copy(themePart);
@@ -1856,7 +1895,7 @@ export function FieldStage(props:FieldStageProps){
      for(const mesh of [point,halo,element,netArrow.shaft,netArrow.head,partArrow.shaft,partArrow.head,keepArrow.shaft,keepArrow.head,dropArrow.shaft,dropArrow.head,partnerArrow.shaft,partnerKeepArrow.shaft,wholeArrow.shaft,newestArrow.shaft,pieceSolid,pieceGhost,fill,partnerBody,chainJoints])mesh.geometry.dispose();
      dashGeometry.dispose();flatHead.dispose();
      lineHeadMesh.geometry.dispose();frontHeadMesh.geometry.dispose();signs.geometry.dispose();dropStrokes();
-     for(const m of [bodyMaterial,sheetMaterial,sliceMaterial,pickedMaterial,lineMaterial,frontLineMaterial,frontHeadMaterial,arrowMaterial,latticeHeadMaterial,signMaterial,lineHeadMaterial,axisMaterial,gridMaterial,pointMaterial,haloMaterial,elementMaterial,netMaterial,partMaterial,
+     for(const m of [bodyMaterial,sheetMaterial,sliceMaterial,pickedMaterial,lineMaterial,frontLineMaterial,frontHeadMaterial,arrowMaterial,latticeHeadMaterial,signMaterial,lineHeadMaterial,axisMaterial,gridMaterial,pointMaterial,haloMaterial,elementMaterial,elementBackMaterial,netMaterial,partMaterial,
       pieceMaterial,ghostMaterial,fillMaterial,cutMaterial,growMaterial,partnerMaterial,partnerKeepMaterial,wholeMaterial,fadeMaterial,chainMaterial,newestMaterial,jointMaterial,tieMaterial])m.dispose();
      axes.geometry.dispose();grid.geometry.dispose();ticks.geometry.dispose();
      renderer.dispose();
@@ -1925,5 +1964,7 @@ function runData(run:RunScene|null|undefined,net?:Vec|null):Record<string,string
   ...(run.chain&&end?{'data-run-chain':String(run.chain.length),'data-run-chain-end':`${end.x} ${end.y} ${end.z}`}:{}),
   // Whether the chain is drawn beside the net arrow rather than along it, inside its shaft.
   ...(run.chain&&run.chainBeside?{'data-run-chain-beside':'true'}:{}),
+  // How many of its links are the shell staircase's jogs across, drawn as hairlines with no bead (see `RunScene.jogs`).
+  ...(run.chain&&run.jogs?{'data-run-jogs':String(run.jogs.filter(Boolean).length)}:{}),
  };
 }
