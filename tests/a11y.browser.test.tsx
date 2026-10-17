@@ -76,7 +76,7 @@ describe('keyboard and screen-reader path', () => {
     await userEvent.click(getByRole('button', {name: 'Charge library'}));
     const dialog = await findByRole('dialog');
     // In words: the page prints no numerals, and the count was the one the library printed.
-    expect(dialog.querySelector('[data-slot=dialog-description]')?.textContent).toBe('Every lesson, including electric potential.');
+    expect(dialog.querySelector('[data-slot=dialog-description]')?.textContent).toBe('Every lesson, including electric potential and Gauss’s law.');
     expect(dialog.querySelector('[data-slot=dialog-description]')?.textContent).not.toMatch(/\d/);
     // Each card is named by its lesson, once. The glyph used to be an image named the same as the
     // printed name beside it, so every card read its name twice and then its whole subtitle; the

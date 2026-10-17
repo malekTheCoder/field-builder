@@ -313,9 +313,10 @@ function AssessmentView({problem,params:live,limit}:{problem:Problem;params:Para
  // own largest on the sweep.
  const largestSecond=Math.max(...samples.map(s=>s.second??0),Number.MIN_VALUE),second=plot.second?samples.map(s=>(s.second??0)/largestSecond):null;
  const [lo,hi]=yWindow(plot,values),reference=plot.kind==='decay'?0:1;
- // Type held at about ten pixels however narrow the plot is drawn. Once it has grown, the axis name
- // takes a row of its own under the two end labels, which it would otherwise run into.
- const [svgRef,width]=useRenderedWidth(WIDTH),grow=Math.max(1,10*WIDTH/(10.5*width)),size=(n:number)=>({fontSize:`${(n*grow).toFixed(2)}px`});
+ // Type held at twelve pixels at the least however narrow the plot is drawn, the site's floor (ten read
+ // as fine print on a phone). Once it has grown, the axis name takes a row of its own under the two end
+ // labels, which it would otherwise run into.
+ const [svgRef,width]=useRenderedWidth(WIDTH),grow=Math.max(1,12*WIDTH/(10.5*width)),size=(n:number)=>({fontSize:`${(n*grow).toFixed(2)}px`});
  const stacked=grow>1.05,axisY=stacked?193+13*grow:193,height=stacked?Math.ceil(axisY+4*grow):205;
  // On a phone the card is under four hundred pixels wide, and a formula with a condition before it --
  // "L → ∞ (λ fixed): V ∼ 2kλ ln(L/r), |V| → ∞" -- ran past its edge, the rest behind a sideways scroll no
@@ -429,7 +430,7 @@ function AssessmentView({problem,params:live,limit}:{problem:Problem;params:Para
   {compares&&<circle className="comparison-on-line" cx={dotX} cy={refY} r="4" fill="var(--diagram)" stroke="var(--charge)" strokeWidth="2" clipPath={`url(#${clip})`}/>}
   {second&&<circle cx={xAt(t)} cy={yAt(secondHere)} r="4" fill="var(--ghost)" clipPath={`url(#${clip})`}/>}
   <circle className="comparison-dot" cx={dotX} cy={dotY} r={scrubbing?6.5:5.5} fill="var(--field)" stroke="var(--diagram)" strokeWidth="2" clipPath={`url(#${clip})`}/>
-  <text x="7" y="17" className="comparison-y" style={size(11.5)}><Sym text={plot.y}/></text>
+  <text x="22" y={Math.max(18,10+11.5*grow*.9)} className="comparison-y" style={size(11.5)}><Sym text={plot.y}/></text>
   <text x={X0} y="193" className="comparison-end" style={size(10.5)}><Sym text={plot.from}/></text><text x={X1} y="193" textAnchor="end" className="comparison-end" style={size(10.5)}><Sym text={plot.to}/></text>
   <text x={(X0+X1)/2} y={axisY} textAnchor="middle" className="comparison-axis" style={size(10.5)}><Sym text={axisName}/></text>
  </svg>

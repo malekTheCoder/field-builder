@@ -2420,6 +2420,9 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
     // one piece of five came out as long as the whole field -- on the disk exactly as long, on the same line -- under a
     // corner that said only "Cut into pieces". A teacher's link to the parts, or a hover on the board, shows it so.
     if (!build && !scalar && showContribution && mode !== 'sum' && selectedGain > 1.25) return surface ? 'The ring\u2019s arrow drawn larger' : 'The piece\u2019s arrow drawn larger';
+    // In Add them up nothing is being cut: the stage's caption says the arrows are being added, and "Cut into
+    // pieces" in the corner beside it named the stage before. With no scale change to report, the corner is quiet.
+    if (build && building === 'add') return '';
     return cutInto;
   })();
   // The sheet's angular charge element is the longest footer formula. On a phone the full scale warning

@@ -9,7 +9,7 @@ afterEach(cleanup);
  * The plot is a 480-unit SVG scaled to its box. On a 390-px phone that box is about 354 px, and its
  * 10.5-unit labels -- the axis ends, the axis name, the landmarks, the reference's name -- came out at
  * 7.7 px: the axes of an assigned case could not be read on the device a student opens the link on.
- * The labels are now held at about ten pixels however narrow the plot is drawn, and once they grow
+ * The labels are now held at twelve pixels at the least however narrow the plot is drawn, and once they grow
  * the axis name moves to a row of its own, under the two end labels it would otherwise run into.
  *
  * The suite does not load the app's stylesheet, so the plot's type is given a sans face of about the
@@ -28,7 +28,7 @@ describe('the limit plot’s labels stay readable and apart', () => {
         const texts = [...svg.querySelectorAll('text')].filter(t => t.textContent);
         for (const t of texts) {
           const px = parseFloat(getComputedStyle(t).fontSize) * scale;
-          expect(px, `${problem.id}/${limit.id} “${t.textContent}” at ${width}`).toBeGreaterThanOrEqual(9.5);
+          expect(px, `${problem.id}/${limit.id} “${t.textContent}” at ${width}`).toBeGreaterThanOrEqual(11.5);
         }
         const boxes = texts.map(t => ({t: t.textContent, r: t.getBoundingClientRect()}));
         for (let i = 0; i < boxes.length; i++) for (let j = i + 1; j < boxes.length; j++)
