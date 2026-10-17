@@ -519,6 +519,23 @@ const PARTS: Record<ProblemId, Parts> = {
     charge: String.raw`\lambda(\theta)=\lambda_0\cos\theta`,
     tail: String.raw`, while the direction’s $\cos\theta_i$ already is, and $r_i$ is $R$ for every piece, a constant`,
     check: {dq: 'lambda0*cos(theta)*R', r: 'R', dir: '-cos(theta)'}},
+  // THE SPHERICAL SHELL, rings by polar angle: the disk's ring, lifted to the height R cos θ and shrunk to the radius
+  // R sin θ. Its angle at P is measured from the axis pointing DOWN from P, so that cos α = (z − R cos θ)/r_i is the
+  // ring's own factor below P and above it alike: past a right angle for a ring above P, where the cosine is negative
+  // and that ring's field points the other way along the axis. That sign is the whole of what the inside cancels.
+  shell: {dq: String.raw`\sigma\,2\pi R^2\sin\theta\,d\theta`, piece: String.raw`\sigma\,2\pi R^2\sin\theta\,\Delta\theta`, density: String.raw`\sigma=\frac{Q}{4\pi R^2}`,
+    r: String.raw`\sqrt{R^2+z^2-2zR\cos\theta}`, r2: String.raw`R^2+z^2-2zR\cos\theta`,
+    holds: String.raw`The density $\sigma$ is the charge per unit area. A ring’s angle from the $+z$ axis, measured at the centre, is $\theta$, from $0$ at the top of the shell to $\pi$ at the bottom. The ring at $\theta$ is $R\sin\theta$ from the axis, so it is $2\pi R\sin\theta$ round, and a band spanning the angle $\Delta\theta$ is $R\,\Delta\theta$ wide along the shell (angles in radians).${BREAK}So it holds nearly $\sigma$ times $2\pi R\sin\theta$ times $R\,\Delta\theta$: the band’s radius changes across it, and the narrower the band, the less.`,
+    nearly: true,
+    at: String.raw`The ring is $R\sin\theta$ out from the axis and $R\cos\theta$ up it, so $P$ is $z-R\cos\theta$ above its plane, and $r_i$ is the hypotenuse.${BREAK}Its square, $(R\sin\theta)^2+(z-R\cos\theta)^2$, comes to $R^2+z^2-2zR\cos\theta$: the law of cosines for the centre, $P$ and the ring.`,
+    // Written with r_i, the distance the One ring line has just put in θ: the whole root twice over ran past every panel.
+    dir: String.raw`\cos\alpha`, dirOf: String.raw`\frac{z-R\cos\theta}{r_i}`,
+    dirIs: String.raw`The angle $\alpha$ is the one at${NB}$P$ between the line from${NB}$P$ to the ring (length $r_i$) and the axis running down from${NB}$P$, toward $-z$. ${BITS}${BREAK}${ADDS('whole ring’s')} For a ring above${NB}$P$ the angle $\alpha$ is more than a right angle, and $\cos\alpha$ is negative: that ring’s field points the other way along the axis.`,
+    pairSay: ACROSS_RING, simplify: false,
+    anti: {pre: String.raw`\frac{2\pi k\sigma R^2}{z^2}`, inner: String.raw`\frac{R-z\cos\theta}{\sqrt{R^2+z^2-2zR\cos\theta}}`,
+      check: '2*pi*k*sigma*R^2/z^2*(R-z*cos(theta))/sqrt(R^2+z^2-2*z*R*cos(theta))'},
+    charge: String.raw`\Delta Q_i\approx\sigma\,2\pi R^2\sin\theta\,\Delta\theta`,
+    check: {dq: 'sigma*2*pi*R^2*sin(theta)', r: 'sqrt(R^2+z^2-2*z*R*cos(theta))', dir: '(z-R*cos(theta))/sqrt(R^2+z^2-2*z*R*cos(theta))'}},
   'v-ring': {...RING, simplify: true,
     constant: {term: String.raw`\frac{k\lambda R}{\sqrt{R^2+z^2}}`, whole: String.raw`\frac{k\,(2\pi R\lambda)}{\sqrt{R^2+z^2}}`,
       span: 'once round the ring', adds: String.raw`\int_0^{2\pi}d\theta=2\pi`, total: String.raw`2\pi R\lambda=Q`},
@@ -547,7 +564,7 @@ export function fx(term: Term, tex: string) { return String.raw`\htmlClass{fx fx
 /** The component being built, as the figure and the result name it. */
 export function componentOf(p: Problem): string {
   if (p.quantity === 'V') return 'V';
-  return ['ring', 'disk', 'sheet', 'annulus'].includes(p.geometry) ? 'E_z' : 'E_x';
+  return ['ring', 'disk', 'sheet', 'annulus', 'shell'].includes(p.geometry) ? 'E_z' : 'E_x';
 }
 /** Is the sum on the board exact at any cut? Of a ring's field along its axis, and of a ring's or
  * an arc's potential, it is: every piece is the same distance from P (at the same angle), so each
@@ -615,9 +632,11 @@ const SPANS: Record<string, {each: string; run: (lo: string, hi: string) => stri
   disk: {each: 'ring $i$ sits at the radius $s_i$', run: (lo, hi) => `from the centre, ${lo}, to the rim, ${hi}`},
   annulus: {each: 'ring $i$ sits at the radius $s_i$', run: (lo, hi) => `from the hole’s edge, ${lo}, to the rim, ${hi}`},
   sheet: {each: 'ring $i$ sits at the radius $s_i$', run: lo => String.raw`from the centre, ${lo}, on to $\infty$`},
+  shell: {each: String.raw`ring $i$ sits at the angle $\theta_i$ from the top`, run: (lo, hi) => `from the top of the shell, ${lo}, to the bottom, ${hi}`},
 };
 /** A stacked fraction, written with a slash for a remark: set inline, the stacked one shrinks. */
-const slash = (tex: string) => tex.replace(/^\\frac\{([^{}]*)\}\{(.*)\}$/, '$1/$2');
+// A numerator that is a sum or a difference is bracketed: (z − R cos θ)/r_i, never z − R cos θ/r_i.
+const slash = (tex: string) => tex.replace(/^\\frac\{([^{}]*)\}\{(.*)\}$/, (_, a: string, b: string) => `${/[+-]/.test(a) ? `(${a})` : a}/${b}`);
 /** One line of algebra per stage of the run, in the stages' order.
  *
  * `bounds` overrides the limits of integration, so that dragging the brackets in the figure
@@ -639,7 +658,7 @@ export function boardLines(p: Problem, bounds?: [string, string], opts: {keeps?:
   // so loudly, rather than mixing the two the day a route tab is wired to the board.
   if (p.id === 'infinite' && p.variable !== 'alpha') throw Error('The board builds the infinite line in α; pass the angular lesson.');
   const t = PARTS[p.id], scalar = p.quantity === 'V', lhs = componentOf(p), v = p.variableTex;
-  const surface = p.geometry === 'disk' || p.geometry === 'sheet' || p.geometry === 'annulus', unit = surface ? 'ring' : 'piece';
+  const shellRings = p.geometry === 'shell', surface = p.geometry === 'disk' || p.geometry === 'sheet' || p.geometry === 'annulus' || shellRings, unit = surface ? 'ring' : 'piece';
   const [lo, hi] = bounds ?? p.boundTex;
   const whole = !bounds || (lo === p.boundTex[0] && hi === p.boundTex[1]);
   // The rod off its bisector never holds every mirror, whole or bracketed: only part of it mirrors itself.
@@ -659,7 +678,8 @@ export function boardLines(p: Problem, bounds?: [string, string], opts: {keeps?:
   const angleVaries = !!t.dir && p.geometry !== 'ring';
   const nth = (tex: string) => angleVaries ? tex.replace(/\\(alpha|theta)$/, '\\$1_i') : tex;
   // Where piece i sits, written y_i: the variable indexed wherever it stands alone (see `SPANS`).
-  const indexed = (tex: string) => /^\\(theta|alpha)$/.test(v) ? tex.replace(new RegExp('\\' + v + '(?!_)', 'g'), `${v}_i`)
+  // Not the width: every piece is the same Δθ wide, and ΔQ_i ≈ σ 2πR² sin θ_i Δθ_i read as a width that changes.
+  const indexed = (tex: string) => /^\\(theta|alpha)$/.test(v) ? tex.replace(new RegExp('(?<!\\\\Delta\\s?)\\' + v + '(?!_)', 'g'), `${v}_i`)
     : tex.replace(new RegExp(String.raw`(?<![\\a-zA-Z]|\\Delta\s?)${v}(?![a-zA-Z_])`, 'g'), `${v}_i`);
   // The rods index piece i's position, and its angle, from One piece on (see `HYPOTENUSE`).
   const rod = ['bisector', 'offset', 'endpoint', 'ramp', 'axial', 'v-rod-bisector', 'v-rod-axial'].includes(p.id);
@@ -898,6 +918,7 @@ export function boardLines(p: Problem, bounds?: [string, string], opts: {keeps?:
   const equalAngle = p.geometry === 'infinite' || p.geometry === 'semi';
   // "Short compared with", not "short beside": a reader took "beside" for "next to".
   const roughly = p.geometry === 'sheet' ? 'each ring is still treated as one thin ring'
+    : shellRings ? String.raw`each ring is $\Delta\theta$ wide, but all its charge is counted at one angle $\theta$, one distance $r_i$ from${NB}$P$, which is close only while a ring is narrow compared with that distance`
     : surface ? String.raw`each ring is $\Delta s$ wide, but all its charge is counted at one radius $s$, one distance $r_i$ from${NB}$P$, which is close only while a ring is narrow compared with that distance`
     // The uneven semicircle's pieces hold their own stretch's charge exactly (see its distribution), so what the sum
     // still approximates is the arc's: the direction, taken at the middle.
@@ -907,6 +928,7 @@ export function boardLines(p: Problem, bounds?: [string, string], opts: {keeps?:
   // What makes the ≈ an = in the limit, for the rule under the integral: the same approximation, gone.
   const sharper = surface ? p.geometry === 'sheet'
     ? 'the thinner a ring in angle, the more nearly its field is its thin ring’s, and in the limit it is'
+    : shellRings ? 'the thinner a ring, the more nearly all its charge sits at one angle, and in the limit it does'
     : 'the thinner a ring, the more nearly all its charge sits at one radius, and in the limit it does'
     : p.geometry === 'arc' || p.geometry === 'uneven-arc' ? String.raw`the shorter a piece, the less $\cos\theta$ changes across it, and in the limit not at all`
     : equalAngle ? 'the thinner a piece in angle, the more nearly its field is its point charge’s, and in the limit it is'
@@ -1023,7 +1045,8 @@ export function boardLines(p: Problem, bounds?: [string, string], opts: {keeps?:
     {key: 'add', tex: String.raw`${lhs}${constant ? '=' : String.raw`\approx`}${sign}\sum_i ${term}`, finish: summed, where: range, say: placed + sumIs},
     // What shrinking does to the algebra, said in symbols: the sum over pieces becomes the integral
     // and each piece's charge becomes the charge element -- the one step the figure cannot show.
-    {key: 'limit', tex: String.raw`${lhs}=${sign}${integral}${substituted}`,
+    // The shell's over two rows, its r_i kept, now in θ (see its `dirOf`): one row of it ran past every panel.
+    {key: 'limit', tex: p.geometry === 'shell' ? String.raw`\begin{aligned}${lhs}&=${integral}\frac{k${element}}{${ri2}}\\&\qquad\times${fx('projection', t.dirOf!)}\end{aligned}` : String.raw`${lhs}=${sign}${integral}${substituted}`,
       where: String.raw`\textstyle\sum_i\to\int,\quad ${fx('element', String.raw`\Delta Q_i\to dQ=${t.dq}`)}`, swaps: turned.length ? turned : undefined, say: rule,
       finish: t.simplify ? simplified : undefined,
       merged: t.simplify ? gloss(merged) : undefined},
@@ -1119,6 +1142,8 @@ const SET_OVER_TWO_LINES: Partial<Record<ProblemId, string[]>> = {
   // In λ₀, as the board integrated, then in Q = 2λ₀R, the charge the slider holds: the comparison with the even
   // semicircle is at one Q.
   'uneven-arc': [String.raw`\begin{aligned}E_x&=-\frac{\pi k\lambda_0}{2R}${rowGap(.75)}&=-\frac{\pi kQ}{4R^2}\end{aligned}`],
+  // Both answers of the one integral, each with where it holds: outside, then inside.
+  shell: [String.raw`\begin{aligned}E_z&=\frac{kQ}{z^2}\quad(z>R)${rowGap(1)}E_z&=0\quad(z<R)\end{aligned}`],
 };
 /** What the integral comes to, the built component first. */
 export function resultLines(p: Problem): string[] {

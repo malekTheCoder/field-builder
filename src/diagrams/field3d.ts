@@ -50,8 +50,35 @@ export function annuliField(samples:readonly ChargeSample[],at:Vec):Vec{
  return rho>1e-12?{x:er*at.x/rho,y:er*at.y/rho,z:ez}:{x:0,y:0,z:ez};
 }
 /** The drawn field of a layout: a wire's elements are points, a surface's are rings. */
-const fieldOf=(samples:readonly ChargeSample[],layout:Layout)=>layout==='surface'
+const fieldOf=(samples:readonly ChargeSample[],layout:Layout)=>layout==='shell'?shellFieldAt(samples):layout==='surface'
  ?(at:Vec)=>annuliField(samples,at):(at:Vec)=>spaceField(samples,at);
+/** THE SPHERICAL SHELL, read off its rings: the radius their crossings stand at and the charge they hold between them. */
+export function shellOf(samples:readonly ChargeSample[]):{R:number;q:number}{
+ return {R:Math.max(0,...samples.map(s=>LEN(s.position))),q:samples.reduce((t,s)=>t+s.dq,0)};
+}
+/** ITS FIELD AT ANY POINT, from Gauss's law and the lesson's own answer: a point charge's outside, kQ r̂/r², and none at
+ * all inside. Summed from its rings instead, an arrow inside would show the few rings' residue -- a field the shell has
+ * not got -- and one outside a lumpy version of one it has exactly. */
+export function shellFieldAt(samples:readonly ChargeSample[]):(at:Vec)=>Vec{
+ const {R,q}=shellOf(samples);
+ return at=>{const r=LEN(at);if(!(r>R*(1+1e-9)))return {x:0,y:0,z:0};const k=K*q/(r*r*r);return {x:k*at.x,y:k*at.y,z:k*at.z};};
+}
+/** ITS FIELD LINES, drawn as what they are: straight and radial, from the skin out, and none inside, where there is no
+ * field to follow. `count` lines, ordered along the field -- out of a positive shell, into a negative one -- each from
+ * just off the skin out to `length` from the centre. In space they leave the sphere evenly in every direction (a
+ * Fibonacci sphere); in the side view's plane, `plane` 'xz', at equal angles round the circle, half a step off the axis
+ * so that none is laid along the line P stands on. */
+export function shellLines(R:number,count:number,length:number,sign:number,plane?:'xz',steps=18):Vec[][]{
+ const lines:Vec[][]=[],from=R*1.01,golden=Math.PI*(3-Math.sqrt(5));
+ for(let k=0;k<count;k++){
+  let d:Vec;
+  if(plane){const a=2*Math.PI*(k+.5)/count;d={x:Math.sin(a),y:0,z:Math.cos(a)};}
+  else{const z=1-2*(k+.5)/count,r=Math.sqrt(Math.max(0,1-z*z)),a=k*golden+.3;d={x:r*Math.cos(a),y:r*Math.sin(a),z};}
+  const line=Array.from({length:steps+1},(_,i)=>scale(d,from+(length-from)*i/steps));
+  lines.push(sign>=0?line:line.reverse());
+ }
+ return lines;
+}
 export function typicalSpacing(points:readonly ChargeSample[]):number{
  // Sampled ACROSS the whole charge, not from the first sixty points.
  //
@@ -221,7 +248,7 @@ function trace3(samples:readonly ChargeSample[],start:Vec,options:TraceOptions):
 /** How the charge is laid out, which decides where lines can start.
  * A wire is a rod, an arc or a ring: samples run along it. A surface is a disk or a sheet:
  * each sample is a whole annulus at one radius, not a point. */
-export type Layout='wire'|'surface';
+export type Layout='wire'|'surface'|'shell';
 /** Where to start lines from: equal steps of accumulated |dq|, so every line stands for the same flux
  * and density means strength, exactly as in the flat view -- saying WHERE inside the chosen element as
  * well as which one.
@@ -621,7 +648,7 @@ export function spaceGrid(samples:readonly ChargeSample[],extent:number,spacing:
  // Clearance from the charge itself, not from the points it was cut into: at a coarse partition
  // the lattice slips between the samples and draws an arrow lying on the body, at full weight,
  // showing the field of whichever element it landed nearest. See bodyDistance.
- const clear=bodyDistance(samples,layout==='surface'?'surface':'wire');
+ const clear=bodyDistance(samples,layout);
  const raw:{at:Vec;dir:Vec;magnitude:number}[]=[];
  const n=Math.floor(extent/spacing);
  const span=(lo:number,hi:number)=>Array.from({length:Math.max(0,Math.round((hi-lo)/spacing)+1)},(_,i)=>lo+i*spacing);
@@ -817,7 +844,7 @@ export function radialLines(axis:{foot:Vec;dir:Vec;half:number},count:number,ins
 export function latticeCore(samples:readonly ChargeSample[],reach:number,layout:Layout,centre:Vec={x:0,y:0,z:0},spacing=reach/3,given?:(at:Vec)=>Vec):Arrow3[]{
  if(!(spacing>0)||!samples.length)return [];
  // `given` is a closed form where the charge has one the partition cannot match: see `rayField`.
- const field=given??fieldOf(samples,layout),clear=bodyDistance(samples,layout==='surface'?'surface':'wire');
+ const field=given??fieldOf(samples,layout),clear=bodyDistance(samples,layout);
  const steps=[-1.5,-.5,.5,1.5].map(k=>k*spacing),raw:{at:Vec;dir:Vec;magnitude:number}[]=[];
  for(const dx of steps)for(const dy of steps)for(const dz of steps){
   const at={x:centre.x+dx,y:centre.y+dy,z:centre.z+dz};
@@ -870,7 +897,7 @@ export function latticeFrame(points:readonly Vec[],reach:number,endless=false):{
  *    spread across the plane as far as they rise above it, and stay half a step off it;
  *  - the semi-infinite line, round O, P and a point along the wire twice P's distance out (never less
  *    than three of the old steps), so the arrows run on beside the charge past its end. */
-export function endlessBody(kind:'wire'|'disk'|'sheet',samples:readonly ChargeSample[],point:Vec,reach:number):Vec[]{
+export function endlessBody(kind:'wire'|'disk'|'sheet'|'shell',samples:readonly ChargeSample[],point:Vec,reach:number):Vec[]{
  const O:Vec={x:0,y:0,z:0},d=LEN(point);
  if(kind==='sheet')return [O,point,{x:d,y:0,z:0},{x:-d,y:0,z:0}];
  if(samples.length<2)return [O,point];
@@ -884,8 +911,10 @@ export function endlessBody(kind:'wire'|'disk'|'sheet',samples:readonly ChargeSa
  * annuli are stored at (s, 0, 0), so fitting the cube to them fitted it to the half of the disk on +x
  * only -- for a disk wider than three and a quarter metres, a cube centred three metres out, with twelve
  * arrows on one side of an axially symmetric field and forty-four on the other. */
-export function latticeBody(kind:'wire'|'disk'|'sheet',radius:number,path:readonly Vec[]|undefined,samples:readonly ChargeSample[]):Vec[]{
+export function latticeBody(kind:'wire'|'disk'|'sheet'|'shell',radius:number,path:readonly Vec[]|undefined,samples:readonly ChargeSample[]):Vec[]{
  if(path?.length)return [...path];
+ // The shell's rings are stored at their crossings on +x: the cube is fitted round the whole sphere instead.
+ if(kind==='shell')return [{x:radius,y:0,z:0},{x:-radius,y:0,z:0},{x:0,y:radius,z:0},{x:0,y:-radius,z:0},{x:0,y:0,z:radius},{x:0,y:0,z:-radius}];
  if(kind==='disk')return Array.from({length:8},(_,k)=>({x:radius*Math.cos(k*Math.PI/4),y:radius*Math.sin(k*Math.PI/4),z:0}));
  return samples.map(s=>s.position);
 }

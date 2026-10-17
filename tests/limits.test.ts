@@ -82,7 +82,7 @@ describe('the reference curve matches the formula printed above it',()=>{
 // half ring's closed form against 2kQ/(πR²), the arc's kQ/R against kQ/R. A case whose point IS
 // that nothing changes says so (kind 'constant') and is computed as a point-charge sum instead.
 describe('no limit is a formula plotted against itself',()=>{
- const CONSTANT=['semi/scale','sheet/scale','infinite/scale','v-arc/full'];
+ const CONSTANT=['semi/scale','sheet/scale','infinite/scale','v-arc/full','shell/outside'];
  for(const problem of PROBLEMS)for(const limit of problem.limits)it(`${problem.id}/${limit.id}`,()=>{
   const kind=limitPlot(problem,limit).kind,s=sweep(problem,limit);
   if(kind==='constant'||kind==='law'){expect(CONSTANT,`${problem.id}/${limit.id} calls itself a constancy demonstration`).toContain(`${problem.id}/${limit.id}`);return;}

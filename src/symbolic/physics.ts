@@ -7,6 +7,7 @@ import {offsetEnds} from '../distributions/offset';
 /** The thin annulus's sweep: its width b − a, as a share of b, at sweep position t ∈ [1, 30]: the whole disk at the
  * start, about a hundred and sixtieth of the rim at the end, swept on a log axis. */
 export const thinGap=(t:number)=>Math.pow(t,-1.5);
+import {shellRings} from '../distributions/shell';
 // Finite distributions use total Q in nC; infinite lines use λ in nC/m;
 // semi-infinite lines use λ in nC/m; an infinite sheet uses σ in nC/m². Distance and geometry are in metres.
 // The per-geometry closed forms and point-charge sums live in src/distributions/.
@@ -49,6 +50,8 @@ const sum=(samples:{field:Vec}[]):Vec=>samples.reduce((s,x)=>({x:s.x+x.field.x,y
 /** The arc's potential at its centre as a sum over point charges, not the closed form kQ/R. */
 const arcPotentialSum=(p:Params)=>REGISTRY.arc.sample(p,60).reduce((s,x)=>s+x.potential,0);
 /** The ring's peak sweep: P's height at position t ∈ [1, 30], from the centre out to 3R. */
+/** The shell's field at P as its rings add it up, finely enough to be the integral: see the shell's cases below. */
+const ringSum=(p:Params,n=4000):Vec=>sum(shellRings(p.size/2,p.charge*1e-9,p.distance,n));
 const ringPeakZ=(R:number,t:number)=>3*R*(t-1)/29;
 /** Where z = R/√2 and z = R fall on that sweep, for the plot's landmarks. */
 export const RING_PEAK_T=1+29/(3*Math.SQRT2),RING_EDGE_T=1+29/3;
@@ -128,6 +131,18 @@ export function sampleLimit(problem:Problem,p:Params,limit:Limit,t:number):Limit
   // blended; the dashed line is the even semicircle's 2kQ/(πR²), which the curve reaches when s is zero.
   case 'even':{copy.phi=Math.PI;const s=(30-t)/29,cos=numerical('uneven-arc',copy,400),even=numerical('arc',copy,400);
    vector={x:s*cos.x+(1-s)*even.x,y:s*cos.y+(1-s)*even.y,z:0};actual=magnitude(vector);target=2*K*q/(Math.PI*R*R);break;}
+  // THE SPHERICAL SHELL, its rings added up -- never the closed form, so a flat line is evidence. Four thousand rings,
+  // each holding its band's exact charge, put the sum within a few parts in a million of the integral wherever P stands
+  // more than a few hundredths of R from the surface, and within a few in a hundred thousand of the field just outside
+  // closer in than that.
+  //  · outside: P from just past the surface, z = R(1 + t/6), out to six radii, against a point charge's kQ/z².
+  //  · inside: P brought down the axis from twice the radius, through the surface at t = 15.5, to the centre; the
+  //    reference is zero, and the plot draws the field over its largest.
+  //  · jump: P a gap δ = R/(2t) either side of the surface, the change of the field across it against σ/ε₀ = kQ/R²;
+  //    there ten thousand rings, since the gap shrinks to a sixtieth of R and the rings that matter near P with it.
+  case 'outside':{copy.distance=R*(1+t/6);vector=ringSum(copy);actual=Math.abs(vector.z);target=K*q/copy.distance**2;break;}
+  case 'inside':{copy.distance=2*R*(1-(t-1)/29);vector=ringSum(copy);actual=Math.abs(vector.z);target=0;break;}
+  case 'jump':{const d=R/(2*t),out=ringSum({...copy,distance:R+d},10000),inn=ringSum({...copy,distance:R-d},10000);vector=out;actual=Math.abs(out.z-inn.z);target=K*q/(R*R);break;}
   // Point-charge sums at P = t metres: the sheet's field against σ/2ε₀, the infinite line's against
   // 2kλ/r, and the semi-infinite line's two components against each other. None reads a closed form.
   // The line's `second` is a point charge's 1/r² fall, through the line's own value at the sweep's
@@ -214,6 +229,11 @@ export function limitPlot(problem:Problem,limit:Limit):LimitPlot{
    :{kind:'decay',y:'|E|, scaled',axis:'opening angle φ, with Q fixed',from:'φ small',to:'full circle',line:'zero',caption:'With the charge fixed, the field only falls as the arc opens, and reaches zero when it closes into a full circle.'};
   case 'even':return{kind:'ratio',y:'|E| ÷ even semicircle’s',axis:'the charge moved to an even spread, Q fixed',from:'cosine density',to:'spread evenly',line:'even semicircle',solid:'The pieces of both, added up',caption:'As more of the same charge is moved out toward the ends, where its field lies mostly across the axis and its mirror cancels that part, the field at P falls onto the even semicircle’s, the dashed line.'};
   case 'half':return{kind:'ratio',y:'|sum| ÷ integral',axis:'the semicircle as N point charges',from:'one piece',to:'many pieces',line:'the integral',solid:'Sum of N point charges',caption:'The plot builds the semicircle from N point charges: the more there are, the closer their sum comes to the integral, the dashed line.'};
+  // THE SPHERICAL SHELL. Its three cases are its rings added up, never the closed form: a flat line at one outside is
+  // measured, and so is the zero inside.
+  case 'outside':return{kind:'constant',y:'|E| ÷ point-charge field',axis:'height z, outside the shell',from:'z just past R',to:'z ≫ R',line:'point charge',solid:'The shell’s rings, added up',caption:'Flat: added up ring by ring, the field outside equals a point charge’s at every height, from just past the surface outward, not only far away.'};
+  case 'inside':return{kind:'decay',y:'|E|, scaled',axis:'P coming down the axis, through the shell to its centre',from:'outside',to:'the centre',line:'zero',solid:'The shell’s rings, added up',caption:'Outside, the field grows as P comes in toward the shell. Through the surface it drops to zero, and stays there all the way to the centre: inside, the rings cancel at every point.'};
+  case 'jump':return{kind:'ratio',y:'jump ÷ σ/ε₀',axis:'a gap δ either side of the surface',from:'δ ∼ R',to:'δ ≪ R',line:'σ/ε₀',solid:'The shell’s rings, added up',caption:'On the dashed line the field just outside, less the field just inside, is σ/ε₀. Measured a gap δ either side of the surface, it settles onto it as δ\u00a0≪\u00a0R.'};
   // The sheet's curve is its rings added up, the line's its pieces: neither is the closed form, and a
   // legend that said "your exact field" read as σ/(2ε₀) divided by itself.
   case 'scale':return g==='sheet'

@@ -96,7 +96,8 @@ const ORDER:{leg:string;items:{id:ProblemId;text:string}[]}[]=[
   {id:'annulus',text:String.raw`A disk with a hole: the same rings, added from the hole’s edge $a$ out to the rim $b$.`},
   {id:'sheet',text:'A disk with no edge. The far rings make the larger fields, and the field never changes with height.'},
   {id:'arc',text:String.raw`Every piece is $R$ from $P$. How far the arc opens decides what survives.`},
-  {id:'uneven-arc',text:String.raw`The semicircle again, its charge piled toward the middle: $\lambda(\theta)$ goes inside the integral, and the mirror pairs still cancel across the axis.`}]},
+  {id:'uneven-arc',text:String.raw`The semicircle again, its charge piled toward the middle: $\lambda(\theta)$ goes inside the integral, and the mirror pairs still cancel across the axis.`},
+  {id:'shell',text:String.raw`A spherical shell is rings too, and one substitution adds them: a point charge’s field at every height outside, and none at all inside.`}]},
  {leg:'When less cancels',items:[
   {id:'endpoint',text:String.raw`No mirror pieces, so neither part cancels: one integral for $E_x$, one for $E_y$.`},
   {id:'offset',text:String.raw`$P$ between the middle and an end: the stretch that mirrors itself across $P$’s level cancels along the rod, and the leftover leans the field.`},

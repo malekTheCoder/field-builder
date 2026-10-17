@@ -101,6 +101,15 @@ function LimitFigure({id,mode,t,vector,scale,arrow,offsetShare=0,offsetOverR=0}:
   const keep=(30-t)/29,k=12;
   return <>{Array.from({length:k},(_,i)=>{const a=-Math.PI/2+Math.PI*i/k,b=a+Math.PI/k,m=(a+b)/2,density=keep*Math.PI/2*Math.cos(m)+(1-keep),p0=at(a),p1=at(b);
    return <path key={i} d={`M${p0.x.toFixed(1)},${p0.y.toFixed(1)}A${R} ${R} 0 0 0 ${p1.x.toFixed(1)},${p1.y.toFixed(1)}`} {...CHARGE} strokeLinecap="butt" strokeWidth={(1+3.4*density).toFixed(2)}/>})}{P(152,25,false,undefined,undefined,inner)}</>}
+ // THE SPHERICAL SHELL, laid on its side as the ring's view is: a circle with the axis across the frame, and P on it,
+ // to the shell's own scale. Outside, P walks out from just past the surface to six radii; inside, P comes down from
+ // twice the radius through the surface to the centre; across the surface, P stands a gap δ = R/(2t) outside it, and a
+ // hollow dot the same gap inside, where the field is zero. A negative shell's arrow stops short of the circle.
+ if(id==='shell'){
+  const C=70,Y=24,R=18,edge=C+R+1.5+CLEAR,z=mode==='outside'?R*(1+t/6):mode==='inside'?2*R*(1-(t-1)/29):R*(1+1/(2*t));
+  return <><path d={`M${C} ${Y}H${C+Math.max(R*6,z)}`} {...RAIL}/><circle cx={C} cy={Y} r={R} {...CHARGE} fill="color-mix(in srgb,var(--charge) 12%,transparent)" strokeWidth="3"/>
+   {mode==='jump'&&<circle cx={(C+R*(1-1/(2*t))).toFixed(1)} cy={Y} r="3" fill="none" stroke="var(--foreground)" strokeWidth="1.5"/>}
+   {P(C+z,Y,true,undefined,z>R?edge:undefined)}</>}
  if(id==='arc'){
   // A negative arc's field at its centre points at the arc. At a radius of 17 a stopped arrow had no room
   // between P's dot and the arc's inner edge; at 20.5 it has a short shaft, and the arc still fits the
@@ -187,6 +196,8 @@ export function sweepName(problem:Problem,limit:Limit):string{
   case 'full':return 'Open the arc';
   case 'half':return 'Add pieces';
   case 'even':return 'Spread it evenly';
+  case 'inside':return 'Bring P in';
+  case 'jump':return 'Close the gap';
   default:return 'Move P out';
  }
 }
@@ -221,7 +232,7 @@ const S_MIN=1,S_MAX=30,snap=(v:number)=>Math.round(Math.min(S_MAX,Math.max(S_MIN
 const ARRIVED=.01,APART=.05,ZERO=.02;
 type Moment='start'|'middle'|'end';
 /** What the source is called in a sentence. */
-const SOURCE:Record<ProblemId,string>={bisector:'rod',offset:'rod',axial:'rod',endpoint:'rod',ramp:'rod',ring:'ring',disk:'disk',annulus:'annulus',arc:'arc','uneven-arc':'semicircle',infinite:'line',semi:'half line',sheet:'sheet'} as Record<ProblemId,string>;
+const SOURCE:Record<ProblemId,string>={bisector:'rod',offset:'rod',axial:'rod',endpoint:'rod',ramp:'rod',ring:'ring',disk:'disk',annulus:'annulus',arc:'arc','uneven-arc':'semicircle',shell:'shell',infinite:'line',semi:'half line',sheet:'sheet'} as Record<ProblemId,string>;
 /** ONE SENTENCE FOR WHERE THE SCRUB IS, in words and symbols only. The caption under the card says how
  * to read the whole plot; this says what is true at the dot -- close in, on the way, or arrived -- so
  * dragging along the curve reads as the argument it is: "close up the rod's size still shows", "far
@@ -317,6 +328,19 @@ export function limitNow(problem:Problem,limit:Limit,plot:LimitPlot,here:number,
    'With the charge piled toward the middle, most of it sits where a piece’s field points along the axis: the field is stronger than the even semicircle’s.',
    'As more of the charge moves out toward the ends, more of its field lies across the axis, where its mirror cancels it.',
    'Spread evenly, the field is the even semicircle’s: the curve lies on the dashed line.']);
+  // THE SHELL'S THREE. Outside the curve is flat, so where the dot is along the sweep says what is true there; inside,
+  // whether P has passed through the surface, at t = 15.5 of the sweep from twice the radius to the centre.
+  case 'outside':return pick(along,[
+   'Just past the surface, the shell’s field is already a point charge’s: the curve lies on the dashed line.',
+   'Farther out, still exactly a point charge’s: nothing about the shell’s size shows at any height outside it.',
+   'Far away it is a point charge’s, as any charge’s field is from far off; for a shell that was true from the surface out.']);
+  case 'inside':return t<15.5?'Outside, the field grows as P comes in toward the shell, as a point charge’s does.'
+   :t>29?'At the centre the field is zero, as symmetry alone would say; but it was zero all the way in from the surface.'
+   :'Inside the shell the field is zero: the rings above P and the rings below it cancel exactly.';
+  case 'jump':return pick(converged,[
+   'A wide gap: the field outside it has already fallen off, so the change across it is smaller in size than σ/ε₀.',
+   'Closing the gap, the change in the field across it closes on σ/ε₀.',
+   'Across a thin gap the field jumps by σ/ε₀: zero just inside, kQ/R² just outside.']);
   case 'half':return pick(converged,[
    `Few pieces: their field at P is ${here<1?'weaker':'stronger'} than the semicircle’s, the dashed line.`,
    'More pieces: their sum is closing on the semicircle’s field.',
@@ -358,7 +382,7 @@ function AssessmentView({problem,params:live,limit}:{problem:Problem;params:Para
  // the straight line -- and every log axis now says it is one, or the rod's ln(L/r), drawn straight,
  // read as V growing in proportion to L.
  const linearGrowth=plot.kind==='growth'&&problem.geometry==='disk';
- const log=(limit.mode==='far'||limit.mode==='moment'||limit.mode==='infinite'||limit.mode==='near'||limit.mode==='thin'||(limit.mode==='half'&&!scalar)||plot.kind==='law'||semi)&&!linearGrowth;
+ const log=(limit.mode==='far'||limit.mode==='jump'||limit.mode==='moment'||limit.mode==='infinite'||limit.mode==='near'||limit.mode==='thin'||(limit.mode==='half'&&!scalar)||plot.kind==='law'||semi)&&!linearGrowth;
  const axisName=log?`${plot.axis} (log scale)`:plot.axis;
  const tAt=(i:number)=>log?30**(i/69):1+29*i/69,xAt=(u:number)=>X0+(log?Math.log(u)/Math.log(30):(u-1)/29)*(X1-X0);
  // The slider moves along the plot's own axis, so its thumb and the dot on the curve stay in step.

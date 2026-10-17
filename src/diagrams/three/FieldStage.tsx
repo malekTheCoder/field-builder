@@ -4,7 +4,7 @@ import type {ChargeSample} from '../../distributions/types';
 import type {Vec} from '../../symbolic/physics';
 import {cameraBasis,cameraPosition,frameTarget,frustum,tickStep} from './orthoCamera';
 import {apartOnScreen,ARROW_INSET,arrowHead,fitInWindow,besideWire,LEVEL_MARGIN,slabCovers,BEHIND_GAP,gapDepth,gapLift,gapShrink,gapRamp,gapStart,NAME_MARGIN,PIECE_FAR_LOW,SHEET_SIGN_GAP,bodyReach,CHAIN_ASIDE,chainAside,keepAside,diskSignMarks,drawOrder,fadeOut,farAlpha,fillAlpha,fillFade,frameExtent,latticeClear,lineReach,segmentGap,lineStrength,pieceFade,SHEET_FADE,sheetSignRoots,sheetSigns,signMarks,strokeSide,tickGaps,SHEET_UNDER,sheetColumns,sheetFarFade,sheetInk,sheetSides,surfaceOpacity,visibleRadii,washerHalf,washWall,wirePath,wireRadius,writesDepth,type BodyKind,type FarFade} from './bodies';
-import {endlessAxis,endlessBody,endlessRay,latticeBody,latticeCore,latticeFrame,radialLines,rayField,rayLines,sheetLines,spaceLines,traceTo,type Layout} from '../field3d';
+import {endlessAxis,endlessBody,endlessRay,latticeBody,latticeCore,latticeFrame,radialLines,rayField,rayLines,sheetLines,shellLines,shellOf,spaceLines,traceTo,type Layout} from '../field3d';
 import {boxGap,controlBox,HEAD_ROOM,LINE_HEAD,lineHeads,meetsBoxes,paintedLabels,seedPool,touchesLabels,type Box} from '../fieldlines';
 import {coarsen} from '../sampling';
 import {arrowLength,bodyDistance,PLOT} from '../vectorfield';
@@ -52,7 +52,7 @@ export type FieldStageProps={
  /** A wire's element is the stretch of wire it occupies; a surface's is the annulus between
   * two radii. Neither is a straight segment, and drawing one as a segment on a ring reads as
   * a tangent line lying against it rather than a piece of it. */
- point:Vec; element:{path:Vec[]}|{annulus:{inner:number;outer:number}}|null;
+ point:Vec; element:{path:Vec[]}|{annulus:{inner:number;outer:number}}|{band:{lo:number;hi:number}}|null;
  net:Vec|null; contribution:Vec|null;
  /** Where the contribution starts, as an offset from P: P itself, except while the run's Add them up takes
   * a mirror pair into the sum from the tip of the sum so far. */
@@ -344,8 +344,13 @@ export function FieldStage(props:FieldStageProps){
     if(reuse)old!.needsUpdate=true;else g.setAttribute('color',new THREE.BufferAttribute(colours,4));
     return g;
    };
+   /** A band of the spherical shell between two angles from the top, lifted a hair off the skin so it never fights it.
+    * Three's sphere runs its angle from +y; turned a quarter about x, that is the shell's +z. */
+   const shellBand=(R:number,lo:number,hi:number,lift=1.012,rings=6,alpha=.8)=>fadeGeometry(new THREE.SphereGeometry(R*lift,128,rings,0,2*Math.PI,lo,Math.max(1e-4,hi-lo)).rotateX(Math.PI/2),0,0,alpha);
+   let shellR=1;
    const buildElement=(e:NonNullable<FieldStageProps['element']>,radius:number,fade:{inner:number;outer:number}|null,frameWorld:number,far:FarFade|null=null)=>{
     element.geometry.dispose();
+    if('band' in e){element.geometry=shellBand(shellR,e.band.lo,e.band.hi);mount.parentElement?.removeAttribute('data-scene-washer-ink');return;}
     if('annulus' in e){
      element.geometry=washer(e.annulus.inner,e.annulus.outer,washerHalf(radius,e.annulus.inner,e.annulus.outer,px),fade,frameWorld,far);
      if(washerInk)mount.parentElement?.setAttribute('data-scene-washer-ink',`${washerInk.face.toFixed(4)} ${washerInk.wall.toFixed(4)} ${washerInk.edge.toFixed(4)}`);
@@ -999,6 +1004,11 @@ export function FieldStage(props:FieldStageProps){
     // its rim, and is given one. A sheet has no edge to draw, so it is drawn out past the
     // frame with its alpha ramping to nothing: forty rings of vertices, because the ramp is
     // carried by the mesh and a fan of one ring would interpolate it in straight lines.
+    // The spherical shell: a see-through skin of unit radius, scaled to the shell's, with its equator drawn round it.
+    if(p.kind==='shell'){
+     body.add(new THREE.Mesh(new THREE.SphereGeometry(1,72,48),bodyMaterial));
+     return;
+    }
     if(p.kind==='sheet'){
      body.add(new THREE.Mesh(fadeGeometry(new THREE.RingGeometry(0,1,128,40),SHEET_FADE.inner,SHEET_FADE.outer),sheetMaterial));
      sheetFarKey='';
@@ -1097,7 +1107,7 @@ export function FieldStage(props:FieldStageProps){
     // How finely the charge the field is traced from is cut, for the tests: see ChargeDiagram.
     mount.parentElement?.setAttribute('data-field-samples',String(source.length));
     if(p.fieldView==='off'||!source.length)return;
-    const layout:Layout=p.kind==='wire'?'wire':'surface';
+    const layout:Layout=p.kind==='wire'?'wire':p.kind==='shell'?'shell':'surface';
     // A surface's annuli are each summed as a whole ring, about four point charges' arithmetic
     // apiece, so fewer of them.
     // No halving for surfaces any more. Each annulus used to be spread into sixteen point charges
@@ -1141,7 +1151,10 @@ export function FieldStage(props:FieldStageProps){
      // The ray's step: a twenty-fifth of the picture or of the charge, as for any wire, but never more
      // than a sixth of P's height, where the field turns round the line's end.
      const height=away(p.point.x,p.point.y,p.point.z),fine=Math.max(.03,.15*height);
-     traced=axis?radialLines(axis,pool.count,wr,drawn*1.4,p.charge>=0?1:-1)
+     // The spherical shell's are drawn, not traced: straight out of the skin, none inside (see `shellLines`).
+     const sphere=p.kind==='shell'?shellOf(source):null;
+     traced=sphere?shellLines(sphere.R,Math.max(26,pool.count),drawn*1.4,sphere.q>=0?1:-1)
+      :axis?radialLines(axis,pool.count,wr,drawn*1.4,p.charge>=0?1:-1)
       :ray?rayLines(ray,pool.count,window,Math.max(wr*2.5,Math.min(p.reach*.95*.06,.5*height)),wr,
        traceTo(few,layout,drawn,Math.min(span,fine/.04),{crowd:p.reach*.95*.012}))
       :spaceLines(few,layout,pool.count,traceTo(few,layout,drawn,span,{seedLimit:p.reach*.95,seedPool:pool.pool,root:{inset:p.kind==='wire'?wr:0},twist:p.kind==='wire',
@@ -1381,7 +1394,7 @@ export function FieldStage(props:FieldStageProps){
     // would go on drawing a ring level with P. Turned with the camera, as the sheet is.
     const farKey=far?`${far.inner.toFixed(2)},${far.outer.toFixed(2)}`:'';
     cuts.rotation.z=far?yaw:0;
-    const nextCuts=seams.map(s=>`${s.radius.toFixed(4)}:${s.grow<1?'g':'c'}`).join(';')+farKey;
+    const nextCuts=seams.map(s=>`${s.radius.toFixed(4)}:${(s.z??0).toFixed(4)}:${s.grow<1?'g':'c'}`).join(';')+farKey;
     if(nextCuts!==cutsKey){
      cutsKey=nextCuts;clearGroup(cuts);
      for(const s of seams){
@@ -1389,7 +1402,7 @@ export function FieldStage(props:FieldStageProps){
       for(let i=0;i<position.count;i++){rgba[i*4]=rgba[i*4+1]=rgba[i*4+2]=1;rgba[i*4+3]=far?farAlpha(position.getY(i)*radius,pieceFade(far,'outline')):1;}
       circle.setAttribute('color',new THREE.BufferAttribute(rgba,4));
       const loop=new THREE.Line(circle,s.grow<1?growMaterial:cutMaterial);
-      loop.scale.setScalar(radius);loop.position.z=wr*.06;loop.userData.at=s.at;cuts.add(loop);
+      loop.scale.setScalar(radius);loop.position.z=s.z??wr*.06;loop.userData.at=s.at;cuts.add(loop);
      }
     }
     // Each circle is drawn round as its cut is made, a knife going once round the surface.
@@ -1400,17 +1413,19 @@ export function FieldStage(props:FieldStageProps){
     // How far the sum has reached across a surface. A sheet's sum reaches past the picture, so its
     // shading dissolves exactly as the sheet under it does rather than ending at a hard rim.
     const filled=run&&!wire?run.filled:null;
-    const reach=p.kind==='sheet'?spread:Math.max(.01,p.radius);
+    // The shell's sum has reached an angle from the top, not a radius: its shading is the cap of the sphere down to it.
+    const reach=p.kind==='sheet'?spread:p.kind==='shell'?Math.PI:Math.max(.01,p.radius);
     const nextFill=filled!==null?`${p.kind}:${quantise(Math.min(filled,reach)/reach,400)}:${spread.toFixed(3)}:${frameWorld.toFixed(2)}:${positive}:${farKey}:${dark}:${(p.hole??0).toFixed(4)}`:'';
     if(nextFill!==fillKey){
      fillKey=nextFill;fill.geometry.dispose();
      const r=Math.max(.001,Math.min(filled??0,reach));
      fill.geometry=filled===null?new THREE.BufferGeometry()
       :p.kind==='sheet'?fillGeometry(r,frameWorld*.45,far,fillAlpha(dark))
+      :p.kind==='shell'?shellBand(p.radius,0,r,1.006,48,fillAlpha(dark)*.9)
       // An annulus's sum starts at its hole's edge: the shading never covers the hole, where nothing was added.
       :fadeGeometry(new THREE.RingGeometry(Math.min(p.hole??0,r*.999),r,128,4),0,0,fillAlpha(dark)*1.2);
     }
-    fill.visible=filled!==null;fill.position.z=wr*.03;fill.rotation.z=far?yaw:0;
+    fill.visible=filled!==null;fill.position.z=p.kind==='shell'?0:wr*.03;fill.rotation.z=far?yaw:0;
     // In the dark it glows a little, as the sheet under it does, rather than sitting on it as a grey slab.
     fillMaterial.color.copy(toneColour('added'));fillMaterial.emissive.set(CHARGE.glow);fillMaterial.emissiveIntensity=dark?.25:0;
     for(const m of [pieceMaterial,ghostMaterial]){m.emissive.set(CHARGE.glow);m.emissiveIntensity=dark?.85:.35;}
@@ -1530,7 +1545,9 @@ export function FieldStage(props:FieldStageProps){
     }
     const tint=themeTint,paper=themePaper;
     const positive=p.charge>=0;
-    taperR=p.taper??0;
+    taperR=p.taper??0;shellR=p.radius;
+    // The shell's chosen band is seen all the way round, its far half through the skin.
+    elementMaterial.side=p.kind==='shell'?THREE.DoubleSide:THREE.FrontSide;
     const shape=`${sampleKey(p)}:${taperR}`;
     // A disk and a sheet are drawn at unit size and scaled, so how finely they are cut says
     // nothing about their body; it was rebuilt at every doubling of the limit regardless.
@@ -1557,10 +1574,13 @@ export function FieldStage(props:FieldStageProps){
     // Rebuild the rings only when the partition actually changes; scaling is free, geometry
     // is not, and this runs on every camera frame during an orbit.
     const radii=p.kind==='disk'?visibleRadii(p.samples,p.selected):[];
-    const nextSlices=radii.length?`${radii.length}:${radii[radii.length-1].toFixed(4)}`:'none';
+    // The shell's rings at rest, each round the sphere at its own middle angle, as the flat figure draws them, no more than forty.
+    const shellCuts=p.kind==='shell'?(()=>{const n=p.samples.length,stride=Math.max(1,Math.ceil(n/40));return Array.from({length:n},(_,k)=>(k+.5)*Math.PI/n).filter((_,k)=>k%stride===0);})():[];
+    const nextSlices=p.kind==='shell'?`shell:${shellCuts.length}:${p.radius.toFixed(4)}`:radii.length?`${radii.length}:${radii[radii.length-1].toFixed(4)}`:'none';
     if(sliceKey!==nextSlices){
      clearGroup(slices);sliceKey=nextSlices;
      for(const r of radii){const loop=new THREE.Line(unitCircle(96),sliceMaterial);loop.scale.setScalar(Math.max(.01,r));slices.add(loop);}
+     for(const t of shellCuts){const loop=new THREE.Line(unitCircle(96),sliceMaterial);loop.scale.setScalar(Math.max(.01,p.radius*Math.sin(t)*1.004));loop.position.z=p.radius*Math.cos(t)*1.004;slices.add(loop);}
     }
     // The field is the expensive part -- tracing is quadratic in the sample count -- so it is
     // rebuilt only when what it depends on changes, never on a camera frame.
@@ -1582,7 +1602,7 @@ export function FieldStage(props:FieldStageProps){
     if(charge!==farFrom){
      farFrom=charge;const source=p.fieldSamples??p.samples;
      chargeFar=Math.max(0,...source.map(s=>Math.hypot(s.position.x,s.position.y,s.position.z)));
-     chargeAway=bodyDistance(coarsen(source,p.detail??48),p.kind==='wire'?'wire':'surface');
+     chargeAway=p.kind==='shell'?bodyDistance(source,'shell'):bodyDistance(coarsen(source,p.detail??48),p.kind==='wire'?'wire':'surface');
     }
     const endless=p.kind==='wire'&&chargeFar>poolWindow(frameWorld);
     // How far the lines run, and where the arrows stand, both follow P (see `lineReach`, `latticeFrame`):
@@ -1622,7 +1642,7 @@ export function FieldStage(props:FieldStageProps){
     if(applyRun(p,wr,positive,dark,spread,thick,far,view.yaw,frameWorld))element.visible=true;
     else if(p.element){
      element.visible=true;
-     const key='annulus' in p.element
+     const key='band' in p.element?`b:${p.element.band.lo.toFixed(5)}:${p.element.band.hi.toFixed(5)}:${p.radius.toFixed(4)}`:'annulus' in p.element
       ?`a:${p.element.annulus.inner.toFixed(4)}:${p.element.annulus.outer.toFixed(4)}:${thick.toFixed(4)}:${frameWorld.toFixed(2)}:${pieceFar?`${pieceFar.inner.toFixed(2)},${pieceFar.outer.toFixed(2)}`:''}`
       :`p:${thick.toFixed(4)}:${taperR}:${p.element.path.map(v=>`${v.x.toFixed(3)},${v.y.toFixed(3)},${v.z.toFixed(3)}`).join(';')}`;
      // THE CHOSEN PIECE IS NEVER FADED BY DISTANCE, even on the sheet, where the plane around it

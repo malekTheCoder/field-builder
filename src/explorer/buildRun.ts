@@ -85,6 +85,10 @@ const CANCELS: Record<string, string> = {
   disk: 'A disk is rings, and each ring has already cancelled its own sideways parts. Nothing sideways is left: each ring’s field at P points straight along the axis.',
   // The hole takes whole rings away, so what is left cancels round each ring exactly as the disk's does.
   annulus: 'An annulus is rings too, and each ring left round the hole is still whole, so it has already cancelled its own sideways parts. Nothing sideways is left: each ring’s field at P points straight along the axis.',
+  // THE SHELL'S RINGS CANCEL ROUND THEMSELVES, AND THEN, INSIDE, ONE ANOTHER. Outside, every ring is below P, so their
+  // fields all point the same way along the axis; inside, the rings above P point the other way. Said of the parts,
+  // not of which way they point, so it holds for either sign of charge.
+  shell: 'A shell is rings, and each ring has already cancelled its own sideways parts: each ring’s field at P lies along the axis. Outside, every ring is below P, so every ring’s field points the same way along it. Inside, the rings above P make a field the other way from those below, and only the sum says how they compare.',
   // The sheet cancels within each ring exactly as the disk does. What is different, and is the
   // thing a reader carrying the line lessons' story will get wrong, is the tail: cut at equal
   // angles from P, the rings make a BIGGER field the further out they are, not a smaller one.
@@ -124,6 +128,7 @@ const CANCEL_LINES: Record<string, string> = {
   infinite: 'Mirror pieces cancel each other’s parts along the line; the perpendicular parts survive.',
   disk: 'Each ring’s sideways parts already cancel round it: only the part along the axis is left.',
   annulus: 'The hole leaves whole rings, whose sideways parts cancel: the part along the axis is left.',
+  shell: 'Sideways parts cancel round each ring; inside, fields above and below point opposite ways.',
   sheet: 'Each ring’s sideways parts already cancel round it: only the part along the axis is left.',
   semi: 'Nothing cancels: with no charge past the end, both parts survive and the field leans.',
   axial: 'Every piece is on the axis, so every arrow already points along it: nothing to cancel.',
@@ -203,8 +208,9 @@ export function buildStages(p: Problem, bracket?: RunBracket): BuildStage[] {
   // THE LINES READ WHILE IT MOVES. One sentence each, short enough to finish before the stage
   // does. The long captions are still there, beside the algebra, for reading at rest.
   const unbounded = geometry === 'infinite' || geometry === 'semi';
-  const surface = geometry === 'disk' || geometry === 'sheet' || geometry === 'annulus';
-  // A disk's and a sheet's pieces are rings, and the board calls them rings from first line to last.
+  // A disk's and a sheet's pieces are rings, and the board calls them rings from first line to last. And a spherical
+  // shell's: its rings are the disk's, lifted and shrunk to lie on the sphere.
+  const shell = geometry === 'shell', surface = geometry === 'disk' || geometry === 'sheet' || geometry === 'annulus' || shell;
   // The run did for two stages and then, from Add them up, called the same rings pieces.
   const unit = surface ? 'ring' : 'piece';
   // Each line follows its stage's name -- "Cut it up. …", set bold before it -- so it goes on from the
@@ -226,6 +232,7 @@ export function buildStages(p: Problem, bracket?: RunBracket): BuildStage[] {
     // spans s = 0 to 1.33, its bits 0.5 to 1.42 from P. "Thin rings: every bit … is the same distance"
     // was false of the picture under it. What is true at every setting is the rule the limit uses.
     pieces: geometry === 'sheet' ? `Rings of equal angle at${P}: the sheet never ends, but its angles do.`
+      : shell ? `Rings by angle: the thinner a ring, the more nearly all of it is one distance from${P}.`
       : surface ? `The thinner a ring, the more nearly all of it is the same distance from${P}.`
       : unbounded ? `Pieces of equal angle at${P}: the line never ends, but its angles do.`
       // A ring's or an arc's pieces need not be small: every bit of one is as far from P as every bit
@@ -265,7 +272,7 @@ export function buildStages(p: Problem, bracket?: RunBracket): BuildStage[] {
       // bits are point charges, and a thin ring's are all one distance and one angle away -- a thin ring's,
       // not every drawn ring's: at three rings the inner one is a third of the disk wide.
       // "One angle from P" was not a thing a student could picture: the angle is the line's to the axis.
-      : geometry === 'disk' || geometry === 'annulus' ? `Every bit of a thin ring is equally far from${P}, at the same angle: it adds up at once.`
+      : geometry === 'disk' || geometry === 'annulus' || shell ? `Every bit of a thin ring is equally far from${P}, at the same angle: it adds up at once.`
       // The ring's Cut it up says a piece's part along the axis is exactly a point charge's at any size;
       // "a piece's field lies along the line joining them" holds only of a small piece, so the two read
       // as one claim and contradicted each other. At three pieces a piece is a third of the ring, and its
@@ -337,12 +344,14 @@ export function buildStages(p: Problem, bracket?: RunBracket): BuildStage[] {
       : exact ? 'As $N\\to\\infty$, the sum becomes an integral, and the answer, already exact, does not move.'
       : geometry === 'arc' || geometry === 'uneven-arc' ? 'As $N\\to\\infty$, $\\cos\\theta$ stops changing across a piece: the sum is the integral, exactly.'
       : geometry === 'sheet' ? 'As $N\\to\\infty$, treating each ring as a thin ring becomes exact: the sum is the integral.'
+      : shell ? 'As $N\\to\\infty$, counting each ring at one angle becomes exact: the sum is the integral.'
       : surface ? 'As $N\\to\\infty$, counting each ring at one radius becomes exact: the sum is the integral.'
       : 'As $N\\to\\infty$, treating each piece as a point charge becomes exact: the sum is the integral.',
   };
   const piece = scalar ? `Each ${unit} adds its own number to the total: k times its charge over its distance. Direction does not come into it at all, which is what makes a potential so much easier to add up than a field.`
     : unbounded ? 'Each piece is cut to cover the same angle at P. That makes every one contribute exactly as much at P: the far pieces hold more charge, but they are farther away, and the two exactly offset.'
     : geometry === 'sheet' ? 'Each ring is cut to cover the same angle at P. The far rings are farther away, but they are so much bigger that each makes a bigger field at P, not a smaller one.'
+    : shell ? 'One thin ring at a time. Every bit of it is the same distance from P and makes the same angle with the axis, so the whole ring adds up at once: its field is the ring lesson’s, along the axis, one way for a ring below P and the other way for a ring above it.'
     : geometry === 'disk' || geometry === 'annulus' ? 'One thin ring at a time. Every bit of it is the same distance from P and makes the same angle with the axis, which is what lets the whole ring be added up at once in the next step.'
     : exact ? 'Each piece is drawn as a point charge at its middle, its field along the line joining them. A large piece’s own field leans a little closer to the axis, but its part along the axis is exactly this one’s, and that is the only part that will count.'
     : geometry === 'arc' ? 'Each piece makes a field at P along the radius, pointing from the piece through P and on, for positive charge. Every piece is the same distance away and holds the same charge, so every arrow is the same size; only its direction changes round the arc.'
@@ -356,6 +365,8 @@ export function buildStages(p: Problem, bracket?: RunBracket): BuildStage[] {
   // nearly a thin ring's -- the same bridge the unbounded lines' pieces take.
   const cut = geometry === 'sheet'
     ? 'Start by cutting the sheet into rings that each take the same small angle at P. Each ring makes nearly the field at P of a thin ring at its middle angle (even the outermost, which never ends), and all of a thin ring is one distance away, which is what lets it be added up at once.'
+    : shell
+    ? 'Start by cutting the shell into thin rings by their angle from the top, narrow compared with their distance from P. A ring is not a point charge, but every bit of a thin one is the same distance from P, and that is all the next steps need.'
     : geometry === 'annulus'
     ? 'Start by cutting the annulus into thin rings, from the hole’s edge out to the rim, narrow compared with their distance from P. There is no charge in the hole, so no ring there. A ring is not a point charge, but every bit of a thin one is the same distance from P, and that is all the next steps need.'
     : surface
@@ -386,6 +397,7 @@ export function buildStages(p: Problem, bracket?: RunBracket): BuildStage[] {
   const thinner = unbounded || geometry === 'sheet' ? 'grow ever thinner in angle' : 'grow ever thinner';
   const exactNow = geometry === 'arc' || geometry === 'uneven-arc' ? 'taking cos θ at each piece’s middle, which was only nearly right, becomes exact, since cos θ stops changing across a piece'
     : geometry === 'sheet' ? 'treating each ring as a thin ring, which was only nearly right, becomes exact'
+    : shell ? 'counting each ring’s charge at one angle, which was only nearly right, becomes exact'
     : surface ? 'counting each ring’s charge at one radius, which was only nearly right, becomes exact'
     : 'treating each piece as a point charge, which was only nearly right, becomes exact';
   // The pairs' order, said: from the middle out on a rod, a line or an arc; round the ring, where every piece is
@@ -400,6 +412,8 @@ export function buildStages(p: Problem, bracket?: RunBracket): BuildStage[] {
     ? `Now add the pieces in mirror pairs from the middle out; a lone middle piece has no sideways part. In each pair ${PAIR_PARTS[geometry].parts} add, so the sum runs ${PAIR_PARTS[geometry].runs}, and ${stops}`
     : exact
     ? 'Now add every piece’s arrow, tip to tail. The sideways parts undo each other along the way, so the chain bends back to the axis, and it ends exactly at the field at P, E = Σ ΔE: every piece is the same distance away at the same angle, so cutting finer changes nothing.'
+    : shell
+    ? `Now add every ring’s arrow, tip to tail. They all lie along the axis, so the chain runs straight; inside the shell the rings above P point the other way, and the chain turns back on itself. Then ${stops}`
     : geometry === 'axial' || surface
     ? `Now add every ${unit}’s arrow, tip to tail. They all point along the axis, so the chain runs straight, and ${stops}`
     : pairs

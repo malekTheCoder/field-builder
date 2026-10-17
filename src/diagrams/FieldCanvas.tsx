@@ -5,7 +5,7 @@ import type {Vec} from '../symbolic/physics';
 import {covers,fieldLines,LINE_HEAD as HEAD,lineHeads,meetsBoxes,paintedLabels,seedPool,touchesLabels,traceLimit,traceWindow,type Plane,type PlaneRect} from './fieldlines';
 import {coarsen} from './sampling';
 import {arrowLength,bodyFoot,latticeArea,PLOT,vectorGrid,visibleArea} from './vectorfield';
-import {endlessRay,meridianLines,rayLines,sheetLines,spaceGrid,type Layout} from './field3d';
+import {endlessRay,meridianLines,rayLines,sheetLines,shellLines,shellOf,spaceGrid,type Layout} from './field3d';
 import {SNAPSHOT_EVENT,type SnapshotDetail} from './snapshot';
 /** The field itself, under the construction drawing.
  *
@@ -119,7 +119,12 @@ export function FieldCanvas({samples,project,frame,lines=15,mode='lines',reach=6
   // spaced along the stretch of it the window shows, both sides of the wire at each, as many as before.
   const ray=plane==='xy'&&tracedFor?endlessRay(samples,shown):null;
   const window=tracedFor;
-  const fresh=endless?sideSheet(coarse,lines,opts.seedLimit,tracedFor!)
+  // THE SPHERICAL SHELL'S LINES ARE DRAWN, NOT TRACED: straight out of the skin along radii, as its field is exactly a
+  // point charge's outside it and nothing inside (see `shellLines`), out past the window's edge. From the rings as given,
+  // not the coarsened ones, whose merged crossings lie inside the sphere.
+  const sphere=layout==='shell'?shellOf(samples):null;
+  const fresh=sphere?shellLines(sphere.R,lines+(lines%2),limit,sphere.q>=0?1:-1,plane==='xz'?'xz':undefined).map(line=>line.map(v=>plane==='xz'?{x:v.x,y:v.z}:{x:v.x,y:v.y}))
+   :endless?sideSheet(coarse,lines,opts.seedLimit,tracedFor!)
    :ray&&window?rayLines(ray,pool.count,shown,opts.seedLimit*.05,0,{step:step/2,maxSteps:Math.min(3200,2*opts.maxSteps),outerLimit:limit,crowd:opts.seedLimit*.012,
      far:v=>v.x<window.x0||v.x>window.x1||v.y<window.y0||v.y>window.y1},true).map(line=>line.map(v=>({x:v.x,y:v.y})))
    :plane==='xz'?meridianLines(coarse,layout,lines,{...opts,root:{},seedSpan}).map(line=>line.map(v=>({x:v.x,y:v.z}))):fieldLines(coarse,pool.count,{...opts,seedPool:pool.pool,root:bodyFoot(coarse,'wire'),finish:{samples,step:step/4}});

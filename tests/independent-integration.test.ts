@@ -138,7 +138,10 @@ const GEOMETRY:Record<string,Geom>={
 /** Which charge layout each lesson sits on, read off its own setup sentence. Asserted
  * against the app's declaration below rather than taken from it. */
 const GEOM_OF:Record<string,string>={bisector:'bisector',axial:'axial',infinite:'infinite',ring:'ring',disk:'disk',annulus:'annulus',semi:'semi',arc:'arc',sheet:'sheet',endpoint:'endpoint',ramp:'ramp',offset:'offset',
- 'v-ring':'ring','v-disk':'disk','v-arc':'arc','v-rod-bisector':'bisector','v-rod-axial':'axial','uneven-arc':'uneven-arc'};
+ 'v-ring':'ring','v-disk':'disk','v-arc':'arc','v-rod-bisector':'bisector','v-rod-axial':'axial','uneven-arc':'uneven-arc',
+ // The spherical shell: its field is exactly zero at every point inside, so a comparison relative to the field there is
+ // noise over noise. It is held to its own independent integral, written from Coulomb's law, in tests/shell.test.ts.
+ shell:'shell'};
 const FIELD_IDS=['bisector','axial','infinite','ring','disk','annulus','semi','arc','sheet','endpoint','ramp','uneven-arc','offset'] as const;
 const POTENTIAL_IDS=['v-ring','v-disk','v-arc','v-rod-bisector','v-rod-axial'] as const;
 const truthE=(id:string,p:Params)=>GEOMETRY[GEOM_OF[id]].E(p);
@@ -188,7 +191,7 @@ describe('the constants the closed forms are built on',()=>{
  });
  it('each lesson sits on the charge layout its own setup sentence describes',()=>{
   for(const problem of PROBLEMS)expect(problem.geometry,problem.id).toBe(GEOM_OF[problem.id]);
-  expect(Object.keys(GEOM_OF)).toHaveLength(18);
+  expect(Object.keys(GEOM_OF)).toHaveLength(19);
  });
 });
 

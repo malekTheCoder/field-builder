@@ -47,6 +47,10 @@ const SWAPS: Record<string, Swap[]> = {
   // The uneven semicircle's density changes from piece to piece; its distance never does, and its cosine is already in θ.
   'uneven-arc': [[String.raw`\lambda(\theta_i)=\lambda_0\cos\theta_i`, 'lambda0*cos(theta)', 'none']],
   disk: [RING_CHARGE, ...RING_SWAPS], annulus: [RING_CHARGE, ...RING_SWAPS], sheet: RING_SWAPS,
+  // The shell's rings change charge, distance and direction from ring to ring, all in θ.
+  shell: [[String.raw`\Delta Q_i\approx\sigma\,2\pi R^2\sin\theta_i\,\Delta\theta`, 'sigma*2*pi*R^2*sin(theta)', 'none'],
+    [String.raw`r_i^2=R^2+z^2-2zR\cos\theta_i`, 'R^2+z^2-2*z*R*cos(theta)', 'distance^2'],
+    [String.raw`\cos\alpha_i=(z-R\cos\theta_i)/r_i`, '(z-R*cos(theta))/sqrt(R^2+z^2-2*z*R*cos(theta))', 'projection']],
   'v-disk': [RING_CHARGE, [String.raw`r_i=\sqrt{s_i^2+z^2}`, 'sqrt(s^2+z^2)', 'distance']],
   'v-rod-bisector': [[String.raw`r_i=\sqrt{y_i^2+r^2}`, 'sqrt(y^2+r^2)', 'distance']],
   'v-rod-axial': [[String.raw`r_i=L+a-x_i`, 'L+a-x', 'distance']],
@@ -122,7 +126,7 @@ describe('the derivation board', () => {
         expect(add.say, p.id).toMatch(/already exact/);
       } else {
         expect(add.tex, p.id).toContain('\\approx');
-        expect(add.say, p.id).toMatch(/only \$\\approx\$: (each (piece is still treated as a point charge|ring is still treated as one thin ring|ring is \$\\Delta s\$ wide, but all its charge is counted at one radius)|every bit of a piece is \$R\$ from)/);
+        expect(add.say, p.id).toMatch(/only \$\\approx\$: (each (piece is still treated as a point charge|ring is still treated as one thin ring|ring is \$\\Delta s\$ wide, but all its charge is counted at one radius|ring is \$\\Delta\\theta\$ wide, but all its charge is counted at one angle)|every bit of a piece is \$R\$ from)/);
         // The figure's chain -- or, where the run adds the pieces in mirror pairs, those pairs.
         expect(add.say, p.id).toMatch(scalar ? /column/ : /chain|mirror pairs/);
       }

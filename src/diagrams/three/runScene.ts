@@ -18,7 +18,7 @@ import type {BodyKind} from './bodies';
  *
  * Pure, so it can be tested without a GPU -- and the browser tests read the same plan back off
  * the stage, because a headless browser on a build machine is not guaranteed a WebGL context. */
-export type RunPiece={path:Vec[]}|{annulus:{inner:number;outer:number}};
+export type RunPiece={path:Vec[]}|{annulus:{inner:number;outer:number}}|{band:{lo:number;hi:number}};
 /** How strongly a piece is drawn. `lit` is the piece being talked about (and its partner), drawn
  * by the scene's own element body; `added` is already in the sum; `idle` is waiting for nothing in
  * particular; `dim` has stepped back so the lit pieces can be read. */
@@ -162,7 +162,7 @@ export type RunScene={
  /** A surface's cuts, as radii: the circles the partition is made along. `at` is how far along the
   * charge each one is, which is the order the first stage makes them in; `grow` is how far a cut
   * the next doubling is making has got. */
- seams:{radius:number;grow:number;at:number}[];
+ seams:{radius:number;grow:number;at:number;z?:number}[];
  /** How far out a surface has been summed, in metres, or null where nothing is being summed. */
  filled:number|null;
  arrows:RunArrows|null;
@@ -209,7 +209,11 @@ export type RunSceneInput={
   * or not: its sideways part is then one that cancels. See `dropStyle`. */
  mirrored?:boolean;
  /** Every piece's field and the net arrow's scale, while the sum is being drawn. */
- chain:null|{scale:number;fields:readonly Vec[];weights:readonly number[]};
+ chain:null|{scale:number;fields:readonly Vec[];weights:readonly number[];
+  /** A step to one side taken with every link, in world metres: the spherical shell's chain, whose links inside it run
+   * back down the axis over the way they came up, is laid out as a staircase so the run out and the run back are both
+   * seen (see the flat figure's chain). */
+  step?:Vec};
 };
 const scaled=(v:Vec,k:number):Vec=>({x:v.x*k,y:v.y*k,z:v.z*k});
 const ORIGIN:Vec={x:0,y:0,z:0};
@@ -252,8 +256,9 @@ export function stretch(at:(t:number)=>Vec,lo:number,hi:number,n:number):Vec[]{
 export function runScene(input:RunSceneInput):RunScene{
  const {stage,kind,closed,at,weights,summing}=input;
  const n=Math.max(1,Math.round(input.n)),selected=Math.max(0,Math.min(n-1,Math.round(input.selected)));
- const surface=kind!=='wire';
- const pieces:RunPiece[]=Array.from({length:n},(_,i)=>surface
+ const surface=kind!=='wire',shell=kind==='shell';
+ // The spherical shell's pieces are bands of the sphere between two angles from the top, π t at `at`'s parameter t.
+ const pieces:RunPiece[]=Array.from({length:n},(_,i)=>shell?{band:{lo:Math.PI*i/n,hi:Math.PI*(i+1)/n}}:surface
   ?{annulus:{inner:Math.abs(at(i/n).x),outer:Math.abs(at((i+1)/n).x)}}
   :{path:stretch(at,i/n,(i+1)/n,n)});
  const partnerIndex=typeof input.partner==='number'&&input.partner!==selected?input.partner:null;
@@ -279,13 +284,16 @@ export function runScene(input:RunSceneInput):RunScene{
  const seams:RunScene['seams']=[];
  if(surface&&open>0){
   const stride=Math.max(1,Math.ceil(n/48));
-  for(let k=1;k<n;k++)if(k%stride===0)seams.push({radius:Math.abs(at(k/n).x),grow:1,at:k/n});
-  if(split>.04&&n*2<=48)for(let i=0;i<n;i++)seams.push({radius:Math.abs(at((i+.5)/n).x),grow:split,at:(i+.5)/n});
+  // A shell's cuts are circles round the sphere, each at its own height.
+  const seam=(t:number,grow:number)=>({radius:Math.abs(at(t).x)*(shell?1.004:1),grow,at:t,...shell?{z:at(t).z*1.004}:{}});
+  for(let k=1;k<n;k++)if(k%stride===0)seams.push(seam(k/n,1));
+  if(split>.04&&n*2<=48)for(let i=0;i<n;i++)seams.push(seam((i+.5)/n,split));
  }
  // How far out the sum has reached: the edge of the last piece in it, partly in where the sum is
  // partway through a piece -- so the shading grows smoothly, the way the chain in front of P does.
  const through=summing?weights.reduce((s,w)=>s+Math.abs(w),0):0;
- const filled=surface&&summing&&through>0?Math.abs(at(Math.min(1,through/n)).x):null;
+ // The shell's as the angle down from the top the sum has reached.
+ const filled=surface&&summing&&through>0?(shell?Math.PI*Math.min(1,through/n):Math.abs(at(Math.min(1,through/n)).x)):null;
  // A PIECE ON P'S OWN LINE IS ITS OWN MIRROR, AND HAS NO PARTNER. Cut an odd number of ways, the middle
  // piece of the bisector, the infinite line and the arc sits level with P, and the mirror rule hands it
  // back itself. The body was already left out for it, but its arrows were not: the scene laid a second,
@@ -320,7 +328,7 @@ export function runScene(input:RunSceneInput):RunScene{
  }:null;
  let chain:Vec[]|null=null;
  if(input.chain){
-  const {scale,fields,weights:w}=input.chain;
+  const {scale,fields,weights:w}=input.chain,step=input.chain.step??ORIGIN;
   let cursor:Vec={x:0,y:0,z:0};
   chain=[cursor];
   for(let i=0;i<fields.length;i++){
@@ -328,6 +336,8 @@ export function runScene(input:RunSceneInput):RunScene{
    if(k===0)continue;
    cursor={x:cursor.x+fields[i].x*k*scale,y:cursor.y+fields[i].y*k*scale,z:cursor.z+fields[i].z*k*scale};
    chain.push(cursor);
+   // The jog across to the next link's column, upright links in a staircase (see `step`).
+   if(step!==ORIGIN&&i<fields.length-1){cursor={x:cursor.x+step.x,y:cursor.y+step.y,z:cursor.z+step.z};chain.push(cursor);}
   }
   if(chain.length<2)chain=null;
   else if(stage==='limit')chain=resample(chain,LIMIT_CHAIN);

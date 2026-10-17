@@ -38,7 +38,7 @@ import {DEFAULT_PARAMS,type Params,type Problem,type ProblemId} from '../src/pro
 // closed forms, recorded next to the algebra that produced them.
 // ---------------------------------------------------------------------------
 
-const FIELD_IDS=['bisector','axial','infinite','ring','disk','annulus','semi','arc','sheet','endpoint','ramp','uneven-arc','offset'] as const;
+const FIELD_IDS=['bisector','axial','infinite','ring','disk','annulus','semi','arc','sheet','endpoint','ramp','uneven-arc','offset','shell'] as const;
 const ALL_IDS=[...FIELD_IDS,'v-ring','v-disk','v-arc','v-rod-bisector','v-rod-axial'] as const;
 /** The finite path of the infinite-line lesson is a sixteenth Problem that never reaches PROBLEMS. */
 const FINITE=getProblem('infinite','finite');
@@ -64,6 +64,7 @@ const OBSERVER:Record<string,(p:Params)=>[number,number,number]>={
  ring:p=>[0,0,p.distance],disk:p=>[0,0,p.distance],annulus:p=>[0,0,p.distance],sheet:p=>[0,0,p.distance],
  semi:p=>[p.distance,0,0],arc:()=>[0,0,0],endpoint:p=>[p.distance,0,0],ramp:p=>[p.distance,0,0],
  'uneven-arc':()=>[0,0,0],offset:p=>[p.distance,0,0],
+ shell:p=>[0,0,p.distance],
 };
 
 // ===========================================================================
@@ -168,6 +169,7 @@ function spotOf(p:Problem,o:Setting):number{
   case 'ring':return 1.9;
   case 'arc':return .19*o.phi;
   case 'uneven-arc':return .19*Math.PI;                         // a half turn, whatever φ the setting carries
+  case 'shell':return .37*Math.PI;                              // a ring's polar angle, which no length scales
   default:return .61*o.R;                                       // the disk sweeps its radius
  }
 }
@@ -195,6 +197,8 @@ function scopeFor(p:Problem,o:Setting):Scope{
   // The annulus's hole is half its rim, so it scales with every other length; its rings' s (.61 R) lies between.
   case 'annulus':sc.Q=charge;sc.a=R/2;sc.b=R;sc.sigma=charge/(Math.PI*(R*R-sc.a*sc.a));sc.ri=Math.hypot(sc.s,dist);break;
   case 'sheet':sc.sigma=charge;sc.ri=Math.hypot(sc.s,dist);break;              // no total Q exists
+  // The spherical shell: the slider is Q, spread over 4πR²; a ring at θ is r_i from P by the law of cosines.
+  case 'shell':sc.Q=charge;sc.sigma=charge/(4*Math.PI*R*R);sc.ri=Math.sqrt(R*R+dist*dist-2*dist*R*Math.cos(sc.theta));break;
   case 'semi':sc.lambda=charge;sc.ri=Math.hypot(sc.y,dist);break;              // no total Q exists
   case 'infinite':sc.lambda=charge;sc.Q=charge*L;                              // REGISTRY's scope convention
    if(angular){sc.y=dist*Math.tan(sc.alpha);sc.ri=dist/Math.cos(sc.alpha);sc.dy=dist/Math.cos(sc.alpha)**2*sc.dalpha;}
@@ -202,7 +206,7 @@ function scopeFor(p:Problem,o:Setting):Scope{
  }
  if(!angular)sc.alpha=Math.acos(Math.min(1,Math.abs(dist)/sc.ri));   // the adjacent side is always the standoff
  // The dependent differentials, derived rather than assigned, so they scale on their own.
- sc.dQ=g==='disk'||g==='sheet'||g==='annulus'?sc.sigma*2*Math.PI*sc.s*sc.ds:(g==='uneven-arc'?sc.lambda0*Math.cos(sc.theta):Number.isFinite(sc.lambda0)?sc.lambda0*sc.y/L:sc.lambda)*sc.dl;
+ sc.dQ=g==='shell'?sc.sigma*2*Math.PI*R*R*Math.sin(sc.theta)*sc.dtheta:g==='disk'||g==='sheet'||g==='annulus'?sc.sigma*2*Math.PI*sc.s*sc.ds:(g==='uneven-arc'?sc.lambda0*Math.cos(sc.theta):Number.isFinite(sc.lambda0)?sc.lambda0*sc.y/L:sc.lambda)*sc.dl;
  sc.dE=kk*sc.dQ/(sc.ri*sc.ri);sc.dV=kk*sc.dQ/sc.ri;sc.V=sc.dV;
  return sc;
 }
@@ -270,7 +274,9 @@ describe('the kernel factorises into the Answer strings the student is asked for
   // The semi-infinite line was the exception, laid along x with its projection the y factor of its
   // SECONDARY kernel. Stood up the y-axis as its parent rod stands, it factorises its own step's kernel.
   const target=p.kernel;
-  const built=builtKernel(p,answerOf(p,'projection')?.expected??'1');
+  // The spherical shell's whole product is past the parser's hundred-node bound, so its element, which only cancels
+  // against itself, is left out: the charge per unit of θ times the projection over the squared distance.
+  const built=p.id==='shell'?`k*(${need(p,'dq').expected})/dtheta*(${need(p,'projection').expected})/(${p.distance})^2`:builtKernel(p,answerOf(p,'projection')?.expected??'1');
   const check=equivalent(built,target,p);
   expect(check.error,`${key} parse: ${built}`).toBeUndefined();
   expect(check.ok,`${key}\n  built ${built}\n  authored ${target}`).toBe(true);
@@ -315,6 +321,8 @@ function bracketOf(tex:string):Bracket|null{
   pre=tex.slice(0,open);F=tex.slice(open+1,shut);rest=tex.slice(shut+1);
  }
  if(rest[0]!=='_')return null;
+ // A constant set on the row above, the bracket on its own row after a \times: the product is the same without the sign.
+ pre=pre.replace(/\\(?:times|cdot)\s*$/,'');
  const [lo,after]=atom(rest,1);
  if(rest[after]!=='^')return null;
  const [hi]=atom(rest,after+1);
@@ -418,7 +426,7 @@ function pieceValue(piece:string,p:Problem,scope:Scope):Piece{
  }
  if(/\\int_/.test(piece)){
   const cut=piece.indexOf('\\int_');
-  const pre=deTex(piece.slice(0,cut))||'1',rest=piece.slice(cut+5);
+  const pre=deTex(piece.slice(0,cut).replace(/\\(?:times|cdot)\s*$/,''))||'1',rest=piece.slice(cut+5);
   const [loTex,i1]=atom(rest,0);
   if(rest[i1]!=='^')throw Error(`no upper limit in ${piece}`);
   const [hiTex,i2]=atom(rest,i1+1);
@@ -466,17 +474,28 @@ describe('every displayed “=” in a worked chain is true, and the chain ends 
    for(const setting of SETTINGS){
     const scope=scopeFor(p,setting);
     let chain:number|null=null;
+    // THE SPHERICAL SHELL'S ONE INTEGRAL HAS TWO ANSWERS: kQ/z² outside, the graded result, and zero inside, graded as a
+    // field of its own. Each of its last two lines says where it holds, (z > R) or (z < R): a line is held where it
+    // says, and the chain ends on the outside answer outside the shell and on zero inside it.
+    const inside=p.geometry==='shell'&&setting.dist<setting.R;
     for(const [wi,w] of (step.worked??[]).entries()){
+     if(p.geometry==='shell'&&(inside?/\(z>R\)/:/\(z<R\)/).test(w.tex))continue;
      if(indefiniteOf(w.tex)){tally.antiderivative++;continue;}               // verified by CASE 2
      for(const clause of clausesOf(w.tex)){
       if(!clause.pieces.length){tally.skipped++;continue;}
       if(clause.pieces.every(q=>ANNOTATION.test(q))){tally.annotation++;continue;}
       if(clause.pieces.some(q=>/\bE_[xyz]\b/.test(q)&&!DERIVATIVE.test(q.trim()))){tally.definition++;continue;}
       const values=clause.pieces.map(q=>{const got=pieceValue(q,p,scope);tally[got.kind]++;return got;});
+      // Inside the shell both sides of each "=" are zero, and a relative comparison of two zeros is noise against noise:
+      // there each pair is held to what the same pieces are worth at twice the radius, outside it.
+      const floor=inside?Math.max(...clause.pieces.map(q=>Math.abs(pieceValue(q,p,scopeFor(p,{...setting,dist:2*setting.R})).value))):0;
       for(let i=1;i<values.length;i++){
        // Simpson, not algebra, on one side of the sign: 1e−6 is its own convergence, not a
        // concession. Every other pair is held to the parser's own 1e−9.
        const tol=values[i].kind==='integral'||values[i-1].kind==='integral'?1e-6:1e-9;
+       // (Near the surface the u integrand is steep at its lower end, (z − R)², and Simpson's fixed panels hold it only to a
+       // few parts in a million of that scale.)
+       if(floor){expect(Math.abs(values[i].value-values[i-1].value),`${key} ${step.kind}[${wi}] inside: “${clause.pieces[i-1]}” = “${clause.pieces[i]}”`).toBeLessThan((tol>1e-9?1e-5:tol)*floor);continue;}
        expect(close(values[i].value,values[i-1].value,tol),
         `${key} ${step.kind}[${wi}] “${clause.pieces[i-1]}” = “${clause.pieces[i]}”: ${values[i-1].value} vs ${values[i].value}`).toBe(true);
       }
@@ -486,14 +505,18 @@ describe('every displayed “=” in a worked chain is true, and the chain ends 
        tally.claim++;
        expect(close(last,claim,1e-6),`${key} ${step.kind}[${wi}] ${clause.label}: displayed ${last}, independent ${claim}`).toBe(true);
       }else if(clause.label&&CHAINS.test(clause.label.replace(/\([^()]*\)/,''))){
-       if(chain!==null)expect(close(last,chain,1e-6),`${key} ${step.kind}[${wi}] breaks the chain: ${chain}, then ${last}`).toBe(true);
+       // Inside the shell the chain is zero all along, held to the field just outside, kQ/R².
+       if(chain!==null&&inside)expect(Math.abs(last-chain),`${key} ${step.kind}[${wi}] breaks the chain inside: ${chain}, then ${last}`).toBeLessThan(1e-6*Math.abs(ev(p.result,{...scope,z:scope.R})));
+       else if(chain!==null)expect(close(last,chain,1e-6),`${key} ${step.kind}[${wi}] breaks the chain: ${chain}, then ${last}`).toBe(true);
        chain=last;
       }
      }
     }
     // The finite path of the infinite line is the deliberate exception: its chain is E_x(L) at
     // FINITE L, and only the \lim clause equals the lesson's own result. See CASE 11.
-    if(step.kind==='integrate'&&chain!==null&&key!=='infinite·finite')
+    if(step.kind==='integrate'&&chain!==null&&inside)
+     expect(Math.abs(chain),`${key} chain ends at ${chain} inside the shell, where the field is zero`).toBeLessThan(1e-6*Math.abs(ev(p.result,{...scope,z:scope.R})));
+    else if(step.kind==='integrate'&&chain!==null&&key!=='infinite·finite')
      expect(close(chain,ev(p.result,scope),1e-6),`${key} chain ends at ${chain}, result says ${ev(p.result,scope)}`).toBe(true);
     if(step.kind==='gradient'&&chain!==null)
      expect(close(chain,ev(need(p,'gradient').expected,scope),1e-6),`${key} gradient chain ends at ${chain}`).toBe(true);
@@ -609,7 +632,7 @@ describe('dimensional consistency of every authored formula, by simultaneous sca
   const answer=p.quantity==='E'?E:V;
   // dE/dv drops one power of length when the sweep variable is a length, none when it is an angle.
   const kernel:Dim=[answer[0],answer[1],answer[2]-(p.variable==='theta'||p.variable==='alpha'?0:1)];
-  const area=p.geometry==='disk'||p.geometry==='sheet'||p.geometry==='annulus';
+  const area=p.geometry==='disk'||p.geometry==='sheet'||p.geometry==='annulus'||p.geometry==='shell';
   expectDimension(p.result,p,answer,`${key} result`);
   if(p.secondaryResult)expectDimension(p.secondaryResult,p,answer,`${key} secondaryResult`);
   expectDimension(p.kernel,p,kernel,`${key} kernel`);
@@ -641,7 +664,8 @@ describe('dimensional consistency of every authored formula, by simultaneous sca
     const head=pieces[0];
     const want:Dim=/^(?:z|\\bar\s*y|d)$/.test(head)?[0,0,1]:/^Q$/.test(head)?[0,1,0]:p.quantity==='E'?E:V;
     for(const text of pieces){
-     if(LABEL.test(text)||/\\infty/.test(text)||/[<>]/.test(text)||/\bE\b/.test(deTex(text)))continue;
+     // A jump, ΔE_z, names a component as a bare E does.
+     if(LABEL.test(text)||/^\\Delta\s*E_[xyz]$/.test(text.trim())||/\\infty/.test(text)||/[<>]/.test(text)||/\bE\b/.test(deTex(text)))continue;
      try{if(evTex(hat(text,'x'),scopeFor(p,BASE))===0)continue;}
      catch(e){unparsed.push(`${key}/${limit.id}: ${text} (${String(e)})`);continue;}
      expectDimension(deTex(hat(text,'x')),p,want,`${key}/${limit.id} tail`);checked++;
@@ -717,7 +741,7 @@ describe('the symmetry claim names exactly the components the geometry annihilat
    const id=p.geometry as ProblemId;
    const at:Params={...DEFAULT_PARAMS,charge:2.4,distance:1.9,size:3.8,phi:2.3};
    const samples=sampleDistribution(id,at,64),P=OBSERVER[id](at);
-   const annuli=id==='disk'||id==='annulus'||id==='sheet';
+   const annuli=id==='disk'||id==='annulus'||id==='sheet'||id==='shell';
    const derived:Axis[]=[];
    const point=(s:(typeof samples)[number])=>[s.position.x,s.position.y,s.position.z,s.dq];
    const span=Math.max(1,...samples.flatMap(s=>point(s).slice(0,3).map(Math.abs)));
@@ -741,8 +765,11 @@ describe('the symmetry claim names exactly the components the geometry annihilat
    for(const extra of SETTINGS){
     if((extra.distance??1)<0&&!['ring','disk','sheet'].includes(id))continue;
     const where={...DEFAULT_PARAMS,...extra};
-    const exact=field(id,where),scale=magnitude(exact),sum=sumSamples(sampleDistribution(id,where,512));
+    // Inside the spherical shell the field is zero: there the sum is measured against the field just outside it.
+    const exact=field(id,where),scale=magnitude(exact)||magnitude(field(id,{...where,distance:where.size})),sum=sumSamples(sampleDistribution(id,where,512));
     for(const axis of ['x','y','z'] as const){
+     // Inside the spherical shell E_z vanishes too -- by the integral, not by any symmetry -- and the shell's own tests hold it.
+     if(id==='shell'&&axis==='z'&&Math.abs(where.distance)<where.size/2)continue;
      const vanishes=fromAnswer.includes(axis);
      expect(exact[axis]===0,`${key} ${axis} closed form at ${JSON.stringify(extra)}`).toBe(vanishes);
      if(vanishes)expect(Math.abs(sum[axis])/scale,`${key} ${axis} sampled sum`).toBeLessThan(1e-13);
@@ -1022,7 +1049,7 @@ describe('REGISTRY substitutions, density strings and dq = density × element',(
    expect(close(q,2*l0*R,1e-6),`${key}: ∫λ R dθ = ${q} vs 2λ₀R`).toBe(true);
   });
   if(p.geometry!=='ramp'&&p.geometry!=='uneven-arc')it(`${key}: the density string is the lesson’s own λ or σ`,()=>{
-   const symbol=p.geometry==='disk'||p.geometry==='sheet'||p.geometry==='annulus'?'sigma':'lambda';
+   const symbol=p.geometry==='disk'||p.geometry==='sheet'||p.geometry==='annulus'||p.geometry==='shell'?'sigma':'lambda';
    expect(equivalent(p.density,symbol,p).ok,`${key}: ${p.density} vs ${symbol}`).toBe(true);
   });
  }
@@ -1064,8 +1091,8 @@ describe('integralTex’s limits are boundTex, boundTex is bounds, and its integ
   });
  }
  it('every lesson in the library was covered',()=>{
-  expect(PROBLEMS).toHaveLength(18);
-  expect(VARIANTS).toHaveLength(19);
+  expect(PROBLEMS).toHaveLength(19);
+  expect(VARIANTS).toHaveLength(20);
  });
 });
 

@@ -90,18 +90,20 @@ const LAWS:Record<ProblemId,Law>={
  'v-ring':Q_TURN,'v-arc':Q_TURN,'v-disk':Q_ROD,'v-rod-bisector':Q_ROD,'v-rod-axial':Q_ROD,
  // The semicircle with uneven charge: its slider is Q, as the arc's is, and its partition is in the angle.
  'uneven-arc':Q_TURN,
+ // The spherical shell: its slider is Q, and its rings are cut by angle at the centre.
+ shell:Q_TURN,
 };
 const ALL_IDS=Object.keys(LAWS) as ProblemId[];
 // The ten lessons whose geometry defines an absolute potential: the two unbounded lines and
 // the sheet have none (the integral diverges), and endpoint/ramp were never given one.
-const HAS_V=new Set<ProblemId>(['bisector','axial','ring','disk','arc','v-ring','v-disk','v-arc','v-rod-bisector','v-rod-axial','uneven-arc']);
+const HAS_V=new Set<ProblemId>(['bisector','axial','ring','disk','arc','v-ring','v-disk','v-arc','v-rod-bisector','v-rod-axial','uneven-arc','shell']);
 const BASES:Partial<Params>[]=[{distance:3,size:4},{distance:.5,size:8,phi:.3*Math.PI},{distance:6,size:1,phi:2*Math.PI}];
 const CHARGES=[-3,1],SCALES=[.37,2,7.5,1e3],QUAD_N=[1,7,400],SAMPLE_N=[1,5,37,200];
 
 describe('length and charge scaling, through the closed form, the quadrature and every element',()=>{
  it('the three exponents are one exponent: a sample field is k dq/r², so m = e − 2',()=>{
   for(const [id,law] of Object.entries(LAWS))expect(law.m,id).toBe(law.e-2);
-  expect(ALL_IDS).toHaveLength(18);
+  expect(ALL_IDS).toHaveLength(19);
  });
  for(const id of ALL_IDS)for(const base of BASES)
   it(`${id} · d ${base.distance} m · L ${base.size} m`,()=>{
@@ -121,7 +123,10 @@ describe('length and charge scaling, through the closed form, the quadrature and
      // Where the sum survives its own terms (every lesson but the closed arc) |want| is larger
      // and the floor never applies; where it does apply it still demands agreement to 1e−12 of
      // one element, four decades under the 1e−16 a cancelling sum can actually resolve.
-     const term=(n:number)=>Math.max(...sampleDistribution(id,p0,n).map(x=>magnitude(x.field)));
+     // And inside the spherical shell its quadrature's point charges cancel to their own discretisation residue: there
+     // the scale of what is being added is the field just outside, the whole charge's kQ/R² (the ring at the equator
+     // holding all of it, which is one sample's field at n = 1, would understate it inside by the ring's slant).
+     const term=(n:number)=>id==='shell'?Math.max(magnitude(field(id,{...p0,distance:p0.size})),...sampleDistribution(id,p0,n).map(x=>magnitude(x.field)))*4:Math.max(...sampleDistribution(id,p0,n).map(x=>magnitude(x.field)));
      closeVec(scaled(field(id,ps),lift),field(id,p0),tol,`E ${tag}`,term(1));
      if(HAS_V.has(id))close(potential(id,ps)*s,potential(id,p0),tol,`V ${tag}`);
      for(const n of QUAD_N)closeVec(scaled(numerical(id,ps,n),lift),numerical(id,p0,n),tol,`quadrature n=${n} ${tag}`,term(n));

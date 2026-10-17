@@ -103,7 +103,7 @@ function terms(id: string, n: 2 | 3, space = false): string[] {
 }
 function flatTerms(id: string, n: 2 | 3): string[] {
  const p = getProblem(id as never), g = p.geometry, scalar = p.quantity === 'V';
- const surface = g === 'disk' || g === 'annulus' || g === 'sheet', round = g === 'ring' || surface;
+ const surface = g === 'disk' || g === 'annulus' || g === 'sheet' || g === 'shell', round = g === 'ring' || surface;
  const ri = g === 'arc' || g === 'uneven-arc' ? (scalar ? [] : ['ri = R']) : g === 'axial' ? ['ri = L + a − x'] : ['ri'];
  if (scalar) {
   const pairs = ['bisector', 'ring', 'arc', 'uneven-arc'].includes(g);

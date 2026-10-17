@@ -23,6 +23,9 @@ const OPENING: Record<string, CameraView> = {
   // it -- an axis letter that shifts stops naming its axis. Use the view cube's side faces to go
   // edge-on deliberately; that is what it is for.
   disk: {yaw: -.5, pitch: .6}, annulus: {yaw: -.5, pitch: .6}, sheet: {yaw: -.5, pitch: .6}, ring: {yaw: -.5, pitch: .6},
+  // The spherical shell looks the same from every side; a lower camera than the ring's keeps its rings open as ellipses
+  // and P's height up the axis long on the screen.
+  shell: {yaw: -.5, pitch: .42},
 };
 export const openingCamera = (geometry: string): CameraView => ({...(OPENING[geometry] ?? DEFAULT_CAMERA)});
 /** Pixels per metre the ring, the disk and the sheet open at: the figure's `baseUnit` for the

@@ -780,3 +780,12 @@ html:not(.dark) .cd-svg .cd-vector-label:not(.is-muted){fill:color-mix(in oklab,
 .cd-svg .cd-parts path{fill:none;stroke:var(--cd-muted);stroke-width:1.4;stroke-linecap:round;stroke-linejoin:round}
 .cd-svg .cd-parts-name{font-size:calc(13px * var(--cd-k,1));fill:var(--cd-muted)}
 .cd-pair-axis-line{stroke:var(--field,#0b6b63);stroke-width:2.4;stroke-dasharray:4 3;stroke-opacity:.6;pointer-events:none}
+/* THE SPHERICAL SHELL seen from the side: a light skin, so the construction inside it reads through it, and each ring's far
+   half, behind the sphere, faint and dashed, as it is seen through the skin. */
+.cd-shell-skin{fill-opacity:.3}
+.dark .cd-shell-skin{fill-opacity:.2}
+.cd-piece .cd-shell-back{stroke-opacity:.32;stroke-dasharray:3 3}
+/* The shell's θ at O, which places a ring: drawn as the arc's angle φ is, a hairline dimension in the ink of the givens. */
+.cd-svg .cd-shell-angle .cd-angle-arc{fill:none;stroke:var(--ghost);stroke-width:1.4}
+.cd-focus-bounds .cd-shell-angle .cd-angle-arc{stroke:var(--term-bounds);stroke-width:2}
+.cd-sum-chain.cd-sum-chain-jog{stroke-dasharray:1.5 3;stroke-width:1.2}

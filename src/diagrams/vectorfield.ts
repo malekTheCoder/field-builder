@@ -56,8 +56,10 @@ const TOO_CLOSE=.12;
  * draw. A rod is the segments joining its samples, extended half a step past each end because a
  * midpoint partition sets its first and last samples half a piece inside the body; a disk or a
  * sheet is the annulus its radii span, likewise padded. */
-export function bodyDistance(samples:readonly ChargeSample[],layout:'wire'|'surface'='wire'):(x:number,y:number,z:number)=>number{
+export function bodyDistance(samples:readonly ChargeSample[],layout:'wire'|'surface'|'shell'='wire'):(x:number,y:number,z:number)=>number{
  if(!samples.length)return ()=>Infinity;
+ // The spherical shell: its rings' crossings all lie on the sphere, so the body is the sphere through them.
+ if(layout==='shell'){const R=Math.max(...samples.map(s=>Math.hypot(s.position.x,s.position.y,s.position.z)));return (x,y,z)=>Math.abs(Math.hypot(x,y,z)-R);}
  if(layout==='surface'){
   const radii=samples.map(s=>Math.abs(s.coordinate));
   const lo=Math.min(...radii),hi=Math.max(...radii);
@@ -93,8 +95,10 @@ export function bodyDistance(samples:readonly ChargeSample[],layout:'wire'|'surf
  * twenty-nine pixels beside the rod it comes from. Field lines begin on positive charge and end on
  * negative charge. Within that last spacing the continuous body's field is radial to it, so the
  * straight join to this point is the line, to about a degree. */
-export function bodyFoot(samples:readonly ChargeSample[],layout:'wire'|'surface'='wire'):(x:number,y:number,z:number)=>Vec|null{
+export function bodyFoot(samples:readonly ChargeSample[],layout:'wire'|'surface'|'shell'='wire'):(x:number,y:number,z:number)=>Vec|null{
  if(!samples.length)return ()=>null;
+ // The spherical shell: straight in or out along the radius, onto the sphere.
+ if(layout==='shell'){const R=Math.max(...samples.map(s=>Math.hypot(s.position.x,s.position.y,s.position.z)));return (x,y,z)=>{const r=Math.hypot(x,y,z);return r>1e-12?{x:x*R/r,y:y*R/r,z:z*R/r}:{x:0,y:0,z:R};};}
  if(layout==='surface'){
   const radii=samples.map(s=>Math.abs(s.coordinate));
   const lo=Math.min(...radii),hi=Math.max(...radii);

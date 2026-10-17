@@ -3,7 +3,8 @@ import {openingCamera} from '../camera';
 import {PLOT} from '../vectorfield';
 /** What the 3D layer needs to know about the shape it is drawing, worked out from the same
  * samples the physics sums. Pure, so the decisions can be tested without a GPU. */
-export type BodyKind='wire'|'disk'|'sheet';
+/** `shell`: the spherical shell, a sphere cut into rings by their angle from the top. */
+export type BodyKind='wire'|'disk'|'sheet'|'shell';
 /** Annulus radii for a surface, thinned to something a figure can actually show.
  *
  * A disk is a stack of rings, and that is the entire claim its lesson makes — but the
@@ -210,7 +211,7 @@ export const frameExtent=(reach:number,frameWorld:number)=>Math.ceil(Math.max(re
  * punched in the page; a charged surface should look like a surface you can see through to
  * the construction lines behind it. A sheet is quieter still: it covers the whole picture,
  * so what would be a reasonable tint on a disk is a wash over everything here. */
-export const surfaceOpacity=(kind:BodyKind)=>kind==='sheet'?.22:.42;
+export const surfaceOpacity=(kind:BodyKind)=>kind==='sheet'?.22:kind==='shell'?.16:.42;
 /** HOW THE SHEET IS INKED: its opacity, and whether it is drawn unlit, in exactly the charge colour.
  *
  * In the dark the sheet was lit orange at .22 alpha with a faint brown glow over a navy ground, and came out a
@@ -495,7 +496,9 @@ export function sheetColumns(yaw:number,unit:number,from:number,to:number,near:n
  * over the tube it is a faint tint of the field's colour; a line behind the tube still fails the depth
  * test the tube writes, so it is still hidden there. */
 export function strokeSide(kind:BodyKind,a:Point3,b:Point3):{a:Point3;b:Point3;behind:boolean}[]{
- return kind==='wire'?[{a,b,behind:false}]:splitAtPlane([a,b]);
+ // The shell's lines all run outside it, and are drawn opaque, writing depth: its see-through skin, laid after them,
+ // then tints exactly the stretches of them behind it.
+ return kind==='wire'?[{a,b,behind:false}]:kind==='shell'?[{a,b,behind:true}]:splitAtPlane([a,b]);
 }
 /** THE RADII A DISK'S SIGN MARKS ARE LAID ON. They were a ring or two at fixed fractions of R, and the
  * chosen ring of the disk sat on one of them: its marks were drawn into the washer's walls and cut to a

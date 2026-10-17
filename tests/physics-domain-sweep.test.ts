@@ -70,15 +70,18 @@ function domain(id: ProblemId): {p: Params; at: string}[] {
   const out: {p: Params; at: string}[] = [];
   // The annulus's hole too, as far as its slider goes: none (the disk), half the rim, and as near the rim as it reaches.
   for (const distance of DISTANCE) for (const size of SIZE) for (const charge of CHARGE)
+    // Not with P on the spherical shell itself, where the field jumps and the integral is the mean of its two sides:
+    // a sum of point charges reaches it only as slowly as the singularity under P allows. Either side is swept.
     for (const phi of angled ? PHI : [Math.PI]) for (const hole of id === 'annulus' ? [0, .5, .95] : [null])
       // And the rod off its bisector's P from level with its lower end, through the middle, to level with its upper end.
       for (const lift of id === 'offset' ? [-.5, -.2, 0, .3, .5] : [null])
-      out.push({p: {...BASE, distance, size, charge, phi, inner: hole === null ? BASE.inner : hole * size / 2, height: lift === null ? BASE.height : lift * size}, at: `r=${distance} L=${size} q=${charge}${angled ? ` phi=${(phi / Math.PI).toFixed(2)}pi` : ''}${hole === null ? '' : ` a=${hole}b`}${lift === null ? '' : ` h=${lift}L`}`});
+      if (id !== 'shell' || Math.abs(distance - size / 2) > 1e-9)
+        out.push({p: {...BASE, distance, size, charge, phi, inner: hole === null ? BASE.inner : hole * size / 2, height: lift === null ? BASE.height : lift * size}, at: `r=${distance} L=${size} q=${charge}${angled ? ` phi=${(phi / Math.PI).toFixed(2)}pi` : ''}${hole === null ? '' : ` a=${hole}b`}${lift === null ? '' : ` h=${lift}L`}`});
   return out;
 }
 /** Two element counts that really are a refinement for this geometry, coarse then fine. */
 const refinement = (id: ProblemId): [number, number] =>
-  id === 'disk' || id === 'sheet' || id === 'v-disk' || id === 'annulus' ? [40000, 160000] : [2000, 8000];
+  id === 'disk' || id === 'sheet' || id === 'v-disk' || id === 'annulus' || id === 'shell' ? [40000, 160000] : [2000, 8000];
 /** Where doubles stop being able to tell the closed form and the sum apart. Above the ring's
  * accumulated rounding at the counts used here, and far below any real disagreement. */
 const FLOOR = 1e-11;
@@ -121,6 +124,8 @@ const RESOLVES: Record<string, number> = {
   // The uneven semicircle's pieces hold their stretch's exact charge, so its sum falls short by (Δθ/2)²/6, from
   // taking each direction at its piece's middle: at two and eight thousand pieces a smaller bend hides inside that.
   'uneven-arc': 3e-7,
+  // The spherical shell is summed as bands of points, as the disk is as rings of points, and closes in as fast.
+  shell: 1e-6,
   sheet: 5e-6,
 };
 describe('and the rule above has teeth, checked rather than asserted', () => {

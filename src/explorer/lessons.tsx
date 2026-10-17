@@ -27,7 +27,9 @@ export const GLYPHS:Record<ProblemId,React.ReactNode>={
  'v-rod-bisector':<><path d="M7 3.5v11M4.6 3.5h4.8M4.6 14.5h4.8"/><circle cx="14" cy="9" r="1.3" fill="currentColor" stroke="none"/></>,
  'v-rod-axial':<><path d="M3 9h7.5M3 6.6v4.8M10.5 6.6v4.8"/><circle cx="15" cy="9" r="1.3" fill="currentColor" stroke="none"/></>,
  // The semicircle whose charge thickens toward its middle: drawn heavier where the density is.
- 'uneven-arc':<><path d="M9 2.6A6.4 6.4 0 0 1 9 15.4"/><path d="M14.24 5.33A6.4 6.4 0 0 1 14.24 12.67" strokeWidth="3.2"/><circle cx="9" cy="9" r="1.3" fill="currentColor" stroke="none"/></>};
+ 'uneven-arc':<><path d="M9 2.6A6.4 6.4 0 0 1 9 15.4"/><path d="M14.24 5.33A6.4 6.4 0 0 1 14.24 12.67" strokeWidth="3.2"/><circle cx="9" cy="9" r="1.3" fill="currentColor" stroke="none"/></>,
+ // The spherical shell as the stack of rings it is built from, seen a little from above, with P up its axis.
+ shell:<><circle cx="9" cy="10.6" r="5.6"/><ellipse cx="9" cy="10.6" rx="5.6" ry="1.5"/><ellipse cx="9" cy="7.8" rx="4.85" ry="1.25"/><circle cx="9" cy="2.2" r="1.3" fill="currentColor" stroke="none"/></>};
 // Hidden from screen readers: the glyph always sits beside the lesson's printed name, and as a
 // named image it read every lesson twice -- "Finite line Finite line".
 export function ShapeGlyph({id,size=18}:{id:ProblemId;size?:number}){return <svg width={size} height={size} viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" data-glyph={id}>{GLYPHS[id]}</svg>}
@@ -38,7 +40,7 @@ export function ShapeGlyph({id,size=18}:{id:ProblemId;size?:number}){return <svg
 // lesson, so the list is grouped by them and each group says its own name.
 export const FAMILIES:{label:string;ids:ProblemId[]}[]=[
  {label:'Straight rods',ids:['bisector','axial','endpoint','offset','ramp']},
- {label:'Rings, disks and arcs',ids:['ring','disk','annulus','arc','uneven-arc']},
+ {label:'Rings, disks and arcs',ids:['ring','disk','annulus','arc','uneven-arc','shell']},
  {label:'Charge with no end',ids:['infinite','semi','sheet']},
  {label:'The same shapes, as potential',ids:['v-ring','v-disk','v-arc','v-rod-bisector','v-rod-axial']}];
 /** Group a set of lessons into the families above, keeping each family's stated order and

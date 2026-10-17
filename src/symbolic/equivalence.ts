@@ -70,6 +70,9 @@ function constrain(scope:Record<string,number>,p:Problem,random:()=>number){
  if(g==='arc'){scope.theta=(random()-.5)*scope.phi;scope.ri=scope.R;}
  // The semicircle with uneven charge runs θ over the half turn, and every piece is R from the centre.
  if(g==='uneven-arc'){scope.theta=(random()-.5)*Math.PI*.95;scope.ri=scope.R;}
+ // The shell's rings run from the top, θ = 0, to the bottom, π; a ring is r_i from P by the law of cosines, and its
+ // angle at P is measured from the axis pointing down from P.
+ if(g==='shell'){scope.theta=(.05+.9*random())*Math.PI;scope.ri=Math.sqrt(scope.z*scope.z+scope.R*scope.R-2*scope.z*scope.R*Math.cos(scope.theta));scope.alpha=Math.acos(Math.max(-1,Math.min(1,(scope.z-scope.R*Math.cos(scope.theta))/scope.ri)));}
 }
 export function equivalent(input:string,expected:string,p:Problem):Check{
  if(!input.trim())return {ok:false,error:'Add an expression first.'};
