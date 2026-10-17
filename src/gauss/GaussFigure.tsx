@@ -4,7 +4,7 @@
 /* oxlint-disable jsx-a11y/prefer-tag-over-role, jsx-a11y/no-noninteractive-tabindex */
 import {memo, useCallback, useEffect, useId, useMemo, useRef, useState, useSyncExternalStore, type CSSProperties, type KeyboardEvent, type PointerEvent, type ReactNode} from 'react';
 import {cameraBasis, projectPoint} from '../diagrams/three/orthoCamera';
-import {nearestOnBox, placeLabels, type Box, type Segment} from '../diagrams/labels';
+import {boxSegmentDistance, nearestOnBox, overlaps, placeLabels, segmentsCross, type Box, type Segment} from '../diagrams/labels';
 import {ViewCube} from '../diagrams/ViewCube';
 import type {CameraView} from '../diagrams/camera';
 import type {RunClock} from '../explorer/BuildPlayer';
@@ -48,8 +48,8 @@ function Arrow({a, b, className, head = 9}: {a: {x: number; y: number}; b: {x: n
 /** A name on the figure, in the figure's italic serif, held off what it names by a halo of paper. */
 const Name = ({x, y, children, className = '', anchor = 'middle'}: {x: number; y: number; children: ReactNode; className?: string; anchor?: 'start' | 'middle' | 'end'}) =>
   <text className={'gs-name ' + className} x={x.toFixed(1)} y={y.toFixed(1)} textAnchor={anchor} dominantBaseline="middle">{children}</text>;
-/** What the charge inside is called, as the board writes it. */
-function insideName(c: GaussCase, b: Built): ReactNode {
+/** What the charge inside equals, as the board's right side writes it. */
+function insideTail(c: GaussCase, b: Built): string {
   const k = c.figure.charge.kind, R = c.figure.charge.size, B = c.figure.charge.outer ?? R * 2, g = b.surface;
   // What is inside, as the right side writes it: all of a ball or a shell only once the surface is outside it.
   const q = c.figure.charge.symbol;
@@ -62,8 +62,16 @@ function insideName(c: GaussCase, b: Built): ReactNode {
     : k === 'coax' ? (g.r <= R ? '= 0' : g.r < B ? '= λL' : '= λL − λL = 0')
     : k === 'cavity' ? (g.r < R ? '= q' : g.r <= B ? '= q − q = 0' : '= q − q + q = q')
     : k === 'tent' ? (g.h >= R ? '= ρ₀Aa' : '= 2ρ₀A(z − z²/2a)') : g.h >= R ? '= 2ρAa' : '= 2ρAz';
-  const named = c.figure.charge.insideNames?.[regionOf(c, g.kind === 'pillbox' ? g.h : g.r)];
-  return <>Q<tspan className="gs-sub" dy="5">enc</tspan><tspan dy="-5"> </tspan><tspan>{zeroUpright(named ?? tail)}</tspan></>;
+  return c.figure.charge.insideNames?.[regionOf(c, g.kind === 'pillbox' ? g.h : g.r)] ?? tail;
+}
+/** The longest "= …" the figure's label carries after the name: Q = Q, = λL, = 2πβR², = Qr³/R³. Anything longer (the
+ * halo's arctan, a ball's Qr³(4R − 3r)/R⁴, a sum of charges) is the board's to write, and the figure says only Q_enc: a long
+ * label has no clear place beside a figure, and was drawn at some angles and hidden at others. */
+const SHORT_TAIL = 9;
+/** What the charge inside is called in the figure: Q_enc, and, where it is short, what it is. */
+function insideName(c: GaussCase, b: Built): ReactNode {
+  const tail = insideTail(c, b);
+  return <>Q<tspan className="gs-sub" dy="5">enc</tspan>{tail.length <= SHORT_TAIL && <><tspan dy="-5"> </tspan><tspan>{zeroUpright(tail)}</tspan></>}</>;
 }
 /** The charge inside's name as plain text, for the room its label takes. */
 function insideText(c: GaussCase, b: Built): string {
@@ -121,8 +129,7 @@ function zeroUpright(text: string): ReactNode {
 }
 /** What each piece of a superposition holds inside its own surface, as the board's right side writes it. */
 function pieceText(k: GaussCase['figure']['charge']['kind'], i: number): string {
-  if (k === 'ballhole') return i ? 'Q₂ = −ρ·4πr₂³/3' : 'Q₁ = ρ·4πr₁³/3';
-  if (k === 'rodhole') return i ? 'Q₂ = −ρπr₂²L' : 'Q₁ = ρπr₁²L';
+  if (k === 'ballhole' || k === 'rodhole') return i ? 'Q₂' : 'Q₁';
   return 'Q₁ = σA';
 }
 /** The sign marks on a charge: where each sits, and whether it has the charge's own sign or the opposite one (the
@@ -273,12 +280,6 @@ export const GaussFigure = memo(function GaussFigure({kase, size, sign, siblings
   // The answer's arrow as laid: from P, or ending at P with its tail outside.
   const answer = arrowEnds(built.P, built.fieldAtP, built.spanAtP * look.solve, built.backAtP), answerFrom = proj(answer.from), answerTo = proj(answer.to);
   const axial = c.kind === 'line' || c.kind === 'rod' || c.kind === 'tube' || c.kind === 'coax' || c.kind === 'rodhole' || c.kind === 'segment', flat = c.kind === 'sheet' || c.kind === 'face' || c.kind === 'plates' || c.kind === 'sheethole';
-  // The charge inside is named under it; under the part of a ball the sphere encloses; above a charge off the centre
-  // when it is inside, and at the centre, beneath the r, when it is outside and nothing is.
-  const offsetIn = c.kind === 'offset' && g.r > c.size;
-  const round = !axial, insideAt = proj(axial ? v3(0, 0, -g.h * .55) : flat ? v3(0, 0, c.kind === 'plates' ? g.h * .5 : -g.h * .5)
-    : c.kind === 'offset' ? v3(0, 0, offsetIn ? c.size + .48 : -.42) : c.kind === 'point' && c.at ? add(c.at, v3(0, 0, -.42)) : c.kind === 'tent' ? v3(0, 0, -(Math.min(g.h, c.size) + .32)) : c.kind === 'oddslab' ? v3(0, 0, (g.low ?? -g.h) - .32) : c.kind === 'halo' ? v3(0, 0, -(g.r + .3)) : c.kind === 'cusp' ? v3(0, 0, -(Math.max(c.size, g.r) + .35))
-    : v3(0, 0, -(c.kind === 'point' ? .42 : c.kind === 'cavity' || c.kind === 'metal' ? Math.max(g.r, c.size) + .32 : isBall(c.kind) ? Math.min(c.size, g.r) + .4 : c.size + .4)));
   // A superposition names its two surfaces' radii r₁ and r₂, the whole charge's and the plug's.
   const plug = built.pieces?.[1]?.surface, sizeName = g.kind === 'pillbox' ? 'z' : g.kind === 'cube' ? 'a' : plug ? 'r₁' : 'r';
   const dimFrom = g.kind === 'pillbox' ? v3(-g.r - .28, 0, 0) : v3(0, 0, 0), dimTo = g.kind === 'pillbox' ? v3(-g.r - .28, 0, c.kind === 'plates' ? -g.h : g.h) : g.kind === 'cube' ? v3(-g.h, 0, 0) : built.P;
@@ -315,7 +316,6 @@ export const GaussFigure = memo(function GaussFigure({kase, size, sign, siblings
     if (noField) ask('e-at-p', pAt.x + 24, pAt.y - 14, 'start', 'gs-field-name is-answer', <>E = <tspan className="gs-zero">0</tspan></>, 'E = 0', 21, true, pAt);
     else ask('e-at-p', eTip.x + 12, eTip.y - 10, 'start', 'gs-field-name is-answer', 'E', 'E', 21, true, eTip, true);
   }
-  if (showInside && !pieceNames) ask('inside', insideAt.x + (round ? 0 : 16), insideAt.y, round ? 'middle' : 'start', 'gs-inside-name', insideName(kase, built), insideText(kase, built), 17.5, true, insideAt);
   pieceNames?.forEach((n, i) => ask(`piece${i}`, n.at.x, n.at.y, n.anchor, 'gs-inside-name', n.text, n.text, 17.5, true, n.at));
   if (stage === 'symmetry' || stage === 'surface') ask('charge', chargeAt.x + 14, chargeAt.y, 'start', 'gs-charge-name', chargeName, chargeName, 17.5, true, chargeAt);
   // At Solve the patches have done their work: their arrows are faint, and a dA named over them named nothing.
@@ -360,6 +360,49 @@ export const GaussFigure = memo(function GaussFigure({kase, size, sign, siblings
     if (c.kind === 'line' || c.kind === 'segment') along(0);
     else for (const r of c.kind === 'coax' ? [c.size, c.outer ?? c.size * 2] : [c.size]) { along(r, c.kind === 'rodhole' ? v3(0, 0, 0) : undefined); along(-r); }
   }
+  // ---- THE CHARGE INSIDE, CALLED OUT ----
+  // Q_enc stands beside the figure, clear of the Gaussian surface and the charge, and a hairline with an arrowhead runs
+  // from it to the charge it counts, re-aimed as the view turns. Set on the ball it printed over the ball, and the
+  // placer, finding no room there, drew it at some angles and not others.
+  const callout = showInside && !pieceNames ? (() => {
+    const spec: NameSpec = {key: 'inside', x: 0, y: 0, anchor: 'middle', className: 'gs-inside-name', content: insideName(kase, built), text: insideText(kase, built), size: 17.5 * k, keep: true};
+    const {width: w, height: h} = nameBox(spec);
+    // The surface as drawn: every corner of it, and a sphere's extremes.
+    const pts = space ? built.patches.flatMap(q => q.corners.map(proj)) : built.slice.flatMap(q => [proj(v3(q.a[0], 0, q.a[1])), proj(v3(q.b[0], 0, q.b[1])), proj(q.mid)]);
+    if (g.kind === 'sphere') { const o = proj(g.center ?? v3(0, 0, 0)), r = g.r * unit; pts.push({x: o.x - r, y: o.y - r}, {x: o.x + r, y: o.y + r}); }
+    const x0 = Math.min(...pts.map(q => q.x)) - 4, x1 = Math.max(...pts.map(q => q.x)) + 4, y0 = Math.min(...pts.map(q => q.y)) - 4, y1 = Math.max(...pts.map(q => q.y)) + 4;
+    const sb: Box = {x: x0, y: y0, width: x1 - x0, height: y1 - y0};
+    // The charge it counts: its middle, and, for a ball, the edge of the part inside, where the arrowhead lands.
+    const middle = proj(c.kind === 'offset' ? v3(0, 0, c.size) : c.at ?? v3(0, 0, 0));
+    const body = c.kind === 'point' || c.kind === 'offset' ? POINT_PX : isBall(c.kind) || c.kind === 'halo' || c.kind === 'shell' || c.kind === 'metal' ? Math.min(c.size, g.r) * unit : 0;
+    // What the callout keeps clear of: the labels of P and of E at P, the arrow at P, and P.
+    const nominal = specs.filter(n => n.key === 'p' || n.key === 'e-at-p').map(nameBox);
+    const shafts: Segment[] = [...(norm(built.fieldAtP) > 1e-12 && (built.answerAtP || built.markP) ? [{a: pAt, b: eTip}] : []), ...(answerShaft ? [answerShaft] : [])];
+    const keepClear: Box[] = [...nominal, {x: pAt.x - 9, y: pAt.y - 9, width: 18, height: 18}];
+    const cx = x0 + (x1 - x0) / 2, cy = y0 + (y1 - y0) / 2, spot: {x: number; y: number}[] = [];
+    // Beside the surface and, further out, beside the arrows that stand off it.
+    for (const gap of [12, 40, 70]) {
+      for (const dy of [0, -.3, .3, -.5, .5]) spot.push({x: x0 - gap - w, y: cy - h / 2 + dy * (y1 - y0)}, {x: x1 + gap, y: cy - h / 2 + dy * (y1 - y0)});
+      for (const x of [cx - w / 2, x0, x1 - w]) spot.push({x, y: y0 - gap - h}, {x, y: y1 + gap});
+    }
+    // The hairline keeps a clear berth of what it must not touch: P, the names of P and of E there, the arrow at P.
+    const berth = 14, grown = (b: Box): Box => ({x: b.x - berth, y: b.y - berth, width: b.width + 2 * berth, height: b.height + 2 * berth});
+    const closeTo = (leader: Segment, q: Segment) => { for (let t = 0; t <= 1; t += .05) { const x = leader.a.x + (leader.b.x - leader.a.x) * t, y = leader.a.y + (leader.b.y - leader.a.y) * t, dx = q.b.x - q.a.x, dy = q.b.y - q.a.y, l = dx * dx + dy * dy, u = l > 1e-9 ? Math.max(0, Math.min(1, ((x - q.a.x) * dx + (y - q.a.y) * dy) / l)) : 0; if (Math.hypot(x - q.a.x - u * dx, y - q.a.y - u * dy) < berth) return true; } return false; };
+    let best: {box: Box; from: {x: number; y: number}; tip: {x: number; y: number}; cost: number} | null = null;
+    for (const s of spot) {
+      const box: Box = {x: Math.max(left + 4, Math.min(right - 4 - w, s.x)), y: Math.max(8, Math.min(422 - h, s.y)), width: w, height: h};
+      const from = nearestOnBox(box, middle), len = Math.hypot(from.x - middle.x, from.y - middle.y) || 1;
+      const tip = {x: middle.x + (from.x - middle.x) / len * body * .75, y: middle.y + (from.y - middle.y) / len * body * .75}, leader: Segment = {a: from, b: tip};
+      let cost = len + Math.hypot(box.x - s.x, box.y - s.y) * 4;
+      if (overlaps(box, sb, 0)) cost += 5000;
+      cost += 1500 * marksAt.filter(m => overlaps(box, m, 2)).length + 3000 * keepClear.filter(m => overlaps(box, m, 4)).length;
+      cost += 300 * strokes.filter(q => boxSegmentDistance(box, q) < 3).length;
+      cost += 6000 * keepClear.filter(m => boxSegmentDistance(grown(m), leader) < 1).length + 6000 * shafts.filter(q => segmentsCross(q, leader) || closeTo(leader, q)).length;
+      if (!best || cost < best.cost) best = {box, from, tip, cost};
+    }
+    return {...best!, spec, sb, middle};
+  })() : null;
+  if (callout) { marksAt.push(callout.box); strokes.push({a: callout.from, b: callout.tip}); }
   const placed = placeNames(specs, strokes, marksAt, answerShaft);
   const described = describe(kase, built, space);
   const reserve = useMemo(() => (siblings ?? []).filter(o => o.key !== kase.key).map(o => captionOf(o, build(o, o.figure.surface.size.initial, sign))), [siblings, kase.key, sign]);
@@ -386,6 +429,10 @@ export const GaussFigure = memo(function GaussFigure({kase, size, sign, siblings
           {n.leader && <line className="gs-leader" x1={n.leader.a.x.toFixed(1)} y1={n.leader.a.y.toFixed(1)} x2={n.leader.b.x.toFixed(1)} y2={n.leader.b.y.toFixed(1)} />}
           <Name x={n.x} y={n.y} anchor={n.anchor} className={n.className}>{n.content}</Name>
         </g>)}
+        {callout && <g className="gs-callout" data-surface={[callout.sb.x, callout.sb.y, callout.sb.width, callout.sb.height].map(Math.round).join(',')} data-tip={`${callout.tip.x.toFixed(1)},${callout.tip.y.toFixed(1)}`}>
+          <Arrow a={callout.from} b={callout.tip} className="gs-callout-leader" head={9} />
+          <Name x={callout.box.x + callout.box.width / 2} y={callout.box.y + callout.box.height / 2} className="gs-inside-name">{callout.spec.content}</Name>
+        </g>}
         {space && <ViewCube view={camera} at={{x: right - 56, y: 58}} size={20} minFont={11 * 720 / Math.max(1, width)} onPick={(next, label) => { glideTo(next, .5); setAnnouncement(label); }} onSpin={(dx, dy) => turn(-dx * .009, dy * .009)} onStep={key => turn(key === 'ArrowLeft' ? .2 : key === 'ArrowRight' ? -.2 : 0, key === 'ArrowUp' ? .12 : key === 'ArrowDown' ? -.12 : 0)} />}
       </svg>
     </div>

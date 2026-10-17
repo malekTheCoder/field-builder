@@ -336,3 +336,6 @@
  .gs-page :is(.bp-play,.bp-icon,.exp-library-toggle,.cd-view-mode){min-width:44px;min-height:44px}
  .gs-page :is(.exp-crumb-link,.exp-lesson-toggle,.cd-orbit-reset){display:inline-flex;align-items:center}
 }
+/* The charge inside's callout: the name beside the figure, a hairline from it with an arrowhead on the charge. */
+.gs-callout-leader line{stroke:var(--charge);stroke-width:1.4;stroke-linecap:round}
+.gs-callout-leader path{fill:var(--charge);stroke:none}
