@@ -89,6 +89,22 @@ function nameOf(target: V3): string {
   const words = parts.join(' ');
   return `${words[0].toUpperCase()}${words.slice(1)} ${kind}`;
 }
+const CAMERA_STEPS = [
+  {key: 'ArrowLeft', dx: -1, dy: 0, path: 'M3.5 -4.5 L-3 0 L3.5 4.5', title: 'Turn left'},
+  {key: 'ArrowRight', dx: 1, dy: 0, path: 'M-3.5 -4.5 L3 0 L-3.5 4.5', title: 'Turn right'},
+  {key: 'ArrowUp', dx: 0, dy: -1, path: 'M-4.5 3.5 L0 -3 L4.5 3.5', title: 'Tilt up'},
+  {key: 'ArrowDown', dx: 0, dy: 1, path: 'M-4.5 -3.5 L0 3 L4.5 -3.5', title: 'Tilt down'},
+] as const;
+export type CameraStep = typeof CAMERA_STEPS[number]['key'];
+/** A touch phone gets full-sized buttons below the drawing. Growing the cube's hit circles in place
+ * would cover its faces and the physics beside them; CSS swaps the same actions without scaling either. */
+export function CameraSteps({onStep}: {onStep: (key: CameraStep) => void}) {
+  return <div className="cd-touch-steps" role="group" aria-label="Turn the figure">
+    {CAMERA_STEPS.map(st => <button key={st.key} type="button" className="cd-pad-key" aria-label={st.title} title={st.title} onClick={() => onStep(st.key)}>
+      <svg viewBox="-8 -8 16 16" width="16" height="16" aria-hidden="true"><path d={st.path} /></svg>
+    </button>)}
+  </div>;
+}
 export type ViewCubeProps = {
   view: CameraView; at: {x: number; y: number}; size?: number;
   /** The least a face's name may be set at, in the drawing's units: eleven pixels on the screen, whatever the figure's
@@ -99,12 +115,12 @@ export type ViewCubeProps = {
   onSpin?: (dx: number, dy: number) => void;
   onSpinStart?: () => void;
   /** The arrows around it, a notch at a time. */
-  onStep?: (key: 'ArrowLeft' | 'ArrowRight' | 'ArrowUp' | 'ArrowDown') => void;
+  onStep?: (key: CameraStep) => void;
 };
 /** How far a press may travel and still be a click rather than the start of a drag. */
 const SLOP = 4;
 export function ViewCube({view, at, size = 22, minFont = 0, onPick, onSpin, onSpinStart, onStep}: ViewCubeProps) {
-  const [hover, setHover] = useState('');
+  const [hover, setHover] = useState(''), [focused, setFocused] = useState('');
   // A press on the cube is a click if it lets go where it started, and a drag if it moves: the whole
   // cube is something to grab -- faces included -- not just the margin round it.
   const press = useRef<{x: number; y: number; lastX: number; lastY: number; moved: boolean; target: V3 | null} | null>(null);
@@ -113,6 +129,10 @@ export function ViewCube({view, at, size = 22, minFont = 0, onPick, onSpin, onSp
     return {x: at.x + q.x * size, y: at.y + q.y * size};
   };
   const point = (p: readonly number[]) => { const q = place(p); return `${q.x.toFixed(2)},${q.y.toFixed(2)}`; };
+  const facePolygon = (f: Face) => [[-1, -1], [1, -1], [1, 1], [-1, 1]].map(([a, b]) => {
+    const axis = f.normal.findIndex(c => c !== 0), [u, v] = [0, 1, 2].filter(i => i !== axis), p = [0, 0, 0];
+    p[axis] = f.normal[axis]; p[u] = a; p[v] = b; return point(p);
+  }).join(' ');
   const d = cameraDirection(view);
   // Back to front, so a nearer face paints over one behind it.
   const ordered = [...CUBE_FACES].sort((a, b) => facing(a, d) - facing(b, d)).filter(f => facing(f, d) > .06);
@@ -120,12 +140,6 @@ export function ViewCube({view, at, size = 22, minFont = 0, onPick, onSpin, onSp
   // The steps' hit circles, in their own units before the step's scale: twelve pixels of radius at the least, and a half
   // to spare, since the pixel size `minFont` was worked from is rounded to a fiftieth.
   const hitR = minFont > 0 ? Math.max(12.5, 12.5 * (minFont / 11) / (size / 22)) : 12.5;
-  const steps = [
-    {key: 'ArrowLeft' as const, at: {x: -ring, y: 0}, path: 'M3.5 -4.5 L-3 0 L3.5 4.5', title: 'Turn left'},
-    {key: 'ArrowRight' as const, at: {x: ring, y: 0}, path: 'M-3.5 -4.5 L3 0 L-3.5 4.5', title: 'Turn right'},
-    {key: 'ArrowUp' as const, at: {x: 0, y: -ring}, path: 'M-4.5 3.5 L0 -3 L4.5 3.5', title: 'Tilt up'},
-    {key: 'ArrowDown' as const, at: {x: 0, y: ring}, path: 'M-4.5 -3.5 L0 3 L4.5 -3.5', title: 'Tilt down'},
-  ];
   const pick = (target: V3) => onPick(viewToward(target, view), nameOf(target));
   const down = (ev: React.PointerEvent<SVGGElement>) => {
     if (ev.button !== 0 || (ev.target as Element).closest('.cd-cube-step')) return;
@@ -171,12 +185,12 @@ export function ViewCube({view, at, size = 22, minFont = 0, onPick, onSpin, onSp
           <title>{nameOf(c.target)}</title>
         </polygon>)}
         {/* The face's own outline, over its cells, so it reads as one face cut into targets. */}
-        <polygon className="cd-cube-outline" points={[[-1, -1], [1, -1], [1, 1], [-1, 1]].map(([a, b]) => {
-          const axis = f.normal.findIndex(c => c !== 0), [u, v] = [0, 1, 2].filter(i => i !== axis), p: number[] = [0, 0, 0];
-          p[axis] = f.normal[axis]; p[u] = a; p[v] = b; return point(p);
-        }).join(' ')} />
+        <polygon className="cd-cube-outline" points={facePolygon(f)} />
       </g>;
     })}
+    {/* The keyboard target is a tiny invisible rect so it does not steal a pointer's cell.
+        Its focus belongs on the whole face: outlining that rect gave the reader no visible destination. */}
+    {ordered.filter(f => f.key === focused).map(f => <polygon key={f.key} className="cd-cube-focus" points={facePolygon(f)} />)}
     {/* The names go on after every face is painted, so a nearer face cannot cover the end of one, and
         only on a face square enough on to read a word -- a name squeezed onto a sliver is worse than
         none -- never wider than its face. */}
@@ -209,9 +223,10 @@ export function ViewCube({view, at, size = 22, minFont = 0, onPick, onSpin, onSp
         corner as well. */}
     {ordered.filter(f => facing(f, d) > .3).map(f => <rect key={f.key} className="cd-cube-key" tabIndex={0} role="button" aria-label={f.name}
       x={place(f.normal).x - 1} y={place(f.normal).y - 1} width="2" height="2"
-      onKeyDown={ev => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); onPick(f.view, f.name); } }} />)}
-    {onStep && steps.map(st => <g key={st.key} className="cd-cube-step" role="button" tabIndex={0} aria-label={st.title}
-      transform={`translate(${(at.x + st.at.x).toFixed(1)} ${(at.y + st.at.y).toFixed(1)}) scale(${(size / 22).toFixed(3)})`}
+      onFocus={() => setFocused(f.key)} onBlur={() => setFocused('')}
+      onKeyDown={ev => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); onPick(viewToward(f.normal, view), f.name); } }} />)}
+    {onStep && CAMERA_STEPS.map(st => <g key={st.key} className="cd-cube-step" role="button" tabIndex={0} aria-label={st.title}
+      transform={`translate(${(at.x + st.dx * ring).toFixed(1)} ${(at.y + st.dy * ring).toFixed(1)}) scale(${(size / 22).toFixed(3)})`}
       onClick={ev => { ev.stopPropagation(); onStep(st.key); }}
       onKeyDown={ev => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); onStep(st.key); } }}>
       <title>{st.title}</title>

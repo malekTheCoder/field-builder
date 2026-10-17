@@ -403,6 +403,7 @@
 .cd-cube-cell.is-lit{filter:brightness(1.12)}
 .cd-cube-cell.is-edge.is-lit,.cd-cube-cell.is-corner.is-lit{filter:brightness(1.2)}
 .cd-cube-outline{fill:none;stroke:var(--diagram,#fff);stroke-width:1.4;stroke-linejoin:round;pointer-events:none}
+.cd-cube-focus{fill:none;stroke:var(--primary,#0b6b63);stroke-width:2;stroke-linejoin:round;vector-effect:non-scaling-stroke;pointer-events:none}
 .cd-cube-key{fill:transparent;pointer-events:none}
 .cd-cube-key:focus-visible{outline:none}
 .cd-cube-key:focus-visible+*{outline:none}
@@ -789,3 +790,15 @@ html:not(.dark) .cd-svg .cd-vector-label:not(.is-muted){fill:color-mix(in oklab,
 .cd-svg .cd-shell-angle .cd-angle-arc{fill:none;stroke:var(--ghost);stroke-width:1.4}
 .cd-focus-bounds .cd-shell-angle .cd-angle-arc{stroke:var(--term-bounds);stroke-width:2}
 .cd-sum-chain.cd-sum-chain-jog{stroke-dasharray:1.5 3;stroke-width:1.2}
+
+/* A fingertip cannot use the cube's small desktop arrows reliably. On a touch phone the same
+   four actions move below the picture, each with its whole visible 44px target inside the card.
+   The cube's faces and the figure keep their scale; there is only one visible set of steppers. */
+.cd-touch-steps{display:none}
+.cd-touch-steps svg{fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+@media (any-pointer:coarse) and (max-width:759px){
+ .cd-touch-steps{display:flex;gap:4px;flex:none}
+ .exp-diagram-card .gs-figure>.cd-toolbar{flex-wrap:wrap}
+ .cd-touch-steps>.cd-pad-key{width:44px;height:44px;flex:none;color:var(--foreground)}
+ .cd-cube-step{display:none}
+}

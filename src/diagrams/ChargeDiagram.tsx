@@ -21,7 +21,7 @@ import { sampleDistribution, sumSamples, sumInterval, intervalWeights, sumPotent
 import { intervalKey, orderedBounds, partitionCount, seamFractions, seamKey, splitFractions, splitProgress } from './subdivision';
 import { acrossAxis, alongAxis, pairOrder, pairPhase, pairPlan, pairShares, pairStepAt, pairSum, spacePairGain, spacePairShrink } from './pairs';
 import { clampCamera, depthFromScreen, keyboardCamera, openingCamera, orbitCamera, projectCamera, SURFACE_UNIT, surfaceUnit, type CameraView } from './camera';
-import { ViewCube } from './ViewCube';
+import { CameraSteps, ViewCube } from './ViewCube';
 import { nearestOnBox, placeLabels, segmentBoxes, type Box, type HalfPlane, type Segment } from './labels';
 import { area, rayMeetsLine, rayToEdge, rayToLine, sub as vsub, unit as direction, wedgePath, type Line } from './fan';
 import { FieldCanvas } from './FieldCanvas';
@@ -370,7 +370,7 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
   const stageBox = useRef<HTMLDivElement>(null);
   const [labelScale, setLabelScale] = useState(1), [cubeScale, setCubeScale] = useState(1);
   const cubeSize = Math.max(27, 22 * cubeScale), cubeAt = cubeSize * 74 / 27;
-  // Under about 480 pixels the figure has no room for prose inside it: the schematic's note goes.
+  // Under about 480 pixels the schematic keeps its geometric caveat in a shorter phrase.
   const [narrow, setNarrow] = useState(false);
   // And how many pixels a unit of the drawing is, for what has to be a size on the screen: the cube's face names.
   const [unitPx, setUnitPx] = useState(1);
@@ -4035,7 +4035,11 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
             <text x={baseSpot.x.toFixed(1)} y={baseSpot.y.toFixed(1)} textAnchor={baseSpot.anchor} data-mirror={mid(corner, end)} data-within={`0 ${corner.y.toFixed(1)} 0 ${flip}`} {...GIVEN}>{shell ? setUpright('R sin θ') : surface ? 's' : 'R'}</text>
             <text x={riSpot.x.toFixed(1)} y={riSpot.y.toFixed(1)} textAnchor={riSpot.anchor} data-mirror={mid(top, end)} data-within={`${top.x.toFixed(1)} ${top.y.toFixed(1)} ${slope.x.toFixed(3)} ${slope.y.toFixed(3)}`} className="cd-ri" {...termAttrs(distanceTerm)}><SymbolText symbol="r_i" /></text>
             {!scalar && <text className="cd-angle" x={alpha.x.toFixed(1)} y={alpha.y.toFixed(1)} textAnchor="middle" data-anchor="fixed" {...(stageCancel ? termAttrs(true) : GIVEN)}>{setUpright(over ? 'π − α' : 'α')}</text>}
-            <text x={corner.x.toFixed(1)} y={(over ? top.y + 18 + .3 * termSize : baseSpot.y + 18).toFixed(1)} className="cd-triangle-note" data-keep={over ? 'true' : undefined}>{narrow ? 'Not to scale' : 'Same triangle · not to scale'}</text>
+            {/* The inset has fixed proportions, so this caveat is part of the figure's truth, not an optional
+                caption. Reserve its own line below the base label, whose enlarged phone descent used to
+                collide with the note; the generic placer then hid it. Right-align to the inset's edge so
+                the longer desktop sentence also fits beside the shell. The inset itself never moves. */}
+            <text x={end.x.toFixed(1)} textAnchor="end" y={(over ? top.y + 18 + .3 * termSize : baseSpot.y + Math.max(18, 1.5 * termSize)).toFixed(1)} className="cd-triangle-note" data-anchor="fixed" data-keep="true">{narrow ? 'Not to scale' : 'Same triangle · not to scale'}</text>
 
           </>; })()}
         {triangle.kind === 'slope' && <text x={triangle.riSpot.x.toFixed(1)} y={triangle.riSpot.y.toFixed(1)} textAnchor={triangle.riSpot.anchor} data-mirror={`${triangle.hyp.x.toFixed(1)} ${triangle.hyp.y.toFixed(1)}`} className="cd-ri" {...termAttrs(distanceTerm)}><SymbolText symbol="r_i" /></text>}
@@ -4137,10 +4141,10 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
         className={`cd-view-mode${fieldView === value ? ' is-on' : ''}`} aria-pressed={fieldView === value}
         onClick={() => setFieldView(value)}>{label}</button>)}
     </div>}
+    {inSpace && <CameraSteps onStep={nudge} />}
     <div className="cd-pad" role="group" aria-label="Move the view">
-      {/* The four turn keys used to live here too. The view cube inside the figure now carries
-          them, with the same names, and two controls doing one job is one too many -- the pad
-          keeps zoom and the way home. */}
+      {/* The cube carries camera steps on a desktop; touch phones swap those small drawn arrows
+          for the full-sized row above. This pad keeps zoom and the way home. */}
       <button type="button" className="cd-pad-key" title="Zoom out (minus key, or scroll)" aria-label="Zoom out" onKeyDown={viewKeys} onClick={() => zoomBy(1 / 1.18)} disabled={zoomAsked <= ZOOM_MIN + 1e-6}>&minus;</button>
       <button type="button" className="cd-pad-key" title="Zoom in (plus key, or scroll)" aria-label="Zoom in" onKeyDown={viewKeys} onClick={() => zoomBy(1.18)} disabled={zoomAsked >= zoomCeiling - 1e-6}>+</button>
       <button type="button" className="text-button cd-orbit-reset" onKeyDown={viewKeys} onClick={resetView} disabled={zoomAsked === 1 && (!inSpace || (Math.abs(camera.yaw - opening.yaw) < 1e-6 && Math.abs(camera.pitch - opening.pitch) < 1e-6))}>Reset view</button>

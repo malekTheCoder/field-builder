@@ -5,6 +5,7 @@ import {CHARGE} from '../diagrams/three/FieldStage';
 import {add, dot, isBall, norm, scale, sub, surfacePoint, unit as unitV, v3, type V3} from './physics';
 import {arrowEnds, chainOf, POINT_PX, surfaceOfPiece, type Built, type Look} from './scene';
 import type {GaussCase} from './types';
+import {densityFace, isGradedBall, type GradedBall} from './densityFace';
 /* THE GAUSS FIGURE IN SPACE: the charge, the closed surface round it and every patch's arrows as real objects in
  * a WebGL scene, under the SVG that carries the names, the view cube and the controls (GaussFigure). Built on the
  * integral lessons' 3D infrastructure: three.js loaded on demand inside an effect (it touches `window` at import,
@@ -48,6 +49,8 @@ export function GaussScene(props: SceneProps) {
       const key = new THREE.DirectionalLight(0xffffff, 2); key.position.set(4, -6, 9); scene.add(key);
       // The charge is matte and keeps its colour from every side, as in the integral lessons' scene.
       const bodyMaterial = new THREE.MeshStandardMaterial({color: CHARGE.body, roughness: .88, metalness: 0, transparent: true, opacity: .9});
+      const densityMaterial = new THREE.MeshBasicMaterial({vertexColors: true, side: THREE.DoubleSide});
+      const densityFaces: {geometry: InstanceType<typeof THREE.BufferGeometry>; weights: number[]}[] = [];
       const cutMaterial = new THREE.MeshStandardMaterial({color: CHARGE.body, roughness: .9, metalness: 0, transparent: true, opacity: .24, depthWrite: false});
       const sheetMaterial = new THREE.MeshStandardMaterial({color: CHARGE.body, roughness: .9, metalness: 0, transparent: true, opacity: .32, side: THREE.DoubleSide, depthWrite: false});
       const shellMaterial = new THREE.MeshLambertMaterial({color: CHARGE.body, transparent: true, opacity: .26, side: THREE.DoubleSide, depthWrite: false});
@@ -154,6 +157,30 @@ export function GaussScene(props: SceneProps) {
         }
         return group;
       };
+      // Each exposed radial face owns one colour at each radius, independent of how much charge lies behind
+      // it in projection. The outer skin gives the ball its shape; it does not encode density. Basic material
+      // keeps lighting from changing this quantitative ordering. Faces write depth so the rear skin cannot
+      // paint over their density colours; the open quarter still exposes the Gaussian surface inside.
+      // The separate enclosed-charge layer still lights up at the run's Right side stage.
+      const colourDensityFaces = () => {
+        const paper = new THREE.Color(palette().paper), strong = new THREE.Color(CHARGE.body);
+        for (const face of densityFaces) {
+          const colours = face.weights.flatMap(w => { const c = paper.clone().lerp(strong, .9 * w); return [c.r, c.g, c.b]; });
+          face.geometry.setAttribute('color', new THREE.Float32BufferAttribute(colours, 3));
+        }
+      };
+      const gradedSphere = (kind: GradedBall, radius: number) => {
+        const group = cutSphere(0, radius, cutMaterial, false);
+        for (const angle of [CUT_AT - CUT_HALF, CUT_AT + CUT_HALF]) {
+          const face = densityFace(kind, radius, angle), geometry = new THREE.BufferGeometry();
+          geometry.setAttribute('position', new THREE.Float32BufferAttribute(face.positions, 3));
+          geometry.setIndex(face.indices);
+          densityFaces.push({geometry, weights: face.weights});
+          group.add(new THREE.Mesh(geometry, densityMaterial));
+        }
+        colourDensityFaces();
+        return group;
+      };
       /** A cylinder about the z axis, open at its ends: a shell of charge, or a lit one. */
       const tube = (r: number, length: number, material: InstanceType<typeof THREE.Material>, coarse = false) => { const m = new THREE.Mesh(new THREE.CylinderGeometry(r, r, length, coarse ? 20 : 48, coarse ? Math.max(2, Math.round(length * 2.4)) : 1, true), material); m.rotation.x = Math.PI / 2; return m; };
       /** A flat sheet of charge at height z. */
@@ -197,7 +224,7 @@ export function GaussScene(props: SceneProps) {
         const b = p.built;
         built = b;
         for (const g of [charge, inside, skin, tints, arrows, spokes, marks]) clear(g);
-        patchArrows.length = 0; spokeArrows.length = 0;
+        patchArrows.length = 0; spokeArrows.length = 0; densityFaces.length = 0;
         const c = b.charge, g = b.surface, reach = b.half * 2.2;
         // A flat charge's width: its fade (above) begins about two thirds of the way to the frame's side and is all but
         // gone at it, whichever way the figure is turned. Its opposite-sign cage, which cannot fade, stops inside it.
@@ -213,7 +240,8 @@ export function GaussScene(props: SceneProps) {
         if (c.kind === 'segment') { const m = new THREE.Mesh(new THREE.CylinderGeometry(.045, .045, 2 * c.size, 16), bodyMaterial); m.rotation.x = Math.PI / 2; charge.add(m); }
         if (c.kind === 'offset') charge.add(disc(dot0, bodyMaterial, v3(0, 0, c.size)));
         // A ball the Gaussian sphere cuts through is drawn translucent, so the sphere and its patches show inside it.
-        if (isBall(c.kind)) charge.add(new THREE.Mesh(new THREE.SphereGeometry(c.size, 48, 32), g.r < c.size ? cutMaterial : bodyMaterial));
+        if (isGradedBall(c.kind)) charge.add(gradedSphere(c.kind, c.size));
+        else if (isBall(c.kind)) charge.add(new THREE.Mesh(new THREE.SphereGeometry(c.size, 48, 32), g.r < c.size ? cutMaterial : bodyMaterial));
         // A thin shell is a skin with nothing inside it: cut open toward the reader as the metal is, and matte, so its
         // hollow shows and a Gaussian sphere inside it is seen in empty space. Drawn whole, it came out a shaded ball,
         // the uniform ball beside it, and the lesson's point (no charge inside, no field there) was not to be seen.
@@ -264,7 +292,11 @@ export function GaussScene(props: SceneProps) {
         if (c.kind === 'segment') { const m = new THREE.Mesh(new THREE.CylinderGeometry(.075, .075, 2 * Math.min(c.size, g.h), 16), insideMaterial); m.rotation.x = Math.PI / 2; insideMesh = m; }
         if (c.kind === 'offset' && g.r > c.size) insideMesh = disc(dot0 * 1.3, insideMaterial, v3(0, 0, c.size));
         // Inside a ball, the part enclosed sits just within the sphere, never over its patches.
-        if (isBall(c.kind)) insideMesh = new THREE.Mesh(new THREE.SphereGeometry(Math.min(c.size * 1.01, g.r * .985), 48, 32), insideMaterial);
+        // A graded ball keeps its radial faces visible when the enclosed region lights up. A complete
+        // opaque highlight sphere would cover them at rest and at Right side, erasing the density lesson.
+        // Its open curved skin marks the enclosed region while the faces keep their local-density colours.
+        if (isGradedBall(c.kind)) insideMesh = cutSphere(0, Math.min(c.size * 1.01, g.r * .985), insideMaterial, false);
+        else if (isBall(c.kind)) insideMesh = new THREE.Mesh(new THREE.SphereGeometry(Math.min(c.size * 1.01, g.r * .985), 48, 32), insideMaterial);
         // A shell's charge is all on its surface: enclosed whole once the surface is outside it, and not at all before.
         if (c.kind === 'shell' && g.r > c.size) insideMesh = cutSphere(0, c.size * 1.01, skinLitMaterial, false);
         if (c.kind === 'line') { const m = new THREE.Mesh(new THREE.CylinderGeometry(.075, .075, 2 * g.h, 16), insideMaterial); m.rotation.x = Math.PI / 2; insideMesh = m; }
@@ -345,6 +377,7 @@ export function GaussScene(props: SceneProps) {
         const theme = document.documentElement.className;
         if (theme !== colours) {
           colours = theme;
+          colourDensityFaces();
           const c = palette();
           skinMaterial.color.set(c.ink); edgeMaterial.color.set(c.ink); litMaterial.color.set(c.field); zeroMaterial.color.set(c.ghost);
           metalMaterial.color.set(c.muted); metalFade.color.set(c.muted); holeMaterial.color.set(c.paper); rimMaterial.color.set(c.muted);
@@ -360,6 +393,14 @@ export function GaussScene(props: SceneProps) {
         camera.updateProjectionMatrix();
         px = 1 / p.unit;
         const b = built!, look = p.look, toCamera = basis.forward;
+        // The backwards problem asks the reader to discover rho. As in its cross-section, its face stays
+        // plain until Solve; changing the stage toggles the existing material, never rebuilds the scene.
+        const densityKnown = !p.kase.figure.charge.insideNames || look.stage === 'solve';
+        if (densityMaterial.vertexColors !== densityKnown) {
+          densityMaterial.vertexColors = densityKnown;
+          densityMaterial.color.set(densityKnown ? 0xffffff : CHARGE.body);
+          densityMaterial.needsUpdate = true;
+        }
         for (const d of dots) d.scale.setScalar(b.unit / p.unit);
         // The layers of the moment.
         skin.visible = look.surface > .01;
@@ -424,7 +465,7 @@ export function GaussScene(props: SceneProps) {
           disposed = true; canvas.removeEventListener('webglcontextlost', onLost); observer.disconnect(); themeWatch.disconnect();
           for (const g of [charge, inside, skin, tints, arrows, spokes, marks]) clear(g);
           shaft.dispose(); head.dispose(); fadeMap.dispose();
-          for (const m of [bodyMaterial, cutMaterial, sheetMaterial, shellMaterial, insideMaterial, skinLitMaterial, oppositeMaterial, oppositeLitMaterial, rodMaterial, metalMaterial, holeMaterial, holedMaterial, cloudMaterial, plugMaterial, pieceMaterial, partMaterial, answerMaterial, haloEdgeMaterial, sheetFade, cloudFade, metalFade, rimMaterial, skinMaterial, edgeMaterial, litMaterial, zeroMaterial, fieldFront, fieldQuiet, fieldBack, normalFront, normalQuiet, normalBack, pointMaterial]) m.dispose();
+          for (const m of [bodyMaterial, densityMaterial, cutMaterial, sheetMaterial, shellMaterial, insideMaterial, skinLitMaterial, oppositeMaterial, oppositeLitMaterial, rodMaterial, metalMaterial, holeMaterial, holedMaterial, cloudMaterial, plugMaterial, pieceMaterial, partMaterial, answerMaterial, haloEdgeMaterial, sheetFade, cloudFade, metalFade, rimMaterial, skinMaterial, edgeMaterial, litMaterial, zeroMaterial, fieldFront, fieldQuiet, fieldBack, normalFront, normalQuiet, normalBack, pointMaterial]) m.dispose();
           renderer.dispose();
           if (canvas.parentNode === mount) mount.removeChild(canvas);
         },
