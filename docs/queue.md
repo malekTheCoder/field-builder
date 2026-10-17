@@ -15,7 +15,7 @@ bottom, finish In progress, then take Next in order.
   guide): one round, one publish. Usage 76% weekly at launch (stop at 90%).
 
 ## Next
-1. **Strict critique round 17 and onward** (owner, 2026-10-17): continue all five lenses across the whole site, fix every confirmed finding, then make four to eight teaching improvements. One fully validated local suite and one publish per round. Stop only at a genuinely clean critique or the authorized usage/time limit. Read the local Codex round-16 report before repeating coverage.
+1. **Strict critique round 18 and onward** (owner, 2026-10-17): continue all five lenses across the whole site, fix every confirmed finding, then make four to eight teaching improvements. One fully validated local suite and one publish per round. Stop only at a genuinely clean critique or the authorized usage/time limit. Read the local Codex round-17 report before repeating coverage.
 2. **The potential's column explained in place** (owner asked "what's this?", 2026-10-17): a callout on the
    lit block ("one piece's ΔV"), a bracket showing the column's height is V ≈ ΣΔV, and one caption line
    the first time it shows. Waiting for the owner's OK on this option.
@@ -24,13 +24,12 @@ bottom, finish In progress, then take Next in order.
 - **Owner's calls:** (1) Symmetry first runs all five stages, Solve included, before flux is taught: stop it
   at The surface? (2) Knight is cited as ch. 27 (§27.1–27.6, the study guide's edition): confirm the edition.
   (3) The negative ring's stacked ΔE_z through the empty middle in 3D (from wave 6).
-- **Gauss, later:** 3D density shading for graded balls; a "Choose the surface" instrument; the view cube's
-  arrows on the integral lessons' phones (the shared ViewCube, about sixteen pixels there).
 0. **Owner's call (from wave 6):** a negative ring seen in space draws its stacked ΔE_z running through the
    empty middle O. The fixer left it: an earlier deliberate choice, and capping it would make a negative
    ring's arrows half a positive's. Leftovers from wave 6 are in .claude/loop/reports/LOG.md.
 
 ## Done
+- 2026-10-17, Codex strict round 17: 22 findings fixed (5 WRONG, 10 MISLEADING, 3 CONFUSING, 1 UGLY, 3 POLISH), eight teaching improvements including the three queued Gauss/phone items; all 2400 lesson/stage/viewport/sign/theme combinations checked, full local suite and static build green (0448b17..1fb3ed9). Evidence: local .claude/loop/reports/codex/round-17.md. Owner decisions remain pending; no clean round claimed.
 - 2026-10-17, Codex strict round 16: 50 findings fixed (17 WRONG, 10 MISLEADING, 10 CONFUSING, 6 UGLY, 7 POLISH), eight teaching improvements; full local suite and static build green (067d577..e057cbd). Evidence: local .claude/loop/reports/codex/round-16.md. Owner decisions remain pending; no clean round claimed.
 - 2026-10-17: four new integral lessons, each with a textbook lesson, quiz bank and two physics reviews:
   the uneven semicircle (766b27d), the annulus (d919211), the rod with P off its middle (bf22a41), the
