@@ -166,9 +166,21 @@ export function vectorGrid(samples:readonly ChargeSample[],area:GridArea,spacing
   if(!Number.isFinite(magnitude)||magnitude<=0)continue;
   raw.push({at,dir:{x:e.x/magnitude,y:e.y/magnitude},magnitude});
  }
- if(!raw.length)return [];
- const weights=logWeights(raw.map(a=>a.magnitude));
- return raw.map((a,i)=>({...a,weight:weights[i]}));
+ const kept=withoutNulls(raw);
+ if(!kept.length)return [];
+ const weights=logWeights(kept.map(a=>a.magnitude));
+ return kept.map((a,i)=>({...a,weight:weights[i]}));
+}
+/** HOW SMALL A FIELD IS NO FIELD AT ALL, as a share of the strongest in the lattice: round-off, not a field.
+ * The strongest and weakest arrows any figure really draws are a few thousand to one apart at most. */
+export const NUMERICAL_ZERO=1e-6;
+/** The lattice points whose field is more than round-off. At a null -- the centre of a full ring, where the field
+ * is zero by symmetry -- a sum of pieces leaves a remainder of floating-point dust, and an arrow was drawn there
+ * pointing wherever the dust sent it, in the one setting whose answer is E = 0. The direction of nothing is not a
+ * direction, so no arrow is drawn: a point with no arrow is what a field of zero looks like. */
+export function withoutNulls<T extends {magnitude:number}>(raw:readonly T[]):T[]{
+ const top=raw.reduce((m,a)=>Math.max(m,a.magnitude),0);
+ return raw.filter(a=>a.magnitude>NUMERICAL_ZERO*top);
 }
 /** Relative weights for a set of magnitudes, on a log scale normalised to the set itself.
  *

@@ -21,16 +21,16 @@ export const lesson: Lesson = {
     {heading: 'One ring', body: [
       raw`A ring seen from its axis is the ring lesson’s answer: its field points along the axis. This ring sits at the height $R\cos\theta$, so $P$ is $z-R\cos\theta$ above its plane, and by the law of cosines`,
       {tex: raw`r_i^2=R^2+z^2-2zR\cos\theta`},
-      raw`The angle $\alpha$ at $P$ compares the bit-to-$P$ direction with $+z$: $\cos\alpha=(z-R\cos\theta)/r_i$. This is the axial projection:`,
+      raw`Its part along the axis is the fraction $\cos\alpha=(z-R\cos\theta)/r_i$ of a point charge’s field, $\alpha$ the angle between the axis and the ring’s line to $P$:`,
       {tex: raw`\Delta E_z=\frac{k\,\Delta Q\,(z-R\cos\theta)}{r_i^3}`},
-      raw`For a ring above $P$ the factor $z-R\cos\theta$ is negative: its field points the other way along the axis.`,
+      raw`For a ring above $P$, $\cos\alpha<0$: its field points the other way along the axis.`,
     ]},
     {heading: 'What cancels', body: [
       raw`Round each ring the sideways parts cancel. Outside, every ring is below $P$, so every ring’s field points the same way along the axis, away from a positive shell and toward a negative one.`,
-      raw`Inside, the fields of the rings above $P$ and of those below it point opposite ways: the small cap above $P$, near it, against the larger part of the shell below, farther off. Only the sum can say how they compare.`,
+      raw`Inside, the fields of the rings above $P$ and below it point opposite ways: the small cap above $P$, near it, against the larger part of the shell below, farther off. Only the sum can say how they compare.`,
     ]},
     {heading: 'Add them up', body: [
-      raw`Adding all $N$ rings gives the field nearly, each ring’s charge counted at one angle $\theta_i$:`,
+      raw`Adding all $N$ rings gives the field nearly, each ring counted at one angle $\theta_i$:`,
       {tex: raw`E_z\approx\sum_i\frac{k\,\Delta Q_i\,(z-R\cos\theta_i)}{r_i^3}`},
       raw`With enough rings the sum comes as close as you like; near the surface it takes many.`,
     ]},

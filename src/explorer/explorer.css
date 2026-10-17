@@ -6,7 +6,7 @@
 @media(max-width:1000px){.exp-workspace{grid-template-columns:minmax(0,1fr)}.exp-workspace>aside,.exp-workspace>.equation-workbench{position:static;grid-row:2}.exp-heading h1{font-size:32px}.exp-main{padding:26px 26px 30px}.parameter-grid{gap:29px}.exp-range>div:first-child{font-size:12px}.exp-range output{font-size:12px}}
 @media(max-width:520px){.exp-header{padding:0 16px;height:67px;gap:10px}.exp-brand{font-size:22px}.exp-brand small{font-size:8px}.exp-logo{height:35px;width:31px;font-size:21px;border-radius:8px}.exp-header-right{gap:8px}.repo-button{display:none!important}.exp-main{padding:20px 14px}.exp-breadcrumb{margin-bottom:23px;font-size:11px}.exp-heading{align-items:flex-start;margin-bottom:19px;gap:10px}.exp-heading h1{font-size:28px;letter-spacing:-1px}.exp-heading p{font-size:13px}.exp-workspace{gap:17px}.exp-diagram-heading{padding:13px 14px}.exp-diagram-heading>span{font-size:9px;letter-spacing:.06em}.exp-diagram-heading .math{font-size:11px}.exp-parameters{padding:14px 15px 21px}.parameter-grid{gap:18px;grid-template-columns:1fr 1fr}.parameter-grid>.exp-range:last-child:nth-child(3){grid-column:1 / -1;margin-top:7px}.exp-range>div:first-child{font-size:11px}.exp-range output{font-size:11px}.exp-library-grid{grid-template-columns:1fr}.exp-library-dialog[data-slot=dialog-content]{padding:22px!important}}
 @media(prefers-reduced-motion:reduce){.exp-shape-button[data-slot=sidebar-menu-button],.exp-diagram-card{transition:none!important}}
-.exp-heading{margin-bottom:20px}.exp-breadcrumb{margin-bottom:19px}.exp-note-body>p{font-size:14px}.exp-range>div:first-child{font-size:14px}.exp-range output{font-size:12px}.exp-workspace>.ew-panel .ew-context,.exp-workspace>.ew-panel .ew-concept-detail,.exp-workspace>.ew-panel .ew-worked-step p{font-size:13px}.exp-workspace>.ew-panel .ew-disclosure{font-size:var(--type-meta)}.exp-workspace>.ew-panel .ew-equation{font-size:16px}.exp-workspace>.ew-panel .ew-equation-label{font-size:12px}.exp-workspace>.ew-panel .ew-bound-fields label{font-size:var(--type-meta)}.exp-workspace>.ew-panel .ew-bound-form>p{font-size:var(--type-meta)}.exp-shape-button[data-slot=sidebar-menu-button]{font-size:13px}.exp-range [data-slot=slider]{padding:5px 0}.exp-header .exp-brand small{font-size:10px}.exp-sidebar .exp-nav-bottom>span{font-size:14px}
+.exp-heading{margin-bottom:20px}.exp-breadcrumb{margin-bottom:19px}.exp-note-body>p{font-size:14px}.exp-range>div:first-child{font-size:14px}.exp-range output{font-size:12px}.exp-workspace>.ew-panel .ew-disclosure{font-size:var(--type-meta)}.exp-workspace>.ew-panel .ew-equation{font-size:16px}.exp-workspace>.ew-panel .ew-equation-label{font-size:12px}.exp-workspace>.ew-panel .ew-bound-fields label{font-size:var(--type-meta)}.exp-workspace>.ew-panel .ew-bound-form>p{font-size:var(--type-meta)}.exp-shape-button[data-slot=sidebar-menu-button]{font-size:13px}.exp-range [data-slot=slider]{padding:5px 0}.exp-header .exp-brand small{font-size:10px}.exp-sidebar .exp-nav-bottom>span{font-size:14px}
 @media(max-width:520px){.exp-range>div:first-child{font-size:13px}.exp-range output{font-size:11px}}
 /* =====================================================================
    SECOND VISUAL PASS
@@ -177,6 +177,12 @@
    to scale, so how long it is and how far through it you are can be seen
    without a clock. ------------------------------------------------------- */
 .exp-walk{display:block;padding:14px 2px 2px}
+/* The offer of the flat view to a computer the run in space is slow on (Explorer.tsx, slowSpace): one line in the
+   muted voice under the transport, its button an underlined phrase, so it reads as a suggestion and not an alarm. */
+.exp-slow-space{margin:8px 0 0;font-size:var(--type-meta);line-height:1.45;color:var(--muted-foreground)}
+.exp-slow-space>button{display:inline;padding:0;border:0;background:none;font:inherit;color:var(--foreground);text-decoration:underline;text-decoration-color:var(--primary);text-underline-offset:.25em;cursor:pointer}
+.exp-slow-space>button:hover{color:var(--primary)}
+.exp-slow-space>button:focus-visible{outline:2px solid var(--primary);outline-offset:2px;border-radius:4px}
 /* At rest the run is one button, in the figure's heading row opposite the point it is about: on
    the first screen at every size, where the old place under the toolbar was below the fold of a
    laptop. The note beside it says how long the run is; where the row is too narrow for both, the
@@ -730,6 +736,10 @@
    minute, the board holding it was a screen and a half below, and the run ended on the Shrink sentence
    with no answer anywhere on screen. Once settled, the answer takes the sentence's place. */
 @media(max-height:520px){.bp-math:not(.is-settled){display:none}}
+/* And on the smallest phones held upright, three hundred and twenty wide and under six hundred tall: the ring's
+   transport, its algebra two rows at that width, ended forty pixels under the window once the run opened. The
+   board below carries every line; the answer still arrives here when the run settles. */
+@media(max-width:400px) and (max-height:600px){.bp-math:not(.is-settled){display:none}}
 /* Phones only: from 760 pixels wide a window this short has the board beside the figure, and the board carries
    the answer -- there these rules moved the stage's sentence into a narrow column of its own, sideways and
    re-wrapped, two and a half seconds before the end, while the class was reading it (a projector at 150%). */
@@ -877,6 +887,12 @@
 .exp-came-back>svg{align-self:center}
 .exp-came-back:hover{color:var(--primary)}
 .exp-came-back:focus-visible{outline:2px solid var(--primary);outline-offset:2px;border-radius:4px}
+/* Under the lesson the links are whole sentences ("A sheet with a hole, by Gauss's law and superposition"), and
+   held to one line the annulus's ran three hundred and fifty-seven pixels from the gutter: past the edge of a
+   three-hundred-and-sixty pixel phone, the commonest Android width, so the page dragged sideways and the word was
+   cut. These wrap beside their arrow, the arrow on the first line; the short "Back to" link keeps its one line. */
+.exp-quiz-this .exp-came-back{white-space:normal;align-items:flex-start;max-width:100%}
+.exp-quiz-this .exp-came-back>svg{align-self:flex-start;flex:none;margin-top:.2em}
 /* THE LIST STAYS BESIDE THE LESSON. It scrolled away with the page, so a lesson opened from the end of another
    had its mark in the list far above the window. The column's content is held at the top of the window and
    scrolls on its own when it is taller than the window, and the open lesson is scrolled into it (Explorer). */
@@ -891,7 +907,10 @@
    phone has no Escape key. The cards scroll in their own region under the title; the dialog does not. */
 .exp-library-dialog[data-slot=dialog-content]{display:flex;flex-direction:column;overflow:hidden;
  max-width:min(var(--dialog-width,600px),calc(100vw - 32px))!important;padding:var(--dialog-pad,28px)!important}
-.exp-library-list{flex:1 1 auto;min-height:0;overflow-y:auto;margin:0 -8px;padding:4px 8px 6px;scrollbar-width:thin}
+.exp-library-list{flex:1 1 auto;min-height:0;overflow-y:auto;margin:0 -8px;padding:12px 8px 6px;scrollbar-width:thin;
+ /* Cards scrolled up under the subtitle fade out over the region's first twelve pixels instead of ending in a cut
+    edge, so the list reads as going on above. At the top of the list that band is padding, and nothing fades. */
+ -webkit-mask-image:linear-gradient(to bottom,transparent,#000 12px);mask-image:linear-gradient(to bottom,transparent,#000 12px)}
 /* =====================================================================
    THE PAGE AROUND THE FIGURE AND THE BOARD
    ===================================================================== */
@@ -1057,5 +1076,12 @@
  .exp-diagram-card .cd-pad-key::before{content:'';position:absolute;inset:-8px -3px}
  .exp-diagram-card .cd-orbit-reset::before{content:'';position:absolute;inset:-7px -4px}
  .exp-diagram-card .cd-controls>summary::before{content:'';position:absolute;inset:-10px -4px}
- .exp-diagram-card .cd-view-mode{padding-top:9px;padding-bottom:9px}
+ .exp-diagram-card .cd-view-mode{padding-top:11px;padding-bottom:11px}
+ /* The name in the header is the way home, and on a phone it was thirty-five pixels tall; and the run's Close,
+    Previous and Next were thirty-eight wide. The header has the room for the one; the stage row's gap of eight
+    takes four more pixels each side of the others, edge to edge, without one taking the other's press. */
+ .exp-brand{min-height:44px}
+ .bp-icon::before{inset:-6px -4px}
+ .exp-slow-space>button{position:relative}
+ .exp-slow-space>button::before{content:'';position:absolute;inset:-11px -4px}
 }

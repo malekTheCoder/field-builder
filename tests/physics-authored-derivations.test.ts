@@ -475,11 +475,11 @@ describe('every displayed “=” in a worked chain is true, and the chain ends 
     const scope=scopeFor(p,setting);
     let chain:number|null=null;
     // THE SPHERICAL SHELL'S ONE INTEGRAL HAS TWO ANSWERS: kQ/z² outside, the graded result, and zero inside, graded as a
-    // field of its own. Each of its last two lines says where it holds, (z > R) or (z < R): a line is held where it
+    // field of its own. Each of its last two lines says where it holds, (z > R) or (0 < z < R): a line is held where it
     // says, and the chain ends on the outside answer outside the shell and on zero inside it.
     const inside=p.geometry==='shell'&&setting.dist<setting.R;
     for(const [wi,w] of (step.worked??[]).entries()){
-     if(p.geometry==='shell'&&(inside?/\(z>R\)/:/\(z<R\)/).test(w.tex))continue;
+     if(p.geometry==='shell'&&(inside?/\(z>R\)/:/\((0<)?z<R\)/).test(w.tex))continue;
      if(indefiniteOf(w.tex)){tally.antiderivative++;continue;}               // verified by CASE 2
      for(const clause of clausesOf(w.tex)){
       if(!clause.pieces.length){tally.skipped++;continue;}

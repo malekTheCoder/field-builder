@@ -160,7 +160,7 @@ describe('the lesson’s own strings', () => {
       expect(built / ev(p.kernel, scope)).toBeCloseTo(1, 12);
     }
     expect(resultLines(p)[0]).toContain('(z>R)');
-    expect(resultLines(p)[0]).toContain('(z<R)');
+    expect(resultLines(p)[0]).toContain('(0<z<R)');
     expect(boardLines(p)[0].tex).toContain('\\approx');
     expect(buildStages(p)[1].name).toBe('One ring');
   });

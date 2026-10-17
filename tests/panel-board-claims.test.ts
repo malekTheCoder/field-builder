@@ -80,7 +80,7 @@ describe('a potential with a mirror says why nothing cancels', () => {
   it('the same distance, the same sign, and a number has no sideways part', () => {
     for (const id of ['v-rod-bisector', 'v-ring', 'v-arc']) {
       const nothing = step(id, 'cancel').nothing!;
-      expect(nothing, id).toMatch(/just as far away and its charge has the same sign, so it adds the same \$\\Delta V\$: nothing cancels, since a number has no sideways part, and \$\\Delta V\$ is unchanged from the step before\.$/);
+      expect(nothing, id).toMatch(/just as far away and its charge has the same sign, so it adds the same \$\\Delta V\$: nothing cancels, since a potential has no sideways part, and \$\\Delta V\$ is unchanged from the step before\.$/);
     }
   });
   it('k is defined after the "over r_i", so the dash never reads as k over r_i', () => {

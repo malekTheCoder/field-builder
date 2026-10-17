@@ -66,9 +66,10 @@ const CANCELS: Record<string, string> = {
   // Of the pieces and their mirrors, as the run's lines are (see `CANCEL_LINES`): a reader can choose the
   // run's piece, and at an odd N the middle one is its own mirror, with nothing drawn opposite it.
   bisector: 'Now the mirror pieces, each the same distance from P as its partner, on the other side of the x-axis. A piece’s part along the rod is equal and opposite to its mirror’s, so those two cancel, and what is left of both points the same way, perpendicular to the rod.',
-  // Only part of this rod has mirrors: the stretch that reaches as far beyond P's level on the long side as the nearer
-  // end does on the short side. The rest is the leftover, and it is the whole of what the lesson adds to the bisector.
-  offset: 'Now the mirror pieces, each as far from P as its partner across the x-axis. Only the stretch reaching as far beyond P’s level on the long side as the near end does on the short side has them: there a pair’s parts along the rod cancel, and their perpendicular parts add. The leftover has no mirrors, so its pieces keep both parts.',
+  // Only part of this rod has mirrors, and the rest is the whole of what the lesson adds to the bisector. Said in two
+  // short sentences: "only the stretch reaching as far beyond P's level on the long side as the near end does on the
+  // short side has them" was read aloud, and a critic had to draw the rod to follow it.
+  offset: 'Now the mirror pieces. Pieces at equal heights above and below P’s level pair up: each pair’s parts along the rod cancel, and their perpendicular parts add. Past the shorter end, the longer side has extra rod with no partner, whose parts along the rod all survive.',
   // Not "the piece": at an odd N -- the default five among them -- no piece's middle is half a turn
   // from another's, and the figure draws an arc of the piece's length centred straight across. That
   // length of ring is what cancels the piece's part, at any N.
@@ -119,7 +120,8 @@ const CANCELS: Record<string, string> = {
 // word -- and what survives is the part along the axis.
 const CANCEL_LINES: Record<string, string> = {
   bisector: 'Mirror pieces cancel each other’s parts along the rod; the perpendicular parts survive.',
-  offset: 'Mirror pieces cancel their parts along the rod; the leftover’s pieces keep theirs.',
+  // "The leftover's pieces" named a leftover nothing had defined: they are the pieces with no pair.
+  offset: 'Mirror pairs cancel their parts along the rod; the unpaired pieces keep theirs.',
   // Of the piece's part, not of "the ring half a turn round", which named the whole ring as the partner. Nor
   // "the piece half a turn round": at an odd N that is the cut between two pieces (see `PAIR_RING` on the board).
   ring: 'Each piece’s sideways part is undone half a turn round; the part along the axis survives.',
@@ -258,7 +260,9 @@ export function buildStages(p: Problem, bracket?: RunBracket): BuildStage[] {
       // At r = ½ beside L = 8 and three pieces the bisector's chain is 2.7 times the field -- and there the
       // drawn pieces are five times their distance from P, so the line says when a piece is nearly a point
       // charge, not that these are. "Compared with", not "beside": that read as "next to".
-      : `A piece short compared with its distance from${P} is nearly a point charge.`,
+      // And that the rod is being cut at all: the line said why a piece is fine, never what is happening. The condition
+      // stays a condition -- the sliders draw pieces five times their distance from P.
+      : `Pieces of rod: one short compared with its distance from${P} is nearly a point charge.`,
     // k times: a charge over a distance is not a potential, and the caption beside it says k.
     one: scalar ? (surface ? `A thin ring adds $k$ times its charge over its distance: all of it is equally far from${P}.`
         // "It adds k times its charge over its distance to the potential at P" had no antecedent for "It",
@@ -319,18 +323,20 @@ export function buildStages(p: Problem, bracket?: RunBracket): BuildStage[] {
     // subject, and the pieces are what shrink.
     add: part ? (scalar ? (exact ? `Stack each bracketed piece’s number: the column is exactly that part’s potential at${P}.`
         : `Stack each bracketed ${unit}’s number: it becomes that part’s potential at${P} as they shrink.`)
-        : `Bracketed ${unit}s’ arrows, tip to tail, add up to that part’s field at${P} as they shrink.`)
-      // The rod off its bisector: its pairs, then its leftover whole -- and the lean that leftover makes.
-      : geometry === 'offset' && !scalar ? `Mirror pairs go in along $x$, then the leftover pieces whole: the sum leans.`
+        : `Each bracketed arrow starts where the last ended: the sum tends to that part’s field.`)
+      // The rod off its bisector: its pairs, then its unpaired pieces whole -- and the tilt they give the sum. "The sum
+      // leans" was said to a reader who had not been told off what.
+      : geometry === 'offset' && !scalar ? `Mirror pairs go in along $x$, then the unpaired pieces whole: the sum tilts off the $x$-axis.`
       : pairs && !scalar ? (exact ? `Pairs half a turn apart: sideways parts cancel; $z$ parts sum to exactly the field at${P}.`
         // Ending on what the sum reaches, not on the lone middle piece: the board under the line and the
         // caption say why that piece needs no partner, and the line closed on that footnote without ever
         // saying where the sum goes.
         : `Mirror pairs’ $y$ parts cancel; the sum runs along $x$: the field at${P} once the pieces shrink.`)
       : exact ? (scalar ? `Stack every piece’s contribution. The column is exactly the potential at${P}.`
-        : `Every piece’s arrow, tip to tail. The sum ends exactly at the field at${P}: every piece is equally far, at the same angle.`)
+        : `Each arrow starts where the last ended, and the sum ends exactly at the field at${P}.`)
       : scalar ? `Stack every ${unit}’s number: their sum becomes the potential at${P} as the ${unit}s shrink.`
-      : `Every ${unit}’s arrow, tip to tail: their sum becomes the field at${P} as the ${unit}s shrink.`,
+      // "Tip to tail" was a phrase the page never explained: what it means, said.
+      : `Each arrow from where the last ended: the sum becomes the field at${P} as the ${unit}s shrink.`,
     // WHY THE SUM BECOMES THE ANSWER. "The field stops depending on the cut" was opaque ("the cut"?), and
     // said nothing of why: what Cut it up and Add them up called only nearly true -- a piece treated as a
     // point charge -- is what shrinking makes exact. Each lesson names its own approximation, as the
@@ -403,22 +409,22 @@ export function buildStages(p: Problem, bracket?: RunBracket): BuildStage[] {
   // The pairs' order, said: from the middle out on a rod, a line or an arc; round the ring, where every piece is
   // as near as every other.
   const adds = part
-    ? `Now add the arrows of the bracketed ${unit}s, tip to tail.${pairs ? bracket.keeps ? ' Each one’s mirror is bracketed too, so the sideways parts undo each other along the way and the chain bends back to the axis.' : ' A piece whose mirror lies outside the bracket keeps its sideways part, so the chain leans.' : ''} Where it stops is the sum of the bracketed ${unit}s: that part’s field at P once they shrink.`
+    ? `Now add the arrows of the bracketed ${unit}s, each starting where the last one ended.${pairs ? bracket.keeps ? ' Each one’s mirror is bracketed too, so the sideways parts undo each other along the way and the chain bends back to the axis.' : ' A piece whose mirror lies outside the bracket keeps its sideways part, so the chain leans.' : ''} Where it stops is the sum of the bracketed ${unit}s: that part’s field at P once they shrink.`
     : geometry === 'offset' && !scalar
-    ? `Now add the mirrored stretch in pairs from the middle out: their parts along the rod cancel, so the sum runs along the x-axis. Then add the leftover pieces whole, nearest P’s level first. Nothing cancels theirs, so the sum leans, and ${stops}`
+    ? `Now add the paired pieces from the middle out: their parts along the rod cancel, so the sum runs along the x-axis. Then the unpaired pieces whole, nearest P’s level first: nothing cancels theirs, so the sum tilts off the x-axis, and ${stops}`
     : pairs && exact
     ? 'Now add the pieces in pairs, each with the same length of ring straight across from it. In each pair the sideways parts cancel and the parts along the axis add, so the sum, E = Σ ΔE, grows straight along the axis to exactly the field at P: every piece is the same distance away at the same angle, so cutting finer changes nothing.'
     : pairs
     ? `Now add the pieces in mirror pairs from the middle out; a lone middle piece has no sideways part. In each pair ${PAIR_PARTS[geometry].parts} add, so the sum runs ${PAIR_PARTS[geometry].runs}, and ${stops}`
     : exact
-    ? 'Now add every piece’s arrow, tip to tail. The sideways parts undo each other along the way, so the chain bends back to the axis, and it ends exactly at the field at P, E = Σ ΔE: every piece is the same distance away at the same angle, so cutting finer changes nothing.'
+    ? 'Now add every piece’s arrow, each starting where the last one ended. The sideways parts undo each other along the way, so the chain bends back to the axis, and it ends exactly at the field at P, E = Σ ΔE: every piece is the same distance away at the same angle, so cutting finer changes nothing.'
     : shell
-    ? `Now add every ring’s arrow, tip to tail. They all lie along the axis, so the chain runs straight; inside the shell the rings above P point the other way, and the chain turns back on itself. Then ${stops}`
+    ? `Now add every ring’s arrow, each starting where the last one ended. They all lie along the axis, so the chain runs straight; inside the shell the rings above P point the other way, and the chain turns back on itself. Then ${stops}`
     : geometry === 'axial' || surface
-    ? `Now add every ${unit}’s arrow, tip to tail. They all point along the axis, so the chain runs straight, and ${stops}`
+    ? `Now add every ${unit}’s arrow, each starting where the last one ended. They all point along the axis, so the chain runs straight, and ${stops}`
     : pairs
-      ? `Now add every piece’s arrow, tip to tail. The sideways parts undo each other along the way, so the chain bends back to the axis, and ${stops}`
-      : `Now add every piece’s arrow, tip to tail. Nothing undoes the sideways parts here, so the chain leans, and ${stops}`;
+      ? `Now add every piece’s arrow, each starting where the last one ended. The sideways parts undo each other along the way, so the chain bends back to the axis, and ${stops}`
+      : `Now add every piece’s arrow, each starting where the last one ended. Nothing undoes the sideways parts here, so the chain leans, and ${stops}`;
   return [
     // Long enough for the cuts to travel the length of the charge and for the line to be read.
     {key: 'pieces', name: 'Cut it up', seconds: 5, mode: 'divide', components: false, pair: false, sum: [1, 1], continuum: [0, 0],

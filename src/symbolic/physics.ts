@@ -171,7 +171,10 @@ export function limitPlot(problem:Problem,limit:Limit):LimitPlot{
  // A symbolic phrase such as "r ≫ L" never breaks across a line.
  const settles=(what:string,to:string)=>`On the dashed line the exact ${qty} equals ${what}. The curve settles onto it as ${to.replace(/ /g,'\u00a0')}.`;
  switch(limit.mode){
-  case 'far':return{kind:'ratio',y:`${Q} ÷ point-charge ${qty}`,axis:`distance ${d}`,from:`${d} ∼ ${size}`,to:`${d} ≫ ${size}`,line:'point charge',caption:settles('a point charge’s',`${d} ≫ ${size}`)};
+  // The rod off its middle writes its far case in d = √(r² + h²), the distance from P to the rod's middle, and
+  // the plot sweeps r. Since |h| ≤ L/2 the two grow large together, and the caption says so: a card with a
+  // formula in d over a plot in r used two distances and never said how they relate.
+  case 'far':return{kind:'ratio',y:`${Q} ÷ point-charge ${qty}`,axis:`distance ${d}`,from:`${d} ∼ ${size}`,to:`${d} ≫ ${size}`,line:'point charge',caption:settles('a point charge’s',`${d} ≫ ${size}`)+(g==='offset'?' With it d ≫ L, since d = √(r² + h²) and |h| is at most half of L.':'')};
   case 'moment':return{kind:'ratio',y:'|Eᵧ| ÷ first-moment field',axis:'distance r',from:'r ∼ L',to:'r ≫ L',line:'first moment',caption:'On the dashed line the vertical field is the first-moment field, set by the centre of charge ȳ. The curve settles onto it as r\u00a0≫\u00a0L.'};
   case 'infinite':
    // The dashed curve is named by how it grows, as the rod's near case names its logarithm: "growth

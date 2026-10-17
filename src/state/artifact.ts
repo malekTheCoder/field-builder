@@ -196,6 +196,8 @@ export function mathProseHtml(text: string) {
       : symbolic(part) && (held || !/^[aAI]$/.test(part)) ? latin(part) : greekHtml(part)).join('');
   }).join('');
 }
+/** The name the copy's tests know it by. */
+export const symbolsHtml = mathProseHtml;
 
 /** Whether a lesson's sentence or display says what k is: k = 1/(4πε₀), in either way of writing the fraction. */
 const K_SAID = /k\s*=\s*(?:\\[dt]?frac\{?1\}?\{4\\pi\s*\\varepsilon_0\}|1\/\(4\\pi\s*\\varepsilon_0\))/;

@@ -76,9 +76,9 @@ export const lesson: GaussLesson = {
       },
       right: {
         tex: raw`Q_{\text{enc}}=\sigma A`,
-        say: raw`The pillbox cuts a disc of area $A$ out of the sheet.`,
-        line: raw`Inside is a disc of sheet of area $A$, holding $\sigma A$.`,
-        caption: 'The right side. The pillbox encloses the disc of sheet inside it, of area A, holding σ A, whatever the pillbox’s height.',
+        say: raw`The pillbox cuts a disk of area $A$ out of the sheet.`,
+        line: raw`Inside is a disk of sheet of area $A$, holding $\sigma A$.`,
+        caption: 'The right side. The pillbox encloses the disk of sheet inside it, of area A, holding σ A, whatever the pillbox’s height.',
       },
       solve: {
         tex: raw`2E_\perp A=\frac{\sigma A}{\varepsilon_0}\;\Rightarrow\;E_\perp=\frac{\sigma}{2\varepsilon_0}`,
@@ -166,9 +166,9 @@ export const lesson: GaussLesson = {
       },
       right: {
         tex: raw`Q_{\text{enc}}=\sigma A`,
-        say: raw`The pillbox holds a disc of one plate, not of both.`,
-        line: raw`Inside is a disc of the one plate, holding $\sigma A$.`,
-        caption: 'The right side. The pillbox encloses a disc of area A of the plate carrying σ, and none of the other plate.',
+        say: raw`The pillbox holds a disk of one plate, not of both.`,
+        line: raw`Inside is a disk of the one plate, holding $\sigma A$.`,
+        caption: 'The right side. The pillbox encloses a disk of area A of the plate carrying σ, and none of the other plate.',
       },
       solve: {
         tex: raw`E_\perp A=\frac{\sigma A}{\varepsilon_0}\;\Rightarrow\;E_\perp=\frac{\sigma}{\varepsilon_0}`,

@@ -22,13 +22,14 @@
    ink type on the white button 17.00. --border-strong and --exp-track hold 3:1 against ground and card.
    The dark theme is DERIVED against its own surfaces, not inverted: every pair above was recomputed there.
    Physics semantics, unchanged: --field is the net field, --contribution a lighter shade of the same
-   family for one piece, --ghost the neutral of dashed cancelled parts, --charge the warm source.
+   family for one piece, --ghost the neutral of dashed cancelled parts (strokes; --ghost-ink is the same neutral
+   darkened to 5.19:1 on the card for text set in it, where --ghost was 3.91), --charge the warm source.
    ===================================================================== */
 :root { --term-element:var(--charge); --term-distance:#2a63c4; --term-projection:#7a45d0; --term-bounds:var(--field);
  --background:#f2f2f2; --foreground:#171717; --ink-2:#3d3d3d; --card:#ffffff; --muted:#e6e6e6; --muted-foreground:#5e5e5e;
  --primary:#0b6b63; --accent:#e6e6e6; --border:#d4d4d4; --border-strong:#858585; --rule:#8fc0ba;
  --cta:#171717; --cta-hover:#3d3d3d; --on-cta:#ffffff; --on-accent:#ffffff;
- --charge:#b8460f; --charge-fill:#fdefe6; --field:#0b6b63; --contribution:#2f9089; --ghost:#6d8492;
+ --charge:#b8460f; --charge-fill:#fdefe6; --field:#0b6b63; --contribution:#2f9089; --ghost:#6d8492; --ghost-ink:#587080;
  --grid:#dedede; --diagram:#ffffff; --shadow-soft:none;
  --sidebar:var(--background); --sidebar-foreground:#171717; --sidebar-primary:#0b6b63; --sidebar-primary-foreground:#ffffff; --sidebar-accent:transparent; --sidebar-accent-foreground:#171717; --sidebar-border:#d4d4d4; --sidebar-ring:#0b6b63; --sidebar-item:#3d3d3d; --sidebar-dim:#5e5e5e; --sidebar-hover:#e6e6e6;
  --font-ui:"Hanken Grotesk Variable","Hanken Grotesk","Helvetica Neue",Arial,sans-serif; --font-math:KaTeX_Math,"Times New Roman",serif; --font-display:"Source Serif 4 Variable",Georgia,serif;
@@ -42,7 +43,7 @@
  --background:#101010; --foreground:#f2f2f2; --ink-2:#c9c9c9; --card:#1a1a1a; --muted:#242424; --muted-foreground:#9a9a9a;
  --primary:#4fd8c8; --accent:#242424; --border:#333333; --border-strong:#6b6b6b; --rule:#1f4f4a;
  --cta:#f2f2f2; --cta-hover:#c9c9c9; --on-cta:#101010; --on-accent:#101010;
- --charge:#f0975c; --charge-fill:#3d2c1f; --field:#4fd8c8; --contribution:#35a9a2; --ghost:#879cab;
+ --charge:#f0975c; --charge-fill:#3d2c1f; --field:#4fd8c8; --contribution:#35a9a2; --ghost:#879cab; --ghost-ink:#879cab;
  --grid:#2b2b2b; --diagram:#1a1a1a; --shadow-soft:none;
  --sidebar:var(--background); --sidebar-foreground:#f2f2f2; --sidebar-primary:#4fd8c8; --sidebar-primary-foreground:#101010; --sidebar-accent:transparent; --sidebar-accent-foreground:#f2f2f2; --sidebar-border:#333333; --sidebar-ring:#4fd8c8; --sidebar-item:#c9c9c9; --sidebar-dim:#9a9a9a; --sidebar-hover:#242424; }
 /* The theme says which it is to the browser as well, so what the browser draws itself -- scrollbars,

@@ -38,7 +38,7 @@ export const lesson: Lesson = {
     ]},
     {heading: 'What the answer says', body: [
       raw`With $2\pi k\sigma=\sigma/(2\varepsilon_0)$, the answer is two disks: the disk lesson’s answer for radius $b$, $(\sigma/2\varepsilon_0)\bigl(1-z/\sqrt{b^2+z^2}\bigr)$, less the same answer for radius $a$. An annulus is a disk with a smaller disk of the same $\sigma$ taken out.`,
-      raw`So each limit is a lesson met before. With no hole, $a\to0$, the factor $z/\sqrt{a^2+z^2}$ becomes $z/\sqrt{z^2}=1$ above the annulus, and it is the disk. With $\sigma$ fixed and the rim run out, $b\to\infty$, the second term goes and what is left, $(\sigma/2\varepsilon_0)\,z/\sqrt{a^2+z^2}$, is an infinite sheet with a round hole: the sheet’s $\sigma/(2\varepsilon_0)$ less the field of the disk the hole took out, the superposition the Gauss lesson “Holes by superposition” uses. Far up the axis, $z\gg b$, it is a point charge’s $kQ/z^2$. And with $Q$ fixed and $a\to b$, every ring is nearly $b$ out: a ring’s $kQz/(b^2+z^2)^{3/2}$.`,
+      raw`Each limit is a lesson met before. With no hole, $a\to0$, the first term, $z/\sqrt{a^2+z^2}$, becomes $z/\sqrt{z^2}=1$ above the annulus: the disk. With $\sigma$ fixed and the rim run out, $b\to\infty$, the second term goes, leaving $(\sigma/2\varepsilon_0)\,z/\sqrt{a^2+z^2}$: an infinite sheet with a round hole, the sheet’s $\sigma/(2\varepsilon_0)$ less the field of the disk the hole took out, as in the Gauss lesson “Holes by superposition”, whose hole has radius $b$. Far up the axis, $z\gg b$, it is a point charge’s $kQ/z^2$. And with $Q$ fixed and $a\to b$, every ring is nearly $b$ out: a ring’s $kQz/(b^2+z^2)^{3/2}$.`,
     ]},
   ],
   read: [

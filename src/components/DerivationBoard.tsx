@@ -79,7 +79,8 @@ export const DerivationBoard = memo(function DerivationBoard({lines, names, stat
               {line.cancels && <MathText className="db-where db-cancels" tex={cancellationTex(line.cancels)} trusted />}
               {/* What the cancellation's symbols are, directly under it: ΔE_y used to be named only
                   at the end of the paragraph four lines down. */}
-              {line.cancelsSay && <span className="db-where db-say db-pair"><Prose text={line.cancelsSay} /></span>}
+              {/* In paragraphs, as a remark is: the rod off its middle says which pieces pair and which have none. */}
+              {line.cancelsSay?.split(BREAK).map((para, j) => <span key={j} className="db-where db-say db-pair"><Prose text={para} /></span>)}
               {line.nothing && <span className="db-where db-say db-cancels db-nothing"><Prose text={line.nothing} /></span>}
               <MathText className="db-tex" tex={line.tex} block trusted />
               {/* The second half of a chain of equalities follows the first directly, its "=" under
@@ -94,7 +95,7 @@ export const DerivationBoard = memo(function DerivationBoard({lines, names, stat
                   in one KaTeX box lets it break after the first arrow on the shell's narrow board,
                   leaving the integral on the next line. Wrap between the two complete relations. */}
               {line.where && (line.key === 'limit'
-                ? <span className="db-where db-replacements">{line.where.split(String.raw`,\quad `).map(tex => <MathText key={tex} tex={tex} trusted />)}</span>
+                ? <span className="db-where db-replacements">{line.where.split(/,\\quad |\\quad\\allowbreak /).map(tex => <MathText key={tex} tex={tex} trusted />)}</span>
                 : <MathText className="db-where" tex={line.where} trusted />)}
               {/* Shrink them's other replacements, a formula each: separate pieces of math, so a narrow
                   panel wraps between them rather than scrolling one long row sideways. */}

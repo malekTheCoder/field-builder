@@ -81,7 +81,7 @@ describe('small beside what', () => {
       const [cut] = buildStages(lesson(id));
       expect(cut.caption, id).toMatch(/distance from P/);
       expect(step(id, 'add').say, id).toMatch(/(short|narrow) compared with (its|that) distance/);
-      if (id !== 'disk' && id !== 'v-disk') expect(cut.line, id).toMatch(/^A piece short compared with its distance from P is nearly a point charge\./);
+      if (id !== 'disk' && id !== 'v-disk') expect(cut.line, id).toMatch(/^Pieces of rod: one short compared with its distance from P is nearly a point charge\./);
     }
     expect(buildStages(lesson('arc'))[0].caption).toMatch(/short compared with their distance from P, which is R/);
   });
@@ -176,7 +176,8 @@ describe('the equal-angle first line is geometry, not a rate', () => {
       const say = step(id, 'pieces').say!;
       expect(say, id).not.toMatch(/how fast/);
       expect(say, id).toMatch(/across the line of sight/);
-      expect(say, id).toMatch(/times as (long|wide)/);
+      // The slant, in one clause: the line crosses the sight line slantwise, one more sec α.
+      expect(say, id).toMatch(/crosses the sight line slantwise, which adds one more \$\\sec\\alpha\$/);
     }
     // Δx cos α = r_i Δα, with r_i = r sec α: a thin piece is r sec²α Δα long.
     const r = 1.6, alpha = .9, d = 1e-6;

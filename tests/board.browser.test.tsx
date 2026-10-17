@@ -126,9 +126,11 @@ describe('every new symbol is said in words beside the line that brings it in', 
     // And last, in a paragraph of its own, why the sum's ≈ is now an =: the approximation Add named is
     // the one shrinking removes.
     // Where piece i sits is y_i, and y_i becoming the integral's y is the step said in words.
-    expect(says.map(read)).toEqual(['As N→∞ the pieces grow ever thinner: each Δy becomes dy, piece i’s position yi becomes the integral’s y, and the sum over pieces becomes an integral over y. What changes from piece to piece is written in terms of yi: the squared distance ri2=yi2+r2 and the cosine cosαi=r/yi2+r2.', 'The ≈ becomes = here: the thinner a piece, the more nearly it is a point charge, and in the limit it is one.']);
+    // What r_i² and cos α_i become in y is the row of replacements under the integral, said once; the rule says what
+    // the integral sign is instead.
+    expect(says.map(read)).toEqual(['As N→∞ the pieces grow ever thinner: each Δy becomes dy, piece i’s position yi becomes the integral’s y, and the sum over pieces becomes an integral over y.', 'The sign ∫ is a stretched S, for “sum”: an integral is this sum in that limit, and dy is a piece’s length once it is as thin as you like.', 'The ≈ becomes = here: the thinner a piece, the more nearly it is a point charge, and in the limit it is one.']);
     // Its symbols are the board's, set as math.
-    expect(says.reduce((n, s) => n + s.querySelectorAll('.katex').length, 0)).toBe(12);
+    expect(says.reduce((n, s) => n + s.querySelectorAll('.katex').length, 0)).toBe(11);
   });
 });
 

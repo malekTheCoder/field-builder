@@ -179,6 +179,10 @@ export type RunScene={
   * beside at its default, and a disk, a sheet or the rod seen along its axis is beside from its first
   * link -- as is a short rod seen from far away, whose chain would otherwise hide in the net arrow. */
  chainBeside:boolean;
+ /** Which links of `chain` are the staircase's jogs across to the next column, link k running from point k to point
+  * k + 1; null where the chain has none. A jog is no piece's field: the scene draws it as a hairline with no bead,
+  * as the flat figure dots it, so it is not read as a sideways ΔE. */
+ jogs:boolean[]|null;
 };
 export type RunSceneInput={
  stage:string; kind:BodyKind; closed:boolean; n:number; selected:number;
@@ -326,20 +330,31 @@ export function runScene(input:RunSceneInput):RunScene{
   // A piece on P's own line is its own mirror: nothing cancels it, as nothing pairs with it (see `own`).
   mirrored:!!input.mirrored&&!own,
  }:null;
- let chain:Vec[]|null=null;
+ let chain:Vec[]|null=null,jogs:boolean[]|null=null;
  if(input.chain){
   const {scale,fields,weights:w}=input.chain,step=input.chain.step??ORIGIN;
   let cursor:Vec={x:0,y:0,z:0};
   chain=[cursor];
+  const stair=step!==ORIGIN;
+  if(stair)jogs=[];
   for(let i=0;i<fields.length;i++){
    const k=w[i]??0;
    if(k===0)continue;
+   // The jog across to this link's column, upright links in a staircase (see `step`). TAKEN BEFORE A LINK, NOT
+   // AFTER ONE: laid after each link, the chain ended on a jog whenever a ring was still to come -- all through
+   // Add them up -- and the scene marked that jog as the link just added, a sideways ΔE no ring gives.
+   if(stair&&chain.length>1){cursor={x:cursor.x+step.x,y:cursor.y+step.y,z:cursor.z+step.z};chain.push(cursor);jogs!.push(true);}
    cursor={x:cursor.x+fields[i].x*k*scale,y:cursor.y+fields[i].y*k*scale,z:cursor.z+fields[i].z*k*scale};
    chain.push(cursor);
-   // The jog across to the next link's column, upright links in a staircase (see `step`).
-   if(step!==ORIGIN&&i<fields.length-1){cursor={x:cursor.x+step.x,y:cursor.y+step.y,z:cursor.z+step.z};chain.push(cursor);}
+   jogs?.push(false);
   }
-  if(chain.length<2)chain=null;
+  if(chain.length<2){chain=null;jogs=null;}
+  // NO STAIRCASE IN SHRINK THEM. Its jogs are a fixed step per link, so however many rings there are it ends the
+  // whole run of the steps to one side of P: resampled into the limit's smooth curve it hooked off beside E outside
+  // the shell, and inside it dipped to the bottom ring and came back beside P, where E is zero -- a sum ending off its
+  // own arrow, read as an integral with a sideways part. The flat figure lets its staircase go in Shrink them and
+  // shows E alone; so does the scene.
+  else if(stage==='limit'&&stair){chain=null;jogs=null;}
   else if(stage==='limit')chain=resample(chain,LIMIT_CHAIN);
  }
  const selectedPath=input.selectedSpan&&!surface?stretch(at,input.selectedSpan[0],input.selectedSpan[1],n):null;
@@ -349,7 +364,11 @@ export function runScene(input:RunSceneInput):RunScene{
  tones.forEach((tone,i)=>{const own=parts[i];added+=own?own.filter(q=>q.tone==='added').reduce((s,q)=>s+q.hi-q.lo,0):tone==='added'?1/n:0;});
  const sel=input.selectedSpan&&!surface?Math.abs(input.selectedSpan[1]-input.selectedSpan[0]):1/n;
  const lit=sel+(partnerIndex!==null||across?1/n:span?Math.abs(span.hi-span.lo):0);
- return {stage,kind,closed,pieces,tones,parts,spans:{added,lit},selected,selectedPath,partner,open,split,seams,filled,arrows,chain,chainBeside:!!chain&&fieldsCollinear(input.chain!.fields)};
+ return {stage,kind,closed,pieces,tones,parts,spans:{added,lit},selected,selectedPath,partner,open,split,seams,filled,arrows,chain,jogs,
+  // A surface's chain is always laid beside, as the flat figure lays it: inside the shell the rings above P push back
+  // down the axis, so the fields are not collinear, and the staircase started on P itself with its first column over
+  // ΣΔE's arrow, hiding the very arrow its label names.
+  chainBeside:!!chain&&(surface||fieldsCollinear(input.chain!.fields))};
 }
 /** Each wire piece's stretches by tone, where it has more than one (see `RunPart`): the chosen stretch, where
  * it is not the whole chosen piece, is lit; whatever lies in a stretch already summed is coloured as added; the

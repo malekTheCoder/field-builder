@@ -125,6 +125,14 @@
   .exp-lesson { display: block !important; max-width: none !important; margin-bottom: 18px !important; border-left: 0 !important; padding-left: 0 !important; }
   .exp-lesson-lead { display: block; border-left: 2px solid var(--rule); padding-left: 16px; }
   .exp-lesson-section { break-inside: avoid; }
+  /* ONE ACCOUNT OF THE FIVE STEPS ON PAPER. The written lesson told Cut it up, One piece, What cancels, Add them
+     up and Shrink them, and then the board under the figure told them again, heading for heading: the shell
+     printed eight sheets, the figure not until the third, and a class set cost two hundred and forty. The
+     board's account is the one drawn beside the figure and the one that writes each line of algebra, so it is
+     the one printed; the lesson keeps its lead, its setup, what the answer says (and the potentials' way
+     back to the field) and its reading. Every lesson lists its sections in that order, the setup first and the
+     five steps after it (src/lessons), which is what these positions name; page-w7-print checks it. */
+  .exp-lesson-body > .exp-lesson-section:nth-child(n+2):nth-child(-n+6) { display: none !important; }
   .exp-lesson-section h3 { break-after: avoid; }
 }
 

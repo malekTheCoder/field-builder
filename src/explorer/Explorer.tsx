@@ -82,7 +82,18 @@ const IN_THE_LIMIT=.999;
 /** The lesson's title, where the focus goes when nothing else should have it (Explorer, `focusLesson`). */
 const LESSON_TITLE='lesson-title';
 /** The library's card for the open lesson, where the dialog puts the focus; the first card if none is. */
-const libraryFocus=()=>document.querySelector<HTMLElement>('.exp-library-dialog [aria-current=page]')??true;
+const libraryFocus=()=>{const card=document.querySelector<HTMLElement>('.exp-library-dialog [aria-current=page]');if(card)requestAnimationFrame(()=>requestAnimationFrame(()=>placeLibrary(card)));return card??true;};
+/** THE LIBRARY OPENS ON THE OPEN LESSON'S FAMILY, HEADING FIRST. Focusing its card scrolled the list only as far as
+ * the card, so on the annulus the dialog opened with a row of cards sliced through their tops under the subtitle and
+ * the family's name out of sight: a student looking for the first lesson had no sign the list went on above. The
+ * region is now scrolled so the family's heading is its first line (none at all for the first family), unless that
+ * would put the card itself below the region's foot, when the card's top is. */
+function placeLibrary(card:HTMLElement){
+ const list=card.closest<HTMLElement>('.exp-library-list'),family=card.closest<HTMLElement>('.exp-library-family');if(!list||!family||!card.isConnected)return;
+ const at=(e:HTMLElement)=>e.getBoundingClientRect().top-list.getBoundingClientRect().top+list.scrollTop;
+ const head=at(family)-parseFloat(getComputedStyle(list).paddingTop||'0'),foot=card.getBoundingClientRect().bottom-list.getBoundingClientRect().top+list.scrollTop;
+ list.scrollTop=Math.max(0,foot-head>list.clientHeight?at(card)-12:head);
+}
 /** A lesson as it is opened from storage or from a link: with the charge CUT INTO PIECES. The run drives the
  * same state the controls do, and before the persistence fix a run left at its end was saved with its cut gone
  * (continuum 1) -- a student who had watched one opened that lesson ever after on a smooth rod "In the limit"
@@ -447,6 +458,30 @@ export default function Explorer({welcome}:{welcome?:boolean}={}){
  // and the first stage starts at exactly zero -- so clicking the first stage's marker, or pausing
  // on its opening frame, threw the reader out of the run and back to the start button.
  const buildOpen=buildShown;
+ /* A SLOW COMPUTER IS OFFERED THE FLAT VIEW, NEVER SWITCHED TO IT. The lessons that open in space (the ring, the
+  * disk, the sheet, the annulus, the shell) ran their Add them up at seven to fifteen frames a second on a
+  * software-drawn machine, against sixty in the flat view, and a school Chromebook draws the same shape: the stage
+  * each lesson is built on juddered, and nothing said the flat view existed. For the first two seconds the run
+  * plays in space the gaps between frames are timed, once a lesson; a median over forty milliseconds, or two
+  * gaps over a hundred and fifty, puts one quiet line under the transport whose button presses the figure's own
+  * 2D switch, so the run keeps its stage. A hidden window paints no frames, so it is never timed as slow. */
+ const [slowSpace,setSlowSpace]=useState<ProblemId|null>(null);const timedSpace=useRef<ProblemId|null>(null);
+ useEffect(()=>{
+  if(!buildOpen||!building||!inSpace||timedSpace.current===id||typeof requestAnimationFrame==='undefined')return;
+  const gaps:number[]=[];let last=-1,start=-1,frame=0,done=false;
+  const tick=(t:number)=>{
+   if(document.visibilityState!=='visible'){last=-1;frame=requestAnimationFrame(tick);return;}
+   if(start<0)start=t;if(last>=0)gaps.push(t-last);last=t;
+   if(t-start<2000){frame=requestAnimationFrame(tick);return;}
+   done=true;timedSpace.current=id;
+   const sorted=[...gaps].sort((a,b)=>a-b),median=sorted[sorted.length>>1]??0;
+   if(median>40||gaps.filter(g=>g>150).length>=2)setSlowSpace(id);
+  };
+  frame=requestAnimationFrame(tick);
+  return ()=>{if(!done)cancelAnimationFrame(frame);};
+ },[buildOpen,building,inSpace,id]);
+ // The line goes once it is pressed, so the focus goes to the switch it pressed, now on, not to the page's body.
+ const toFlat=()=>{const flat=walk.current?.closest('.exp-diagram-card')?.querySelector<HTMLButtonElement>('.cd-view-modes button[aria-pressed=false]');flat?.click();flat?.focus();setSlowSpace(null);};
  // The piece being added walks along the charge while the sum builds, so it is always plain
  // which piece is going in. Where the charge has a mirror about P's axis the figure adds a piece and its
  // mirror together, and works out from the stage's own progress which pair is going in and lights both
@@ -504,8 +539,9 @@ export default function Explorer({welcome}:{welcome?:boolean}={}){
  const playerAnswer=useMemo(()=>{if(!settledRun)return NONE;if(bracket.whole)return resultLines(p);const part=bracketAnswer(p,bracket);return part?[part]:NONE},[p,bracket,settledRun]);
  // Over the answer, where it came from, in the panel's words (EquationWorkbench): the pieces added up where
  // the sum was exact all along, the integral done everywhere else -- and, where the answer has an E_y the
- // run built no line for, that it is the surviving part added up the same way.
- const playerLead=useMemo(()=>{if(!bracket.whole)return 'Done between the bracket’s ends, the integral gives the bracketed part’s answer.';const two=['endpoint','ramp','semi','offset'].includes(p.id);return (exactSum(p)?'Adding up the pieces gives this, exactly, however many there are.':two?'Doing the integrals gives this.':'Doing the integral gives this.')+(two?String.raw` $E_y$ is the surviving $\Delta E_y$ added up the same way.`:'')},[p,bracket]);
+ // run built no line for, that it is the surviving part added up the same way. Said first: "Doing the integrals gives
+ // this. E_y is …" claimed the integrals' result before saying what the second one was.
+ const playerLead=useMemo(()=>{if(!bracket.whole)return 'Done between the bracket’s ends, the integral gives the bracketed part’s answer.';const two=['endpoint','ramp','semi','offset'].includes(p.id);return two?String.raw`The surviving $\Delta E_y$ adds up the same way, to $E_y$. Doing the integrals gives this.`:exactSum(p)?'Adding up the pieces gives this, exactly, however many there are.':'Doing the integral gives this.'},[p,bracket]);
  // What the figure and the board are told about the run, held still until it actually changes.
  // The run's clock goes with it, and where the stage on screen starts and how long it lasts: a stage
  // that moves within itself reads its own moment off the clock, so a pause or a seek holds it there.
@@ -1200,7 +1236,7 @@ export default function Explorer({welcome}:{welcome?:boolean}={}){
       well: it plays, pauses, scrubs and steps one stage at a time, and the derivation in the
       panel arrives with it. */}
   {buildOpen&&<div ref={walk} className="exp-walk is-open"><BuildPlayer stages={stages} clock={runAt} index={buildIndex} playing={building} math={playerSteps} chain={playerChain} answer={playerAnswer} lead={playerLead}
-    onPlay={play} onSeek={seek} onStep={step} onClose={close}/></div>}
+    onPlay={play} onSeek={seek} onStep={step} onClose={close}/>{slowSpace===id&&inSpace&&<p className="exp-slow-space no-print">Running slowly on this computer? <button type="button" onClick={toFlat}>Switch to the flat view</button></p>}</div>}
 </section>
  <section className="exp-parameters">{parameterGrid}</section>
  {/* The sentence names the two tabs: without it they were an unnamed list of two. */}

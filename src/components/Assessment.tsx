@@ -422,6 +422,11 @@ function AssessmentView({problem,params:live,limit}:{problem:Problem;params:Para
  // A law falls, and its exact curve lies on it, so neither side of it is clear by the middle: there
  // the ghost runs just under it. Its name goes early and above, to the right, in the open corner a
  // falling curve leaves.
+ // AND A LEVEL LINE'S NAME GOES ON THE SIDE THE CURVE IS NOT. Named always just above its line, it was struck
+ // through by every curve that settles from above: the rod off its middle closing on "rod level with an end"
+ // ran its teal line straight through the words. Where the curve's last third, the stretch under the name at
+ // the right end, runs above the line on average, the name goes under it; the window stands on zero, so
+ // there is always room there, a line of its own type size below.
  const law=plot.kind==='law',named=guide?Math.round(samples.length*(law?.3:.55)):0,under=guide&&!law?guide[named]<values[named]:false;
  // Some ratios approach their reference from above, notably the off-middle rod at an end and
  // the uneven semicircle spread evenly. Their curves ran through a label always placed above
