@@ -37,7 +37,7 @@ export const bank: Question[] = [
     choices: [
       {correct: true, tex: raw`\Delta E_z=\frac{k\,\Delta Q\,(z-R\cos\theta)}{r_i^3}`},
       {tex: raw`\Delta E_z=\frac{k\,\Delta Q}{r_i^2}`, misconception: 'projection',
-        why: raw`That is the size of a point charge’s field. Round the ring the sideways parts cancel, and only the fraction $(z-R\cos\theta)/r_i$ of it points along the axis.`},
+        why: raw`That uses a point charge’s inverse-square rule without projecting along the axis. Round the ring the sideways parts cancel, and only the fraction $(z-R\cos\theta)/r_i$ of it points along the axis.`},
       {tex: raw`\Delta E_z=\frac{k\,\Delta Q\,R\sin\theta}{r_i^3}`, misconception: 'wrong-part',
         why: raw`$R\sin\theta$ is the ring’s radius, the sideways leg: that part cancels round the ring. Along the axis the leg is $z-R\cos\theta$.`},
       {tex: raw`\Delta E_z=\frac{k\,\Delta Q\,z}{r_i^3}`, misconception: 'fixed-distance',

@@ -65,7 +65,7 @@ export const bank: Question[] = [
     choices: [
       {correct: true, tex: raw`Q=2\lambda_0R`},
       {tex: raw`Q=\pi\lambda_0R`, misconception: 'density-inside',
-        why: raw`$\pi R$ is the semicircle’s length, and $\pi\lambda_0R$ would be its charge if the density were $\lambda_0$ all the way round. It falls to zero at the ends, and $\int\cos\theta\,d\theta$ over the half turn is $2$, not $\pi$.`},
+        why: raw`$\pi R$ is the semicircle’s length, and $\pi\lambda_0R$ would be its charge if the density were $\lambda_0$ all the way round. Its magnitude falls to zero at the ends, and $\int\cos\theta\,d\theta$ over the half turn is $2$, not $\pi$.`},
       {tex: raw`Q=\lambda_0R`, misconception: 'half-of-symmetric',
         why: raw`That is the charge of one half, from the axis to one end: $\int_0^{\pi/2}\cos\theta\,d\theta=1$. The other half holds as much again.`},
     ],
@@ -83,7 +83,7 @@ export const bank: Question[] = [
       {tex: raw`E_x=0`, misconception: 'cancel-survivor',
         why: raw`Only the parts across the axis cancel. Every piece is on the $+x$ side of $P$, so all their parts along $x$ point the same way.`},
     ],
-    explanation: raw`$E_x=-(k\lambda_0/R)\cdot\pi/2=-\pi k\lambda_0/(2R)$, and with $\lambda_0=Q/(2R)$ that is $-\pi kQ/(4R^2)$: stronger than the even semicircle’s $2kQ/(\pi R^2)$ by $\pi^2/8$, and weaker than $kQ/R^2$, all the charge at the middle.`,
+    explanation: raw`$E_x=-(k\lambda_0/R)\cdot\pi/2=-\pi k\lambda_0/(2R)$, and with $\lambda_0=Q/(2R)$ that is $-\pi kQ/(4R^2)$: stronger than the even semicircle’s magnitude $2k|Q|/(\pi R^2)$ by $\pi^2/8$, and weaker than $k|Q|/R^2$, all the charge at the middle.`,
     review: {lesson: 'uneven-arc', section: 'What the answer says'}},
 
   {id: 'uneven-arc-compare', lesson: 'uneven-arc', kind: 'predict',
@@ -95,7 +95,7 @@ export const bank: Question[] = [
       {text: raw`The even one: its charge reaches farther round the arc.`, misconception: 'cancel-survivor',
         why: raw`Charge near the ends makes a field that lies mostly across the axis, and its mirror cancels that part. Spreading the charge out toward the ends weakens the field.`},
     ],
-    explanation: raw`A piece’s part along the axis is $\cos\theta$ of its field. The cosine density puts its charge where $\cos\theta$ is large, so its pieces lose less to cancelling: $\pi kQ/(4R^2)$ against $2kQ/(\pi R^2)$.`,
+    explanation: raw`A piece’s part along the axis is $\cos\theta$ of its field. The cosine density puts its charge where $\cos\theta$ is large, so its pieces lose less to cancelling: $\pi k|Q|/(4R^2)$ against $2k|Q|/(\pi R^2)$ in magnitude.`,
     review: {lesson: 'uneven-arc', stage: 'cancel'}},
 
   {id: 'uneven-arc-negative', lesson: 'uneven-arc', kind: 'transfer',
@@ -119,6 +119,6 @@ export const bank: Question[] = [
       {text: raw`It falls to zero, since the parts across the axis cancel.`, misconception: 'potential-arrow',
         why: raw`A potential is a number, not an arrow: nothing of it points across the axis to cancel. With all the charge of one sign, every piece adds to it.`},
     ],
-    explanation: raw`$V=\int k\,dQ/R=kQ/R$: every piece is the same distance from $P$, so only the total charge counts. The field changes with the spread, $\pi kQ/(4R^2)$ for the cosine against $2kQ/(\pi R^2)$ evenly, because it adds arrows that point different ways.`,
+    explanation: raw`$V=\int k\,dQ/R=kQ/R$: every piece is the same distance from $P$, so only the total charge counts. The field magnitude changes with the spread, $\pi k|Q|/(4R^2)$ for the cosine against $2k|Q|/(\pi R^2)$ evenly, because it adds arrows that point different ways.`,
     review: {lesson: 'uneven-arc', section: 'What the answer says'}},
 ];

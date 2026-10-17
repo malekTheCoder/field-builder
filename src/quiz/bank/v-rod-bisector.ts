@@ -13,7 +13,7 @@ export const bank: Question[] = [
     choices: [
       {correct: true, tex: raw`\Delta V=\frac{k\,\Delta Q}{\sqrt{y^2+r^2}}`},
       {tex: raw`\Delta V=\frac{k\,\Delta Q}{y^2+r^2}`, misconception: 'potential-power',
-        why: raw`That is the size of the piece’s field. Its potential falls with one power of its distance, not two.`},
+        why: raw`That uses the field’s inverse-square rule. Its potential falls with one power of its distance, not two.`},
       {tex: raw`\Delta V=\frac{k\,\Delta Q}{\sqrt{y^2+r^2}}\cdot\frac{r}{\sqrt{y^2+r^2}}`, misconception: 'potential-arrow',
         why: raw`That projects the potential onto $x$, as if it were an arrow. A potential is a number with no direction: there is nothing to project.`},
       {tex: raw`\Delta V=\frac{k\,\Delta Q}{r}`, misconception: 'fixed-distance',
@@ -77,7 +77,7 @@ export const bank: Question[] = [
     choices: [
       {correct: true, text: raw`Its size grows without bound: it goes as $2k\lambda\ln(L/r)$, and an endless line has no potential measured from infinity.`},
       {text: raw`It settles at $2k\lambda/r$.`, misconception: 'potential-power',
-        why: raw`That is the endless line’s field, which does settle. The potential adds pieces that fall only as $1/r_i$, and the far ones never stop adding: it grows as a logarithm of $L$.`},
+        why: raw`That is the endless line’s field, which does settle. The potential adds pieces that fall only as $1/r_i$, and the far ones never stop adding: its magnitude grows as a logarithm of $L$.`},
       {text: raw`It falls to zero, as the charge spreads out.`, misconception: 'held-total-charge',
         why: raw`That happens with $Q$ held fixed. With $\lambda$ fixed the rod gains charge as it grows, and every new piece adds to $V$ with the same sign.`},
     ],

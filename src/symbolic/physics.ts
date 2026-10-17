@@ -163,11 +163,11 @@ export function sampleLimit(problem:Problem,p:Params,limit:Limit,t:number):Limit
 export const DOUBLINGS=[2,4,8,16];
 /** What a logarithm looks like on the log axis it is swept on: a straight line, which a reader takes
  * for growth in proportion unless told. */
-const LOG_STRAIGHT=(ratio:string)=>` The axis is a log scale, on which a logarithm is a straight line: V grows only as ln(${ratio}).`;
+const LOG_STRAIGHT=(ratio:string)=>` The axis is a log scale, on which a logarithm is a straight line: |V| grows only as ln(${ratio}).`;
 export type LimitPlot={kind:LimitKind;y:string;axis:string;from:string;to:string;line:string;caption:string;solid?:string;second?:string;marks?:{t:number;label:string}[]};
 export function limitPlot(problem:Problem,limit:Limit):LimitPlot{
  const g=problem.geometry,scalar=problem.quantity==='V',rod=g==='bisector'||g==='axial'||g==='endpoint'||g==='ramp'||g==='offset';
- const d=g==='axial'?'a':g==='ring'||g==='disk'||g==='annulus'?'z':'r',size=rod?'L':g==='annulus'?'b':'R',Q=scalar?'|V|':'|E|',qty=scalar?'potential':'field';
+ const d=g==='axial'?'a':g==='ring'||g==='disk'||g==='annulus'?'z':'r',size=rod?'L':g==='annulus'?'b':'R',Q=scalar?'|V|':'|E|',qty=scalar?'potential magnitude':'field';
  // A symbolic phrase such as "r ≫ L" never breaks across a line.
  const settles=(what:string,to:string)=>`On the dashed line the exact ${qty} equals ${what}. The curve settles onto it as ${to.replace(/ /g,'\u00a0')}.`;
  switch(limit.mode){
@@ -180,20 +180,21 @@ export function limitPlot(problem:Problem,limit:Limit):LimitPlot{
    // The rod's is swept on a log axis (Assessment), where its logarithm is a straight line: drawn
    // straight with nothing said, ln(L/r) read as V growing in proportion to L. The disk's grows as R
    // and is swept on a linear axis, where that is the straight line.
-   if(scalar)return{kind:'growth',y:'|V| and its growth law, scaled',axis:g==='disk'?'disk radius R, with σ fixed':'rod length L, with λ fixed',from:g==='disk'?'R ∼ z':'L ∼ r',to:g==='disk'?'R ≫ z':'L ≫ r',line:g==='disk'?'grows as R':'grows as ln(L/r)',caption:'Both keep growing without end, in step: V has no limit to settle on.'+(g==='disk'?'':LOG_STRAIGHT('L/r'))};
+   if(scalar)return{kind:'growth',y:'|V| and its growth law, scaled',axis:g==='disk'?'disk radius R, with σ fixed':'rod length L, with λ fixed',from:g==='disk'?'R ∼ z':'L ∼ r',to:g==='disk'?'R ≫ z':'L ≫ r',line:g==='disk'?'grows as R':'grows as ln(L/r)',caption:'Both magnitudes keep growing without end, in step: |V| has no finite limit.'+(g==='disk'?'':LOG_STRAIGHT('L/r'))};
    // On the disk and the bisector the curve is the lesson's own field, growing into its limit. On the
    // sheet and the infinite line it is a disk's or a rod's field growing into the lesson's: calling
    // it "your exact field" told a student their answer fell short of the true field -- and so did
    // the caption under it, "the exact field equals an infinite line's", in the lesson whose exact
    // field IS the infinite line's. There the caption names the rod or the disk, as the legend does.
-   if(g==='offset')return{kind:'ratio',y:'|E| ÷ infinite-line field',axis:'rod length L, with λ and h fixed',from:'L ∼ r',to:'L ≫ r',line:'infinite line',caption:'On the dashed line the exact field equals an infinite line’s, straight out along x. The curve settles onto it as both ends run off, L\u00a0≫\u00a0r: P’s height above the middle stops mattering once the rod is far longer than it.'};
+   if(g==='offset')return{kind:'ratio',y:'|E| ÷ infinite-line field',axis:'rod length L, with λ and h fixed',from:'L ∼ r',to:'L ≫ r',line:'infinite line',caption:'On the dashed line the exact field equals an infinite line’s, along x. The curve settles onto it as both ends run off, L\u00a0≫\u00a0r: P’s height above the middle stops mattering once the rod is far longer than it.'};
    if(g==='annulus')return{kind:'ratio',y:'|E| ÷ holed-sheet field',axis:'outer radius b, with σ and a fixed',from:'b ∼ √(a² + z²)',to:'b ≫ a, z',line:'sheet with a hole',caption:'On the dashed line the exact field equals an infinite sheet’s with the same hole. The curve settles onto it once the rim is far past both the hole and P’s height, b\u00a0≫\u00a0a and b\u00a0≫\u00a0z.'};
    if(g==='disk'||g==='sheet')return{kind:'ratio',y:'|E| ÷ infinite-sheet field',axis:'disk radius R, with σ fixed',from:'R ∼ z',to:'R ≫ z',line:'infinite sheet',...g==='sheet'?{solid:'A disk of radius R',caption:'On the dashed line a disk’s field equals the infinite sheet’s. The curve settles onto it as R ≫ z.'}:{caption:settles('an infinite sheet’s','R ≫ z')}};
    // The half line's case is the infinite line's, from its end: the curve is a rod's, not the lesson's.
    {const half=g==='endpoint'||g==='semi';
    return{kind:'ratio',y:`|E| ÷ ${half?'semi-infinite':'infinite'}-line field`,axis:'rod length L, with λ fixed',from:'L ∼ r',to:'L ≫ r',line:half?'semi-infinite line':'infinite line',...g==='infinite'||g==='semi'?{solid:'A rod of length L',caption:`On the dashed line a rod’s field equals the ${half?'semi-infinite':'infinite'} line’s. The curve settles onto it as L\u00a0≫\u00a0r.`}:{caption:settles(half?'a semi-infinite line’s':'an infinite line’s','L ≫ r')}};}
   // The ring's potential arrives level, the disk's still sloping: one caption said the same thing of
-  // both, and so pointed at neither. The slope of V along the axis is minus the field there.
+  // both, and so pointed at neither. This plot shows a normalized magnitude, so its slope is not the
+  // signed field. Name signed V explicitly: charge reversal reverses V and E, but leaves |V| unchanged.
   //
   // THE SWEEP RUNS DOWN THE AXIS, AND THE AXIS SAYS SO. It is P walking down onto the centre, so z falls
   // to the right; the ring's next tab, the peak, runs from the centre outward, with z rising. Under
@@ -202,8 +203,8 @@ export function limitPlot(problem:Problem,limit:Limit):LimitPlot{
   // opposite of the truth. The axis now names the direction of the walk.
   case 'center':return scalar
    ?{kind:'ratio',y:'|V| ÷ centre value',axis:'P coming down the axis to the centre',from:'z ≈ R',to:'the centre',line:'centre value',caption:g==='disk'
-    ?'On the dashed line the exact potential equals its value at the centre. The curve arrives there finite and still sloping: just above a charged disk the field, minus V’s slope, is not zero.'
-    :'On the dashed line the exact potential equals its value at the centre. The curve arrives there finite and level: its slope is minus the field along the axis, which is zero at the centre.'}
+    ?'On the dashed line the potential magnitude equals its centre value. It arrives finite and still sloping. The field is minus the slope of signed V, so it is not zero just above the disk.'
+    :'On the dashed line the potential magnitude equals its centre value. It arrives there finite and level. The field is minus the slope of signed V, and is zero at the centre.'}
    :{kind:'decay',y:'|E|, scaled',axis:'P coming down the axis to the centre',from:'the peak',to:'the centre',line:'zero',caption:'From its peak the field falls to zero as P reaches the centre, where every piece’s field lies in the ring’s plane and its partner opposite cancels it.'};
   // V and its logarithm, not their ratio: ln(L/a) is zero at a = L, so the ratio came in from off the
   // top of the plot there, where nothing is singular, and settled on one as V ran off to infinity.
@@ -217,7 +218,7 @@ export function limitPlot(problem:Problem,limit:Limit):LimitPlot{
    :{kind:'growth',y:'|V| and k|λ| ln(L/a), scaled',axis:'gap a to the rod’s end',from:'a ∼ L',to:'a ≪ L',line:'k|λ| ln(L/a)',caption:'Both grow without end as P walks onto the rod’s end, and draw together: the difference between them, k|λ| ln((L\u00a0+\u00a0a)/L), vanishes as a\u00a0≪\u00a0L.'+LOG_STRAIGHT('L/a')};
   case 'hole':return{kind:'ratio',y:'|E| ÷ disk field',axis:'the hole closing, with σ fixed',from:'a wide hole',to:'no hole',line:'the disk',caption:'On the dashed line the annulus’s field equals the whole disk’s, with the same rim and the same σ. The curve settles onto it as the hole closes.'};
   case 'thin':return{kind:'ratio',y:'|E| ÷ ring field',axis:'the annulus narrowing, with Q fixed',from:'a whole disk',to:'a thin ring',line:'ring of radius b',caption:'On the dashed line the annulus’s field equals a ring’s of radius b holding the same Q. The curve settles onto it as the annulus narrows onto its rim, a\u00a0→\u00a0b.'};
-  case 'middle':return{kind:'decay',y:'|Eᵧ|, scaled',axis:'P sliding from an end to the middle',from:'level with an end',to:'level with the middle',line:'zero',caption:'As P slides level with the rod’s middle, the stretch that mirrors itself across P’s level grows to the whole rod, the leftover shrinks to nothing, and Eᵧ falls to zero with it: the bisector.'};
+  case 'middle':return{kind:'decay',y:'|Eᵧ|, scaled',axis:'P sliding from an end to the middle',from:'level with an end',to:'level with the middle',line:'zero',caption:'As P slides level with the rod’s middle, the stretch that mirrors itself across P’s level grows to the whole rod, the leftover shrinks to nothing, and |Eᵧ| falls to zero with it: the bisector.'};
   case 'end':return{kind:'ratio',y:'|E| ÷ field level with an end',axis:'P sliding from the middle to an end',from:'level with the middle',to:'level with an end',line:'rod level with an end',caption:'On the dashed line the exact field equals the field of the rod level with its end, the same L and r. The curve settles onto it as P reaches the end, where the mirrored stretch has shrunk to nothing.'};
   case 'maximum':return{kind:'peak',y:'|E| ÷ its peak',axis:'height z on the axis',from:'the centre',to:'farther out',line:'the peak',marks:[{t:RING_PEAK_T,label:'peak'},{t:RING_EDGE_T,label:'R'}],caption:'The curve rises from zero at the centre, touches the dashed line once, at the marked peak inside z\u00a0=\u00a0R, and falls away beyond it.'};
   // The arc opens at fixed Q, so λ = Q/(Rφ) thins as it opens and |E| ∝ sin(φ/2)/φ only falls. At
@@ -233,7 +234,7 @@ export function limitPlot(problem:Problem,limit:Limit):LimitPlot{
   // measured, and so is the zero inside.
   case 'outside':return{kind:'constant',y:'|E| ÷ point-charge field',axis:'height z, outside the shell',from:'z just past R',to:'z ≫ R',line:'point charge',solid:'The shell’s rings, added up',caption:'Flat: added up ring by ring, the field outside equals a point charge’s at every height, from just past the surface outward, not only far away.'};
   case 'inside':return{kind:'decay',y:'|E|, scaled',axis:'P coming down the axis, through the shell to its centre',from:'outside',to:'the centre',line:'zero',solid:'The shell’s rings, added up',caption:'Outside, the field grows as P comes in toward the shell. Through the surface it drops to zero, and stays there all the way to the centre: inside, the rings cancel at every point.'};
-  case 'jump':return{kind:'ratio',y:'jump ÷ σ/ε₀',axis:'a gap δ either side of the surface',from:'δ ∼ R',to:'δ ≪ R',line:'σ/ε₀',solid:'The shell’s rings, added up',caption:'On the dashed line the field just outside, less the field just inside, is σ/ε₀. Measured a gap δ either side of the surface, it settles onto it as δ\u00a0≪\u00a0R.'};
+  case 'jump':return{kind:'ratio',y:'|jump| ÷ |σ|/ε₀',axis:'a gap δ either side of the surface',from:'δ ∼ R',to:'δ ≪ R',line:'|σ|/ε₀',solid:'The shell’s rings, added up',caption:'On the dashed line the field change has magnitude |σ|/ε₀; its signed jump is σ/ε₀. Measured a gap δ either side of the surface, its magnitude settles onto the line as δ\u00a0≪\u00a0R.'};
   // The sheet's curve is its rings added up, the line's its pieces: neither is the closed form, and a
   // legend that said "your exact field" read as σ/(2ε₀) divided by itself.
   case 'scale':return g==='sheet'

@@ -10,6 +10,16 @@ import {Laws} from '../src/components/Laws';
 afterEach(cleanup);
 const tex = (el: Element) => [...el.querySelectorAll('annotation')].map(a => a.textContent ?? '').join(' ');
 describe('the laws', () => {
+  it('defines potential and its units before the student opens its row', () => {
+    const {container} = render(<Laws quantity="V" />);
+    const first = container.querySelector('.law')!;
+    expect(first.querySelector('.law-name')!.textContent).toBe('Potential of a point charge');
+    const why = first.querySelector('.law-why')!.textContent!.replaceAll('\u00a0', ' ');
+    expect(why).toContain('potential energy per unit test charge');
+    expect(why).toContain('volts (joules per coulomb)');
+    expect(first.querySelector('.law-detail')).toBeNull();
+  });
+
   it('a charge density row: dQ = λ dℓ = σ dA, with the lessons’ own dℓ and dA once opened', async () => {
     for (const quantity of ['E', 'V'] as const) {
       const {container, getByRole, unmount} = render(<Laws quantity={quantity} />);

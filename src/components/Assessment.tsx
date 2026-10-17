@@ -245,7 +245,7 @@ const SOURCE:Record<ProblemId,string>={bisector:'rod',offset:'rod',axial:'rod',e
  * are drawn: a curve within a hundredth of its line can still sit visibly off it in a window drawn
  * close around the approach, and "lies on the dashed line" is said only where it does. */
 export function limitNow(problem:Problem,limit:Limit,plot:LimitPlot,here:number,t:number,u:number,gap=0):string{
- const g=problem.geometry,scalar=problem.quantity==='V',src=SOURCE[g]??'charge',qty=scalar?'potential':'field';
+ const g=problem.geometry,scalar=problem.quantity==='V',src=SOURCE[g]??'charge',qty=scalar?'potential magnitude':'field';
  const cmp=(than:string)=>scalar?`${here<1?'smaller':'larger'} than ${than}`:`${here<1?'weaker':'stronger'} than ${than}`;
  const along:Moment=u<.25?'start':u>.75?'end':'middle';
  const off=plot.kind==='decay'?here:Number.isFinite(here)?Math.abs(here-1):Infinity;
@@ -269,17 +269,17 @@ export function limitNow(problem:Problem,limit:Limit,plot:LimitPlot,here:number,
     'Wide enough, the annulus looks like an endless sheet with a hole from P: the curve lies on the dashed line.']);
    const disk=g==='disk'||g==='sheet',grown=disk?'disk':'rod',big=disk?'Wider and wider':'Longer and longer',ideal=disk?'an infinite sheet':g==='endpoint'||g==='semi'?'a semi-infinite line':'an infinite line';
    if(scalar)return pick(along,[
-    `A ${disk?'small disk':'short rod'}: V and its dashed growth law have only begun to climb.`,
-    `As the ${grown} grows, V keeps growing, and so does the law beside it.`,
-    `However ${disk?'wide':'long'} the ${grown} grows, V keeps growing in step with its law: there is no limit to settle on.`]);
+    `A ${disk?'small disk':'short rod'}: |V| and its dashed growth law have only begun to climb.`,
+    `As the ${grown} grows, |V| keeps growing, and so does the law beside it.`,
+    `However ${disk?'wide':'long'} the ${grown} grows, |V| keeps growing in step with its law: there is no limit to settle on.`]);
    return pick(converged,[
     `Still finite, the ${grown}’s field at P is ${cmp(ideal+'’s')}.`,
     `${big}, the ${grown} looks more and more like ${ideal} from P: its distant parts add less and less.`,
     `${disk?'Wide':'Long'} enough, the ${grown} looks like ${ideal} from P: the curve lies on the dashed line.`]);}
   case 'center':
    if(scalar)return pick(converged,[
-    `Up the axis, P is farther from every piece: the potential is ${here<1?'below':'above'} its centre value.`,
-    'Coming down, P nears every piece at once: the potential climbs towards its centre value.',
+    `Up the axis, P is farther from every piece: the potential magnitude is ${here<1?'below':'above'} its centre value.`,
+    'Coming down, P nears every piece at once: the potential magnitude climbs towards its centre value.',
     g==='disk'?'At the centre the curve meets the dashed line, finite but still sloping: just above the disk the field is not zero.'
      :'Near the centre the curve meets the dashed line, finite and level: at the centre the field is zero.']);
    return pick(converged,[
@@ -288,9 +288,9 @@ export function limitNow(problem:Problem,limit:Limit,plot:LimitPlot,here:number,
     'At the centre every piece’s field lies in the ring’s plane and is cancelled by its partner opposite: the field is zero.']);
   case 'near':
    if(scalar)return pick(along,[
-    'Out near a ∼ L, V and k|λ| ln(L/a) are still apart.',
+    'Out near a ∼ L, |V| and k|λ| ln(L/a) are still apart.',
     'Walking in, both grow, and the gap between them closes.',
-    'Close up, the charge at the rod’s near end dominates: V and k|λ| ln(L/a) grow without end, together.']);
+    'Close up, the charge at the rod’s near end dominates: |V| and k|λ| ln(L/a) grow without end, together.']);
    return pick(converged,[
     `The rod’s far end is still close enough to show: with no charge beyond it, the field is ${cmp('k|λ|/a')}.`,
     'Walking in, the rod looks more and more like a half line from P: its far end counts for less and less.',
@@ -298,7 +298,7 @@ export function limitNow(problem:Problem,limit:Limit,plot:LimitPlot,here:number,
   // The rod off its bisector slid along: E_y falling away toward the middle, and the field becoming the rod level with its end's.
   case 'middle':return pick(converged,[
    'Near an end, nearly the whole rod is leftover on one side of P: the field leans its most.',
-   'Sliding toward the middle, the mirrored stretch grows and the leftover shrinks: Eᵧ falls.',
+   'Sliding toward the middle, the mirrored stretch grows and the leftover shrinks: |Eᵧ| falls.',
    'Level with the middle every piece has its mirror: Eᵧ is zero, and this is the bisector.']);
   case 'end':return pick(converged,[
    `Near the middle, most of the rod mirrors itself: the field is ${cmp('the field level with the rod’s end')}.`,
@@ -338,8 +338,8 @@ export function limitNow(problem:Problem,limit:Limit,plot:LimitPlot,here:number,
    :t>29?'At the centre the field is zero, as symmetry alone would say; but it was zero all the way in from the surface.'
    :'Inside the shell the field is zero: the rings above P and the rings below it cancel exactly.';
   case 'jump':return pick(converged,[
-   'A wide gap: the field outside it has already fallen off, so the change across it is smaller in size than σ/ε₀.',
-   'Closing the gap, the change in the field across it closes on σ/ε₀.',
+   'A wide gap: the field outside it has already fallen off, so the change across it has magnitude smaller than |σ|/ε₀.',
+   'Closing the gap, the magnitude of the field change closes on |σ|/ε₀.',
    'Across a thin gap the field jumps by σ/ε₀: zero just inside, kQ/R² just outside.']);
   case 'half':return pick(converged,[
    `Few pieces: their field at P is ${here<1?'weaker':'stronger'} than the semicircle’s, the dashed line.`,
@@ -365,7 +365,7 @@ function AssessmentView({problem,params:live,limit}:{problem:Problem;params:Para
  // samples of the sweep for each new set of parameters. They follow at React's low priority, so the
  // figure's drag is never held up by a plot further down the page.
  const params=useDeferredValue(live);
- const [s,setS]=useState(4),[scrubbing,setScrubbing]=useState(false),sliderLabel=useId(),nowId=useId();const scalar=problem.quantity==='V',qty=scalar?'potential':'field',units=scalar?'volts':'newtons per coulomb';
+ const [s,setS]=useState(4),[scrubbing,setScrubbing]=useState(false),sliderLabel=useId(),nowId=useId();const scalar=problem.quantity==='V',qty=scalar?'potential magnitude':'field',units=scalar?'volts':'newtons per coulomb';
  const plot=useMemo(()=>limitPlot(problem,limit),[problem,limit]);
  // An approach to infinity, or to many pieces, is swept on a logarithmic axis: distance ten times the
  // size sits halfway, not a third of the way, and the approach gets the width of the plot.

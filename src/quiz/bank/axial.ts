@@ -50,15 +50,15 @@ export const bank: Question[] = [
     review: {lesson: 'axial', stage: 'shrink'}},
 
   {id: 'axial-far', lesson: 'axial', kind: 'check',
-    prompt: raw`$E_x=\dfrac{kQ}{a(L+a)}$. Move $P$ far out along the axis, $a\gg L$. Which expression does $E_x$ approach?`,
+    prompt: raw`$E_x=\dfrac{kQ}{a(L+a)}$. Move $P$ far out along the axis, $a\gg L$. Which expression gives the leading far-field behavior?`,
     choices: [
       {correct: true, tex: raw`\frac{kQ}{(a+L/2)^2}`},
       {tex: raw`\frac{k\lambda}{a}`, misconception: 'far-limit',
         why: raw`That is the other end of the story: $P$ right beside the end, $a\ll L$, where the rod looks endless. Far away it looks like a point.`},
       {tex: raw`\frac{kQ}{a+L/2}`, misconception: 'potential-power',
         why: raw`That falls as one power of the distance, as a point charge’s potential does. A finite charge’s field, seen from far away, falls as the inverse square.`},
-      {tex: raw`0`, misconception: 'cancel-survivor',
-        why: raw`Far away the field gets weak, but nothing cancels it: every piece’s field still points the same way along the axis. It shrinks as the inverse square, like any finite charge’s.`},
+      {tex: raw`0`, misconception: 'far-limit',
+        why: raw`The field tends to zero as the distance tends to infinity. But zero does not give its leading decay law: at a large finite distance the point-charge expression gives the inverse-square behavior.`},
     ],
     explanation: raw`$a(L+a)$ is $(a+L/2)^2-(L/2)^2$, and when $a\gg L$ the last term hardly matters, so $E_x$ tends to $kQ/(a+L/2)^2$: from far off the rod is a point charge at its centre.`,
     review: {lesson: 'axial', section: 'Limiting cases'}},

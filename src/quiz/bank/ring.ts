@@ -44,7 +44,7 @@ export const bank: Question[] = [
       {tex: raw`\frac{z}{R}`, misconception: 'fixed-distance',
         why: raw`The projection is the side along the axis over the hypotenuse, and the hypotenuse is the piece’s distance from $P$, $r_i=\sqrt{R^2+z^2}$, not $R$.`},
     ],
-    explanation: raw`$\alpha$ is the angle between the piece’s field and the $z$-axis. In the right triangle with legs $R$ and $z$, the side along the axis is $z$ and the hypotenuse is $r_i=\sqrt{R^2+z^2}$, so the projection is $\cos\alpha=z/\sqrt{R^2+z^2}$.`,
+    explanation: raw`$\alpha$ is the angle at $P$ between the ray to the piece and the downward $z$-axis, independent of the charge’s sign. In the right triangle with legs $R$ and $z$, the side along the axis is $z$ and the hypotenuse is $r_i=\sqrt{R^2+z^2}$, so the projection is $\cos\alpha=z/\sqrt{R^2+z^2}$.`,
     review: {lesson: 'ring', stage: 'piece'}},
 
   {id: 'ring-bounds', lesson: 'ring', kind: 'setup',
@@ -86,13 +86,13 @@ export const bank: Question[] = [
     review: {lesson: 'ring', section: 'Limiting cases'}},
 
   {id: 'ring-far', lesson: 'ring', kind: 'check',
-    prompt: raw`$E_z=\dfrac{kQz}{(R^2+z^2)^{3/2}}$. Move $P$ far up the axis, $z\gg R$. What does $E_z$ approach?`,
+    prompt: raw`$E_z=\dfrac{kQz}{(R^2+z^2)^{3/2}}$. Move $P$ far up the axis, $z\gg R$. Which expression gives the leading far-field behavior?`,
     choices: [
       {correct: true, tex: raw`\frac{kQ}{z^2}`},
       {tex: raw`\frac{kQR}{z^3}`, misconception: 'wrong-part',
         why: raw`That is what the sideways projection, $\sin\alpha=R/r_i$, would give. It cancels round the ring, and it is not what is left along the axis.`},
-      {tex: raw`0`, misconception: 'cancel-survivor',
-        why: raw`The field gets weak far away, but it does not cancel: every piece’s part along the axis points the same way. It falls as $1/z^2$.`},
+      {tex: raw`0`, misconception: 'far-limit',
+        why: raw`The field tends to zero as the distance tends to infinity. But zero does not give its leading decay law: at a large finite distance the point-charge expression gives the inverse-square behavior.`},
       {tex: raw`\frac{2k\lambda}{z}`, misconception: 'far-limit',
         why: raw`That is the field near an endless line. A ring is a finite charge, and far away any finite charge looks like a point charge.`},
     ],

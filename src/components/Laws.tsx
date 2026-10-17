@@ -44,7 +44,7 @@ const LAWS:Law[]=([
   detail:'Each charge sets up its own field as though the others were not there, and at every point those fields add as vectors. In electrostatics this is exact, not an approximation. So cut the distribution into N pieces and add the N contributions: that is nearly the field, since each piece is treated as a point charge. Then let N grow while each piece shrinks: the ≈ becomes =, the sum becomes an integral, and that integral is the one each lesson builds.',
   more:[String.raw`\Delta Q\to dQ\quad\text{as}\quad N\to\infty`]},
  {id:'potential',name:'Potential of a point charge',tex:String.raw`V=\frac{kQ}{r}`,
-  why:'What the potential lessons add up. One number at each place instead of a vector, so the pieces add as plain numbers with no components to resolve.',
+  why:'What the potential lessons add up: potential energy per unit test charge, measured in volts (joules per coulomb). It is a scalar, so the pieces add as numbers with no components to resolve.',
   detail:'The same point charge also sets a potential, measured from zero infinitely far away. It falls off as one over r, a power slower than the field, and carries the sign of Q rather than a direction. Because potential is a scalar, superposition here is ordinary addition. The field can be recovered afterwards by differentiating: it is the negative gradient of V, which on a symmetry axis, where E has only its part along the axis, is a single derivative.',
   more:[String.raw`V=\int\frac{k\,dQ}{r_{i}}`,String.raw`\mathbf E=-\nabla V\qquad E_{z}=-\frac{dV}{dz}`]},
  // THE RELATION STUDENTS NEED MOST THAT WEEK. Every lesson's first step is a piece's charge -- λ Δy, λR Δθ,
