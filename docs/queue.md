@@ -6,9 +6,7 @@ then to **Done**, with the commit. Newest requests are added at the bottom of **
 owner says they are urgent.
 
 ## In progress
-Usage stop raised to 90% weekly (owner, 2026-10-17). Four agents in parallel:
-- **Gauss leftovers:** &case= and &stage= links (and the quiz's review links using them), spheres filling
-  their card, the case picker's alignment, Keyboard help, tap targets, the thin shell.
+Usage stop raised to 90% weekly (owner, 2026-10-17). Three agents in parallel (the Gauss leftovers are done):
 - **New integral lessons, A:** the annulus, then the rod with P off its bisector.
 - **New integral lessons, B:** the non-uniform semicircle, then the spherical shell built from rings.
 - **Site-wide visual pass** (Sonnet, read-only): report to .claude/loop/reports/site-qa.md, then a fixer.
@@ -20,12 +18,20 @@ until the owner answers.
 - **Owner's calls:** (1) Symmetry first runs all five stages, Solve included, before flux is taught: stop it
   at The surface? (2) Knight is cited as ch. 27 (§27.1–27.6, the study guide's edition): confirm the edition.
   (3) The negative ring's stacked ΔE_z through the empty middle in 3D (from wave 6).
-- **Gauss, later:** 3D density shading for graded balls; a "Choose the surface" instrument.
+- **Gauss, later:** 3D density shading for graded balls; a "Choose the surface" instrument; the view cube's
+  arrows on the integral lessons' phones (the shared ViewCube, about sixteen pixels there).
 0. **Owner's call (from wave 6):** a negative ring seen in space draws its stacked ΔE_z running through the
    empty middle O. The fixer left it: an earlier deliberate choice, and capping it would make a negative
    ring's arrows half a positive's. Leftovers from wave 6 are in .claude/loop/reports/LOG.md.
 
 ## Done
+- 2026-10-17, Gauss leftovers: pages open at a case and a stage from the address (`&case=`, `&stage=`), Copy a
+  link and Back and Forward with them, and the quiz's Gauss review links land there (dcd19c2); spheres fill
+  about three quarters of their card and zoom out as they grow, larger still on a phone, the thin shell a skin,
+  sheets fading before the frame's sides, the view cube's arrows a fingertip's size on a phone, Keyboard help on
+  the caption's line (5f72002); the controls row lined up and still as the case changes, segmented choices
+  filled with no dark bar, the holes instrument's own "Try it on", tap targets of forty-four pixels on a phone,
+  "Not" set apart from its claim ("Gauss page: the controls row lined up").
 - 2026-10-16, Gauss's quiz and polish: quiz engine for Gauss lessons and all eleven banks (646f9ab, 685dcb6,
   1ee5f32), physics review (08533f5), perpendicular wording (93517a4); Gauss critique round (84 findings;
   d844f24 content, 41c4384 figure: foreshortened arrows, see-through shells, signs, subscripts); case

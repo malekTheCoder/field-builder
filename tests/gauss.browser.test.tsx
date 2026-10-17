@@ -5,6 +5,7 @@ import '../app/globals.css';
 import Site, {newVisit} from '../src/home/Site';
 import {GAUSS} from '../src/explorer/lessons';
 import {GAUSS_READY} from '../src/problems/readiness';
+import {gaussLesson} from '../src/gauss';
 /* THE GAUSS LESSONS ON THE PAGE: their addresses, the lesson list's links to them and its "Coming soon" for the
  * rest, the run's five stages, the flux instrument's readout (which moves only when a charge crosses), the
  * keyboard, Reduce Motion, and a phone's width. Each test mounts the whole site at the lesson's address, as a
@@ -605,3 +606,58 @@ describe('the board follows the run, and the figure fits its card', () => {
   }, 60000);
 });
 const rect = (selector: string) => document.querySelector(selector)!.getBoundingClientRect();
+
+describe('the controls row, the figure’s footer and a phone’s fingertip', () => {
+  const box = (el: Element) => el.getBoundingClientRect();
+  it('lines the size and the sign up on one line, and holds them still as the case changes', async () => {
+    const view = await open('hard', 1280, 800);
+    const names = () => [...document.querySelectorAll('.gs-parameters > .exp-range:not(.is-cases) .exp-name')].map(n => Math.round(box(n).bottom));
+    const slider = () => Math.round(box(document.querySelector('.gs-parameters [data-slot=slider]')!).top);
+    const [size, sign] = names(), at = slider();
+    expect(Math.abs(size - sign)).toBeLessThanOrEqual(1);
+    for (const c of gaussLesson('hard')!.cases) {
+      fireEvent.click(within(view.container.querySelector<HTMLElement>('.gs-choice.is-cases')!).getByRole('button', {name: c.label}));
+      expect(slider(), c.key).toBe(at);
+    }
+    // A chosen segment is shaded across its whole share of the bar, with no dark rule of its own.
+    fireEvent.click(view.getByRole('button', {name: 'Negative'}));
+    const negative = view.getByRole('button', {name: 'Negative'}), bar = negative.parentElement!;
+    expect(Math.abs(box(negative).right - box(bar).right)).toBeLessThanOrEqual(2);
+    expect(getComputedStyle(negative).borderLeftColor).toBe(getComputedStyle(bar).borderTopColor);
+  }, 20000);
+  it('offers Keyboard help on the caption’s line, as the integral lessons do', async () => {
+    const view = await open('spheres');
+    const help = document.querySelector<HTMLDetailsElement>('.gs-caption > details.cd-controls')!;
+    expect(help.querySelector('summary')?.textContent).toBe('Keyboard help');
+    expect(help.open).toBe(false);
+    fireEvent.click(help.querySelector('summary')!);
+    expect(help.textContent).toMatch(/Tab moves between them/);
+    expect(help.textContent).toMatch(/Escape closes it/);
+    expect(view.getByRole('heading', {level: 1}).textContent).toBe('Spheres');
+  }, 20000);
+  it('names the holes instrument’s own choice apart from the figure’s case picker', async () => {
+    const view = await open('holes');
+    expect(view.getByRole('group', {name: 'The charge'}).closest('.gs-holes')).toBeNull();
+    const own = view.getByRole('group', {name: 'Try it on'});
+    expect(own.closest('.gs-holes')).toBeTruthy();
+    expect(within(own).getAllByRole('button').map(b => b.textContent)).toEqual(['A ball', 'A rod, end on']);
+  }, 20000);
+  it('on a phone, every button on the page and in the run is at least forty-four pixels tall', async () => {
+    const view = await open('flux', 390, 844);
+    fireEvent.click(view.getByRole('button', {name: 'Watch it build'}));
+    await waitFor(() => expect(document.querySelector('.bp')).toBeTruthy());
+    const small = [...document.querySelectorAll<HTMLElement>('.gs-page main button, .gs-page main summary')].filter(b => { const r = box(b); return r.height > 0 && r.height < 43.5; });
+    expect(small.map(b => b.getAttribute('aria-label') ?? b.textContent)).toEqual([]);
+  }, 20000);
+  it('on a phone, draws a sphere in the frame’s middle, larger, the view cube and the names inside it', async () => {
+    await open('spheres', 390, 844);
+    const stage = document.querySelector<HTMLElement>('.gs-stage')!, svg = stage.querySelector('svg')!;
+    expect(stage.classList.contains('is-crop')).toBe(true);
+    expect(box(stage).height / box(stage).width).toBeCloseTo(430 / 480, 2);
+    const s = box(stage);
+    for (const t of svg.querySelectorAll('text.gs-name')) { const r = box(t); if (r.width) { expect(r.left).toBeGreaterThanOrEqual(s.left - 1); expect(r.right).toBeLessThanOrEqual(s.right + 1); } }
+    const cube = box(svg.querySelector('.cd-cube-step')!);
+    expect(cube.right).toBeLessThanOrEqual(s.right);
+    expect(cube.width).toBeGreaterThanOrEqual(24);
+  }, 20000);
+});

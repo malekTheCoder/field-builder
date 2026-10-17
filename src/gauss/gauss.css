@@ -11,6 +11,10 @@
 .gs-figure>.gs-stage{align-self:center;flex:none;box-sizing:border-box;position:relative;
  width:min(100% + 2 * var(--card-gutter,0px),calc(min(78vh,860px) * 720 / 430));aspect-ratio:720/430}
 .gs-stage>.gs-svg{position:relative;z-index:1;display:block;width:100%;height:100%;overflow:visible}
+/* A phone's sphere: the stage shows the frame's middle two thirds (scene.ts, CROP, from 120 to 600 of its 720 units),
+   the drawing and the scene under it laid half as wide again and centred, their sides cut off by the stage. */
+.gs-figure>.gs-stage.is-crop{aspect-ratio:480/430;overflow:hidden}
+.gs-stage.is-crop>.gs-svg,.gs-stage.is-crop>.gs-scene{position:absolute;top:0;bottom:auto;left:-25%;right:auto;width:150%;height:100%}
 .gs-svg.cd-orbitable{cursor:grab;touch-action:none}
 /* On a touch screen a vertical swipe over the figure scrolls the page, as on the integral lessons' figure
    (camera.css): this sheet's own rule above outweighed that one, and a thumb landing on the figure trapped the page. */
@@ -153,7 +157,7 @@
 .gs-q{cursor:grab;outline:none}
 .gs-q:active{cursor:grabbing}
 /* On a phone a charge's hit circle is held near a fingertip's width once the drawing is scaled down. */
-@media(max-width:600px){.gs-q:not(.gs-hole-handle) .gs-q-hit{r:40px}}
+@media(max-width:600px){.gs-q:not(.gs-hole-handle) .gs-q-hit{r:46px}}
 .gs-q-hit{fill:transparent}
 .gs-q-body{fill:var(--charge-fill);stroke:var(--charge);stroke-width:2}
 .gs-q.is-inside .gs-q-body{fill:var(--charge)}
@@ -283,10 +287,52 @@
    never a bar broken into a ragged second line inside one border. */
 @media(max-width:520px){
  .gs-instrument .cd-view-modes,.gs-page .gs-parameters .gs-choice:not(.is-cases) .cd-view-modes{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,8.5em),1fr));gap:0}
- .gs-instrument .cd-view-modes>.cd-view-mode,.gs-page .gs-parameters .gs-choice:not(.is-cases) .cd-view-modes>.cd-view-mode{border:0;box-shadow:-1px 0 0 var(--border),0 -1px 0 var(--border);white-space:normal;text-align:center;min-height:40px}
+ .gs-instrument .cd-view-modes>.cd-view-mode,.gs-page .gs-parameters .gs-choice:not(.is-cases) .cd-view-modes>.cd-view-mode{border:0;box-shadow:-1px 0 0 var(--border),0 -1px 0 var(--border);white-space:normal;text-align:center;min-height:44px}
  .gs-moves{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,8.5em),1fr))}
- .gs-moves>.gs-move{white-space:normal;min-height:40px}
+ .gs-moves>.gs-move{white-space:normal;min-height:44px}
 }
 /* The view cube's face words come out at four pixels on a phone: there the cube is turned by its arrows and its
    shading alone. */
 @media(max-width:600px){.gs-page .gs-stage .cd-cube-label{display:none}}
+
+/* THE CONTROLS ROW, LINED UP. The integral lessons' row is three sliders, bottom-aligned; here a slider stands beside
+   a pair of buttons, and bottom-aligned their names sat twenty pixels apart. Each control's name now takes a row of
+   one height, its foot on one line, and each control a row of one height under it, the slider centred in its own. */
+.gs-page{--gs-control:32px}
+.gs-page .exp-parameters .gs-parameters{align-items:flex-start}
+.gs-page .gs-parameters>.exp-range>div:first-child{min-height:28px;align-items:flex-end;margin-bottom:10px}
+.gs-page .gs-parameters>.gs-range>[data-slot=slider]{display:flex;align-items:center;min-height:var(--gs-control)}
+/* A name with no symbol before it starts at the row's edge, where the buttons and the sentence under them start. */
+.gs-page .gs-choice .exp-name{margin-left:0}
+/* The sentence under the cases: every case's in one cell, the others unseen (GaussLesson), so it never changes height. */
+.gs-choice-about{display:grid}
+.gs-choice-about>span{grid-area:1 / 1}
+.gs-choice-reserve{visibility:hidden}
+/* A SEGMENTED CHOICE IS FILLED BY ITS SEGMENTS: each takes an equal share of the bar, as tall as the tallest, so the
+   chosen one's shading fills its cell, never a shaded word in a wider empty bar. And its rule on the left stays a
+   hairline: the shared rule for a chosen mode darkened every border, and a chosen segment after the first stood on a
+   dark bar of its own. The case picker's chips keep their whole border, dark when chosen. */
+.gs-page .cd-view-modes{align-items:stretch}
+.gs-page .gs-parameters .gs-choice:not(.is-cases) .cd-view-modes>.cd-view-mode{flex:1 1 0;min-height:var(--gs-control)}
+.gs-page .cd-view-modes>.cd-view-mode.is-on{border-left-color:var(--border)}
+.gs-choice.is-cases .cd-view-modes>.cd-view-mode.is-on{border-color:var(--foreground)}
+/* Easy to confuse with: "Not" as the integral lessons set it, a quiet label, then the wrong claim quoted, so the two
+   are never read as one sentence ("Not Zero flux means..."). */
+.exp-slip-of.gs-slip-of{display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 10px}
+.gs-slip-wrong{quotes:'“' '”'}
+/* An instrument's own choice, named above it as the page's controls are, so it is never read as the page's. */
+.gs-choice-group{display:grid;gap:6px;min-width:0}
+@media(max-width:520px){.gs-choice-group{flex:1 1 100%}}
+.gs-choices-name{font-size:var(--type-meta);color:var(--muted-foreground)}
+/* TAP TARGETS ON A PHONE: every control on a Gauss page is at least forty-four pixels tall (and the transport's square
+   buttons as wide), the size a fingertip needs; at thirty they were missed for their neighbours. */
+@media(max-width:600px){
+ .gs-page{--gs-control:44px}
+ .gs-page .gs-tabs{height:auto!important}
+ /* While the run plays under the figure, its caption line holds only Keyboard help, which a phone has no keys for: the
+    transport, which carries the algebra there, keeps the room. */
+ .gs-page .exp-diagram-card.is-running .gs-caption>.cd-controls:not([open]){display:none}
+ .gs-page :is(.cd-view-mode,.gs-move,.gs-back,.cd-orbit-reset,[data-slot=tabs-trigger],.exp-lesson-toggle,.exp-crumb-link,.exp-library-toggle,.bp-seg,.cd-controls>summary,.exp-watch-button){min-height:44px}
+ .gs-page :is(.bp-play,.bp-icon,.exp-library-toggle,.cd-view-mode){min-width:44px;min-height:44px}
+ .gs-page :is(.exp-crumb-link,.exp-lesson-toggle,.cd-orbit-reset){display:inline-flex;align-items:center}
+}

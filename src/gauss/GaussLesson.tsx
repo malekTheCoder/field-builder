@@ -89,6 +89,8 @@ function sizeText(kase: GaussCase, n: number): string {
   const f = (n - s.size.min) / (s.size.max - s.size.min), far = s.kind === 'pillbox' ? 'from the sheet' : 'from the charge';
   return f < .34 ? `close ${far}` : f < .67 ? `partway out ${far}` : `far ${far}`;
 }
+/** What a case's charge is, in a sentence, under the case picker. */
+const about = (c: GaussCase) => c.figure.charge.name ? c.figure.charge.name.charAt(0).toUpperCase() + c.figure.charge.name.slice(1) + '.' : '';
 export default function GaussLesson() {
   const search = useSyncExternalStore(subscribeAddress, readSearch, () => '');
   const id: GaussId = gaussIdOf(search) ?? 'symmetry';
@@ -320,7 +322,9 @@ export default function GaussLesson() {
     <div className="cd-view-modes" role="group" aria-label="The charge">{lesson.cases.map(c => <button key={c.key} type="button" className={'cd-view-mode' + (kase.key === c.key ? ' is-on' : '')} aria-pressed={kase.key === c.key} onClick={() => setCaseKey(c.key)}>{c.label}</button>)}</div>
     {/* The buttons name the cases; this says what the chosen one IS, in a sentence. "No edge" or "Backwards"
         alone left a reader guessing, so the chosen charge is described under them, and read aloud with them. */}
-    <p className="gs-choice-about" aria-live="polite">{kase.figure.charge.name ? kase.figure.charge.name.charAt(0).toUpperCase() + kase.figure.charge.name.slice(1) + '.' : ''}</p></div>;
+    {/* Every case's sentence is laid in one cell, the others unseen, so the cell is as tall as the longest: a sentence
+        that wrapped to a second line moved the slider and the sign under the reader's hand as the case changed. */}
+    <p className="gs-choice-about"><span aria-live="polite">{about(kase)}</span>{lesson.cases.filter(c => c.key !== kase.key).map(c => <span key={c.key} className="gs-choice-reserve" aria-hidden="true">{about(c)}</span>)}</p></div>;
   const toBuild = useSteady(() => { const t = watchButton.current; if (!t) return; t.scrollIntoView({block: 'center', behavior: reduced ? 'auto' : 'smooth'}); t.focus({preventScroll: true}); });
   const toggleLesson = useSteady(() => setLessonOpen(v => !v));
   const running = runOpen ? ' is-running' + (settled ? ' is-settled' : '') : '';
@@ -392,7 +396,7 @@ export default function GaussLesson() {
           </details>
           <details className="exp-note" open>
             <summary><span>Easy to confuse with</span><small>The ideas this step sits next to, and what is true instead.</small></summary>
-            <div className="exp-note-body exp-slips">{lesson.traps.map(t => <div className="exp-slip" key={t.wrong}><span className="exp-slip-of"><span className="exp-slip-not">Not</span> <Prose text={t.wrong} /></span><div className="exp-slip-note"><p><Prose text={t.right} /></p></div></div>)}</div>
+            <div className="exp-note-body exp-slips">{lesson.traps.map(t => <div className="exp-slip" key={t.wrong}><span className="exp-slip-of gs-slip-of"><span className="exp-slip-not">Not</span><q className="gs-slip-wrong"><Prose text={t.wrong} /></q></span><div className="exp-slip-note"><p><Prose text={t.right} /></p></div></div>)}</div>
           </details>
           {next && <a className="exp-next" href={next.href} aria-label={`Next: ${next.name}. ${next.why}`} onClick={e => { if (!inPlace(e)) return; e.preventDefault(); navigate(next.href); }}>
             <span className="exp-next-glyph">{next.glyph}</span>
