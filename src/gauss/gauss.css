@@ -57,7 +57,7 @@
 .gs-normal-name{fill:var(--ink-2)}
 /* A zero in a name, upright: the serif's italic zero reads as a letter o. */
 .gs-zero{font-family:var(--font-ui),system-ui,sans-serif;font-style:normal;font-weight:600}
-.gs-zero-name{font-size:calc(16px * var(--cd-k,1));fill:var(--ghost)}
+.gs-zero-name{font-size:calc(16px * var(--cd-k,1));fill:var(--ghost-ink)}
 .gs-inside-name,.gs-charge-name{fill:var(--charge)}
 .gs-sign{font-family:var(--font-ui),system-ui,sans-serif;font-weight:700;font-size:calc(18px * var(--cd-k,1));fill:var(--charge);paint-order:stroke;stroke:var(--diagram);stroke-width:4px;pointer-events:none}
 /* A point charge's sign on its own disc, in the paper's colour, as the instruments draw q. */
@@ -206,7 +206,7 @@
 .gs-curve.is-rho.is-on{stroke-opacity:1;stroke-width:2.6}
 .gs-edge{stroke:var(--muted-foreground);stroke-width:1;stroke-dasharray:3 4}
 .gs-at{stroke:var(--foreground);stroke-width:1.4;stroke-dasharray:5 4}
-.gs-rho-name{fill:var(--ghost)}
+.gs-rho-name{fill:var(--ghost-ink)}
 .gs-dq-name,.gs-share-name{fill:var(--charge)}
 .gs-share-track{fill:var(--muted)}
 .gs-share-fill{fill:var(--charge);fill-opacity:.7}
@@ -214,7 +214,7 @@
 /* The field against r (Spheres): four curves, the chosen one bold. */
 .gs-curve.is-other{stroke:var(--ghost);stroke-opacity:.55;stroke-width:1.6}
 .gs-curve.is-on:not(.is-dq):not(.is-rho){stroke:var(--field);stroke-width:3.2}
-.gs-curve-name{font:500 calc(14px * var(--cd-k,1))/1 var(--font-ui),system-ui,sans-serif;fill:var(--ghost);paint-order:stroke;stroke:var(--card);stroke-width:4px;stroke-linejoin:round}
+.gs-curve-name{font:500 calc(14px * var(--cd-k,1))/1 var(--font-ui),system-ui,sans-serif;fill:var(--ghost-ink);paint-order:stroke;stroke:var(--card);stroke-width:4px;stroke-linejoin:round}
 .gs-curve-name.is-on{fill:var(--field);font-weight:700}
 .gs-jump line{stroke:var(--foreground);stroke-width:1.6;stroke-dasharray:3 3}
 .gs-meet{fill:var(--card);stroke:var(--field);stroke-width:2.4}

@@ -418,7 +418,7 @@ export const GaussFigure = memo(function GaussFigure({kase, size, sign, siblings
 /** The figure's caption: what its arrows are, and anything about their lengths a reader comparing them needs. */
 export function captionOf(kase: GaussCase, b: Built): string {
   if (b.pieces) return b.pieces[1]?.surface ? 'Each surface’s teal arrows are its own piece’s field: the whole charge’s, or the plug’s. Grey ones are the outward dA. At P the two pieces’ fields, thin, add to the answer, bold.'
-    : 'The pillbox’s teal arrows are the whole sheet’s field, as if the hole were filled; grey ones are the outward dA. At P the whole sheet’s field and the disc’s, thin, add to the answer, bold.';
+    : 'The pillbox’s teal arrows are the whole sheet’s field, as if the hole were filled; grey ones are the outward dA. At P the whole sheet’s field and the disk’s, thin, add to the answer, bold.';
   const base = 'Teal arrows are the field E at each patch, grey ones the patch’s outward dA. Shaded patches carry no flux.';
   if (kase.figure.charge.kind === 'offset') return base + ' Here an arrow’s length grows as the square root of the field, so the strong near side fits the frame.';
   // Said only where it is true: in space, an arrow pointing at the reader is foreshortened, and looks shorter.

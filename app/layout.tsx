@@ -40,6 +40,8 @@ export default function RootLayout({
         <script dangerouslySetInnerHTML={{ __html: EARLY_THEME }} />
       </head>
       <body className="antialiased">
+        {/* Every figure is drawn by script: with it turned off the page said nothing at all. */}
+        <noscript><p style={{margin: 0, padding: 16}}>Field Builder draws its figures with JavaScript, which this browser has turned off. Turn it on in the browser’s settings and reload the page.</p></noscript>
         {children}
       </body>
     </html>

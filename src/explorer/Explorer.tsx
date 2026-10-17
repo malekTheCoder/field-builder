@@ -81,7 +81,18 @@ const IN_THE_LIMIT=.999;
 /** The lesson's title, where the focus goes when nothing else should have it (Explorer, `focusLesson`). */
 const LESSON_TITLE='lesson-title';
 /** The library's card for the open lesson, where the dialog puts the focus; the first card if none is. */
-const libraryFocus=()=>document.querySelector<HTMLElement>('.exp-library-dialog [aria-current=page]')??true;
+const libraryFocus=()=>{const card=document.querySelector<HTMLElement>('.exp-library-dialog [aria-current=page]');if(card)requestAnimationFrame(()=>requestAnimationFrame(()=>placeLibrary(card)));return card??true;};
+/** THE LIBRARY OPENS ON THE OPEN LESSON'S FAMILY, HEADING FIRST. Focusing its card scrolled the list only as far as
+ * the card, so on the annulus the dialog opened with a row of cards sliced through their tops under the subtitle and
+ * the family's name out of sight: a student looking for the first lesson had no sign the list went on above. The
+ * region is now scrolled so the family's heading is its first line (none at all for the first family), unless that
+ * would put the card itself below the region's foot, when the card's top is. */
+function placeLibrary(card:HTMLElement){
+ const list=card.closest<HTMLElement>('.exp-library-list'),family=card.closest<HTMLElement>('.exp-library-family');if(!list||!family||!card.isConnected)return;
+ const at=(e:HTMLElement)=>e.getBoundingClientRect().top-list.getBoundingClientRect().top+list.scrollTop;
+ const head=at(family)-parseFloat(getComputedStyle(list).paddingTop||'0'),foot=card.getBoundingClientRect().bottom-list.getBoundingClientRect().top+list.scrollTop;
+ list.scrollTop=Math.max(0,foot-head>list.clientHeight?at(card)-12:head);
+}
 /** A lesson as it is opened from storage or from a link: with the charge CUT INTO PIECES. The run drives the
  * same state the controls do, and before the persistence fix a run left at its end was saved with its cut gone
  * (continuum 1) -- a student who had watched one opened that lesson ever after on a smooth rod "In the limit"
@@ -92,7 +103,24 @@ const libraryFocus=()=>document.querySelector<HTMLElement>('.exp-library-dialog 
 const atRest=(v:Partial<Params>):Params=>({...cleanParams(v),continuum:0});
 /** A link's annulus keeps its hole inside its rim, as the slider does: ?p=annulus&inner=3 on a rim of 2 opens the
  * widest hole the slider reaches, not one it could never show. Only the annulus reads `inner`, so only its is held. */
-const keepHole=(id:ProblemId,v:Params):Params=>id==='annulus'&&v.inner>HOLE_MAX*v.size/2?{...v,inner:Math.floor(HOLE_MAX*v.size/2/.05+1e-9)*.05}:id==='offset'?keepHeight(v,v.size):v;
+const keepHole=(id:ProblemId,v:Params):Params=>id==='annulus'&&v.inner>HOLE_MAX*v.size/2?{...v,inner:Math.floor(HOLE_MAX*v.size/2/.05+1e-9)*.05}:id==='offset'?keepHeight(v,v.size):id==='shell'?offShell(v,v):v;
+/** P IS NEVER ON THE SHELL. Height z and radius R move on the same grid of a twentieth of a metre, so either slider
+ * (or a drag of P, or a link) could land P on the surface, z = R. There the integral is the mean of the two sides,
+ * kQ/(2R²), half the outside answer, and nothing in the lesson is about that point: the figure drew P outside, the
+ * run said every ring was below it, and the answer read kQ/z² beside an arrow half as long. So the value that lands
+ * on the surface steps one notch on past it, the way it was moving: an arrow key from z = R − .05 goes to R + .05, and
+ * P is inside or outside, never between. Where the next notch is off the slider's end it goes back one instead. A link
+ * that asks for the surface opens P just outside. A state saved on it before this opens where it was, which the figure
+ * names for what it is ("On the shell", ChargeDiagram), and the first move takes it off. */
+const offShell=(prev:Params,next:Params):Params=>{
+ const R=next.size/2,z=next.distance;if(Math.abs(z-R)>.025)return next;
+ const grid=(n:number)=>Math.round(n*20)/20,within=(n:number,lo:number,hi:number)=>n>=lo-1e-9&&n<=hi+1e-9;
+ const step=(from:number,to:number,lo:number,hi:number,at:number)=>{const up=to>=from,a=grid(at+(up?.05:-.05)),b=grid(at+(up?-.05:.05));return within(a,lo,hi)?a:b;};
+ if(next.distance!==prev.distance)return {...next,distance:step(prev.distance,z,.5,6,R)};
+ if(next.size!==prev.size)return {...next,size:2*step(prev.size/2,R,.5,4,z)};
+ // Something else moved (the run's cut, the charge): P stays where it was put.
+ return prev===next?{...next,distance:step(z,z,.5,6,R)}:next;
+};
 /** The rod off its bisector keeps P level with some part of the rod, |h| ≤ L/2, on the slider's own grid, as its slider and
  * its length's do: a link's ?h=3 beside L = 4 opens P level with the end. */
 const heightMax=(size:number)=>Math.floor(size/2/.05+1e-9)*.05;
@@ -446,6 +474,30 @@ export default function Explorer({welcome}:{welcome?:boolean}={}){
  // and the first stage starts at exactly zero -- so clicking the first stage's marker, or pausing
  // on its opening frame, threw the reader out of the run and back to the start button.
  const buildOpen=buildShown;
+ /* A SLOW COMPUTER IS OFFERED THE FLAT VIEW, NEVER SWITCHED TO IT. The lessons that open in space (the ring, the
+  * disk, the sheet, the annulus, the shell) ran their Add them up at seven to fifteen frames a second on a
+  * software-drawn machine, against sixty in the flat view, and a school Chromebook draws the same shape: the stage
+  * each lesson is built on juddered, and nothing said the flat view existed. For the first two seconds the run
+  * plays in space the gaps between frames are timed, once a lesson; a median over forty milliseconds, or two
+  * gaps over a hundred and fifty, puts one quiet line under the transport whose button presses the figure's own
+  * 2D switch, so the run keeps its stage. A hidden window paints no frames, so it is never timed as slow. */
+ const [slowSpace,setSlowSpace]=useState<ProblemId|null>(null);const timedSpace=useRef<ProblemId|null>(null);
+ useEffect(()=>{
+  if(!buildOpen||!building||!inSpace||timedSpace.current===id||typeof requestAnimationFrame==='undefined')return;
+  const gaps:number[]=[];let last=-1,start=-1,frame=0,done=false;
+  const tick=(t:number)=>{
+   if(document.visibilityState!=='visible'){last=-1;frame=requestAnimationFrame(tick);return;}
+   if(start<0)start=t;if(last>=0)gaps.push(t-last);last=t;
+   if(t-start<2000){frame=requestAnimationFrame(tick);return;}
+   done=true;timedSpace.current=id;
+   const sorted=[...gaps].sort((a,b)=>a-b),median=sorted[sorted.length>>1]??0;
+   if(median>40||gaps.filter(g=>g>150).length>=2)setSlowSpace(id);
+  };
+  frame=requestAnimationFrame(tick);
+  return ()=>{if(!done)cancelAnimationFrame(frame);};
+ },[buildOpen,building,inSpace,id]);
+ // The line goes once it is pressed, so the focus goes to the switch it pressed, now on, not to the page's body.
+ const toFlat=()=>{const flat=walk.current?.closest('.exp-diagram-card')?.querySelector<HTMLButtonElement>('.cd-view-modes button[aria-pressed=false]');flat?.click();flat?.focus();setSlowSpace(null);};
  // The piece being added walks along the charge while the sum builds, so it is always plain
  // which piece is going in. Where the charge has a mirror about P's axis the figure adds a piece and its
  // mirror together, and works out from the stage's own progress which pair is going in and lights both
@@ -522,7 +574,7 @@ export default function Explorer({welcome}:{welcome?:boolean}={}){
  // seventy samples again on every frame of Shrink them -- a fifth of a frame's cost there on a slow machine -- for a
  // sweep that reads none of it.
  const boardParams=useMemo(()=>({distance:bd,size:bs,charge:bq,phi:bp,slices:bn,element:be,continuum:0,inner:bi,height:bh}),[bd,bs,bq,bp,bn,be,bi,bh]);
- const updateParams=useCallback((partial:Partial<Params>)=>{setParamsMap(old=>({...old,[id]:{...(old[id]??DEFAULT_PARAMS),...partial}}));},[id]);
+ const updateParams=useCallback((partial:Partial<Params>)=>{setParamsMap(old=>{const prev=old[id]??DEFAULT_PARAMS,next={...prev,...partial};return {...old,[id]:id==='shell'?offShell(prev,next):next};});},[id]);
  /** Whether the run came to rest by itself -- played to the end of what it was asked to play -- rather
   * than being stopped: the board looks again at the one and leaves the other alone (see the follow). */
  const stoppedByRun=useRef(false);
@@ -1200,7 +1252,7 @@ export default function Explorer({welcome}:{welcome?:boolean}={}){
       well: it plays, pauses, scrubs and steps one stage at a time, and the derivation in the
       panel arrives with it. */}
   {buildOpen&&<div ref={walk} className="exp-walk is-open"><BuildPlayer stages={stages} clock={runAt} index={buildIndex} playing={building} math={playerSteps} chain={playerChain} answer={playerAnswer} lead={playerLead}
-    onPlay={play} onSeek={seek} onStep={step} onClose={close}/></div>}
+    onPlay={play} onSeek={seek} onStep={step} onClose={close}/>{slowSpace===id&&inSpace&&<p className="exp-slow-space no-print">Running slowly on this computer? <button type="button" onClick={toFlat}>Switch to the flat view</button></p>}</div>}
 </section>
  <section className="exp-parameters">{parameterGrid}</section>
  {/* The sentence names the two tabs: without it they were an unnamed list of two. */}
