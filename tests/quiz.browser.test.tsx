@@ -63,7 +63,7 @@ describe('quiz yourself', () => {
   seen();
   const r = render(<Site />);
   await r.findByRole('heading', {level: 1, name: 'One law, every geometry.'});
-  const link = r.getByRole('link', {name: /Quiz yourself/});
+  const link = r.getByRole('link', {name: /Ready to test it/});
   expect(link.getAttribute('href')).toBe('?quiz');
   await userEvent.click(link);
   expect(await r.findByRole('heading', {level: 1, name: 'Test what you understand'})).toBeTruthy();

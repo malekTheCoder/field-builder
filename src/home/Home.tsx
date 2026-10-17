@@ -8,7 +8,7 @@ import {serializeAssignment} from '../state/assignment';
 import {inPlace,navigate} from '../state/route';
 import {families,ShapeGlyph} from '../explorer/lessons';
 import {GaussHomeFamily} from '../gauss/GaussFamily';
-import {Brand} from '../explorer/Brand';
+import {Brand,SiteLinks} from '../explorer/Brand';
 import {STORAGE} from '../explorer/Explorer';
 import {Hint} from '../components/Hint';
 import {LawsDialog} from '../components/Laws';
@@ -111,7 +111,7 @@ export default function Home(){
  const themeLabel=dark?'Switch to light theme':'Switch to dark theme';
  return <div className="home">
   <a className="skip-link" href="#home-lessons">Skip to the lessons</a>
-  <header className="exp-header"><Brand current/><div className="exp-header-right"><Hint label={themeLabel}><button type="button" className="icon-button" onClick={()=>setTheme(!dark)} aria-label={themeLabel}>{dark?<Sun size={17}/>:<Moon size={17}/>}</button></Hint></div></header>
+  <header className="exp-header"><Brand current/><div className="exp-header-right"><SiteLinks/><Hint label={themeLabel}><button type="button" className="icon-button" onClick={()=>setTheme(!dark)} aria-label={themeLabel}>{dark?<Sun size={17}/>:<Moon size={17}/>}</button></Hint></div></header>
   <main id="home" tabIndex={-1} className="home-main">
    <section className="home-hero" aria-labelledby="home-title">
     <div className="home-hero-text">

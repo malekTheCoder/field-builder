@@ -6,7 +6,7 @@ import {isReady} from '../problems/readiness';
 import {HOME_HREF,QUIZ_HREF,goHome,inPlace,navigate} from '../state/route';
 import {FAMILIES,GAUSS,PlannedGlyph,ShapeGlyph,plannedName} from '../explorer/lessons';
 import {isGaussReady} from '../gauss';
-import {Brand} from '../explorer/Brand';
+import {Brand,SiteLinks} from '../explorer/Brand';
 import {STORAGE} from '../explorer/Explorer';
 import {MathText,Prose} from '../components/Math';
 import {Hint} from '../components/Hint';
@@ -127,10 +127,10 @@ export default function Quiz(){
  const themeLabel=dark?'Switch to light theme':'Switch to dark theme';
  return <div className="quiz">
   <a className="skip-link" href="#quiz">Skip to the quiz</a>
-  <header className="exp-header"><Brand/><div className="exp-header-right"><Hint label={themeLabel}><button type="button" className="icon-button" onClick={()=>setTheme(!dark)} aria-label={themeLabel}>{dark?<Sun size={17}/>:<Moon size={17}/>}</button></Hint></div></header>
+  <header className="exp-header"><Brand/><div className="exp-header-right"><SiteLinks current="quiz"/><Hint label={themeLabel}><button type="button" className="icon-button" onClick={()=>setTheme(!dark)} aria-label={themeLabel}>{dark?<Sun size={17}/>:<Moon size={17}/>}</button></Hint></div></header>
   <main id="quiz" tabIndex={-1} className="quiz-main">
    {phase==='setup'&&<SetUp settings={settings} setSettings={s=>{setSettings(s);setNudge('')}} onStart={start} nudge={nudge} hist={hist} onForget={forget} cleared={cleared}/>}
-   {phase==='take'&&current&&<Take drawn={current} index={index} total={drawn.length} pick={pick} setPick={p=>{setPick(p);setNudge('')}} onCheck={check} onNext={next} nudge={nudge} last={index+1===drawn.length}/>}
+   {phase==='take'&&current&&<Take drawn={current} index={index} total={drawn.length} pick={pick} setPick={p=>{setPick(p);setNudge('')}} onCheck={check} onNext={next} onLeave={toSetup} nudge={nudge} last={index+1===drawn.length}/>}
    {phase==='end'&&<End results={grade(drawn,answers)} before={before} onRetry={ids=>begin(drawAgain(ids))}
      onWeak={w=>begin(drawWeak(settings,w,hist))} onNew={toSetup} onForget={forget} cleared={cleared} hist={hist}/>}
   </main>
@@ -183,7 +183,9 @@ function SetUp({settings,setSettings,onStart,nudge,hist,onForget,cleared}:{setti
      <input type="radio" name="quiz-length" checked={settings.length===l.id} onChange={()=>setSettings({...settings,length:l.id})}/>
      <strong>{l.name}</strong><small>{l.about}</small></label>)}</div>
    </fieldset>
-   <div className="quiz-start-row">
+   {/* Held at the foot of the window while the choices scroll under it: below twenty-odd shapes, four kinds and
+       three lengths it sat two screens down, and on a laptop nothing in view said how to begin. */}
+   <div className="quiz-start-row is-sticky">
     <button type="submit" className="quiz-primary">Start the quiz<ArrowRight size={16} aria-hidden="true"/></button>
     <output className="quiz-nudge">{nudge}</output>
    </div>
@@ -203,7 +205,7 @@ function HistoryNote({hist,onForget,cleared,note}:{hist:History;onForget:()=>voi
 }
 
 /* ---------- Taking it ---------- */
-function Take({drawn,index,total,pick,setPick,onCheck,onNext,nudge,last}:{drawn:Drawn;index:number;total:number;pick:Pick;setPick:(p:Pick)=>void;onCheck:()=>void;onNext:()=>void;nudge:string;last:boolean}){
+function Take({drawn,index,total,pick,setPick,onCheck,onNext,onLeave,nudge,last}:{drawn:Drawn;index:number;total:number;pick:Pick;setPick:(p:Pick)=>void;onCheck:()=>void;onNext:()=>void;onLeave:()=>void;nudge:string;last:boolean}){
  const q=drawn.question,right=correctIndex(q);
  const chosen=pick.choice===null?null:q.choices[pick.choice];
  const wasRight=pick.checked&&pick.choice===right;
@@ -211,6 +213,9 @@ function Take({drawn,index,total,pick,setPick,onCheck,onNext,nudge,last}:{drawn:
  const name=`quiz-${q.id}`;
  const kind=KINDS.find(k=>k.id===q.kind)!.name;
  return <section className="quiz-take" aria-labelledby="quiz-question">
+  {/* Where the reader is, in words (the page prints no numerals), and the way out: the bar alone said neither,
+      and the only exit was the name in the corner. Leaving returns to set up, with the choices kept. */}
+  <div className="quiz-take-top"><p className="quiz-count">Question {inWords(index+1)} of {inWords(total)}</p><button type="button" className="quiz-quiet quiz-leave" onClick={onLeave}>Leave the quiz</button></div>
   <progress className="quiz-progress" aria-label="Progress through the quiz" max={total} value={done} aria-valuetext={`${capital(inWords(done))} of ${inWords(total)} answered`}/>
   <p className="quiz-meta"><span className="quiz-meta-shape"><Glyph id={q.lesson} size={16}/><Named text={shapeShort(q.lesson)}/></span><span className="quiz-meta-kind">{kind}</span></p>
   <h2 id="quiz-question" tabIndex={-1} className="quiz-prompt"><Prose text={q.prompt}/></h2>

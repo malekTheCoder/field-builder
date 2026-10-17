@@ -3,6 +3,8 @@ import {afterEach, beforeEach, describe, expect, it} from 'vitest';
 import {page, userEvent} from 'vitest/browser';
 import Site, {newVisit} from '../src/home/Site';
 import {getProblem} from '../src/problems/definitions';
+import {GAUSS} from '../src/explorer/lessons';
+import {gaussLesson} from '../src/gauss';
 
 /* THE STUDY GUIDE. `?guide` opens a page on how to learn with the site; its lessons open from it, the home
  * page and every lesson's header lead to it, and it holds the site's rules: no numerals in its words, and
@@ -31,12 +33,19 @@ describe('the study guide', () => {
   for (const name of ['The one idea behind every lesson', 'Working through a lesson', 'An order to take them in', 'When you are stuck', 'For any new shape: an exam checklist', 'For teachers'])
    expect(getByRole('heading', {level: 2, name})).toBeTruthy();
   // All fifteen lessons, each once, each a link to its own address, starting with the finite line.
-  const lessons = [...container.querySelectorAll<HTMLAnchorElement>('a.guide-lesson')];
+  const all = [...container.querySelectorAll<HTMLAnchorElement>('a.guide-lesson')];
+  const lessons = all.filter(a => a.getAttribute('href')!.startsWith('?p='));
   expect(lessons.length).toBe(15);
   expect(new Set(lessons.map(a => a.getAttribute('href'))).size).toBe(15);
   expect(lessons[0].getAttribute('href')).toBe('?p=bisector');
   expect(lessons[0].textContent).toContain(getProblem('bisector').short);
   expect(lessons.at(-1)!.getAttribute('href')).toMatch(/^\?p=v-/);
+  // Then Gauss's law, after the integrals: all eleven, in the lesson list's order and by its names.
+  const gauss = all.filter(a => a.getAttribute('href')!.startsWith('?g='));
+  expect(all.slice(15)).toEqual(gauss);
+  expect(gauss.map(a => a.getAttribute('href'))).toEqual(GAUSS.lessons.map(l => `?g=${l.key}`));
+  for (const a of gauss) expect(a.querySelector('strong')!.textContent).toBe(gaussLesson(a.getAttribute('href')!.slice(3))!.title.replace('Q_enc', 'Qenc'));
+  expect(getByRole('heading', {level: 3, name: 'Or, where the charge has symmetry: Gauss’s law'})).toBeTruthy();
   expect(words(container), 'the guide prints a numeral').not.toMatch(/[0-9]/);
   expect(container.textContent).not.toContain('—');
  });
