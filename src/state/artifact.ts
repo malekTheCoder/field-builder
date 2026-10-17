@@ -3,6 +3,7 @@ import {snapshotLayer} from '../diagrams/snapshot';
 import {PLOT} from '../diagrams/vectorfield';
 import {buildStages} from '../explorer/buildRun';
 import {getProblem} from '../problems/definitions';
+import {symbolic} from '../problems/prose';
 import {lessonFor, type Lesson} from '../lessons';
 import type {Problem} from '../problems/types';
 import {alongIntegralOf, boardLines, resultLines, workedSteps, type BoardLine} from '../workbench/derivation';
@@ -173,6 +174,27 @@ function restates(result: string, line: string) {
  * -- the Δ of ΔV -- stays upright, as TeX sets it. */
 export function greekHtml(text: string) {
   return escapeHtml(text).replace(/[Ͱ-Ͽ]+/g, run => run.split('').map(c => `<span class="g${c === c.toLowerCase() ? '' : ' up'}">${c}</span>`).join(''));
+}
+
+/** The Checks use the same plain-text sentences as the live limiting cases. Greek-only styling
+ * left Latin symbols (kQ/z², P, z < R) in the body face beside their italic equations. Follow the
+ * live page's mathProse rule: short symbolic runs use the math face, while words, operators and
+ * an unheld English article stay prose. Explicit $…$ spans already specify their own mathematics.
+ * Escape each text fragment before adding markup, including fragments around Greek letters. */
+export function mathProseHtml(text: string) {
+  if (text.includes('$')) return proseHtml(text);
+  const functions = new Set(['sin', 'cos', 'tan', 'sec', 'ln', 'log', 'exp', 'sgn']);
+  const latin = (part: string) => part.split(/([A-Za-z]+[₀-₉ᵢᵧₓ²³′]*)/).map((run, i) => {
+    const letters = run.match(/^[A-Za-z]+/)?.[0] ?? '';
+    return i % 2 && letters.length <= 2 && !functions.has(letters)
+      ? `<span class="g">${escapeHtml(run)}</span>` : greekHtml(run);
+  }).join('');
+  return text.split(/( )/).map(token => {
+    if (token === ' ') return token;
+    const pieces = token.split(/(\u00a0)/), held = pieces.length > 1;
+    return pieces.map(part => part === '\u00a0' ? part
+      : symbolic(part) && (held || !/^[aAI]$/.test(part)) ? latin(part) : greekHtml(part)).join('');
+  }).join('');
 }
 
 /** Whether a lesson's sentence or display says what k is: k = 1/(4πε₀), in either way of writing the fraction. */
@@ -492,7 +514,7 @@ export function artifactHtml(a: LessonArtifact) {
   // What the page checks the answer against, and where the physics is written up. A handout without
   // them gave a student nothing to test the result by and nowhere to read further.
   const checks = a.checks?.length
-    ? keep('<h2>Checks</h2>', a.checks.map(c => `<div class="check"><h3>${escapeHtml(c.title)}</h3>\n${mathml(c.formula)}\n<p>${greekHtml(c.explanation)}</p></div>`))
+    ? keep('<h2>Checks</h2>', a.checks.map(c => `<div class="check"><h3>${escapeHtml(c.title)}</h3>\n${mathml(c.formula)}\n<p>${mathProseHtml(c.explanation)}</p></div>`))
     : '';
   // The footer closes the copy with the sources it follows: printed on its own, it took the ring's
   // whole third sheet.

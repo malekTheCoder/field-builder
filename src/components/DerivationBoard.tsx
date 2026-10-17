@@ -90,7 +90,12 @@ export const DerivationBoard = memo(function DerivationBoard({lines, names, stat
               {line.finish && <span className={'db-then' + (finished ? ' is-shown' : '')}><span className="db-then-in">
                 <MathText className="db-then-tex" tex={line.finish} block trusted />
               </span></span>}
-              {line.where && <MathText className="db-where" tex={line.where} trusted />}
+              {/* The sum-to-integral and charge replacements are separate statements. Keeping them
+                  in one KaTeX box lets it break after the first arrow on the shell's narrow board,
+                  leaving the integral on the next line. Wrap between the two complete relations. */}
+              {line.where && (line.key === 'limit'
+                ? <span className="db-where db-replacements">{line.where.split(String.raw`,\quad `).map(tex => <MathText key={tex} tex={tex} trusted />)}</span>
+                : <MathText className="db-where" tex={line.where} trusted />)}
               {/* Shrink them's other replacements, a formula each: separate pieces of math, so a narrow
                   panel wraps between them rather than scrolling one long row sideways. */}
               {line.swaps && <span className="db-where db-swaps">{line.swaps.map(t => <MathText key={t} tex={t} trusted />)}</span>}

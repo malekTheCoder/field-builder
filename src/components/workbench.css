@@ -244,8 +244,10 @@
 .db .math.db-merged{margin-bottom:-1px}
 /* Shrink them's replacements, one formula each, side by side and wrapping between formulas. Each is given
    the chip's room round its ink and takes it back, as a gloss is (above), so a lit factor's ring is whole. */
-.db-swaps{display:flex;flex-wrap:wrap;column-gap:1.5em;row-gap:.15em;margin-top:.2em}
-.db-swaps>.math{padding:5px 4px 6px;margin:-5px -4px -3px}
+.db-replacements,.db-swaps{display:flex;flex-wrap:wrap;column-gap:1.5em;row-gap:.15em;margin-top:.2em}
+.db-replacements>.math,.db-swaps>.math{padding:5px 4px 6px;margin:-5px -4px -3px}
+/* The two headline replacements must wrap between relations, never after an arrow. */
+.db-replacements>.math{white-space:nowrap}
 /* Two glosses stacked under one line -- the replacements, then a square times its own square root -- sat
    about 6px apart, the three-halves power nearly touching the row above, and the paragraph started right
    under them. A little air between the two, and before the paragraph, as a step with one gloss has. */
