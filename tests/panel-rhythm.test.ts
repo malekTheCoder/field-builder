@@ -67,7 +67,9 @@ describe('the answer in one rhythm', () => {
     for (const p of PROBLEMS) for (const s of [...workedSteps(p).worked, ...workedSteps(p).back].filter(x => aligned(x.tex))) for (const {row, white} of whites(s.tex)) {
       seen++;
       const opens = /^[^&]*&(\\quad)?=/.test(row);
-      if (opens ? white < .55 || white > .85 : white < .2 || white > .5) bad.push(`${p.id}: ${white.toFixed(2)}em above "${row.slice(0, 40)}"`);
+      // A continuation under a row with no fraction in it -- the shell's constant, set first, over its integral --
+      // keeps the bare line spacing and stands a hair farther off than one under a fraction: up to .55em.
+      if (opens ? white < .55 || white > .85 : white < .2 || white > .55) bad.push(`${p.id}: ${white.toFixed(2)}em above "${row.slice(0, 40)}"`);
     }
     expect(seen).toBeGreaterThan(30);
     expect(bad).toEqual([]);

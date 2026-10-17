@@ -503,8 +503,9 @@ export default function Explorer({welcome}:{welcome?:boolean}={}){
  const playerAnswer=useMemo(()=>{if(!settledRun)return NONE;if(bracket.whole)return resultLines(p);const part=bracketAnswer(p,bracket);return part?[part]:NONE},[p,bracket,settledRun]);
  // Over the answer, where it came from, in the panel's words (EquationWorkbench): the pieces added up where
  // the sum was exact all along, the integral done everywhere else -- and, where the answer has an E_y the
- // run built no line for, that it is the surviving part added up the same way.
- const playerLead=useMemo(()=>{if(!bracket.whole)return 'Done between the bracket’s ends, the integral gives the bracketed part’s answer.';const two=['endpoint','ramp','semi','offset'].includes(p.id);return (exactSum(p)?'Adding up the pieces gives this, exactly, however many there are.':two?'Doing the integrals gives this.':'Doing the integral gives this.')+(two?String.raw` $E_y$ is the surviving $\Delta E_y$ added up the same way.`:'')},[p,bracket]);
+ // run built no line for, that it is the surviving part added up the same way. Said first: "Doing the integrals gives
+ // this. E_y is …" claimed the integrals' result before saying what the second one was.
+ const playerLead=useMemo(()=>{if(!bracket.whole)return 'Done between the bracket’s ends, the integral gives the bracketed part’s answer.';const two=['endpoint','ramp','semi','offset'].includes(p.id);return two?String.raw`The surviving $\Delta E_y$ adds up the same way, to $E_y$. Doing the integrals gives this.`:exactSum(p)?'Adding up the pieces gives this, exactly, however many there are.':'Doing the integral gives this.'},[p,bracket]);
  // What the figure and the board are told about the run, held still until it actually changes.
  // The run's clock goes with it, and where the stage on screen starts and how long it lasts: a stage
  // that moves within itself reads its own moment off the clock, so a pause or a seek holds it there.

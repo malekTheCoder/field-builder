@@ -91,9 +91,9 @@ describe('Shrink them writes every swap as maths', () => {
 
 describe('the sum’s range, the cancellation and the exact sums', () => {
   it('the range is a range, never "y: …", and an endless end is not reached', () => {
-    expect(step('bisector', 'add').where).toBe(String.raw`\htmlClass{fx fx-bounds}{{-L/2}\le y\le {L/2}}`);
-    expect(step('sheet', 'add').where).toBe(String.raw`\htmlClass{fx fx-bounds}{{0}\le s<{\infty}}`);
-    expect(step('infinite', 'add').where).toMatch(/<\\alpha</);
+    expect(step('bisector', 'add').where).toBe(String.raw`\htmlClass{fx fx-bounds}{{-L/2}\le y_i\le {L/2}}`);
+    expect(step('sheet', 'add').where).toBe(String.raw`\htmlClass{fx fx-bounds}{{0}\le s_i<{\infty}}`);
+    expect(step('infinite', 'add').where).toMatch(/<\\alpha_i</);
     for (const p of PROBLEMS) expect(step(p.id, 'add').where, p.id).not.toContain('\\colon');
   });
   it('a ring’s bits cancel to that ring’s ΔE⊥, and every ring’s to the whole E⊥', () => {

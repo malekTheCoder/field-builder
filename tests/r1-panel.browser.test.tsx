@@ -106,7 +106,7 @@ describe('the board writes the cancellation and says what its symbols mean', () 
     expect(held).not.toBeNull();
     expect(getComputedStyle(held).whiteSpace).toBe('nowrap');
     expect(held.textContent).toMatch(/^toward\u00a0/);
-    expect(held.textContent).toMatch(/\.$/);
+    expect(held.textContent).toMatch(/[.,]$/);
     expect(held.querySelector('.katex')).not.toBeNull();
   });
   it('a second component that survives is said to in words, beside its formula', () => {

@@ -71,8 +71,8 @@ describe('the answer points back at the board', () => {
   it('a second component is the surviving ΔE_y added up', () => {
     for (const id of ['endpoint', 'ramp', 'semi'] as const) {
       const view = panel(id), lead = view.container.querySelector('.ew-result-lead')!;
-      // With the factor the board never wrote for it, and then its integral, before the answer.
-      expect(lead.textContent, id).toMatch(/is the surviving .* added up the same way, with .*:$/);
+      // Where E_x's integral is, and that E_y is built the same way, then its integral, before the answer.
+      expect(lead.textContent, id).toMatch(/^The integral for .* is the last line above\. The surviving .* adds up the same way, to .*:$/);
       expect(lead.querySelectorAll('.katex').length, id).toBeGreaterThanOrEqual(3);
       const integral = lead.nextElementSibling!;
       expect(integral.classList.contains('ew-result-integral'), id).toBe(true);

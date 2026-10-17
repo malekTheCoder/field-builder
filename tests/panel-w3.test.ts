@@ -119,8 +119,10 @@ describe('where piece i sits is indexed, and the rule says what becomes of it', 
       expect(add, p.id).toContain(`$${v}_i$`);
       expect(limit, p.id).toContain(`’s position $${v}_i$ becomes the integral’s $${v}$`);
     }
-    expect(step('disk', 'limit').say).toContain(String.raw`$\Delta Q_i=\sigma\,2\pi s_i\,\Delta s$`);
-    expect(step('bisector', 'limit').say).toContain(String.raw`$\cos\alpha_i=r/\sqrt{y_i^2+r^2}$`);
+    // The changing factors, written once in the row under the integral (the paragraph that said them again in y_i
+    // went): the indexed factor on the left, the integral's variable on the right.
+    expect(step('disk', 'limit').where).toContain(String.raw`\Delta Q_i\to dQ=\sigma\,2\pi s\,ds`);
+    expect(step('bisector', 'limit').swaps!.join(' ')).toContain(String.raw`\cos\alpha_i\to r/\sqrt{y^2+r^2}`);
   });
 });
 
@@ -138,7 +140,7 @@ describe('formulas are never separated by punctuation alone, and no sentence ope
 
 describe('small marks of the setting', () => {
   it('ΔE carries the charge’s sign, said in One piece; its size is |ΔE|', () => {
-    for (const id of ['bisector', 'endpoint', 'ramp', 'infinite', 'semi', 'arc', 'ring', 'axial']) expect(step(id, 'one').say, id).toMatch(/\$\\Delta E=k\\,\\Delta Q\/r_i\^2\$ is negative when the charge is/);
+    for (const id of ['bisector', 'endpoint', 'ramp', 'infinite', 'semi', 'arc', 'ring', 'axial']) expect(step(id, 'one').say, id).toMatch(/\$\\Delta E=k\\,\\Delta Q\/r_i\^2\$ takes the charge’s sign/);
     expect(step('bisector', 'one').say).toContain(String.raw`its size is $|\Delta E|$`);
   });
   it('kλ is spaced one way in Shrink’s two rows', () => {
@@ -147,7 +149,7 @@ describe('small marks of the setting', () => {
   it('the infinite line’s merged gloss is inline; the sheet’s ring charge is grouped; the bridge is to the piece’s own length', () => {
     expect(step('infinite', 'limit').merged).not.toContain('\\frac');
     expect(step('sheet', 'pieces').tex).toContain(String.raw`\sigma\,(2\pi s)(z\sec^2\alpha\,\Delta\alpha)`);
-    expect(step('semi', 'pieces').say).toMatch(/which for a piece near\s\$P\$ is nearly its own length, \$\\Delta y\$\./);
+    expect(step('semi', 'pieces').say).toMatch(/Near\s\$P\$ a piece \$\\Delta\\alpha\$ wide is nearly .* long, its own length \$\\Delta y\$:/);
   });
   it('the axial answer makes one change per "="', () => {
     expect(resultLines(getProblem('axial'))[0]).toMatch(/\\left\(\\frac1a-\\frac1\{L\+a\}\\right\)\\\\\[[\d.]+em\]&=\\frac\{k\\lambda L\}\{a\(L\+a\)\}\\\\\[[\d.]+em\]&=\\frac\{kQ\}\{a\(L\+a\)\}/);
@@ -156,8 +158,13 @@ describe('small marks of the setting', () => {
     for (const p of PROBLEMS.filter(q => q.quantity === 'V')) expect(step(p.id, 'cancel').nothing, p.id).toMatch(/\$\\Delta V\$ is unchanged from the step before\.$/);
   });
   it('Add says where E_y is, where the chain leans', () => {
-    for (const id of ['endpoint', 'ramp', 'semi']) expect(step(id, 'add').say, id).toMatch(/How far it reaches along \$y\$ is \$E_y\$.*its integral is written with the answer, below/);
-    expect(step('bisector', 'add', ['0', 'L/2'], {keeps: false}).say).toMatch(/How far it reaches along \$y\$ is \$E_y\$.*part’s answer/);
+    // Of the chain, named: "how far it reaches" had no antecedent.
+    for (const id of ['endpoint', 'ramp', 'semi', 'offset']) {
+      expect(step(id, 'add').say, id).toMatch(/Its \$y\$ part is \$E_y\$.*its integral is written with the answer, below/);
+      expect(step(id, 'add').say, id).toMatch(/chain/);
+      expect(step(id, 'add').say, id).not.toMatch(/how far it reaches/i);
+    }
+    expect(step('bisector', 'add', ['0', 'L/2'], {keeps: false}).say).toMatch(/Its \$y\$ part is \$E_y\$.*part’s answer/);
     expect(step('bisector', 'add').say).not.toMatch(/along \$y\$/);
     // And What cancels, off-centre, no longer says the integral builds E_x "alone" where the answer writes
     // E_y beside it; the ring's part, an exact sum with no bracket to write, still does.

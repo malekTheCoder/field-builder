@@ -134,10 +134,18 @@ describe('the derivation board', () => {
     it(`${p.id}: the last line writes the rule -- what changes from piece to piece, written in the variable`, () => {
       // The one step a student has to make alone to set up the next integral, which the board made
       // silently, and then named without writing: r_i² = y² + r², cos α_i = r/√(y² + r²).
-      const limit = lines.find(l => l.key === 'limit')!.say!;
+      const limitLine = lines.find(l => l.key === 'limit')!, limit = limitLine.say!;
       expect(limit, p.id).toContain(`integral over $${p.variableTex}$`);
       const swaps = SWAPS[p.id];
-      for (const [tex] of swaps) expect(limit, `${p.id}: ${tex}`).toContain(`$${tex}$`);
+      // Written once, in the row under the integral: what was piece i's becomes the integral's variable. (The
+      // paragraph that said each again in y_i went: three copies buried the one idea.) A charge's is the dQ.
+      const row = [limitLine.where, ...(limitLine.swaps ?? [])].join(' ');
+      const unindexed = (tex: string) => tex.replace(/(y|x|s|\\theta|\\alpha)_i/g, '$1');
+      for (const [tex, , against] of swaps) {
+        if (against === 'none') { expect(limitLine.where, `${p.id}: ${tex}`).toContain('dQ='); continue; }
+        const [name, rhs] = [tex.slice(0, tex.indexOf('=')), tex.slice(tex.indexOf('=') + 1)];
+        expect(row, `${p.id}: ${tex}`).toContain(`${name}\\to ${unindexed(rhs)}`);
+      }
       // The factors it names are the ones the sum above it indexes.
       const sum = lines.find(l => l.key === 'add')!.tex;
       for (const [tex] of swaps) {
@@ -150,7 +158,7 @@ describe('the derivation board', () => {
         const want = against === 'projection' ? Math.abs(evaluate(p.projection, at)) : evaluate(p.distance, at) ** (against === 'distance^2' ? 2 : 1);
         close(Math.abs(evaluate(expr, at)), want, `${p.id} ${tex}`);
       }
-      expect(limit, p.id).toMatch(/changes from (piece to piece|ring to ring)/);
+      expect(limit, p.id).not.toMatch(/What changes from/);
       // And what shrinking is, on the board, not only in a note: N → ∞, and where the lesson is cut in
       // its own variable, Δv → dv. The step named Shrink them never said the pieces got thinner -- nor,
       // on the exact lessons, did it ever: they said only that the term never changes, and credited the
@@ -211,7 +219,8 @@ describe('the derivation board', () => {
       // −Σ and −∫, not Σ − and ∫ −.
       expect(text, p.id).not.toMatch(/\\sum_i\s*-|\\int_\{[^}]*\}\^\{[^}]*\}-|\\int_\{\\htmlClass\{fx fx-bounds\}\{[^}]*\}\}\^\{\\htmlClass\{fx fx-bounds\}\{[^}]*\}\}-/);
       // And the pieces' range is a range, "−L/2 ≤ y ≤ L/2": "y: −L/2 → L/2" read as an equation for y.
-      expect(lines.find(l => l.key === 'add')!.where, p.id).toMatch(new RegExp(`(\\\\le|<)\\s*${p.variableTex.replace(/\\/g, '\\\\')}\\s*(\\\\le|<)`));
+      // Of the indexed symbol: piece i sits at y_i, and a range of the free y restricted nothing.
+      expect(lines.find(l => l.key === 'add')!.where, p.id).toMatch(new RegExp(`(\\\\le|<)\\s*${p.variableTex.replace(/\\/g, '\\\\')}_i\\s*(\\\\le|<)`));
     });
     it(`${p.id}: What cancels answers its own question -- the cancellation, or why nothing cancels`, () => {
       const cancel = lines.find(l => l.key === 'cancel')!;
@@ -239,7 +248,7 @@ describe('the derivation board', () => {
       // The figure brackets the piece in the lesson's own coordinate, and the board says how its
       // r sec²α Δα relates to it: nearly the piece's own length, near P -- of the piece, not "bracketed on
       // the figure", where the run's bracketed piece is never one near P and at three pieces none is drawn.
-      expect(pieces.say, id).toContain(`is nearly its own ${id === 'sheet' ? 'width' : 'length'}, ${bracket}.`);
+      expect(pieces.say, id).toContain(`its own ${id === 'sheet' ? 'width' : 'length'} ${bracket}:`);
       expect(pieces.say, id).not.toContain('bracketed on the figure');
     }
     // The figure's own pieces: the stand-in charge at each middle angle, to the last digit.
@@ -287,10 +296,10 @@ describe('the derivation board', () => {
     expect(step('ring', 'cancel').cancelsSay).toContain(String.raw`$-\Delta\mathbf E_\perp$`);
     // The arc says where θ is measured from -- on its first line, where θ first appears -- and why its
     // part along x is minus the cosine.
-    expect(step('arc', 'pieces').say).toMatch(/^A piece’s angle round the arc is \$\\theta\$, measured from the.*\$x\$-axis, its line of symmetry/);
+    expect(step('arc', 'pieces').say).toMatch(/^The whole arc is cut into \$N\$ pieces, as many as you like\. A piece’s angle round the arc is \$\\theta\$, measured from the.*\$x\$-axis, its line of symmetry/);
     expect(say('arc')).toMatch(/back through/);
     // θ and φ on a ring's or an arc's first line, said there: on the potentials they were never said.
-    for (const id of ['ring', 'v-ring', 'arc', 'v-arc']) expect(step(id, 'pieces').say, id).toMatch(/^A piece’s angle round the (ring|arc) is \$\\theta\$/);
+    for (const id of ['ring', 'v-ring', 'arc', 'v-arc']) expect(step(id, 'pieces').say, id).toMatch(/^The whole (ring|arc) is cut into \$N\$ pieces, as many as you like\. A piece’s angle round the (ring|arc) is \$\\theta\$/);
     for (const id of ['arc', 'v-arc']) expect(step(id, 'pieces').say, id).toContain(String.raw`the whole arc’s angle is $\varphi$`);
     // Bold is the arrow, the plain letter the arrow without its direction, and its size |ΔE| -- all said in One
     // piece, where the plain one first appears. What cancels named all three in one sentence and took four reads.

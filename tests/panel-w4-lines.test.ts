@@ -33,7 +33,7 @@ describe('Cut it up says when a piece is nearly a point charge, not that the dra
     expect(length / nearest).toBeGreaterThan(5);
     for (const id of rods) {
       const [cut] = buildStages(lesson(id));
-      expect(cut.line, id).toBe('A piece short compared with its distance from P is nearly a point charge.');
+      expect(cut.line, id).toBe('Pieces of rod: one short compared with its distance from P is nearly a point charge.');
       expect(cut.line, id).not.toMatch(/small enough|Pieces small/);
     }
   });

@@ -7,7 +7,7 @@ import { DerivationBoard, type BoardState } from './DerivationBoard';
 import { equivalent, safeParse } from '../symbolic/equivalence';
 import { annulusRadii } from '../distributions/disk';
 import { offsetCut, offsetAt, offsetEnds, offsetT } from '../distributions/offset';
-import { alongIntegralOf, backLead, componentOf, exactSum, partHasAlso, partResult, resultLines, workedSteps, type Term } from '../workbench/derivation';
+import { WHOLE, alongIntegralOf, backLead, componentOf, exactSum, partHasAlso, partResult, resultLines, workedSteps, type Term } from '../workbench/derivation';
 import { buildStages } from '../explorer/buildRun';
 import { bracketLines, bracketOf, ratio } from '../workbench/bracket';
 import type { Params, Problem } from '../problems/types';
@@ -41,8 +41,7 @@ const LIGHTS:Record<string,Term>={element:'element',charge:'element',distance:'d
 const REST:BoardState={open:false,index:-1,playing:false,settled:true};
 // THE ANSWER, NAMED AS ONE. Its box was headed "The whole distribution": a first-year reader did not take it for
 // the answer, and "distribution" is a word they do not have yet. It says it is the answer, and for what, in the
-// figure's own noun; the bracketed part's box says the same of the part.
-const WHOLE:Record<string,string>={bisector:'rod',offset:'rod',axial:'rod',endpoint:'rod',ramp:'rod',infinite:'line',semi:'line',ring:'ring',disk:'disk',annulus:'annulus',sheet:'sheet',arc:'arc','uneven-arc':'semicircle',shell:'shell'};
+// figure's own noun (`WHOLE`, which Cut it up names too); the bracketed part's box says the same of the part.
 export function EquationWorkbench({problem:p,derivationProblem,params,onModeChange,onHighlight,boundRange,onBoundRangeChange,build=REST,onStep,highlight=''}:EquationWorkbenchProps){
  // THE PANEL RE-RENDERS EVERY FRAME OF THE RUN, because the page does: the figure has to move. What
  // is on the panel changes only when the run enters a stage, pauses or settles, or a bracket moves.
@@ -107,16 +106,27 @@ export function EquationWorkbench({problem:p,derivationProblem,params,onModeChan
  // it, one above the other.
  const secondary=alongIntegralOf(q)?.tex??'';
  // Leading with the noun, as the board's sentences now do: a sentence never opens on a bare symbol.
- const surviving=!secondary?'':raw`The other component, $E_y$, is the surviving $\Delta E_y$ added up the same way, with $\sin\alpha=y/\sqrt{y^2+r^2}$:`;
+ //
+ // AND WITH THE FIRST COMPONENT NAMED. "The other component, E_y, is …" opened the answer, and a reader who jumped to
+ // the heading met "other" with no first one; its sin α = y/√(y² + r²) was the third copy of a gloss the board writes
+ // under ΔE_y. So it says where E_x's integral is, and that E_y's is built the same way, before showing it.
+ const surviving=!secondary?'':raw`The integral for $E_x$ is the last line above. The surviving $\Delta E_y$ adds up the same way, to $E_y$:`;
  // WHERE THE ANSWER CAME FROM. On the ring and the two exact potentials Add ends "this sum is already
  // exact … The answer needs no integral", and the answer under it opened "Doing the integral gives this":
  // credit to the integral for what the card had just said the sum gave. There the integral agrees.
- const lead=exactSum(q)?'Adding up the pieces gives this, exactly, however many there are; the integral above agrees.':secondary?'Doing the integrals gives this.':'Doing the integral gives this.';
+ //
+ // The shell's integral gives two answers, and the card said only "Doing the integral gives this": why there are two
+ // was in Unfold's fifth step, which a weak student never opens. One sentence says where they part.
+ const lead=exactSum(q)?'Adding up the pieces gives this, exactly, however many there are; the integral above agrees.':secondary?'Doing the integrals gives this.'
+  :g==='shell'?raw`Doing the integral gives this. It has two cases because the distance from $P$ to the top of the shell, $\sqrt{(z-R)^2}$, is $z-R$ outside and $R-z$ inside.`:'Doing the integral gives this.';
  // What the sign means, in words a first-year reader has: "signed field component" did not say that a
  // component can come out negative, or what that says. Two components are named as two.
  const both=['semi','endpoint','ramp','offset'].includes(p.id);
  const sign=scalar?'The potential $V$ can come out negative: reversing the charge reverses its sign, and there is no direction to keep track of.'
   :both?'Both $E_x$ and $E_y$ can come out negative: each one’s sign says which way it points, and reversing the charge reverses both.'
+  // The shell's result is a point charge's outside and zero inside: what a lecturer writes under it is that, and a
+  // remark about a negative component said nothing of a field that is zero.
+  :g==='shell'?raw`Outside, the shell acts as a point charge $Q$ at its centre; inside, there is no field at all.`
   :`The component $${componentOf(q)}$ can come out negative: its sign says which way it points, and reversing the charge reverses it.`;
  // WHAT A BRACKET'S INTEGRAL IS. "Choose the whole distribution to get the closed form back" sat under a
  // board that, on the ring and the two exact potentials, had just finished on a closed form -- and told
@@ -174,7 +184,7 @@ export function EquationWorkbench({problem:p,derivationProblem,params,onModeChan
   <DerivationBoard lines={lines} names={names} state={state} lit={LIGHTS[highlight]??''} onStep={playStep} onPoint={point}/>
  </div>
  {allBounds
-  ?<div className={'ew-result'+(settled?' is-shown':'')} aria-hidden={settled?undefined:true}><span className="ew-result-label">{`The answer, whole ${WHOLE[g]??'charge'}`}</span>{secondary&&<><p className="ew-result-lead"><Prose text={surviving}/></p><MathText className="ew-result-integral" tex={secondary} block/></>}<p className="ew-result-lead">{lead} <button type="button" className="ew-result-unfold" onClick={unfold}>Show every step</button></p>{results.map(t=><MathText key={t} tex={t} block/>)}{withK}<p><Prose text={sign}/></p></div>
+  ?<div className={'ew-result'+(settled?' is-shown':'')} aria-hidden={settled?undefined:true}><span className="ew-result-label">{`The answer, whole ${WHOLE[g]??'charge'}`}</span>{secondary&&<><p className="ew-result-lead"><Prose text={surviving}/></p><MathText className="ew-result-integral" tex={secondary} block/></>}<p className="ew-result-lead"><Prose text={lead}/> <button type="button" className="ew-result-unfold" onClick={unfold}>Show every step</button></p>{results.map(t=><MathText key={t} tex={t} block/>)}{withK}<p><Prose text={sign}/></p></div>
   :<div className="ew-result is-shown is-partial"><span className="ew-result-label">The answer for the bracketed part</span><p><Prose text={partNote}/></p>{partTex&&<><MathText className="ew-result-part" tex={partTex} block/><p>{partBack}</p></>}</div>}
  {/* THE SHELF: what a reader opens afterwards. The interval, the algebra worked out, and where
      the model comes from -- all closed until asked for, so the derivation stays the subject. */}

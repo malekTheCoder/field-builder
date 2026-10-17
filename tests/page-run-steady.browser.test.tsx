@@ -132,7 +132,7 @@ describe('a new cut keeps the run where it was', () => {
 });
 
 describe('the transport says where its answer came from', () => {
- for (const [id, lead] of [['ring', /^Adding up the pieces gives this, exactly/], ['bisector', /^Doing the integral gives this\.$/], ['endpoint', /^Doing the integrals gives this\. .*surviving/]] as const) it(`${id}`, async () => {
+ for (const [id, lead] of [['ring', /^Adding up the pieces gives this, exactly/], ['bisector', /^Doing the integral gives this\.$/], ['endpoint', /^The surviving .* adds up the same way, to .*\. Doing the integrals gives this\.$/]] as const) it(`${id}`, async () => {
   const view = await openLesson(id, 390, 844);
   fireEvent.click(view.getByRole('button', {name: 'Watch it build'}));
   fireEvent.click(view.getByRole('button', {name: 'Pause'}));
