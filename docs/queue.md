@@ -5,11 +5,24 @@ Work goes top to bottom through **Next**. Items move to **In progress** while so
 then to **Done**, with the commit. Newest requests are added at the bottom of **Next** unless the
 owner says they are urgent.
 
+**At the usage stop** (weekly 90%, owner 2026-10-17): start nothing new. Let a nearly done agent finish
+or save its work (a branch or a patch under .claude/loop/reports/), and write under In progress exactly
+what was running, where its work is, and the next step. Then stop. To resume: read this file top to
+bottom, finish In progress, then take Next in order.
+
 ## In progress
 - **Critique round, wave 7** on the whole site (19 integral lessons incl. the four new ones, Gauss, quiz,
   guide): one round, one publish. Usage 76% weekly at launch (stop at 90%).
 
 ## Next
+1. **Critique round 16, the first strict one** (owner, 2026-10-17): stricter critics, students, teachers,
+   an administrator, physics critics; fixers fix everything; then improvers. `.claude/loop/swarm.js` is
+   ready (wave 8: copy it to run-swarm-w8.js with EMBEDDED {"wave": 8, "iterations": 1, "ready": [],
+   "publishEvery": 99}). About 10–12% of weekly usage: after the reset on 2026-10-20 if usage is tight.
+   Then keep going, one round at a time, until a round finds nothing; remind the owner after each.
+2. **The potential's column explained in place** (owner asked "what's this?", 2026-10-17): a callout on the
+   lit block ("one piece's ΔV"), a bracket showing the column's height is V ≈ ΣΔV, and one caption line
+   the first time it shows. Waiting for the owner's OK on this option.
 - **Owner's call:** the off-middle rod (?p=offset) opens at h = 0.35, a lean of about five degrees, because
   larger defaults broke label placement. Fix the labels and open on a clearer lean?
 - **Owner's calls:** (1) Symmetry first runs all five stages, Solve included, before flux is taught: stop it
