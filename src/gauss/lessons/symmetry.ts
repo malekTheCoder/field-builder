@@ -88,7 +88,7 @@ export const lesson: GaussLesson = {
       },
       checks: [
         {title: 'Like a point charge', text: raw`The answer has no $R$ in it: outside, any spherically symmetric ball of charge $Q$, however big, makes the field of a point charge $Q$ at its centre. Coulomb’s law comes back out of Gauss’s law.`},
-        {title: 'At the surface', text: raw`At $r=R$ it gives $E_r=Q/(4\pi\varepsilon_0R^2)$, the field just outside the ball. Inside, the sphere encloses only part of the ball, and the Spheres lesson takes the same sphere in to find how the field falls to zero at the centre.`},
+        {title: 'At the surface', text: raw`At $r=R$ it gives $E_r=Q/(4\pi\varepsilon_0R^2)$, the field just outside the ball. Inside, the sphere encloses only part of the ball, and the Spheres lesson takes the same sphere in to find how the field’s magnitude falls to zero at the centre.`},
         {title: 'Either sign', text: raw`For a negative $Q$, $E_r$ is negative and the field points in, toward the centre. Nothing in the argument used the sign.`},
       ],
     },
@@ -125,12 +125,12 @@ export const lesson: GaussLesson = {
         answer: raw`E_r=\frac{\lambda}{2\pi\varepsilon_0r}=\frac{2k\lambda}{r}`,
         say: raw`$L$ cancels, as it must: the cylinder is imaginary, and the field cannot depend on its length.`,
         line: raw`Set them equal: $L$ cancels, and $|E_r|$ falls as $1/r$.`,
-        caption: 'Set the two sides equal and divide. The length L cancels, as it must, since the cylinder is imaginary. The field falls as one over r, and points out from the line for positive λ, in for negative.',
+        caption: 'Set the two sides equal and divide. The length L cancels, as it must, since the cylinder is imaginary. The field’s magnitude falls as one over r, and points out from the line for positive λ, in for negative.',
       },
       checks: [
         {title: 'The integral agrees', text: raw`The Infinite line lesson built $E_r=2k\lambda/r$ by adding the line’s pieces one by one. Gauss’s law gets the same field in two lines, because symmetry did the work the cancelling pairs did there.`},
         {title: 'The length cancels', text: raw`$L$ is gone from the answer. An $L$ left in $E$ would mean the field depended on an imaginary surface, which is always an algebra slip.`},
-        {title: 'Slower than a point', text: raw`The field falls as $1/r$, more slowly than a point charge’s $1/r^2$: farther out, a cylinder of the same length still encloses the same charge, but its wall grows only as $r$.`},
+        {title: 'Slower than a point', text: raw`The field’s magnitude falls as $1/r$, more slowly than a point charge’s $1/r^2$: farther out, a cylinder of the same length still encloses the same charge, but its wall grows only as $r$.`},
       ],
     },
     {

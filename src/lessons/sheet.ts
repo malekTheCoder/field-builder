@@ -13,13 +13,14 @@ export const lesson: Lesson = {
       raw`An infinite sheet in the $xy$-plane carries a surface charge density $\sigma$, the charge per unit area, the same everywhere. $P$ is on the $z$-axis at a height $z$ above it.`,
     ]},
     {heading: 'Cut it up', body: [
-      raw`A disk is cut into rings of equal width, but the sheet never ends, so there is no last ring. Seen from $P$, though, the sheet spans only a right angle out from the axis. So cut it into $N$ rings that each take the same small angle $\Delta\alpha$ at $P$, where $\alpha$ is the angle between the axis and the line to a ring. A ring at angle $\alpha$ has radius $s=z\tan\alpha$, is $r_i=z\sec\alpha$ from $P$, and is nearly $z\sec^2\alpha\,\Delta\alpha$ wide, so the thin ring standing in for it holds`,
+      raw`The sheet never ends, but seen from $P$ it spans a right angle out from the axis. Cut that angle into $N$ equal parts $\Delta\alpha$ at $P$, where $\alpha$ is the angle between the axis and the line to a ring. A ring at angle $\alpha$ has radius $s=z\tan\alpha$, is $r_i=z\sec\alpha$ from $P$, with local width per angle $z\sec^2\alpha$. Assign the representative thin ring at the middle angle the charge`,
       {tex: raw`\Delta Q=\sigma\,(2\pi s)(z\sec^2\alpha\,\Delta\alpha)`},
+      raw`For a narrow finite ring this approximates its charge. The outermost ring has unbounded charge but a finite field: the finite representative approximates its field, not its charge.`,
     ]},
     {heading: 'One ring', body: [
       raw`Each ring makes nearly the field of a thin ring of that charge at its middle angle, and the ring lesson has that field. With $k=1/(4\pi\varepsilon_0)$ and $\cos\alpha=z/r_i$, put in $s$, $r_i$ and $\Delta Q$ and almost everything cancels:`,
       {tex: raw`\Delta E_z=\frac{k\,\Delta Q}{r_i^2}\cos\alpha=2\pi k\sigma\sin\alpha\,\Delta\alpha`},
-      raw`Its magnitude $|\Delta E_z|$ grows with $\alpha$. A farther ring is weaker for each unit of its charge, since it is farther away and its field meets the axis more slantwise, but it holds so much more charge that its field at $P$ is bigger than the nearer ring’s. Here the far parts of the charge matter most.`,
+      raw`Its magnitude $|\Delta E_z|$ grows with $\alpha$. A farther ring is weaker for each unit of its charge, since it is farther away and its field meets the axis more slantwise, but its representative carries so much greater charge magnitude that its field at $P$ is bigger than the nearer ring’s. Here the far parts of the charge matter most.`,
     ]},
     {heading: 'What cancels', body: [
       raw`Within each ring the sideways parts cancel, a bit against the bit straight across. Every ring’s field at $P$ points along the axis, all the same way: away from the sheet for positive $\sigma$, toward it for negative.`,

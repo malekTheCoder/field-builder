@@ -58,7 +58,7 @@ export const bank: Question[] = [
       {tex: raw`\Delta E_x=-\frac{k\,\Delta Q}{R^2}`, misconception: 'projection',
         why: raw`That is the piece’s whole field, as if it pointed along $x$. It points along the radius through the piece, at the angle $\theta$ to the axis, so only $\cos\theta$ of it lies along $x$.`},
     ],
-    explanation: raw`Every piece is $R$ from $P$, so its field there is $k\,\Delta Q/R^2$ in size, along the radius through the piece, away from it for a positive charge. That radius makes the angle $\theta$ with the $x$-axis, so the part along $x$ is $\cos\theta$ of it, and for a positive piece on the $+x$ side it points toward $-x$.`,
+    explanation: raw`Every piece is $R$ from $P$, so its field there is $k|\Delta Q|/R^2$ in size, along the radius through the piece, away from it for a positive charge. That radius makes the angle $\theta$ with the $x$-axis, so the part along $x$ is $\cos\theta$ of it, and for a positive piece on the $+x$ side it points toward $-x$.`,
     review: {lesson: 'arc', stage: 'piece'}},
 
   {id: 'arc-bounds', lesson: 'arc', kind: 'setup',
@@ -66,7 +66,7 @@ export const bank: Question[] = [
     choices: [
       {correct: true, tex: raw`\int_{-\varphi/2}^{\varphi/2}\cdots\,d\theta`},
       {tex: raw`\int_{0}^{\varphi}\cdots\,d\theta`, misconception: 'bounds',
-        why: raw`That is an arc of the same opening that starts at the $x$-axis and runs up from it, not one centred on the axis. Its field would lean off the axis.`},
+        why: raw`That is an arc of the same opening that starts at the $x$-axis and runs up from it, not one centred on the axis. Except for a full circle, whose field is zero, this turns the field away from the symmetry axis used here.`},
       {tex: raw`\int_{0}^{\varphi/2}\cdots\,d\theta`, misconception: 'bounds',
         why: raw`That covers only the half of the arc above the axis, and gives half of $E_x$. It is right only with a factor of two in front, the mirror half’s share.`},
       {tex: raw`\int_{0}^{2\pi}\cdots\,d\theta`, misconception: 'bounds',
@@ -94,7 +94,7 @@ export const bank: Question[] = [
     choices: [
       {correct: true, tex: raw`-\frac{kQ}{R^2}`},
       {tex: raw`0`, misconception: 'arc-held-fixed',
-        why: raw`$\sin(\varphi/2)$ goes to zero, but so does the $\varphi$ below it: $Q$ is fixed, so $\lambda=Q/(R\varphi)$ grows as the arc shrinks. Their ratio tends to one half.`},
+        why: raw`$\sin(\varphi/2)$ goes to zero, but so does the $\varphi$ below it: $Q$ is fixed, so $|\lambda|=|Q|/(R\varphi)$ grows as the arc shrinks. Their ratio tends to one half.`},
       {tex: raw`-\frac{kQ}{R}`, misconception: 'potential-power',
         why: raw`That falls as $1/R$, as a potential does. A short arc is nearly a point charge $Q$ a distance $R$ from $P$, and its field falls as $1/R^2$.`},
     ],
@@ -116,7 +116,7 @@ export const bank: Question[] = [
     review: {lesson: 'arc', section: 'Limiting cases'}},
 
   {id: 'arc-negative', lesson: 'arc', kind: 'transfer',
-    prompt: raw`Give the arc a negative charge. Which way is the field at $P$?`,
+    prompt: raw`Give an arc that has not closed into a circle a negative charge. Which way is the field at $P$?`,
     choices: [
       {correct: true, text: raw`Along the $x$-axis, toward the middle of the arc.`},
       {text: raw`Along the $x$-axis, away from the middle of the arc.`, misconception: 'sign',

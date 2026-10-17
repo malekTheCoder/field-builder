@@ -1,0 +1,31 @@
+import 'katex/dist/katex.min.css';
+import '../app/globals.css';
+import {cleanup, fireEvent, render, waitFor} from '@testing-library/react';
+import {afterEach, expect, it, vi} from 'vitest';
+import {page, userEvent} from 'vitest/browser';
+import Site,{newVisit} from '../src/home/Site';
+import {ViewCube} from '../src/diagrams/ViewCube';
+import '../src/diagrams/charge-diagram.css';
+afterEach(()=>{cleanup();history.replaceState(null,'','/');localStorage.clear();document.documentElement.classList.remove('dark');});
+it('the top face chooses the same view by keyboard and pointer',()=>{
+ const onPick=vi.fn();
+ const v=render(<svg className="cd-svg" viewBox="0 0 300 200"><ViewCube view={{yaw:.8,pitch:.6}} at={{x:100,y:100}} onPick={onPick}/></svg>);
+ const face=v.container.querySelector('[data-face="top"] .is-face')!;
+ fireEvent.pointerDown(face,{button:0,clientX:100,clientY:100,pointerId:1});fireEvent.pointerUp(face,{button:0,clientX:100,clientY:100,pointerId:1});
+ fireEvent.keyDown(v.getByRole('button',{name:'Look down the axis'}),{key:'Enter'});
+ expect(onPick.mock.calls[1][0]).toEqual(onPick.mock.calls[0][0]);
+});
+for(const dark of [false,true])it(`settled cube keyboard focus, dark=${dark}`,async()=>{
+ await page.viewport(1280,720);newVisit();
+ localStorage.setItem('field-builder:explorer:v1',JSON.stringify({id:'ring',hideTour:true,cued:true,dark,sidebarOpen:true,params:{}}));
+ history.replaceState(null,'','/?p=ring&view=3d');
+ const v=render(<Site/>);await v.findByRole('button',{name:'Watch it build'});
+ await waitFor(()=>expect(v.container.querySelector('.cd-in-space')).toBeTruthy(),{timeout:15000});
+ await new Promise(r=>setTimeout(r,1600));
+ const appearance=()=>Array.from(v.container.querySelectorAll('.cd-cube polygon,.cd-cube rect,.cd-cube path,.cd-cube circle')).map(el=>{const c=getComputedStyle(el);return [c.fill,c.stroke,c.strokeWidth,c.outlineStyle,c.outlineColor,c.outlineWidth,c.filter].join('|')});
+ const before=appearance();
+ const key=v.getByRole('button',{name:'Look down the axis'}) as unknown as SVGElement;
+ key.focus();await userEvent.keyboard('{Tab}');await userEvent.keyboard('{Shift>}{Tab}{/Shift}');
+ expect(document.activeElement).toBe(key);expect(key.matches(':focus-visible')).toBe(true);
+ expect(appearance(),'Keyboard focus must visibly identify a face').not.toEqual(before);
+},20000);

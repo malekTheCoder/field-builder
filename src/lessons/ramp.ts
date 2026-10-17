@@ -35,7 +35,8 @@ export const lesson: Lesson = {
     {heading: 'Shrink them', body: [
       raw`As the pieces shrink, $\Delta y$ becomes $dy$ and the sums become exact integrals. With $\cos\alpha=r/\sqrt{y^2+r^2}$:`,
       {tex: raw`E_x=\int_0^L\frac{k\lambda_0\,(y/L)\,dy}{y^2+r^2}\cdot\frac{r}{\sqrt{y^2+r^2}}`},
-      raw`The density’s $y$ makes this the easy one: $u=y^2+r^2$ integrates it at once. In $E_y$ the density’s $y$ meets the sine’s, putting $y^2$ on top, and $y=r\tan\alpha$ turns it into $(\sec\alpha-\cos\alpha)\,d\alpha$, whose integral brings in a logarithm:`,
+      {tex: raw`E_y=-\frac{k\lambda_0}{L}\int_0^L\frac{y^2\,dy}{(y^2+r^2)^{3/2}}`},
+      raw`In $E_x$, the density’s $y$ makes the integral easy: $u=y^2+r^2$ integrates it at once. In $E_y$ the density’s $y$ meets the sine’s, putting $y^2$ on top, and $y=r\tan\alpha$ turns it into $(\sec\alpha-\cos\alpha)\,d\alpha$, whose integral brings in a logarithm:`,
       {tex: raw`E_x=\frac{k\lambda_0}{L}\left(1-\frac{r}{\sqrt{L^2+r^2}}\right)`},
       {tex: raw`\begin{aligned}E_y&=-\frac{k\lambda_0}{L}\bigg[\ln\frac{L+\sqrt{L^2+r^2}}{r}\\&\phantom{{}=-\frac{k\lambda_0}{L}\bigg[}-\frac{L}{\sqrt{L^2+r^2}}\bigg]\end{aligned}`},
     ]},

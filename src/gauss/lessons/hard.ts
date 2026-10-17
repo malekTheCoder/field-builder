@@ -26,9 +26,9 @@ export const lesson: GaussLesson = {
       raw`So its field heads for $1/r$, not $1/r^2$, for good.`,
     ]},
     {heading: 'A density that blows up', body: [
-      raw`A density can be infinite at a point and the charge still finite, because the shells near the centre are small. For $\rho=\beta/r$ inside a ball of radius $R$, the shell’s volume $4\pi r'^2dr'$ swallows the $1/r'$:`,
+      raw`A density can be infinite at a point and the charge still finite, because the shells near the centre are small. For $\rho=\beta/r$ inside a ball of radius $R$, take $0<r\le R$. The shell’s volume $4\pi r'^2dr'$ swallows the $1/r'$:`,
       {tex: raw`Q_{\text{enc}}=\int_0^r\frac{\beta}{r'}\,4\pi r'^2\,dr'=2\pi\beta r^2\;\Rightarrow\;E_r=\frac{2\pi\beta r^2}{4\pi\varepsilon_0r^2}=\frac{\beta}{2\varepsilon_0}`},
-      raw`No $r$ is left: inside, the field’s size is the same at every radius. It still points along $\hat{\mathbf r}$, which turns from place to place, so as a vector it is not uniform. Asked for a density that keeps the field’s size fixed through a ball, this is the one.`,
+      raw`No $r$ is left: away from the centre, the field’s size is the same at every radius. Its radial direction turns from place to place, so as a vector it is not uniform. At the singular centre there is no direction-independent limit: $\hat{\mathbf r}$ depends on how you approach it. The total charge remains finite.`,
     ]},
     {heading: 'Running it backwards', body: [
       raw`Gauss’s law runs in both directions. Given the field of a round charge, the left side is known, and the law gives the charge inside every sphere: $Q_{\text{enc}}(r)=4\pi\varepsilon_0r^2E_r(r)$. The charge in a thin shell between $r$ and $r+dr$ is $\rho\,4\pi r^2\,dr$, so the density is how fast $Q_{\text{enc}}$ changes with $r$, over the shell’s area $4\pi r^2$:`,
@@ -103,7 +103,7 @@ export const lesson: GaussLesson = {
       figure: {charge: {kind: 'cusp', size: 1.1, symbol: raw`\rho`, name: 'a ball whose density blows up at its centre, as one over r', bounds: ['R'], amount: .5},
         surface: {kind: 'sphere', size: {min: .75, max: 2.2, initial: .9}, other: 0, label: 'Radius r',
           regions: [
-            {name: 'inside the ball', tex: raw`E_r=\frac{\beta}{2\varepsilon_0}`, say: raw`Inside, the sphere holds $2\pi\beta r^2$, and the $r^2$ cancels: the same size at every radius.`},
+            {name: 'inside the ball', tex: raw`E_r=\frac{\beta}{2\varepsilon_0}`, say: raw`For $r>0$ inside, the sphere holds $2\pi\beta r^2$, and the $r^2$ cancels: the same size away from the centre.`},
             {name: 'outside the ball', tex: raw`E_r=\frac{\beta R^2}{2\varepsilon_0r^2}`, say: raw`Outside, all of the ball’s $2\pi\beta R^2$: a point charge’s field.`},
           ]}, reference: REFERENCE},
       setup: raw`Inside a ball of radius $R$ the charge density is $\beta/r$: its magnitude grows without bound toward the centre. How much charge does the ball hold, and what field does it make, inside and out?`,
@@ -132,15 +132,15 @@ export const lesson: GaussLesson = {
         caption: 'The right side, by thin shells. Each shell’s volume, four π r prime squared d r prime, swallows the one over r prime: the charge inside r is two π β r squared, finite, though the density at the centre is not. Outside the ball, two π β R squared.',
       },
       solve: {
-        tex: raw`E_r=\frac{2\pi\beta r^2}{4\pi\varepsilon_0r^2}=\frac{\beta}{2\varepsilon_0}\quad(r\le R)`,
-        answer: raw`E_r=\begin{cases}\dfrac{\beta}{2\varepsilon_0}, & r\le R\\[6pt]\dfrac{\beta R^2}{2\varepsilon_0r^2}, & r\ge R\end{cases}`,
-        say: raw`No $r$ left inside: the same size at every radius, though still pointing along $\hat{\mathbf r}$.`,
-        line: raw`The $r^2$ cancels: the same size everywhere inside.`,
-        caption: 'Divide by four π ε₀ r squared and the r squared cancels: inside, the field has the same size at every radius, out for a positive β and in for a negative one. It still points along the radius, so it is not uniform as a vector. Outside, a point charge’s field.',
+        tex: raw`E_r=\frac{2\pi\beta r^2}{4\pi\varepsilon_0r^2}=\frac{\beta}{2\varepsilon_0}\quad(0<r\le R)`,
+        answer: raw`E_r=\begin{cases}\dfrac{\beta}{2\varepsilon_0}, & 0<r\le R\\[6pt]\dfrac{\beta R^2}{2\varepsilon_0r^2}, & r\ge R\end{cases}`,
+        say: raw`No $r$ left for $r>0$ inside: the same size, though still pointing along $\hat{\mathbf r}$. The singular centre has no direction-independent limit.`,
+        line: raw`For $r>0$ inside, $r^2$ cancels: the same size away from the centre.`,
+        caption: 'Divide by four π ε₀ r squared and the r squared cancels: inside, away from the centre, the field has the same size at every radius, out for a positive β and in for a negative one. It still points along the radius, so it is not uniform as a vector. Outside, a point charge’s field.',
       },
       checks: [
         {title: 'Continuous at R', text: raw`Both answers give $\beta/(2\varepsilon_0)$ at $r=R$: there is no surface charge to make a jump.`},
-        {title: 'The same size, not the same field', text: raw`Drag the radius inside the ball: the profile is flat, but the arrows turn with $\hat{\mathbf r}$.`},
+        {title: 'The same size, not the same field', text: raw`Drag a nonzero radius inside the ball: the profile is flat, but the arrows turn with $\hat{\mathbf r}$. At the singular centre the radial direction is undefined and the field has no direction-independent limit.`},
         {title: 'Finite charge', text: raw`The whole ball holds $2\pi\beta R^2$: a finite charge from an infinite density.`},
       ],
     },

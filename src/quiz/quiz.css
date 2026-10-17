@@ -199,7 +199,11 @@
 @media(forced-colors:active){.quiz-primary,.quiz-secondary{border:2px solid ButtonText}.quiz-bar,.quiz-progress{border:1px solid CanvasText}.quiz-bar>span{background:Highlight}}
 /* The result can be kept as a study sheet. Its questions, feedback and review links remain; buttons that
    only work on screen, including the sticky Start bar, have no job on paper. */
-@media print{.quiz .exp-header-right,.quiz-actions,.quiz-history,.quiz-start-row,.quiz-quiet,.quiz-feedback>.quiz-primary,.quiz-progress,.home .quiz-entry{display:none!important}
+@media print{.quiz .exp-header-right,.quiz-actions,.quiz-history,.quiz-start-row,.quiz-quiet,.quiz-feedback>.quiz-primary,.quiz-progress,.quiz-foot,.home .quiz-entry{display:none!important}
  .quiz-main{padding:0;max-width:none}.quiz-main>*{max-width:none}
- .quiz-card,.quiz-choice,.quiz-feedback{break-inside:avoid}
+ /* A result card can be taller than a sheet. Break between complete study items, so the first
+    sheet is useful and an explanation never loses the link that tells the reader where to practise. */
+ .quiz-card{break-inside:auto}
+ .quiz-card>h2,.quiz-flag>h3,.quiz-sub{break-after:avoid}
+ .quiz-spots>li,.quiz-flag-list>li,.quiz-revisit>li,.quiz-bars>li,.quiz-choice,.quiz-feedback{break-inside:avoid}
 }

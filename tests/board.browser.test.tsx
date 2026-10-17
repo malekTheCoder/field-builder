@@ -112,9 +112,14 @@ describe('every new symbol is said in words beside the line that brings it in', 
       const where = [...body.children].find(c => c.classList.contains('db-where') && !c.classList.contains('db-say') && !c.classList.contains('db-cancels'))!;
       const say = where.nextElementSibling as HTMLElement;
       expect(say.classList.contains('db-say'), id).toBe(true);
-      // The line to the piece, of length r_i: r_i is a distance on this board, never a line.
+      // r_i is a distance, never the name of a line. The ring's acute angle is geometric:
+      // the ray from P to the piece and the downward axis ray define it for either charge sign.
+      // Calling it the field vector's angle to +z would become false for negative charge.
       if (id === 'bisector') expect(read(say), id).toMatch(/^The angle αi is the one at P between the line to piece i \(length ri\) and the/);
-      if (id === 'ring') expect(read(say), id).toMatch(/^The angle α is the one at P between the line to the piece \(length ri\) and the/);
+      if (id === 'ring') {
+        expect(read(say), id).toMatch(/^The angle α is the one at P between the ray to the piece \(length ri\) and the downward axis ray\./);
+        expect(read(say), id).toContain('its part along the axis is ΔEcosα.');
+      }
       expect(read(say), id).toMatch(/lies along/);
       cleanup();
     }

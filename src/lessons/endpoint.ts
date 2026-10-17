@@ -35,7 +35,8 @@ export const lesson: Lesson = {
     {heading: 'Shrink them', body: [
       raw`As $N\to\infty$ the pieces grow ever thinner: each $\Delta y$ becomes $dy$, each sum an integral over $y$, and the approximation becomes exact.`,
       {tex: raw`E_x=\int_0^L\frac{k\lambda\,dy}{y^2+r^2}\cdot\frac{r}{\sqrt{y^2+r^2}}`},
-      raw`This is the bisector’s integral between new limits: $y=r\tan\alpha$ gives the antiderivative $y/(r\sqrt{y^2+r^2})$, which is zero at the foot. The sine’s integral is easier still: with $u=y^2+r^2$, $y\,dy/(y^2+r^2)^{3/2}$ integrates to $-1/\sqrt{y^2+r^2}$. With $\lambda L=Q$:`,
+      {tex: raw`E_y=-\int_0^L\frac{k\lambda\,dy}{y^2+r^2}\cdot\frac{y}{\sqrt{y^2+r^2}}`},
+      raw`The $x$-component uses the bisector’s integral between new limits: $y=r\tan\alpha$ gives the antiderivative $y/(r\sqrt{y^2+r^2})$, which is zero at the foot. The sine’s integral is easier still: with $u=y^2+r^2$, $y\,dy/(y^2+r^2)^{3/2}$ integrates to $-1/\sqrt{y^2+r^2}$. With $\lambda L=Q$:`,
       {tex: raw`E_x=\frac{kQ}{r\sqrt{L^2+r^2}}`},
       {tex: raw`E_y=-k\lambda\left(\frac1r-\frac1{\sqrt{L^2+r^2}}\right)`},
     ]},

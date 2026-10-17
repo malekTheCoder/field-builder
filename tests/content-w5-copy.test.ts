@@ -101,12 +101,12 @@ describe('the lessons’ words', () => {
   it('the ramp’s limits say their integrals in words', () => {
     for (const l of getProblem('ramp').limits) expect(l.explanation, l.id).not.toMatch(/[∫ᴸ]/);
     const moment = plain(getProblem('ramp').limits.find(l => l.id === 'moment')!.explanation);
-    expect(moment).toMatch(/ȳ = 2L\/3 is the centre of charge, the charge-weighted average height: the density rises toward the top, so the average sits above the middle\./);
+    expect(moment).toMatch(/ȳ = 2L\/3 is the centre of charge, the charge-weighted average height: the density magnitude grows toward the top, so the average sits above the middle\./);
   });
   it('the arc’s semicircle card is about the plot it draws', () => {
     const half = getProblem('arc').limits.find(l => l.mode === 'half')!;
     expect(half.title).toBe('A semicircle, built from point charges');
-    expect(plain(half.explanation)).toMatch(/^Open the arc to a semicircle, φ = π, and build it from N point charges\. One, at the arc’s middle, gives kQ\/R², stronger than the semicircle’s field by a factor π\/2/);
+    expect(plain(half.explanation)).toMatch(/^Open the arc to a semicircle, φ = π, and build it from N point charges\. One, at the arc’s middle, gives magnitude k\|Q\|\/R², stronger than the semicircle’s field by a factor π\/2/);
     expect(half.explanation).not.toMatch(/familiar/);
   });
   it('the disk, the sheet and the disk’s potential call their unit a ring', () => {

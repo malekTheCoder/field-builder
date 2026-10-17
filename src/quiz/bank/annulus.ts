@@ -88,7 +88,7 @@ export const bank: Question[] = [
       {tex: raw`\frac{\sigma}{2\varepsilon_0}`, misconception: 'bounds',
         why: raw`That is a whole endless sheet, its middle included. The hole is still there: what is left is the sheet less the disk of radius $a$, smaller by that disk’s field.`},
       {tex: raw`0`, misconception: 'held-total-charge',
-        why: raw`That is what happens with $Q$ held fixed, spread ever thinner. Here $\sigma$ is fixed, so the charge grows with the rim and every new ring adds to the field.`},
+        why: raw`That is what happens with $Q$ held fixed, spread ever thinner. Here $\sigma$ is fixed, so the charge magnitude grows with the rim and every new ring adds to the field.`},
       {tex: raw`\frac{\sigma}{\varepsilon_0}\,\frac{z}{\sqrt{a^2+z^2}}`, misconception: 'sheet-double',
         why: raw`That is twice the field. With $k=1/(4\pi\varepsilon_0)$, $2\pi k\sigma$ is $\sigma/(2\varepsilon_0)$; $\sigma/\varepsilon_0$ belongs just outside a conductor.`},
     ],

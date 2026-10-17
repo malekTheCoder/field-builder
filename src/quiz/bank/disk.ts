@@ -65,7 +65,7 @@ export const bank: Question[] = [
     choices: [
       {correct: true, tex: raw`\int_0^R\cdots\,ds`},
       {tex: raw`\int_{-R}^{R}\cdots\,ds`, misconception: 'bounds',
-        why: raw`$s$ is a ring’s radius, and a radius is never negative. Each ring already goes all the way round, so running $s$ from $-R$ counts every ring twice.`},
+        why: raw`$s$ is a ring’s radius and cannot be negative. Extending the formula to negative $s$ creates false opposite contributions: its odd integrand would cancel to zero over these bounds.`},
       {tex: raw`\int_0^{2\pi}\cdots\,ds`, misconception: 'bounds',
         why: raw`Once round is the ring lesson’s bounds, in its angle $\theta$. Here the variable is a ring’s radius, and the turn round each ring is already in $dQ=\sigma\,2\pi s\,ds$.`},
       {tex: raw`\int_0^{\infty}\cdots\,ds`, misconception: 'bounds',
@@ -75,13 +75,13 @@ export const bank: Question[] = [
     review: {lesson: 'disk', stage: 'shrink'}},
 
   {id: 'disk-far', lesson: 'disk', kind: 'check',
-    prompt: raw`$E_z=\dfrac{\sigma}{2\varepsilon_0}\left(1-\dfrac{z}{\sqrt{R^2+z^2}}\right)$. Move $P$ far up the axis, $z\gg R$. What does $E_z$ approach?`,
+    prompt: raw`$E_z=\dfrac{\sigma}{2\varepsilon_0}\left(1-\dfrac{z}{\sqrt{R^2+z^2}}\right)$. Move $P$ far up the axis, $z\gg R$. Which expression gives the leading far-field behavior?`,
     choices: [
       {correct: true, tex: raw`\frac{kQ}{z^2}`},
       {tex: raw`\frac{\sigma}{2\varepsilon_0}`, misconception: 'far-limit',
         why: raw`That is the other end: close to the disk’s centre, $z\ll R$, where the disk looks like an endless sheet. Far away its size stops mattering, and it looks like a point charge.`},
-      {tex: raw`0`, misconception: 'cancel-survivor',
-        why: raw`The field gets weak far away, but it does not cancel: every ring’s part along the axis points the same way. It falls as $1/z^2$, like any finite charge’s.`},
+      {tex: raw`0`, misconception: 'far-limit',
+        why: raw`The field tends to zero as the distance tends to infinity. But zero does not give its leading decay law: at a large finite distance the point-charge expression gives the inverse-square behavior.`},
       {tex: raw`\frac{kQ}{z}`, misconception: 'potential-power',
         why: raw`That falls as $1/z$, as a point charge’s potential does. A finite charge’s field, seen from far away, falls as the inverse square.`},
     ],
@@ -107,7 +107,7 @@ export const bank: Question[] = [
     choices: [
       {correct: true, text: raw`It settles to $\sigma/(2\varepsilon_0)$, the same at every height.`},
       {text: raw`It falls to zero, as the charge spreads ever thinner.`, misconception: 'held-total-charge',
-        why: raw`That is what happens with $Q$ held fixed. Here $\sigma$ is fixed, so the charge $Q=\sigma\pi R^2$ grows with the disk, and every new ring adds to the field.`},
+        why: raw`That is what happens with $Q$ held fixed. Here $\sigma$ is fixed, so the charge $|Q|=|\sigma|\pi R^2$ grows with the disk, and every new ring adds to the field.`},
       {text: raw`It grows without end, as the charge does.`, misconception: 'endless-field',
         why: raw`Each ring added at the rim is farther away, and its field meets the axis more slantwise, so for a big disk each adds less than the last, falling off as $1/s^2$, fast enough that the sum settles. Charge without end does not make a field without end here.`},
       {text: raw`It settles to $\sigma/\varepsilon_0$.`, misconception: 'sheet-double',

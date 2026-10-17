@@ -9,19 +9,20 @@ import {Assessment} from '../src/components/Assessment';
 import {getProblem} from '../src/problems/definitions';
 import {DEFAULT_PARAMS} from '../src/problems/types';
 afterEach(cleanup);
-/* A POTENTIAL WITH NO LIMIT IS DRAWN GROWING.
+/* A POTENTIAL WITH NO LIMIT HAS A MAGNITUDE THAT GROWS.
  *
  * "The infinite line has no finite V" used to plot V divided by its growth law: a curve that fell
  * and flattened onto a dashed line at one. A student read it as V levelling off, the opposite of the
- * tab's point. It is now V and the growth law themselves, over one shared constant: two curves that
- * both climb the plot. */
+ * tab's point. It is now |V| and the magnitude of its growth law, over one shared constant:
+ * two curves that both climb the plot. With negative charge, signed V falls without bound, so
+ * the legend, axis and caption must say what those rising curves actually represent. */
 const ys = (d: string) => [...d.matchAll(/[ML](-?[\d.]+),(-?[\d.]+)/g)].map(m => Number(m[2]));
-describe('a diverging potential is drawn as two rising curves', () => {
+describe('a diverging potential magnitude is drawn as two rising curves', () => {
   // The rod's potential walking onto its end is the third: drawn as V over its logarithm, the ratio
   // came in from off the top at a = L, where ln(L/a) is zero, and settled on one as V ran off.
-  for (const [id, mode] of [['v-rod-bisector', 'infinite'], ['v-disk', 'infinite'], ['v-rod-axial', 'near']] as const) it(`${id}/${mode}`, async () => {
+  for (const [id, mode] of [['v-rod-bisector', 'infinite'], ['v-disk', 'infinite'], ['v-rod-axial', 'near']] as const) for (const charge of [-2, 2]) it(`${id}/${mode}, charge ${charge}`, async () => {
     const problem = getProblem(id), limit = problem.limits.find(l => l.mode === mode)!;
-    const {container} = render(<div style={{width: 560}}><Assessment problem={problem} params={DEFAULT_PARAMS} limit={limit}/></div>);
+    const {container} = render(<div style={{width: 560}}><Assessment problem={problem} params={{...DEFAULT_PARAMS, charge}} limit={limit}/></div>);
     await document.fonts.ready;
     const svg = container.querySelector<SVGSVGElement>('svg.comparison-plot')!;
     expect(svg.dataset.kind).toBe('growth');
@@ -30,14 +31,21 @@ describe('a diverging potential is drawn as two rising curves', () => {
     const exact = svg.querySelector<SVGPathElement>('path[stroke="var(--field)"]')!;
     const law = svg.querySelector<SVGPathElement>('path.comparison-guide')!;
     expect(law, 'the growth law is drawn').not.toBeNull();
-    for (const [name, path] of [['V', exact], ['growth law', law]] as const) {
+    for (const [name, path] of [['|V|', exact], ['growth law', law]] as const) {
       const y = ys(path.getAttribute('d')!);
       expect(y.length).toBe(70);
       // SVG y grows downward: rising means never moving down, and climbing most of the plot.
       for (let i = 1; i < y.length; i++) expect(y[i], `${id} ${name} at ${i}`).toBeLessThanOrEqual(y[i - 1]);
       expect(y[0] - y[y.length - 1], `${id} ${name} climbs`).toBeGreaterThan(90);
     }
-    expect(container.querySelector('.numerical-check')!.textContent).toMatch(/^Both (keep growing|grow) without end/);
+    expect(container.querySelector('.comparison-labels > span')!.textContent).toBe('The exact potential magnitude');
+    expect(svg.querySelector('.comparison-y')!.textContent).toMatch(/^\|V\| and /);
+    expect(svg.getAttribute('aria-label')).toContain('|V|');
+    // The endpoint names |V| and k|λ| ln(L/a) on its axis; the unbounded-source captions
+    // additionally state that both growing quantities are magnitudes, never signed potentials.
+    expect(container.querySelector('.numerical-check')!.textContent).toMatch(mode === 'near'
+      ? /^Both grow without end as P walks onto the rod’s end/
+      : /^Both magnitudes keep growing without end, in step: \|V\| has no finite limit\./);
     expect(container.querySelector('.comparison-labels')!.textContent).toMatch(mode === 'near' ? /k\|λ\| ln\(L\/a\)/ : /Grows as (R|ln\(L\/r\))/);
     // The growth law's name sits beside it, touching neither curve.
     const label = svg.querySelector<SVGTextElement>('text.comparison-line')!, box = label.getBBox();

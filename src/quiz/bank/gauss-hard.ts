@@ -7,9 +7,9 @@ const raw = String.raw;
  * its axis. E_r and E_z are signed. Every result here is checked by number in tests/quiz-physics.test.ts. */
 export const bank: Question[] = [
   {id: 'hard-halo-far', lesson: 'hard', kind: 'predict',
-    prompt: raw`Far out in the halo, $r\gg a$, how does its field fall with $r$?`,
+    prompt: raw`Far out in the halo, $r\gg a$, how does its field’s magnitude fall with $r$?`,
     choices: [
-      {correct: true, text: raw`As $1/r$: the charge inside keeps growing, in step with $r$, however far out the sphere.`},
+      {correct: true, text: raw`As $1/r$: the magnitude of the charge inside keeps growing, in step with $r$, however far out the sphere.`},
       {text: raw`As $1/r^2$, like any charge seen from far away.`, misconception: 'qenc-limit',
         why: raw`A point charge’s fall-off needs the enclosed charge to approach a fixed total. The halo has no edge: each shell far out holds about $4\pi\rho_0a^2\,dr$, so the charge inside remains proportional to $r$ for good.`},
       {text: raw`As $1/r^4$: the density falls as $1/r^2$ on top of the inverse square.`, misconception: 'local-density',
@@ -21,7 +21,7 @@ export const bank: Question[] = [
   {id: 'hard-halo-centre', lesson: 'hard', kind: 'check',
     prompt: raw`Close to the halo’s centre, $r\ll a$, which field should your answer reduce to?`,
     choices: [
-      {correct: true, text: raw`A uniform ball’s, $\rho_0r/(3\varepsilon_0)$: so close in, the density has hardly begun to fall from $\rho_0$.`},
+      {correct: true, text: raw`A uniform ball’s, $\rho_0r/(3\varepsilon_0)$: so close in, the density has hardly changed from $\rho_0$.`},
       {text: raw`A point charge’s, $kQ/r^2$, with $Q$ the halo’s charge.`, misconception: 'qenc-total',
         why: raw`A small sphere near the centre encloses only the little charge inside it, $\frac43\pi\rho_0r^3$ or so, not the halo’s, which has no finite total anyway.`},
       {text: raw`A uniform rod’s, $\rho_0r/(2\varepsilon_0)$.`, misconception: 'ratio-power',
@@ -43,15 +43,15 @@ export const bank: Question[] = [
     review: {lesson: 'hard', stage: 'right', case: 'cusp'}},
 
   {id: 'hard-cusp-field', lesson: 'hard', kind: 'predict',
-    prompt: raw`Inside the ball with $\rho=\beta/r$, how does the field change from place to place?`,
+    prompt: raw`Inside the ball with $\rho=\beta/r$, away from the centre, how does the field change from place to place?`,
     choices: [
-      {correct: true, text: raw`Its size is the same at every radius, $|\beta|/(2\varepsilon_0)$, but it still points radially, along $\hat{\mathbf r}$ or against it, and $\hat{\mathbf r}$ turns from place to place.`},
+      {correct: true, text: raw`Its size is the same at every nonzero radius, $|\beta|/(2\varepsilon_0)$, but it still points radially, along $\hat{\mathbf r}$ or against it, and $\hat{\mathbf r}$ turns from place to place.`},
       {text: raw`It grows without bound toward the centre, as the density does.`, misconception: 'local-density',
         why: raw`The field at $r$ is set by the charge inside $r$, $2\pi\beta r^2$, not by the density at $r$. Over the sphere’s $4\pi r^2$ the $r^2$ cancels, and the size stays level.`},
       {text: raw`It is uniform: the same vector everywhere inside the ball.`, misconception: 'symmetry-forbids',
         why: raw`The ball is round, so its field is radial, and a radial field points different ways at different places. Only its size is the same.`},
     ],
-    explanation: raw`$E_r(4\pi r^2)=2\pi\beta r^2/\varepsilon_0$ gives $E_r=\beta/(2\varepsilon_0)$, with no $r$ left. As a vector it is $\beta\hat{\mathbf r}/(2\varepsilon_0)$: the same size everywhere inside, out for a positive $\beta$ and in for a negative one.`,
+    explanation: raw`$E_r(4\pi r^2)=2\pi\beta r^2/\varepsilon_0$ gives $E_r=\beta/(2\varepsilon_0)$, with no $r$ left. As a vector it is $\beta\hat{\mathbf r}/(2\varepsilon_0)$: the same size away from the centre, out for a positive $\beta$ and in for a negative one. At the singular centre there is no direction-independent limit, because the radial direction depends on how you approach it.`,
     review: {lesson: 'hard', stage: 'solve', case: 'cusp'}},
 
   {id: 'hard-backwards', lesson: 'hard', kind: 'setup',

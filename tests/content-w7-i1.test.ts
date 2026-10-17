@@ -33,10 +33,9 @@ describe('the semicircle with uneven charge', () => {
   it('grades its projection as the factor cos θ, the symbol its lesson uses', () => {
     expect(fields(p).find(f => f.id === 'projection')!.label).toBe('The factor cos θ');
   });
-  it('gives its built-from-point-charges answer as a size, as its sibling card does', () => {
+  it('gives its built-from-point-charges answer with its direction (merged with the signed-physics round)', () => {
     const half = p.limits.find(l => l.id === 'half')!;
-    expect(half.answer).not.toMatch(/[−-]/);
-    expect(half.choices.some(c => /[−-]/.test(c))).toBe(false);
+    expect(half.answer).toBe('−πkQ/(4R²)');
     expect(half.choices).toContain(half.answer);
   });
   it('writes its total charge as an integral between the arc’s ends', () => {

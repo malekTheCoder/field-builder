@@ -141,9 +141,9 @@ describe('a potential that grows without end is drawn growing',()=>{
  for(const id of ['v-rod-bisector','v-disk'])it(`${id}: V and its growth law both rise across the whole sweep`,()=>{
   const problem=getProblem(id),limit=problem.limits.find(l=>l.mode==='infinite')!,plot=limitPlot(problem,limit);
   expect(plot.kind).toBe('growth');
-  expect(plot.caption).toMatch(/^Both keep growing without end, in step: V has no limit to settle on\./);
+  expect(plot.caption).toMatch(/^Both magnitudes keep growing without end, in step: \|V\| has no finite limit\./);
   // The rod's logarithm is swept on a log axis, where it is a straight line, and the caption says so.
-  if(id==='v-rod-bisector')expect(plot.caption).toMatch(/log scale, on which a logarithm is a straight line: V grows only as ln\(L\/r\)/);
+  if(id==='v-rod-bisector')expect(plot.caption).toMatch(/log scale, on which a logarithm is a straight line: \|V\| grows only as ln\(L\/r\)/);
   // The sweep the panel draws: seventy points, logarithmic, as Assessment samples it.
   const s=Array.from({length:70},(_,i)=>sampleLimit(problem,p,limit,30**(i/69)));
   for(let i=1;i<s.length;i++){

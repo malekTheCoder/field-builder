@@ -15,17 +15,17 @@ export const lesson: Lesson = {
       raw`It is the rod level with its end, grown without end.`,
     ]},
     {heading: 'Cut it up', body: [
-      raw`An endless line has no last piece of equal length, but seen from $P$ it spans only a quarter turn. Let $\alpha$ be the angle at $P$ between the perpendicular, across to the end, and the line of sight to a piece: the piece sits at $y=r\tan\alpha$, a distance $r\sec\alpha$ from $P$. Cut the quarter turn into $N$ equal angles $\Delta\alpha$. Such a piece is about $r\sec^2\alpha\,\Delta\alpha$ long, so it holds`,
+      raw`An endless line has no last piece of equal length, but seen from $P$ it spans only a quarter turn. Let $\alpha$ be the angle at $P$ between the perpendicular, across to the end, and the line of sight to a piece: the piece sits at $y=r\tan\alpha$, a distance $r\sec\alpha$ from $P$. Cut the quarter turn into $N$ equal angles $\Delta\alpha$. At each middle angle assign a representative point charge using the local length per angle, $r\sec^2\alpha$:`,
       {tex: raw`\Delta Q=\lambda r\sec^2\alpha\,\Delta\alpha`},
-      raw`Thin enough in angle, every piece, even the outermost, makes nearly a point charge’s field at $P$.`,
+      raw`For a short finite interval this nearly equals its actual charge. The outermost interval has unbounded charge but a finite field: $\Delta Q$ is the finite charge assigned to represent that field, not its actual charge. As the angles shrink, the representative fields approach the exact field.`,
     ]},
     {heading: 'One piece', body: [
       raw`Coulomb’s law, with $k=1/(4\pi\varepsilon_0)$, gives that field. With $r_i^2=y^2+r^2=r^2\sec^2\alpha$, the secants cancel, as on the infinite line:`,
       {tex: raw`\Delta E=\frac{k\,\Delta Q}{r_i^2}=\frac{k\lambda\,\Delta\alpha}{r}`},
-      raw`Every piece makes the same size of field at $P$, along the line of sight: away from the piece for a positive charge, toward it for a negative one.`,
+      raw`Every representative point charge makes the same size of field at $P$, along the line of sight: away from the piece for a positive charge, toward it for a negative one.`,
     ]},
     {heading: 'Nothing cancels', body: [
-      raw`Its part across the line, along $x$, is $\Delta E\cos\alpha$, and its part along the line is $\Delta E\sin\alpha$, which for a positive charge points back past the end, toward $-y$:`,
+      raw`Its part across the line, along $x$, is $\Delta E\cos\alpha$, and its part along the line is $-\Delta E\sin\alpha$, which for a positive charge points back past the end, toward $-y$:`,
       {tex: raw`\Delta E_x=\Delta E\cos\alpha,\qquad\Delta E_y=-\Delta E\sin\alpha`},
       raw`On the infinite line a mirror piece at $-\alpha$ undid the part along the line. Here the line starts level with $P$ and runs only upward: no piece has a mirror, and both parts of every piece survive.`,
     ]},

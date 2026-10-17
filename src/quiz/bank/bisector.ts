@@ -77,15 +77,15 @@ export const bank: Question[] = [
     review: {lesson: 'bisector', stage: 'shrink'}},
 
   {id: 'bisector-far', lesson: 'bisector', kind: 'check',
-    prompt: raw`$E_x=\dfrac{kQ}{r\sqrt{(L/2)^2+r^2}}$. Move $P$ far from the rod, $r\gg L$. What must $E_x$ approach?`,
+    prompt: raw`$E_x=\dfrac{kQ}{r\sqrt{(L/2)^2+r^2}}$. Move $P$ far from the rod, $r\gg L$. Which expression gives the leading far-field behavior?`,
     choices: [
       {correct: true, tex: raw`\frac{kQ}{r^2}`},
       {tex: raw`\frac{2k\lambda}{r}`, misconception: 'far-limit',
         why: raw`That is the other end: close to a long rod’s middle, $r\ll L$, where the rod looks endless. Far away the rod’s length stops mattering.`},
       {tex: raw`\frac{kQ}{r}`, misconception: 'potential-power',
         why: raw`That falls as $1/r$, as a point charge’s potential does. A field from a finite charge, seen from far away, falls as the inverse square.`},
-      {tex: raw`0`, misconception: 'cancel-survivor',
-        why: raw`Far away the field gets weak, but it never cancels: every piece’s field still points the same way along $x$. It shrinks as $1/r^2$, like any finite charge’s.`},
+      {tex: raw`0`, misconception: 'far-limit',
+        why: raw`The field tends to zero as the distance tends to infinity. But zero does not give its leading decay law: at a large finite distance the point-charge expression gives the inverse-square behavior.`},
     ],
     explanation: raw`When $r\gg L$, the root $\sqrt{(L/2)^2+r^2}$ is nearly $r$, so $E_x$ tends to $kQ/r^2$. From far away the rod is a point charge, as any finite charge is.`,
     review: {lesson: 'bisector', section: 'What the answer says'}},
@@ -95,7 +95,7 @@ export const bank: Question[] = [
     choices: [
       {correct: true, tex: raw`\frac{2k\lambda}{r}`},
       {tex: raw`0`, misconception: 'held-total-charge',
-        why: raw`That is what happens with $Q$ held fixed: the same charge spread ever thinner. Here $\lambda$ is fixed, so $Q=\lambda L$ grows with the rod.`},
+        why: raw`That is what happens with $Q$ held fixed: the same charge spread ever thinner. Here $\lambda$ is fixed, so $|Q|=|\lambda|L$ grows with the rod.`},
       {tex: raw`\frac{k\lambda}{r}`, misconception: 'bounds',
         why: raw`That is the share of one half of the rod. The half below the axis adds the same again along $x$.`},
       {tex: raw`\frac{2k\lambda}{r^2}`, misconception: 'line-falloff',
@@ -137,6 +137,6 @@ export const bank: Question[] = [
       {text: raw`Yes, as long as the total charge $Q$ is the same.`, misconception: 'density-inside',
         why: raw`The field depends on where the charge is, not only on how much there is. Moving charge toward the top tips the field.`},
     ],
-    explanation: raw`Cancelling needs two things: a mirror piece the same distance from $P$, and the same charge on it. With $\lambda$ larger toward the top, the upper piece of each pair makes the larger field, so a part along the rod survives. The density then goes inside the integral as $\lambda(y)$.`,
+    explanation: raw`For these mirror pairs, equal charge makes their along-rod components equal and opposite. With $|\lambda|$ larger toward the top, the upper piece of each pair makes the larger field, so a part along the rod survives. The density then goes inside the integral as $\lambda(y)$.`,
     review: {lesson: 'ramp', stage: 'cancel'}},
 ];

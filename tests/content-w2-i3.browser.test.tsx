@@ -30,7 +30,9 @@ describe('a limit card on a wide screen', () => {
       const {container, unmount} = render(<div style={{width: 640}}><Assessment problem={problem} params={DEFAULT_PARAMS} limit={limit} /></div>);
       const legend = container.querySelector('.comparison-labels > span')!.textContent!;
       expect(legend, `${problem.id}/${limit.id}`).not.toMatch(/^Your\b/);
-      if (!limitPlot(problem, limit).solid) { expect(legend).toBe(problem.quantity === 'V' ? 'The exact potential' : 'The exact field'); unnamed++; }
+      // The plotted potential is |V|: naming signed V here would imply that a negative
+      // potential rises whenever this positive curve rises. Keep that distinction explicit.
+      if (!limitPlot(problem, limit).solid) { expect(legend).toBe(problem.quantity === 'V' ? 'The exact potential magnitude' : 'The exact field'); unnamed++; }
       unmount();
     }
     expect(unnamed).toBeGreaterThan(10);

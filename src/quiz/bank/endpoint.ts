@@ -16,7 +16,7 @@ export const bank: Question[] = [
       {text: raw`The parts along $x$ cancel; the parts along the rod add.`, misconception: 'cancel-survivor',
         why: raw`Every piece is on the same side of $P$ along $x$, so every part along $x$ points the same way: away from the rod for a positive charge. Those parts add.`},
     ],
-    explanation: raw`A part cancels only against a mirror piece the same distance from $P$ with the same charge. Every piece of this rod lies above the $x$-axis, the line through $P$, so none has a partner: both parts of every piece survive, and the field leans.`,
+    explanation: raw`Cancellation needs equal and opposite components. Equal-charge mirror pieces would provide them. Every piece of this rod lies above the $x$-axis, the line through $P$, so none has a partner: both parts of every piece survive, and the field leans.`,
     review: {lesson: 'endpoint', stage: 'cancel'}},
 
   {id: 'endpoint-direction', lesson: 'endpoint', kind: 'predict',

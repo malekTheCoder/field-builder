@@ -18,7 +18,7 @@ export const bank: Question[] = [
       {text: raw`The parts along $x$ of the mirrored stretch.`, misconception: 'cancel-survivor',
         why: raw`A piece and its mirror across $P$’s level are on the same side of $P$ along $x$, so their parts along $x$ point the same way and add. It is their parts along the rod that are opposite.`},
     ],
-    explanation: raw`A part cancels only against a mirror piece the same distance from $P$ with the same charge. Folded across $P$’s level, the stretch from $-y_2$ to $y_2$ lands on itself, and there the pairs’ parts along the rod cancel. The rest of the rod, below $-y_2$, has no partners, so its parts along the rod survive.`,
+    explanation: raw`Cancellation needs equal and opposite components. Here, equal-charge mirror pieces provide them. Folded across $P$’s level, the stretch from $-y_2$ to $y_2$ lands on itself, and there the pairs’ parts along the rod cancel. The rest of the rod, below $-y_2$, has no partners, so its parts along the rod survive.`,
     review: {lesson: 'offset', stage: 'cancel'}},
 
   {id: 'offset-direction', lesson: 'offset', kind: 'predict',
@@ -70,7 +70,7 @@ export const bank: Question[] = [
       {text: raw`It is not: the mirrored stretch adds as much to $E_y$ again.`, misconception: 'missed-cancel',
         why: raw`Each piece of the mirrored stretch has a partner across $P$’s level whose part along the rod is equal and opposite. Those pairs add nothing to $E_y$.`},
     ],
-    explanation: raw`A piece at $y$ and its mirror at $-y$ make equal and opposite parts along the rod, which is the integrand being odd. Over the mirrored stretch they cancel in pairs, so $E_y$ is the leftover’s alone, and its sign is set by which side the leftover is on.`,
+    explanation: raw`A piece at $y$ and its mirror at $-y$ make equal and opposite parts along the rod, which is the integrand being odd. Over the mirrored stretch they cancel in pairs, so $E_y$ is the leftover’s alone, and its sign is set by the charge’s sign and which side the leftover is on.`,
     review: {lesson: 'offset', section: 'What the answer says'}},
 
   {id: 'offset-middle', lesson: 'offset', kind: 'check',

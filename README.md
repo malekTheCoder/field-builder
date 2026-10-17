@@ -54,7 +54,7 @@ Older links may also carry `mode` (`divide`, `project`, `sum`, `integrate`), `pa
 Both are in the **Lesson tools (…)** menu at the top right, with Copy a link and the laws behind every lesson.
 
 - **Print this lesson** opens the browser print dialog. The controls are left off; the figure, title, board and equations stay, with Limiting cases open every case prints under its own heading, and the board breaks between its steps. Paper size is US letter.
-- **Save an offline copy of this lesson** downloads a self-contained HTML file (`field-builder-<lesson>.html`). Equations are TeX source so the file remains readable without a network. Students can Print → Save as PDF from there.
+- **Save an offline copy of this lesson** downloads a self-contained HTML file (`field-builder-<lesson>.html`). Equations are rendered as MathML, with their TeX source retained in annotations, so the file remains readable without a network. Students can Print → Save as PDF from there.
 
 That HTML file is a printable snapshot of the open lesson.
 

@@ -216,7 +216,7 @@ describe('the potential\'s column stays in the plot', () => {
  }, 30000);
 });
 describe('the schematic triangle\'s letters stand off its legs', () => {
- for (const [w, h] of [[1440, 900], [390, 844]] as const) for (const id of ['ring', 'disk', 'sheet', 'v-ring', 'v-disk']) it(`${id} at ${w}x${h}`, async () => {
+ for (const [w, h] of [[1440, 900], [1280, 720], [1366, 657], [390, 844]] as const) for (const id of ['ring', 'disk', 'sheet', 'v-ring', 'v-disk', 'annulus', 'shell']) it(`${id} at ${w}x${h}`, async () => {
   await page.viewport(w, h);
   const view = await openLesson(id);
   for (const n of getProblem(id as never).quantity === 'V' ? [2] : [2, 3]) {
@@ -228,6 +228,15 @@ describe('the schematic triangle\'s letters stand off its legs', () => {
     expect(t.dataset.placerHidden, `${t.textContent} hidden at stage ${n}`).toBeUndefined();
     expect(crosses(box(view, t), legs), `${t.textContent} on a leg at stage ${n}`).toBe(false);
    }
+   // The inset has fixed proportions. Its qualifier must survive the same label placer as the
+   // physics names, with room of its own: display:block alone passed while opacity was zero.
+   const note = svgOf(view).querySelector<SVGTextElement>('.cd-triangle-note')!;
+   expect(painted(note), `schematic caveat hidden at stage ${n}`).toBeGreaterThan(.9);
+   const noteBox = box(view, note);
+   for (const t of letters) expect(touch(noteBox, box(view, t)), `caveat overlaps ${t.textContent}`).toBe(false);
+   expect(crosses(noteBox, legs), 'caveat on a triangle leg').toBe(false);
+   expect(noteBox.x).toBeGreaterThanOrEqual(0);
+   expect(noteBox.x + noteBox.width).toBeLessThanOrEqual(720);
   }
  }, 30000);
 });
@@ -248,6 +257,7 @@ describe('on a phone the figure\'s small marks are still marks', () => {
   const note = svgOf(ring).querySelector<SVGTextElement>('.cd-triangle-note')!;
   expect(note.textContent).toBe('Not to scale');
   expect(getComputedStyle(note).display).not.toBe('none');
+  expect(painted(note)).toBeGreaterThan(.9);
   expect(parseFloat(getComputedStyle(note).fontSize) * k).toBeGreaterThanOrEqual(8);
  }, 30000);
 });

@@ -46,6 +46,13 @@ describe('the study guide', () => {
   expect(gauss.map(a => a.getAttribute('href'))).toEqual(GAUSS.lessons.map(l => `?g=${l.key}`));
   for (const a of gauss) expect(a.querySelector('strong')!.textContent).toBe(gaussLesson(a.getAttribute('href')!.slice(3))!.title.replace('Q_enc', 'Qenc'));
   expect(getByRole('heading', {level: 3, name: 'Or, where the charge has symmetry: Gauss’s law'})).toBeTruthy();
+  // The route into Gauss's law must distinguish its validity from our ability to extract E.
+  // A correct explanation later on the page cannot repair a false rule learned at this first mention.
+  const methodScope = container.querySelector('.guide-leg-note')!.textContent!;
+  expect(methodScope).toContain('always true');
+  expect(methodScope).not.toMatch(/only works|when it works/);
+  expect(container.querySelector('a[href="?g=holes"]')!.textContent).toContain('opposite charge density');
+  expect(container.querySelector('a[href="?p=ramp"]')!.textContent).not.toContain('density grows');
   expect(words(container), 'the guide prints a numeral').not.toMatch(/[0-9]/);
   expect(container.textContent).not.toContain('—');
  });

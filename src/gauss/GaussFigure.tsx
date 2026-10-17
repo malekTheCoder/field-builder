@@ -5,7 +5,7 @@
 import {memo, useCallback, useEffect, useId, useMemo, useRef, useState, useSyncExternalStore, type CSSProperties, type KeyboardEvent, type PointerEvent, type ReactNode} from 'react';
 import {cameraBasis, projectPoint} from '../diagrams/three/orthoCamera';
 import {boxSegmentDistance, nearestOnBox, overlaps, placeLabels, segmentsCross, type Box, type Segment} from '../diagrams/labels';
-import {ViewCube} from '../diagrams/ViewCube';
+import {CameraSteps, ViewCube} from '../diagrams/ViewCube';
 import type {CameraView} from '../diagrams/camera';
 import type {RunClock} from '../explorer/BuildPlayer';
 import {useRenderedWidth} from '../components/useRenderedWidth';
@@ -15,6 +15,7 @@ import {moment, type GaussStage} from './run';
 import {arrowEnds, build, chainOf, CROP, FIGURE_ORIGIN, lookAt, openingView, POINT_PX, REST, type Built, type Look, type Seg} from './scene';
 import {GaussScene} from './GaussScene';
 import {regionOf} from './instruments';
+import {isGradedBall} from './densityFace';
 import type {GaussCase} from './types';
 import '../diagrams/charge-diagram.css';
 /* THE GAUSS FIGURE: the charge, a closed surface cut into patches, each patch's field E and its outward dA, the
@@ -405,7 +406,7 @@ export const GaussFigure = memo(function GaussFigure({kase, size, sign, siblings
   if (callout) { marksAt.push(callout.box); strokes.push({a: callout.from, b: callout.tip}); }
   const placed = placeNames(specs, strokes, marksAt, answerShaft);
   const described = describe(kase, built, space);
-  const reserve = useMemo(() => (siblings ?? []).filter(o => o.key !== kase.key).map(o => captionOf(o, build(o, o.figure.surface.size.initial, sign))), [siblings, kase.key, sign]);
+  const reserve = useMemo(() => (siblings ?? []).filter(o => o.key !== kase.key).map(o => captionOf(o, build(o, o.figure.surface.size.initial, sign), space && (!o.figure.charge.insideNames || stage === 'solve'))), [siblings, kase.key, sign, space, stage]);
   const atRest = Math.abs(camera.yaw - opening(kase).yaw) < 1e-6 && Math.abs(camera.pitch - opening(kase).pitch) < 1e-6;
   return <div className="gs-figure" ref={figureRef as unknown as React.Ref<HTMLDivElement>}>
     <div className={'cd-stage gs-stage' + (space ? ' is-space' : ' is-flat') + (crop ? ' is-crop' : '')} data-stage={stage ?? 'rest'} data-sweep={look.sweep.toFixed(3)} data-solve={look.solve.toFixed(3)} style={{'--cd-k': k} as CSSProperties}>
@@ -442,6 +443,7 @@ export const GaussFigure = memo(function GaussFigure({kase, size, sign, siblings
           <button key={value} type="button" title={title} disabled={value === '3d' && failed === 'failed'} className={'cd-view-mode' + (view === value && !(value === '3d' && failed) ? ' is-on' : value === '2d' && failed ? ' is-on' : '')}
             aria-pressed={value === '2d' ? !space : space} onClick={() => { if (value === '3d') setFailed(f => f === 'lost' ? false : f); onView(value); }}>{label}</button>)}
       </div>
+      {space && <CameraSteps onStep={key => turn(key === 'ArrowLeft' ? .2 : key === 'ArrowRight' ? -.2 : 0, key === 'ArrowUp' ? .12 : key === 'ArrowDown' ? -.12 : 0)} />}
       {space && <p className="gs-turn-hint">Drag or use the arrow keys to turn it; Home puts it back.</p>}
       {/* Marked unavailable rather than disabled once the view is back: a disabled button drops the keyboard's focus to
           the page's top, so the next Tab started the page over. */}
@@ -452,7 +454,7 @@ export const GaussFigure = memo(function GaussFigure({kase, size, sign, siblings
     {/* Every case's caption is laid in one cell, the others unseen, so the cell is as tall as the longest and choosing
         a case never moves the sliders under the reader's hand. */}
     <div className="cd-caption gs-caption"><span className="gs-caption-stack">
-      <span>{captionOf(kase, built)}</span>
+      <span>{captionOf(kase, built, space && (!c.insideNames || stage === 'solve'))}</span>
       {reserve.map((text, i) => <span key={i} aria-hidden="true" className="gs-caption-reserve">{text}</span>)}
     </span>
     {/* KEYBOARD HELP, a footnote on the caption's line as the integral lessons' figure has it (ChargeDiagram): what Tab
@@ -463,10 +465,12 @@ export const GaussFigure = memo(function GaussFigure({kase, size, sign, siblings
   </div>;
 });
 /** The figure's caption: what its arrows are, and anything about their lengths a reader comparing them needs. */
-export function captionOf(kase: GaussCase, b: Built): string {
+export function captionOf(kase: GaussCase, b: Built, space = false): string {
   if (b.pieces) return b.pieces[1]?.surface ? 'Each surface’s teal arrows are its own piece’s field: the whole charge’s, or the plug’s. Grey ones are the outward dA. At P the two pieces’ fields, thin, add to the answer, bold.'
-    : 'The pillbox’s teal arrows are the whole sheet’s field, as if the hole were filled; grey ones are the outward dA. At P the whole sheet’s field and the disk’s, thin, add to the answer, bold.';
-  const base = 'Teal arrows are the field E at each patch, grey ones the patch’s outward dA. Shaded patches carry no flux.';
+    : 'The pillbox’s teal arrows are the whole sheet’s field, as if the hole were filled; grey ones are the outward dA. At P the whole sheet’s field and the disc’s, thin, add to the answer, bold.';
+  const base = space && isGradedBall(kase.figure.charge.kind)
+    ? 'Teal: field E. Grey: outward dA. Shaded patches: no flux. Stronger colour on cut faces means greater density magnitude.'
+    : 'Teal arrows are the field E at each patch, grey ones the patch’s outward dA. Shaded patches carry no flux.';
   if (kase.figure.charge.kind === 'offset') return base + ' Here an arrow’s length grows as the square root of the field, so the strong near side fits the frame.';
   // Said only where it is true: in space, an arrow pointing at the reader is foreshortened, and looks shorter.
   const drawn = b.patches.filter(p => p.span > 0), crossed = drawn.filter(p => !p.zero), same = (list: typeof drawn) => list.length > 1 && list.every(p => Math.abs(p.span - list[0].span) < 1e-6);

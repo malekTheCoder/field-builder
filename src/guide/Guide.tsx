@@ -102,7 +102,7 @@ const ORDER:{leg:string;items:{id:ProblemId;text:string}[]}[]=[
  {leg:'When less cancels',items:[
   {id:'endpoint',text:String.raw`No mirror pieces, so neither part cancels: one integral for $E_x$, one for $E_y$.`},
   {id:'offset',text:String.raw`$P$ between the middle and an end: the stretch that mirrors itself across $P$’s level cancels along the rod, and the leftover leans the field.`},
-  {id:'ramp',text:String.raw`The density grows along the rod, so $\lambda(y)$ goes inside the integral.`},
+  {id:'ramp',text:String.raw`The density varies along the rod, so $\lambda(y)$ goes inside the integral.`},
   {id:'semi',text:String.raw`Half an infinite line. Nothing beyond the end cancels, and the field leans at exactly $\pi/4$.`}]},
  {leg:'Potential, last',items:[
   {id:'v-rod-bisector',text:'Each piece adds a number, not an arrow, so mirror pieces add instead of cancelling.'},
@@ -122,7 +122,7 @@ const GAUSS_ORDER:Record<string,string>={
  lines:'A cylinder round a line, a thick rod or a shell. Outside, its answer is the one the Infinite line lesson built piece by piece.',
  sheets:'A pillbox through a sheet or a slab, and why, outside them, the distance drops out.',
  conductors:'No field inside the metal: where its charge must sit, and what a hollow in it holds.',
- holes:'A hole is a whole object plus a negative one. Find each one’s field, by the law where its symmetry allows, and add them as arrows.',
+ holes:'A hole is a whole object plus a plug with the opposite charge density. Find each one’s field, by the law where its symmetry allows, and add them as arrows.',
  'runs-out':'The finite rod. The law still holds, but no surface makes it solvable, so you are back to the integral.',
  hard:'Charge out to infinity, densities that blow up, and the law run backwards, from a field to the charge behind it.'};
 
@@ -225,7 +225,7 @@ export default function Guide(){
      </a></li>})}</ol></div>)}
      {/* The fifth leg, named as the lesson list names each lesson (GaussFamily: the built lesson's title). */}
      <div className="guide-leg" id="guide-order-gauss"><h3>Gauss’s law, after the integrals</h3>
-      <p className="guide-leg-note">Take these once the integrals feel routine. Gauss’s law is quicker, but it only works for charge with enough symmetry, and you can only tell when it works if you know the long way it replaces.</p>
+      <p className="guide-leg-note">Take these once the integrals feel routine. Gauss’s law is always true. It gives a direct route to the field when the charge has enough symmetry; the integral method helps you recognise when that shortcut is available.</p>
       <ol>{GAUSS.lessons.filter(l=>isGaussReady(l.key)).map(l=><li key={l.key}><a className="guide-lesson" href={gaussHref(l.key)} onClick={open}>
        <span className="guide-glyph" aria-hidden="true"><PlannedGlyph id={l.key} size={20}/></span><span className="guide-lesson-words"><strong>{plannedName(gaussLesson(l.key)?.title??l.name)}</strong><span><Prose text={GAUSS_ORDER[l.key]??l.about}/></span></span><ArrowRight className="guide-lesson-go" size={15} aria-hidden="true"/>
       </a></li>)}</ol></div></div>

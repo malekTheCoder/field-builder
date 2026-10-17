@@ -179,7 +179,7 @@ describe('small things said once, and said right', () => {
     expect(tex).not.toMatch(/\\frac\{y\}\{L\}|\\lambda_0 y\/L/);
     expect(lines[0].tex).toContain(String.raw`\lambda_0\,(y/L)\,\Delta y`);
     expect(lines[0].where).toContain(String.raw`\lambda(y)=\lambda_0\,(y/L)`);
-    expect(lines[0].say).toMatch(/rising from zero at \$y=0\$ to \$\\lambda_0\$ at the top, \$y=L\$/);
+    expect(lines[0].say).toMatch(/changing from zero at \$y=0\$ to \$\\lambda_0\$ at the top, \$y=L\$/);
   });
   it('Cut it up is one element, so a lit chip never pinches its "="', () => {
     // ≈ where the piece's charge is the density at its middle times its length only nearly (the uneven semicircle's).

@@ -291,7 +291,7 @@ const COS_AXIS = (s: string) => ({dir: String.raw`\cos\alpha`, dirOf: String.raw
 // "The drawn arrow": One piece says a ring's piece is drawn as a point charge at its middle and that a
 // long piece's own field leans closer to the axis. "The arrow lies along r_i" then stated as fact what
 // is true only of the drawing -- and of the part along the axis, which is all this line keeps.
-const ANGLE_RING = String.raw`The angle $\alpha$ is the one at${NB}$P$ between the line to the piece (length $r_i$) and the axis. ${ARROW.replace('The arrow', 'The drawn arrow')} lies along that line, so its part along the axis is $\Delta E\cos\alpha$.`;
+const ANGLE_RING = String.raw`The angle $\alpha$ is the one at${NB}$P$ between the ray to the piece (length $r_i$) and the downward axis ray. ${ARROW.replace('The arrow', 'The drawn arrow')} lies along that line, so its part along the axis is $\Delta E\cos\alpha$.`;
 // A ring's piece of any size, said where its field is first written. The board wrote "A point charge's
 // field" for a third of a ring, set equal to one, while the run said the point charge is a drawing and
 // only the axial part is exact, and Add said the sum is exact "however the ring is cut": the one line
@@ -321,7 +321,7 @@ const PAIR_RING = String.raw`A piece’s part across the axis is $\Delta\mathbf 
 const BITS = String.raw`Each bit’s field lies along the line from that bit to${NB}$P$. Written without its direction, $\delta E=k\,\delta q/r_i^2$ carries the sign of the bit’s charge, so its part along the axis is $\delta E\cos\alpha$.`;
 const ACROSS_RING = String.raw`A bit’s part across the axis is $\delta\mathbf E_\perp$; the bit straight across the ring makes $-\delta\mathbf E_\perp$, so round the whole ring they undo each other.`;
 const ADDS = (whose: string) => String.raw`Every bit of the thin ring is the same $r_i$ away at the same $\alpha$, so the parts along the axis add to $k\,\Delta Q\cos\alpha/r_i^2$, where $\Delta Q=\sum\delta q$ is the ${whose} charge.`;
-const ANGLE_RINGS = String.raw`The angle $\alpha$ is the one at${NB}$P$ between a line to the ring (length $r_i$) and the axis. ${BITS}${BREAK}${ADDS('whole ring’s')}`;
+const ANGLE_RINGS = String.raw`The angle $\alpha$ is the one at${NB}$P$ between a ray to the ring (length $r_i$) and the downward axis ray. ${BITS}${BREAK}${ADDS('whole ring’s')}`;
 // The sheet's sum is over the thin ring that stands in for each wide one -- see `SHEET` -- so of it
 // the sum is exact. Over the wide ring's own bits, all put at r_i, it was 27% too big on the fourth
 // ring at five pieces and infinite on the fifth: the divergence the first line had been rid of.
@@ -417,7 +417,7 @@ const PARTS: Record<ProblemId, Parts> = {
   ramp: {...ROD_Y, dq: String.raw`\lambda_0\,(y/L)\,dy`, piece: String.raw`\lambda_0\,(y/L)\,\Delta y`, density: String.raw`\lambda(y)=\lambda_0\,(y/L)`,
     ...COS_ROD, dirIs: ANGLE_ROD_END, also: ALONG_ROD, alsoOf: SIN_ROD, nothing: ABOVE, simplify: true,
     // λ₀ was said only by the slider and the closed Model assumptions: what it is, the density at the top.
-    holds: String.raw`The density $\lambda(y)$ is the charge per unit length where the piece is, rising from zero at $y=0$ to $\lambda_0$ at the top, $y=L$, so a piece $\Delta y$ long holds $\lambda(y)\,\Delta y$.`,
+    holds: String.raw`The density $\lambda(y)$ is the charge per unit length where the piece is, changing from zero at $y=0$ to $\lambda_0$ at the top, $y=L$, so a piece $\Delta y$ long holds $\lambda(y)\,\Delta y$.`,
     charge: String.raw`\lambda(y)=\lambda_0\,(y/L)`,
     anti: {pre: String.raw`\frac{k\lambda_0 r}{L}`, inner: String.raw`-\frac1{\sqrt{y^2+r^2}}`, check: '-k*lambda0*r/L/sqrt(y^2+r^2)'},
     antiAlso: {pre: String.raw`-\frac{k\lambda_0}{L}`, inner: String.raw`\ln\frac{y+\sqrt{y^2+r^2}}{r}-\frac{y}{\sqrt{y^2+r^2}}`,
@@ -511,7 +511,7 @@ const PARTS: Record<ProblemId, Parts> = {
   // piece holds carries one cos θ and the part of its field along x the other. Its mirror holds the same charge,
   // cos(−θ) = cos θ, which is what keeps the pairs.
   'uneven-arc': {...ARC, dq: String.raw`\lambda_0\cos\theta\,R\,d\theta`, piece: String.raw`\lambda_0\cos\theta\,R\,\Delta\theta`, density: String.raw`\lambda(\theta)=\lambda_0\cos\theta`,
-    holds: String.raw`A piece’s angle round the arc is $\theta$, measured from the${NB}$x$-axis, its line of symmetry. The density $\lambda(\theta)=\lambda_0\cos\theta$ is the charge per unit length where the piece is: $\lambda_0$ on the axis, falling to zero at the two ends, $\theta=\pm\pi/2$.${BREAK}A piece $\Delta\theta$ wide is $R\,\Delta\theta$ long (angles in radians), so it holds nearly the density at its middle times its length: the density changes across it, and the shorter the piece, the less.`,
+    holds: String.raw`A piece’s angle round the arc is $\theta$, measured from the${NB}$x$-axis, its line of symmetry. The density $\lambda(\theta)=\lambda_0\cos\theta$ is the charge per unit length where the piece is: $\lambda_0$ on the axis, whose magnitude falls to zero at the two ends, $\theta=\pm\pi/2$.${BREAK}A piece $\Delta\theta$ wide is $R\,\Delta\theta$ long (angles in radians), so it holds nearly the density at its middle times its length: the density changes across it, and the shorter the piece, the less.`,
     nearly: true,
     sign: '-', dir: String.raw`\cos\theta`, dirOf: String.raw`\cos\theta`, simplify: true,
     dirIs: String.raw`With $P$ at the centre, the radius to a piece at angle $\theta$ makes the angle $\theta$ with the${NB}$x$-axis. ${ARROW} lies along that radius carried on through${NB}$P$, pointing for positive charge from the piece back through${NB}$P$: its part along $x$ is $-\Delta E\cos\theta$.`,
