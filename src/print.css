@@ -1,6 +1,20 @@
 /* Paper copy of the current lesson. Interactive chrome drops away; the figure, title, and equations stay. */
 @media print {
   @page { size: letter portrait; margin: 12mm; }
+  /* Every route uses the same paper palette, including the guide and quiz, which have no lesson's
+     beforeprint handler. Repainting only body left explicitly coloured labels pale on white, and quiz
+     cards printed their dark-screen ground. Root specificity wins over .dark without changing the saved
+     theme or depending on a print event; after print, the screen's own variables apply again. */
+  html:root {
+    color-scheme: light;
+    --background: #fff; --foreground: #171717; --ink-2: #3d3d3d; --card: #fff;
+    --muted: #e6e6e6; --muted-foreground: #5e5e5e; --primary: #0b6b63; --accent: #e6e6e6;
+    --border: #d4d4d4; --border-strong: #858585; --rule: #8fc0ba;
+    --cta: #171717; --cta-hover: #3d3d3d; --on-cta: #fff; --on-accent: #fff;
+    --charge: #b8460f; --charge-fill: #fdefe6; --field: #0b6b63; --contribution: #2f9089;
+    --ghost: #6d8492; --grid: #dedede; --diagram: #fff;
+    --term-distance: #2a63c4; --term-projection: #7a45d0;
+  }
   /* The app shell paints the page's tinted ground over body, and print-color-adjust:exact below
      would print that tint as a sheet of ink behind the whole lesson. */
   html, body, .explorer-app { background: #fff !important; color: #171717 !important; }

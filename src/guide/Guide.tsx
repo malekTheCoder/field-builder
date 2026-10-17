@@ -46,7 +46,8 @@ export function GuideLink(){
  return <a className="guide-entry" href={GUIDE_HREF} onClick={open}><GraduationCap size={16} aria-hidden="true"/><span><span className="guide-entry-kicker">New here?</span> How to study with this site</span><ArrowRight size={14} aria-hidden="true"/></a>;
 }
 
-/** The argument every lesson makes, with the symbol each step adds: the run's five stages (buildRun.ts). */
+/** The rod example introduces the run's five stages (buildRun.ts). The prose around it names what changes
+ * for surfaces, volumes and potential, so this compact recipe cannot silently make every shape a rod. */
 const IDEA:{name:string;text:string}[]=[
  {name:'Cut it up',text:String.raw`Cut the charge into small pieces. Each holds $\Delta Q=\lambda\,\Delta y$ and is nearly a point.`},
  {name:'One piece',text:String.raw`Coulomb’s law for that one piece: $\Delta E=k\,\Delta Q/r_i^2$, along the line from the piece through $P$.`},
@@ -70,7 +71,7 @@ const LOOP:{title:string;text:string;where:string}[]=[
   text:String.raw`Cover the board and write each step on paper: $dQ$, one piece’s field, what survives, the bounds, the integral. Only then choose each step on the board and compare. When you unfold the integration, write your next line before you press for the next one. Where yours differs, find out why before you move on.`,
   where:'Build the integral, then Unfold the integration and Easy to confuse with.'},
  {title:'Check the limits',
-  text:String.raw`Ask what your answer must become at the extremes. Far away, any finite charge must look like a point charge, $kQ/r^2$. A rod grown without end at fixed $\lambda$ must look like an infinite line, $2k\lambda/r$. Say what you expect, then push the figure there and see. This is how you catch your own mistakes in an exam.`,
+  text:String.raw`Ask what your answer must become at the extremes. Far from a finite distribution with nonzero net charge $Q$, the radial field approaches $E_r=kQ/r^2$ and the potential approaches $V=kQ/r$, taking $V=0$ at infinity. A rod grown without end in both directions at fixed $\lambda$ has the infinite line’s field, $E_r=2k\lambda/r$. Say what you expect, then push the figure there and see. This is how you catch your own mistakes in an exam.`,
   where:'Limiting cases, near the end of the lesson.'},
  {title:'Change one slider at a time',
   text:String.raw`Pick one thing: the distance, the size, or the sign of the charge. Predict what the field at $P$ will do, then move only that slider and check. One change at a time, so you know which cause made which effect.`,
@@ -108,12 +109,12 @@ const ORDER:{leg:string;items:{id:ProblemId;text:string}[]}[]=[
   {id:'v-rod-axial',text:'One plain integral, every piece the same sign, and a logarithm for the answer.'},
   {id:'v-ring',text:'Every piece the same distance away, so the pieces simply add. One derivative gives the ring’s field back.'},
   {id:'v-disk',text:'Rings again, adding numbers this time. Differentiate once to recover the disk’s field.'},
-  {id:'v-arc',text:'The potential does not care how far the arc is bent round.'}]}];
+  {id:'v-arc',text:'At fixed total charge and radius, the potential at the centre does not care how far the arc is bent round.'}]}];
 
 /** THE FIFTH LEG: Gauss's law, after the integrals, in the lesson list's order (GAUSS in explorer/lessons), each
  * named as the list names it. A shortcut is only trusted once the long way is known, so it comes last. */
 const GAUSS_ORDER:Record<string,string>={
- symmetry:'Before any surface, decide which way the field must point and where its size is the same. Only a sphere, a line or a plane pins both down.',
+ symmetry:'Before any surface, decide which way the field must point and where its size is the same. Spherical symmetry, or cylindrical or planar symmetry extending without end, pins both down.',
  flux:'What flux counts: the field crossing a tilted patch, then the net flow out of a whole closed surface.',
  inside:String.raw`Why a closed surface’s flux sees only the charge it holds, $Q_{\text{enc}}/\varepsilon_0$, whatever its shape.`,
  qenc:'The right side from a density: a ratio of volumes when it is uniform, thin shells added up when it is not.',
@@ -154,7 +155,7 @@ const STUCK:{slip:string;text:string;where:string}[]=[
 const GAUSS_CHECK:{step:string;text:string}[]=[
  {step:'Symmetry',text:'Turn the charge about its centre in any direction, or turn it about a line and slide it along that line, or slide and turn it within a plane. If it looks no different, the field must point straight out or in, and be the same wherever the charge looks the same. If not, build the integral.'},
  {step:'The surface',text:String.raw`Draw a closed surface through $P$ with that same symmetry: a sphere, a cylinder or a pillbox.`},
- {step:'Left side',text:String.raw`On each part of it the field is square to it and the same, runs along it, or is zero. The flux becomes $E$ times the area the field crosses.`},
+ {step:'Left side',text:String.raw`On each part of it the field is perpendicular to it and the same, runs along it, or is zero. The flux becomes $E$ times the area the field crosses.`},
  {step:'Right side',text:String.raw`Add only the charge inside, $Q_{\text{enc}}$, integrating a density if you are given one.`},
  {step:'Solve',text:String.raw`Set the two sides equal, $\Phi=Q_{\text{enc}}/\varepsilon_0$, and divide for $E$.`},
  {step:'Check',text:'Inside and outside answers agree at a boundary that carries no surface charge. Far from a ball with a finite net charge the field is a point charge’s. The sign follows the charge.'}];
@@ -165,7 +166,7 @@ const CHECKLIST:{step:string;text:string}[]=[
  {step:'Use symmetry',text:'Find each piece’s mirror. Drop what cancels, and keep the projection on what is left.'},
  {step:'Set the bounds',text:'Where the charge starts and where it ends, in your variable.'},
  {step:'Integrate',text:'Take the constants out first. A trigonometric substitution often turns a root into something simple.'},
- {step:'Check the limits',text:String.raw`Far away, a finite charge gives $kQ/r^2$. The sign follows the charge. The units are those of a field, or of a potential.`}];
+ {step:'Check the limits',text:String.raw`Far from a finite distribution with nonzero net charge $Q$, check $E_r\approx kQ/r^2$ for the radial field and $V\approx kQ/r$ for the potential, with $V=0$ at infinity. If the net charge is zero, the leading point-charge term vanishes and the field and potential decay faster. Check the units too.`}];
 
 export default function Guide(){
  const dark=useSyncExternalStore(subscribeTheme,isDark,()=>false);
@@ -187,9 +188,9 @@ export default function Guide(){
 
    <section id="guide-idea" className="guide-section" aria-labelledby="guide-idea-title">
     <h2 id="guide-idea-title">The one idea behind every lesson</h2>
-    <p><Prose text={'Every integral lesson on this site solves the same problem. A charge is spread over some shape, and you want its field (or its potential) at a point $P$. Coulomb’s law only knows point charges, so you make the shape into point charges:'}/></p>
+    <p><Prose text={'Every integral lesson on this site solves the same problem. A charge is spread over some shape, and you want its field (or its potential) at a point $P$. Divide the charge into pieces, find each piece’s contribution, and add. Here is the pattern for the field beside a uniformly charged rod:'}/></p>
     <ol className="guide-idea">{IDEA.map(s=><li key={s.name}><strong>{s.name}</strong><span><Prose text={s.text}/></span></li>)}</ol>
-    <p>Learn this pattern once and every shape is the same problem. What changes from lesson to lesson is what one piece looks like, and what cancels. So in each new lesson, ask those two questions first.</p>
+    <p><Prose text={String.raw`The piece changes with the charge: $dQ=\lambda\,dy$ along this rod, $dQ=\sigma\,dA$ on a surface, or $dQ=\rho\,d\mathcal{V}$ in a volume. Here $\mathcal{V}$ means volume; $V$ means electric potential. For potential, add the signed scalars $dV=k\,dQ/r_i$ without a projection. With charge of one sign those terms do not cancel. In each new lesson, ask what one piece looks like and what, if anything, cancels.`}/></p>
     <p><Prose text={'The Gauss’s law lessons are the shortcut for the few shapes symmetric enough to allow one: a closed surface through $P$ instead of the sum. They come after the integrals, and the order below says why.'}/></p>
    </section>
 
@@ -199,7 +200,7 @@ export default function Guide(){
     <ol className="guide-loop">{LOOP.map(s=><li key={s.title}><h3>{s.title}</h3><p><Prose text={s.text}/></p><p className="guide-where"><span>Where</span>{s.where}</p></li>)}</ol>
     <aside className="guide-gauss-note" aria-labelledby="guide-gauss-loop-title">
      <h3 id="guide-gauss-loop-title">In a Gauss’s law lesson</h3>
-     <p>Work it the same way. There is no integral to build: the board beside the figure is <strong>Apply Gauss’s law</strong>, and it runs in the order you would write the answer, the symmetry, the surface, the left side, the right side, then solve. Cover it, write each step on paper first, and only then compare with the board, exactly as with Build the integral. Watch it build steps through the same five, so predict each before you play it. The lesson ends with Check the answer and Easy to confuse with, which there lists claims that sound right and are not.</p>
+     <p>Work it the same way. Symmetry simplifies the flux integral; finding the enclosed charge may still require integrating a density. The board beside the figure is <strong>Apply Gauss’s law</strong>, and it runs in the order you would write the answer, the symmetry, the surface, the left side, the right side, then solve. Cover it, write each step on paper first, and only then compare with the board, exactly as with Build the integral. Watch it build steps through the same five, so predict each before you play it. The lesson ends with Check the answer and Easy to confuse with, which there lists claims that sound right and are not.</p>
     </aside>
     <aside className="guide-why" aria-labelledby="guide-why-title">
      <h3 id="guide-why-title">Why this works better than rereading</h3>
@@ -242,7 +243,7 @@ export default function Guide(){
     <p>An exam will give you a shape no lesson had. Run the same pattern, in these steps, and you will always know what to write next.</p>
     <ol className="guide-check">{CHECKLIST.map(c=><li key={c.step}><strong><Prose text={c.step}/></strong><span><Prose text={c.text}/></span></li>)}</ol>
     <h3 className="guide-check-title">Or, where the charge has symmetry: Gauss’s law</h3>
-    <p><Prose text={String.raw`Which to reach for? Gauss’s law is always true, but it hands you the field only when the charge’s symmetry makes $E$ the same, and square to the surface or along it, over each part of a closed surface you can draw: a ball or a shell whose charge depends only on the distance from its centre, an infinite line or cylinder, an infinite sheet or slab, and shapes made by adding or taking away these. A finite rod, a ring or a disk has no such surface, so build the integral; When symmetry runs out shows exactly where it fails. Where it works, pick the surface first:`}/></p>
+    <p><Prose text={String.raw`Which to reach for? Gauss’s law is always true, but it hands you the field only when the charge’s symmetry makes $E$ the same, and perpendicular to the surface or along it, over each part of a closed surface you can draw: a ball or a shell whose charge depends only on the distance from its centre, an infinite line or cylinder, or an infinite sheet or slab. For combinations such as holes, apply the law to each symmetric ingredient and add the fields. A finite rod, a ring or a disk has no such surface, so build the integral; When symmetry runs out shows why the law remains true but cannot determine the field on its own. Where symmetry allows a direct solve, pick the surface first:`}/></p>
     <ol className="guide-check">{GAUSS_CHECK.map(c=><li key={c.step}><strong>{c.step}</strong><span><Prose text={c.text}/></span></li>)}</ol>
    </section>
 
@@ -251,6 +252,8 @@ export default function Guide(){
     <ul>
      <li><strong>Link straight to a lesson.</strong> Every lesson’s address names it, such as <code>?p=ring</code> or <code>?g=spheres</code>, so a link opens that lesson. Copy a link to this lesson, in Lesson tools, keeps the values you set, and while Watch it build is open it keeps the stage too.</li>
      <li><strong>Print the handout.</strong> From Lesson tools, Print this lesson puts the lesson, the figure and the derivation on paper, ready for homework or a quiz from memory.</li>
+     <li><strong>Assign an explanation.</strong> Ask for a labelled sketch, the chosen piece or Gaussian surface, the derivation, and a limit check. Have students write a prediction before playing the run, then explain any change in their reasoning.</li>
+     <li><strong>Use the quiz for private practice.</strong> Quiz answers and review history stay in the student’s browser. Teachers do not receive scores. For an assessed task, collect the written reasoning through your usual classroom system.</li>
      <li><strong>Project it in class.</strong> Pause Watch it build before each stage and ask the room to predict what comes next. This page has its own address, <code>?guide</code>, to share with a class.</li>
     </ul>
    </aside>

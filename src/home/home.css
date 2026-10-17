@@ -70,7 +70,7 @@
 
 .home-section-title{font-family:var(--font-ui);font-weight:600;font-size:var(--type-title);letter-spacing:-.015em;line-height:1.2;margin-bottom:24px;text-wrap:balance}
 
-/* How every lesson goes: the run's five steps, in a row that reads left to right. */
+/* How an integral lesson goes: the run's five steps, in a row that reads left to right. */
 .home-how{padding:48px 0 56px;border-top:1px solid var(--rule)}
 .home-steps{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:14px}
 .home-steps li{position:relative;display:flex;flex-direction:column;gap:6px;padding:16px 16px 18px;background:var(--card);border:1px solid var(--border);border-radius:var(--radius-card);corner-shape:squircle}
@@ -155,3 +155,9 @@
  text-decoration:underline solid var(--rule);text-decoration-thickness:.05em;text-underline-offset:.14em;transition:text-decoration-color var(--dur-state) var(--ease)}
 .home-law:hover{text-decoration-color:var(--primary)}
 .home-law:focus-visible{outline:2px solid var(--primary);outline-offset:4px;border-radius:8px}
+
+/* The second method belongs with the run's overview, before the lesson library: one route into Gauss for a
+   reader who already knows the integral, and a sentence explaining what its different stage names mean. */
+.home-gauss-method{max-width:76ch;margin-top:22px;font-size:var(--type-body);line-height:1.6;color:var(--muted-foreground);text-wrap:pretty}
+.home-gauss-method a{color:var(--foreground);text-decoration:underline;text-decoration-color:var(--primary);text-underline-offset:.25em}
+.home-gauss-method a:hover{color:var(--primary)}

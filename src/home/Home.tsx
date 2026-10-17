@@ -8,6 +8,7 @@ import {serializeAssignment} from '../state/assignment';
 import {inPlace,navigate} from '../state/route';
 import {families,ShapeGlyph} from '../explorer/lessons';
 import {GaussHomeFamily} from '../gauss/GaussFamily';
+import {gaussHref} from '../gauss';
 import {Brand,SiteLinks} from '../explorer/Brand';
 import {STORAGE} from '../explorer/Explorer';
 import {Hint} from '../components/Hint';
@@ -46,7 +47,7 @@ const FAMILY_NOTE:Record<string,string>={
  'Charge with no end':'Lines and a sheet that never end, and still give a finite field at P.',
  'The same shapes, as potential':'The shapes again, adding numbers instead of arrows: with charge of one sign, nothing cancels.'};
 
-/** The argument every lesson makes, in the five steps of its run (explorer/buildRun.ts). */
+/** The argument an integral lesson makes, in the five steps of its run (explorer/buildRun.ts). */
 const STEPS:{name:string;text:string}[]=[
  {name:'Cut it up',text:'Cut the charge into simple pieces: short segments, small arcs or thin rings.'},
  {name:'One piece',text:'Find one piece’s field or potential at P, using Coulomb’s law or a result already built.'},
@@ -130,8 +131,11 @@ export default function Home(){
     <div className="home-hero-figure"><Cover/></div>
    </section>
    <section className="home-how" aria-labelledby="home-how-title">
-    <h2 id="home-how-title" className="home-section-title">How every lesson goes</h2>
+    <h2 id="home-how-title" className="home-section-title">How an integral lesson goes</h2>
     <ol className="home-steps">{STEPS.map(s=><li key={s.name}><strong>{s.name}</strong><span>{s.text}</span></li>)}</ol>
+    {/* Gauss has a different run. Name its argument here, where a new reader first learns how the site works,
+        rather than sending them into Symmetry first expecting Cut it up and Shrink them. */}
+    <p className="home-gauss-method">For Gauss’s law, follow the symmetry, choose a closed surface, find the flux and the charge inside, then solve for the field where symmetry allows. <a href={gaussHref('symmetry')} onClick={open}>Start with symmetry</a>.</p>
    </section>
    <section id="home-lessons" tabIndex={-1} className="home-lessons" aria-labelledby="home-lessons-title">
     <h2 id="home-lessons-title" className="home-section-title">Every lesson</h2>
