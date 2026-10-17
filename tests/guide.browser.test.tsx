@@ -42,7 +42,7 @@ describe('the study guide', () => {
   expect(lessons.at(-1)!.getAttribute('href')).toMatch(/^\?p=v-/);
   // Then Gauss's law, after the integrals: all eleven, in the lesson list's order and by its names.
   const gauss = all.filter(a => a.getAttribute('href')!.startsWith('?g='));
-  expect(all.slice(15)).toEqual(gauss);
+  expect(all.slice(lessons.length)).toEqual(gauss);
   expect(gauss.map(a => a.getAttribute('href'))).toEqual(GAUSS.lessons.map(l => `?g=${l.key}`));
   for (const a of gauss) expect(a.querySelector('strong')!.textContent).toBe(gaussLesson(a.getAttribute('href')!.slice(3))!.title.replace('Q_enc', 'Qenc'));
   expect(getByRole('heading', {level: 3, name: 'Or, where the charge has symmetry: Gauss’s law'})).toBeTruthy();
