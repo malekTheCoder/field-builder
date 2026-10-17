@@ -244,9 +244,9 @@ describe('on a phone the figure\'s small marks are still marks', () => {
   const faces = texts(ring, '.cd-cube-label');
   expect(faces.length).toBeGreaterThan(0);
   for (const f of faces) expect(parseFloat(getComputedStyle(f).fontSize) * k, f.textContent ?? '').toBeGreaterThanOrEqual(8);
-  // Two words, not the desktop's prose: without them the corner's triangle had nothing to say it was the one at P.
+  // The compact note preserves the caveat: this fixed-proportion schematic cannot be measured.
   const note = svgOf(ring).querySelector<SVGTextElement>('.cd-triangle-note')!;
-  expect(note.textContent).toBe('Same triangle');
+  expect(note.textContent).toBe('Not to scale');
   expect(getComputedStyle(note).display).not.toBe('none');
   expect(parseFloat(getComputedStyle(note).fontSize) * k).toBeGreaterThanOrEqual(8);
  }, 30000);

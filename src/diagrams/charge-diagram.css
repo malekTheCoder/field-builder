@@ -109,7 +109,7 @@
    `--cd-k` is set from the figure's rendered width: below the 720px the drawing is laid out at, the
    labels are counter-scaled so they stay readable on a phone while the drawing shrinks. */
 .charge-diagram{--cd-sym:17.5px;--cd-sym-p:20.5px}
-.cd-axes text,.cd-dimension text,.cd-triangle text,.cd-svg .cd-origin,.cd-svg .cd-end,.cd-svg .cd-vector-label,.cd-svg .cd-point-label,
+.cd-axes text,.cd-dimension text,.cd-triangle text,.cd-svg .cd-shell-angle text,.cd-svg .cd-origin,.cd-svg .cd-end,.cd-svg .cd-vector-label,.cd-svg .cd-point-label,
 .cd-svg .cd-source-tag text,.cd-svg .cd-bound text,.cd-svg .cd-gauge text,.cd-svg .cd-zero{
  font-family:var(--font-display),Georgia,serif;font-style:italic;font-weight:600;font-size:calc(var(--cd-sym) * var(--cd-k,1))}
 .cd-svg .cd-point-label{font-size:calc(var(--cd-sym-p) * var(--cd-k,1));stroke-width:6px}
@@ -696,8 +696,8 @@ html:not(.dark) .cd-svg .cd-vector-label:not(.is-muted){fill:color-mix(in oklab,
 /* Thin and muted, so a leader reads as a leader: at the ghost colour's full strength two of them meeting at
    P read as two more strokes of the construction. */
 .cd-label-leaders line{stroke:var(--cd-muted);stroke-width:1;opacity:.5}
-/* Too narrow for prose inside the figure -- but not for two words. Without them a phone showed a second triangle in
-   the corner, lettered z, α, r_i and R, with nothing to say it was the one at P redrawn. Set at the footer's size. */
+/* The phone keeps the geometric caveat in three short words: the inset deliberately uses fixed proportions,
+   so its lengths and acute angles cannot be read as measured values. Set at the footer's size. */
 .cd-narrow .cd-svg .cd-triangle .cd-triangle-note{font-size:calc(15px * var(--cd-k,1))}
 .cd-svg .cd-dimension .cd-extension{stroke-width:1;stroke-dasharray:2 2}
 .cd-point-leader{stroke:var(--cd-ink);stroke-width:1.1;opacity:.55;pointer-events:none}

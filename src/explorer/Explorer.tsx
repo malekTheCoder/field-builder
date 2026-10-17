@@ -12,6 +12,7 @@ import {Dialog,DialogClose,DialogContent,DialogTitle,DialogDescription} from '@/
 import {Button} from '@/components/ui/button';
 import {PROBLEMS,getProblem} from '../problems/definitions';
 import {DEFAULT_PARAMS,type Params,type Problem,type ProblemId} from '../problems/types';
+import {offShellSurface} from '../state/shellPoint';
 import {HOLE_MAX} from '../distributions/disk';
 import {offsetCut,offsetPartner} from '../distributions/offset';
 import {confusionTex} from '../symbolic/equivalence';
@@ -92,7 +93,7 @@ const libraryFocus=()=>document.querySelector<HTMLElement>('.exp-library-dialog 
 const atRest=(v:Partial<Params>):Params=>({...cleanParams(v),continuum:0});
 /** A link's annulus keeps its hole inside its rim, as the slider does: ?p=annulus&inner=3 on a rim of 2 opens the
  * widest hole the slider reaches, not one it could never show. Only the annulus reads `inner`, so only its is held. */
-const keepHole=(id:ProblemId,v:Params):Params=>id==='annulus'&&v.inner>HOLE_MAX*v.size/2?{...v,inner:Math.floor(HOLE_MAX*v.size/2/.05+1e-9)*.05}:id==='offset'?keepHeight(v,v.size):v;
+const keepHole=(id:ProblemId,v:Params):Params=>id==='annulus'&&v.inner>HOLE_MAX*v.size/2?{...v,inner:Math.floor(HOLE_MAX*v.size/2/.05+1e-9)*.05}:id==='offset'?keepHeight(v,v.size):id==='shell'?offShellSurface(v):v;
 /** The rod off its bisector keeps P level with some part of the rod, |h| ≤ L/2, on the slider's own grid, as its slider and
  * its length's do: a link's ?h=3 beside L = 4 opens P level with the end. */
 const heightMax=(size:number)=>Math.floor(size/2/.05+1e-9)*.05;
@@ -172,7 +173,7 @@ function confusions(p:Problem){return p.steps.flatMap((s,i)=>(s.fields??[]).map(
 /** THE SEMICIRCLE WITH UNEVEN CHARGE IS A SEMICIRCLE. It has no angle slider, but an address can still carry one
  * (?p=uneven-arc&phi=90deg), and the figure draws the arc from `phi`: pinned to a half turn here, every drawing of it
  * is the lesson's own. The same object when nothing needs changing, so nothing memoised on it is rebuilt. */
-const pinned=(id:string,p:Params):Params=>id==='uneven-arc'&&p.phi!==Math.PI?{...p,phi:Math.PI}:p;
+const pinned=(id:string,p:Params):Params=>id==='uneven-arc'&&p.phi!==Math.PI?{...p,phi:Math.PI}:id==='shell'?offShellSurface(p):p;
 const SLIP_SUB:Record<string,string>={'ₓ':'_x','ᵧ':'_y','ᵢ':'_i','₀':'_0'},SLIP_GREEK:Record<string,string>={'α':String.raw`\alpha `,'θ':String.raw`\theta `,'φ':String.raw`\varphi `};
 /** The quantity's own symbol, as TeX, where its name ends in one -- "Charge element dQ", "x-component integrand
  * dEₓ/dx", "Projection factor cos α" -- and not where the name ends in what it is a part of ("Axial component
@@ -521,7 +522,7 @@ export default function Explorer({welcome}:{welcome?:boolean}={}){
  // seventy samples again on every frame of Shrink them -- a fifth of a frame's cost there on a slow machine -- for a
  // sweep that reads none of it.
  const boardParams=useMemo(()=>({distance:bd,size:bs,charge:bq,phi:bp,slices:bn,element:be,continuum:0,inner:bi,height:bh}),[bd,bs,bq,bp,bn,be,bi,bh]);
- const updateParams=useCallback((partial:Partial<Params>)=>{setParamsMap(old=>({...old,[id]:{...(old[id]??DEFAULT_PARAMS),...partial}}));},[id]);
+ const updateParams=useCallback((partial:Partial<Params>)=>{setParamsMap(old=>{const previous=old[id]??DEFAULT_PARAMS,next={...previous,...partial};return {...old,[id]:id==='shell'?offShellSurface(next,previous):next};});},[id]);
  /** Whether the run came to rest by itself -- played to the end of what it was asked to play -- rather
   * than being stopped: the board looks again at the one and leaves the other alone (see the follow). */
  const stoppedByRun=useRef(false);

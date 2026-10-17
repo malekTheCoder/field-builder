@@ -417,8 +417,9 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
   // instead of lying in one plane: drawn as the sphere's outline with each ring an ellipse on it, P on the axis inside or
   // out. Wherever the disk's code reads a ring's radius off its sample's x, the shell's reads its height off its z too.
   const shell = id === 'shell';
-  // P inside the shell: its rings' sum is a residue of the cut, never the field, which is zero there. At rest it is named the
-  // sum it is, beside an E = 0, and not "E ≈ Σ ΔE".
+  // P inside the shell: its rings' sum is a quadrature residue, never the field, which is exactly zero.
+  // Show that finite sum only while building it. At rest the log scale made a small residue look almost
+  // as strong as the outside field, contradicting E = 0 even though the arrow said Σ ΔE.
   const shellInside = shell && Math.abs(p.distance) < p.size / 2 * (1 - 1e-9);
   // The ramp is the endpoint rod with a non-uniform density: same layout, different charge.
   const footed = id === 'endpoint' || id === 'ramp', ramp = id === 'ramp';
@@ -1409,7 +1410,7 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
   // thing on the figure with no name. The sum comes back when the reader asks to add.
   const hideAnswer = building === 'pieces' || building === 'one' || building === 'cancel' || (!build && mode === 'project' && components);
   // The sum's own arrow, once nothing is drawn that it could be mistaken for, or be shorter than.
-  const netShown = !scalar && !hideAnswer && !handOver;
+  const netShown = !scalar && !hideAnswer && !handOver && !(shellInside && !build);
   // E BESIDE THE SUM, where the two point the same way. Drawn from P along the sum's own line, the field's arrow lay
   // inside the sum's shaft: shorter, its head sat halfway along the sum's arrow and its name was hidden -- one arrow
   // with two heads -- and longer, its name stood beside the sum's and the two read as one label, "Σ ΔE E". So it is
@@ -1824,7 +1825,7 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
   /** An angle at a vertex: a short arc between its two sides, and its name on the line halving it,
    * so the label sits inside the angle it names whichever way that angle happens to open. Returns the
    * drawing and the arc's points, which the label placer keeps every other name off. */
-  const angleMark = (at: Point, alongA: Point, alongB: Point, name: string, term = false, sides?: { a?: number; b?: number; r0?: number; w?: number; avoid?: Box }) => {
+  const angleMark = (at: Point, alongA: Point, alongB: Point, name: string, term = false, sides?: { a?: number; b?: number; r0?: number; w?: number; avoid?: Box; avoidInterior?: boolean }) => {
     const a = direction(vsub(alongA, at)), b = direction(vsub(alongB, at));
     if (!a || !b) return null;
     const mid = direction({ x: a.x + b.x, y: a.y + b.y }) ?? a, sweep = a.x * b.y - a.y * b.x > 0 ? 1 : 0;
@@ -1846,7 +1847,11 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
     const lenA = sides?.a ?? Math.hypot(alongA.x - at.x, alongA.y - at.y), lenB = sides?.b ?? Math.hypot(alongB.x - at.x, alongB.y - at.y);
     const towardB = { x: -a.y, y: a.x }, nA = towardB.x * b.x + towardB.y * b.y >= 0 ? towardB : { x: a.y, y: -a.x };
     const towardA = { x: -b.y, y: b.x }, nB = towardA.x * a.x + towardA.y * a.y >= 0 ? towardA : { x: b.y, y: -b.x };
-    const fits = (c: Point) => [[-1, -1], [1, -1], [1, 1], [-1, 1]].every(([sx, sy]) => {
+    // The rod's broad avoidance region chooses between outside fallback sides; it must not reject
+    // a letter that fits inside its triangle. P's halo is instead a solid obstacle: the shell opts
+    // into checking it inside the angle too, where a geometrically fitting letter could cover P.
+    const overlapAvoid = (b: Box) => sides?.avoid ? Math.max(0, Math.min(b.x + b.width, sides.avoid.x + sides.avoid.width) - Math.max(b.x, sides.avoid.x)) * Math.max(0, Math.min(b.y + b.height, sides.avoid.y + sides.avoid.height) - Math.max(b.y, sides.avoid.y)) : 0;
+    const fits = (c: Point) => (!sides?.avoidInterior || overlapAvoid({ x: c.x - w / 2, y: c.y - h / 2, width: w, height: h }) === 0) && [[-1, -1], [1, -1], [1, 1], [-1, 1]].every(([sx, sy]) => {
       const q = { x: c.x + sx * w / 2 - at.x, y: c.y + sy * h / 2 - at.y };
       return q.x * nA.x + q.y * nA.y >= margin && q.x * nB.x + q.y * nB.y >= margin && q.x * a.x + q.y * a.y <= lenA - margin && q.x * b.x + q.y * b.y <= lenB - margin;
     });
@@ -1884,9 +1889,8 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
     // ...unless that side is so short that past it is the charge itself: with P half a metre from the rod the letter
     // stood on the rod, among its + marks, or under its foot on the far side. Then past the other side, r_i, on its far
     // side from the first.
-    const onCharge = (b: Box) => sides?.avoid ? Math.max(0, Math.min(b.x + b.width, sides.avoid.x + sides.avoid.width) - Math.max(b.x, sides.avoid.x)) * Math.max(0, Math.min(b.y + b.height, sides.avoid.y + sides.avoid.height) - Math.max(b.y, sides.avoid.y)) : 0;
     const first = outside(turned(a, away)), second = outside(turned(b, -away));
-    const { c, box } = onCharge(first.box) > 0 && onCharge(second.box) < onCharge(first.box) ? second : first;
+    const { c, box } = overlapAvoid(first.box) > 0 && overlapAvoid(second.box) < overlapAvoid(first.box) ? second : first;
     const from = { x: at.x + mid.x * R, y: at.y + mid.y * R }, to = nearestOnBox({ x: box.x - 1, y: box.y - 1, width: box.width + 2, height: box.height + 2 }, from);
     return { node: <>{arc.node}<line className="cd-angle-leader" x1={from.x.toFixed(1)} y1={from.y.toFixed(1)} x2={to.x.toFixed(1)} y2={to.y.toFixed(1)} /><text className="cd-angle" x={c.x.toFixed(1)} y={(c.y + .3 * size).toFixed(1)} textAnchor="middle" data-anchor="fixed" {...keep}>{setUpright(name)}</text></>, arc: arc.points, leader: [from, to] as [Point, Point], box };
   };
@@ -1919,6 +1923,16 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
   }
   // The shell's radius runs from O out to the chosen ring, so the angle θ that places the ring is the one between it and the axis.
   const radiusTip = shell ? project(ringPoint(Math.abs(sample.position.x), sample.position.z)) : ray({ x: 1, y: 0, z: 0 }, Math.min(surface ? sample.position.x : R, 7) * unit);
+  // A shell's radius slopes with its chosen ring. A fixed vertical offset placed R back on
+  // that stroke, particularly with the larger phone lettering. Place it perpendicular to the
+  // radius, on the side away from P, with alternatives along the same physical dimension.
+  const shellRadius = shell ? (() => {
+    const d = direction(vsub(radiusTip, O)) ?? { x: 1, y: 0 };
+    const n = { x: -d.y, y: d.x }, mid = { x: O.x + .6 * (radiusTip.x - O.x), y: O.y + .6 * (radiusTip.y - O.y) };
+    const sign = (P.x - mid.x) * n.x + (P.y - mid.y) * n.y > 0 ? -1 : 1;
+    const at = (f: number) => besidePoint({ x: O.x + f * (radiusTip.x - O.x), y: O.y + f * (radiusTip.y - O.y) }, scaleVec2(n, sign), 10, SYM * labelScale);
+    return { spot: at(.6), alt: [.4, .8].map(f => { const q = at(f); return `${q.x.toFixed(1)} ${q.y.toFixed(1)} ${q.anchor}`; }).join(';') };
+  })() : null;
   // THE DISK'S OWN RADIUS. Its answer is written in R, and the figure lettered only s -- the radius of the
   // chosen ring, on the line from O to it -- so in Shrink them, with a handle at each end of that line, s
   // read as the disk's radius. R is its own dimension, out to the rim at another azimuth, toward the reader
@@ -2875,8 +2889,14 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
       // A RING OF THE SHELL ABOVE P turns the triangle over: the ring is above P, the leg along the axis runs up from P to
       // the ring's plane, and it is R cos θ − z, the height z − R cos θ being negative there.
       const over = shell && sample.position.z > p.distance;
-      const k = labelScale, top = { x: 619 - 81 * k, y: over ? 73 + 62 * k : 73 }, corner = { x: 619 - 81 * k, y: over ? 73 : 73 + 62 * k }, end = { x: 619, y: over ? 73 : 73 + 62 * k };
-      const zSpot = besidePoint({ x: corner.x, y: (top.y + corner.y) / 2 }, { x: -1, y: 0 }, 7, termSize);
+      // The shell's long height expression needs room to the left of the inset, clear of the z axis.
+      const right = shell ? (over ? 665 : 650) : 619;
+      // Its acute interior wedge is π − α when the ring is above P. Give that longer
+      // label room without changing the physical figure or the inset’s aspect ratio.
+      const k = labelScale * (over ? 1.4 : 1), top = { x: right - 81 * k, y: over ? 73 + 62 * k : 73 }, corner = { x: right - 81 * k, y: over ? 73 : 73 + 62 * k }, end = { x: right, y: over ? 73 : 73 + 62 * k };
+      // The taller flipped inset has its long height name high on the vertical leg,
+      // away from the selected ring and its strip-width label on a phone.
+      const zSpot = besidePoint({ x: corner.x, y: over ? corner.y + .28 * (top.y - corner.y) : (top.y + corner.y) / 2 }, { x: -1, y: 0 }, 7, termSize);
       // Close under its leg: six units off, with the serif's own ascent above it, the letter hung about a line's height
       // below the base, detached from the leg it names.
       const baseSpot = besidePoint({ x: (corner.x + end.x) / 2, y: corner.y }, { x: 0, y: over ? -1 : 1 }, 1, termSize);
@@ -3087,9 +3107,13 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
   })();
   // THE SHELL'S θ, at O between the axis up to the top of the shell and the radius out to the chosen ring: the angle that
   // places a ring, which the board writes every factor in. In every view: both its sides are true segments.
-  // Close in to O, inside the triangle O, P and the ring, clear of its third side, the line from P to the ring. Not where
-  // P stands on the angle, inside the shell close over O: there its letter would be set on P.
-  const shellAngle = shell && Math.hypot(P.x - O.x, P.y - O.y) > 60 ? angleMark(O, project({ x: 0, y: 0, z: R }), radiusTip, 'θ', stageOne || building === 'pieces', { r0: 16 }) : null;
+  // Close in to O, inside the triangle O, P and the ring, clear of its third side, the line from P to the ring.
+  // P used to suppress the entire angle whenever it was near O, leaving θ undefined throughout the
+  // interior-shell demonstration. The ring's angle exists independently of P; reserve its letter as
+  // an obstacle and let P's label find another spot, as for every other fixed angle in the figure.
+  const shellAngle = shell ? angleMark(O, project({ x: 0, y: 0, z: R }), radiusTip, 'θ', stageOne || building === 'pieces', {
+    r0: 16, avoidInterior: true, avoid: { x: P.x - haloR - 3, y: P.y - haloR - 3, width: 2 * haloR + 6, height: 2 * haloR + 6 },
+  }) : null;
   // THE RING'S Δθ, as Cut it up makes the cuts: the footer writes ΔQ = λR Δθ and the board calls θ a piece's angle
   // round the ring, and nothing on the figure was θ or Δθ. In the ring's own plane, so it is drawn through the
   // projection: hairlines from O to the chosen piece's two ends, and the arc between them at a little under half
@@ -3762,10 +3786,10 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
         <text x={rim.spot.x.toFixed(1)} y={rim.spot.y.toFixed(1)} textAnchor={rim.spot.anchor} data-mirror={`${rim.mid.x.toFixed(1)} ${rim.mid.y.toFixed(1)}`} data-alt={rim.alt} data-shaft={lineOf(O, rim.tip)} data-within={awayFromP(O, rim.tip)} {...GIVEN}>{rimName}</text></g>}
       {rim && holeTip && <g data-dim="inner" data-hole="true" className="cd-dimension"><path d={`M${O.x.toFixed(1)} ${O.y.toFixed(1)}L${holeTip.tip.x.toFixed(1)} ${holeTip.tip.y.toFixed(1)}`} clipPath={plotClip} />
         <text x={holeTip.spot.x.toFixed(1)} y={holeTip.spot.y.toFixed(1)} textAnchor={holeTip.spot.anchor} data-mirror={`${holeTip.mid.x.toFixed(1)} ${holeTip.mid.y.toFixed(1)}`} data-alt={holeTip.alt} data-shaft={lineOf(O, holeTip.tip)} data-within={awayFromP(O, holeTip.tip)} {...GIVEN}>a</text></g>}
-      {perspective && <g data-dim={diskLike ? undefined : 'size'} className={`cd-dimension${inSpace && !perspective ? ' is-hidden' : ''}`}><path d={`M${O.x} ${O.y}L${radiusTip.x} ${radiusTip.y}`} clipPath={plotClip} /><text x={O.x+(radiusTip.x-O.x)*.6} y={O.y+(radiusTip.y-O.y)*.6+19} data-mirror={`${(O.x+(radiusTip.x-O.x)*.6).toFixed(1)} ${(O.y+(radiusTip.y-O.y)*.6).toFixed(1)}`}
+      {perspective && <g data-dim={diskLike ? undefined : 'size'} className={`cd-dimension${inSpace && !perspective ? ' is-hidden' : ''}`}><path d={`M${O.x} ${O.y}L${radiusTip.x} ${radiusTip.y}`} clipPath={plotClip} /><text x={shellRadius?.spot.x ?? O.x+(radiusTip.x-O.x)*.6} y={shellRadius?.spot.y ?? O.y+(radiusTip.y-O.y)*.6+19} textAnchor={shellRadius?.spot.anchor} data-mirror={`${(O.x+(radiusTip.x-O.x)*.6).toFixed(1)} ${(O.y+(radiusTip.y-O.y)*.6).toFixed(1)}`}
         // Not past .85 of the way out on the flat sheet, where "s → ∞" stands under the axis' end: as the walk went out,
         // s took that place right under it and the two read as one garbled name, "s / s → ∞".
-        data-alt={(id === 'sheet' && !inSpace ? [.35, .6] : [.35, .85]).flatMap(f => [19, -8].map(dy => `${(O.x + (radiusTip.x - O.x) * f).toFixed(1)} ${(O.y + (radiusTip.y - O.y) * f + dy).toFixed(1)} start`)).join(';')} data-shaft={lineOf(O, radiusTip)} data-within={awayFromP(O, radiusTip)} {...GIVEN}>{surface && !shell ? 's' : 'R'}</text></g>}
+        data-alt={shellRadius?.alt ?? (id === 'sheet' && !inSpace ? [.35, .6] : [.35, .85]).flatMap(f => [19, -8].map(dy => `${(O.x + (radiusTip.x - O.x) * f).toFixed(1)} ${(O.y + (radiusTip.y - O.y) * f + dy).toFixed(1)} start`)).join(';')} data-shaft={lineOf(O, radiusTip)} data-within={awayFromP(O, radiusTip)} {...GIVEN}>{surface && !shell ? 's' : 'R'}</text></g>}
       {arcLike && <g className={`cd-dimension${inSpace && !perspective ? ' is-hidden' : ''}`}>{!uneven && <g data-dim="angle"><path className="cd-phi-arc" d={pathThrough(circlePoints(R*PHI_AT, -p.phi/2, p.phi/2)) + (arcLetters?.phiHeads ?? '')} clipPath={plotClip} />{arcLetters && <text x={arcLetters.phi.x.toFixed(1)} y={arcLetters.phi.y.toFixed(1)} textAnchor="middle" data-alt={arcLetters.phiAlt} data-within={arcLetters.phiWithin} {...(stageCancel ? { 'data-priority': 0 } : GIVEN)}>{setUpright('φ')}</text>}</g>}
         {/* Not while the pair is drawn: the radius runs to the arc's lower end, on the y axis at the default φ, which is
             the line the two sideways parts are drawn on -- R's letter stood beside ΔE_y's shaft and took ΔE_y's place,
@@ -3781,6 +3805,9 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
           rather than appearing at full length, so it is plain where each one starts. Left out
           while the run shrinks the pieces away: the stage is about the whole sum by then, and one
           piece's arrow beside it is the previous stage's picture. */}
+      {/* A negative arc's contribution points along its radius. Construction goes underneath the
+          arrow, so its shaft remains visible; its r_i label still goes through the normal placer. */}
+      {triangle?.kind === 'arc' && <g className="cd-triangle"><line data-arc-construction="true" x1={P.x} y1={P.y} x2={selectedPoint.x} y2={selectedPoint.y}/></g>}
       {showContribution && !scalar && mode !== 'sum' && building !== 'limit' && <>
         {/* WHAT CANCELS, AS SOMETHING YOU CAN SEE. Each piece's sideways part is a real arrow out of P
             -- the side of the parallelogram the piece's arrow is resolved along -- named, as thick as
@@ -3987,7 +4014,13 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
         {triangle.kind === 'schematic' && (() => { const { zSpot, baseSpot, riSpot, top, corner, end, over } = triangle, flip = over ? -1 : 1;
           // The angle at the top, inside it, centred where the wedge is wide enough to hold it: the wedge
           // there opens at half the top angle, whose tangent is the foot over the height, 81 over 62.
-          const half = Math.atan2(81, 62) / 2, h = 1.37 * termSize, d = Math.max(30, (h / 2 + 3) / Math.sin(half));
+          // α uses the signed axial projection, cos α = (z − R cos θ) / r_i.
+          // Above P this is negative: α is obtuse, while this right triangle’s acute
+          // interior angle is π − α. Reversing the charge does not change either angle.
+          // The compound label’s full box must clear both rays, not only its height.
+          const half = Math.atan2(81, 62) / 2, h = 1.37 * termSize, w = 3.4 * termSize;
+          const inset = over ? Math.max(w / 2, w / 2 * Math.cos(2 * half) + h / 2 * Math.sin(2 * half)) : h / 2;
+          const d = Math.max(30, (inset + 3) / Math.sin(half));
           const alpha = { x: top.x + Math.sin(half) * d, y: top.y + flip * Math.cos(half) * d + .3 * termSize };
           const at = (q: Point) => `${q.x.toFixed(1)} ${q.y.toFixed(1)}`, mid = (a: Point, b: Point) => at({ x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 });
           const arcEnd = { x: top.x + 17 * Math.sin(2 * half), y: top.y + flip * 17 * Math.cos(2 * half) };
@@ -3998,17 +4031,17 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
           return <>
             <path d={`M${at(corner)}L${at(top)}L${at(end)}Z`}/><path className="cd-right-angle" d={`M${corner.x.toFixed(1)} ${(corner.y - 8 * flip).toFixed(1)}h8v${8 * flip}`}/>
             {!scalar && <path className="cd-angle-arc" d={`M${top.x.toFixed(1)} ${(top.y + 17 * flip).toFixed(1)}A17 17 0 0 ${over ? 1 : 0} ${at(arcEnd)}`}/>}
-            <text x={zSpot.x.toFixed(1)} y={zSpot.y.toFixed(1)} textAnchor={zSpot.anchor} data-mirror={mid(top, corner)} data-within={`${corner.x.toFixed(1)} 0 -1 0`} {...GIVEN}>{shell ? setUpright(over ? 'R cos θ − z' : 'z − R cos θ') : 'z'}</text>
+            <text x={zSpot.x.toFixed(1)} y={zSpot.y.toFixed(1)} textAnchor={zSpot.anchor} data-anchor={over ? 'fixed' : undefined} data-mirror={mid(top, corner)} data-within={`${corner.x.toFixed(1)} 0 -1 0`} {...GIVEN}>{shell ? setUpright(over ? 'R cos θ − z' : 'z − R cos θ') : 'z'}</text>
             <text x={baseSpot.x.toFixed(1)} y={baseSpot.y.toFixed(1)} textAnchor={baseSpot.anchor} data-mirror={mid(corner, end)} data-within={`0 ${corner.y.toFixed(1)} 0 ${flip}`} {...GIVEN}>{shell ? setUpright('R sin θ') : surface ? 's' : 'R'}</text>
             <text x={riSpot.x.toFixed(1)} y={riSpot.y.toFixed(1)} textAnchor={riSpot.anchor} data-mirror={mid(top, end)} data-within={`${top.x.toFixed(1)} ${top.y.toFixed(1)} ${slope.x.toFixed(3)} ${slope.y.toFixed(3)}`} className="cd-ri" {...termAttrs(distanceTerm)}><SymbolText symbol="r_i" /></text>
-            {!scalar && <text className="cd-angle" x={alpha.x.toFixed(1)} y={alpha.y.toFixed(1)} textAnchor="middle" data-anchor="fixed" {...(stageCancel ? termAttrs(true) : GIVEN)}>{setUpright('α')}</text>}
-            <text x={corner.x.toFixed(1)} y={(over ? top.y + 18 + .3 * termSize : baseSpot.y + 18).toFixed(1)} className="cd-triangle-note">{narrow ? 'Same triangle' : 'Same triangle · not to scale'}</text>
+            {!scalar && <text className="cd-angle" x={alpha.x.toFixed(1)} y={alpha.y.toFixed(1)} textAnchor="middle" data-anchor="fixed" {...(stageCancel ? termAttrs(true) : GIVEN)}>{setUpright(over ? 'π − α' : 'α')}</text>}
+            <text x={corner.x.toFixed(1)} y={(over ? top.y + 18 + .3 * termSize : baseSpot.y + 18).toFixed(1)} className="cd-triangle-note" data-keep={over ? 'true' : undefined}>{narrow ? 'Not to scale' : 'Same triangle · not to scale'}</text>
 
           </>; })()}
         {triangle.kind === 'slope' && <text x={triangle.riSpot.x.toFixed(1)} y={triangle.riSpot.y.toFixed(1)} textAnchor={triangle.riSpot.anchor} data-mirror={`${triangle.hyp.x.toFixed(1)} ${triangle.hyp.y.toFixed(1)}`} className="cd-ri" {...termAttrs(distanceTerm)}><SymbolText symbol="r_i" /></text>}
         {triangle.kind === 'slope' && triangle.coordinate && <g data-piece-coordinate="true"><path className="cd-x-bar" d={triangle.coordinate.bar} />
           <text x={triangle.coordinate.name.x.toFixed(1)} y={triangle.coordinate.name.y.toFixed(1)} textAnchor={triangle.coordinate.name.anchor} data-mirror={`${triangle.coordinate.mid.x.toFixed(1)} ${triangle.coordinate.mid.y.toFixed(1)}`} data-within={triangle.coordinate.within} {...(stageOne ? termAttrs(true) : GIVEN)}>y</text></g>}
-        {triangle.kind === 'arc' && <><line x1={P.x} y1={P.y} x2={selectedPoint.x} y2={selectedPoint.y}/>{triangle.mark?.node}
+        {triangle.kind === 'arc' && <>{triangle.mark?.node}
           {/* The line from the piece to P is r_i, and on the arc every r_i is R: the board writes the field
               with r_i, and the figure drew the line unnamed. On the side of it away from θ. */}
           {/* Kept in What cancels as well, whose line is written in r_i: it was hidden there at every setting. */}
