@@ -7,7 +7,7 @@ import {getProblem, PROBLEMS} from '../src/problems/definitions';
 import {BANK, BANKS, DEFAULT_SETTINGS, HISTORY_KEY, QUESTION, QUIZ_SHAPES, isGauss, shapeShort} from '../src/quiz/engine';
 import type {ShapeId} from '../src/quiz/types';
 import {GAUSS} from '../src/explorer/lessons';
-import {isGaussReady} from '../src/gauss';
+import {gaussLesson, isGaussReady} from '../src/gauss';
 import {MISCONCEPTION} from '../src/quiz/misconceptions';
 
 /* QUIZ YOURSELF, in the page: set up, take, the end screen's weak spots and their links, retry, history and
@@ -188,11 +188,16 @@ describe('quiz yourself', () => {
   const weak = r.getByRole('heading', {level: 2, name: 'Your weak spots'}).closest('section')!;
   const links = within(weak as HTMLElement).getAllByRole('link');
   expect(links.length).toBeGreaterThan(0);
-  for (const a of links) expect(a.getAttribute('href')).toBe('?g=spheres');
+  // Each lands on its case and, for a stage, with the run held there (`?g=spheres&case=shell&stage=right`).
+  for (const a of links) expect(a.getAttribute('href')).toMatch(/^\?g=spheres(&case=[a-z-]+)?(&stage=(symmetry|surface|left|right|solve))?$/);
   expect(r.getByRole('link', {name: 'Spheres'}).getAttribute('href')).toBe('?g=spheres');
-  // Following one opens the Gauss lesson; Back returns to the end screen.
+  // Following one opens the Gauss lesson there; Back returns to the end screen.
+  const target = new URLSearchParams(links[0].getAttribute('href')!);
   await userEvent.click(links[0]);
   expect(await r.findByRole('heading', {level: 1, name: 'Spheres'})).toBeTruthy();
+  const kase = target.get('case'), stage = target.get('stage');
+  if (kase) { const label = gaussLesson('spheres')!.cases.find(c => c.key === kase)!.label; await waitFor(() => expect(within(r.container.querySelector<HTMLElement>('.gs-choice.is-cases')!).getByRole('button', {name: label}).getAttribute('aria-pressed')).toBe('true')); }
+  if (stage) await waitFor(() => expect(document.querySelector<HTMLElement>('.gs-stage')?.dataset.stage).toBe(stage));
   window.history.back();
   expect(await r.findByRole('heading', {level: 1, name: 'How it went'})).toBeTruthy();
  }, 30000);

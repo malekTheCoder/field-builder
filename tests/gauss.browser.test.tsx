@@ -1,5 +1,5 @@
 import {act, cleanup, fireEvent, render, waitFor, within} from '@testing-library/react';
-import {afterEach, beforeEach, describe, expect, it} from 'vitest';
+import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest';
 import {page, userEvent} from 'vitest/browser';
 import '../app/globals.css';
 import Site, {newVisit} from '../src/home/Site';
@@ -65,6 +65,67 @@ describe('a Gauss lesson’s address', () => {
     expect(location.search).toBe('?p=ring');
     // Let the integral lesson settle (its address and its save are debounced) before the next test mounts the site.
     await new Promise(r => setTimeout(r, 600));
+  }, 20000);
+});
+
+describe('a Gauss lesson opened at a case and a stage', () => {
+  /** The site at an address, waiting for the lesson's title: with a stage the run opens at once, with no Watch it build. */
+  const open = async (search: string) => { await page.viewport(1280, 800); window.history.replaceState(null, '', `/?g=${search}`); const view = render(<Site />); await view.findByRole('heading', {level: 1}); return view; };
+  const pressed = (view: ReturnType<typeof render>, name: string) => within(view.container.querySelector<HTMLElement>('.gs-choice.is-cases')!).getByRole('button', {name}).getAttribute('aria-pressed');
+  it('opens on the case and with the run held on the stage the address names, and writes them back as they change', async () => {
+    const view = await open('spheres&case=shell&stage=right');
+    await waitFor(() => expect(stage()?.dataset.stage).toBe('right'));
+    expect(pressed(view, 'Thin shell')).toBe('true');
+    // Held, not playing: the transport offers Play, on the stage's finished frame.
+    expect(view.getByRole('button', {name: 'Play'})).toBeTruthy();
+    expect(Number(stage()?.dataset.solve)).toBe(0);
+    await waitFor(() => expect(location.search).toBe('?g=spheres&case=shell&stage=right'));
+    // Closing the run takes the stage out of the address; another case puts its own in; the first case is left out.
+    fireEvent.click(view.getByRole('button', {name: 'Close'}));
+    await waitFor(() => expect(location.search).toBe('?g=spheres&case=shell'));
+    fireEvent.click(within(view.container.querySelector<HTMLElement>('.gs-choice.is-cases')!).getByRole('button', {name: 'Uniform ball'}));
+    await waitFor(() => expect(location.search).toBe('?g=spheres&case=ball'));
+    fireEvent.click(within(view.container.querySelector<HTMLElement>('.gs-choice.is-cases')!).getByRole('button', {name: 'Point charge'}));
+    await waitFor(() => expect(location.search).toBe('?g=spheres'));
+  }, 20000);
+  it('takes a stage by its place in the run, and leaves out a case or a stage the lesson does not have', async () => {
+    const view = await open('qenc&case=nonsense&stage=9');
+    await new Promise(r => setTimeout(r, 400));
+    expect(view.getByRole('button', {name: 'Watch it build'})).toBeTruthy();
+    expect(location.search).toBe('?g=qenc');
+    cleanup(); newVisit();
+    await open('flux&stage=3');
+    await waitFor(() => expect(stage()?.dataset.stage).toBe('left'));
+    await waitFor(() => expect(location.search).toBe('?g=flux&stage=left'));
+  }, 20000);
+  it('copies the link to the case and the stage on screen, and says so', async () => {
+    const view = await open('spheres&case=ball&stage=solve');
+    await waitFor(() => expect(stage()?.dataset.stage).toBe('solve'));
+    const write = vi.fn(() => Promise.resolve());
+    vi.spyOn(navigator, 'clipboard', 'get').mockReturnValue({writeText: write} as unknown as Clipboard);
+    await userEvent.click(view.getByRole('button', {name: 'Lesson tools'}));
+    await userEvent.click(await view.findByRole('menuitem', {name: 'Copy a link to this lesson'}));
+    await waitFor(() => expect(write).toHaveBeenCalledTimes(1));
+    const url = new URL((write.mock.calls[0] as unknown as [string])[0]);
+    expect(url.search).toBe('?g=spheres&case=ball&stage=solve');
+    await waitFor(() => expect(document.querySelector('.exp-copied')?.textContent).toBe('Link to this lesson, held at Solve, copied.'));
+    vi.restoreAllMocks();
+  }, 20000);
+  it('Back and Forward return to the case and the stage each entry was left on', async () => {
+    const view = await open('spheres&case=shell&stage=left');
+    await waitFor(() => expect(location.search).toBe('?g=spheres&case=shell&stage=left'));
+    const list = view.getByRole('navigation', {name: 'Lessons'});
+    fireEvent.click(within(list).getByRole('link', {name: /^Lines and cylinders/}));
+    await waitFor(() => expect(document.querySelector('h1')?.textContent).toBe('Lines and cylinders'));
+    expect(stage()?.dataset.stage).toBe('rest');
+    window.history.back();
+    await waitFor(() => expect(document.querySelector('h1')?.textContent).toBe('Spheres'));
+    await waitFor(() => expect(stage()?.dataset.stage).toBe('left'));
+    expect(pressed(view, 'Thin shell')).toBe('true');
+    window.history.forward();
+    await waitFor(() => expect(document.querySelector('h1')?.textContent).toBe('Lines and cylinders'));
+    await waitFor(() => expect(stage()?.dataset.stage).toBe('rest'));
+    await new Promise(r => setTimeout(r, 400));
   }, 20000);
 });
 

@@ -18,7 +18,7 @@ import {Brand} from '../explorer/Brand';
 import {STORAGE} from '../explorer/Explorer';
 import {GAUSS, PlannedGlyph, ShapeGlyph, families, plannedName} from '../explorer/lessons';
 import {GUIDE_HREF, HOME_HREF, QUIZ_HREF, inPlace, navigate, subscribeAddress} from '../state/route';
-import {gaussHref, gaussIdOf, gaussLesson, isGaussReady, type GaussId} from './index';
+import {gaussHref, gaussIdOf, gaussLesson, gaussPlaceOf, isGaussReady, type GaussId} from './index';
 import {gaussStages, moment, runSeconds, stageStart} from './run';
 import {GaussFigure, type FigureView} from './GaussFigure';
 import {GaussBoard} from './GaussBoard';
@@ -50,6 +50,9 @@ import './gauss.css';
 const LESSON_TITLE = 'lesson-title';
 /** One beat of the stepped run, for readers who asked for reduced motion: as the integral lessons' run steps. */
 const REDUCED_BEAT = 450, MAX_STEP = 100;
+/** How long the page waits for the reader to settle before it writes what is on screen into the address, as the
+ * integral lessons wait (Explorer's SETTLE): a run's stages and a slider's drag are not each an entry to rewrite. */
+const SETTLE = 220;
 const readSearch = () => location.search;
 /** The integral lessons, for the list and the library: fixed for the page's life. */
 const FIELD_LESSONS = PROBLEMS.filter(p => isReady(p.id));
@@ -91,7 +94,10 @@ export default function GaussLesson() {
   const id: GaussId = gaussIdOf(search) ?? 'symmetry';
   const lesson = gaussLesson(id)!;
   const reduced = useReducedMotion();
-  const [caseKey, setCaseKey] = useState(lesson.cases[0].key);
+  // THE CASE AND THE STAGE THE ADDRESS NAMES (`&case=shell&stage=right`): the case chosen at once, and the run opened
+  // on that stage's finished frame once the case is on screen (`linked`, below), as an integral lesson's link opens.
+  const [caseKey, setCaseKey] = useState(() => typeof location === 'undefined' ? lesson.cases[0].key : gaussPlaceOf(location.search, lesson).caseKey);
+  const linked = useRef<{caseKey: string; stage: number | null} | null>(typeof location === 'undefined' ? null : gaussPlaceOf(location.search, lesson));
   const kase = lesson.cases.find(c => c.key === caseKey) ?? lesson.cases[0];
   const [sizes, setSizes] = useState<Record<string, number>>({});
   const size = sizes[`${id}/${kase.key}`] ?? kase.figure.surface.size.initial;
@@ -219,8 +225,46 @@ export default function GaussLesson() {
   useEffect(() => () => loop.current?.stop(), []);
   // oxlint-disable-next-line react/react-compiler -- A new case closes the run, stopping its clock: its lines are another case's.
   useEffect(() => { loop.current?.stop(); loop.current = null; setPlaying(false); setRunOpen(false); clock.set(0); setIndex(0); setSettled(false); said.current = -1; }, [kase, clock]);
-  // oxlint-disable-next-line react/react-compiler -- A new lesson opens on its first case, its text shut, its charge positive.
-  useEffect(() => { setCaseKey(lesson.cases[0].key); setLessonOpen(false); setSign(1); }, [lesson]);
+  // A NEW LESSON OPENS ON THE CASE ITS ADDRESS NAMES, else its first, its text shut, its charge positive; and on the
+  // stage the address names, if any. Back and Forward land here too, on the lesson's entry as it was left.
+  const lessonShown = useRef(lesson);
+  useEffect(() => {
+    if (lessonShown.current === lesson) return;
+    lessonShown.current = lesson;
+    const at = gaussPlaceOf(location.search, lesson);
+    linked.current = at;
+    // oxlint-disable-next-line react/react-compiler -- A new lesson opens where its address says.
+    setCaseKey(at.caseKey); setLessonOpen(false); setSign(1);
+  }, [lesson]);
+  // The linked stage, once its case is the one on screen: the run held on that stage's finished frame, where a stage
+  // played through stops. After the effect above that closes the run for a new case, so it is not closed again.
+  const openAt = useSteady((n: number) => { const i = Math.max(0, Math.min(stages.length, n) - 1); seek(i === stages.length - 1 ? total : stageStart(stages, i) + stages[i].seconds - .001, false); });
+  useEffect(() => {
+    const at = linked.current;
+    if (!at || at.caseKey !== kase.key) return;
+    linked.current = null;
+    if (at.stage) openAt(at.stage);
+  }, [kase, openAt]);
+  // WHAT IS ON SCREEN, IN THE ADDRESS: the case where it is not the first, and the stage while the run is open, so the
+  // address bar and Copy a link hold the link to this very view. Replaced, never pushed: Back still leaves the lesson.
+  const address = gaussHref(id, {case: kase.key !== lesson.cases[0].key ? kase.key : undefined, stage: runOpen ? stages[index]?.key : undefined});
+  useEffect(() => {
+    const t = window.setTimeout(() => {
+      // Only the lesson's own entry: a link followed in the meantime is another page's.
+      if (location.search === address || gaussIdOf(location.search) !== id) return;
+      try { history.replaceState(null, '', address); } catch { /* rate-limited or blocked: the address is a convenience, the lesson is not */ }
+    }, SETTLE);
+    return () => window.clearTimeout(t);
+  }, [address, id]);
+  // Back or Forward to another entry of this same lesson: its case and its stage, or the run closed.
+  const revisit = useSteady(() => {
+    if (gaussIdOf(location.search) !== id || lessonShown.current !== lesson) return;
+    const at = gaussPlaceOf(location.search, lesson);
+    if (at.caseKey !== kase.key) { linked.current = at; setCaseKey(at.caseKey); return; }
+    if (at.stage) openAt(at.stage);
+    else if (runOpen) { stop(); setRunOpen(false); clock.set(0); setIndex(0); setSettled(false); said.current = -1; }
+  });
+  useEffect(() => { window.addEventListener('popstate', revisit); return () => window.removeEventListener('popstate', revisit); }, [revisit]);
   // SPACE PAUSES THE RUN, AS IT DOES A VIDEO, with the focus on nothing in particular or on the title.
   useEffect(() => {
     if (!runOpen) return;
@@ -247,10 +291,11 @@ export default function GaussLesson() {
   }, []);
   useEffect(() => { if (!copied) return; const t = setTimeout(() => setCopied(''), 3200); return () => clearTimeout(t); }, [copied]);
   async function copyLink() {
-    const url = location.origin + location.pathname + gaussHref(id);
+    // The link to what is on screen: the case chosen, and the stage the run is held on.
+    const url = location.origin + location.pathname + address;
     let ok = false;
     try { await navigator.clipboard.writeText(url); ok = true; } catch { ok = false; }
-    const words = ok ? 'Link to this lesson copied.' : 'The link to this lesson is in the address bar.';
+    const words = ok ? runOpen ? `Link to this lesson, held at ${stages[index].name}, copied.` : 'Link to this lesson copied.' : 'The link to this lesson is in the address bar.';
     setCopied(words); setStatus(words);
   }
 

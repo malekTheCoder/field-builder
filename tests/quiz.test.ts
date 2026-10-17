@@ -230,14 +230,22 @@ describe('the address', () => {
   expect(shapeHref('spheres')).toBe('?g=spheres');
   expect(shapeHref('ring')).toBe('?p=ring');
   expect(viewOf(shapeHref('flux'))).toBe('gauss');
+  // A stage opens the lesson on its case with the run held there, as an integral lesson's link opens its run.
   const stage = place({lesson: 'spheres', stage: 'right', case: 'shell'});
-  expect(stage.href).toBe('?g=spheres');
+  expect(stage.href).toBe('?g=spheres&case=shell&stage=right');
+  expect(viewOf(stage.href)).toBe('gauss');
   // The case by the label the lesson's picker gives it.
   const shell = gaussLesson('spheres')!.cases.find(c => c.key === 'shell')!.label;
   expect(stage.title).toBe(`Spheres, Right side (${shell})`);
-  expect(stage.where).toBe(`Opens the lesson. Choose “${shell}”, then press Watch it build and step to Right side.`);
+  expect(stage.where).toBe(`Opens the lesson on “${shell}”, at this stage of Watch it build.`);
+  // A section opens the lesson on its case, and says where on the page to look.
+  const section = place({lesson: 'spheres', section: 'Check the answer', case: 'shell'});
+  expect(section.href).toBe('?g=spheres&case=shell');
+  expect(section.where).toBe(`Opens the lesson on “${shell}”. Look under Check the answer, below the figure.`);
   // A lesson with one case names none.
   expect(place({lesson: 'flux', stage: 'left'}).title).toBe('Flux, the idea, Left side');
+  expect(place({lesson: 'flux', stage: 'left'}).href).toBe('?g=flux&stage=left');
+  expect(place({lesson: 'flux', section: 'Easy to confuse with'}).href).toBe('?g=flux');
   expect(place({lesson: 'flux', section: 'Easy to confuse with'}).where).toBe('Opens the lesson. Look under Easy to confuse with, below the figure.');
   expect(place({lesson: 'qenc', section: 'Normalising when you are given Q'}).where).toBe('Opens the lesson. Press Read the lesson and look under Normalising when you are given Q.');
   expect(pointerWord({lesson: 'symmetry', stage: 'surface', case: 'line'})).toBe('The surface');

@@ -254,18 +254,19 @@ export function pointerWord(p: Pointer): string {
   if (isGaussPointer(p)) return 'stage' in p ? GAUSS_STAGE_NAME[p.stage] : p.section;
   return 'stage' in p ? stageName(p.lesson, p.stage) : p.section;
 }
-/** WHERE TO LOOK IN A GAUSS LESSON. Its address opens it at its first case with the run closed (`?g=spheres`), so
- * the words say which case to pick, when there is a choice, and which stage of Watch it build or which section. */
+/** WHERE TO LOOK IN A GAUSS LESSON. Its address opens it on the pointer's case and, for a stage, with Watch it build
+ * held on that stage (`?g=spheres&case=shell&stage=right`), as an integral lesson's link opens its run; for a section,
+ * the words say where on the page to look. The case is named in the title, where the lesson has a choice of them. */
 function gaussPlace(p: GaussPointer): {href: string; title: string; where: string} {
   const lesson = gaussLesson(p.lesson)!, kase = p.case ? lesson.cases.find(c => c.key === p.case) : undefined;
   // A case's label may hold a comma of its own (Slab, densest at its middle), so it is quoted or bracketed.
   const named = kase && lesson.cases.length > 1 ? kase.label : '';
-  const pick = named ? `Choose “${named}”, then ` : '';
+  const on = named ? ` on “${named}”` : '';
   const title = `${lesson.short}, ${pointerWord(p)}${named ? ` (${named})` : ''}`;
-  const say = (s: string) => pick ? pick + s.charAt(0).toLowerCase() + s.slice(1) : s;
-  if ('stage' in p) return {href: gaussHref(p.lesson), title, where: `Opens the lesson. ${say(`Press Watch it build and step to ${GAUSS_STAGE_NAME[p.stage]}.`)}`};
-  return {href: gaussHref(p.lesson), title,
-    where: `Opens the lesson. ${say(GAUSS_PAGE_SECTIONS.includes(p.section) ? `Look under ${p.section}, below the figure.` : `Press Read the lesson and look under ${p.section}.`)}`};
+  const at = named ? {case: kase!.key} : {};
+  if ('stage' in p) return {href: gaussHref(p.lesson, {...at, stage: p.stage}), title, where: `Opens the lesson${on}, at this stage of Watch it build.`};
+  return {href: gaussHref(p.lesson, at), title,
+    where: `Opens the lesson${on}. ${GAUSS_PAGE_SECTIONS.includes(p.section) ? `Look under ${p.section}, below the figure.` : `Press Read the lesson and look under ${p.section}.`}`};
 }
 export function place(p: Pointer): {href: string; title: string; where: string} {
   if (isGaussPointer(p)) return gaussPlace(p);

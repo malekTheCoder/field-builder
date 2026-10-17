@@ -99,7 +99,11 @@ crosses; `starFlux` checks it by quadrature through the same surface.
 
 1. Write `src/gauss/lessons/<id>.ts`.
 2. Add `<id>` to `GAUSS_READY` in `src/problems/readiness.ts`. The lesson list, the library and the home page then
-   show it as a link to `?g=<id>`; the rest stay "Coming soon".
+   show it as a link to `?g=<id>`; the rest stay "Coming soon". A link may name a case and a stage of Watch it
+   build, `?g=<id>&case=<key>&stage=<symmetry|surface|left|right|solve>` (or `stage=1` to `5`): the page opens on
+   that case with the run held on that stage, writes what is on screen back into the address as it changes, and
+   the quiz's review links use it (`place()` in `src/quiz/engine.ts`). So a case's `key` is part of its address:
+   renaming one breaks the links to it.
 3. Point the previous lesson's `next` at it if it was not already.
 4. Add its quiz bank, `src/quiz/bank/gauss-<id>.ts`: [quiz-plan.md](quiz-plan.md), "Adding a Gauss bank", says how.
 
