@@ -1,8 +1,8 @@
 # How to add a Gauss's law lesson
 
-The Gauss section is planned as eleven lessons (`GAUSS` in `src/explorer/lessons.tsx`, in the order of
-[gauss-law-plan.md](gauss-law-plan.md)). Two are built: **Symmetry first** (`?g=symmetry`) and **Flux, the idea**
-(`?g=flux`). They are the worked examples for the other nine. Read the plan's section "What the owner's Gauss's Law
+All eleven Gauss lessons are implemented and ready (`GAUSS` in `src/explorer/lessons.tsx`, in the order of
+[gauss-law-plan.md](gauss-law-plan.md)). **Symmetry first** (`?g=symmetry`) and **Flux, the idea**
+(`?g=flux`) are the worked authoring examples below; the other nine lessons are in `src/gauss/lessons/`. Read the plan's section "What the owner's Gauss's Law
 Study Lab adds" and the study guide itself (`.claude/loop/references/gauss-study-lab.txt` in the main checkout,
 git-excluded) before writing one: match its teaching order, its recipe, its traps and its checklist, in original
 words, never its text or its textbook problems. It writes surface density η; this site writes σ.
@@ -11,7 +11,7 @@ words, never its text or its textbook problems. It writes surface density η; th
 
 One file, `src/gauss/lessons/<id>.ts`, exporting `lesson: GaussLesson` (`src/gauss/types.ts`). It is found by
 `src/gauss/index.ts` through `import.meta.glob`, so nothing else is edited to add it except the readiness switch.
-`<id>` is one of the `GaussId`s, which are the keys of the planned list.
+`<id>` is one of the `GaussId`s, which are the keys of the lesson catalogue.
 
 ```ts
 type GaussLesson = {
@@ -75,7 +75,7 @@ drawn in SVG in `GaussFigure.tsx`. A new charge kind or surface means a case in 
 body in `GaussScene`'s `rebuild`, and a cross-section shape in `Flat`. Physics is exact or it does not ship:
 `tests/gauss-physics.test.ts` holds every case against a numerical flux integral, both signs, at the slider's ends.
 
-Inside a ball the field grows as r; a case that lets the surface go inside a charge must say so in its right side
+Inside a uniformly charged ball the signed radial field is proportional to r; a case that lets the surface go inside a charge must say so in its right side
 (`Q_enc = Q r³/R³`) and its checks (continuity at R). Symmetry first keeps the sphere outside the ball on purpose.
 
 ## Worked example 1: Symmetry first (`src/gauss/lessons/symmetry.ts`)

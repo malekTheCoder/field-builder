@@ -1,4 +1,4 @@
-# Quiz yourself: plan
+# Quiz yourself: implementation and design brief
 
 ## Adding a Gauss bank
 
@@ -15,7 +15,9 @@ The quiz takes Gauss's law lessons as well as integral ones: a quiz "shape" is a
 3. A review pointer is `{lesson: '<id>', stage: 'symmetry' | 'surface' | 'left' | 'right' | 'solve', case: '<case
    key>'}` (the case is required when the lesson has more than one) or `{lesson: '<id>', section: '<heading>'}`, the
    heading one of the lesson's `sections` or `Check the answer` / `Easy to confuse with`, with an optional `case`.
-   Links open `?g=<id>` and the words say which case to pick and where to look (`place()` in engine.ts).
+   Stage links open `?g=<id>&case=<key>&stage=<stage>` at that case and stage. Section links keep the case
+   in the address and name where to look on the page (`place()` in `engine.ts`). Case keys must match the
+   lesson; for example, `?g=spheres&case=shell&stage=right` opens the shell’s enclosed-charge step.
 4. Misconceptions: reuse the Gauss ones at the end of `src/quiz/misconceptions.ts` (zero flux, the whole field,
    Q_enc, the shell integrals, L or A left in, the boundary at R, the angle from the normal, diameter, symmetry),
    adding the new lesson's pointers to their `review` lists; add a new one only for a genuinely new slip, and use
@@ -25,21 +27,25 @@ The quiz takes Gauss's law lessons as well as integral ones: a quiz "shape" is a
 6. Run `npx tsc --noEmit && npx oxlint`, `npx vitest run --project unit`, and
    `npx vitest run --project browser tests/quiz.browser.test.tsx` (it fits every question at 390 px by itself).
 
-Status: plan only, waiting for the owner's OK (asked 2026-10-13).
+## Original design brief and current status
+
+The owner requested this brief on 2026-10-13. The quiz is now implemented, including banks for every ready
+integral and Gauss lesson, immediate authored feedback, review links and browser-local history. The
+requirements below record the intended teaching flow; route and contributor details reflect the implementation.
 
 The owner wants the quiz to be its own place, separate from the lessons: the student picks which shapes
 to be quizzed on, questions are drawn from a bank for those shapes, and they get personalized
 feedback at the end.
 
 ## Where it lives
-- Its own page, `/quiz`, routed like the home page (`src/state/route.ts`).
+- Its own page, `?quiz`, routed like the home page (`src/state/route.ts`).
 - Reached from a "Quiz yourself" card on the home page and a link in the header.
 - Lessons do not embed quizzes. At most, a lesson's end may say "Quiz yourself on this shape", which
-  opens `/quiz` with that shape already ticked.
+  opens `?quiz=<id>` with that shape already ticked.
 
 ## 1. Set up the quiz
 - **Shapes:** every lesson as a tick box, grouped as on the home page (straight rods, rings/disks/arcs,
-  charge with no end, potentials), with "all in this group" and "everything".
+  charge with no end, potentials, Gauss’s law), with "all in this group" and "everything".
 - **Kinds of question** (all on by default):
   - Predict: what cancels, which way the field points, how it falls off far away.
   - Set up: dQ, one piece's field, the projection, the bounds, the variable.
@@ -80,7 +86,8 @@ Feedback is rule-based, not AI-written: the site has no server, and every messag
 physics. AI feedback on a student's own written attempt could come later, behind a small backend.
 
 ## The bank
-- `src/quiz/bank/<lesson id>.ts`, about eight to ten questions per shape, so about 130 in all.
+- `src/quiz/bank/<lesson id>.ts` for integral lessons and `gauss-<id>.ts` for Gauss lessons. Every ready
+  lesson has a bank; `src/quiz/engine.ts` registers them.
 - Each question has:
   - `{id, lesson, kind, prompt, choices: [{tex | text, correct?, misconception?}], explanation, review}`;
   - exactly one correct choice;
@@ -111,7 +118,7 @@ physics. AI feedback on a student's own written attempt could come later, behind
   and the 390 px phone width.
 - **Physics:** two adversarial reviewers check every question and every explanation before it ships.
 
-## Order of work
+## Original rollout order (completed)
 1. The engine and the three screens, with the bank for three shapes (finite line, ring, infinite
    line), for the owner to try.
 2. The rest of the bank, written two agents at a time.

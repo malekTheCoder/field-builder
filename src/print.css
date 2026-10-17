@@ -87,6 +87,15 @@
   .is-print-snapped canvas:not(.cd-print-snap) { visibility: hidden !important; }
   .cd-print-snap { display: block !important; }
   .exp-limit-print, .exp-note-body .assessment { break-inside: avoid; }
+  /* A misconception's name belongs with its diagnosis. Integral groups can span a page, so keep
+     their individual corrections whole; each Gauss group is one short claim and its correction.
+     Without these joins, a sheet ended with the wrong claim and the explanation began on the next. */
+  .exp-note > summary, .exp-slip-of { break-after: avoid; }
+  .exp-slip-note, .gs-page .exp-slip { break-inside: avoid; }
+  /* An instrument may fill the sheet before the board: keep the compact problem and its heading
+     together, rather than leaving a heading or a lone line of setup at the sheet’s edge. */
+  .ew-problem { break-inside: avoid; }
+  .ew-problem-title { break-after: avoid; }
   /* A case's heading starts a section: fourteen pixels under the case before -- closer than its own explanation
      sits under it -- it read as the last line of the plot above. */
   .exp-limit-print + .exp-limit-print { margin-top: 34px; }
