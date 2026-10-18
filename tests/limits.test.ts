@@ -192,7 +192,7 @@ describe('the arc closing into a circle is reasoned at the fixed Q its plot hold
   expect(full.formula).toContain(String.raw`(Q\text{ fixed})`);
   expect(full.formula).toContain(String.raw`\frac{\sin(\varphi/2)}{\varphi}`);
   expect(words(full.explanation)).toMatch(/total charge Q stays fixed/);
-  expect(words(full.explanation)).toMatch(/At fixed λ the field would instead grow until the semicircle/);
+  expect(words(full.explanation)).toMatch(/At fixed λ the magnitude would instead grow until the semicircle/);
   expect(limitPlot(arc,full).axis).toMatch(/with Q fixed/);
   const v=getProblem('v-arc');
   expect(limitPlot(v,v.limits.find(l=>l.mode==='full')!).axis).toMatch(/with Q fixed/);

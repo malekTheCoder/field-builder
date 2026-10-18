@@ -132,7 +132,7 @@ export const bank: Question[] = [
     choices: [
       {correct: true, text: raw`It only falls, from nearly $k|Q|/R^2$ to zero.`},
       {text: raw`It grows until the arc is a semicircle, then falls to zero.`, misconception: 'arc-held-fixed',
-        why: raw`That is what happens with $\lambda$ held fixed, when opening the arc adds charge. With $Q$ fixed the same charge spreads round the circle, more of each piece’s field cancels across the axis, and the field only falls.`},
+        why: raw`That is what happens with $\lambda$ held fixed, when opening the arc adds charge. With $Q$ fixed the same charge spreads round the circle, more of each piece’s field cancels across the axis, and the field’s magnitude only falls.`},
       {text: raw`It stays $k|Q|/R^2$: every piece stays $R$ from $P$.`, misconception: 'same-distance',
         why: raw`The distance stays the same, but the directions do not. As the arc opens its pieces’ fields fan out and cancel more and more, until a closed circle cancels completely. It is the potential, $kQ/R$, that stays the same.`},
     ],

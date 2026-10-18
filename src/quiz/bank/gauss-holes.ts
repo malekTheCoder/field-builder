@@ -24,7 +24,7 @@ export const bank: Question[] = [
     choices: [
       {correct: true, tex: raw`\frac{\rho\,\vec r_1}{3\varepsilon_0}`},
       {tex: raw`\frac{\rho R^3}{3\varepsilon_0r_1^2}\,\hat{\mathbf r}_1`, misconception: 'qenc-total',
-        why: raw`That counts the whole ball’s charge. A sphere of radius $r_1$ about its centre holds only $\rho\,\frac43\pi r_1^3$, so the field grows in step with $r_1$.`},
+        why: raw`That counts the whole ball’s charge. A sphere of radius $r_1$ about its centre holds only $\rho\,\frac43\pi r_1^3$, so the field’s magnitude grows in step with $r_1$, along $\hat r_1$ with the sign of $\rho$.`},
       {tex: raw`0`, misconception: 'local-density',
         why: raw`The real hole is empty, but this question asks for the fictitious filled ball alone: it has density $\rho$ at $P$ too. Its field follows from the charge inside a sphere through $P$, $\rho\,\frac43\pi r_1^3$. The opposite-density plug is added afterward.`},
     ],

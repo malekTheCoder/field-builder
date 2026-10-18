@@ -192,7 +192,7 @@ describe('the limiting cases, measured', () => {
       for (const t of [1, 3.3, 9, 30]) { const s = sampleLimit(p, q, at('outside'), t); expect(Math.abs(s.actual / s.target - 1)).toBeLessThan(2e-6); }
       expect(limitPlot(p, at('outside')).kind).toBe('constant');
     });
-    it(`inside, the field is zero from the surface to the centre; outside it grows as P comes in (charge ${charge})`, () => {
+    it(`inside, the field is zero from the surface to the centre; outside its magnitude grows as P comes in (charge ${charge})`, () => {
       const scale = K * Math.abs(charge) * 1e-9 / 4;
       // Just inside the surface the four thousand rings leave a residue of a few in a hundred thousand; deeper in, nothing.
       for (const t of [16, 20, 25, 29.9, 30]) expect(sampleLimit(p, q, at('inside'), t).actual / scale).toBeLessThan(t < 18 ? 5e-5 : 1e-6);

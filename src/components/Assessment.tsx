@@ -313,13 +313,13 @@ export function limitNow(problem:Problem,limit:Limit,plot:LimitPlot,here:number,
    'Narrowing onto its rim, every ring is nearly b from the axis: the curve is closing on the dashed line.',
    'Thin enough, all of the annulus is one distance from P: it is a ring, and the curve lies on the dashed line.']);
   case 'maximum':return here>.98?'At the marked peak, inside z = R: the field on the axis is as strong as it gets.'
-   :t<RING_PEAK_T?(here<.5?'Near the centre the pieces’ fields mostly cancel: the field on the axis is weak.':'Rising towards the peak: the pieces’ fields lean out of the ring’s plane, so less of each cancels.')
+   :t<RING_PEAK_T?(here<.5?'Near the centre the pieces’ fields mostly cancel: the field on the axis is weak.':'The curve of |E| rises towards the peak: the pieces’ fields lean out of the ring’s plane, so less of each cancels.')
    :'Past the peak, P is moving away from every piece: the field weakens again.';
   case 'full':
    if(scalar)return pick(along,[
     'Every piece is the same distance R from the centre, so the potential is kQ/R.',
-    'Opening the arc moves no piece nearer or farther: the potential holds while the field falls.',
-    'Closing towards a full circle: the potential is still kQ/R, while the field at the centre falls towards zero.']);
+    'Opening the arc moves no piece nearer or farther: the potential holds while the field’s magnitude falls.',
+    'Closing towards a full circle: the potential is still kQ/R, while the field’s magnitude at the centre falls towards zero.']);
    return pick(converged,[
     'On a narrow arc the pieces’ fields point much the same way, so they mostly add.',
     'Opening the arc spreads its pieces’ fields in direction: more and more of them cancel.',
@@ -334,7 +334,7 @@ export function limitNow(problem:Problem,limit:Limit,plot:LimitPlot,here:number,
    'Just past the surface, the shell’s field is already a point charge’s: the curve lies on the dashed line.',
    'Farther out, still exactly a point charge’s: nothing about the shell’s size shows at any height outside it.',
    'A localized source with nonzero total charge has a point-charge leading field far away; for this uniform shell it is exact everywhere outside.']);
-  case 'inside':return t<15.5?'Outside, the field grows as P comes in toward the shell, as a point charge’s does.'
+  case 'inside':return t<15.5?'Outside, the field’s magnitude grows as P comes in toward the shell, as a point charge’s does.'
    :t>29?'At the centre the field is zero, as symmetry alone would say; but it was zero all the way in from the surface.'
    :'Inside the shell the field is zero: the rings above P and the rings below it cancel exactly.';
   case 'jump':return pick(converged,[
@@ -351,7 +351,7 @@ export function limitNow(problem:Problem,limit:Limit,plot:LimitPlot,here:number,
     'Farther up, still the same field: the sheet runs on past any distance.',
     'Far above, still the same field: an infinite sheet has no size to look small against.']);
    if(g==='infinite')return pick(along,[
-    'Close to the line the field is strong, and it falls as r grows.',
+    'Close to the line the field is strong, and its magnitude falls as r grows.',
     'Double r and the field halves; a point charge’s would drop to a quarter.',
     'Far out the field still only halves with each doubling of r: an infinite line never shrinks to a point charge.']);
    return pick(along,[

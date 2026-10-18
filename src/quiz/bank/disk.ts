@@ -95,11 +95,11 @@ export const bank: Question[] = [
       {tex: raw`0`, misconception: 'cancel-survivor',
         why: raw`A ring’s field is zero at its centre, but a disk is not one ring. Every ring of it is below $P$, so every ring’s part along the axis points the same way, and they add.`},
       {tex: raw`\infty`, misconception: 'closer-stronger',
-        why: raw`A point charge’s field grows without end as you come close, but the disk’s charge is spread out. Close to its centre the disk looks like an endless sheet, whose field is finite.`},
+        why: raw`A point charge’s field magnitude grows without end as you come close, but the disk’s charge is spread out. Close to its centre the disk looks like an endless sheet, whose field is finite.`},
       {tex: raw`\frac{\sigma}{\varepsilon_0}`, misconception: 'sheet-double',
         why: raw`That is twice the field. With $k=1/(4\pi\varepsilon_0)$, $2\pi k\sigma$ is $\sigma/(2\varepsilon_0)$; $\sigma/\varepsilon_0$ belongs just outside a conductor, where all of the field is on one side.`},
     ],
-    explanation: raw`When $z\ll R$, $z/\sqrt{R^2+z^2}$ is nearly zero and the bracket is nearly one, so $E_z$ tends to $\sigma/(2\varepsilon_0)$. Close to its centre the disk reaches out nearly a right angle from the axis in every direction, and looks like an infinite sheet.`,
+    explanation: raw`When $z\ll R$, $z/\sqrt{R^2+z^2}$ is nearly zero and the bracket is nearly one, so $E_z$ tends to $\sigma/(2\varepsilon_0)$, with the sign of $\sigma$. Close to its centre the disk reaches out nearly a right angle from the axis in every direction, and looks like an infinite sheet.`,
     review: {lesson: 'disk', section: 'What the answer says'}},
 
   {id: 'disk-grow', lesson: 'disk', kind: 'check',

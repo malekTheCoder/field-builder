@@ -65,6 +65,7 @@ describe('the ring’s peak is swept from the centre',()=>{
   for(let i=1;i<s.length;i++)expect(s[i],`sample ${i}`).toBeLessThan(s[i-1]);
   expect(s[69]).toBe(0);
   expect(limitPlot(ring,centre).from).toBe('the peak');
+  expect(limitPlot(ring,centre).caption).toMatch(/magnitude falls to zero/);
  });
 });
 describe('a curve is called the student’s exact field only when it is',()=>{
