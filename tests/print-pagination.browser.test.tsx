@@ -4,6 +4,7 @@ import {cleanup,fireEvent,render} from '@testing-library/react';
 import {afterEach,expect,it,vi} from 'vitest';
 import {cdp,page} from 'vitest/browser';
 import Site,{newVisit} from '../src/home/Site';
+import {GAUSS_LESSONS} from '../src/gauss';
 async function open(route:string){
  newVisit();history.replaceState(null,'',route);
  localStorage.setItem('field-builder:explorer:v1',JSON.stringify({id:'bisector',hideTour:true,cued:true,dark:false,sidebarOpen:true,params:{}}));
@@ -45,4 +46,12 @@ for(const route of ['/?p=shell','/?g=hard&case=odd'])it(`${route} keeps the boar
  // of one page and every step on the next. The same heading introduces the Gauss board.
  expect(getComputedStyle(view.container.querySelector('.ew-section-title')!).breakAfter).toBe('avoid');
  expect(getComputedStyle(view.container.querySelector('.db-step')!).breakInside).toBe('avoid');
+},15000);
+
+// Only the integral introductions repeat the board's five steps. Gauss introductions contain
+// distinct arguments and examples; hiding the same section positions erased their teaching.
+for(const lesson of GAUSS_LESSONS)it(`${lesson.id} preserves every distinct Gauss lesson section on paper`,async()=>{
+ const view=await open(`/?g=${lesson.id}`);await cdp().send('Emulation.setEmulatedMedia',{media:'print'});
+ const headings=[...view.container.querySelectorAll<HTMLElement>('.exp-lesson-body > .exp-lesson-section > h3')];
+ expect(headings.filter(h=>h.checkVisibility()).map(h=>h.textContent)).toEqual([...lesson.sections.map(s=>s.heading),'Read it in a textbook']);
 },15000);
