@@ -3,7 +3,8 @@ const raw = String.raw;
 /* The ring's potential, in the board's symbols: R, Q, λ = Q/(2πR), θ, P = (0,0,z), rᵢ, ΔQ = λRΔθ, ΔV = kΔQ/rᵢ.
  * V is a number: nothing cancels (all the charge has one sign), the pieces stack into a column, and the sum is
  * exact at any cut. The page ends by differentiating back, E_z = −dV/dz, so the lesson teaches that step too,
- * and says why it may be taken on the axis and nowhere else from this V. */
+ * and says why it may be taken on the axis and nowhere else from this V. The energy application keeps the
+ * source Q separate from the small test charge: changing the probe changes its energy, not the source potential. */
 export const lesson: Lesson = {
   id: 'v-ring',
   lead: raw`Find the potential of a uniform ring at a point $P$ on its axis. The idea that makes it work: potential is a number, not an arrow, and all of the ring is the same distance from $P$, so its pieces simply add, exactly.`,
@@ -40,6 +41,9 @@ export const lesson: Lesson = {
     ]},
     {heading: 'What the answer says', body: [
       raw`Far up the axis, $z\gg R$, $V$ approaches $kQ/z$, a point charge’s potential. At the centre the field is zero, yet $V$ is $kQ/R$: a zero field means $V$ is level there, not that it is zero.`,
+      raw`Keep the ring’s charge $Q$ fixed and move a small test charge $q_\text{test}$ from the axis position $z_a$ to $z_b$. Its change in electric potential energy is`,
+      {tex: raw`\Delta U=q_\text{test}\bigl[V(z_b)-V(z_a)\bigr]`},
+      raw`Here $V$ is the ring’s potential, unaffected by the test charge. Reversing $q_\text{test}$ reverses $\Delta U$ while leaving $V$ unchanged.`,
     ]},
   ],
   read: [

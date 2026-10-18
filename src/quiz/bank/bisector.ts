@@ -83,11 +83,11 @@ export const bank: Question[] = [
       {tex: raw`\frac{2k\lambda}{r}`, misconception: 'far-limit',
         why: raw`That is the other end: close to a long rod’s middle, $r\ll L$, where the rod looks endless. Far away the rod’s length stops mattering.`},
       {tex: raw`\frac{kQ}{r}`, misconception: 'potential-power',
-        why: raw`That falls as $1/r$, as a point charge’s potential does. A field from a finite charge, seen from far away, falls as the inverse square.`},
+        why: raw`That falls as $1/r$, as a point charge’s potential does. A localized source with nonzero total charge has an inverse-square leading field far away.`},
       {tex: raw`0`, misconception: 'far-limit',
         why: raw`The field tends to zero as the distance tends to infinity. But zero does not give its leading decay law: at a large finite distance the point-charge expression gives the inverse-square behavior.`},
     ],
-    explanation: raw`When $r\gg L$, the root $\sqrt{(L/2)^2+r^2}$ is nearly $r$, so $E_x$ tends to $kQ/r^2$. From far away the rod is a point charge, as any finite charge is.`,
+    explanation: raw`When $r\gg L$, the root $\sqrt{(L/2)^2+r^2}$ is nearly $r$, so $E_x$ tends to $kQ/r^2$. From far away this rod acts like a point holding its total charge.`,
     review: {lesson: 'bisector', section: 'What the answer says'}},
 
   {id: 'bisector-grow', lesson: 'bisector', kind: 'check',

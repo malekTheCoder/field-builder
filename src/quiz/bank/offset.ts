@@ -102,7 +102,7 @@ export const bank: Question[] = [
     choices: [
       {correct: true, tex: raw`\frac{k|Q|}{r^2+h^2}`},
       {tex: raw`\frac{k|Q|}{\sqrt{r^2+h^2}}`, misconception: 'potential-power',
-        why: raw`That falls as one over the distance, as a point charge’s potential does. A finite charge’s field, seen from far away, falls as the inverse square.`},
+        why: raw`That falls as one over the distance, as a point charge’s potential does. A localized source with nonzero total charge has an inverse-square leading field far away.`},
       {tex: raw`\frac{2k|\lambda|}{r}`, misconception: 'far-limit',
         why: raw`That is an endless line, which a long rod looks like from close up. Far from a finite rod its length stops mattering, and it looks like a point.`},
     ],

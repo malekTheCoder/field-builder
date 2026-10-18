@@ -83,7 +83,7 @@ export const bank: Question[] = [
       {tex: raw`0`, misconception: 'far-limit',
         why: raw`The field tends to zero as the distance tends to infinity. But zero does not give its leading decay law: at a large finite distance the point-charge expression gives the inverse-square behavior.`},
       {tex: raw`\frac{kQ}{z}`, misconception: 'potential-power',
-        why: raw`That falls as $1/z$, as a point charge’s potential does. A finite charge’s field, seen from far away, falls as the inverse square.`},
+        why: raw`That falls as $1/z$, as a point charge’s potential does. A localized source with nonzero total charge has an inverse-square leading field far away.`},
     ],
     explanation: raw`When $z\gg R$ the bracket is nearly $R^2/(2z^2)$, so $E_z$ tends to $(\sigma/2\varepsilon_0)R^2/(2z^2)=\pi k\sigma R^2/z^2=kQ/z^2$. From far away every ring is nearly $z$ from $P$ and its field points nearly along the axis: the disk is a point charge.`,
     review: {lesson: 'disk', section: 'What the answer says'}},

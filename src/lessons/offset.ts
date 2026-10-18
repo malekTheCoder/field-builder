@@ -7,7 +7,7 @@ const raw = String.raw;
  * leftover's. Both answers are written in the angles at P to the two ends, the textbook's form. */
 export const lesson: Lesson = {
   id: 'offset',
-  lead: raw`Find the field of a uniform rod at a point $P$ beside it, level with neither its middle nor an end. Only the stretch that mirrors itself across $P$’s level cancels along the rod; the rest leans the field, so $E_x$ and $E_y$ each need an integral.`,
+  lead: raw`Find the field of a uniform rod at a point $P$ beside it, level with neither its middle nor an end. Only the stretch that mirrors itself across $P$’s level cancels along the rod; the rest leans the field, and we add the $x$ and $y$ components separately.`,
   sections: [
     {heading: 'The setup', body: [
       raw`A thin rod of length $L$ carries a charge $Q$ spread evenly, so $\lambda=Q/L$. It lies on the $y$-axis from $y=y_1$ up to $y=y_2$, and $P=(r,0)$ is a distance $r$ out from it. The origin is level with $P$, so a piece’s $y$ is its height above $P$’s level, negative below it.`,
@@ -30,7 +30,7 @@ export const lesson: Lesson = {
       raw`The leftover, on the side the rod reaches farther, has no mirrors. Its parts along the rod all point one way, away from it for a positive charge, and survive: they are the whole of $E_y$.`,
     ]},
     {heading: 'Add them up', body: [
-      raw`Adding the $x$-parts of all $N$ pieces, from $y_1$ to $y_2$, gives $E_x$, nearly, and the $\Delta E_y$ give $E_y$. The figure adds the mirrored stretch in pairs, along $x$, then the leftover’s pieces whole, and the sum leans.`,
+      raw`Add all $\Delta E_x$ to approximate $E_x$, and all $\Delta E_y$ for $E_y$. The figure adds mirror pairs along $x$, then any leftover pieces whole, tilting the sum. At $h=0$ every piece pairs, so the sum stays along $x$.`,
       {tex: raw`E_x\approx\sum_i\frac{k\,\Delta Q_i}{r_i^2}\cos\alpha_i`},
     ]},
     {heading: 'Shrink them', body: [

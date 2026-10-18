@@ -4,7 +4,7 @@ const raw = String.raw;
 /* THE ROD LEVEL WITH ONE END, in its lesson's symbols (src/lessons/endpoint.ts): a rod of length L and charge
  * Q standing on the y-axis from y = 0 to y = L, λ = Q/L, P = (r, 0) level with its lower end, a piece at
  * height y holding ΔQ = λΔy, rᵢ = √(y² + r²), α the angle at P to the x-axis, ΔE_x = ΔE cos α and
- * ΔE_y = −ΔE sin α. No piece has a mirror, so both components survive and each needs its own integral. Every
+ * ΔE_y = −ΔE sin α. No piece has a mirror, so both components survive; here we integrate each separately. Every
  * result and limit here is checked by number in tests/quiz-physics.test.ts. */
 export const bank: Question[] = [
   {id: 'endpoint-what-cancels', lesson: 'endpoint', kind: 'predict',
@@ -58,15 +58,15 @@ export const bank: Question[] = [
     review: {lesson: 'endpoint', stage: 'shrink'}},
 
   {id: 'endpoint-own-integral', lesson: 'endpoint', kind: 'setup',
-    prompt: raw`Why does $E_y$ need an integral of its own, rather than being read off from $E_x$?`,
+    prompt: raw`Why can’t we use an arbitrary piece’s angle $\alpha$ to turn the total $E_x$ into $E_y$?`,
     choices: [
       {correct: true, text: raw`Each piece leans at its own angle $\alpha$, so the pieces’ parts along the rod are a different sum from their parts along $x$.`},
-      {text: raw`It does not: the field points straight away from the rod’s middle, so $E_y$ is $E_x$ times $-(L/2)/r$.`, misconception: 'point-up-close',
+      {text: raw`It can: the field points straight away from the rod’s middle, so $E_y$ is $E_x$ times $-(L/2)/r$.`, misconception: 'point-up-close',
         why: raw`That treats the rod as a point charge at its middle. It is nearly right far away, $r\gg L$, but close by the pieces lean at very different angles, and the field does not point away from the middle.`},
-      {text: raw`It does not: $E_y$ is zero, as it is beside the middle.`, misconception: 'cancel-survivor',
+      {text: raw`There is no need to project: $E_y$ is zero, as it is beside the middle.`, misconception: 'cancel-survivor',
         why: raw`$E_y$ vanished beside the middle only because each piece had a mirror below $P$’s level. Here none has, so $E_y$ survives and must be added up.`},
     ],
-    explanation: raw`$E_x$ adds $\Delta E\cos\alpha$ and $E_y$ adds $-\Delta E\sin\alpha$, with $\alpha$ different for every piece. Neither sum can be read off from the other, so each is its own integral: $E_x=kQ/\bigl(r\sqrt{L^2+r^2}\bigr)$ and $E_y=-k\lambda\bigl(1/r-1/\sqrt{L^2+r^2}\bigr)$.`,
+    explanation: raw`$E_x$ adds $\Delta E\cos\alpha$ and $E_y$ adds $-\Delta E\sin\alpha$, with $\alpha$ different for every piece. A piece’s angle does not in general give the total field’s direction. Here we evaluate the two component integrals: $E_x=kQ/\bigl(r\sqrt{L^2+r^2}\bigr)$ and $E_y=-k\lambda\bigl(1/r-1/\sqrt{L^2+r^2}\bigr)$.`,
     review: {lesson: 'endpoint', stage: 'add'}},
 
   {id: 'endpoint-half-rod', lesson: 'endpoint', kind: 'check',
@@ -86,7 +86,7 @@ export const bank: Question[] = [
     choices: [
       {correct: true, tex: raw`\frac{k|Q|}{r^2}`},
       {tex: raw`\frac{k|Q|}{r}`, misconception: 'potential-power',
-        why: raw`That falls as $1/r$, as a point charge’s potential does. A finite charge’s field, seen from far away, falls as the inverse square.`},
+        why: raw`That falls as $1/r$, as a point charge’s potential does. A localized source with nonzero total charge has an inverse-square leading field far away.`},
       {tex: raw`\frac{2k|\lambda|}{r}`, misconception: 'far-limit',
         why: raw`That is a long rod seen from close to its middle, where it looks endless. Far from a finite rod its length stops mattering, and it looks like a point.`},
       {tex: raw`\frac{\sqrt2\,k|\lambda|}{r}`, misconception: 'far-limit',

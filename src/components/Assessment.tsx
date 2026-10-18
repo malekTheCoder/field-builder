@@ -333,7 +333,7 @@ export function limitNow(problem:Problem,limit:Limit,plot:LimitPlot,here:number,
   case 'outside':return pick(along,[
    'Just past the surface, the shell’s field is already a point charge’s: the curve lies on the dashed line.',
    'Farther out, still exactly a point charge’s: nothing about the shell’s size shows at any height outside it.',
-   'Far away it is a point charge’s, as any charge’s field is from far off; for a shell that was true from the surface out.']);
+   'A localized source with nonzero total charge has a point-charge leading field far away; for this uniform shell it is exact everywhere outside.']);
   case 'inside':return t<15.5?'Outside, the field grows as P comes in toward the shell, as a point charge’s does.'
    :t>29?'At the centre the field is zero, as symmetry alone would say; but it was zero all the way in from the surface.'
    :'Inside the shell the field is zero: the rings above P and the rings below it cancel exactly.';

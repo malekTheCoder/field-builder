@@ -56,7 +56,7 @@ export const bank: Question[] = [
       {tex: raw`\frac{k\lambda}{a}`, misconception: 'far-limit',
         why: raw`That is the other end of the story: $P$ right beside the end, $a\ll L$, where the rod looks endless. Far away it looks like a point.`},
       {tex: raw`\frac{kQ}{a+L/2}`, misconception: 'potential-power',
-        why: raw`That falls as one power of the distance, as a point charge’s potential does. A finite charge’s field, seen from far away, falls as the inverse square.`},
+        why: raw`That falls as one power of the distance, as a point charge’s potential does. A localized source with nonzero total charge has an inverse-square leading field far away.`},
       {tex: raw`0`, misconception: 'far-limit',
         why: raw`The field tends to zero as the distance tends to infinity. But zero does not give its leading decay law: at a large finite distance the point-charge expression gives the inverse-square behavior.`},
     ],
