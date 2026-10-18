@@ -13,6 +13,7 @@ import {PROBLEMS} from '../problems/definitions';
 import {isReady} from '../problems/readiness';
 import {MathText, Prose} from '../components/Math';
 import {Hint} from '../components/Hint';
+import {PrintLessonLink} from '../components/PrintLessonLink';
 import {BuildPlayer, runClock} from '../explorer/BuildPlayer';
 import {LessonIntro} from '../explorer/LessonIntro';
 import {Brand} from '../explorer/Brand';
@@ -375,6 +376,7 @@ export default function GaussLesson() {
                 that line cost the figure thirty pixels of the first screen, and no other page on the site has one. */}
             <ChevronRight size={13} aria-hidden="true" /><span className="gs-crumb-here">{GAUSS.label}</span></div></div>
         <div className="exp-heading has-lesson"><div><h1 id={LESSON_TITLE} tabIndex={-1}>{plannedName(lesson.title)}</h1></div></div>
+        <PrintLessonLink href={gaussHref(id,{case:kase.key})} />
         <LessonIntro lesson={lesson} open={lessonOpen} onToggle={toggleLesson} onBuild={toBuild} />
         <div className={'exp-workspace' + running}>
           <div className="exp-visual-column">

@@ -27,6 +27,7 @@ import {bracketAnswer,bracketKeeps,bracketLines,bracketOf,wholeBracket} from '..
 import {buildStages,motionAt,stageAt,stageStart,totalSeconds} from './buildRun';
 import {BuildPlayer,drawingOnScreen,runClock} from './BuildPlayer';
 import {EquationWorkbench} from '../components/EquationWorkbench';
+import {PrintLessonLink} from '../components/PrintLessonLink';
 import {Onboarding} from '../components/Onboarding';
 import {StartHere} from '../components/StartHere';
 import {isReady,SOON_NOTE} from '../problems/readiness';
@@ -1217,6 +1218,7 @@ export default function Explorer({welcome}:{welcome?:boolean}={}){
      the list is not there at all, is the only way to another lesson. Its chevron makes it look like a
      way back; it says that it opens a picker. */}
 <div className="exp-crumbs"><button type="button" className="exp-crumb-link" aria-haspopup="dialog" aria-expanded={library} onClick={()=>setLibrary(true)}><ChevronLeft size={13} aria-hidden="true"/>Charge library</button></div></div><div className={'exp-heading'+(lesson?' has-lesson':'')}><div><h1 id={LESSON_TITLE} tabIndex={-1}>{p.title}</h1>{/* Where the reader came from, while they are still here: gone the moment they go elsewhere or reload. */}{back&&<p className="exp-came-from"><span>{greek(back.from)}.</span> <a className="exp-came-back" href={lessonHref(back.id)} onClick={e=>{if(!inPlace(e))return;e.preventDefault();goBack(back.id)}}><ArrowLeft size={14} aria-hidden="true"/>Back to {back.short}</a></p>}{/* With a written lesson its lead says what the page finds, a line below: the subtitle said it a third time, with the panel's problem, before the figure, and on a short laptop its line was room the drawing lost. */}{!lesson&&<p>{p.subtitle}</p>}</div></div>
+ <PrintLessonLink href={`?p=${id}`}/>
  {lesson&&<LessonIntro lesson={lesson} open={lessonOpen} onToggle={toggleLesson} onBuild={toBuild}/>}
  <div className={'exp-workspace'+running}><div className="exp-visual-column"><section className={'exp-diagram-card mode-'+mode+' focus-'+highlight+running+(buildOpen&&scrubbing?' is-scrubbing':'')} aria-label="Interactive field visualization"><div className="exp-diagram-heading"><div><MathText tex={p.coordinate}/></div>
   {/* THE LESSON'S ONE BUTTON, AT THE TOP OF ITS FIGURE. It sat under the figure and its toolbar,

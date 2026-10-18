@@ -39,3 +39,10 @@ it('the problem heading keeps its setup after the printed surface exercise',asyn
  expect(getComputedStyle(v.container.querySelector('.ew-problem-title')!).breakAfter).toBe('avoid');
  expect(getComputedStyle(v.container.querySelector('.ew-problem')!).breakInside).toBe('avoid');
 },15000);
+for(const route of ['/?p=shell','/?g=hard&case=odd'])it(`${route} keeps the board heading with its first derivation step on paper`,async()=>{
+ const view=await open(route);await cdp().send('Emulation.setEmulatedMedia',{media:'print'});
+ // The first step stays whole; without this join, the shell printed its board heading at the foot
+ // of one page and every step on the next. The same heading introduces the Gauss board.
+ expect(getComputedStyle(view.container.querySelector('.ew-section-title')!).breakAfter).toBe('avoid');
+ expect(getComputedStyle(view.container.querySelector('.db-step')!).breakInside).toBe('avoid');
+},15000);
