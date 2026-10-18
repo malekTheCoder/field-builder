@@ -36,6 +36,10 @@ describe('the guide separates the methods it teaches', () => {
   expect(tex(idea)).toContain('dQ=\\rho\\,d\\mathcal{V}');
   expect(tex(idea)).toContain('dV=k\\,dQ/r_i');
   expect(idea.textContent).toContain('without a projection');
+  const held = document.querySelector('.guide-limit-hold')!;
+  expect(held.textContent).toContain('bisector rod and disk');
+  expect(held.textContent).toContain('same charge is spread thinner');
+  expect(tex(held)).toContain('\\lambda');expect(tex(held)).toContain('\\sigma');
   const exam = document.getElementById('guide-exam')!;
   expect(tex(exam)).toContain('E_r\\approx kQ/r^2');
   expect(tex(exam)).toContain('V\\approx kQ/r');

@@ -110,6 +110,10 @@ describe('the header on every width', () => {
  };
  for (const width of [320, 360, 390]) it(`at ${width} pixels the walkthrough, the guide and the quiz are named rows in Lesson tools`, async () => {
   const view = await openLesson('bisector', width, 800);
+  // This harness mounts Explorer without Site, so navigation does not unmount the lesson.
+  // Let its initial address debounce settle before testing an outgoing link, or that pending
+  // timer can overwrite the test's destination after the click; Site cancels it by unmounting.
+  await waitFor(() => expect(new URLSearchParams(location.search).get('p')).toBe('bisector'), {timeout: 10000});
   // The header holds the theme and the menu alone, and does not run past the window.
   expect(view.queryByRole('button', {name: 'Walkthrough'})).toBeNull();
   expect(view.queryByRole('link', {name: 'Quiz yourself'})).toBeNull();

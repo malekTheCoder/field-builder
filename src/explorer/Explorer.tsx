@@ -380,7 +380,7 @@ export default function Explorer({welcome}:{welcome?:boolean}={}){
  // saved continuum=1, and every later visit opened on a smooth rod "In the limit" with the board still
  // saying ΔQ. While the run is open, both write the lesson as closing the run puts it back -- and what
  // was saved or linked before that fix is read back with its cut (atRest).
- useEffect(()=>{if(!ready)return;const t=setTimeout(()=>{try{const saved=buildShown?{...paramsMap,[id]:{...params,continuum:0}}:paramsMap;localStorage.setItem(STORAGE,JSON.stringify({id,dark:themeChosen.current?dark:undefined,params:saved,hideTour,cued,showNumbers,sidebarOpen}))}catch{setStorageOK(false)}},SETTLE);return()=>clearTimeout(t)},[id,dark,paramsMap,params,ready,hideTour,cued,showNumbers,sidebarOpen,buildShown]);
+ useEffect(()=>{if(!ready)return;const t=setTimeout(()=>{try{const saved=buildShown?{...paramsMap,[id]:{...params,continuum:0}}:paramsMap;localStorage.setItem(STORAGE,JSON.stringify({id,lastLesson:'integral',dark:themeChosen.current?dark:undefined,params:saved,hideTour,cued,showNumbers,sidebarOpen}))}catch{setStorageOK(false)}},SETTLE);return()=>clearTimeout(t)},[id,dark,paramsMap,params,ready,hideTour,cued,showNumbers,sidebarOpen,buildShown]);
  // THE ADDRESS ALWAYS NAMES ITS LESSON. The first lesson at its defaults wrote no query at all, so a
  // teacher who shared the address bar for Finite line shared the bare home page, and every student who had
  // used the site before opened their own last lesson instead.

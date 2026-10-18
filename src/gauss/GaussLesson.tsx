@@ -4,10 +4,11 @@
 import {useCallback, useEffect, useInsertionEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore, type CSSProperties} from 'react';
 import {flushSync} from 'react-dom';
 import {useReducedMotion} from 'motion/react';
-import {ArrowRight, ChevronLeft, ChevronRight, CircleHelp, ClipboardCheck, GraduationCap, House, Link as LinkIcon, Moon, MoreHorizontal, PanelLeft, Play, Printer, Sun} from 'lucide-react';
+import {ArrowRight, ChevronLeft, ChevronRight, CircleHelp, ClipboardCheck, GraduationCap, House, Link as LinkIcon, Moon, MoreHorizontal, PanelLeft, Play, Printer, Sun, X} from 'lucide-react';
 import {DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger} from '@/components/ui/dropdown-menu';
 import {Sidebar, SidebarContent, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarProvider} from '@/components/ui/sidebar';
-import {Dialog, DialogContent, DialogDescription, DialogTitle} from '@/components/ui/dialog';
+import {Button} from '@/components/ui/button';
+import {Dialog, DialogClose, DialogContent, DialogDescription, DialogTitle} from '@/components/ui/dialog';
 import {PROBLEMS} from '../problems/definitions';
 import {isReady} from '../problems/readiness';
 import {MathText, Prose} from '../components/Math';
@@ -49,6 +50,11 @@ import './gauss.css';
  * parallel page where the Explorer is the integral lessons' own: its state is a Problem's, which a Gauss lesson
  * is not. docs/gauss-lessons-howto.md says how to add a lesson to it. */
 const LESSON_TITLE = 'lesson-title';
+/** Start the library at the lesson being read, as the integral library does. Focusing the first rod
+ * card left every Gauss lesson offscreen, forcing keyboard readers to search the whole collection. */
+const libraryFocus = () => document.querySelector<HTMLElement>('.exp-library-dialog [aria-current=page]') ?? true;
+const DARK_QUERY = '(prefers-color-scheme: dark)';
+const systemDark = () => { try { return matchMedia(DARK_QUERY).matches; } catch { return false; } };
 /** One beat of the stepped run, for readers who asked for reduced motion: as the integral lessons' run steps. */
 const REDUCED_BEAT = 450, MAX_STEP = 100;
 /** How long the page waits for the reader to settle before it writes what is on screen into the address, as the
@@ -111,11 +117,21 @@ export default function GaussLesson() {
   const [status, setStatus] = useState(''), [copied, setCopied] = useState('');
   const [printing, setPrinting] = useState(false);
   const watchButton = useRef<HTMLButtonElement>(null), walk = useRef<HTMLDivElement>(null), tourButton = useRef<HTMLButtonElement>(null);
+  // Follow the system until the reader chooses a theme, as Explorer does. Saving an inferred light
+  // default here used to overwrite the early dark paint and silently choose light for every later page.
+  const themeChosen = useRef(false);
   // The saved theme and list, once, after hydration.
   // oxlint-disable-next-line react/react-compiler -- Reads storage once, after hydration.
-  useEffect(() => { const s = readSaved(); setDark(s.dark === true); setSidebarOpen(s.sidebarOpen !== false); setReady(true); }, []);
+  useEffect(() => { const s = readSaved(); themeChosen.current = typeof s.dark === 'boolean'; setDark(themeChosen.current ? s.dark === true : systemDark()); setSidebarOpen(s.sidebarOpen !== false); setReady(true); }, []);
   useEffect(() => { if (ready) document.documentElement.classList.toggle('dark', dark); }, [dark, ready]);
-  useEffect(() => { if (ready) writeSaved({dark, sidebarOpen}); }, [dark, sidebarOpen, ready]);
+  // The home page can return to either kind of lesson. Store the case too, but do not promise to
+  // resume the temporary run or its slider state: the link is explicitly a return to the last lesson.
+  useEffect(() => { if (ready) writeSaved({dark: themeChosen.current ? dark : undefined, sidebarOpen, lastLesson: 'gauss', lastGauss: {id, case: kase.key}}); }, [dark, sidebarOpen, ready, id, kase.key]);
+  useEffect(() => {
+    let q: MediaQueryList; try { q = matchMedia(DARK_QUERY); } catch { return; }
+    const on = () => { if (!themeChosen.current) setDark(q.matches); };
+    q.addEventListener?.('change', on); return () => q.removeEventListener?.('change', on);
+  }, []);
   useEffect(() => { document.title = `${lesson.title.replace('Q_enc', 'Q enc')} · Field Builder`; }, [lesson.title]);
   // A NEW LESSON STARTS AT ITS TOP, its text shut, its first case, its run closed, the focus on its title. The
   // first one is the site's to place (Site.tsx), since it may have come from another page.
@@ -341,7 +357,7 @@ export default function GaussLesson() {
         <button ref={tourButton} type="button" className="text-button tour-button" aria-label="Walkthrough" onClick={() => setRecipe(true)}><CircleHelp size={16} /><span>Walkthrough</span></button>
         <a className="text-button tour-button guide-link" href={GUIDE_HREF} aria-label="How to use this site" onClick={e => { if (!inPlace(e)) return; e.preventDefault(); navigate(GUIDE_HREF); }}><GraduationCap size={16} /><span>How to use</span></a>
         <a className="text-button quiz-link" href={QUIZ_HREF} aria-label="Quiz yourself" onClick={e => { if (!inPlace(e)) return; e.preventDefault(); navigate(QUIZ_HREF); }}><ClipboardCheck size={16} /><span>Quiz</span></a>
-        <Hint label={dark ? 'Switch to light theme' : 'Switch to dark theme'}><button className="icon-button" onClick={() => setDark(!dark)} aria-label={dark ? 'Switch to light theme' : 'Switch to dark theme'}>{dark ? <Sun size={17} /> : <Moon size={17} />}</button></Hint>
+        <Hint label={dark ? 'Switch to light theme' : 'Switch to dark theme'}><button className="icon-button" onClick={() => { themeChosen.current = true; setDark(!dark); }} aria-label={dark ? 'Switch to light theme' : 'Switch to dark theme'}>{dark ? <Sun size={17} /> : <Moon size={17} />}</button></Hint>
         <DropdownMenu><Hint label="Lesson tools"><DropdownMenuTrigger className="icon-button no-print" aria-label="Lesson tools"><MoreHorizontal size={17} /></DropdownMenuTrigger></Hint>
           <DropdownMenuContent className="exp-tools-menu" align="end" sideOffset={8}>
             <DropdownMenuItem onClick={() => { void copyLink(); }}><LinkIcon size={15} />Copy a link to this lesson</DropdownMenuItem>
@@ -420,7 +436,10 @@ export default function GaussLesson() {
       <DialogDescription className="laws-lede">The same recipe every time, and the same five steps as Watch it build.</DialogDescription>
       <ol className="gs-recipe-steps">{RECIPE.map(s => <li key={s.name}><strong>{s.name}</strong><span>{s.text}</span></li>)}</ol>
     </DialogContent></Dialog>
-    <Dialog open={library} onOpenChange={setLibrary}><DialogContent className="exp-library-dialog">
+    <Dialog open={library} onOpenChange={setLibrary}><DialogContent className="exp-library-dialog" initialFocus={libraryFocus} showCloseButton={false}>
+      {/* Close is first in the keyboard order as well as at the top of the dialog. Escape still returns
+          to the button that opened it; Shift+Tab from the first card also reaches the visible Close. */}
+      <DialogClose data-slot="dialog-close" render={<Button variant="ghost" className="absolute top-2 right-2" size="icon-sm"/>}><X/><span className="sr-only">Close</span></DialogClose>
       <DialogTitle>Choose your geometry</DialogTitle><DialogDescription>Every lesson, including electric potential and Gauss’s law.</DialogDescription>
       <div className="exp-library-list">{families(FIELD_LESSONS).map(g => <div className="exp-library-family" key={g.label}><h3 className="exp-family-name">{g.label}</h3><div className="exp-library-grid">{g.items.map(pr =>
         <a key={pr.id} href={lessonHref(pr.id)} className="exp-library-card" aria-labelledby={`glib-${pr.id}`} aria-describedby={`glib-${pr.id}-about`} onClick={e => goField(pr.id, e)}><ShapeGlyph id={pr.id} size={26} /><strong id={`glib-${pr.id}`}>{pr.short}</strong><span id={`glib-${pr.id}-about`}>{pr.subtitle}</span></a>)}</div></div>)}

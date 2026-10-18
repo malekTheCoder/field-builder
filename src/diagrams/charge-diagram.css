@@ -759,10 +759,10 @@ html:not(.dark) .cd-svg .cd-vector-label:not(.is-muted){fill:color-mix(in oklab,
 .cd-focus-distance .cd-triangle path[data-leg],.cd-focus-distance .cd-triangle[data-kind="schematic"] > path:not(.cd-angle-arc):not(.cd-right-angle),
 .cd-focus-distance .cd-svg .cd-triangle .cd-x-bar{stroke:var(--term-distance)}
 .cd-focus-projection .cd-triangle text:not(.cd-triangle-note):not(.cd-ri),.cd-focus-projection .cd-triangle[data-kind="schematic"] text.cd-ri{fill:var(--term-projection)}
-/* "Keyboard help" on a phone, which has no keyboard: a line under the figure offering Tab and arrow keys to a reader
-   holding a touch screen. Taken out of sight, not out of the page: a screen reader on that phone still reaches the
-   sliders it carries (the piece, the distance, the integration bounds), which are its only way to move them. */
-@media (any-pointer:coarse) and (max-width:759px){.cd-caption>.cd-controls:not([open]){position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);clip-path:inset(50%);white-space:nowrap;border:0}}
+/* Keep closed keyboard help quiet for touch, while retaining the sliders a screen reader needs.
+   A touch phone can also have a keyboard: reveal the disclosure as soon as focus enters it, so its
+   summary never becomes an invisible Tab stop. Once open it remains visible until the reader closes it. */
+@media (any-pointer:coarse) and (max-width:759px){.cd-caption>.cd-controls:not([open]):not(:focus-within){position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);clip-path:inset(50%);white-space:nowrap;border:0}}
 /* DARK: THE PIECES NOT BEING TALKED ABOUT fade toward a muted orange, not toward black. At .16 over the navy ground
    they were near-black blocks inside the glowing rod, read as gaps or as stretches with no charge on them. Mixed
    into the ground at about a half, they stay charge, only quieter. The same for the ghosts of the parts that
