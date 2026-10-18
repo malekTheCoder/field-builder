@@ -5,7 +5,7 @@ Work goes top to bottom through **Next**. Items move to **In progress** while so
 then to **Done**, with the commit. Newest requests are added at the bottom of **Next** unless the
 owner says they are urgent.
 
-**At the usage stop** (weekly 90%, owner 2026-10-17): start nothing new. Let a nearly done agent finish
+**At the usage stop** (weekly 93%, owner 2026-10-17): start nothing new. Let a nearly done agent finish
 or save its work (a branch or a patch under .claude/loop/reports/), and write under In progress exactly
 what was running, where its work is, and the next step. Then stop. To resume: read this file top to
 bottom, finish In progress, then take Next in order.
