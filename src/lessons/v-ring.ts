@@ -31,6 +31,7 @@ export const lesson: Lesson = {
     ]},
     {heading: 'Shrink them', body: [
       raw`As $N\to\infty$ the pieces grow ever thinner: the sum becomes an integral over $\theta$, once round, and since nothing in it changes with $\theta$ the answer does not move.`,
+      raw`The integral is useful even when it adds no new arithmetic: it separates the source element $dQ$ from the distance to $P$. For a disk’s potential that distance varies from ring to ring, and the same setup becomes a nonconstant integral.`,
     ]},
     {heading: 'Differentiate back', body: [
       raw`The field points the way $V$ falls fastest, and on the axis symmetry leaves it only its part along the axis. So the field there is minus the rate $V$ changes with $z$:`,

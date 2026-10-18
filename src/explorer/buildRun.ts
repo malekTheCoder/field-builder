@@ -144,13 +144,13 @@ const CANCEL_LINES: Record<string, string> = {
  * is that every lesson's charge has one sign, so every piece adds with that sign. */
 const NO_CANCEL_V = (unit: string) => `Nothing cancels here. V is a number, not an arrow, so there is no direction in which one ${unit} could undo another, and all of this charge has the same sign, so every ${unit} adds to V with that sign. V is simply the sum of what each ${unit} is worth.`;
 // Shared by the rod level with one end and the ramp: level with the end of a rod the contributions
-// fan through arctan(L/r), and this lesson's own L -> infinity limit lands them at 45 degrees. What
-// the two share is the missing partner, so that is what this says -- the same correction the `semi`
-// note above already made. (The axial rod has its own note: it lacks partners because it needs none.)
+// fan through arctan(L/r), but different densities give different resultant angles. What they share
+// is the sign of each component: every contribution to it points the same way. Missing mirrors alone
+// would not rule out cancellation between unequal charges at unequal distances.
 //
 // "Every piece lies on the same side of P" meant nothing: P is a point. What is true, and what leaves
 // each piece without a partner, is that the rod lies wholly above the x-axis, P's line.
-const NO_CANCEL = 'Nothing cancels here. Every piece lies above the x-axis, the line through P, so no piece has a mirror partner below it to undo it, and every contribution survives in full. Cancellation is a gift of symmetry, and this geometry does not have it.';
+const NO_CANCEL = 'Nothing cancels here. Every piece lies above the x-axis, the line through P, and all contributions to each component have the same sign. They cannot sum to zero. Mirror symmetry is one way to guarantee cancellation elsewhere; the criterion is equal and opposite contributions.';
 /** Does the figure draw a mirror partner for this geometry? Mirrors `supportsPair` and
  * `scalarPartner` in the diagram: asking for a partner it will not draw would leave the stage
  * showing nothing. A potential lesson gets one wherever it has a partner at the same distance,
@@ -269,9 +269,9 @@ export function buildStages(p: Problem, bracket?: RunBracket): BuildStage[] {
         // and "its distance to the potential" parsed first. What is added, then what it is.
         : `Each piece adds a number to the potential at${P}: $k$ times its charge over its distance.`)
       // Both halves of the reason: "the far ones hold more charge" alone would make them contribute MORE.
-      : unbounded ? `Equal-angle pieces make the same $|\\Delta E|$ at${P}: far ones hold more charge, but are farther.`
+      : unbounded ? `Equal-angle representatives balance charge and distance: equal $|\\Delta E|$ at${P}.`
       // Only cut at equal angles: cut into rings of equal width, a sheet's rings peak at s = z/√2.
-      : geometry === 'sheet' ? `Cut at equal angles, each farther ring is so much bigger that it makes a bigger $\\Delta E$ at${P}.`
+      : geometry === 'sheet' ? `Cut at equal angles, each farther ring is so much bigger that it makes a larger $|\\Delta E|$ at${P}.`
       // Its own idea, not Cut it up's again ("every bit of one ring is the same distance from P"): the
       // bits are point charges, and a thin ring's are all one distance and one angle away -- a thin ring's,
       // not every drawn ring's: at three rings the inner one is a third of the disk wide.
@@ -292,7 +292,7 @@ export function buildStages(p: Problem, bracket?: RunBracket): BuildStage[] {
       : geometry === 'arc' ? `Every piece is $R$ from${P} and holds the same charge: the arrows differ only in direction.`
       // The one thing the even arc's line rules out, back: the pieces near the axis hold more charge.
       : geometry === 'uneven-arc' ? `Every piece is $R$ from${P}, but those near the axis hold more: their arrows are longer.`
-      : `A piece’s field lies along the line to${P}: more charge, bigger; farther, smaller.`,
+      : `A piece’s field lies on the line to${P}: more $|\\Delta Q|$, stronger; farther, weaker.`,
     cancel: scalar ? (part && pairs && !bracket.mirrorIn ? 'Its mirror is outside the bracket, so it is not added; and a potential has no direction.'
       : pairs ? geometry === 'ring' ? 'An equal length of ring opposite is just as far away and adds as much: nothing cancels.'
         : 'Each piece’s mirror is just as far away and adds exactly as much: nothing cancels.'
@@ -355,7 +355,7 @@ export function buildStages(p: Problem, bracket?: RunBracket): BuildStage[] {
       : 'As $N\\to\\infty$, treating each piece as a point charge becomes exact: the sum is the integral.',
   };
   const piece = scalar ? `Each ${unit} adds its own number to the total: k times its charge over its distance. Direction does not come into it at all, which is what makes a potential so much easier to add up than a field.`
-    : unbounded ? 'Each piece is cut to cover the same angle at P. That makes every one contribute exactly as much at P: the far pieces hold more charge, but they are farther away, and the two exactly offset.'
+    : unbounded ? 'Each interval covers the same angle at P. Its representative point charge makes the same field magnitude as every other: farther representatives have greater charge magnitude and greater distance, which exactly offset. The representative approximates the interval’s contribution.'
     : geometry === 'sheet' ? 'Each ring is cut to cover the same angle at P. The far rings are farther away, but they are so much bigger that each makes a bigger field at P, not a smaller one.'
     : shell ? 'One thin ring at a time. Every bit of it is the same distance from P and makes the same angle with the axis, so the whole ring adds up at once: its field is the ring lesson’s, along the axis, one way for a ring below P and the other way for a ring above it.'
     : geometry === 'disk' || geometry === 'annulus' ? 'One thin ring at a time. Every bit of it is the same distance from P and makes the same angle with the axis, which is what lets the whole ring be added up at once in the next step.'

@@ -99,7 +99,7 @@ describe('“Easy to confuse with” names each quantity once, its symbol last, 
   const IMPERATIVE=/(?:^|[.:;] )(?:Use|Multiply|Drop|Carry|Include|Divide|Keep|Remember|Add|Take|Put)\b/;
   for(const p of lessons)for(const f of shown(p))for(const m of f.mistakes!)expect(plain(m.message),`${p.id}/${f.id} ${m.expression}`).not.toMatch(IMPERATIVE);
   const said=(id:string,field:string,expression:string)=>plain(fields(getProblem(id)).find(f=>f.id===field&&f.mistakes?.some(m=>m.expression===expression))!.mistakes!.find(m=>m.expression===expression)!.message);
-  expect(said('bisector','dq','Q*dy')).toMatch(/^Q dy would put the whole rod’s charge in one piece/);
+  expect(said('bisector','dq','Q*dy')).toMatch(/^Q dy replaces the density with total charge and has units of charge times length/);
   expect(said('bisector','component','dE')).toBe('dE is the whole slanted arrow. Only dE cos α of it lies along x.');
   expect(said('arc','dq','lambda*dtheta')).toMatch(/^λ dθ is a charge per length times an angle, which is not a charge/);
  });

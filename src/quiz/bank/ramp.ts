@@ -56,7 +56,7 @@ export const bank: Question[] = [
       {text: raw`Neither: with the same $Q$, they make the same field.`, misconception: 'density-inside',
         why: raw`Only far away does the total charge alone fix the field. Close by, where the charge sits matters, and the ramp’s sits farther from $P$.`},
       {text: raw`The ramp: its densest part, $\lambda_0$, is twice the uniform rod’s density.`, misconception: 'density-inside',
-        why: raw`Its densest part is at the top, the end farthest from $P$, and its foot is nearly empty. The uniform rod has more charge near $P$.`},
+        why: raw`Its densest part is at the top, the end farthest from $P$, and its foot is nearly empty. The uniform rod has more charge in magnitude near $P$.`},
     ],
     explanation: raw`Both hold $Q$, but the ramp’s charge is gathered toward the top, away from $P$, while the uniform rod keeps a fair share near the foot, close to $P$. Near charge counts for more, so at every distance the uniform rod’s $|E_x|$ is the larger; the two agree only far away.`,
     review: {lesson: 'ramp', section: 'What the answer says'}},
@@ -64,13 +64,13 @@ export const bank: Question[] = [
   {id: 'ramp-middle', lesson: 'ramp', kind: 'predict',
     prompt: raw`Slide $P$ up, keeping its distance $r$, until it is level with the rod’s middle. Is $E_y$ zero there?`,
     choices: [
-      {correct: true, text: raw`No: a piece above the middle holds more charge than its mirror below, so their parts along the rod do not cancel.`},
+      {correct: true, text: raw`No: a piece above the middle holds more charge in magnitude than its mirror below, so their parts along the rod do not cancel.`},
       {text: raw`Yes: every piece now has a mirror the same distance from $P$.`, misconception: 'cancel-survivor',
-        why: raw`Being the same distance away is not enough. Mirror pieces cancel only if they hold the same charge, and here the upper piece of each pair always holds more.`},
+        why: raw`Being the same distance away is not enough. Mirror pieces cancel only if they hold the same charge, and here the upper piece of each pair always holds more in magnitude.`},
       {text: raw`Yes: the density has one sign all along the rod.`, misconception: 'density-inside',
         why: raw`One sign is why nothing cancels for a potential. For the field, the pairs must match in charge too, and the ramp’s pairs do not.`},
     ],
-    explanation: raw`The reflection about the middle maps the rod onto itself but not its charge: the piece a distance above the middle holds more than the one the same distance below. Their parts along the rod are unequal, and the upper one wins: for a positive charge, $E_y$ points down.`,
+    explanation: raw`The reflection about the middle maps the rod onto itself but not its charge: the piece a distance above the middle holds more charge in magnitude than the one the same distance below. Their parts along the rod are unequal, and the upper one wins: for a positive charge, $E_y$ points down.`,
     review: {lesson: 'ramp', stage: 'cancel'}},
 
   {id: 'ramp-far-ex', lesson: 'ramp', kind: 'check',
@@ -86,7 +86,7 @@ export const bank: Question[] = [
     review: {lesson: 'ramp', section: 'Limiting cases'}},
 
   {id: 'ramp-far-ey', lesson: 'ramp', kind: 'check',
-    prompt: raw`Far away, $E_y$ falls faster, as $-kQ\bar y/r^3$. What is the length $\bar y$?`,
+    prompt: raw`Far away, $E_y$ decays faster in magnitude, behaving as $-kQ\bar y/r^3$. What is the length $\bar y$?`,
     choices: [
       {correct: true, text: raw`$\bar y=2L/3$: the ramp’s centre of charge, above the middle.`},
       {text: raw`$\bar y=L/2$: the rod’s middle.`, misconception: 'density-inside',

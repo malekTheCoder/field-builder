@@ -198,10 +198,10 @@ describe('the words',()=>{
  it('the sheet’s subtitle is one short sentence pair',()=>{
   expect(plain(getProblem('sheet').subtitle).length).toBeLessThan(150);
  });
- it('the laws say thin enough seen from P, and that Coulomb is the law the lessons build from',()=>{
+ it('the laws separate representative point charges from exact contribution sums',()=>{
   const laws=readFileSync(new URL('../src/components/Laws.tsx',import.meta.url),'utf8');
-  expect(laws).toContain('each thin enough, seen from P, to count as a point');
-  expect(laws).toContain('The only field law the lessons build from.');
+  expect(laws).toContain('approximate them with a representative point charge');
+  expect(laws).toContain('The starting point for the integral field lessons.');
   expect(laws).not.toContain('The only field law in the app');
   expect(laws).not.toMatch(/each small enough to count as a point|a bit small enough/);
  });

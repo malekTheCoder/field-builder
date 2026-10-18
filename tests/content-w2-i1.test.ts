@@ -192,7 +192,8 @@ describe('the words around the lessons',()=>{
   const lede=/LAWS_LEDE='([^']*)'/.exec(laws)![1];
   expect(lede).not.toMatch(/;/);
   for(const sentence of lede.split(/(?<=\.)\s+/))expect(sentence.split(/\s+/).length,sentence).toBeLessThanOrEqual(30);
-  expect(lede).toMatch(/a ring whose every bit is the same distance from P/);
+  expect(lede).toMatch(/integral lessons/);
+  expect(lede).toMatch(/Gauss’s law/);
  });
  it('the semi-infinite line quotes the lesson it names, and both it and the axial rod lead somewhere',()=>{
   expect(plain(getProblem('semi').setup)).toContain('the lesson “Field level with the end of a rod”,');

@@ -108,10 +108,10 @@ describe('the sheet sets its one ΔE one way', () => {
   });
   it('the endless sheet of ever-bigger rings adds to a finite field, and Add says why', () => {
     const add = step('sheet', 'add').say!;
-    expect(add).toContain(String.raw`$2\pi k\sigma\sin\alpha_i\,\Delta\alpha$`);
+    expect(add).toContain(String.raw`$2\pi k|\sigma|\sin\alpha_i\,\Delta\alpha$`);
     // N terms, none more than 2πkσΔα: finite. That the angles stop at a right angle is Cut it up's opening
     // reason for cutting by angle at all, and is not said a second time here.
-    expect(add).toMatch(/never more than \$2\\pi k\\sigma\\,\\Delta\\alpha\$, and there are \$N\$ of them, so the endless sheet still adds to a finite field/);
+    expect(add).toMatch(/never more than \$2\\pi k\|\\sigma\|\\,\\Delta\\alpha\$\. There are \$N\$ terms over a finite angle, so the endless sheet still adds to a finite field/);
     expect(add).not.toMatch(/right angle/);
     expect(step('sheet', 'pieces').say).toMatch(/^An endless sheet has no last ring of equal width, but seen from.*\$P\$ its angles stop at a right angle, so it is cut into \$N\$ rings of equal angle\./);
     // k ΔQ cos α / r_i² with ΔQ = σ 2π s z sec²α Δα, s = z tan α, r_i² = z² sec²α is 2πkσ sin α Δα.

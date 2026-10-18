@@ -127,7 +127,7 @@ describe('the run’s lines', () => {
   it('say the whole reason, with a subject, in the board’s words', () => {
     for (const id of ['infinite', 'semi']) {
       const one = buildStages(getProblem(id))[1].line;
-      expect(one, id).toMatch(/same \|ΔE\| at P: far ones hold more charge, but are farther\./);
+      expect(one, id).toMatch(/representatives balance charge and distance: equal \|ΔE\| at P\./);
     }
     for (const id of ['v-ring', 'v-arc', 'v-rod-bisector', 'v-rod-axial']) expect(buildStages(getProblem(id))[1].line, id).toBe('Each piece adds a number to the potential at P: k times its charge over its distance.');
     expect(buildStages(getProblem('ring'))[2].line).not.toMatch(/^The ring half a turn/);

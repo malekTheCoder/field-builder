@@ -32,6 +32,7 @@ export const lesson: Lesson = {
     {heading: 'Shrink them', body: [
       raw`As $N\to\infty$ the pieces grow ever thinner and the sum becomes an integral over $\theta$; nothing in it changes with $\theta$, so the height of the column does not move:`,
       {tex: raw`V=\int_{-\varphi/2}^{\varphi/2}\frac{k\lambda R\,d\theta}{R}=k\lambda\varphi=\frac{kQ}{R}`},
+      raw`This exact coarse sum is a shortcut within the same integral method. Writing $dQ$ and the bounds makes the reason visible: $k/R$ is constant. At a point in the arc’s plane away from its centre, the distances vary and stay inside the integral.`,
     ]},
     {heading: 'What the answer says', body: [
       raw`$V$ has the sign of $Q$, and with $Q$ held fixed $\varphi$ is nowhere in it. (Hold a nonzero $\lambda$ fixed instead: $V=k\lambda\varphi$, so $|V|$ grows with the arc while $V$ keeps the sign of $\lambda$.) Bending the arc moves its charge round the circle but never nearer to $P$ or farther, so a short arc, a semicircle and a closed ring all give $kQ/R$. The field does change with $\varphi$: it is $E_x=-2kQ\sin(\varphi/2)/(R^2\varphi)$, and zero for the closed ring, where $V$ is still $kQ/R$.`,

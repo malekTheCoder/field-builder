@@ -146,7 +146,7 @@ describe('what the captions claim is what the samplers do', () => {
   it(`${id}: every piece, cut at an equal angle, contributes exactly as much`, () => {
    const pushes = sampleDistribution(id, P, n).map(s => size(s.field));
    for (const push of pushes) expect(push / pushes[0]).toBeCloseTo(1, 9);
-   expect(buildStages(getProblem(id))[1].caption).toMatch(/exactly as much at P/);
+   expect(buildStages(getProblem(id))[1].caption).toMatch(/representative point charge makes the same field magnitude/);
   });
  }
  it('sheet: the rings make a bigger field the further out they are', () => {
@@ -218,7 +218,7 @@ describe('the captions say only what is true', () => {
   // nothing -- P is a point.
   for (const id of ['endpoint', 'ramp'] as const) {
    const [, , cancel] = buildStages(getProblem(id));
-   expect(cancel.caption, id).toMatch(/no piece has a mirror partner below it/);
+   expect(cancel.caption, id).toMatch(/all contributions to each component have the same sign/);
    for (const text of [cancel.caption, cancel.line]) expect(text, id).not.toMatch(/same side of P/);
   }
  });

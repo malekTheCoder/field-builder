@@ -221,11 +221,11 @@ describe('the laws page says which law each lesson starts from',()=>{
  const laws=readFileSync(new URL('../src/components/Laws.tsx',import.meta.url),'utf8');
  it('Coulomb starts the field lessons; V = kQ/r the potential ones',()=>{
   expect(laws).not.toMatch(/Every derivation starts/);
-  expect(laws).toMatch(/Every field lesson starts by applying it/);
-  expect(laws).toMatch(/The potential lessons start from its scalar partner, V = kQ\/r/);
+  expect(laws).toMatch(/The starting point for the integral field lessons/);
+  expect(laws).toMatch(/The potential lessons use its scalar partner, V = kQ\/r/);
   const lede=/LAWS_LEDE='([^']*)'/.exec(laws)![1];
   expect(lede).not.toMatch(/Coulomb’s law gives the field of each piece/);
-  expect(lede).toMatch(/\(on the potential lessons, its potential\)/);
+  expect(lede).toMatch(/fields or potentials/);
  });
 });
 describe('the potential subtitles promise only the axial field',()=>{

@@ -42,7 +42,7 @@ export const bank: Question[] = [
       {tex: raw`dQ=\lambda R\varphi\,d\theta`, misconception: 'piece-length',
         why: raw`$\varphi$ is the opening of the whole arc, and $R\varphi$ is the whole arc’s length. One piece spans only $d\theta$, so its length is $R\,d\theta$.`},
       {tex: raw`dQ=Q\,d\theta`, misconception: 'whole-charge',
-        why: raw`That gives every piece the whole arc’s charge. Added over the arc it would come to $Q\varphi$, not $Q$.`},
+        why: raw`That omits the angular normalization: $\lambda R=Q/\varphi$. Added over the arc, $Q\,d\theta$ would come to $Q\varphi$, not $Q$.`},
     ],
     explanation: raw`A piece $d\theta$ wide on a circle of radius $R$ is $R\,d\theta$ long, and the arc holds $\lambda=Q/(R\varphi)$ per unit length, so the piece holds $\lambda R\,d\theta$. Added from $-\varphi/2$ to $\varphi/2$, that gives $\lambda R\varphi=Q$.`,
     review: {lesson: 'arc', stage: 'cut'}},
