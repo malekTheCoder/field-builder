@@ -11,11 +11,12 @@ what was running, where its work is, and the next step. Then stop. To resume: re
 bottom, finish In progress, then take Next in order.
 
 ## In progress
+- **Codex overnight handoff**: stopped at the owner’s wrap-up request after strict round 19. All confirmed findings from rounds 16–19 are resolved and the full local gates passed. No round 20 was started. Read local `.claude/loop/reports/codex/round-19.md` and `current.json` before resuming; all owner-decision items below remain waiting.
 - **Critique round, wave 7** on the whole site (19 integral lessons incl. the four new ones, Gauss, quiz,
   guide): one round, one publish. Usage 76% weekly at launch (stop at 90%).
 
 ## Next
-1. **Strict critique round 19 and onward** (owner, 2026-10-17): continue all five lenses across the whole site, fix every confirmed finding, then make four to eight teaching improvements. One fully validated local suite and one publish per round. Stop only at a genuinely clean critique or the authorized usage/time limit. Read the local Codex round-18 report before repeating coverage.
+1. **Strict critique round 20 and onward** (owner, 2026-10-17): continue all five lenses across the whole site, fix every confirmed finding, then make four to eight teaching improvements. One fully validated local suite and one publish per round. Stop only at a genuinely clean critique or the authorized usage/time limit. Read the local Codex round-19 report before repeating coverage.
 2. **The potential's column explained in place** (owner asked "what's this?", 2026-10-17): a callout on the
    lit block ("one piece's ΔV"), a bracket showing the column's height is V ≈ ΣΔV, and one caption line
    the first time it shows. Waiting for the owner's OK on this option.
@@ -29,6 +30,7 @@ bottom, finish In progress, then take Next in order.
    ring's arrows half a positive's. Leftovers from wave 6 are in .claude/loop/reports/LOG.md.
 
 ## Done
+- 2026-10-17, Codex strict round 19: 13 findings fixed (1 WRONG, 6 MISLEADING, 1 CONFUSING, 4 UGLY, 1 POLISH), four teaching improvements; complete merged local gate green: 267 files, 5864 tests passed, one pre-existing skip, TypeScript, lint and static build passed (421f700..6be22a3). Both owner-named regressions passed all 50 focused browser checks. Publisher changes retained. Evidence: local `.claude/loop/reports/codex/round-19.md`. No unfinished implementation or clean round claimed; stopped at the owner’s wrap-up request.
 - 2026-10-17, Codex strict round 18: 34 findings fixed (2 BROKEN, 3 WRONG, 19 MISLEADING, 2 CONFUSING, 5 UGLY, 3 POLISH), eight teaching improvements; signed physics, real offline exports, print, keyboard access and restored learning context verified. Publisher changes reconciled and the merged full local suite green: 259 files, 5829 tests passed, one pre-existing skip; TypeScript, lint and static build passed (a9f8a87..3b86484). Evidence: local .claude/loop/reports/codex/round-18.md. Owner decisions remain pending; no clean round claimed.
 - 2026-10-17, Codex strict round 17: 22 findings fixed (5 WRONG, 10 MISLEADING, 3 CONFUSING, 1 UGLY, 3 POLISH), eight teaching improvements including the three queued Gauss/phone items; all 2400 lesson/stage/viewport/sign/theme combinations checked, full local suite and static build green (0448b17..1fb3ed9). Evidence: local .claude/loop/reports/codex/round-17.md. Owner decisions remain pending; no clean round claimed.
 - 2026-10-17, Codex strict round 16: 50 findings fixed (17 WRONG, 10 MISLEADING, 10 CONFUSING, 6 UGLY, 7 POLISH), eight teaching improvements; full local suite and static build green (067d577..e057cbd). Evidence: local .claude/loop/reports/codex/round-16.md. Owner decisions remain pending; no clean round claimed.
