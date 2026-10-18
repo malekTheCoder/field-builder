@@ -152,7 +152,7 @@ export const BREAK = '\n\n';
 // calls it the arrow's size and then writes its part along x as ΔE cos α beside ΔE_x = k ΔQ cos α/r_i²,
 // which is negative for a negative charge: read literally, with the slider below zero, that gave the
 // wrong sign. The size is |ΔE|; ΔE itself is k ΔQ/r_i², and the sign says which way the arrow points.
-const COULOMB = String.raw`A point charge’s field, from Coulomb’s law, with $k=1/(4\pi\varepsilon_0)$. Here $r_i$ is the piece’s distance from${NB}$P$ (the $i$ numbers the pieces), and $\hat{\mathbf r}_i$ is the unit vector from the piece toward${NB}$P$, an arrow of length one that carries only the direction.`;
+const COULOMB = String.raw`A point charge’s field, from Coulomb’s law, with $k=1/(4\pi\varepsilon_0)$. Here $r_i$ is the piece’s distance from${NB}$P$ (the $i$ numbers the pieces), and $\hat{\mathbf r}_i$ is the unit vector from the piece toward${NB}$P$.${BREAK}The unit vector is an arrow of length one: it carries only the direction.`;
 //
 // AND ITS SIZE IS SAID HERE, ONCE. What cancels used to open "The arrow ΔE, of size |ΔE|, lies along …":
 // bold ΔE, |ΔE| and then ΔE cos α, three notations in one sentence, and a critic needed four reads. The

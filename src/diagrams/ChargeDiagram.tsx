@@ -1854,7 +1854,7 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
   /** An angle at a vertex: a short arc between its two sides, and its name on the line halving it,
    * so the label sits inside the angle it names whichever way that angle happens to open. Returns the
    * drawing and the arc's points, which the label placer keeps every other name off. */
-  const angleMark = (at: Point, alongA: Point, alongB: Point, name: string, term = false, sides?: { a?: number; b?: number; r0?: number; w?: number; avoid?: Box; avoidInterior?: boolean; out?: number }) => {
+  const angleMark = (at: Point, alongA: Point, alongB: Point, name: string, term = false, sides?: { a?: number; b?: number; r0?: number; w?: number; avoid?: Box; avoidInterior?: boolean; out?: number; clear?: [Point, Point] }) => {
     const a = direction(vsub(alongA, at)), b = direction(vsub(alongB, at));
     if (!a || !b) return null;
     const mid = direction({ x: a.x + b.x, y: a.y + b.y }) ?? a, sweep = a.x * b.y - a.y * b.x > 0 ? 1 : 0;
@@ -1880,7 +1880,18 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
     // a letter that fits inside its triangle. P's halo is instead a solid obstacle: the shell opts
     // into checking it inside the angle too, where a geometrically fitting letter could cover P.
     const overlapAvoid = (b: Box) => sides?.avoid ? Math.max(0, Math.min(b.x + b.width, sides.avoid.x + sides.avoid.width) - Math.max(b.x, sides.avoid.x)) * Math.max(0, Math.min(b.y + b.height, sides.avoid.y + sides.avoid.height) - Math.max(b.y, sides.avoid.y)) : 0;
-    const fits = (c: Point) => (!sides?.avoidInterior || overlapAvoid({ x: c.x - w / 2, y: c.y - h / 2, width: w, height: h }) === 0) && [[-1, -1], [1, -1], [1, 1], [-1, 1]].every(([sx, sy]) => {
+    // Held a hand's width off a line the wedge's third side lies along, when told of one (`clear`): the letter fitted
+    // by the geometry only could stand three pixels from it, close enough that a stroke a little heavier, or a letter a
+    // little wider, put the line through it.
+    const offLine = (c: Point) => {
+      if (!sides?.clear) return true;
+      const [u, v] = sides.clear, dx = v.x - u.x, dy = v.y - u.y, len2 = dx * dx + dy * dy || 1;
+      return [-1, 0, 1].every(sx => [-1, 0, 1].every(sy => {
+        const q = { x: c.x + sx * w / 2, y: c.y + sy * h / 2 }, t = Math.max(0, Math.min(1, ((q.x - u.x) * dx + (q.y - u.y) * dy) / len2));
+        return Math.hypot(q.x - (u.x + t * dx), q.y - (u.y + t * dy)) >= 7;
+      }));
+    };
+    const fits = (c: Point) => offLine(c) && (!sides?.avoidInterior || overlapAvoid({ x: c.x - w / 2, y: c.y - h / 2, width: w, height: h }) === 0) && [[-1, -1], [1, -1], [1, 1], [-1, 1]].every(([sx, sy]) => {
       const q = { x: c.x + sx * w / 2 - at.x, y: c.y + sy * h / 2 - at.y };
       return q.x * nA.x + q.y * nA.y >= margin && q.x * nB.x + q.y * nB.y >= margin && q.x * a.x + q.y * a.y <= lenA - margin && q.x * b.x + q.y * b.y <= lenB - margin;
     });
@@ -3184,7 +3195,7 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
   // interior-shell demonstration. The ring's angle exists independently of P; reserve its letter as
   // an obstacle and let P's label find another spot, as for every other fixed angle in the figure.
   const shellAngle = shell ? angleMark(O, project({ x: 0, y: 0, z: R }), radiusTip, 'θ', stageOne || building === 'pieces', {
-    r0: 16, avoidInterior: true, avoid: { x: P.x - haloR - 3, y: P.y - haloR - 3, width: 2 * haloR + 6, height: 2 * haloR + 6 },
+    r0: 16, avoidInterior: true, clear: [P, radiusTip], avoid: { x: P.x - haloR - 3, y: P.y - haloR - 3, width: 2 * haloR + 6, height: 2 * haloR + 6 },
   }) : null;
   // THE RING'S Δθ, as Cut it up makes the cuts: the footer writes ΔQ = λR Δθ and the board calls θ a piece's angle
   // round the ring, and nothing on the figure was θ or Δθ. In the ring's own plane, so it is drawn through the
