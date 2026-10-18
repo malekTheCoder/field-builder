@@ -383,3 +383,11 @@
 /* Why a potential is differentiated, said under the heading before the first derivative: set as a
    worked step's own sentence is. */
 .ew-worked-why{margin:8px 0 0;font-size:var(--type-meta);line-height:1.6;color:var(--muted-foreground);text-wrap:pretty}
+
+/* A keyboard reader arrives on each newly revealed algebra passage. Its focus ring names the
+   reading position without adding another stop to the ordinary Tab order. */
+.ew-worked-step:focus-visible{outline:2px solid var(--primary);outline-offset:3px;border-radius:2px}
+/* The desktop card fades its foot to hint that more lies below. A keyboard reader may arrive
+   there on Unfold's next passage or action: keep that reading position fully legible while it
+   owns focus, then restore the ordinary scroll hint when the reader leaves the walkthrough. */
+.exp-workspace>.ew-panel[data-more]:has(.ew-worked-step:focus,.ew-next-step:focus){-webkit-mask-image:none;mask-image:none}

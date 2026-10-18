@@ -111,6 +111,6 @@ export const bank: Question[] = [
       {text: raw`It is zero unless there is charge outside the surface.`, misconception: 'zero-flux-zero-field',
         why: raw`Charge inside that adds to zero can still make a field: a positive and a negative charge side by side do, all over the surface, with nothing outside at all.`},
     ],
-    explanation: raw`Gauss’s law fixes the total, $\oint\vec E\cdot d\vec A=Q_{\text{enc}}/\varepsilon_0$, not the field at each point. Zero says the inward and outward flux balance; only a symmetry that makes the field the same and perpendicular to the surface everywhere would turn that into zero field.`,
+    explanation: raw`Gauss’s law fixes the total, $\oint\vec E\cdot d\vec A=Q_{\text{enc}}/\varepsilon_0$, not the field at each point. Zero says the inward and outward flux balance; for example, spherical symmetry makes $E_r$ constant on a concentric sphere, so zero flux there implies $E_r=0$. Without such a relation, zero flux alone does not determine the local field.`,
     review: {lesson: 'flux', section: 'Two traps'}},
 ];

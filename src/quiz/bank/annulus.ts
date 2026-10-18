@@ -78,7 +78,7 @@ export const bank: Question[] = [
       {tex: raw`\frac{\sigma}{2\varepsilon_0}`, misconception: 'bounds',
         why: raw`That is the endless sheet’s field. The rim stays at $b$, so with no hole the annulus is a disk of radius $b$, whose field magnitude is smaller because it lacks the rings past the rim.`},
     ],
-    explanation: raw`At $a=0$ the first term is $z/\sqrt{z^2}=1$ above the annulus, and $E_z$ is the disk lesson’s answer for radius $b$. The hole only ever took away the field of the rings inside it.`,
+    explanation: raw`At $a=0$ the factor $z/\sqrt{a^2+z^2}$ becomes $z/\sqrt{z^2}=1$ above the annulus, and $E_z$ is the disk lesson’s answer for radius $b$. The hole only ever took away the field of the rings inside it.`,
     review: {lesson: 'annulus', section: 'What the answer says'}},
 
   {id: 'annulus-holed-sheet', lesson: 'annulus', kind: 'check',
@@ -102,7 +102,7 @@ export const bank: Question[] = [
       {tex: raw`\frac{k\,\sigma\pi b^2}{z^2}`, misconception: 'bounds',
         why: raw`Far away the annulus is a point charge, but of its own charge: $\sigma$ times its area, $\pi(b^2-a^2)$. $\sigma\pi b^2$ counts charge in the hole, where there is none.`},
       {tex: raw`\frac{kQ}{z}`, misconception: 'potential-power',
-        why: raw`That falls as $1/z$, as a point charge’s potential does. A finite charge’s field, seen from far away, falls as the inverse square.`},
+        why: raw`That falls as $1/z$, as a point charge’s potential does. A localized source with nonzero total charge has an inverse-square leading field far away.`},
     ],
     explanation: raw`From far away every ring is nearly $z$ from $P$ and its field points nearly along the axis, so the annulus is a point charge holding its own charge, $Q=\sigma\pi(b^2-a^2)$. The error in that is of order $(b/z)^2$.`,
     review: {lesson: 'annulus', section: 'What the answer says'}},

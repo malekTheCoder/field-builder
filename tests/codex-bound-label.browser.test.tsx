@@ -1,0 +1,20 @@
+import 'katex/dist/katex.min.css';
+import '../app/globals.css';
+import '@fontsource-variable/hanken-grotesk';
+import '../src/static-fonts.css';
+import {cleanup,fireEvent,render} from '@testing-library/react';
+import {afterEach,expect,it} from 'vitest';
+import {page} from 'vitest/browser';
+import Site,{newVisit} from '../src/home/Site';
+const delay=(ms:number)=>new Promise(r=>setTimeout(r,ms));
+afterEach(()=>{cleanup();history.replaceState(null,'','/');newVisit()});
+it('settled disk lower bound clears its handle',async()=>{
+ await page.viewport(1280,720);newVisit();history.replaceState(null,'','/?p=disk&view=3d&stage=5');localStorage.setItem('field-builder:explorer:v1',JSON.stringify({id:'bisector',hideTour:true,cued:true,dark:false,sidebarOpen:true,params:{}}));
+ const v=render(<Site/>);await v.findByRole('heading',{level:1});await document.fonts.ready;await delay(1400);
+ const pause=v.queryByRole('button',{name:'Pause'});if(pause)fireEvent.click(pause);
+ const track=v.container.querySelector<HTMLElement>('.bp-track')!,seg=v.container.querySelectorAll<HTMLElement>('.bp-seg')[4],b=seg.getBoundingClientRect(),x=b.left+b.width*.999;
+ fireEvent.pointerDown(track,{clientX:x-8,clientY:b.top,button:0,pointerId:8});fireEvent.pointerMove(track,{clientX:x,clientY:b.top,pointerId:8});fireEvent.pointerUp(track,{clientX:x,clientY:b.top,pointerId:8});await delay(1600);
+ const g=v.container.querySelector('[data-bound=lower]')!,label=g.querySelector('text')!.getBoundingClientRect(),handle=g.querySelector('rect')!.getBoundingClientRect();
+ const overlap=Math.max(0,Math.min(label.right,handle.right)-Math.max(label.left,handle.left))*Math.max(0,Math.min(label.bottom,handle.bottom)-Math.max(label.top,handle.top));
+ expect(overlap).toBe(0);
+},20000);

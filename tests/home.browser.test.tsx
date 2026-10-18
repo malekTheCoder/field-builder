@@ -33,7 +33,7 @@ describe('the home page', () => {
   const ring = getByRole('link', {name: getProblem('ring').short});
   expect(ring.getAttribute('href')).toBe('?p=ring');
   expect(ring.querySelector('[data-glyph=ring]')).toBeTruthy();
-  expect(getByRole('link', {name: /Start with the finite line/}).getAttribute('href')).toBe('?p=bisector');
+  expect(getByRole('link', {name: /Start beside the rod’s middle/}).getAttribute('href')).toBe('?p=bisector');
   // The way back to where the reader was.
   expect(getByRole('link', {name: /Continue where you left off/}).textContent).toContain(getProblem('ring').short);
   // The page prints no numerals.

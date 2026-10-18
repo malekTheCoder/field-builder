@@ -94,7 +94,7 @@ export const bank: Question[] = [
       {tex: raw`0`, misconception: 'far-limit',
         why: raw`The field tends to zero as the distance tends to infinity. But zero does not give its leading decay law: at a large finite distance the point-charge expression gives the inverse-square behavior.`},
       {tex: raw`\frac{2k\lambda}{z}`, misconception: 'far-limit',
-        why: raw`That is the field near an endless line. A ring is a finite charge, and far away any finite charge looks like a point charge.`},
+        why: raw`That is the field near an endless line. This ring is a localized source with nonzero total charge, so its leading far field is a point charge’s.`},
     ],
     explanation: raw`When $z\gg R$, $(R^2+z^2)^{3/2}$ is nearly $z^3$, so $E_z$ tends to $kQz/z^3=kQ/z^2$. From far away every piece is nearly $z$ from $P$ and its field points nearly along the axis: the ring is a point charge.`,
     review: {lesson: 'ring', section: 'Limiting cases'}},

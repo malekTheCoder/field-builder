@@ -7,7 +7,7 @@ const raw = String.raw;
  * is the cleanest way to see what the missing lower half would have cancelled. */
 export const lesson: Lesson = {
   id: 'endpoint',
-  lead: raw`Find the field of a uniform rod at a point $P$ level with one end. No piece has a mirror partner, so neither component cancels: the field leans, and $E_x$ and $E_y$ each need an integral of their own.`,
+  lead: raw`Find the field of a uniform rod at a point $P$ level with one end. No piece has a mirror partner, so neither component cancels: the field leans, and we find $E_x$ and $E_y$ by adding their components separately.`,
   sections: [
     {heading: 'The setup', body: [
       raw`A thin rod of length $L$ carries a charge $Q$ spread evenly along it, so its linear charge density is $\lambda=Q/L$. It lies along the $y$-axis, running from $y=0$ up to $y=L$, and $P=(r,0)$ is a distance $r$ out, level with the rod’s lower end.`,

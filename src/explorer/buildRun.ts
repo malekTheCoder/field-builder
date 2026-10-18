@@ -325,8 +325,8 @@ export function buildStages(p: Problem, bracket?: RunBracket): BuildStage[] {
         : `Stack each bracketed ${unit}’s number: it becomes that part’s potential at${P} as they shrink.`)
         : `Each bracketed arrow starts where the last ended: the sum tends to that part’s field.`)
       // The rod off its bisector: its pairs, then its unpaired pieces whole -- and the tilt they give the sum. "The sum
-      // leans" was said to a reader who had not been told off what.
-      : geometry === 'offset' && !scalar ? `Mirror pairs go in along $x$, then the unpaired pieces whole: the sum tilts off the $x$-axis.`
+      // leans" was said to a reader who had not been told off what. At h = 0 every piece pairs, so no tilt is promised.
+      : geometry === 'offset' && !scalar ? `Mirror pairs add along $x$; any unpaired pieces tilt the sum off the $x$-axis.`
       : pairs && !scalar ? (exact ? `Pairs half a turn apart: sideways parts cancel; $z$ parts sum to exactly the field at${P}.`
         // Ending on what the sum reaches, not on the lone middle piece: the board under the line and the
         // caption say why that piece needs no partner, and the line closed on that footnote without ever
@@ -411,7 +411,7 @@ export function buildStages(p: Problem, bracket?: RunBracket): BuildStage[] {
   const adds = part
     ? `Now add the arrows of the bracketed ${unit}s, each starting where the last one ended.${pairs ? bracket.keeps ? ' Each one’s mirror is bracketed too, so the sideways parts undo each other along the way and the chain bends back to the axis.' : ' A piece whose mirror lies outside the bracket keeps its sideways part, so the chain leans.' : ''} Where it stops is the sum of the bracketed ${unit}s: that part’s field at P once they shrink.`
     : geometry === 'offset' && !scalar
-    ? `Now add the paired pieces from the middle out: their parts along the rod cancel, so the sum runs along the x-axis. Then the unpaired pieces whole, nearest P’s level first: nothing cancels theirs, so the sum tilts off the x-axis, and ${stops}`
+    ? `Add mirror pairs from the middle out: their parts along the rod cancel, so the sum follows x. Any unpaired pieces go in whole, nearest P’s level first, tilting the sum. At h = 0 every piece pairs, so the sum stays along x; ${stops}`
     : pairs && exact
     ? 'Now add the pieces in pairs, each with the same length of ring straight across from it. In each pair the sideways parts cancel and the parts along the axis add, so the sum, E = Σ ΔE, grows straight along the axis to exactly the field at P: every piece is the same distance away at the same angle, so cutting finer changes nothing.'
     : pairs

@@ -44,7 +44,7 @@ describe('the guide separates the methods it teaches', () => {
   expect(tex(exam)).toContain('E_r\\approx kQ/r^2');
   expect(tex(exam)).toContain('V\\approx kQ/r');
   expect(exam.textContent).toContain('If the net charge is zero');
-  expect(exam.textContent).toContain('law remains true but cannot determine the field on its own');
+  expect(exam.textContent).toContain('that symmetry alone does not determine its field from the flux');
   expect(document.querySelector('.guide-gauss-note')!.textContent).toContain('enclosed charge may still require integrating a density');
   expect(document.getElementById('guide-teachers')!.textContent).toContain('Teachers do not receive scores');
  },15000);

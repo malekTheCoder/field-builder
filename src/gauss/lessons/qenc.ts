@@ -22,6 +22,11 @@ export const lesson: GaussLesson = {
       {tex: raw`Q_{\text{enc}}=\int_{\text{inside}}\rho\,dV`},
       raw`Once the surface is outside the object, that is the whole charge, and it stops changing as the surface grows. Inside the object, it is a part of the charge that depends on where the surface is.`,
     ]},
+    {heading: 'Check the units before integrating', body: [
+      raw`A density is not a charge. Volume density $\rho$ has units $\mathrm{C/m^3}$ and a volume element $dV$ has units $\mathrm{m^3}$, so $\rho\,dV$ has units $\mathrm C$, as a charge must. The shell factor $4\pi r'^2$ supplies the missing area: $\rho\,dr'$ alone has units $\mathrm{C/m^2}$. This check works for either charge sign and for a density that varies.`,
+      raw`Then check the field. On a concentric Gaussian sphere, spherical symmetry gives a constant signed normal component $E_r$, so $E_r=Q_{\text{enc}}/(\varepsilon_0 A)$ with $A=4\pi r^2$. Since $\varepsilon_0$ has units $\mathrm{C^2/(N\,m^2)}$, dividing charge by $\varepsilon_0$ times area gives $\mathrm{N/C}$, the units of electric field.`,
+      raw`Units catch a missing length or area before you do the integral. They cannot check its bounds, sign or dimensionless factors, so still sketch the enclosed region and check the symmetry.`,
+    ]},
     {heading: 'Uniform: the ratio method', body: [
       raw`With a uniform density, the charge enclosed is the object’s charge times the fraction of it inside the surface. For a ball of radius $R$ and charge $Q$, a concentric sphere of radius $r$ inside it encloses the fraction $\frac43\pi r^3/\frac43\pi R^3$:`,
       {tex: raw`Q_{\text{enc}}=Q\,\frac{r^3}{R^3}\quad(r\le R),\qquad Q_{\text{enc}}=\lambda L\,\frac{r^2}{R^2},\qquad Q_{\text{enc}}=\rho A\,(2z)`},

@@ -1,5 +1,5 @@
 'use client';
-import {useEffect,useSyncExternalStore} from 'react';
+import {useEffect} from 'react';
 import {ArrowRight,GraduationCap,Moon,Sun} from 'lucide-react';
 import {getProblem} from '../problems/definitions';
 import {isReady} from '../problems/readiness';
@@ -9,7 +9,7 @@ import {GAUSS,PlannedGlyph,ShapeGlyph,plannedName} from '../explorer/lessons';
 import {gaussHref,gaussLesson,isGaussReady} from '../gauss';
 import {PrintButton} from '../components/PrintButton';
 import {Brand,SiteLinks} from '../explorer/Brand';
-import {STORAGE} from '../explorer/Explorer';
+import {usePageTheme} from '../home/pageTheme';
 import {Prose} from '../components/Math';
 import {Hint} from '../components/Hint';
 import '../explorer/explorer.css';
@@ -30,14 +30,8 @@ import './guide.css';
  * named as the lesson list names them; its board, "Apply Gauss's law", is worked the way "Build the integral" is;
  * and the exam checklist has its Gauss's law run beside the integral's, with a line on which to reach for. */
 
-/** The theme, as the home page keeps it: the document's class, saved with the lesson's settings. Copied
- * rather than shared, so this page added nothing to Home.tsx but a link. */
-const subscribeTheme=(on:()=>void)=>{const o=new MutationObserver(on);o.observe(document.documentElement,{attributes:true,attributeFilter:['class']});return()=>o.disconnect()};
-const isDark=()=>document.documentElement.classList.contains('dark');
-function setTheme(dark:boolean){
- document.documentElement.classList.toggle('dark',dark);
- try{const raw=localStorage.getItem(STORAGE),v=raw?JSON.parse(raw):{};localStorage.setItem(STORAGE,JSON.stringify({...(v&&typeof v==='object'&&!Array.isArray(v)?v:{}),dark}))}catch{/* kept for this visit */}
-}
+// The utility pages share the document theme and the reader's explicit preference.
+
 const open=(e:React.MouseEvent<HTMLAnchorElement>)=>{if(!inPlace(e))return;e.preventDefault();navigate(e.currentTarget.getAttribute('href')??'')};
 /** A lesson as a shared link opens it: at its defaults, which is what the guide's words describe. */
 const lessonHref=(id:ProblemId)=>`?p=${id}`;
@@ -125,7 +119,7 @@ const GAUSS_ORDER:Record<string,string>={
  sheets:'A pillbox through a sheet or a slab, and why, outside them, the distance drops out.',
  conductors:'No field inside the metal: where its charge must sit, and what a hollow in it holds.',
  holes:'A hole is a whole object plus a plug with the opposite charge density. Find each one’s field, by the law where its symmetry allows, and add them as arrows.',
- 'runs-out':'The finite rod. The law still holds, but no surface makes it solvable, so you are back to the integral.',
+ 'runs-out':'The finite rod. The law still holds, but its symmetry alone does not determine the field, so add its pieces with an integral.',
  hard:'Charge out to infinity, densities that blow up, and the law run backwards, from a field to the charge behind it.'};
 
 /** THE COMMON WRONG TURNS, each with the place on the page that shows it going right. */
@@ -146,18 +140,18 @@ const STUCK:{slip:string;text:string;where:string}[]=[
   text:String.raw`A piece’s potential is $k\,dQ/r_i$, one power, and a number with no direction, so there is no $\cos\alpha$, and with charge of one sign nothing cancels.`,
   where:'One piece, in any potential lesson.'},
  {slip:String.raw`You took $E$ out of the flux integral where it changes`,
-  text:String.raw`Gauss’s law holds for every closed surface, but it gives you $E$ only where symmetry makes the field the same over the part of the surface it crosses. On any other surface the flux is still $Q_{\text{enc}}/\varepsilon_0$, but it cannot be divided out to give $E$.`,
+  text:String.raw`Gauss’s law holds for every closed surface. To solve for a field at $P$, you need to know how the normal field over the surface relates to it. Our direct recipe uses symmetry: a constant normal component carries flux, while tangential or zero field carries none. Without that relation, the flux alone does not determine the field at $P$.`,
   where:'The surface and Left side, in a Gauss lesson’s Watch it build.'},
  {slip:'You counted charge outside the surface',
-  text:String.raw`Charge outside a closed surface sends as much flux in as out, so only $Q_{\text{enc}}$ goes on the right side. Its field on the surface is not zero, in general; the law still gives the whole field, but only where the symmetry holds for all of the charge.`,
+  text:String.raw`Charge outside a closed surface sends as much flux in as out, so only $Q_{\text{enc}}$ goes on the right side. Its field on the surface is not zero, in general. The flux includes the whole field, so a direct symmetry argument must account for all the charge, including charge outside.`,
   where:'Right side, in a Gauss lesson, and Why only the charge inside.'}];
 
 /** THE CHECKLIST FOR A SHAPE NO LESSON HAS: the five stages, written as the steps an exam answer takes. Then the
  * same for Gauss's law (GAUSS_CHECK): its five stages and the check, for charge with the symmetry it needs. */
 const GAUSS_CHECK:{step:string;text:string}[]=[
- {step:'Symmetry',text:'Turn the charge about its centre in any direction, or turn it about a line and slide it along that line, or slide and turn it within a plane. If it looks no different, the field must point straight out or in, and be the same wherever the charge looks the same. If not, build the integral.'},
- {step:'The surface',text:String.raw`Draw a closed surface through $P$ with that same symmetry: a sphere, a cylinder or a pillbox.`},
- {step:'Left side',text:String.raw`On each part of it the field is perpendicular to it and the same, runs along it, or is zero. The flux becomes $E$ times the area the field crosses.`},
+ {step:'Symmetry',text:'Turn the charge about its centre in any direction, or turn it about a line and slide it along that line, or slide and turn it within a plane. With the corresponding reflection symmetries, the field is radial from the centre or axis, or normal to the plane, and equal at equivalent points. If this direct recipe does not apply, consider superposition or a charge integral.'},
+ {step:'The surface',text:String.raw`For this direct recipe, draw a sphere, coaxial cylinder or pillbox whose flux-carrying part passes through $P$.`},
+ {step:'Left side',text:String.raw`Check that the normal component is the same on each flux-carrying part and relate it to the wanted field. Tangential or zero field contributes no flux.`},
  {step:'Right side',text:String.raw`Add only the charge inside, $Q_{\text{enc}}$, integrating a density if you are given one.`},
  {step:'Solve',text:String.raw`Set the two sides equal, $\Phi=Q_{\text{enc}}/\varepsilon_0$, and divide for $E$.`},
  {step:'Check',text:'Inside and outside answers agree at a boundary that carries no surface charge. Far from a ball with a finite net charge the field is a point charge’s. The sign follows the charge.'}];
@@ -171,7 +165,7 @@ const CHECKLIST:{step:string;text:string}[]=[
  {step:'Check the limits',text:String.raw`Far from a finite distribution with nonzero net charge $Q$, check $E_r\approx kQ/r^2$ for the radial field and $V\approx kQ/r$ for the potential, with $V=0$ at infinity. If the net charge is zero, the leading point-charge term vanishes and the field and potential decay faster. Check the units too.`}];
 
 export default function Guide(){
- const dark=useSyncExternalStore(subscribeTheme,isDark,()=>false);
+ const [dark,setTheme]=usePageTheme();
  useEffect(()=>{document.title='How to study with this site · Field Builder'},[]);
  const themeLabel=dark?'Switch to light theme':'Switch to dark theme';
  const ready=(id:ProblemId)=>isReady(id);
@@ -245,7 +239,7 @@ export default function Guide(){
     <p>An exam will give you a shape no lesson had. Run the same pattern, in these steps, and you will always know what to write next.</p>
     <ol className="guide-check">{CHECKLIST.map(c=><li key={c.step}><strong><Prose text={c.step}/></strong><span><Prose text={c.text}/></span></li>)}</ol>
     <h3 className="guide-check-title">Or, where the charge has symmetry: Gauss’s law</h3>
-    <p><Prose text={String.raw`Which to reach for? Gauss’s law is always true, but it hands you the field only when the charge’s symmetry makes $E$ the same, and perpendicular to the surface or along it, over each part of a closed surface you can draw: a ball or a shell whose charge depends only on the distance from its centre, an infinite line or cylinder, or an infinite sheet or slab. For combinations such as holes, apply the law to each symmetric ingredient and add the fields. A finite rod, a ring or a disk has no such surface, so build the integral; When symmetry runs out shows why the law remains true but cannot determine the field on its own. Where symmetry allows a direct solve, pick the surface first:`}/></p>
+    <p><Prose text={String.raw`Which to reach for? Gauss’s law is always true. The direct recipe taught here uses symmetry to relate the normal field over a closed surface to the field you want. It works for a radially charged ball or shell, an infinite line or cylinder, and an infinite sheet or symmetric slab. For combinations such as holes, find each ingredient’s field by Gauss’s law or a charge integral, then add the fields. A finite rod, ring or disk has symmetry, but that symmetry alone does not determine its field from the flux, so use the integral lessons. When symmetry runs out explains the missing information. For the direct recipe, pick the surface first:`}/></p>
     <ol className="guide-check">{GAUSS_CHECK.map(c=><li key={c.step}><strong>{c.step}</strong><span><Prose text={c.text}/></span></li>)}</ol>
    </section>
 
@@ -261,7 +255,7 @@ export default function Guide(){
    </aside>
 
    <footer className="guide-foot">
-    <a className="guide-start" href={lessonHref('bisector')} onClick={open}>Start with the finite line<ArrowRight size={16} aria-hidden="true"/></a>
+    <a className="guide-start" href={lessonHref('bisector')} onClick={open}>Start beside the rod’s middle<ArrowRight size={16} aria-hidden="true"/></a>
     <a className="guide-home" href={HOME_HREF} onClick={e=>{if(!inPlace(e))return;e.preventDefault();goHome()}}>Back to every lesson</a>
    </footer>
   </main>

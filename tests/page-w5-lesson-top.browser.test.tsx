@@ -33,7 +33,7 @@ describe('the way in', () => {
   it('leaves the focus on the lesson’s title after a lesson is chosen at home, and after Back into one', async () => {
     localStorage.setItem(STORAGE, JSON.stringify({id: 'bisector', hideTour: true, cued: true, dark: false, sidebarOpen: true, params: {}}));
     const view = render(<Site />);
-    const start = await view.findByRole('link', {name: /Start with the finite line/});
+    const start = await view.findByRole('link', {name: /Start beside the rod’s middle/});
     start.focus();
     await userEvent.keyboard('{Enter}');
     const title = await view.findByRole('heading', {level: 1, name: getProblem('bisector').title});
@@ -144,7 +144,7 @@ describe('the home page in a contrast theme', () => {
     await cdp().send('Emulation.setEmulatedMedia', {features: [{name: 'forced-colors', value: 'active'}]});
     localStorage.setItem(STORAGE, JSON.stringify({id: 'bisector', hideTour: true, cued: true, dark: false, sidebarOpen: true, params: {}}));
     const view = render(<Site />);
-    const start = await view.findByRole('link', {name: /Start with the finite line/});
+    const start = await view.findByRole('link', {name: /Start beside the rod’s middle/});
     expect(parseFloat(getComputedStyle(start).borderTopWidth)).toBeGreaterThan(0);
   });
 });

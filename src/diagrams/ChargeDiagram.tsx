@@ -687,7 +687,7 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
     const lo = 70 + (L / 2 - h) * offsetUnit, hi = 351 - (L / 2 + h) * offsetUnit;
     return lo <= hi ? clamp(216, lo, hi) : at;
   })();
-  const originAt1: Point = shell ? { x: 315, y: 371 - 16 - R * shellUnit } : perspective ? { x: 315, y: 296 + lift + surfaceDrop - surfaceRise } : offset ? { x: 220, y: offsetFoot } : footed ? { x: 210, y: 250 + lift } : id === 'semi' ? { x: 200, y: 275 + lift } : id === 'axial' ? { x: 130, y: 230 } : arcLike ? { x: 375, y: 218 } : { x: 220, y: 216 };
+  const openingOrigin: Point = shell ? { x: 315, y: 371 - 16 - R * shellUnit } : perspective ? { x: 315, y: 296 + lift + surfaceDrop - surfaceRise } : offset ? { x: 220, y: offsetFoot } : footed ? { x: 210, y: 250 + lift } : id === 'semi' ? { x: 200, y: 275 + lift } : id === 'axial' ? { x: 130, y: 230 } : arcLike ? { x: 375, y: 218 } : { x: 220, y: 216 };
   // Pixels per metre, times whatever the reader has zoomed to. The projection, the canvas
   // and the 3D frustum all read this, so one multiply zooms the whole figure and no layer
   // can disagree with another about scale.
@@ -707,7 +707,7 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
   const baseUnit = shell ? shellUnit : perspective ? surfaceRoomy
     : footed ? Math.min(45, 150 / p.size)
     : besideRod ? offsetUnit
-    : id === 'axial' ? fit(p.size + p.distance, 400, 20, 70)
+    : id === 'axial' ? Math.min(fit(p.size + p.distance, 400, 20, 70), inSpace ? 265 / (p.size + p.distance) : Infinity)
     // A little smaller on a phone, where the axis' letter is set half as large again and lower: at sixty-five per metre
     // the half circle's top end reached the y axis' top, and the letter stood on the arc beside the top handle and its
     // name, "□ y θ = φ/2", the arc's stroke through the y.
@@ -729,6 +729,13 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
   const axisDir: Vec = arcLike ? zero : id === 'axial' ? { x: 1, y: 0, z: 0 } : perspective ? { x: 0, y: 0, z: 1 } : { x: 1, y: 0, z: 0 };
   const pivot: Vec = id === 'axial' ? { x: p.size, y: 0, z: 0 } : zero;
   const pWorld: Vec = { x: pivot.x + axisDir.x * p.distance, y: pivot.y + axisDir.y * p.distance, z: pivot.z + axisDir.z * p.distance };
+  // An axial rod has a long gap beyond its end. Orbiting about its left-hand origin sent P and
+  // the answer out of the drawing even at unit zoom. Fit the entire O-to-P diameter once for
+  // every permitted camera angle, then keep its midpoint fixed. Turning changes orientation,
+  // never metres per pixel; flat diagrams retain their existing framing.
+  const axialOrbit = inSpace && id === 'axial';
+  const axialProjection = projectCamera(pWorld, view.yaw, view.pitch);
+  const originAt1: Point = axialOrbit ? {x:355-baseUnit*axialProjection.x/2,y:212.5-baseUnit*axialProjection.y/2} : openingOrigin;
   // Zoom magnifies the picture about the two things the picture is ABOUT -- the charge and P
   // -- rather than about the drawing origin.
   //
@@ -780,6 +787,10 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
   // Pixels per metre, times whatever the reader has zoomed to. The projection, the canvas and
   // the 3D frustum all read this, so one multiply zooms every layer and none can disagree.
   const unit = baseUnit * zoom;
+  // Arrow comparisons are fitted in the opening pose. Undo the orbit's midpoint translation
+  // here as well as the bounded-surface lift, or turning the rod would change arrow lengths.
+  const axialReference = projectCamera(pWorld, opening.yaw, opening.pitch);
+  const scaleOrigin = axialOrbit ? {x:355-unit*axialReference.x/2,y:212.5-unit*axialReference.y/2} : {x:O.x,y:O.y+surfaceRise};
   // Kept as one function for as long as the view holds still. The field canvas redraws whenever it
   // is handed a new projection, and a fresh closure every render meant a full redraw of every
   // streamline on every frame of the run -- reallocating the canvas to do it -- for a picture that
@@ -903,7 +914,7 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
     if (!build || scalar) return 1;
     // Undo only the orbit's framing lift in this reference view, so orbiting never refits the field scale.
     const ref = inSpace ? opening : FLAT, base = 100 / scaleValue;
-    const at = projectCamera(pWorld, ref.yaw, ref.pitch), from = { x: O.x + unit * at.x, y: O.y + surfaceRise + unit * at.y };
+    const at = projectCamera(pWorld, ref.yaw, ref.pitch), from = { x: scaleOrigin.x + unit * at.x, y: scaleOrigin.y + unit * at.y };
     const screen = (v: Vec): Point => { const s = projectCamera(v, ref.yaw, ref.pitch); return { x: base * s.x, y: base * s.y }; };
     const netV = screen(magnitude(runSum) >= magnitude(exactField) ? runSum : exactField), length = Math.hypot(netV.x, netV.y);
     let want = 1;
@@ -999,7 +1010,7 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
   // `alone` says the piece is its own mirror, with no partner drawn or laid on its part.
   const roomFor = (f: Vec, alone = selfMirror) => {
     if (scalar) return Infinity;
-    const ref = inSpace ? opening : FLAT, at = projectCamera(pWorld, ref.yaw, ref.pitch), from = { x: O.x + unit * at.x, y: O.y + surfaceRise + unit * at.y };
+    const ref = inSpace ? opening : FLAT, at = projectCamera(pWorld, ref.yaw, ref.pitch), from = { x: scaleOrigin.x + unit * at.x, y: scaleOrigin.y + unit * at.y };
     const mirror = id === 'ring' ? { x: -f.x, y: -f.y, z: f.z } : { x: f.x, y: -f.y, z: f.z };
     // And the parts each is resolved into, which What cancels draws as arrows of their own and names
     // past their tips: room for the whole arrow along its slant still let the part straight up from
@@ -1218,7 +1229,7 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
   // the axis' own arrowhead (see `roomFor`).
   // IN SPACE, ONE ENLARGEMENT FOR EVERY PAIR, fitted once in the view the figure opens in: see `spacePairGain`.
   const spaceGain = pairNow && pairSteps && inSpace ? (() => {
-    const at = projectCamera(pWorld, opening.yaw, opening.pitch), from = { x: O.x + unit * at.x, y: O.y + surfaceRise + unit * at.y };
+    const at = projectCamera(pWorld, opening.yaw, opening.pitch), from = { x: scaleOrigin.x + unit * at.x, y: scaleOrigin.y + unit * at.y };
     const screen = (v: Vec): Point => { const s = projectCamera(v, opening.yaw, opening.pitch); return { x: gain * s.x, y: gain * s.y }; };
     const top = axisTop + .39 * SYM * labelScale + 4;
     return spacePairGain(id, pairSteps, screen, from, { x: 52, y: top, width: 606, height: 361 - top }, 44 * labelScale);
@@ -2834,8 +2845,12 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
         const label = footed && !inSpace ? besidePoint(e.raw, { x: 1, y: 0 }, clear, SYM * labelScale) : along;
         // The flat disk's handles lie on its x axis, centre and rim, with R, s and the axis all crowding them: there a
         // name may also stand straight under its handle, below the axis -- where nothing of the disk's own is lettered.
-        const under = diskLike && !inSpace ? besidePoint(e.raw, { x: 0, y: 1 }, clear, SYM * labelScale) : null;
-        const alts = [...(label === along ? [] : [along]), ...(under ? [under] : [])];
+        const under = diskLike ? besidePoint(e.raw, { x: 0, y: 1 }, clear, SYM * labelScale) : null;
+        // In space the radial candidate can be boxed in by the projected axes and radius
+        // labels. Offer every clear side of the handle before the retained-name fallback,
+        // which otherwise put the zero of s = 0 directly over the centre's square.
+        const roundSides = diskLike && inSpace ? [{x:0,y:-1},{x:1,y:0},{x:-1,y:0}].map(dir=>besidePoint(e.raw,dir,clear,SYM*labelScale)) : [];
+        const alts = [...(label === along ? [] : [along]), ...(under ? [under] : []), ...roundSides];
         // With P on the shell's skin at its pole, the limit θ = 0 is P's own spot: its square stood over P's dot.
         const onP = shellSkin && Math.hypot(e.raw.x - P.x, e.raw.y - P.y) < 8;
         out.push({ key: e.i ? 'upper' : 'lower', handle: String(e.i), at: e.raw, edge: null, name: named(e.i), label, alt: alts.length ? alts.map(q => `${q.x.toFixed(1)} ${q.y.toFixed(1)} ${q.anchor}`).join(';') : undefined, mark: handlesShown && !onP, onP });
@@ -3581,6 +3596,10 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
     // The frame stops at the footer's band: a scene's name is never set there, kept or not. As an obstacle only, it
     // was one cost among others, and once a kept name had nowhere free that no stroke ran through, the ring's R on a
     // phone took the honest spot on the divider over a spot across a stroke, and read as the footer's first word.
+    // A handle under a character changes the character: the disk's zero became a square.
+    // Protect these small solid marks as strongly as other letters in the retained-label
+    // fallback, so a leader escape wins over painting a limit name across its own handle.
+    fixedWords.push(...[...root.querySelectorAll<SVGRectElement>('.cd-bound rect')].map(el=>toFrame(el.getBoundingClientRect())));
     const placed = placeLabels([...fixedWords.map(box => ({ box, fixed: true })), ...movers.map(m => ({ box: m.box, mirror: m.mirror, alternates: m.alternates, keep: m.keep, shaft: m.shaft, within: m.within, soft: m.soft, from: m.from, tethered: m.tethered, prefer: prefer(m), amongLines: m.amongLines }))],
       { frame: { width: 720, height: FOOTER_BAND, top: build ? TITLE_BAND : 0 }, obstacles: [...fixedMarks, ...dom, ...obstacleBoxes], pad: 2 * labelScale, labelPad: 8 * labelScale, maxShift: reach, shafts, lines: constructionLines, rules: axisRules });
     const nudges = placed.slice(fixedWords.length);
@@ -3642,7 +3661,7 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
     }
   });
   return <div ref={root} className={"charge-diagram cd-focus-"+highlight+(inSpace?" cd-in-space":"")+(perspective?" cd-surface-kind":" cd-wire-kind")+(building?" cd-building cd-stage-"+building:"")+(build?.paused?" cd-paused":"")+(build?.clock?" cd-clocked":"")+(hideAnswer?" cd-hide-total":"")+(narrow?" cd-narrow":"")+(arcLike && pairing ? " cd-arc-pair" : "")}
-    data-zoom={zoom.toFixed(3)} data-zooming={zooming ? 'true' : undefined} data-element-annulus={sceneElement.annulus ? `${sceneElement.annulus.inner},${sceneElement.annulus.outer}` : undefined} style={{ "--cd-k": labelScale } as CSSProperties}>
+    data-unit={unit} data-zoom={zoom.toFixed(3)} data-zooming={zooming ? 'true' : undefined} data-element-annulus={sceneElement.annulus ? `${sceneElement.annulus.inner},${sceneElement.annulus.outer}` : undefined} style={{ "--cd-k": labelScale } as CSSProperties}>
     {/* Field under construction, sharing one box so the two coordinate spaces cannot
         drift. Planar lessons only for now: the perspective geometries need their lines
         traced in three dimensions and sorted against the surface, a different job. */}
