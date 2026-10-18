@@ -66,7 +66,10 @@ describe('a run in space on a slow computer', () => {
  async function runRing(gap: number) {
   // Every frame of the page, the run's own included, arrives this far apart: a stand-in for a slow GPU.
   const real = window.requestAnimationFrame, cancel = window.cancelAnimationFrame;
-  window.requestAnimationFrame = cb => window.setTimeout(() => cb(performance.now()), gap) as unknown as number;
+  // The frame times it hands out are the gap itself, one on from the last: a loaded runner (software WebGL, a CI
+  // machine several times slower) delays the timers, and stamping by performance.now() timed that delay, not the stand-in.
+  let stamp = performance.now();
+  window.requestAnimationFrame = cb => window.setTimeout(() => cb(stamp += gap), gap) as unknown as number;
   window.cancelAnimationFrame = id => window.clearTimeout(id);
   onTestFinished(() => { window.requestAnimationFrame = real; window.cancelAnimationFrame = cancel; });
   const view = await openLesson('ring');

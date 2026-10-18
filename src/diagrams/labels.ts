@@ -326,7 +326,7 @@ export function placeLabels(labels:readonly Label[],options:PlaceOptions={}):Nud
      // rod end read as "+L/2z" with disjoint boxes only a hundredth of a pixel apart. Reserve
      // half the preferred label margin even in the least-bad fallback, so an unreadable near
      // collision can use the existing leader escape instead of being mistaken for a clean spot.
-     const crossing=crossesShaft(moved),onName=near.some(t=>t.label&&area(grow(moved,labelPad/2,padY/2),t.box)>0),bad=!ok||crossing||onName;
+     const crossing=crossesShaft(moved),onName=near.some(t=>t.label&&area(grow(moved,labelPad,padY),t.box)>0),bad=!ok||crossing||onName;
      if(bad&&bestCost<=1e6)continue;
      // A name over a name is the worst of these, both words lost where a stroke through one leaves each legible: once a
      // spot with a line through it stopped being free, ΔE_x went onto α's letter rather than across a faint arrow.
