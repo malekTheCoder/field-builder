@@ -16,6 +16,15 @@ bottom, finish In progress, then take Next in order.
   guide): one round, one publish. Usage 76% weekly at launch (stop at 90%).
 
 ## Next
+0. **URGENT: CI is red, so the site is not deploying** (found 2026-10-18). `tests/run-perf.browser.test.tsx`, disk / Shrink
+   them, p95 at 9.0 and 10.4 units on CI against a limit of 8, twice running on e286176. Locally it went from 4.4 to 5.8
+   units with cad956f (round 19, "Keep axial orbit and integration-bound labels in view"). The cost is its new
+   `fixedWords.push(...)` of the `.cd-bound rect` handle boxes before `placeLabels` (in ChargeDiagram's placement
+   effect). Without it, 4.6. Computing those boxes from `b.at` and `handleHalf` instead of `getBoundingClientRect` did
+   not help (6.0), so the time is in the placer working round them every frame, not in the DOM reads. Passing them as
+   obstacles (`fixedMarks`) breaks `tests/codex-bound-label.browser.test.tsx`. Fix it without weakening either test:
+   for example, protect the handles only while a bound name is placed near them, or skip re-placing unchanged bound
+   names during the Shrink frames. Also check `run-perf` "a zoom … bisector", which failed once in a local run.
 1. **Strict critique round 20 and onward** (owner, 2026-10-17): continue all five lenses across the whole site, fix every confirmed finding, then make four to eight teaching improvements. One fully validated local suite and one publish per round. Stop only at a genuinely clean critique or the authorized usage/time limit. Read the local Codex round-19 report before repeating coverage.
 2. **The potential's column explained in place** (owner asked "what's this?", 2026-10-17): a callout on the
    lit block ("one piece's ΔV"), a bracket showing the column's height is V ≈ ΣΔV, and one caption line
