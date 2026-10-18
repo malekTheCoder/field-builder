@@ -167,7 +167,7 @@ export const lesson: GaussLesson = {
       checks: [
         {title: 'Continuous at R', text: raw`Inside at $r=R$: $kQR/R^3=kQ/R^2$, the outside value. With a finite density no charge sits on the surface itself, so the field cannot jump there.`},
         {title: 'Zero at the centre', text: raw`At $r=0$ the sphere encloses nothing, and $E_r=0$: by symmetry the centre has no direction to point in.`},
-        {title: 'Either sign', text: raw`For a negative $Q$, $E_r$ is negative throughout: the field points in, strongest at the surface.`},
+        {title: 'Either sign', text: raw`For a negative $Q$, $E_r$ is negative for $r>0$ and zero at the centre: the nonzero field points in, strongest at the surface.`},
       ],
     },
     {
@@ -203,13 +203,13 @@ export const lesson: GaussLesson = {
         answer: raw`E_r=\begin{cases}\dfrac{kQr^2}{R^4}, & r\le R\\[6pt]\dfrac{kQ}{r^2}, & r\ge R\end{cases}`,
         say: raw`Inside, the field’s magnitude grows as $r^2$; at $r=R$ its signed component is $E_r=kQ/R^2$, the outside value.`,
         line: raw`Inside, $|E_r|$ grows as $r^2$; at $R$ it meets the outside field’s magnitude.`,
-        caption: 'Divide by four π ε₀ r squared. Inside, the field’s magnitude grows as r squared, more slowly than in a uniform ball at first, since less charge lies near the centre. At the surface both signed answers give E_r equal to k Q over R squared.',
+        caption: 'Divide by four π ε₀ r squared. Inside, the field’s magnitude grows as r squared, more slowly than in a uniform ball at first, since a smaller fraction of the charge lies near the centre. At the surface both signed answers give E_r equal to k Q over R squared.',
       },
       checks: [
         {title: 'Continuous at R', text: raw`Inside at $r=R$: $kQR^2/R^4=kQ/R^2$, the outside value.`},
         {title: 'Slower at first', text: raw`Near the centre $E_r\propto r^2$, smaller in size than the uniform ball’s $kQr/R^3$ all the way in, because the density’s magnitude increases toward the surface, putting less of the charge near the centre.`},
         {title: 'Far away, a point charge', text: raw`Far away every sphere here looks like a point charge, $kQ/r^2$, and so does every finite charge whose total is not zero: the Ring lesson’s field on its axis, added up piece by piece, approaches $kQ/z^2$ far out, and so does the Disk lesson’s.`},
-        {title: 'Either sign', text: raw`For a negative $Q$, $E_r$ is negative in both regions: the field points in.`},
+        {title: 'Either sign', text: raw`For a negative $Q$, $E_r$ is negative for $r>0$ in both regions and zero at the centre.`},
       ],
     },
   ],

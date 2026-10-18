@@ -13,7 +13,8 @@ import {FACES, cubeAt, cubeShares, type Face, type Pt} from './instruments';
  * the centre are the six equal, and only there does symmetry alone say what each is: a sixth.
  *
  * The page prints no numerals: the bars are lengths, all on one scale, the sum's full width the whole flux. */
-const C = {x: 160, y: 172}, U = 120, BAR = {x: 390, w: 220, top: 50, gap: 34};
+// Leave room for both “Right” labels at the phone’s enlarged type size, while keeping every bar on one scale.
+const C = {x: 160, y: 172}, U = 120, BAR = {x: 470, w: 140, top: 50, gap: 34};
 const toScreen = (p: Pt) => ({x: C.x + U * p.x, y: C.y - U * p.y});
 const NAMES: Record<Face, string> = {top: 'Top', bottom: 'Bottom', left: 'Left', right: 'Right', front: 'Front', back: 'Back'};
 export function CubeInstrument({sign}: {sign: 1 | -1}) {

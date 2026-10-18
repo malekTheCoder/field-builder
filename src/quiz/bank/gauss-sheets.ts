@@ -26,7 +26,7 @@ export const bank: Question[] = [
       {tex: raw`E_\perp=\frac{\sigma}{\varepsilon_0}`, misconception: 'sheet-double',
         why: raw`That drops the two: a lone sheet’s flux crosses both faces, half each way. $\sigma/\varepsilon_0$ is the field just outside a conductor, where all the flux crosses one face.`},
       {tex: raw`E_\perp=\frac{\sigma A}{2\varepsilon_0}`, misconception: 'size-left-in',
-        why: raw`The face area is on both sides, in $2E_\perp A$ and in $\sigma A$, and cancels. A field cannot depend on the size of a surface you drew.`},
+        why: raw`The face area is on both sides, in $2E_\perp A$ and in $\sigma A$, and cancels. At fixed $P$, changing the auxiliary face area cannot change the field.`},
     ],
     explanation: raw`Dividing by $2A$ gives $E_\perp=\sigma/(2\varepsilon_0)$, which with $k=1/(4\pi\varepsilon_0)$ is the Infinite sheet lesson’s $2\pi k\sigma$. It points away from the sheet on both sides for a positive $\sigma$, toward it for a negative one.`,
     review: {lesson: 'sheets', stage: 'solve', case: 'sheet'}},

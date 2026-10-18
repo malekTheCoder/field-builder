@@ -105,7 +105,7 @@ export const bank: Question[] = [
       {text: raw`Nothing: $A$ is part of the slab’s size, so it belongs in the field.`, misconception: 'size-left-in',
         why: raw`The slab is infinite in its other two directions; $A$ is the area of the pillbox’s faces, not of the slab. It appears as $2E_\perp A$ on the left and in $Q_{\text{enc}}$ on the right, and cancels.`},
     ],
-    explanation: raw`Setting $2E_\perp A$ equal to $2\rho_0A(z-z^2/2a)/\varepsilon_0$, the $A$ cancels, giving $E_\perp=\frac{\rho_0}{\varepsilon_0}\big(z-\frac{z^2}{2a}\big)$. An $A$ or an $L$ left in a field is always a slip.`,
+    explanation: raw`Setting $2E_\perp A$ equal to $2\rho_0A(z-z^2/2a)/\varepsilon_0$, the $A$ cancels, giving $E_\perp=\frac{\rho_0}{\varepsilon_0}\big(z-\frac{z^2}{2a}\big)$. The auxiliary area $A$ must cancel here because changing it leaves $P$ and the source unchanged.`,
     review: {lesson: 'qenc', section: 'Check the answer', case: 'slab'}},
 
   {id: 'qenc-outer-half', lesson: 'qenc', kind: 'predict',

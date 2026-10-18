@@ -2,7 +2,7 @@ import type {GaussLesson} from '../types';
 const raw = String.raw;
 /* WHY ONLY THE CHARGE INSIDE. The argument behind Gauss's law, in the study guide's four steps: a sphere centred on
  * a point charge; any surface round it, by the solid angle each patch fills seen from the charge; a charge outside,
- * whose every cone crosses the surface twice, in and out, and cancels; many charges, by superposition. Then the
+ * whose cone crossings enter and leave in cancelling pairs; many charges, by superposition. Then the
  * misconception it sets up: E in the law is the total field. Outside charges add nothing to the net flux, but they
  * do add to the field, as a capacitor's other plate does at a pillbox round one plate.
  *
@@ -25,10 +25,10 @@ export const lesson: GaussLesson = {
     {heading: 'Step two: any surface round it', body: [
       raw`Move the charge off the centre, or squash the sphere into any closed shape. Now the field differs from patch to patch, and crosses each at its own angle. Look at the surface from $q$ instead, and measure each patch by the solid angle it fills. A solid angle is the three-dimensional version of an angle: the area a cone cuts from a sphere of radius one round its tip, $4\pi$ for every direction at once. The same cone cuts four times the area at twice the distance, which is why $dA/s^2$ appears; and a patch tilted to the cone needs more area to fill it, so it counts only $dA\cos\alpha$. A small patch $dA$ at a distance $s$ from $q$, its normal at an angle $\alpha$ to the line from $q$, fills a narrow cone of directions: its solid angle is $d\Omega=dA\cos\alpha/s^2$. The flux through it is the field’s part along its normal times its area:`,
       {tex: raw`d\Phi=\frac{q}{4\pi\varepsilon_0s^2}\,dA\cos\alpha=\frac{q}{4\pi\varepsilon_0}\,d\Omega`},
-      raw`The distance and the tilt have dropped out together. A farther patch sees a weaker field but needs more area to fill the same cone; a tilted patch catches less of the field but has more area for the same cone. So a patch carries flux in proportion to the cone it fills, seen from $q$, and nothing else about it matters. A closed surface round $q$ fills every direction once, the whole solid angle $4\pi$, so its flux is $q/\varepsilon_0$ whatever its shape and wherever inside it the charge sits. Where a cone crosses a fold of the surface three times, out, in and out again, two of the crossings cancel and one is left.`,
+      raw`The distance and the tilt have dropped out together. A farther patch sees a weaker field but needs more area to fill the same cone; a tilted patch catches less of the field but has more area for the same cone. So a patch carries flux in proportion to the cone it fills, seen from $q$, and nothing else about it matters. A closed surface round $q$ gives one net outward crossing in each direction, the oriented solid angle $4\pi$, so its flux is $q/\varepsilon_0$ whatever its shape and wherever inside it the charge sits. Where a cone crosses a fold of the surface three times, out, in and out again, two of the crossings cancel and one is left.`,
     ]},
     {heading: 'Step three: a charge outside', body: [
-      raw`Now put $q$ outside the surface. Every cone from $q$ that meets the surface enters it somewhere and leaves it somewhere else. Where it enters, the line from $q$ runs against the outward normal, and the patch carries $-q\,d\Omega/4\pi\varepsilon_0$; where it leaves, the patch carries $+q\,d\Omega/4\pi\varepsilon_0$, for the same cone. The two crossings cancel, cone by cone, and the net flux of a charge outside is zero.`,
+      raw`Now put $q$ outside the surface. Every cone from $q$ that meets the surface enters it somewhere and leaves it somewhere else. Where it enters, the line from $q$ runs against the outward normal, and the patch carries $-q\,d\Omega/4\pi\varepsilon_0$; where it leaves, the patch carries $+q\,d\Omega/4\pi\varepsilon_0$, for the same cone. Entering and leaving crossings cancel in pairs, cone by cone, even when a fold gives more than one pair, and the net flux of a charge outside is zero.`,
       raw`Its field on the surface is not zero. For a positive $q$ it goes in through the side facing $q$ and out through the far side, and the other way for a negative one; only the total comes to nothing. Zero net flux says the charge inside adds to zero; it says nothing about the field.`,
     ]},
     {heading: 'Step four: many charges', body: [
@@ -128,8 +128,8 @@ export const lesson: GaussLesson = {
         caption: 'Seen from q, the sphere surrounds it, filling every direction exactly once: the whole solid angle, four π. So the flux is q over ε₀, exactly as with q at the centre: positive for a positive q, negative for a negative one.',
       },
       checks: [
-        {title: 'Uneven, the same total', text: raw`The patches nearest $q$ carry more flux than the far ones, since the field there is stronger. The total is still $q/\varepsilon_0$, as it was with $q$ at the centre.`},
-        {title: 'Any shape', text: raw`Nothing in the argument used the sphere: any closed surface round $q$ fills every direction once, seen from $q$, and carries $q/\varepsilon_0$.`},
+        {title: 'Uneven, the same total', text: raw`The patches nearest $q$ carry a larger flux magnitude than equal-area far patches, since the field there is stronger. The total is still $q/\varepsilon_0$, as it was with $q$ at the centre.`},
+        {title: 'Any shape', text: raw`Nothing in the argument used the sphere: any closed surface round $q$ has one net outward crossing in each direction, seen from $q$, and carries $q/\varepsilon_0$.`},
         {title: 'Either sign', text: raw`For a negative $q$ every patch carries flux in, more of it near $q$, and the total is the negative $q/\varepsilon_0$.`},
       ],
     },
@@ -171,7 +171,7 @@ export const lesson: GaussLesson = {
       },
       checks: [
         {title: 'Zero flux, not zero field', text: raw`The field is nonzero everywhere on the sphere. It is tangent along the circle separating inward from outward flux; on either side its normal component has opposite signs. The inward and outward contributions cancel in the total.`},
-        {title: 'Let it out', text: raw`In the instrument below, slide the charge out through the sphere: the stacked flux stays $q/\varepsilon_0$ until the moment it crosses the surface, then drops to zero, and returns to $q/\varepsilon_0$ only when the charge comes back in.`},
+        {title: 'Let it out', text: raw`In the instrument below, slide the charge out through the sphere: the stacked flux stays $q/\varepsilon_0$ until the moment it crosses the surface, then changes to zero, and returns to $q/\varepsilon_0$ only when the charge comes back in.`},
         {title: 'Either sign', text: raw`For a negative $q$ the near side carries flux out and the far side in. The total is still zero.`},
       ],
     },
@@ -179,7 +179,7 @@ export const lesson: GaussLesson = {
   traps: [
     {wrong: 'The field in Gauss’s law is only the field of the charge inside.', right: raw`It is the total field, from every charge. Charges outside add nothing to the net flux, but they still add to the field, as a capacitor’s other plate does at a pillbox round one plate.`},
     {wrong: 'A charge outside makes no field on the surface.', right: raw`Its field crosses the surface, in where it faces the charge and out on the far side, or the other way for a negative charge. Only the net flux is zero.`},
-    {wrong: 'Moving a charge about inside the surface changes the flux.', right: raw`Seen from the charge, the surface still fills every direction once: the flux stays $q/\varepsilon_0$ until the charge crosses the surface.`},
+    {wrong: 'Moving a charge about inside the surface changes the flux.', right: raw`Seen from the charge, the surface still has one net outward crossing in each direction: the flux stays $q/\varepsilon_0$ until the charge crosses the surface.`},
   ],
   instrument: 'inside',
   next: 'qenc',

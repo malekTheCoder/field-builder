@@ -92,8 +92,9 @@ export function surfaceOf(c: GaussCase, size: number): Surface {
 }
 export const chargeOf = (c: GaussCase, sign: 1 | -1): Charge => ({kind: c.figure.charge.kind, sign, size: c.figure.charge.size, ...(c.figure.charge.outer ? {outer: c.figure.charge.outer} : {}),
   ...(c.figure.charge.hole ? {hole: c.figure.charge.hole} : {}), ...(c.figure.charge.amount ? {amount: c.figure.charge.amount} : {}), ...(c.figure.charge.at ? {at: c.figure.charge.at} : {})});
-/** Whether the run solves for the field at P: not for a charge off a sphere's centre, a finite rod, or a cube round a
- * charge, where no surface has the field the same all over it and the run ends on the flux. */
+/** Whether this run solves for the field at P on its chosen surface. The off-centre sphere, finite-rod cylinder
+ * and cube runs stop at flux. A different sphere centred on the point charge could solve its field, but would not
+ * provide the individual flux shares on the original surface. */
 export const answersAtP = (c: Charge, g: Surface) => c.kind !== 'offset' && c.kind !== 'segment' && g.kind !== 'cube';
 /** The plug's own surface through P: a sphere about the ball's hole, a cylinder about the rod's; none for a sheet's
  * disc, whose field on its axis comes from adding its rings. */

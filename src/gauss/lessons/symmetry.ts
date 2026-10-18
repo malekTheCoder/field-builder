@@ -3,7 +3,7 @@ const raw = String.raw;
 /* SYMMETRY FIRST. The owner's study guide opens the unit here, before any flux, and so does the site: Gauss's
  * law is true for every closed surface, but it hands over E only where symmetry has already said which way E
  * points and where its size is the same. The argument is the rotate-and-flip one: a move that leaves the charge
- * as it was cannot change the field it makes. The three cases are the three usable symmetries, and the run
+ * as it was cannot change the field it makes. The three cases show the standard useful symmetries, and the run
  * follows whichever one the reader has picked, taking it through the whole recipe to the field. Every sentence
  * holds for either sign: E_r and E_⊥ are signed components, negative where the field points in. */
 export const lesson: GaussLesson = {
@@ -17,7 +17,7 @@ export const lesson: GaussLesson = {
       raw`Gauss’s law says that the flux of $\vec E$ out through any closed surface is the charge inside it, $Q_{\text{enc}}$, divided by $\varepsilon_0$:`,
       {tex: raw`\oint\vec E\cdot d\vec A=\frac{Q_{\text{enc}}}{\varepsilon_0}`},
       raw`Read the left side as: cut the surface into small patches, multiply each patch’s area by the part of $\vec E$ going straight out through it, and add them up; the circle on the integral says the surface is closed. The next lesson builds that properly. Here it is enough that where $\vec E$ is the same size all over a surface and perpendicular to it, it comes out of the sum as $E$ times the area.`,
-      raw`The law is true for every surface and every charge. But it gives you $\vec E$ only when $\vec E$ can come out of the integral, and that needs a surface on which you already know which way $\vec E$ points and where its size is the same. Only symmetry can tell you that, and it has to tell you before you calculate anything.`,
+      raw`The law is true for every surface and every charge. For the direct solving method here, symmetry must first relate the normal field on the chosen surface to the unknown field at $P$, so the integral becomes that field times known geometric factors.`,
     ]},
     {heading: 'The rule', body: [
       raw`Some moves leave a charge looking exactly as it was: turning it about an axis, flipping it in a mirror, sliding it along itself. The field is made by the charge and nothing else. So if a move leaves the charge unchanged, it must leave the field unchanged too; otherwise the field could tell apart two charges that are identical. The field has every symmetry the charge has.`,
@@ -32,16 +32,16 @@ export const lesson: GaussLesson = {
       raw`A charge that depends only on the distance from a centre is unchanged by any turn about that centre. A part of $\vec E$ across the radius at $P$ would be swung round by a turn about the radius through $P$, while the charge stays put, so $\vec E$ points along the radius, and its size depends only on $r$.`,
       raw`An infinite sheet with a uniform $\sigma$ is unchanged by a turn about the line through $P$ perpendicular to it. Such a turn swings any part of $\vec E$ along the sheet round, so there is none: $\vec E$ is perpendicular to the sheet. And a mirror in the sheet’s own plane leaves the sheet as it was and swaps its two sides, so the field below is the mirror of the field above: away from the sheet on both sides, or toward it on both.`,
     ]},
-    {heading: 'The three usable symmetries', body: [
+    {heading: 'Three useful symmetries', body: [
       raw`Spherical: the charge depends only on the distance from a point. $\vec E$ is radial; draw a sphere about the centre. Cylindrical: the charge depends only on the distance from an axis, and goes on for ever along it. $\vec E$ points along the radius from the axis, outward or inward; draw a cylinder about it. Planar: the charge depends only on the height above an infinite plane, and is the same at equal heights above and below it. $\vec E$ is perpendicular to the plane; draw a pillbox, a short flat cylinder standing across it with one face on each side.`,
       {tex: raw`\text{sphere: }\ 4\pi r^2E_r\qquad\text{cylinder: }\ 2\pi rL\,E_r\qquad\text{pillbox: }\ 2AE_\perp`},
       raw`Those are what the left side of Gauss’s law becomes on each surface. Symmetry gives the shape of the field, never its strength; Gauss’s law supplies the strength.`,
     ]},
     {heading: 'What makes a surface useful', body: [
-      raw`The closed surface you draw is imaginary, and it is called a Gaussian surface. Each part of it has to be one of three kinds. On one kind, $\vec E$ is perpendicular to the surface and the same size all over, and the part contributes $E_r$ or $E_\perp$ times its area: the field’s signed component along the outward normal, the unit vector perpendicular to the surface and pointing out, positive where $\vec E$ points out and negative where it points in. On another, $\vec E$ lies along the surface, and the part contributes nothing. On the last, $\vec E$ is zero, and it contributes nothing either. The surface must also pass through the point where you want the field. It does not have to enclose all the charge: round an infinite line or sheet it only ever encloses a sample.`,
+      raw`The closed surface you draw is imaginary, and it is called a Gaussian surface. A sufficient recipe for a direct field solve is to combine three kinds of piece. On one kind, $\vec E$ is perpendicular to the surface and the same size all over, and the part contributes $E_r$ or $E_\perp$ times its area: the field’s signed component along the outward normal, the unit vector perpendicular to the surface and pointing out, positive where $\vec E$ points out and negative where it points in. On another, $\vec E$ lies along the surface, and the part contributes nothing. On the last, $\vec E$ is zero, and it contributes nothing either. For this recipe, choose the surface through the point where you want the field. These choices simplify the calculation; other closed surfaces still obey the law. It does not have to enclose all the charge: round an infinite line or sheet it only ever encloses a sample.`,
     ]},
     {heading: 'When it only looks symmetric', body: [
-      raw`Shapes that look just as neat, a rod with ends, a charged cube, a plate with edges, a sphere whose density changes with direction, survive too few of those moves. Whatever closed surface you draw around one, its field is somewhere slanted to it or stronger in one place than another. The flux through that surface is still the enclosed charge over $\varepsilon_0$; what you cannot do is pull $\vec E$ out of the integral. For them the field comes from adding up the pieces, as the integral lessons do.`,
+      raw`Shapes that look just as neat, a rod with ends, a charged cube, a plate with edges, a sphere whose density changes with direction, survive too few of those moves. Their symmetry does not directly relate all the normal field components on a convenient surface to the field at $P$. The flux is still the enclosed charge over $\varepsilon_0$, but the usual direct solve does not follow. For them the field comes from adding up the pieces, as the integral lessons do.`,
     ]},
   ],
   read: [
@@ -176,9 +176,9 @@ export const lesson: GaussLesson = {
     },
   ],
   traps: [
-    {wrong: 'Symmetric-looking is enough.', right: raw`A finite rod, a cube, a finite plate or a sphere whose density depends on direction looks tidy, but on no surface is $\vec E$ the same and perpendicular to it all over. Gauss’s law holds for them; it just will not give you $\vec E$.`},
+    {wrong: 'Symmetric-looking is enough.', right: raw`A finite rod, a cube, a finite plate or a sphere whose density depends on direction looks tidy, but lacks the symmetry needed for the usual direct field solve. Gauss’s law still holds for every closed surface.`},
     {wrong: 'Symmetry gives the field’s size.', right: raw`It gives the direction, and where the size is the same. Gauss’s law gives the size.`},
-    {wrong: 'The surface has to enclose all the charge.', right: raw`It has to pass through $P$. Round an infinite line or sheet it can only ever enclose a sample, and the field still comes out.`},
+    {wrong: 'The surface has to enclose all the charge.', right: raw`For the direct recipe here, draw it through $P$. Round an infinite line or sheet it can only ever enclose a sample, and the field still comes out.`},
   ],
   instrument: 'symmetry',
   next: 'flux',

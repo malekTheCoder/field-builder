@@ -16,6 +16,7 @@ export const lesson: GaussLesson = {
     {heading: 'Through a flat patch', body: [
       raw`Hold a flat patch of area $A$ in a uniform field $\vec E$. Give it an area vector $\vec A=A\,\hat{\mathbf n}$: perpendicular to the patch, its length the patch’s area. An open patch has two sides, and you choose which way $\hat{\mathbf n}$ points. The flux through it is the dot product:`,
       {tex: raw`\Phi=\vec E\cdot\vec A=EA\cos\theta`},
+      raw`The charges can stay still while the flux is nonzero. Flux measures the field’s normal component weighted by area; no charge has to move through the patch. Its units are $\mathrm{N\,m^2/C}$, from electric field times area. Reversing the chosen normal reverses the flux’s sign without changing the field.`,
       raw`Here $\theta$ is the angle between $\vec E$ and the normal $\hat{\mathbf n}$, not between $\vec E$ and the patch. Only the part of the field perpendicular to the patch, $E\cos\theta$, carries field through it; the part along the patch slides past.`,
     ]},
     {heading: 'The angle is from the normal', body: [

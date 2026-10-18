@@ -24,11 +24,11 @@ export const lesson: GaussLesson = {
   id: 'holes',
   title: 'Holes by superposition',
   short: 'Holes by superposition',
-  about: 'A hole as the whole charge plus a plug of the opposite sign, each solved by Gauss’s law.',
-  lead: raw`A charge with a hole in it has lost the symmetry Gauss’s law needs, but it is two charges that each have it: the whole charge, as if the hole were filled, and a plug of the opposite charge filling the hole. Solve each by Gauss’s law and add the fields.`,
+  about: 'A hole as the whole charge plus a plug of the opposite sign: find their fields and add them.',
+  lead: raw`A charge with a hole is the whole charge plus a plug of the opposite charge filling the hole. Find each field and add them: Gauss’s law solves the ball and rod pieces; a sheet’s disc plug needs an integral.`,
   sections: [
     {heading: 'A hole is two charges', body: [
-      raw`Gauss’s law needs a surface on which the field is the same all over, and a ball with an off-centre hole has none: it is round about no point at all. But fill the hole with charge of density $\rho$, and fill it again with charge of density $-\rho$, and nothing has changed, since the two cancel. Now group the charge differently. The first filling, with the rest of the ball, makes a whole ball of $\rho$. The second is a small ball of $-\rho$, the plug. Each of those is round about its own centre, so each one can be solved alone.`,
+      raw`A ball with an off-centre hole lacks spherical symmetry, so the usual concentric-sphere field solve is unavailable. But fill the hole with charge of density $\rho$, and fill it again with charge of density $-\rho$, and nothing has changed, since the two cancel. Now group the charge differently. The first filling, with the rest of the ball, makes a whole ball of $\rho$. The second is a small ball of $-\rho$, the plug. Each of those is round about its own centre, so each one can be solved alone.`,
       {tex: raw`\text{charge with a hole}=\text{whole charge}\,(\rho)\;+\;\text{plug}\,(-\rho)`},
       raw`Fields add, so the real field at any point is the whole charge’s field there plus the plug’s. They add as vectors: each points along its own radius, from its own centre, and the two radii are not the same line.`,
     ]},

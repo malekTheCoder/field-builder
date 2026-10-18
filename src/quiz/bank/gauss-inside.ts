@@ -23,7 +23,7 @@ export const bank: Question[] = [
     choices: [
       {correct: true, tex: raw`\frac{q}{4\pi\varepsilon_0}\,\frac{dA\cos\alpha}{s^2}`},
       {tex: raw`\frac{q}{4\pi\varepsilon_0}\,\frac{dA}{s^2}`, misconception: 'angle-from-surface',
-        why: raw`That is the field’s size times the patch’s area. A tilted patch is crossed only by the field’s part along its normal, which brings in $\cos\alpha$.`},
+        why: raw`That is the signed radial field from $q$ times the patch’s area, without projecting onto the patch normal. A tilted patch is crossed only by the field’s part along its normal, which brings in $\cos\alpha$.`},
       {tex: raw`\frac{q}{4\pi\varepsilon_0}\,\frac{dA\sin\alpha}{s^2}`, misconception: 'angle-from-surface',
         why: raw`$\alpha$ is measured from the normal, so $\sin\alpha$ picks out the part of the field along the patch, the part that slides past it.`},
     ],

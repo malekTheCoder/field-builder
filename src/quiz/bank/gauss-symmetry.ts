@@ -114,7 +114,7 @@ export const bank: Question[] = [
         why: raw`Symmetry says the size is the same over each sphere, at one $r$, not that it is the same from one $r$ to the next. Turns about the centre never carry a point to a different distance.`},
     ],
     explanation: raw`Symmetry gives the shape of the field: which way it points, and on which surfaces its size is the same. That is what lets $E_r$ come out of the integral. The strength itself is then fixed by $E_r\,(4\pi r^2)=Q_{\text{enc}}/\varepsilon_0$.`,
-    review: {lesson: 'symmetry', section: 'The three usable symmetries'}},
+    review: {lesson: 'symmetry', section: 'Three useful symmetries'}},
 
   {id: 'symmetry-negative-sheet', lesson: 'symmetry', kind: 'transfer',
     prompt: raw`Give the infinite sheet a negative charge. Which way does its field point?`,
