@@ -128,7 +128,7 @@ export default function Home(){
      </div>
      <div className="home-more"><GuideLink/><QuizLink/></div>
     </div>
-    <div className="home-hero-figure"><Cover/></div>
+    <div className="home-hero-figure"><Cover/><p className="home-cover-note">Drawn for positive charge. A negative charge turns every arrow round; the parts across the axis still cancel.</p></div>
    </section>
    <section className="home-how" aria-labelledby="home-how-title">
     <h2 id="home-how-title" className="home-section-title">How an integral lesson goes</h2>

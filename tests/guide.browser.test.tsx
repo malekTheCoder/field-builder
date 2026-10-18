@@ -38,6 +38,7 @@ describe('the study guide', () => {
   expect(lessons.length).toBe(19);
   expect(new Set(lessons.map(a => a.getAttribute('href'))).size).toBe(19);
   expect(lessons[0].getAttribute('href')).toBe('?p=bisector');
+  expect(words(container).match(/away from the piece when/g)).toHaveLength(2);
   expect(lessons[0].textContent).toContain(getProblem('bisector').short);
   expect(lessons.at(-1)!.getAttribute('href')).toMatch(/^\?p=v-/);
   // Then Gauss's law, after the integrals: all eleven, in the lesson list's order and by its names.

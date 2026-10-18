@@ -10,6 +10,8 @@ it('the home example uses the lesson’s piece-distance symbol and identifies a 
  // first lesson asks students to hold fixed. The lower arrow adds just these two pieces.
  expect([...cover.querySelectorAll('.home-r')].map(e=>e.textContent)).toEqual(['ri','ri']);
  expect(cover.textContent).toContain('this pair’s share of E');
+ expect(cover.textContent).not.toContain('negative charge');
+ expect(container.querySelector('.home-cover-note')!.textContent).toContain('A negative charge turns every arrow round');
  expect(cover.querySelector('.home-e')).toBeNull();
 });
 

@@ -38,7 +38,9 @@ export const lesson: Lesson = {
       {tex: raw`E_x=-\frac{\pi k\lambda_0}{2R}=-\frac{\pi kQ}{4R^2}`},
     ]},
     {heading: 'What the answer says', body: [
-      raw`For a positive charge the field points away from the middle of the semicircle; for a negative one, toward it. The same charge spread evenly gives $E_x=-2kQ/(\pi R^2)$: the cosine density makes the stronger field, by the factor $\pi^2/8$, because more of its charge sits where a piece’s field points along the axis. Both have magnitude below $k|Q|/R^2$, all of the charge at the middle of the arc.`,
+      raw`For a positive charge the field points away from the middle of the semicircle; for a negative one, toward it. The same charge spread evenly gives $E_x=-2kQ/(\pi R^2)$: the cosine density makes the stronger field, by the factor $\pi^2/8$, because more of its charge sits where a piece’s field points along the axis.`,
+      {tex: raw`\frac{\pi k|Q|}{4R^2}\div\frac{2k|Q|}{\pi R^2}=\frac{\pi^2}{8}`},
+      raw`Both have magnitude below $k|Q|/R^2$, all of the charge at the middle of the arc.`,
     ]},
   ],
   read: [

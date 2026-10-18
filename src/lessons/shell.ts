@@ -23,7 +23,7 @@ export const lesson: Lesson = {
       {tex: raw`r_i^2=R^2+z^2-2zR\cos\theta`},
       raw`The angle $\alpha$ at $P$ is between the ray toward the ring and the downward axis. Its signed axial projection is $\cos\alpha=(z-R\cos\theta)/r_i$:`,
       {tex: raw`\Delta E_z=\frac{k\,\Delta Q\,(z-R\cos\theta)}{r_i^3}`},
-      raw`For a ring above $P$, $\cos\alpha<0$: its field points the other way along the axis.`,
+      raw`For a ring above $P$, $\cos\alpha<0$: that ring’s field points the other way, for either sign.`,
     ]},
     {heading: 'What cancels', body: [
       raw`Round each ring the sideways parts cancel. Outside, every ring is below $P$, so every ring’s field points the same way along the axis, away from a positive shell and toward a negative one.`,
@@ -44,7 +44,7 @@ export const lesson: Lesson = {
     {heading: 'What the answer says', body: [
       raw`Outside, $|z-R|=z-R$, the top gives $-1$, and the bracket is $2$; inside, $|z-R|=R-z$, the top gives $1$ too, and the bracket is zero:`,
       {tex: raw`E_z=\frac{kQ}{z^2}\;(z>R),\qquad E_z=0\;(z<R)`},
-      raw`Outside, the shell is exactly a point charge $Q$ at its centre, not only far away. Inside there is no field at any point, not only at the centre: any point lies on some line through the centre, and the shell looks the same along every one. On the surface itself the integral gives their mean. Across the surface the field jumps from $0$ to $kQ/R^2$, which is $\sigma/\varepsilon_0$. Gauss’s law gets both answers in two lines; this is the integral it saves.`,
+      raw`Outside, the shell is exactly a point charge $Q$ at its centre, not only far away. Inside there is no field at any point, not only at the centre: any point lies on some line through the centre, and the shell looks the same along every one. On the surface the mean is $\sigma/(2\varepsilon_0)$. The jump from $0$ to $kQ/R^2$ is $\sigma/\varepsilon_0$, all of it just outside: a lone sheet would put $\sigma/(2\varepsilon_0)$ on each side. Gauss’s law gets both answers in two lines.`,
     ]},
   ],
   read: [

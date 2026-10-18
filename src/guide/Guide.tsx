@@ -45,7 +45,7 @@ export function GuideLink(){
  * for surfaces, volumes and potential, so this compact recipe cannot silently make every shape a rod. */
 const IDEA:{name:string;text:string}[]=[
  {name:'Cut it up',text:String.raw`Cut the charge into small pieces. Each holds $\Delta Q=\lambda\,\Delta y$ and is nearly a point.`},
- {name:'One piece',text:String.raw`Coulomb’s law for that one piece: $\Delta E=k\,\Delta Q/r_i^2$, along the line from the piece through $P$.`},
+ {name:'One piece',text:String.raw`Coulomb’s law for that one piece: $\Delta E=k\,\Delta Q/r_i^2$, along the line from the piece through $P$, away from the piece when $\Delta Q$ is positive and toward it when $\Delta Q$ is negative.`},
  {name:'What cancels',text:'Pair each piece with its mirror, where it has one. The parts that are equal and opposite drop out.'},
  {name:'Add them up',text:String.raw`Add what survives, piece by piece, with its projection: $\sum k\,\Delta Q\cos\alpha/r_i^2$.`},
  {name:'Shrink them',text:String.raw`As $N\to\infty$ the pieces shrink. $\Delta y$ becomes $dy$, and the sum becomes the integral.`}];
@@ -158,7 +158,7 @@ const GAUSS_CHECK:{step:string;text:string}[]=[
 const CHECKLIST:{step:string;text:string}[]=[
  {step:'Choose coordinates',text:String.raw`Lay the charge along an axis, put $P$ somewhere simple, and name the variable you will integrate over.`},
  {step:String.raw`Write $dQ$`,text:String.raw`$\lambda\,dy$ for a line, $\lambda R\,d\theta$ for an arc, $\sigma\,dA$ for a surface.`},
- {step:'One piece',text:String.raw`$dE=k\,dQ/r_i^2$, along the line from the piece through $P$. For a potential, $dV=k\,dQ/r_i$.`},
+ {step:'One piece',text:String.raw`$dE=k\,dQ/r_i^2$, along the line from the piece through $P$, away from the piece when $dQ$ is positive and toward it when $dQ$ is negative. For a potential, $dV=k\,dQ/r_i$.`},
  {step:'Use symmetry',text:'Find each piece’s mirror. Drop what cancels, and keep the projection on what is left.'},
  {step:'Set the bounds',text:'Where the charge starts and where it ends, in your variable.'},
  {step:'Integrate',text:'Take the constants out first. A trigonometric substitution often turns a root into something simple.'},

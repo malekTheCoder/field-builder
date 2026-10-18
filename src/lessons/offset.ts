@@ -21,13 +21,13 @@ export const lesson: Lesson = {
     {heading: 'One piece', body: [
       raw`Coulomb’s law, with $k=1/(4\pi\varepsilon_0)$, gives one piece’s field at $P$, its distance the hypotenuse of a triangle with legs $y$ and $r$:`,
       {tex: raw`\Delta E=\frac{k\,\Delta Q}{r_i^2},\qquad r_i=\sqrt{y^2+r^2}`},
-      raw`It lies along the line from the piece through $P$, at $\alpha$, the angle at $P$ between that line and the $x$-axis, signed like $y$: negative for a piece below $P$’s level.`,
+      raw`Away from the piece for a positive charge and toward it for a negative one, along the line through $P$ at $\alpha$ to the $x$-axis, signed like $y$: negative below $P$’s level.`,
     ]},
     {heading: 'What cancels', body: [
       raw`Split each field into parts, with $\cos\alpha=r/\sqrt{y^2+r^2}$ and $\sin\alpha=y/\sqrt{y^2+r^2}$:`,
       {tex: raw`\Delta E_x=\Delta E\cos\alpha,\qquad\Delta E_y=-\Delta E\sin\alpha`},
       raw`Fold the rod across $P$’s level. Call $m$ the nearer end’s distance from it, the smaller of $|y_1|$ and $|y_2|$. The stretch from $y=-m$ to $y=m$ lands on itself: each of its pieces has a mirror piece as far from $P$, with the same charge, so their parts along the rod cancel and their parts along $x$ add.`,
-      raw`The leftover, on the side the rod reaches farther, has no mirrors. Its parts along the rod all point one way, away from it for a positive charge, and survive: they are the whole of $E_y$.`,
+      raw`The leftover, on the side the rod reaches farther, has no mirrors. Its parts along the rod all point one way and survive: they are the whole of $E_y$.`,
     ]},
     {heading: 'Add them up', body: [
       raw`Add all $\Delta E_x$ to approximate $E_x$, and all $\Delta E_y$ for $E_y$. The figure adds mirror pairs along $x$, then any leftover pieces whole, tilting the sum. At $h=0$ every piece pairs, so the sum stays along $x$.`,

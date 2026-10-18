@@ -43,6 +43,7 @@
 .home-continue:focus-visible{outline:2px solid var(--primary);outline-offset:3px}
 .home-hero-figure{background:var(--diagram);border:1px solid var(--border);border-radius:var(--radius-card);corner-shape:squircle;padding:20px 18px 14px}
 .home-cover{display:block;width:100%;height:auto}
+.home-cover-note{margin:10px 2px 0;font-family:var(--font-ui),system-ui,sans-serif;font-size:14px;line-height:1.45;color:var(--muted-foreground)}
 
 /* The cover's marks, in the figure's own colours: the charge orange, one piece's arrow and its distance
    picked out, every other piece's arrow quieter, and their sum in the field's teal. */
