@@ -41,10 +41,12 @@ export function Prose({text}:{text:string}){
   // The rest of a hyphenated word is held whether or not the word before was joined: the board joins
   // its words with a no-break space, but the lessons' own sentences in the shelf use ordinary ones, so
   // there "the $x$-axis" was never held and broke as "on the x-" / "axis at the origin".
-  const before=typeof out.at(-1)==='string'?(out.at(-1) as string).match(/^([\s\S]*?)(\S+ )$/):null;
-  const suffix=parts[i+1]?.match(/^-[A-Za-z]+[.,;:]*/)?.[0]??'';
-  if(!before&&!suffix){out.push(<MathText key={i} className="db-sym" tex={parts[i]}/>);continue;}
-  const after=before?parts[i+1]?.match(/^(?:-[A-Za-z]+)?[.,;:]*/)?.[0]??'':suffix;
+  // Parentheses and brackets directly around a formula belong to that same run. An inline
+  // KaTeX block otherwise lets "inside (" end a line and moves the condition to the next one.
+  // Keep only adjacent punctuation with the math, leaving surrounding prose free to wrap.
+  const before=typeof out.at(-1)==='string'?(out.at(-1) as string).match(/^([\s\S]*?)(\S+ [[(]*|[[(]+)$/):null;
+  const after=parts[i+1]?.match(/^(?:-[A-Za-z]+)?[\]).,;:!?]*/)?.[0]??'';
+  if(!before&&!after){out.push(<MathText key={i} className="db-sym" tex={parts[i]}/>);continue;}
   if(before)out[out.length-1]=before[1];
   out.push(<span key={i} className="db-held">{before?.[2]}<MathText className="db-sym" tex={parts[i]}/>{after}</span>);
   if(after)parts[i+1]=parts[i+1].slice(after.length);
