@@ -282,7 +282,7 @@ const SURVIVOR = (angle: string, along: string, pos = 'y'): Survivor => (above, 
 // The rods level with one end and the ramp: every piece is above P's line. "On the same side of P"
 // meant nothing -- P is a point -- and what is missing is a partner BELOW that line. The last sentence
 // is the one thing the run's note added; the note is gone, so the board says it.
-const ABOVE = String.raw`Nothing cancels: every piece lies above the${NB}$x$-axis, so no piece has a mirror partner below it, and both parts of each survive. Cancellation needs a symmetry this geometry lacks.`;
+const ABOVE = String.raw`Nothing cancels: every piece lies above the${NB}$x$-axis, and all contributions to each component have the same sign. Cancellation requires a zero sum; here neither component can cancel.`;
 const COS_AXIS = (s: string) => ({dir: String.raw`\cos\alpha`, dirOf: String.raw`\frac{z}{\sqrt{${s}^2+z^2}}`});
 // A ring's piece and the piece half a turn round from it. ⊥ and θ+π were on the board with no word
 // for either; the partner's part is −ΔE⊥, as the figure labels it. "Piece", as every other ring line
@@ -451,7 +451,7 @@ const PARTS: Record<ProblemId, Parts> = {
     // field at P, and the chain at Add is N equal links; the algebra that proves it -- the sec²α in
     // the charge over the sec²α in the distance -- happened only inside Shrink them's second row, with
     // no word, while the bisector's three-halves power had a gloss of its own.
-    equal: String.raw`With $r_i^2=r^2\sec^2\alpha$, the $\sec^2\alpha$ in $\Delta Q$ cancels: every piece’s $\Delta E$ is $k\lambda\,\Delta\alpha/r$. A far piece holds more charge, and is farther away by exactly enough.`,
+    equal: String.raw`With $r_i^2=r^2\sec^2\alpha$, the $\sec^2\alpha$ in $\Delta Q$ cancels: every piece’s $\Delta E$ is $k\lambda\,\Delta\alpha/r$. A far piece holds more charge in magnitude, and is farther away by exactly enough.`,
     // Inline, as every other gloss is: stacked, it was the one display fraction among the glosses, set
     // ten pixels under the Σ → ∫ gloss with the rule's paragraph four pixels under its denominator.
     merged: String.raw`\lambda r\sec^2\alpha/(r^2\sec^2\alpha)=\lambda/r`,
@@ -467,7 +467,7 @@ const PARTS: Record<ProblemId, Parts> = {
     anti: {pre: String.raw`\frac{k\lambda}{r}`, inner: String.raw`\frac{y}{\sqrt{y^2+r^2}}`, check: 'k*lambda/r*y/sqrt(y^2+r^2)'},
     antiAlso: {pre: String.raw`k\lambda`, inner: String.raw`\frac1{\sqrt{y^2+r^2}}`, check: 'k*lambda/sqrt(y^2+r^2)'},
     alongIntegral: {tex: String.raw`E_y=-\int_0^\infty\frac{k\lambda y}{(y^2+r^2)^{3/2}}\,dy`, check: '-k*lambda*y/(y^2+r^2)^(3/2)'},
-    equal: String.raw`Putting $y=r\tan\alpha$ makes $r_i^2=y^2+r^2=r^2\sec^2\alpha$, and the $\sec^2\alpha$ in $\Delta Q$ cancels: every piece’s $\Delta E$ is $k\lambda\,\Delta\alpha/r$. A far piece holds more charge, and is farther away by exactly enough.`,
+    equal: String.raw`Putting $y=r\tan\alpha$ makes $r_i^2=y^2+r^2=r^2\sec^2\alpha$, and the $\sec^2\alpha$ in $\Delta Q$ cancels: every piece’s $\Delta E$ is $k\lambda\,\Delta\alpha/r$. A far piece holds more charge in magnitude, and is farther away by exactly enough.`,
     dir: String.raw`\cos\alpha`, dirOf: String.raw`\frac{r}{\sqrt{y^2+r^2}}`, simplify: true,
     also: (dQ, ri2) => String.raw`\Delta E_y=-\frac{k\,${dQ}}{${ri2}}${fx('projection', String.raw`\sin\alpha`)}`, alsoOf: String.raw`\sin\alpha=\frac{y}{\sqrt{y^2+r^2}}`,
     nothing: String.raw`Nothing cancels: the line starts level with${NB}$P$ and runs only upward, so no piece has a mirror partner below the${NB}$x$-axis, and both parts of each survive, which is why the field leans.`,
@@ -970,7 +970,7 @@ export function boardLines(p: Problem, bounds?: [string, string], opts: {keeps?:
   // there are N of them. (That the angles stop at a right angle is now Cut it up's first sentence, the
   // reason the sheet is cut by angle at all; here it was the second time of saying it.)
   const finite = p.geometry === 'sheet' && whole
-    ? String.raw` With $s=z\tan\alpha$ each term is $2\pi k\sigma\sin\alpha_i\,\Delta\alpha$: bigger for the farther rings, but never more than $2\pi k\sigma\,\Delta\alpha$, and there are $N$ of them, so the endless sheet still adds to a finite field.`
+    ? String.raw` With $s=z\tan\alpha$ each term has magnitude $2\pi k|\sigma|\sin\alpha_i\,\Delta\alpha$: larger for the farther rings, but never more than $2\pi k|\sigma|\,\Delta\alpha$. There are $N$ terms over a finite angle, so the endless sheet still adds to a finite field.`
     : '';
   // Its own paragraph: where the pieces are is one idea, what their sum is another.
   // WHERE E_y IS. At Add the figure's chain visibly leans, on the rods level with one end, the

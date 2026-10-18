@@ -28,7 +28,7 @@ export const bank: Question[] = [
       {tex: raw`dQ=\lambda\,2\pi R\,d\theta`, misconception: 'piece-length',
         why: raw`$2\pi R$ is the whole ring’s circumference. One piece spans only $d\theta$ of the turn, so its length is $R\,d\theta$.`},
       {tex: raw`dQ=Q\,d\theta`, misconception: 'whole-charge',
-        why: raw`That gives every piece the whole ring’s charge. Added once round, it would come to $2\pi Q$, not $Q$.`},
+        why: raw`That omits the angular normalization: $\lambda R=Q/(2\pi)$. Added once round, $Q\,d\theta$ would come to $2\pi Q$, not $Q$.`},
     ],
     explanation: raw`An arc $d\theta$ wide on a circle of radius $R$ is $R\,d\theta$ long, and the ring holds $\lambda$ per unit length, so the piece holds $\lambda R\,d\theta$. Once round, from $0$ to $2\pi$, that adds to $2\pi R\lambda=Q$.`,
     review: {lesson: 'ring', stage: 'cut'}},
@@ -108,7 +108,7 @@ export const bank: Question[] = [
       {text: raw`It stays the same, since every piece is the same distance from $P$.`, misconception: 'fixed-distance',
         why: raw`Every piece is the same distance from $P$ as every other, but that distance, $\sqrt{R^2+z^2}$, changes as $P$ moves.`},
     ],
-    explanation: raw`Far away the field grows as $P$ comes in, as a point charge’s does. Close in, each piece’s field leans more and more sideways, where it cancels, and the part along the axis, the fraction $z/r_i$ of it, shrinks to zero at the centre. In between it is largest, at $z=R/\sqrt2$.`,
+    explanation: raw`Far away the field magnitude grows as $P$ comes in, as a point charge’s does. Close in, each piece’s field leans more and more sideways, where it cancels, and the part along the axis, the fraction $z/r_i$ of it, shrinks to zero at the centre. In between it is largest, at $z=R/\sqrt2$.`,
     review: {lesson: 'ring', section: 'What the answer says'}},
 
   {id: 'ring-negative', lesson: 'ring', kind: 'transfer',

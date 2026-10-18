@@ -25,7 +25,7 @@ export const bank: Question[] = [
     choices: [
       {correct: true, tex: raw`dQ=\lambda\,dy`},
       {tex: raw`dQ=Q\,dy`, misconception: 'whole-charge',
-        why: raw`That puts the whole rod’s charge in every piece, and it is not even a charge: $Q\,dy$ is a charge times a length. Adding these pieces up would give $QL$, not $Q$.`},
+        why: raw`That replaces the line density $\lambda=Q/L$ with total charge, and is not even a charge: $Q\,dy$ is a charge times a length. Adding these pieces up would give $QL$, not $Q$.`},
       {tex: raw`dQ=\lambda`, misconception: 'piece-length',
         why: raw`$\lambda$ is a charge per unit length, not a charge. A piece holds $\lambda$ times its own length.`},
       {tex: raw`dQ=\frac{Q}{y}\,dy`, misconception: 'piece-length',

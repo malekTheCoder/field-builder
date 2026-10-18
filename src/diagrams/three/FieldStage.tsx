@@ -1852,8 +1852,16 @@ export function FieldStage(props:FieldStageProps){
    const root=mount.parentElement;
    const snapshot=(ev:Event)=>{
     if(disposed)return;
-    apply(latest.current);
-    const asked=(ev as CustomEvent<SnapshotDetail>).detail;asked.drawn=true;if(!asked.drawOnly)try{asked.url=renderer.domElement.toDataURL('image/png');}catch{/* a lost context: the copy goes without the scene */}
+    const asked=(ev as CustomEvent<SnapshotDetail>).detail,ratio=renderer.getPixelRatio();
+    // The saved compact layout can be enlarged on paper. Increase only this snapshot's backing
+    // store, preserving the same camera and CSS-space labels; put the live render budget back.
+    const copyRatio=Math.max(ratio,(asked.minimumWidth??0)/Math.max(1,mount.clientWidth));
+    try{
+     if(copyRatio!==ratio)renderer.setPixelRatio(copyRatio);
+     apply(latest.current);asked.drawn=true;
+     if(!asked.drawOnly)asked.url=renderer.domElement.toDataURL('image/png');
+    }catch{/* a lost context: the copy goes without the scene */}
+    finally{if(copyRatio!==ratio)renderer.setPixelRatio(ratio);}
     requestAnimationFrame(()=>{if(!disposed)apply(latest.current);});
    };
    root?.addEventListener(SNAPSHOT_EVENT,snapshot);

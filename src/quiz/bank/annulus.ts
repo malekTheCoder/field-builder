@@ -74,9 +74,9 @@ export const bank: Question[] = [
     choices: [
       {correct: true, tex: raw`\frac{\sigma}{2\varepsilon_0}\left(1-\frac{z}{\sqrt{b^2+z^2}}\right)`},
       {tex: raw`0`, misconception: 'cancel-survivor',
-        why: raw`Closing the hole adds charge, it does not take any away, and every ring’s part along the axis points the same way. The field grows to the whole disk’s.`},
+        why: raw`Closing the hole adds charge, it does not take any away, and every ring’s part along the axis points the same way. The field magnitude grows to the whole disk’s.`},
       {tex: raw`\frac{\sigma}{2\varepsilon_0}`, misconception: 'bounds',
-        why: raw`That is the endless sheet’s field. The rim stays at $b$, so with no hole the annulus is a disk of radius $b$, whose field is less than the sheet’s by the rings past the rim.`},
+        why: raw`That is the endless sheet’s field. The rim stays at $b$, so with no hole the annulus is a disk of radius $b$, whose field magnitude is smaller because it lacks the rings past the rim.`},
     ],
     explanation: raw`At $a=0$ the first term is $z/\sqrt{z^2}=1$ above the annulus, and $E_z$ is the disk lesson’s answer for radius $b$. The hole only ever took away the field of the rings inside it.`,
     review: {lesson: 'annulus', section: 'What the answer says'}},
@@ -86,7 +86,7 @@ export const bank: Question[] = [
     choices: [
       {correct: true, tex: raw`\frac{\sigma}{2\varepsilon_0}\,\frac{z}{\sqrt{a^2+z^2}}`},
       {tex: raw`\frac{\sigma}{2\varepsilon_0}`, misconception: 'bounds',
-        why: raw`That is a whole endless sheet, its middle included. The hole is still there: what is left is the sheet less the disk of radius $a$, smaller by that disk’s field.`},
+        why: raw`That is a whole endless sheet, its middle included. The hole is still there: what is left is the sheet less the disk of radius $a$, smaller in magnitude by that disk’s field magnitude.`},
       {tex: raw`0`, misconception: 'held-total-charge',
         why: raw`That is what happens with $Q$ held fixed, spread ever thinner. Here $\sigma$ is fixed, so the charge magnitude grows with the rim and every new ring adds to the field.`},
       {tex: raw`\frac{\sigma}{\varepsilon_0}\,\frac{z}{\sqrt{a^2+z^2}}`, misconception: 'sheet-double',

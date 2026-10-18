@@ -95,7 +95,7 @@ export const lesson: GaussLesson = {
       checks: [
         {title: 'Shells agree', text: raw`Thin shells give the same. The density $\rho=Q/\frac43\pi R^3$ is the same in every shell, so $\int_0^r\rho\,4\pi r'^2\,dr'$ is $\rho\,\frac43\pi r^3$, which is $Qr^3/R^3$. The ratio method is the shells, done in your head.`},
         {title: 'They meet at R', text: raw`At $r=R$ the inside answer gives $kQR/R^3=kQ/R^2$, the outside one’s value. A finite density puts no charge on the surface itself, so the field cannot jump there.`},
-        {title: 'Either sign', text: raw`For a negative $Q$, $E_r$ is negative in both regions, pointing in. The ratio does not care about the sign.`},
+        {title: 'Either sign', text: raw`For a negative $Q$, $E_r$ is negative for $r>0$ in both regions and zero at the centre. The ratio does not care about the sign.`},
       ],
     },
     {
@@ -137,7 +137,7 @@ export const lesson: GaussLesson = {
         {title: 'Normalise first', text: raw`$\rho_0$ was not given, $Q$ was. Integrating over the whole ball fixed $\rho_0=3Q/\pi R^3$; the answer is then in what the problem gave.`},
         {title: 'They meet at R', text: raw`Inside, at $r=R$: $\frac{kQ}{R^3}(4R-3R)=\frac{kQ}{R^2}$, as outside.`},
         {title: 'Strongest inside', text: raw`The field’s size peaks before the surface, at $r=2R/3$, where $E_r=\frac43\,kQ/R^2$: past there the density’s size at the sphere has fallen below two thirds of the average size inside it, so the size of the charge enclosed grows more slowly than the sphere’s area, and $|Q_{\text{enc}}|/r^2$ falls.`},
-        {title: 'Either sign', text: raw`For a negative $Q$ the density is negative throughout, and $E_r$ is negative in both regions.`},
+        {title: 'Either sign', text: raw`For a negative $Q$ the density is negative for $r<R$ and zero at the edge. The field is zero at the centre and $E_r<0$ for $r>0$.`},
       ],
     },
     {

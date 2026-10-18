@@ -56,7 +56,7 @@ function howItWent(right:number,total:number){
 
 type Phase='setup'|'take'|'end';
 type Pick={choice:number|null;sure:boolean|null;checked:boolean};
-type Snapshot={phase:Phase;settings:Settings;items:{id:string;order:number[]}[];index:number;answers:Answer[];pick:Pick};
+type Snapshot={phase:Phase;settings:Settings;items:{id:string;order:number[]}[];index:number;answers:Answer[];pick:Pick;priorMisconceptions?:Record<string,number>};
 const FRESH:Pick={choice:null,sure:null,checked:false};
 /** The quiz kept in this history entry, read back only if it still makes sense against the bank. */
 function restore():Snapshot|null{
@@ -84,7 +84,16 @@ export default function Quiz(){
  const [pick,setPick]=useState<Pick>(kept?.pick??FRESH);
  const [hist,setHist]=useState<History>(()=>readHistory());
  /** The history as it was before this quiz was recorded: what "has come up before" is measured against. */
- const [before,setBefore]=useState<History>(hist);
+ const [before,setBefore]=useState<History>(()=>{
+  if(!kept)return hist;
+  // Storage already includes this finished attempt. Back/reload must compare against its original
+  // baseline, not count the very same answer as an earlier quiz. Old snapshots have no such evidence.
+  const misconceptions:Record<string,number>={};
+  if(kept.priorMisconceptions&&typeof kept.priorMisconceptions==='object')
+   for(const [id,n] of Object.entries(kept.priorMisconceptions))
+    if(MISCONCEPTION.has(id)&&typeof n==='number'&&Number.isFinite(n)&&n>0)misconceptions[id]=n;
+  return {missed:[],asked:[],misconceptions};
+ });
  const [nudge,setNudge]=useState('');
  const [cleared,setCleared]=useState(false);
  const focus=useRef<string|null>(null);
@@ -92,9 +101,9 @@ export default function Quiz(){
  useEffect(()=>{document.title='Quiz yourself · Field Builder'},[]);
  // Keep the quiz in this history entry, so Back from a lesson link returns to it.
  useEffect(()=>{
-  const snap:Snapshot={phase,settings,items:drawn.map(d=>({id:d.question.id,order:d.order})),index,answers,pick};
+  const snap:Snapshot={phase,settings,items:drawn.map(d=>({id:d.question.id,order:d.order})),index,answers,pick,priorMisconceptions:before.misconceptions};
   try{history.replaceState({...history.state,quiz:snap},'')}catch{/* kept in memory only */}
- },[phase,settings,drawn,index,answers,pick]);
+ },[phase,settings,drawn,index,answers,pick,before]);
  // Focus follows the quiz: the new question, the verdict, the end, so a keyboard or a screen reader is never
  // left on a button that has gone.
  useEffect(()=>{const id=focus.current;if(!id)return;focus.current=null;document.getElementById(id)?.focus({preventScroll:false})});

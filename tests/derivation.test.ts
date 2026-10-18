@@ -339,7 +339,7 @@ describe('the derivation board', () => {
       expect(step(id, 'cancel').cancels, id).toBeUndefined();
       expect(step(id, 'cancel').nothing, id).toBeTruthy();
     }
-    for (const id of ['endpoint', 'ramp']) expect(step(id, 'cancel').nothing, id).toMatch(/every piece lies above the.*\$x\$-axis, so no piece has a mirror partner.*Cancellation needs a symmetry this geometry lacks\.$/);
+    for (const id of ['endpoint', 'ramp']) expect(step(id, 'cancel').nothing, id).toMatch(/every piece lies above the.*\$x\$-axis.*all contributions to each component have the same sign/);
     expect(step('semi', 'cancel').nothing).toMatch(/starts level with.*runs only upward.*no piece has a mirror partner.*which is why the field leans\.$/);
     // Where nothing cancels, nothing names a pair that is not there.
     for (const id of ['axial', 'endpoint', 'ramp', 'semi', 'v-ring', 'v-disk', 'v-arc', 'v-rod-bisector', 'v-rod-axial']) expect(step(id, 'cancel').cancelsSay, id).toBeUndefined();

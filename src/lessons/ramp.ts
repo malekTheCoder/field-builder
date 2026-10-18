@@ -16,7 +16,7 @@ export const lesson: Lesson = {
     {heading: 'Cut it up', body: [
       raw`Cut the rod into $N$ short pieces. The piece at height $y$, of length $\Delta y$, holds the density where it sits times its length:`,
       {tex: raw`\Delta Q=\lambda(y)\,\Delta y=\lambda_0\,(y/L)\,\Delta y`},
-      raw`A uniform rod’s pieces all held the same charge. Here a piece near the top holds more than one near the foot, so $y$ now appears twice in what follows: once in the charge, and once in the geometry.`,
+      raw`A uniform rod’s pieces all held the same charge. Here a piece near the top holds more charge in magnitude than one near the foot, so $y$ now appears twice in what follows: once in the charge, and once in the geometry.`,
     ]},
     {heading: 'One piece', body: [
       raw`Coulomb’s law, with $k=1/(4\pi\varepsilon_0)$, gives each piece’s field at $P$:`,
@@ -25,7 +25,7 @@ export const lesson: Lesson = {
     ]},
     {heading: 'Nothing cancels', body: [
       raw`Every piece lies above the $x$-axis, so, as for the uniform rod level with its end, no piece has a mirror partner. Both parts survive: $\Delta E\cos\alpha$ along $x$, and $-\Delta E\sin\alpha$ along the rod, down for a positive charge.`,
-      raw`Moving $P$ up to the middle would not rescue the symmetry either: a piece above the middle carries more charge than its mirror below, so their parts along the rod are not equal.`,
+      raw`Moving $P$ up to the middle would not rescue the symmetry either: a piece above the middle carries more charge in magnitude than its mirror below, so their parts along the rod are not equal.`,
     ]},
     {heading: 'Add them up', body: [
       raw`Adding all $N$ pieces from $y=0$ to $y=L$ gives each component, nearly, each piece’s charge now set by where it is:`,
@@ -41,7 +41,7 @@ export const lesson: Lesson = {
       {tex: raw`\begin{aligned}E_y&=-\frac{k\lambda_0}{L}\bigg[\ln\frac{L+\sqrt{L^2+r^2}}{r}\\&\phantom{{}=-\frac{k\lambda_0}{L}\bigg[}-\frac{L}{\sqrt{L^2+r^2}}\bigg]\end{aligned}`},
     ]},
     {heading: 'What the answer says', body: [
-      raw`Far away, $r\gg L$, $E_x$ approaches $kQ/r^2$ with $Q=\lambda_0L/2$: only the total charge matters, and $\lambda_0L$ in its place would make it twice too big. Along the rod, $E_y$ falls faster, as $-kQ\bar y/r^3$, where $\bar y=2L/3$ is the centre of charge; a uniform rod’s is $L/2$. The part along the rod remembers where the charge sits, not just how much there is.`,
+      raw`Far away, $r\gg L$, $E_x$ approaches $kQ/r^2$ with $Q=\lambda_0L/2$: only the total charge matters, and $\lambda_0L$ in its place would make it twice too big. Along the rod, $E_y$ decays faster in magnitude, behaving as $-kQ\bar y/r^3$, where $\bar y=2L/3$ is the centre of charge; a uniform rod’s is $L/2$. The part along the rod remembers where the charge sits, not just how much there is.`,
       raw`At every distance $E_x$ is weaker than a uniform rod’s with the same $Q$, because the ramp keeps its charge farther from $P$.`,
     ]},
   ],

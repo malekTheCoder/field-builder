@@ -75,7 +75,7 @@ export const bank: Question[] = [
   {id: 'v-rod-bisector-grow', lesson: 'v-rod-bisector', kind: 'check',
     prompt: raw`Hold $\lambda$ fixed and let the rod grow until $L$ is far longer than $r$. What happens to $V$ at $P$?`,
     choices: [
-      {correct: true, text: raw`Its size grows without bound: it goes as $2k\lambda\ln(L/r)$, and an endless line has no potential measured from infinity.`},
+      {correct: true, text: raw`Its size grows without bound: $V$ goes as $2k\lambda\ln(L/r)$, and an endless line has no potential measured from infinity.`},
       {text: raw`It settles at $2k\lambda/r$.`, misconception: 'potential-power',
         why: raw`That is the endless line’s field, which does settle. The potential adds pieces that fall only as $1/r_i$, and the far ones never stop adding: its magnitude grows as a logarithm of $L$.`},
       {text: raw`It falls to zero, as the charge spreads out.`, misconception: 'held-total-charge',
@@ -91,7 +91,7 @@ export const bank: Question[] = [
       {tex: raw`E_x=\frac{dV}{dr}`, misconception: 'gradient-sign',
         why: raw`For a positive rod $V$ falls as $P$ moves away, so $dV/dr$ is negative, and that would point the field toward the rod. The field points the way $V$ falls: $E_x=-dV/dr$.`},
       {tex: raw`E_x=\frac{V}{r}`, misconception: 'gradient',
-        why: raw`Dividing by the distance works only for a single point charge. The field is how fast $V$ changes with $r$, and here that is not $V/r$.`},
+        why: raw`Dividing by the distance agrees with the derivative when $V$ is proportional to $1/r$, with zero at infinity, as outside a spherical shell. This rod’s logarithmic potential has a different derivative.`},
       {tex: raw`E_x=-\frac{dV}{dy}`, misconception: 'gradient-one-line',
         why: raw`$dV/dy$ is how fast $V$ changes as $P$ moves parallel to the rod: it would give the part along the rod, and $V(r)$ on this line cannot give it. The part along $x$ comes from moving $P$ out along $x$.`},
     ],

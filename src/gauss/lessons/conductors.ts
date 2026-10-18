@@ -31,7 +31,7 @@ export const lesson: GaussLesson = {
     {heading: 'Just outside: sigma over epsilon nought', body: [
       raw`Just outside, the field is perpendicular to the surface. Its part along the surface is the same on both sides of a surface charge, and in the metal it is zero; were it not, it would push the surface charge along, and the charge is at rest. Stand a small pillbox across the surface, one face in the metal and one just outside. The face in the metal sees no field, the side sees a field along it, and only the outer face carries flux:`,
       {tex: raw`E_\perp A=\frac{\sigma A}{\varepsilon_0}\;\Rightarrow\;E_\perp=\frac{\sigma}{\varepsilon_0}`},
-      raw`That is twice a lone sheet’s $\sigma/(2\varepsilon_0)$, and both are right. A lone sheet sends its flux out of both faces of the pillbox; the conductor sends all of it out of one, because all the other charge, the rest of the conductor’s and any near it, cancels the patch’s own field in the metal and doubles it outside. Where $\sigma$ is negative, $E_\perp$ is too, and the field points into the metal.`,
+      raw`That is twice a lone sheet’s $\sigma/(2\varepsilon_0)$, and both are right. A lone sheet has flux through both faces of the pillbox; the conductor has it through only one, because all the other charge, the rest of the conductor’s and any near it, cancels the patch’s own field in the metal and doubles it outside. Where $\sigma$ is negative, $E_\perp$ is too, and the field points into the metal.`,
       raw`The same pillbox works on any conductor, however shaped and whatever field it sits in, because it needs only a small patch of surface. Put a neutral conductor in an outside field and charge moves until the field in the metal is zero again: one side gathers one sign, the far side the other, and $\sigma$ changes from place to place. On a charged conductor it also gathers where the surface curves most sharply, at points and edges. At every point the field just outside is still perpendicular to the surface, with $E_\perp=\sigma/\varepsilon_0$ for the $\sigma$ there.`,
     ]},
     {heading: 'A hollow in the metal', body: [
@@ -39,6 +39,7 @@ export const lesson: GaussLesson = {
       raw`Now put a charge $q$ in the hollow. A surface in the metal round the hollow still has no flux, so it must still enclose nothing: the wall gathers $-q$. That charge came from the metal, so if the metal was neutral, $+q$ is left over, and it goes to the outer surface. With a net charge $Q$ of its own on the metal:`,
       {tex: raw`q_{\text{wall}}=-q,\qquad q_{\text{outer}}=Q+q`},
       raw`Move $q$ about inside the hollow and the wall’s $-q$ crowds toward it, but the outside charge on an isolated round conductor stays spread evenly: the field-free metal screens the outside from where $q$ is. It does not screen it from how much: the outside always carries the $q$, plus any net charge of the metal’s own.`,
+      raw`Separate the general result from the special shape. The inner wall’s total $-q$ holds for any closed cavity in a conductor at electrostatic equilibrium, wherever $q$ sits inside. A uniform outer surface charge is guaranteed for the spherical outer surface here, with no external charges or applied field. External charges can redistribute that outer charge without changing the inner wall’s total; $Q+q$ remains the outer total when the conductor’s own net charge $Q$ is fixed.`,
     ]},
     {heading: 'Solving one, region by region', body: [
       raw`For a charge $q$ at the centre of a hollow of radius $a$ in a neutral metal ball of radius $b$, a sphere through $P$ gives $E_r(4\pi r^2)=Q_{\text{enc}}/\varepsilon_0$ in each region. In the hollow it encloses $q$; in the metal, $q-q=0$, as it must; outside, $q-q+q=q$. The field is a point charge’s in the hollow, nothing in the metal, and a point charge’s again outside.`,
@@ -127,9 +128,9 @@ export const lesson: GaussLesson = {
       solve: {
         tex: raw`E_\perp A=\frac{\sigma A}{\varepsilon_0}\;\Rightarrow\;E_\perp=\frac{\sigma}{\varepsilon_0}`,
         answer: raw`E_\perp=\frac{\sigma}{\varepsilon_0}`,
-        say: raw`Twice a lone sheet’s field: all the flux leaves through one face.`,
+        say: raw`Twice a lone sheet’s field: all the flux crosses one face.`,
         line: raw`$E_\perp=\sigma/\varepsilon_0$: twice a lone sheet’s, all of it through one face.`,
-        caption: 'Divide by A. Just outside a conductor the field is σ over ε₀, perpendicular to the surface: out of the metal where σ is positive, into it where σ is negative. Twice a lone sheet’s field, since here all of the flux leaves through one face.',
+        caption: 'Divide by A. Just outside a conductor the field is σ over ε₀, perpendicular to the surface: out of the metal where σ is positive, into it where σ is negative. Twice a lone sheet’s field, since here all of the flux crosses one face.',
       },
       checks: [
         {title: 'Twice a lone sheet', text: raw`A lone sheet gives $\sigma/(2\varepsilon_0)$ because its pillbox has flux through both faces. Here the metal’s side has none, so one face carries it all. The difference is made by all the other charge, the rest of the conductor’s and any near it, which cancels the patch’s own field in the metal and doubles it outside.`},
@@ -185,7 +186,7 @@ export const lesson: GaussLesson = {
     },
   ],
   traps: [
-    {wrong: raw`Just outside a conductor the field is $\sigma/(2\varepsilon_0)$.`, right: raw`That is a lone sheet’s. Next to a conductor the metal’s side has no field, all the flux leaves through one face, and the field is $\sigma/\varepsilon_0$.`},
+    {wrong: raw`Just outside a conductor the field is $\sigma/(2\varepsilon_0)$.`, right: raw`That is a lone sheet’s. Next to a conductor the metal’s side has no field, all the flux crosses one face, and the field is $\sigma/\varepsilon_0$.`},
     {wrong: 'A charged conductor holds its charge all through its metal.', right: raw`A surface anywhere inside the metal has no flux and encloses nothing: any excess charge is on the surface.`},
     {wrong: 'The metal hides a charge in a hollow from the outside.', right: raw`It hides where the charge is, not how much: the outside carries $+q$ for a charge $q$ in the hollow, plus any net charge of the metal’s own, spread evenly on an isolated round conductor.`},
     {wrong: 'The wall of a hollow is charged evenly.', right: raw`Only when $q$ is at the centre of a round hollow. Off centre the wall’s $-q$ crowds toward it, though it still adds to $-q$.`},

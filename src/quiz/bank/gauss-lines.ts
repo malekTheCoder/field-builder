@@ -16,8 +16,8 @@ export const bank: Question[] = [
       {text: raw`Short compared with $r$, or its two ends would carry flux.`, misconception: 'parallel-patch',
         why: raw`The ends carry no flux at any length: the field is radial from the line, outward or inward, so it lies along every patch of the flat ends.`},
     ],
-    explanation: raw`The wall carries $E_r\,(2\pi rL)$ and the cylinder holds $\lambda L$, so $L$ is on both sides and cancels. A surface you chose cannot set the field, so its size had to drop out.`,
-    review: {lesson: 'lines', section: 'The surface is forced, its length is not'}},
+    explanation: raw`The wall carries $E_r\,(2\pi rL)$ and the cylinder holds $\lambda L$, so $L$ is on both sides and cancels. Changing this auxiliary length leaves $P$ fixed, so $L$ must disappear; the radius $r$ still locates $P$ and remains in the field.`,
+    review: {lesson: 'lines', section: 'A useful surface, a free length'}},
 
   {id: 'lines-field', lesson: 'lines', kind: 'setup',
     prompt: raw`Setting $E_r\,(2\pi rL)=\lambda L/\varepsilon_0$, what is the field of the infinite line?`,
@@ -124,6 +124,6 @@ export const bank: Question[] = [
       {text: raw`In, and largest in size on the axis, where there is charge all round.`, misconception: 'local-density',
         why: raw`On the axis a cylinder holds no charge at all, so the field there is zero. Its size grows with the charge the cylinder holds, $\lambda Lr^2/R^2$, out to the surface.`},
     ],
-    explanation: raw`Nothing in the argument used the sign: $E_r=\lambda r/(2\pi\varepsilon_0R^2)$ inside for either. For a negative $\lambda$ it is negative at every $r$, so the field points in, from zero on the axis to $|\lambda|/(2\pi\varepsilon_0R)$ in size at the surface, falling as $1/r$ outside.`,
+    explanation: raw`Nothing in the argument used the sign: $E_r=\lambda r/(2\pi\varepsilon_0R^2)$ inside for either. For a negative $\lambda$ it is negative for $r>0$, so the field points in, from zero on the axis to $|\lambda|/(2\pi\varepsilon_0R)$ in size at the surface, falling as $1/r$ outside.`,
     review: {lesson: 'lines', stage: 'solve', case: 'rod'}},
 ];

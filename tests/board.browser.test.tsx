@@ -78,7 +78,7 @@ describe('while the run plays, the derivation arrives with it', () => {
       const caption = buildStages(getProblem('endpoint'))[2].caption;
       expect(view.container.querySelector('.db')!.textContent).not.toContain(caption.slice(0, 40));
       // What the caption added that the step did not, the step now says itself.
-      expect(view.container.querySelector('.db-step.is-here .db-nothing')?.textContent).toMatch(/Cancellation needs a symmetry this geometry lacks\.$/);
+      expect(view.container.querySelector('.db-step.is-here .db-nothing')?.textContent).toMatch(/all contributions to each component have the same sign\. Cancellation requires a zero sum; here neither component can cancel\.$/);
       cleanup();
     }
   });

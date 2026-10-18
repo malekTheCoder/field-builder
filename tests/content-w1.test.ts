@@ -216,7 +216,7 @@ describe('the laws page and the offline copy',()=>{
  it('the lede and Coulomb’s row say a piece may be a ring, not always a point',()=>{
   // Read as source: the component pulls in the dialog, which the node suite cannot resolve.
   const laws=readFileSync(new URL('../src/components/Laws.tsx',import.meta.url),'utf8');
-  expect(laws.match(/a ring whose every bit is the same distance from P/g)?.length,'the lede and Coulomb’s row').toBe(2);
+  expect(laws).toContain('The ring’s axial field and the ring or arc’s potential are exact at any cut');
   expect(laws).not.toMatch(/one piece of charge small enough to count as a point/);
   // Symbols only: k is defined, not approximated.
   // The superposition row writes E ≈ Σ ΔE_i for pieces treated as points; what may never be ≈ is k.

@@ -27,6 +27,7 @@ import {bracketAnswer,bracketKeeps,bracketLines,bracketOf,wholeBracket} from '..
 import {buildStages,motionAt,stageAt,stageStart,totalSeconds} from './buildRun';
 import {BuildPlayer,drawingOnScreen,runClock} from './BuildPlayer';
 import {EquationWorkbench} from '../components/EquationWorkbench';
+import {PrintLessonLink} from '../components/PrintLessonLink';
 import {Onboarding} from '../components/Onboarding';
 import {StartHere} from '../components/StartHere';
 import {isReady,SOON_NOTE} from '../problems/readiness';
@@ -380,7 +381,7 @@ export default function Explorer({welcome}:{welcome?:boolean}={}){
  // saved continuum=1, and every later visit opened on a smooth rod "In the limit" with the board still
  // saying ΔQ. While the run is open, both write the lesson as closing the run puts it back -- and what
  // was saved or linked before that fix is read back with its cut (atRest).
- useEffect(()=>{if(!ready)return;const t=setTimeout(()=>{try{const saved=buildShown?{...paramsMap,[id]:{...params,continuum:0}}:paramsMap;localStorage.setItem(STORAGE,JSON.stringify({id,dark:themeChosen.current?dark:undefined,params:saved,hideTour,cued,showNumbers,sidebarOpen}))}catch{setStorageOK(false)}},SETTLE);return()=>clearTimeout(t)},[id,dark,paramsMap,params,ready,hideTour,cued,showNumbers,sidebarOpen,buildShown]);
+ useEffect(()=>{if(!ready)return;const t=setTimeout(()=>{try{const saved=buildShown?{...paramsMap,[id]:{...params,continuum:0}}:paramsMap;localStorage.setItem(STORAGE,JSON.stringify({id,lastLesson:'integral',dark:themeChosen.current?dark:undefined,params:saved,hideTour,cued,showNumbers,sidebarOpen}))}catch{setStorageOK(false)}},SETTLE);return()=>clearTimeout(t)},[id,dark,paramsMap,params,ready,hideTour,cued,showNumbers,sidebarOpen,buildShown]);
  // THE ADDRESS ALWAYS NAMES ITS LESSON. The first lesson at its defaults wrote no query at all, so a
  // teacher who shared the address bar for Finite line shared the bare home page, and every student who had
  // used the site before opened their own last lesson instead.
@@ -1159,9 +1160,11 @@ export default function Explorer({welcome}:{welcome?:boolean}={}){
   * It is drawn as One piece draws it: the run's piece, its rᵢ and its ΔE, with the reader's own values and view.
   * Drawn apart from the page, off screen and still, so the live figure never changes under the reader. */
  async function saveCopy(){
-  const live=document.querySelector<HTMLElement>('.explorer-app .cd-stage');
+  // Save the compact arrangement even from a wide laptop. A single desktop-sized SVG shrinks its
+  // labels to unreadable print on a phone; the renderer's narrow layout already reserves space for
+  // larger labels. Its geometry and selected piece stay the same, and the copy can scale up on paper.
   const host=document.createElement('div');host.className='explorer-app symbolic-view fb-copy-figure';host.setAttribute('aria-hidden','true');
-  host.style.cssText=`position:fixed;left:-30000px;top:0;width:${Math.round(live?.getBoundingClientRect().width||720)}px;pointer-events:none`;
+  host.style.cssText=`position:fixed;left:-30000px;top:0;width:390px;pointer-events:none`;
   const card=document.createElement('div');card.className='exp-diagram-card';host.appendChild(card);document.body.appendChild(host);
   // Every animation and transition at its end: a copy is the finished frame, never a frame on its way in.
   const still=document.createElement('style');still.textContent='.fb-copy-figure *{animation:none!important;transition:none!important}';document.head.appendChild(still);
@@ -1215,6 +1218,7 @@ export default function Explorer({welcome}:{welcome?:boolean}={}){
      the list is not there at all, is the only way to another lesson. Its chevron makes it look like a
      way back; it says that it opens a picker. */}
 <div className="exp-crumbs"><button type="button" className="exp-crumb-link" aria-haspopup="dialog" aria-expanded={library} onClick={()=>setLibrary(true)}><ChevronLeft size={13} aria-hidden="true"/>Charge library</button></div></div><div className={'exp-heading'+(lesson?' has-lesson':'')}><div><h1 id={LESSON_TITLE} tabIndex={-1}>{p.title}</h1>{/* Where the reader came from, while they are still here: gone the moment they go elsewhere or reload. */}{back&&<p className="exp-came-from"><span>{greek(back.from)}.</span> <a className="exp-came-back" href={lessonHref(back.id)} onClick={e=>{if(!inPlace(e))return;e.preventDefault();goBack(back.id)}}><ArrowLeft size={14} aria-hidden="true"/>Back to {back.short}</a></p>}{/* With a written lesson its lead says what the page finds, a line below: the subtitle said it a third time, with the panel's problem, before the figure, and on a short laptop its line was room the drawing lost. */}{!lesson&&<p>{p.subtitle}</p>}</div></div>
+ <PrintLessonLink href={`?p=${id}`}/>
  {lesson&&<LessonIntro lesson={lesson} open={lessonOpen} onToggle={toggleLesson} onBuild={toBuild}/>}
  <div className={'exp-workspace'+running}><div className="exp-visual-column"><section className={'exp-diagram-card mode-'+mode+' focus-'+highlight+running+(buildOpen&&scrubbing?' is-scrubbing':'')} aria-label="Interactive field visualization"><div className="exp-diagram-heading"><div><MathText tex={p.coordinate}/></div>
   {/* THE LESSON'S ONE BUTTON, AT THE TOP OF ITS FIGURE. It sat under the figure and its toolbar,

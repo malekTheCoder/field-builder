@@ -212,7 +212,7 @@ describe('the run', () => {
       const plain = s.prose.replace(/ \$/g, ' $').replace(/\$([^$]*)\$/g, (_, t: string) => t.replace(/\\Delta\s*/g, 'Δ').replace(/\\cos\s*/g, 'cos ').replace(/\\theta/g, 'θ').replace(/\\to\s*/g, '→').replace(/\\infty/g, '∞'));
       expect(s.line).toBe(plain);
     }
-    expect(buildStages(lesson('sheet'))[1].prose).toContain(String.raw`$\Delta E$`);
+    expect(buildStages(lesson('sheet'))[1].prose).toContain(String.raw`$|\Delta E|$`);
   });
   it('the mirror lessons speak of mirror pieces, which hold of the middle piece too', () => {
     for (const id of ['bisector', 'infinite', 'arc', 'v-rod-bisector', 'v-arc']) {

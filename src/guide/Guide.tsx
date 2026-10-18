@@ -57,7 +57,7 @@ const IDEA:{name:string;text:string}[]=[
 
 /** THE STUDY LOOP. Each step is an action, then where on the lesson page it happens. Ordered as a first
  * session runs, so the list is also the plan for one sitting. */
-const LOOP:{title:string;text:string;where:string}[]=[
+const LOOP:{title:string;text:string;note?:string;where:string}[]=[
  {title:'Read the lesson for the idea',
   text:'Open the lesson under the title and read it once, for its one idea, not to memorise it. Then look away and say that idea in a sentence of your own.',
   where:'Read the lesson, under the lesson’s title.'},
@@ -72,6 +72,7 @@ const LOOP:{title:string;text:string;where:string}[]=[
   where:'Build the integral, then Unfold the integration and Easy to confuse with.'},
  {title:'Check the limits',
   text:String.raw`Ask what your answer must become at the extremes. Far from a finite distribution with nonzero net charge $Q$, the radial field approaches $E_r=kQ/r^2$ and the potential approaches $V=kQ/r$, taking $V=0$ at infinity. A rod grown without end in both directions at fixed $\lambda$ has the infinite line’s field, $E_r=2k\lambda/r$. Say what you expect, then push the figure there and see. This is how you catch your own mistakes in an exam.`,
+  note:String.raw`Say what stays fixed. For the bisector rod and disk, increasing the size slider keeps $Q$ and $P$ fixed: the same charge is spread thinner and $\mathbf E$ tends to zero. The infinite-line and infinite-sheet limits instead hold $\lambda$ or $\sigma$ fixed, adding charge as the source grows.`,
   where:'Limiting cases, near the end of the lesson.'},
  {title:'Change one slider at a time',
   text:String.raw`Pick one thing: the distance, the size, or the sign of the charge. Predict what the field at $P$ will do, then move only that slider and check. One change at a time, so you know which cause made which effect.`,
@@ -197,7 +198,7 @@ export default function Guide(){
    <section id="guide-loop" className="guide-section" aria-labelledby="guide-loop-title">
     <h2 id="guide-loop-title">Working through a lesson</h2>
     <p>Do these in order, with paper and a pencil beside you. A first careful pass through one lesson takes about half an hour; a redo from memory, later, about a quarter of an hour.</p>
-    <ol className="guide-loop">{LOOP.map(s=><li key={s.title}><h3>{s.title}</h3><p><Prose text={s.text}/></p><p className="guide-where"><span>Where</span>{s.where}</p></li>)}</ol>
+    <ol className="guide-loop">{LOOP.map(s=><li key={s.title}><h3>{s.title}</h3><p><Prose text={s.text}/></p>{s.note&&<p className="guide-limit-hold"><Prose text={s.note}/></p>}<p className="guide-where"><span>Where</span>{s.where}</p></li>)}</ol>
     <aside className="guide-gauss-note" aria-labelledby="guide-gauss-loop-title">
      <h3 id="guide-gauss-loop-title">In a Gauss’s law lesson</h3>
      <p>Work it the same way. Symmetry simplifies the flux integral; finding the enclosed charge may still require integrating a density. The board beside the figure is <strong>Apply Gauss’s law</strong>, and it runs in the order you would write the answer, the symmetry, the surface, the left side, the right side, then solve. Cover it, write each step on paper first, and only then compare with the board, exactly as with Build the integral. Watch it build steps through the same five, so predict each before you play it. The lesson ends with Check the answer and Easy to confuse with, which there lists claims that sound right and are not.</p>

@@ -11,7 +11,7 @@ export const bank: Question[] = [
     choices: [
       {correct: true, text: raw`It stays $kQ/R$ the whole way.`},
       {text: raw`It falls as the field does, to zero when the circle closes.`, misconception: 'arc-opening',
-        why: raw`The field falls because its pieces’ arrows fan out and cancel. $V$ has no arrows: every piece stays $R$ from $P$, so all of the charge still adds up to $kQ/R$.`},
+        why: raw`The field magnitude falls because its pieces’ arrows fan out and cancel. $V$ has no arrows: every piece stays $R$ from $P$, so all of the charge still adds up to $kQ/R$.`},
       {text: raw`It grows, since more of the arc comes round $P$.`, misconception: 'arc-held-fixed',
         why: raw`With $Q$ fixed, opening the arc spreads the same charge round more of the circle; it adds none. $|V|$ would grow only with $\lambda$ held fixed, when opening the arc adds charge.`},
     ],
@@ -39,7 +39,7 @@ export const bank: Question[] = [
       {tex: raw`\Delta V=-k\lambda\cos\theta\,\Delta\theta`, misconception: 'potential-arrow',
         why: raw`That projects onto $x$, as the field’s integrand did. A potential has no direction, so there is no $\cos\theta$ and no minus from the geometry.`},
       {tex: raw`\Delta V=\frac{kQ}{R}\,\Delta\theta`, misconception: 'whole-charge',
-        why: raw`That gives each piece the whole arc’s charge. A piece holds only its own share, $\lambda R\,\Delta\theta$.`},
+        why: raw`That omits the angular normalization: a piece holds $\Delta Q=(Q/\varphi)\,\Delta\theta=\lambda R\,\Delta\theta$.`},
     ],
     explanation: raw`Every piece is $R$ from $P$, so it adds $k\,\Delta Q/R=k\lambda R\,\Delta\theta/R=k\lambda\,\Delta\theta$, a number with the sign of its charge, the same at every $\theta$.`,
     review: {lesson: 'v-arc', stage: 'piece'}},

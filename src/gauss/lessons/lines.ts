@@ -20,8 +20,8 @@ export const lesson: GaussLesson = {
   about: 'A cylinder round a line or a thick rod, checked against the integral you built.',
   lead: raw`Round anything long, straight and the same all along, draw a cylinder on the same axis as the Gaussian surface. Its ends carry no flux, its wall carries $E_r$ times $2\pi rL$, and the length $L$ you chose cancels: the field of a line in two steps, and of a rod, a shell or a cable in a few more.`,
   sections: [
-    {heading: 'The surface is forced, its length is not', body: [
-      raw`For a sphere the surface had to be a sphere. Here the shape is forced as well: the charge depends only on the distance $r$ from an axis and runs on for ever along it, so the field points straight out from the axis (or straight in) and its size can depend only on $r$. The surface that matches is a cylinder on the same axis, through $P$. Its length $L$ is yours to choose, and because you chose it, it has to cancel.`,
+    {heading: 'A useful surface, a free length', body: [
+      raw`For spherical symmetry a concentric sphere made the solve direct. Here a coaxial cylinder does the same: the charge depends only on the distance $r$ from an axis and runs on for ever along it, so the field points straight out from the axis (or straight in) and its size can depend only on $r$. The surface that matches is a cylinder on the same axis, through $P$. Its length $L$ is yours to choose without moving $P$, so it has to cancel.`,
       raw`On the curved wall $\vec E$ is perpendicular to every patch and has the same $E_r$ on all of them. On the two flat ends $\vec E$ lies along the surface. So the left side is the same for every case in this lesson:`,
       {tex: raw`\oint\vec E\cdot d\vec A=E_r\,(2\pi rL)+0+0`},
     ]},

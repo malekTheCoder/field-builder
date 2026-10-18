@@ -18,11 +18,25 @@ const C = {x: 190, y: 150}, U = 105, STEP = .06, MAX = 2.1;
 /** The stack: shares of q/ε₀, from the baseline up. */
 const BASE = 262, TOP = 82, PER = BASE - TOP, COL_A = 486, COL_B = 532, COL_W = 30;
 const at = (th: number, upper: boolean) => ({x: C.x + U * Math.cos(th), y: C.y + (upper ? -1 : 1) * U * Math.sin(th)});
-function Arrow({a, b, className, head = 8}: {a: {x: number; y: number}; b: {x: number; y: number}; className: string; head?: number}) {
+function Arrow({a, b, shortened, className, head = 8}: {a: {x: number; y: number}; b: {x: number; y: number}; shortened: boolean; className: string; head?: number}) {
   const dx = b.x - a.x, dy = b.y - a.y, len = Math.hypot(dx, dy);
-  if (len < 1.5) return null;
+  if (!len) return null;
   const ux = dx / len, uy = dy / len, h = Math.min(head, len * .5), w = h * .5, bx = b.x - ux * h, by = b.y - uy * h;
-  return <g className={className}><line x1={a.x} y1={a.y} x2={bx} y2={by} /><path d={`M${b.x.toFixed(1)} ${b.y.toFixed(1)}L${(bx - uy * w).toFixed(1)} ${(by + ux * w).toFixed(1)}L${(bx + uy * w).toFixed(1)} ${(by - ux * w).toFixed(1)}Z`} /></g>;
+  // Tiny fields keep both their length and a proportionate head/shaft. A large field gets an explicit break,
+  // never an unmarked cap that makes unlike fields look equal. The scale stays fixed while q moves.
+  const point = (t: number, across = 0) => ({x: a.x + dx * t - uy * across, y: a.y + dy * t + ux * across});
+  const lo = point(.4), hi = point(.62);
+  return <g className={className}>
+    <line x1={a.x} y1={a.y} x2={shortened ? lo.x : bx} y2={shortened ? lo.y : by} style={{strokeWidth: Math.min(1.8, len / 4)}} />
+    {shortened && <>
+      <line x1={hi.x} y1={hi.y} x2={bx} y2={by} />
+      <g className="gs-arrow-break">{[.46, .56].map(t => {
+        const from = point(t - .04, -3), to = point(t + .04, 3);
+        return <line key={t} x1={from.x} y1={from.y} x2={to.x} y2={to.y} />;
+      })}</g>
+    </>}
+    <path d={`M${b.x.toFixed(3)} ${b.y.toFixed(3)}L${(bx - uy * w).toFixed(3)} ${(by + ux * w).toFixed(3)}L${(bx + uy * w).toFixed(3)} ${(by - ux * w).toFixed(3)}Z`} />
+  </g>;
 }
 /** Where the charge is, in words: for the slider and the crossing. */
 const whereWords = (d: number) => d < STEP / 2 ? 'at the centre' : d < 1 ? 'inside the sphere' : 'outside the sphere';
@@ -61,8 +75,8 @@ export function InsideInstrument({sign, start = .48}: {sign: 1 | -1; start?: num
     : inside ? `Inside, every band carries flux ${out}, more of it through the half of the sphere facing the charge, and together they carry q/ε₀.`
     : `Outside, the bands facing the charge carry flux ${back} and the bands beyond it carry flux ${out}: the two cancel, and the net flux is zero.`;
   const toD = (e: PointerEvent) => { const m = svg.current?.getScreenCTM(); if (!m) return null; return (new DOMPoint(e.clientX, e.clientY).matrixTransform(m.inverse()).x - C.x) / U; };
-  // The far arrows are drawn to the field's size, held between a stub and a fixed length, as the figure's are.
-  const len = (e: number) => Math.max(9, Math.min(48, 30 * e));
+  // One linear scale for every position and sign. Only over-range arrows are shortened, with a visible break.
+  const arrowScale = 30, arrowMax = 48;
   return <section className="gs-instrument gs-inside-tool" aria-labelledby={`${uid}-title`}>
     <div className="gs-instrument-head">
       <h2 id={`${uid}-title`} className="gs-instrument-title">Carry it out</h2>
@@ -81,10 +95,11 @@ export function InsideInstrument({sign, start = .48}: {sign: 1 | -1; start?: num
       {bands.map(b => [true, false].map(upper => { const p = at(b.th0, upper); return b.i > 0 && <circle key={`c${b.i}${upper}`} className="gs-cut" cx={p.x} cy={p.y} r={2.4} />; }))}
       {/* The field at each band's middle: its own direction, never zero. */}
       {bands.map(b => [true, false].map(upper => {
-        const p = at(b.mid, upper), e = Math.hypot(b.field.x, b.field.z), l = len(e);
+        const p = at(b.mid, upper), e = Math.hypot(b.field.x, b.field.z), full = arrowScale * e, l = Math.min(arrowMax, full);
+        if (!e) return null;
         // In the plane: z runs along the axis (to the right), x across it (up for the upper half).
         const dir = {x: b.field.z / e, y: (upper ? -1 : 1) * b.field.x / e};
-        return <Arrow key={`e${b.i}${upper}`} a={p} b={{x: p.x + dir.x * l, y: p.y + dir.y * l}} className="gs-arrow gs-e is-flow" head={7} />;
+        return <Arrow key={`e${b.i}${upper}`} a={p} b={{x: p.x + dir.x * l, y: p.y + dir.y * l}} className="gs-arrow gs-e is-flow" shortened={full > arrowMax} head={7} />;
       }))}
       <circle className="gs-centre" cx={C.x} cy={C.y} r={2.6} />
       <g className={'gs-q' + (inside ? ' is-inside' : '')} transform={`translate(${q.x.toFixed(1)} ${q.y.toFixed(1)})`}
@@ -107,7 +122,7 @@ export function InsideInstrument({sign, start = .48}: {sign: 1 | -1; start?: num
       <text className="gs-stack-name" x={COL_A + COL_W / 2} y={BASE + 22} textAnchor="middle">{out}</text>
       <text className="gs-stack-name" x={COL_B + COL_W / 2} y={BASE + 22} textAnchor="middle">{back}</text>
     </svg>
-    <div className="gs-readout"><MathText tex={insideTex(d)} block /><p>{words}</p><output className="sr-only" aria-live="polite">{said}</output></div>
+    <div className="gs-readout"><MathText tex={insideTex(d)} block /><p>{words}</p><p>Arrow lengths share one fixed scale. Broken shafts mark arrows shortened to fit.</p><output className="sr-only" aria-live="polite">{said}</output></div>
     <GaussRange label="Distance of the charge from the centre d" value={d} min={0} max={MAX} step={STEP} onChange={place} valueText={whereWords} />
   </section>;
 }

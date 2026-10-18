@@ -43,11 +43,21 @@ export default function Site(){
  const shown=useRef<View|null>(null);
  useEffect(()=>{
   const before=shown.current;shown.current=view;
-  if(before===null||view===null||before===view)return;
+  if(view===null||before===view)return;
   // A link to a part of the new page (the lesson's "Teaching with this?" goes to the guide's part for teachers)
   // opens at that part, with the focus on it, as a page loaded at that address would.
   const part=(()=>{try{return location.hash.length>1?document.getElementById(decodeURIComponent(location.hash.slice(1))):null}catch{return null}})();
-  if(part){if(!part.hasAttribute('tabindex'))part.setAttribute('tabindex','-1');part.scrollIntoView({block:'start'});part.focus({preventScroll:true});return}
+  if(part){
+   // A directly opened fragment has no target until React mounts this page. Handle that first arrival too.
+   // Fonts can then change the height above it: keep the focused destination aligned when they settle,
+   // unless the reader has moved focus or navigation has replaced this page in the meantime.
+   const hash=location.hash;let active=true;
+   if(!part.hasAttribute('tabindex'))part.setAttribute('tabindex','-1');
+   part.scrollIntoView({block:'start'});part.focus({preventScroll:true});
+   void (document.fonts?.ready??Promise.resolve()).then(()=>{if(active&&location.hash===hash&&document.activeElement===part)part.scrollIntoView({block:'start'})});
+   return()=>{active=false};
+  }
+  if(before===null)return;
   window.scrollTo({top:0,behavior:'auto'});
   document.getElementById(view==='lesson'||view==='gauss'?'lesson-title':view)?.focus({preventScroll:true});
  },[view]);

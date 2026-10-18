@@ -1,13 +1,13 @@
 import {v3} from '../physics';
 import type {GaussLesson} from '../types';
 const raw = String.raw;
-/* HOLES BY SUPERPOSITION. A charge with a hole in it has lost the symmetry Gauss's law needs, but it is the sum of
- * two charges that each have it: the whole charge, as if the hole were filled, and a plug of the opposite charge
- * filling the hole (where both sit, ρ − ρ = 0, which is what the hole holds). Solve each alone, round its own surface
+/* HOLES BY SUPERPOSITION. A ball or rod with an off-centre hole lacks the symmetry for the usual direct Gauss
+ * solve, but is the sum of two charges that each have it: the whole charge, as if the hole were filled, and a plug
+ * of opposite charge (where both sit, ρ − ρ = 0, which is what the hole holds). Solve each alone, round its own surface
  * through P, and add the two fields as vectors. The ball and the rod come in the order the owner's study guide takes
  * them: a ball with an off-centre hole (the field in the hole is uniform, ρd⃗/(3ε₀)), then a rod with a hole drilled
  * along it (ρd⃗/(2ε₀)), in the text and in the instrument, which shows the rod end on; then a sheet with a round hole,
- * which the guide does not have, whose plug is a disk: no Gaussian surface solves a disk, so its field on its axis comes
+ * which the guide does not have, whose plug is a disk: axial symmetry alone does not isolate its field from the flux, so it comes
  * from the Disk lesson's integral. The figure runs the ball and the sheet. It draws each piece's surface carrying that
  * piece's own field, and at P the two fields tip to tail, adding to the answer. (A rod cut through both axes would put
  * P, the axes and every vector on one line, and show no addition at all: the instrument's end-on cut does.) The
@@ -24,11 +24,11 @@ export const lesson: GaussLesson = {
   id: 'holes',
   title: 'Holes by superposition',
   short: 'Holes by superposition',
-  about: 'A hole as the whole charge plus a plug of the opposite sign, each solved by Gauss’s law.',
-  lead: raw`A charge with a hole in it has lost the symmetry Gauss’s law needs, but it is two charges that each have it: the whole charge, as if the hole were filled, and a plug of the opposite charge filling the hole. Solve each by Gauss’s law and add the fields.`,
+  about: 'A hole as the whole charge plus a plug of the opposite sign: find their fields and add them.',
+  lead: raw`A charge with a hole is the whole charge plus a plug of the opposite charge filling the hole. Find each field and add them: Gauss’s law solves the ball and rod pieces; a sheet’s disk plug needs an integral.`,
   sections: [
     {heading: 'A hole is two charges', body: [
-      raw`Gauss’s law needs a surface on which the field is the same all over, and a ball with an off-centre hole has none: it is round about no point at all. But fill the hole with charge of density $\rho$, and fill it again with charge of density $-\rho$, and nothing has changed, since the two cancel. Now group the charge differently. The first filling, with the rest of the ball, makes a whole ball of $\rho$. The second is a small ball of $-\rho$, the plug. Each of those is round about its own centre, so each one can be solved alone.`,
+      raw`A ball with an off-centre hole lacks spherical symmetry, so the usual concentric-sphere field solve is unavailable. But fill the hole with charge of density $\rho$, and fill it again with charge of density $-\rho$, and nothing has changed, since the two cancel. Now group the charge differently. The first filling, with the rest of the ball, makes a whole ball of $\rho$. The second is a small ball of $-\rho$, the plug. Each of those is round about its own centre, so each one can be solved alone.`,
       {tex: raw`\text{charge with a hole}=\text{whole charge}\,(\rho)\;+\;\text{plug}\,(-\rho)`},
       raw`Fields add, so the real field at any point is the whole charge’s field there plus the plug’s. They add as vectors: each points along its own radius, from its own centre, and the two radii are not the same line.`,
     ]},
@@ -43,8 +43,8 @@ export const lesson: GaussLesson = {
       {tex: raw`\vec E=\frac{\rho\,\vec r_1}{2\varepsilon_0}-\frac{\rho\,\vec r_2}{2\varepsilon_0}=\frac{\rho\,\vec d}{2\varepsilon_0}`},
       raw`Uniform again, with $\vec d$ the step from the rod’s axis to the hole’s, perpendicular to both. A ball gives a three under $\varepsilon_0$ and a rod a two, as their fields inside do. Choose the rod in the instrument below: it is cut perpendicular to its axis, and its hole’s field is half as big again as the ball’s for the same $\rho$ and the same step.`,
     ]},
-    {heading: 'A sheet with a hole: one piece the law cannot do', body: [
-      raw`An infinite sheet with a round hole of radius $b$ is a whole sheet of $\sigma$ plus a disk of $-\sigma$. The whole sheet is Gauss’s, $\sigma/(2\varepsilon_0)$ by a pillbox. The disk is not: it is round only about its axis, flat and edged, so no closed surface has its field the same all over it, and its field on its axis has to be added up ring by ring, as the Disk lesson does: $\frac{\sigma}{2\varepsilon_0}\big(1-z/\sqrt{z^2+b^2}\big)$ for a disk of $\sigma$, away from the disk for a positive $\sigma$ and toward it for a negative one. Superposition does not care where a piece’s field came from. On the hole’s axis, a height $z$ above it:`,
+    {heading: 'A sheet with a hole: a disk integral', body: [
+      raw`An infinite sheet with a round hole of radius $b$ is a whole sheet of $\sigma$ plus a disk of $-\sigma$. The whole sheet is Gauss’s, $\sigma/(2\varepsilon_0)$ by a pillbox. For the disk, axial symmetry alone does not reduce the flux to the field at $P$. Find its field on its axis by adding rings, as the Disk lesson does: $\frac{\sigma}{2\varepsilon_0}\big(1-z/\sqrt{z^2+b^2}\big)$ for a disk of $\sigma$, away from the disk for a positive $\sigma$ and toward it for a negative one. Superposition does not care where a piece’s field came from. On the hole’s axis, a height $z$ above it:`,
       {tex: raw`E_z=\frac{\sigma}{2\varepsilon_0}-\frac{\sigma}{2\varepsilon_0}\Big(1-\frac{z}{\sqrt{z^2+b^2}}\Big)=\frac{\sigma}{2\varepsilon_0}\,\frac{z}{\sqrt{z^2+b^2}}`},
     ]},
     {heading: 'Away from the hole', body: [
@@ -108,15 +108,15 @@ export const lesson: GaussLesson = {
       setup: raw`An infinite sheet carries $\sigma$ per unit area, except in a round hole of radius $b$. Find the field a height $z$ above the hole’s centre, on its axis.`,
       symmetry: {
         tex: raw`\begin{aligned}\text{sheet with hole}&=\text{sheet}\,(\sigma)\\&\quad+\text{disk}\,(-\sigma)\end{aligned}`,
-        say: raw`The disk filling the hole is round only about its axis: no closed surface has its field the same all over, so Gauss’s law cannot give it.`,
+        say: raw`The disk’s axial symmetry alone does not reduce Gauss’s law to its field at $P$. Add its rings instead.`,
         line: raw`A whole sheet of $\sigma$ plus a disk of $-\sigma$ filling the hole.`,
-        caption: 'The sheet with a hole is a whole sheet of σ plus a disk of −σ filling the hole. The whole sheet is symmetric enough for Gauss’s law. The disk is not: it is round only about its axis, flat and edged, and no closed surface has its field the same all over it.',
+        caption: 'The sheet with a hole is a whole sheet of σ plus a disk of −σ filling the hole. A pillbox gives the whole sheet’s field. The disk’s axial symmetry alone does not reduce the flux to its field at P, so find that field by integrating.',
       },
       surface: {
         tex: raw`A_{\text{faces}}=2A`,
-        say: raw`A pillbox across the whole sheet, its top face through $P$. The disk gets none: its field on its axis comes from adding its rings.`,
-        line: raw`A pillbox for the whole sheet; the disk has no surface that would work.`,
-        caption: 'Stand a pillbox across the whole sheet, as if the hole were filled, its top face through P. The disk gets no Gaussian surface: its field on its axis is the Disk lesson’s, added up ring by ring.',
+        say: raw`A pillbox across the whole sheet, its top face through $P$. Find the disk’s field on its axis by adding its rings.`,
+        line: raw`Use a pillbox for the whole sheet; integrate for the disk.`,
+        caption: 'Stand a pillbox across the whole sheet, as if the hole were filled, its top face through P. For the disk, use the field on its axis from the Disk lesson, added up ring by ring.',
       },
       left: {
         tex: raw`\Phi_1=2E_1A`,

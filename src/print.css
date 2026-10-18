@@ -1,6 +1,10 @@
+/* A paper reader needs a return address; the screen already has one and must keep its first-screen space. */
+.print-lesson-link { display: none; }
 /* Paper copy of the current lesson. Interactive chrome drops away; the figure, title, and equations stay. */
 @media print {
   @page { size: letter portrait; margin: 12mm; }
+  .print-lesson-link { display: block; margin: 0 0 12px; color: var(--ink-2); font-size: 14px; line-height: 1.4; overflow-wrap: anywhere; break-after: avoid; }
+  .print-lesson-link a { color: inherit; text-decoration: underline; }
   /* Every route uses the same paper palette, including the guide and quiz, which have no lesson's
      beforeprint handler. Repainting only body left explicitly coloured labels pale on white, and quiz
      cards printed their dark-screen ground. Root specificity wins over .dark without changing the saved
@@ -96,6 +100,9 @@
      together, rather than leaving a heading or a lone line of setup at the sheet’s edge. */
   .ew-problem { break-inside: avoid; }
   .ew-problem-title { break-after: avoid; }
+  /* The board's name introduces its first step. Keeping steps whole without this join left
+     "Build the integral" alone at the foot of the shell's sheet, with no equation below it. */
+  .ew-section-title { break-after: avoid; }
   /* A case's heading starts a section: fourteen pixels under the case before -- closer than its own explanation
      sits under it -- it read as the last line of the plot above. */
   .exp-limit-print + .exp-limit-print { margin-top: 34px; }
@@ -139,9 +146,11 @@
      printed eight sheets, the figure not until the third, and a class set cost two hundred and forty. The
      board's account is the one drawn beside the figure and the one that writes each line of algebra, so it is
      the one printed; the lesson keeps its lead, its setup, what the answer says (and the potentials' way
-     back to the field) and its reading. Every lesson lists its sections in that order, the setup first and the
-     five steps after it (src/lessons), which is what these positions name; page-w7-print checks it. */
-  .exp-lesson-body > .exp-lesson-section:nth-child(n+2):nth-child(-n+6) { display: none !important; }
+     back to the field) and its reading. Every integral lesson lists its sections in that order, the setup first
+     and the five steps after it (src/lessons), which is what these positions name; page-w7-print checks it.
+     Gauss uses the same lesson markup for distinct arguments and examples, not five repeated board steps:
+     scope this reduction to integral lessons so a Gauss handout retains its teaching and reading. */
+  .explorer-app:not(.gs-page) .exp-lesson-body > .exp-lesson-section:nth-child(n+2):nth-child(-n+6) { display: none !important; }
   .exp-lesson-section h3 { break-after: avoid; }
 }
 

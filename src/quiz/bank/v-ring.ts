@@ -99,13 +99,13 @@ export const bank: Question[] = [
   {id: 'v-ring-off-axis', lesson: 'v-ring', kind: 'transfer',
     prompt: raw`$E_z=-dV/dz$ gives the field on the axis. Why can this $V$ not give the field at a point off the axis?`,
     choices: [
-      {correct: true, text: raw`It is known only along the axis; off the axis the field has a sideways part, which needs how $V$ changes sideways.`},
+      {correct: true, text: raw`It is known only along the axis; off the axis the field can have a sideways part, which needs how $V$ changes sideways.`},
       {text: raw`It can: off the axis the field is also $-dV/dz$, with this same $V$.`, misconception: 'gradient-one-line',
-        why: raw`$-dV/dz$ is only the field’s part along $z$, and only where this $V$ holds, on the axis. Off it the field has a sideways part too, and $V$ there is a different function.`},
+        why: raw`$-dV/dz$ is only the field’s part along $z$, and only where this $V$ holds, on the axis. Off it the field can have a sideways part too, and $V$ there is a different function.`},
       {text: raw`It need not: off the axis the field is zero, since the pieces’ fields cancel.`, misconception: 'cancel-survivor',
-        why: raw`Off the axis the pieces are no longer all the same distance from $P$, so their sideways parts no longer cancel in pairs. The field there has a sideways part.`},
+        why: raw`Off the axis the pieces are no longer all the same distance from $P$, so mirror pairing no longer guarantees cancellation. A sideways part can survive; its value needs the off-axis potential.`},
     ],
-    explanation: raw`A derivative needs the function along the direction you differentiate in. $V=kQ/\sqrt{R^2+z^2}$ holds only on the axis, so it gives the rate of change along the axis, which is the whole field there because symmetry cancels the sideways parts. Off the axis that symmetry is gone, and the field has a sideways part that $V$ on the axis cannot tell.`,
+    explanation: raw`A derivative needs the function along the direction you differentiate in. $V=kQ/\sqrt{R^2+z^2}$ holds only on the axis, so it gives the rate of change along the axis, which is the whole field there because symmetry cancels the sideways parts. Off the axis that symmetry is gone, and the field can have a sideways part that $V$ on the axis cannot tell.`,
     review: {lesson: 'v-ring', section: 'Differentiate back'}},
 
   {id: 'v-ring-negative', lesson: 'v-ring', kind: 'transfer',

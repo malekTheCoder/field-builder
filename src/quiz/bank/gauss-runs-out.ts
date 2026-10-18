@@ -4,7 +4,8 @@ const raw = String.raw;
 /* WHEN SYMMETRY RUNS OUT, in its lesson's symbols (src/gauss/lessons/runs-out.ts): a rod of length 2ℓ carrying λ in a
  * closed coaxial cylinder of radius r that holds all of it, and a point charge q inside a cube, off its centre. Gauss's
  * law holds for both, as every question here says: the flux round the rod is 2λℓ/ε₀ and out of the cube q/ε₀. What runs
- * out is a surface on which E is the same all over, so the law gives the flux and not the field. The rod's field beside
+ * out is the direct field solve on these chosen surfaces; a sphere recentered on the point charge would still
+ * give its field, but not the cube-face shares. The rod's field beside
  * its middle is the integral lesson's, 2kλℓ/(r√(r²+ℓ²)). Every result here is checked by number in
  * tests/quiz-physics.test.ts. */
 export const bank: Question[] = [

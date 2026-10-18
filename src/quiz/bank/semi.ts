@@ -37,9 +37,9 @@ export const bank: Question[] = [
     choices: [
       {correct: true, text: raw`Exactly $\pi/4$: cut at equal angles, every representative makes the same field magnitude, spread evenly over a quarter turn.`},
       {text: raw`Closer to the perpendicular: the near pieces are much closer to $P$, so they count most.`, misconception: 'jacobian',
-        why: raw`The near pieces are closer, but the far pieces are longer and hold more charge. Cut at equal angles at $P$, the representative charge and distance exactly balance: every representative makes $k\lambda\,\Delta\alpha/r$.`},
+        why: raw`The near representatives are closer, but farther representatives have greater charge magnitude. Cut at equal angles at $P$, the representative charge and distance exactly balance: every representative makes $k\lambda\,\Delta\alpha/r$.`},
       {text: raw`Closer to the line: the far pieces hold far more charge.`, misconception: 'fixed-distance',
-        why: raw`The far pieces do hold more charge, but they are farther away too, $r_i=r\sec\alpha$. The $\sec^2\alpha$ in their charge cancels the one in $r_i^2$.`},
+        why: raw`The far representatives do have greater charge magnitude, but they are farther away too, $r_i=r\sec\alpha$. The $\sec^2\alpha$ in their charge cancels the one in $r_i^2$.`},
     ],
     explanation: raw`Each representative makes $k\lambda\,\Delta\alpha/r$, whatever its middle angle. Over the quarter turn from $\alpha=0$ to $\pi/2$, the parts across, $\int\cos\alpha\,d\alpha$, and the parts along, $\int\sin\alpha\,d\alpha$, both come to one: equal parts, so the lean is exactly $\pi/4$.`,
     review: {lesson: 'semi', stage: 'piece'}},
@@ -105,11 +105,11 @@ export const bank: Question[] = [
     choices: [
       {correct: true, text: raw`Both parts halve, and it keeps its lean at $\pi/4$.`},
       {text: raw`Both parts fall to a quarter, as a point charge’s field does.`, misconception: 'line-falloff',
-        why: raw`An endless line is not a point charge. Twice as far away, the stretch of line inside any fixed angle at $P$ is twice as long, so each part falls only as $1/r$.`},
+        why: raw`An endless line is not a point charge. Twice as far away, the stretch of line inside any fixed angle at $P$ is twice as long, so each component magnitude falls only as $1/r$.`},
       {text: raw`It weakens, and turns toward the perpendicular, since the end matters less from far away.`, misconception: 'line-falloff',
-        why: raw`From any distance the line fills the same quarter turn at $P$, so the picture only rescales. Both parts fall as $1/r$ together, and the field never turns.`},
+        why: raw`From any distance the line fills the same quarter turn at $P$, so the picture only rescales. Both component magnitudes fall as $1/r$ together, and the field never turns.`},
     ],
-    explanation: raw`$E_x=k\lambda/r$ and $E_y=-k\lambda/r$ both fall as $1/r$: doubling $r$ halves each. They stay equal in size, so moving $P$ away weakens the field but never turns it.`,
+    explanation: raw`$E_x=k\lambda/r$ and $E_y=-k\lambda/r$ both decay in magnitude as $1/r$: doubling $r$ halves each. They stay equal in size, so moving $P$ away weakens the field but never turns it.`,
     review: {lesson: 'semi', section: 'Limiting cases'}},
 
   {id: 'semi-add-mirror', lesson: 'semi', kind: 'transfer',
@@ -117,7 +117,7 @@ export const bank: Question[] = [
     choices: [
       {correct: true, text: raw`$2k\lambda/r$ along $x$, perpendicular to the line: the parts along it cancel, the parts across add.`},
       {text: raw`$2\sqrt2\,k\lambda/r$, still leaning at $\pi/4$: twice the half line’s field.`, misconception: 'missed-cancel',
-        why: raw`The new half is the old half’s mirror: its part along the line points the other way, toward $+y$, and cancels the old half’s. Only the parts across the line add.`},
+        why: raw`The new half is the old half’s mirror: its part along the line points the other way, toward $+y$ for positive charge, and cancels the old half’s. Only the parts across the line add.`},
       {text: raw`Zero: the two halves cancel each other.`, misconception: 'cancel-survivor',
         why: raw`Only the parts along the line are equal and opposite. The parts across it point the same way for both halves, away from the line for a positive charge, and add.`},
     ],

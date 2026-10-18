@@ -6,9 +6,9 @@ import {isReady} from '../problems/readiness';
 import {DEFAULT_PARAMS,type Params,type ProblemId} from '../problems/types';
 import {serializeAssignment} from '../state/assignment';
 import {inPlace,navigate} from '../state/route';
-import {families,ShapeGlyph} from '../explorer/lessons';
+import {families,ShapeGlyph,PlannedGlyph,plannedName} from '../explorer/lessons';
 import {GaussHomeFamily} from '../gauss/GaussFamily';
-import {gaussHref} from '../gauss';
+import {gaussHref,gaussLesson,isGaussReady} from '../gauss';
 import {Brand,SiteLinks} from '../explorer/Brand';
 import {STORAGE} from '../explorer/Explorer';
 import {Hint} from '../components/Hint';
@@ -19,7 +19,7 @@ import '../explorer/explorer.css';
 import './home.css';
 
 /** What the Explorer saved, as it saved it: read, never trusted. */
-type Saved={id?:ProblemId;params?:Partial<Record<ProblemId,Partial<Params>>>};
+type Saved={id?:ProblemId;params?:Partial<Record<ProblemId,Partial<Params>>>;lastLesson?:'integral'|'gauss';lastGauss?:{id?:string;case?:string}};
 function readSaved():string|null{try{return localStorage.getItem(STORAGE)}catch{return null}}
 function parseSaved(raw:string|null):Saved{try{const v=raw?JSON.parse(raw):null;return v&&typeof v==='object'&&!Array.isArray(v)?v:{}}catch{return {}}}
 const subscribeStorage=(on:()=>void)=>{window.addEventListener('storage',on);return()=>window.removeEventListener('storage',on)};
@@ -105,6 +105,10 @@ export default function Home(){
  const saved=useMemo(()=>parseSaved(raw),[raw]);
  const dark=useSyncExternalStore(subscribeTheme,isDark,()=>false);
  useEffect(()=>{document.title='Field Builder · Electric fields and potential, derived'},[]);
+ // Older settings only name an integral lesson. A new Gauss visit records its own id/case without
+ // overwriting those integral settings, so either route can remain a useful return link.
+ const lastGauss=saved.lastLesson==='gauss'&&isGaussReady(saved.lastGauss?.id)?gaussLesson(saved.lastGauss!.id!):undefined;
+ const lastCase=lastGauss?.cases.find(c=>c.key===saved.lastGauss?.case)?.key;
  const last=saved.id&&PROBLEMS.some(p=>p.id===saved.id)&&isReady(saved.id)?PROBLEMS.find(p=>p.id===saved.id):undefined;
  const open=(e:React.MouseEvent<HTMLAnchorElement>)=>{if(!inPlace(e))return;e.preventDefault();navigate(e.currentTarget.getAttribute('href')??'')};
  const start=PROBLEMS.find(p=>p.id==='bisector')??PROBLEMS[0];
@@ -124,7 +128,7 @@ export default function Home(){
      <p className="home-lede">Build the integral for the field and the potential of continuous charge, such as rods, rings, disks and sheets, by cutting the charge into pieces and adding up what each piece does at P.</p>
      <div className="home-actions">
       <a className="home-start" href={lessonAddress(start.id,saved)} onClick={open}>Start with the finite line<ArrowRight size={16} aria-hidden="true"/></a>
-      {last&&<a className="home-continue" href={lessonAddress(last.id,saved)} onClick={open}><ShapeGlyph id={last.id} size={18}/><span className="home-continue-words"><span className="home-continue-kicker">Continue where you left off</span><span className="home-continue-to">{last.short}</span></span><ArrowRight size={15} aria-hidden="true"/></a>}
+      {lastGauss?<a className="home-continue" href={gaussHref(lastGauss.id,{case:lastCase})} onClick={open}><PlannedGlyph id={lastGauss.id} size={18}/><span className="home-continue-words"><span className="home-continue-kicker">Return to your last lesson</span><span className="home-continue-to">{plannedName(lastGauss.title)}</span></span><ArrowRight size={15} aria-hidden="true"/></a>:last&&<a className="home-continue" href={lessonAddress(last.id,saved)} onClick={open}><ShapeGlyph id={last.id} size={18}/><span className="home-continue-words"><span className="home-continue-kicker">Continue where you left off</span><span className="home-continue-to">{last.short}</span></span><ArrowRight size={15} aria-hidden="true"/></a>}
      </div>
      <div className="home-more"><GuideLink/><QuizLink/></div>
     </div>
