@@ -7,6 +7,7 @@ import type {ProblemId} from '../problems/types';
 import {GUIDE_HREF,HOME_HREF,goHome,inPlace,navigate} from '../state/route';
 import {GAUSS,PlannedGlyph,ShapeGlyph,plannedName} from '../explorer/lessons';
 import {gaussHref,gaussLesson,isGaussReady} from '../gauss';
+import {PrintButton} from '../components/PrintButton';
 import {Brand,SiteLinks} from '../explorer/Brand';
 import {STORAGE} from '../explorer/Explorer';
 import {Prose} from '../components/Math';
@@ -79,7 +80,7 @@ const LOOP:{title:string;text:string;note?:string;where:string}[]=[
   where:'The sliders under the figure.'},
  {title:'Do it from memory',
   text:'Close the page. On a blank sheet, draw the charge and $P$, and derive the result: the piece, what cancels, the integral, the answer, a limit check. Then print the handout and mark, in another colour, everything you missed.',
-  where:'Lesson tools (the three dots), then Print this lesson.'},
+  where:'The Print button in the header of any lesson.'},
  {title:'Come back, and mix them up',
   text:'A few days later, redo it from a blank page before you look at anything. When you practise, mix lessons, a rod, then a ring, then a potential, so you have to decide which method fits each, as an exam makes you.',
   where:'Any lesson, a few days later.'}];
@@ -176,7 +177,7 @@ export default function Guide(){
  const ready=(id:ProblemId)=>isReady(id);
  return <div className="guide">
   <a className="skip-link" href="#guide">Skip to the guide</a>
-  <header className="exp-header"><Brand/><div className="exp-header-right"><SiteLinks current="guide"/><Hint label={themeLabel}><button type="button" className="icon-button" onClick={()=>setTheme(!dark)} aria-label={themeLabel}>{dark?<Sun size={17}/>:<Moon size={17}/>}</button></Hint></div></header>
+  <header className="exp-header"><Brand/><div className="exp-header-right"><SiteLinks current="guide"/><PrintButton label="Print this page" onPrint={()=>window.print()}/><Hint label={themeLabel}><button type="button" className="icon-button" onClick={()=>setTheme(!dark)} aria-label={themeLabel}>{dark?<Sun size={17}/>:<Moon size={17}/>}</button></Hint></div></header>
   <main id="guide" tabIndex={-1} className="guide-main">
    <header className="guide-hero">
     <p className="guide-kicker">How to use this site</p>
@@ -252,7 +253,7 @@ export default function Guide(){
     <h2 id="guide-teachers-title">For teachers</h2>
     <ul>
      <li><strong>Link straight to a lesson.</strong> Every lesson’s address names it, such as <code>?p=ring</code> or <code>?g=spheres</code>, so a link opens that lesson. Copy a link to this lesson, in Lesson tools, keeps the values you set, and while Watch it build is open it keeps the stage too.</li>
-     <li><strong>Print the handout.</strong> From Lesson tools, Print this lesson puts the lesson, the figure and the derivation on paper, ready for homework or a quiz from memory.</li>
+     <li><strong>Print the handout.</strong> The Print button in a lesson’s header puts the lesson, the figure and the derivation on paper, ready for homework or a quiz from memory.</li>
      <li><strong>Assign an explanation.</strong> Ask for a labelled sketch, the chosen piece or Gaussian surface, the derivation, and a limit check. Have students write a prediction before playing the run, then explain any change in their reasoning.</li>
      <li><strong>Use the quiz for private practice.</strong> Quiz answers and review history stay in the student’s browser. Teachers do not receive scores. For an assessed task, collect the written reasoning through your usual classroom system.</li>
      <li><strong>Project it in class.</strong> Pause Watch it build before each stage and ask the room to predict what comes next. This page has its own address, <code>?guide</code>, to share with a class.</li>

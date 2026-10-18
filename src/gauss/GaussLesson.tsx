@@ -13,6 +13,7 @@ import {PROBLEMS} from '../problems/definitions';
 import {isReady} from '../problems/readiness';
 import {MathText, Prose} from '../components/Math';
 import {Hint} from '../components/Hint';
+import {PrintButton} from '../components/PrintButton';
 import {PrintLessonLink} from '../components/PrintLessonLink';
 import {BuildPlayer, runClock} from '../explorer/BuildPlayer';
 import {LessonIntro} from '../explorer/LessonIntro';
@@ -358,6 +359,7 @@ export default function GaussLesson() {
         <button ref={tourButton} type="button" className="text-button tour-button" aria-label="Walkthrough" onClick={() => setRecipe(true)}><CircleHelp size={16} /><span>Walkthrough</span></button>
         <a className="text-button tour-button guide-link" href={GUIDE_HREF} aria-label="How to use this site" onClick={e => { if (!inPlace(e)) return; e.preventDefault(); navigate(GUIDE_HREF); }}><GraduationCap size={16} /><span>How to use</span></a>
         <a className="text-button quiz-link" href={QUIZ_HREF} aria-label="Quiz yourself" onClick={e => { if (!inPlace(e)) return; e.preventDefault(); navigate(QUIZ_HREF); }}><ClipboardCheck size={16} /><span>Quiz</span></a>
+        <PrintButton label="Print this lesson" onPrint={() => window.print()} />
         <Hint label={dark ? 'Switch to light theme' : 'Switch to dark theme'}><button className="icon-button" onClick={() => { themeChosen.current = true; setDark(!dark); }} aria-label={dark ? 'Switch to light theme' : 'Switch to dark theme'}>{dark ? <Sun size={17} /> : <Moon size={17} />}</button></Hint>
         <DropdownMenu><Hint label="Lesson tools"><DropdownMenuTrigger className="icon-button no-print" aria-label="Lesson tools"><MoreHorizontal size={17} /></DropdownMenuTrigger></Hint>
           <DropdownMenuContent className="exp-tools-menu" align="end" sideOffset={8}>

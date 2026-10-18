@@ -1052,6 +1052,13 @@
 .exp-header .tour-button,.exp-header .quiz-link{white-space:nowrap}
 .exp-header-right{flex:none}
 @media(max-width:700px){.exp-header .tour-button,.exp-header .quiz-link{display:none}}
+/* PRINT, IN THE HEADER. Named where the header has room (it is the widest row: Walkthrough, How to use, Quiz, then
+   this), the icon alone from eight hundred pixels down, where the lesson's three named links are still beside it, and
+   gone under four hundred, where the name of the site, the theme and the menu already fill the line. Never two lines. */
+.exp-header .print-button{white-space:nowrap;position:relative}
+.exp-header .print-button::before{content:'';position:absolute;inset:-6px -4px}
+@media(max-width:800px){.exp-header .print-button{padding:6px 4px}.exp-header .print-button>span{display:none}}
+@media(max-width:399px){.exp-header .print-button{display:none}}
 /* The home page, the guide and the quiz have no menu to move them into, and only two of them (SiteLinks in
    Brand.tsx), so they stay, named, at every width: on a phone they shed their icons, never their words. The
    page the reader is on is marked as a link is, with the accent's hairline under its name. */

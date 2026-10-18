@@ -6,6 +6,7 @@ import {isReady} from '../problems/readiness';
 import {HOME_HREF,QUIZ_HREF,goHome,inPlace,navigate} from '../state/route';
 import {FAMILIES,GAUSS,PlannedGlyph,ShapeGlyph,plannedName} from '../explorer/lessons';
 import {isGaussReady} from '../gauss';
+import {PrintButton} from '../components/PrintButton';
 import {Brand,SiteLinks} from '../explorer/Brand';
 import {STORAGE} from '../explorer/Explorer';
 import {MathText,Prose} from '../components/Math';
@@ -136,7 +137,7 @@ export default function Quiz(){
  const themeLabel=dark?'Switch to light theme':'Switch to dark theme';
  return <div className="quiz">
   <a className="skip-link" href="#quiz">Skip to the quiz</a>
-  <header className="exp-header"><Brand/><div className="exp-header-right"><SiteLinks current="quiz"/><Hint label={themeLabel}><button type="button" className="icon-button" onClick={()=>setTheme(!dark)} aria-label={themeLabel}>{dark?<Sun size={17}/>:<Moon size={17}/>}</button></Hint></div></header>
+  <header className="exp-header"><Brand/><div className="exp-header-right"><SiteLinks current="quiz"/>{phase==='end'&&<PrintButton label="Print this page" onPrint={()=>window.print()}/>}<Hint label={themeLabel}><button type="button" className="icon-button" onClick={()=>setTheme(!dark)} aria-label={themeLabel}>{dark?<Sun size={17}/>:<Moon size={17}/>}</button></Hint></div></header>
   <main id="quiz" tabIndex={-1} className="quiz-main">
    {phase==='setup'&&<SetUp settings={settings} setSettings={s=>{setSettings(s);setNudge('')}} onStart={start} nudge={nudge} hist={hist} onForget={forget} cleared={cleared}/>}
    {phase==='take'&&current&&<Take drawn={current} index={index} total={drawn.length} pick={pick} setPick={p=>{setPick(p);setNudge('')}} onCheck={check} onNext={next} onLeave={toSetup} nudge={nudge} last={index+1===drawn.length}/>}
