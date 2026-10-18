@@ -11,6 +11,7 @@ import {GaussHomeFamily} from '../gauss/GaussFamily';
 import {gaussHref,gaussLesson,isGaussReady} from '../gauss';
 import {Brand,SiteLinks} from '../explorer/Brand';
 import {STORAGE} from '../explorer/Explorer';
+import {usePageTheme} from './pageTheme';
 import {Hint} from '../components/Hint';
 import {LawsDialog} from '../components/Laws';
 import {GuideLink} from '../guide/Guide';
@@ -25,12 +26,7 @@ function parseSaved(raw:string|null):Saved{try{const v=raw?JSON.parse(raw):null;
 const subscribeStorage=(on:()=>void)=>{window.addEventListener('storage',on);return()=>window.removeEventListener('storage',on)};
 /** The theme is the document's class: the saved one is on it before the first paint (index.html), and the
  * Explorer keeps it there. Watched rather than copied, so the home page and the lesson never disagree. */
-const subscribeTheme=(on:()=>void)=>{const o=new MutationObserver(on);o.observe(document.documentElement,{attributes:true,attributeFilter:['class']});return()=>o.disconnect()};
-const isDark=()=>document.documentElement.classList.contains('dark');
-function setTheme(dark:boolean){
- document.documentElement.classList.toggle('dark',dark);
- try{const saved=parseSaved(readSaved());localStorage.setItem(STORAGE,JSON.stringify({...saved,dark}))}catch{/* kept for this visit */}
-}
+
 
 /** A lesson's address, carrying the values the reader left it with: opening it from here is going back to
  * it, as choosing it in the lesson list is. A lesson never visited opens as a shared link does, at its
@@ -103,7 +99,7 @@ export default function Home(){
  const raw=useSyncExternalStore(subscribeStorage,readSaved,()=>null);
  const [laws,setLaws]=useState(false),lawButton=useRef<HTMLButtonElement>(null);
  const saved=useMemo(()=>parseSaved(raw),[raw]);
- const dark=useSyncExternalStore(subscribeTheme,isDark,()=>false);
+ const [dark,setTheme]=usePageTheme();
  useEffect(()=>{document.title='Field Builder · Electric fields and potential, derived'},[]);
  // Older settings only name an integral lesson. A new Gauss visit records its own id/case without
  // overwriting those integral settings, so either route can remain a useful return link.
@@ -127,7 +123,7 @@ export default function Home(){
      <LawsDialog open={laws} onOpenChange={setLaws} returnFocus={lawButton}/>
      <p className="home-lede">Build the integral for the field and the potential of continuous charge, such as rods, rings, disks and sheets, by cutting the charge into pieces and adding up what each piece does at P.</p>
      <div className="home-actions">
-      <a className="home-start" href={lessonAddress(start.id,saved)} onClick={open}>Start with the finite line<ArrowRight size={16} aria-hidden="true"/></a>
+      <a className="home-start" href={lessonAddress(start.id,saved)} onClick={open}>Start beside the rod’s middle<ArrowRight size={16} aria-hidden="true"/></a>
       {lastGauss?<a className="home-continue" href={gaussHref(lastGauss.id,{case:lastCase})} onClick={open}><PlannedGlyph id={lastGauss.id} size={18}/><span className="home-continue-words"><span className="home-continue-kicker">Return to your last lesson</span><span className="home-continue-to">{plannedName(lastGauss.title)}</span></span><ArrowRight size={15} aria-hidden="true"/></a>:last&&<a className="home-continue" href={lessonAddress(last.id,saved)} onClick={open}><ShapeGlyph id={last.id} size={18}/><span className="home-continue-words"><span className="home-continue-kicker">Continue where you left off</span><span className="home-continue-to">{last.short}</span></span><ArrowRight size={15} aria-hidden="true"/></a>}
      </div>
      <div className="home-more"><GuideLink/><QuizLink/></div>

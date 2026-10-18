@@ -1,5 +1,5 @@
 'use client';
-import {useEffect,useSyncExternalStore} from 'react';
+import {useEffect} from 'react';
 import {ArrowRight,GraduationCap,Moon,Sun} from 'lucide-react';
 import {getProblem} from '../problems/definitions';
 import {isReady} from '../problems/readiness';
@@ -9,7 +9,7 @@ import {GAUSS,PlannedGlyph,ShapeGlyph,plannedName} from '../explorer/lessons';
 import {gaussHref,gaussLesson,isGaussReady} from '../gauss';
 import {PrintButton} from '../components/PrintButton';
 import {Brand,SiteLinks} from '../explorer/Brand';
-import {STORAGE} from '../explorer/Explorer';
+import {usePageTheme} from '../home/pageTheme';
 import {Prose} from '../components/Math';
 import {Hint} from '../components/Hint';
 import '../explorer/explorer.css';
@@ -30,14 +30,8 @@ import './guide.css';
  * named as the lesson list names them; its board, "Apply Gauss's law", is worked the way "Build the integral" is;
  * and the exam checklist has its Gauss's law run beside the integral's, with a line on which to reach for. */
 
-/** The theme, as the home page keeps it: the document's class, saved with the lesson's settings. Copied
- * rather than shared, so this page added nothing to Home.tsx but a link. */
-const subscribeTheme=(on:()=>void)=>{const o=new MutationObserver(on);o.observe(document.documentElement,{attributes:true,attributeFilter:['class']});return()=>o.disconnect()};
-const isDark=()=>document.documentElement.classList.contains('dark');
-function setTheme(dark:boolean){
- document.documentElement.classList.toggle('dark',dark);
- try{const raw=localStorage.getItem(STORAGE),v=raw?JSON.parse(raw):{};localStorage.setItem(STORAGE,JSON.stringify({...(v&&typeof v==='object'&&!Array.isArray(v)?v:{}),dark}))}catch{/* kept for this visit */}
-}
+// The utility pages share the document theme and the reader's explicit preference.
+
 const open=(e:React.MouseEvent<HTMLAnchorElement>)=>{if(!inPlace(e))return;e.preventDefault();navigate(e.currentTarget.getAttribute('href')??'')};
 /** A lesson as a shared link opens it: at its defaults, which is what the guide's words describe. */
 const lessonHref=(id:ProblemId)=>`?p=${id}`;
@@ -171,7 +165,7 @@ const CHECKLIST:{step:string;text:string}[]=[
  {step:'Check the limits',text:String.raw`Far from a finite distribution with nonzero net charge $Q$, check $E_r\approx kQ/r^2$ for the radial field and $V\approx kQ/r$ for the potential, with $V=0$ at infinity. If the net charge is zero, the leading point-charge term vanishes and the field and potential decay faster. Check the units too.`}];
 
 export default function Guide(){
- const dark=useSyncExternalStore(subscribeTheme,isDark,()=>false);
+ const [dark,setTheme]=usePageTheme();
  useEffect(()=>{document.title='How to study with this site · Field Builder'},[]);
  const themeLabel=dark?'Switch to light theme':'Switch to dark theme';
  const ready=(id:ProblemId)=>isReady(id);
@@ -261,7 +255,7 @@ export default function Guide(){
    </aside>
 
    <footer className="guide-foot">
-    <a className="guide-start" href={lessonHref('bisector')} onClick={open}>Start with the finite line<ArrowRight size={16} aria-hidden="true"/></a>
+    <a className="guide-start" href={lessonHref('bisector')} onClick={open}>Start beside the rod’s middle<ArrowRight size={16} aria-hidden="true"/></a>
     <a className="guide-home" href={HOME_HREF} onClick={e=>{if(!inPlace(e))return;e.preventDefault();goHome()}}>Back to every lesson</a>
    </footer>
   </main>

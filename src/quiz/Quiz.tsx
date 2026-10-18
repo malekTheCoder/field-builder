@@ -1,5 +1,5 @@
 'use client';
-import {useEffect,useMemo,useRef,useState,useSyncExternalStore,type ReactNode} from 'react';
+import {useEffect,useMemo,useRef,useState,type ReactNode} from 'react';
 import {ArrowRight,Check,ClipboardCheck,Moon,RotateCcw,Sun,X} from 'lucide-react';
 import {PROBLEMS} from '../problems/definitions';
 import {isReady} from '../problems/readiness';
@@ -8,7 +8,7 @@ import {FAMILIES,GAUSS,PlannedGlyph,ShapeGlyph,plannedName} from '../explorer/le
 import {isGaussReady} from '../gauss';
 import {PrintButton} from '../components/PrintButton';
 import {Brand,SiteLinks} from '../explorer/Brand';
-import {STORAGE} from '../explorer/Explorer';
+import {usePageTheme} from '../home/pageTheme';
 import {MathText,Prose} from '../components/Math';
 import {Hint} from '../components/Hint';
 import {BANKS,DEFAULT_SETTINGS,KINDS,LENGTHS,QUESTION,isGauss,pointerWord,shapeHref,shapeShort,shapeTitle,clearHistory,confidence,correctIndex,draw,drawAgain,drawWeak,grade,hasHistory,inWords,place,pointerFor,readHistory,record,score,toRevisit,weakSpots,writeHistory,type Drawn,type History,type Result,type Settings} from './engine';
@@ -26,12 +26,7 @@ import './quiz.css';
  * The quiz in progress is kept in this history entry's state, so a weak spot's lesson link can be followed and
  * Back returns to the same end screen, and a reload keeps the place. A new visit to `?quiz` starts at set up. */
 
-const subscribeTheme=(on:()=>void)=>{const o=new MutationObserver(on);o.observe(document.documentElement,{attributes:true,attributeFilter:['class']});return()=>o.disconnect()};
-const isDark=()=>document.documentElement.classList.contains('dark');
-function setTheme(dark:boolean){
- document.documentElement.classList.toggle('dark',dark);
- try{const raw=localStorage.getItem(STORAGE),v=raw?JSON.parse(raw):{};localStorage.setItem(STORAGE,JSON.stringify({...(v&&typeof v==='object'&&!Array.isArray(v)?v:{}),dark}))}catch{/* kept for this visit */}
-}
+
 const open=(e:React.MouseEvent<HTMLAnchorElement>)=>{if(!inPlace(e))return;e.preventDefault();navigate(e.currentTarget.getAttribute('href')??'')};
 
 /** THE WAY IN FROM THE HOME PAGE, beside the guide's: a quiet line, not a third button. */
@@ -70,7 +65,7 @@ function restore():Snapshot|null{
 }
 
 export default function Quiz(){
- const dark=useSyncExternalStore(subscribeTheme,isDark,()=>false);
+ const [dark,setTheme]=usePageTheme();
  const kept=useMemo(()=>restore(),[]);
  const [phase,setPhase]=useState<Phase>(kept?.phase??'setup');
  const [settings,setSettings]=useState<Settings>(()=>{

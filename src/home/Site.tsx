@@ -2,6 +2,7 @@
 import {useEffect,useRef,useSyncExternalStore} from 'react';
 import Explorer from '../explorer/Explorer';
 import Home from './Home';
+import {resetPageTheme} from './pageTheme';
 import Guide from '../guide/Guide';
 import Quiz from '../quiz/Quiz';
 import GaussLesson from '../gauss/GaussLesson';
@@ -14,7 +15,7 @@ import {subscribeAddress,viewOf,type View} from '../state/route';
 type Arrival='address'|'first'|'again';
 const visit={search:null as string|null,view:'home' as View,lessons:0,arrival:'address' as Arrival,key:''};
 /** A new visit, as a page load starts one: for tests, which mount the site many times in one page. */
-export function newVisit(){Object.assign(visit,{search:null,view:'home',lessons:0,arrival:'address',key:''})}
+export function newVisit(){resetPageTheme();Object.assign(visit,{search:null,view:'home',lessons:0,arrival:'address',key:''})}
 function snapshot(){
  const search=location.search;
  if(search!==visit.search){
