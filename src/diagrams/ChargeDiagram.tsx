@@ -3374,7 +3374,10 @@ export const ChargeDiagram = memo(function ChargeDiagram({ problem, params: p, s
     // phone the rod on the x axis has its y axis running up under the cube, which is painted over it, and y was
     // simply gone. Now it takes the spot that the fewest obstacles cover, and the cube, which hides what it covers,
     // counts for more than the rest. Never the axis' other half: unlettered, that is the way y does not run.
-    const covered = (c: Point) => obstacleBoxes.reduce((sum, b) => sum + (b === cubeBox ? 4 : 1) * Math.max(0, Math.min(c.x + w / 2 + m, b.x + b.width) - Math.max(c.x - w / 2 - m, b.x)) * Math.max(0, Math.min(c.y + h / 2 + m, b.y + b.height) - Math.max(c.y - h / 2 - m, b.y)), 0);
+    // The cube's box is reckoned from its size, but its face words are set in the reader's own font, and on a wider one
+    // (Linux's) the cube came out a few units bigger than reckoned: y, a hair clear of the reckoning, went under it.
+    // So the cube is kept at a wider berth than the rest, and weighs far more than any arrow a spot might touch.
+    const cubePad = 10, covered = (c: Point) => obstacleBoxes.reduce((sum, b) => { const p = b === cubeBox ? cubePad : 0; return sum + (b === cubeBox ? 40 : 1) * Math.max(0, Math.min(c.x + w / 2 + m, b.x + b.width + p) - Math.max(c.x - w / 2 - m, b.x - p)) * Math.max(0, Math.min(c.y + h / 2 + m, b.y + b.height + p) - Math.max(c.y - h / 2 - m, b.y - p)); }, 0);
     const c = spots.find(q => inPlot(q) && clear(q)) ?? spots.filter(inPlot).reduce<Point | null>((best, q) => !best || covered(q) < covered(best) - 1e-6 ? q : best, null) ?? spots[0];
     return { x: c.x.toFixed(1), y: (c.y + .3 * size).toFixed(1), textAnchor: 'middle' as const };
   };
