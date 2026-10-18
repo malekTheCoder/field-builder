@@ -11,11 +11,12 @@
  * its own picture back on the next frame. */
 export const SNAPSHOT_EVENT='field-builder:snapshot';
 /** `drawOnly`: the caller copies the canvas itself, in this same task, and wants no PNG; the layer then says
- * only that it has `drawn`. */
-export type SnapshotDetail={url?:string;drawOnly?:boolean;drawn?:boolean};
+ * only that it has `drawn`. `minimumWidth` requests a larger backing store for an exported image,
+ * without changing its CSS geometry or the live figure’s rendering cost. */
+export type SnapshotDetail={url?:string;drawOnly?:boolean;drawn?:boolean;minimumWidth?:number};
 /** Ask a layer for its picture. Synchronous: the listener runs inside the dispatch. */
-export function snapshotLayer(el:Element):string|undefined{
- const detail:SnapshotDetail={};
+export function snapshotLayer(el:Element,minimumWidth=0):string|undefined{
+ const detail:SnapshotDetail={minimumWidth};
  el.dispatchEvent(new CustomEvent<SnapshotDetail>(SNAPSHOT_EVENT,{detail}));
  return detail.url;
 }

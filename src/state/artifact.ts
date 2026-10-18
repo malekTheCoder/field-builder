@@ -1,4 +1,5 @@
 import katex from 'katex';
+import hanken from '@fontsource-variable/hanken-grotesk/files/hanken-grotesk-latin-wght-normal.woff2?inline';
 import {snapshotLayer} from '../diagrams/snapshot';
 import {PLOT} from '../diagrams/vectorfield';
 import {buildStages} from '../explorer/buildRun';
@@ -570,21 +571,23 @@ export function artifactHtml(a: LessonArtifact) {
   return `<!DOCTYPE html>
 <html lang="en"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/><title>${escapeHtml(a.title)} · Field Builder</title>
 <style>
+/* The copy must keep its reading face without a network connection or an installed font. */
+@font-face { font-family:"Hanken Grotesk Variable"; font-style:normal; font-weight:100 900; font-display:swap; src:url("${hanken}") format("woff2"); }
 @page { size: letter; margin: 12mm; }
-html,body { background:#fff; color:#171717; font: 16px/1.55 "Hanken Grotesk", system-ui, -apple-system, "Segoe UI", sans-serif; margin:0; }
+html,body { background:#fff; color:#171717; font: 16px/1.55 "Hanken Grotesk Variable", system-ui, -apple-system, "Segoe UI", sans-serif; margin:0; }
 main { max-width: 720px; margin: 0 auto; padding: 24px 18px 32px; }
-.kicker { margin: 0 0 18px; color:#5e5e5e; font-size: 12px; }
-h1 { font: 600 30px/1.15 "Hanken Grotesk", system-ui, -apple-system, "Segoe UI", sans-serif; letter-spacing: -0.015em; margin: 0 0 8px; }
-h2 { font: 600 19px/1.25 "Hanken Grotesk", system-ui, -apple-system, "Segoe UI", sans-serif; margin: 28px 0 8px; }
+.kicker { margin: 0 0 18px; color:#5e5e5e; font-size: 14px; }
+h1 { font: 600 30px/1.15 "Hanken Grotesk Variable", system-ui, -apple-system, "Segoe UI", sans-serif; letter-spacing: -0.015em; margin: 0 0 8px; }
+h2 { font: 600 19px/1.25 "Hanken Grotesk Variable", system-ui, -apple-system, "Segoe UI", sans-serif; margin: 28px 0 8px; }
 h2, h3 { break-after: avoid; }
 .keep { break-inside: avoid; }
 p { max-width: 62ch; margin: 0 0 10px; }
 .lede { color:#5e5e5e; font-size: 16px; }
-.address { color:#5e5e5e; font-size: 13px; overflow-wrap: anywhere; }
+.address { color:#5e5e5e; font-size: 14px; overflow-wrap: anywhere; }
 .address a { color: #171717; }
 figure { margin: 22px 0 6px; break-inside: avoid; }
 figure svg { display:block; width: 100%; height: auto; max-height: 440px; }
-figcaption { margin-top: 4px; color:#5e5e5e; font-size: 15px; }
+figcaption { margin-top: 4px; color:#5e5e5e; font-size: 16px; }
 math { font-family: "STIX Two Math", "Latin Modern Math", "Cambria Math", math; font-size: 1.12em; }
 math[display="block"] { margin: 10px 0 14px; }
 .result math[display="block"] { margin: 6px 0; }
@@ -612,7 +615,7 @@ mtable[columnalign^="right left"] > mtr > mtd:nth-child(even) { text-align: left
 .stage .where { margin-top: 0; }
 .g { font-family: "STIX Two Math", "Latin Modern Math", "Cambria Math", serif; font-style: italic; }
 .g.up { font-style: normal; }
-h3 { font: 600 16px/1.3 "Hanken Grotesk", system-ui, -apple-system, "Segoe UI", sans-serif; margin: 18px 0 2px; }
+h3 { font: 600 16px/1.3 "Hanken Grotesk Variable", system-ui, -apple-system, "Segoe UI", sans-serif; margin: 18px 0 2px; }
 .stage h3 { margin: 18px 0 4px; }
 .check { break-inside: avoid; }
 .check math[display="block"] { margin: 6px 0 8px; }
@@ -623,8 +626,10 @@ h3 { font: 600 16px/1.3 "Hanken Grotesk", system-ui, -apple-system, "Segoe UI", 
 .lesson h2 { margin-top: 0; }
 .lesson .lead { font-size: 16px; }
 .lesson cite { font-style: italic; }
-.url { display: block; color: #5e5e5e; font-size: 12px; overflow-wrap: anywhere; }
-footer { margin-top: 36px; padding-top: 12px; border-top: 1px solid #d4d4d4; color: #5e5e5e; font-size: 12px; }
+.url { display: block; color: #5e5e5e; font-size: 14px; overflow-wrap: anywhere; }
+/* This screen-only format note must not consume a final printed sheet after the lesson ends. */
+@media print { footer { display:none; } }
+footer { margin-top: 36px; padding-top: 12px; border-top: 1px solid #d4d4d4; color: #5e5e5e; font-size: 14px; }
 </style></head>
 <body><main>
 <p class="kicker">Field Builder · saved copy</p>
@@ -696,8 +701,10 @@ export function figureCopy(stage: Element): string {
     }
   });
   for (const el of drop) el.remove();
-  // The field, under the drawing, as the page layers it.
-  const layers = [...stage.querySelectorAll('.cd-field-canvas, .cd-field-stage')].map(snapshotLayer).filter((u): u is string => !!u);
+  // The field, under the drawing, as the page layers it. The compact layout is readable on a phone,
+  // but its pixels must also support a full-width handout: ask for twice the paper figure's width.
+  // Only this one snapshot uses the larger buffer; the live canvas keeps its normal render cost.
+  const layers = [...stage.querySelectorAll('.cd-field-canvas, .cd-field-stage')].map(el=>snapshotLayer(el,1440)).filter((u): u is string => !!u);
   if (layers.length) {
     const ns = 'http://www.w3.org/2000/svg';
     const defs = copy.querySelector('defs') ?? copy.insertBefore(document.createElementNS(ns, 'defs'), copy.firstChild);

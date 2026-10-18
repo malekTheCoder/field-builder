@@ -29,6 +29,14 @@ describe('offline lesson artifact', () => {
     expect(html).not.toContain('<script>alert(1)</script>');
   });
 
+  it('embeds the reading face and keeps prose on the approved type scale offline', () => {
+    const html = copyOf('ring');
+    expect(html).toMatch(/@font-face[^{]*\{[^}]*src:url\("data:font\/woff2;base64,/);
+    expect(html).not.toMatch(/https?:[^"')]+\.woff2/);
+    expect(html).not.toMatch(/font-size: (12|13|15)px/);
+    expect(html).toContain('font-weight:100 900');
+  });
+
   it('sets the equations as MathML, not as TeX source in a box', () => {
     const html = copyOf('bisector');
     expect(html).toContain('<math');

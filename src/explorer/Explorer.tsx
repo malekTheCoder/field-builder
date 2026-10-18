@@ -1159,9 +1159,11 @@ export default function Explorer({welcome}:{welcome?:boolean}={}){
   * It is drawn as One piece draws it: the run's piece, its rᵢ and its ΔE, with the reader's own values and view.
   * Drawn apart from the page, off screen and still, so the live figure never changes under the reader. */
  async function saveCopy(){
-  const live=document.querySelector<HTMLElement>('.explorer-app .cd-stage');
+  // Save the compact arrangement even from a wide laptop. A single desktop-sized SVG shrinks its
+  // labels to unreadable print on a phone; the renderer's narrow layout already reserves space for
+  // larger labels. Its geometry and selected piece stay the same, and the copy can scale up on paper.
   const host=document.createElement('div');host.className='explorer-app symbolic-view fb-copy-figure';host.setAttribute('aria-hidden','true');
-  host.style.cssText=`position:fixed;left:-30000px;top:0;width:${Math.round(live?.getBoundingClientRect().width||720)}px;pointer-events:none`;
+  host.style.cssText=`position:fixed;left:-30000px;top:0;width:390px;pointer-events:none`;
   const card=document.createElement('div');card.className='exp-diagram-card';host.appendChild(card);document.body.appendChild(host);
   // Every animation and transition at its end: a copy is the finished frame, never a frame on its way in.
   const still=document.createElement('style');still.textContent='.fb-copy-figure *{animation:none!important;transition:none!important}';document.head.appendChild(still);

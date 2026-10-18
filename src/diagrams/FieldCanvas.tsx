@@ -152,7 +152,7 @@ export function FieldCanvas({samples,project,frame,lines=15,mode='lines',reach=6
  useEffect(()=>{
   const el=canvas.current,host=box.current;
   if(!el||!host)return;
-  let frameId=0;
+  let frameId=0,snapshotWidth=0;
   const draw=()=>{
    // clientWidth, not getBoundingClientRect: the rect is in visual pixels and so includes
    // any page zoom or CSS transform above us. Writing that back as the element's CSS size
@@ -161,7 +161,7 @@ export function FieldCanvas({samples,project,frame,lines=15,mode='lines',reach=6
    // at 100%; only the backing store is set here.
    const w=host.clientWidth,h=host.clientHeight;
    if(w<2||h<2)return;
-   const dpr=Math.min(window.devicePixelRatio||1,2);
+   const dpr=Math.max(Math.min(window.devicePixelRatio||1,2),snapshotWidth/w);
    // Only when it has actually changed: assigning a canvas its own size still throws away its
    // drawing buffer and allocates a new one, and the size is the same on every redraw but a resize.
    // A kept buffer keeps its drawing state too, so the alpha is put back with the transform.
@@ -248,8 +248,11 @@ export function FieldCanvas({samples,project,frame,lines=15,mode='lines',reach=6
   observer.observe(host);
   // The offline copy: drawn now, in whatever theme the page has just been put in, then put back.
   const snapshot=(ev:Event)=>{
-   cancelAnimationFrame(frameId);draw();
-   const asked=(ev as CustomEvent<SnapshotDetail>).detail;asked.drawn=true;if(!asked.drawOnly)try{asked.url=el.toDataURL('image/png');}catch{/* a tainted or lost canvas: the copy goes without its field */}
+   const asked=(ev as CustomEvent<SnapshotDetail>).detail;
+   cancelAnimationFrame(frameId);snapshotWidth=asked.minimumWidth??0;
+   try{draw();asked.drawn=true;if(!asked.drawOnly)asked.url=el.toDataURL('image/png');}
+   catch{/* a tainted or lost canvas: the copy goes without its field */}
+   finally{snapshotWidth=0;}
    frameId=requestAnimationFrame(draw);
   };
   host.addEventListener(SNAPSHOT_EVENT,snapshot);
