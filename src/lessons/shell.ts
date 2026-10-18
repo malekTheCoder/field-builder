@@ -21,7 +21,7 @@ export const lesson: Lesson = {
     {heading: 'One ring', body: [
       raw`A ring seen from its axis is the ring lesson’s answer: its field points along the axis. This ring sits at the height $R\cos\theta$, so $P$ is $z-R\cos\theta$ above its plane, and by the law of cosines`,
       {tex: raw`r_i^2=R^2+z^2-2zR\cos\theta`},
-      raw`Its part along the axis is the fraction $\cos\alpha=(z-R\cos\theta)/r_i$ of a point charge’s field, $\alpha$ the angle between the axis and the ring’s line to $P$:`,
+      raw`The angle $\alpha$ at $P$ is between the ray toward the ring and the downward axis. Its signed axial projection is $\cos\alpha=(z-R\cos\theta)/r_i$:`,
       {tex: raw`\Delta E_z=\frac{k\,\Delta Q\,(z-R\cos\theta)}{r_i^3}`},
       raw`For a ring above $P$, $\cos\alpha<0$: its field points the other way along the axis.`,
     ]},

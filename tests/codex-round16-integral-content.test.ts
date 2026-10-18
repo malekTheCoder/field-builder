@@ -18,6 +18,13 @@ const plain = (id: Parameters<typeof lessonFor>[0]) => JSON.stringify(lessonFor(
 const qText = (q: {explanation: string; choices: unknown[]}) => JSON.stringify(q).replaceAll('\u00a0', ' ');
 
 describe('round sixteen: the integral lesson’s words agree with its signed physics', () => {
+  it('preserves the signed potential and its units when reconciling later lesson copy', () => {
+    for (const id of ['v-ring', 'v-disk', 'v-arc', 'v-rod-bisector', 'v-rod-axial'] as const) {
+      const one = getProblem(id).steps.find(s => s.kind === 'contribution')!.text;
+      expect(one).toContain('signed scalar');
+      expect(one).toContain('volts (joules per coulomb)');
+    }
+  });
   it('the sheet’s equal-angle pieces grow in magnitude, even though negative signed components decrease', () => {
     for (const charge of [-5, 5]) {
       const pieces = REGISTRY.sheet.sample({...DEFAULT_PARAMS, charge}, 30);
@@ -53,6 +60,24 @@ describe('round sixteen: the integral lesson’s words agree with its signed phy
       expect([...signs].sort((a, b) => a - b)).toEqual([-1, 1]);
     }
     expect(shell.find(q => q.id === 'shell-what-cancels')!.explanation).toContain('$\\Delta Q\\,(z-R\\cos\\theta)$');
+  });
+
+  it('the shell’s geometric angle is oriented at P even when the selected ring is above P', () => {
+    const R = 2, z = 1, theta = Math.PI / 10;
+    const ringZ = R * Math.cos(theta), radial = R * Math.sin(theta);
+    // At P the ray toward the ring is (radial, ringZ-z); the reference is downward.
+    const cosAlpha = -(ringZ - z) / Math.hypot(radial, ringZ - z);
+    expect(cosAlpha).toBeLessThan(0);
+    expect(Math.acos(cosAlpha)).toBeGreaterThan(Math.PI / 2);
+    for (const q of [-5, 5]) {
+      const Ez = q * (z - ringZ) / (radial ** 2 + (ringZ - z) ** 2) ** 1.5;
+      expect(Math.sign(Ez)).toBe(-Math.sign(q));
+    }
+    const oneRing = lessonFor('shell')!.sections.find(s => s.heading === 'One ring')!;
+    const prose = oneRing.body.filter(b => typeof b === 'string').join(' ');
+    expect(prose).toContain('ray toward the ring');
+    expect(prose).toContain('downward axis');
+    expect(prose).toContain('at $P$');
   });
 
   it('a negative ramp has decreasing signed density and opposite signs for its two field components', () => {
@@ -110,6 +135,8 @@ describe('round sixteen: the integral lesson’s words agree with its signed phy
       expect(Math.abs(E.y)).toBeLessThan(1e-12);
     }
     expect(getProblem('offset').symmetry.tex).not.toContain('\\ne0');
+    const zero = fields('offset').find(f => f.id === 'kernel2')!.mistakes!.find(m => m.expression === '0')!;
+    expect(zero.message.replaceAll('\u00a0', ' ')).toContain('with P level with the middle there is no leftover');
     expect(lessonFor('offset')!.sections.flatMap(s => s.body).filter(b => typeof b !== 'string').map(b => b.tex)).toContain(String.raw`E_y=-\int_{y_1}^{y_2}\frac{k\lambda\,dy}{y^2+r^2}\cdot\frac{y}{\sqrt{y^2+r^2}}`);
     expect(bisector.find(q => q.id === 'bisector-raise-p')!.review).toEqual({lesson: 'offset', stage: 'cancel'});
     expect(limitPlot(getProblem('offset'), getProblem('offset').limits.find(l => l.mode === 'end')!).y).not.toContain('end-on');

@@ -19,7 +19,11 @@ describe('Gauss feedback states the domain of its recipe',()=>{
   expect(idea('surface-real')).toContain('direct');
   expect(idea('wrong-surface')).not.toContain('On any other surface');
   expect(idea('false-symmetry')).not.toContain('Only spherical, cylindrical and planar');
-  expect(lesson('holes').lead).toContain('disc');
+  expect(lesson('holes').lead).toContain('disk plug');
+  const holesText = JSON.stringify(lesson('holes'));
+  expect(holesText).not.toMatch(/no closed surface has its field the same all over|no surface that would work/);
+  expect(holesText).toContain('axial symmetry alone does not reduce');
+  expect(lesson('holes').sections?.some(s=>s.heading==='A sheet with a hole: a disk integral')).toBe(true);
  });
  it('cancels auxiliary dimensions at fixed P while radius can set the field',()=>{
   const q={kind:'point' as const,size:0,sign:1 as const,amount:2};

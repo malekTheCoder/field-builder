@@ -51,7 +51,8 @@ describe('every lesson that grades a cos α says what α is', () => {
       const lesson = lessonFor(p.id) ? lessonText(p.id) : '';
       expect(p.setup.includes(String.raw`\alpha`) || lesson.includes(String.raw`\alpha`), p.id).toBe(true);
     }
-    expect(getProblem('shell').setup).toContain(String.raw`makes the angle $\alpha$ with the axis`);
+    expect(getProblem('shell').setup).toContain(String.raw`the projection angle $\alpha$ is at $P$`);
+    expect(lessonText('shell')).toContain('downward axis');
     expect(lessonText('shell')).toContain(String.raw`\cos\alpha=(z-R\cos\theta)/r_i`);
   });
 });
@@ -88,10 +89,15 @@ describe('the annulus', () => {
     }
     expect(plain(p.steps.find(s => s.kind === 'element')!.text)).toContain('Each thin ring is complete');
   });
-  it('says which term becomes one with no hole, in the form on display', () => {
+  it('names the factor that becomes one with no hole, independently of formula layout', () => {
     const hole = plain(p.limits.find(l => l.id === 'hole')!.explanation);
-    expect(hole).toContain('the first term, z/√(a² + z²), becomes z/√(z²) = 1');
-    expect(lessonText('annulus')).toContain(String.raw`the first term, $z/\sqrt{a^2+z^2}$, becomes $z/\sqrt{z^2}=1$`);
+    // In the expanded lesson z stays outside the bracket: its first term tends to 1/z.
+    for (const z of [.5, 2, 4]) {
+      expect(1 / Math.sqrt(z * z)).toBeCloseTo(1 / z, 14);
+      expect(z / Math.sqrt(z * z)).toBe(1);
+    }
+    expect(hole).toContain('the factor z/√(a² + z²) becomes z/√(z²) = 1');
+    expect(lessonText('annulus')).toContain(String.raw`the factor $z/\sqrt{a^2+z^2}$ becomes $z/\sqrt{z^2}=1$`);
   });
   it('reads the hole’s radius plainly, and warns that the Gauss lesson calls it b', () => {
     const run = plain(p.limits.find(l => l.id === 'infinite')!.explanation);
@@ -110,6 +116,8 @@ describe('the rod off its middle', () => {
   it('says that one piece’s part along the rod is not zero', () => {
     const zero = notes(p).find(n => n.label.startsWith('y-component integrand') && n.expression === '0')!;
     expect(plain(zero.message)).toMatch(/^Each piece’s part along the rod is not zero/);
+    // A centred P is still a legal slider state: no unmatched stretch survives there.
+    expect(plain(zero.message)).toContain('with P level with the middle there is no leftover');
   });
   it('names the rod level with its end as that, not as the end-on rod', () => {
     const plot = limitPlot(p, p.limits.find(l => l.id === 'end')!);
