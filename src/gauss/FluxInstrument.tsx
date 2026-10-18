@@ -17,7 +17,9 @@ import {useRenderedWidth} from '../components/useRenderedWidth';
  *
  * Every charge can be moved from the keyboard (arrow keys, Shift for a long step), and a crossing is said aloud. */
 const DEGREES: Intl.NumberFormatOptions = {style: 'unit', unit: 'degree', unitDisplay: 'long', maximumFractionDigits: 0};
-const C = {x: 320, y: 165}, U = 66;
+// Keep one scale for every slider position. The largest allowed blob, including its outward normal ticks,
+// must fit between the tabs and readout; fitting only the initial size lets the enlarged surface overlap both.
+const C = {x: 320, y: 165}, U = 46;
 const toScreen = (p: Pt) => ({x: C.x + U * p.x, y: C.y - U * p.y});
 function Arrow({a, b, className, head = 8}: {a: Pt; b: Pt; className: string; head?: number}) {
   const dx = b.x - a.x, dy = b.y - a.y, len = Math.hypot(dx, dy);

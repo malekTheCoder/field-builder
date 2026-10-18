@@ -30,7 +30,7 @@ export const bank: Question[] = [
       {text: raw`Because Gauss’s law is only true for charges that go on for ever.`, misconception: 'law-fails',
         why: raw`It is true for every closed surface and every charge: here the flux is exactly $2\lambda\ell/\varepsilon_0$. It is one equation, and the field is a whole function, so it cannot be solved for $E$ at a point.`},
     ],
-    explanation: raw`To solve for $E$ the field must be the same over each part of the surface that carries flux, and perpendicular to it. Round a finite rod it weakens and leans toward the ends, and crosses the ends, so the law is one true equation with $E$ still inside an integral.`,
+    explanation: raw`The line’s direct recipe uses a constant wall-normal field and no end flux. A finite rod’s normal field varies along the wall and crosses the ends too. Its symmetry alone does not relate the total flux to $E$ at $P$, so the law leaves an unknown field inside the integral.`,
     review: {lesson: 'runs-out', stage: 'left', case: 'rod'}},
 
   {id: 'runs-out-wider', lesson: 'runs-out', kind: 'predict',

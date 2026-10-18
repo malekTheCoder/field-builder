@@ -20,7 +20,7 @@ export const lesson: GaussLesson = {
       raw`Here $\theta$ is the angle between $\vec E$ and the normal $\hat{\mathbf n}$, not between $\vec E$ and the patch. Only the part of the field perpendicular to the patch, $E\cos\theta$, carries field through it; the part along the patch slides past.`,
     ]},
     {heading: 'The angle is from the normal', body: [
-      raw`Face the patch square on to the field, $\theta=0$, and the flux is the most it can be, $EA$. Turn it until the field slides along it, $\theta=\pi/2$, and the flux is zero. Turn it further and the field goes through the other way, and the flux is negative. If a problem gives the angle between the field and the surface itself, the angle you want is its complement.`,
+      raw`Face the patch square on to the field, $\theta=0$, and the flux is the most it can be, $EA$. Turn it until the field slides along it, $\theta=\pi/2$, and the flux is zero. Turn it further and the field goes through the other way, and the flux is negative. For an acute angle $\beta$ to the surface, the flux magnitude is $EA\sin\beta$; its sign comes from the chosen normal. The normal angle is the complement only when the field points through the patch in the normal’s direction.`,
     ]},
     {heading: 'Curved surfaces, changing fields', body: [
       raw`Where the surface curves or the field changes from place to place, cut the surface into small patches $d\vec A$, each nearly flat with the field nearly the same across it, and add up what each one carries:`,

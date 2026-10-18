@@ -85,7 +85,9 @@ export function QencInstrument({sign}: {sign: 1 | -1}) {
       <line className="gs-at" x1={X(r)} x2={X(r)} y1={base + sign * 4} y2={far - sign * 10} />
       <text className="gs-name" x={X(r) + (Math.abs(r - 1) < .1 ? 14 : 0)} y={base + (sign > 0 ? 22 : -16)} textAnchor="middle">r</text>
       <text className="gs-name gs-axis-name" x={P1 + 10} y={base + (sign > 0 ? 22 : -16)} textAnchor="end">r′</text>
-      {(() => { const xr = profile === 'rising' ? .45 : .2, xq = profile === 'falling' ? .62 : .78;
+      {/* Use different curve heights as well as horizontal anchors: the rising curves nearly meet at the old label positions.
+          These anchors leave a full phone glyph height between names for every profile and both reflected signs. */}
+      {(() => { const xr = .12, xq = profile === 'falling' ? .9 : .78;
         return <>
           <text className="gs-name gs-rho-name" x={X(xr) + 8} y={Y(rho(xr), rhoPeak) - sign * 10}>ρ</text>
           <text className="gs-name gs-dq-name" x={X(xq) - 10} y={Y(dq(xq), dqPeak) - sign * 12} textAnchor="end">ρ · 4πr′²</text>
